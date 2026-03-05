@@ -20,6 +20,17 @@ export const solutions: ProblemSolution[] = [
             return [seen[complement], i]
         seen[num] = i
     return []`,
+    jsCode: `var twoSum = function(nums, target) {
+    const seen = new Map(); // value -> index
+    for (let i = 0; i < nums.length; i++) {
+        const complement = target - nums[i];
+        if (seen.has(complement)) {
+            return [seen.get(complement), i];
+        }
+        seen.set(nums[i], i);
+    }
+    return [];
+};`,
     explanation:
       '1. We maintain a dictionary "seen" that maps each number to its index.\n' +
       '2. For each number, we compute complement = target - num.\n' +
@@ -54,6 +65,17 @@ def groupAnagrams(strs: list[str]) -> list[list[str]]:
         key = "".join(sorted(s))
         groups[key].append(s)
     return list(groups.values())`,
+    jsCode: `var groupAnagrams = function(strs) {
+    const groups = new Map();
+    for (const s of strs) {
+        const key = s.split('').sort().join('');
+        if (!groups.has(key)) {
+            groups.set(key, []);
+        }
+        groups.get(key).push(s);
+    }
+    return Array.from(groups.values());
+};`,
     explanation:
       '1. We create a defaultdict of lists so that missing keys auto-initialize to an empty list.\n' +
       '2. For each string, we sort its characters and join them back into a canonical key.\n' +
@@ -91,6 +113,22 @@ def groupAnagrams(strs: list[str]) -> list[list[str]]:
             longest = max(longest, length)
 
     return longest`,
+    jsCode: `var longestConsecutive = function(nums) {
+    const numSet = new Set(nums);
+    let longest = 0;
+
+    for (const num of numSet) {
+        if (!numSet.has(num - 1)) { // start of a sequence
+            let length = 1;
+            while (numSet.has(num + length)) {
+                length++;
+            }
+            longest = Math.max(longest, length);
+        }
+    }
+
+    return longest;
+};`,
     explanation:
       '1. Convert nums to a set for O(1) lookups.\n' +
       '2. For each number, check if (num - 1) exists. If it does, this number is not the start of a sequence -- skip it.\n' +
@@ -124,6 +162,16 @@ def groupAnagrams(strs: list[str]) -> list[list[str]]:
             return True
         seen.add(num)
     return False`,
+    jsCode: `var containsDuplicate = function(nums) {
+    const seen = new Set();
+    for (const num of nums) {
+        if (seen.has(num)) {
+            return true;
+        }
+        seen.add(num);
+    }
+    return false;
+};`,
     explanation:
       '1. Initialize an empty set "seen".\n' +
       '2. For each number, check if it already exists in the set.\n' +
@@ -154,6 +202,18 @@ def groupAnagrams(strs: list[str]) -> list[list[str]]:
 
 def isAnagram(s: str, t: str) -> bool:
     return Counter(s) == Counter(t)`,
+    jsCode: `var isAnagram = function(s, t) {
+    if (s.length !== t.length) return false;
+    const count = {};
+    for (const ch of s) {
+        count[ch] = (count[ch] || 0) + 1;
+    }
+    for (const ch of t) {
+        if (!count[ch]) return false;
+        count[ch]--;
+    }
+    return true;
+};`,
     explanation:
       '1. Counter(s) creates a dictionary of character frequencies for s.\n' +
       '2. Counter(t) does the same for t.\n' +
@@ -195,6 +255,29 @@ def topKFrequent(nums: list[int], k: int) -> list[int]:
             if len(result) == k:
                 return result
     return result`,
+    jsCode: `var topKFrequent = function(nums, k) {
+    const count = new Map();
+    for (const num of nums) {
+        count.set(num, (count.get(num) || 0) + 1);
+    }
+
+    // Bucket sort: index = frequency, value = list of nums with that frequency
+    const buckets = Array.from({ length: nums.length + 1 }, () => []);
+    for (const [num, freq] of count) {
+        buckets[freq].push(num);
+    }
+
+    const result = [];
+    for (let freq = buckets.length - 1; freq > 0; freq--) {
+        for (const num of buckets[freq]) {
+            result.push(num);
+            if (result.length === k) {
+                return result;
+            }
+        }
+    }
+    return result;
+};`,
     explanation:
       '1. Count the frequency of each element using Counter.\n' +
       '2. Create buckets of size (n+1). Index i of this array stores all numbers whose frequency is exactly i.\n' +
@@ -238,6 +321,26 @@ def topKFrequent(nums: list[int], k: int) -> list[int]:
         suffix *= nums[i]
 
     return answer`,
+    jsCode: `var productExceptSelf = function(nums) {
+    const n = nums.length;
+    const answer = new Array(n).fill(1);
+
+    // Left pass: answer[i] = product of nums[0..i-1]
+    let prefix = 1;
+    for (let i = 0; i < n; i++) {
+        answer[i] = prefix;
+        prefix *= nums[i];
+    }
+
+    // Right pass: multiply by product of nums[i+1..n-1]
+    let suffix = 1;
+    for (let i = n - 1; i >= 0; i--) {
+        answer[i] *= suffix;
+        suffix *= nums[i];
+    }
+
+    return answer;
+};`,
     explanation:
       '1. Initialize answer array with all 1s.\n' +
       '2. Left pass: for each index i, answer[i] stores the product of all elements before i. We maintain a running "prefix" product.\n' +
@@ -285,6 +388,30 @@ def topKFrequent(nums: list[int], k: int) -> list[int]:
             boxes[box_idx].add(val)
 
     return True`,
+    jsCode: `var isValidSudoku = function(board) {
+    const rows = Array.from({ length: 9 }, () => new Set());
+    const cols = Array.from({ length: 9 }, () => new Set());
+    const boxes = Array.from({ length: 9 }, () => new Set());
+
+    for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+            const val = board[r][c];
+            if (val === '.') continue;
+
+            const boxIdx = Math.floor(r / 3) * 3 + Math.floor(c / 3);
+
+            if (rows[r].has(val) || cols[c].has(val) || boxes[boxIdx].has(val)) {
+                return false;
+            }
+
+            rows[r].add(val);
+            cols[c].add(val);
+            boxes[boxIdx].add(val);
+        }
+    }
+
+    return true;
+};`,
     explanation:
       '1. Create 9 sets each for rows, columns, and 3x3 boxes.\n' +
       '2. For each cell, skip if it is "." (empty).\n' +
@@ -325,6 +452,20 @@ def subarraySum(nums: list[int], k: int) -> int:
         prefix_counts[current_sum] += 1
 
     return count`,
+    jsCode: `var subarraySum = function(nums, k) {
+    const prefixCounts = new Map();
+    prefixCounts.set(0, 1); // empty prefix
+    let currentSum = 0;
+    let count = 0;
+
+    for (const num of nums) {
+        currentSum += num;
+        count += prefixCounts.get(currentSum - k) || 0;
+        prefixCounts.set(currentSum, (prefixCounts.get(currentSum) || 0) + 1);
+    }
+
+    return count;
+};`,
     explanation:
       '1. prefix_counts maps each prefix sum to how many times it has occurred.\n' +
       '2. We initialize prefix_counts[0] = 1 because an empty prefix has sum 0 (this handles subarrays starting at index 0).\n' +
@@ -380,6 +521,35 @@ class RandomizedSet:
 
     def getRandom(self) -> int:
         return random.choice(self.vals)`,
+    jsCode: `var RandomizedSet = function() {
+    this.vals = [];
+    this.valToIdx = new Map();
+};
+
+RandomizedSet.prototype.insert = function(val) {
+    if (this.valToIdx.has(val)) return false;
+    this.valToIdx.set(val, this.vals.length);
+    this.vals.push(val);
+    return true;
+};
+
+RandomizedSet.prototype.remove = function(val) {
+    if (!this.valToIdx.has(val)) return false;
+    const idx = this.valToIdx.get(val);
+    const last = this.vals[this.vals.length - 1];
+    // Move the last element into the removed slot
+    this.vals[idx] = last;
+    this.valToIdx.set(last, idx);
+    // Remove the last element
+    this.vals.pop();
+    this.valToIdx.delete(val);
+    return true;
+};
+
+RandomizedSet.prototype.getRandom = function() {
+    const randomIdx = Math.floor(Math.random() * this.vals.length);
+    return this.vals[randomIdx];
+};`,
     explanation:
       '1. self.vals stores elements in a list; self.val_to_idx maps each value to its index in the list.\n' +
       '2. insert: if the value is new, append it to the list and record its index in the map.\n' +
@@ -421,6 +591,26 @@ class RandomizedSet:
             return i + 1
 
     return n + 1`,
+    jsCode: `var firstMissingPositive = function(nums) {
+    const n = nums.length;
+
+    // Place each number in its "correct" position: value v goes to index v-1
+    for (let i = 0; i < n; i++) {
+        while (nums[i] >= 1 && nums[i] <= n && nums[nums[i] - 1] !== nums[i]) {
+            const correct = nums[i] - 1;
+            [nums[i], nums[correct]] = [nums[correct], nums[i]];
+        }
+    }
+
+    // Find the first position where nums[i] != i + 1
+    for (let i = 0; i < n; i++) {
+        if (nums[i] !== i + 1) {
+            return i + 1;
+        }
+    }
+
+    return n + 1;
+};`,
     explanation:
       '1. The answer must be in the range [1, n+1] where n is the array length. If all 1..n are present, the answer is n+1.\n' +
       '2. We rearrange the array in-place: value v should sit at index v-1. We swap nums[i] with nums[nums[i]-1] repeatedly until nums[i] is in the right spot or out of range.\n' +
@@ -457,6 +647,19 @@ class RandomizedSet:
         count += 1 if num == candidate else -1
 
     return candidate`,
+    jsCode: `var majorityElement = function(nums) {
+    let candidate = 0;
+    let count = 0;
+
+    for (const num of nums) {
+        if (count === 0) {
+            candidate = num;
+        }
+        count += (num === candidate) ? 1 : -1;
+    }
+
+    return candidate;
+};`,
     explanation:
       '1. Start with count = 0 and no candidate.\n' +
       '2. When count reaches 0, pick the current number as the new candidate.\n' +
@@ -490,6 +693,22 @@ class RandomizedSet:
             nums[idx] = -nums[idx]
 
     return [i + 1 for i in range(len(nums)) if nums[i] > 0]`,
+    jsCode: `var findDisappearedNumbers = function(nums) {
+    for (const num of nums) {
+        const idx = Math.abs(num) - 1;
+        if (nums[idx] > 0) {
+            nums[idx] = -nums[idx];
+        }
+    }
+
+    const result = [];
+    for (let i = 0; i < nums.length; i++) {
+        if (nums[i] > 0) {
+            result.push(i + 1);
+        }
+    }
+    return result;
+};`,
     explanation:
       '1. For each number num, compute index = |num| - 1 (use absolute value because the number might already be negated).\n' +
       '2. If nums[index] is positive, negate it to mark that the value (index+1) exists in the array.\n' +
@@ -530,6 +749,26 @@ class RandomizedSet:
             remainder_idx[remainder] = i
 
     return False`,
+    jsCode: `var checkSubarraySum = function(nums, k) {
+    const remainderIdx = new Map();
+    remainderIdx.set(0, -1); // remainder -> earliest index
+    let prefixSum = 0;
+
+    for (let i = 0; i < nums.length; i++) {
+        prefixSum += nums[i];
+        const remainder = prefixSum % k;
+
+        if (remainderIdx.has(remainder)) {
+            if (i - remainderIdx.get(remainder) >= 2) {
+                return true;
+            }
+        } else {
+            remainderIdx.set(remainder, i);
+        }
+    }
+
+    return false;
+};`,
     explanation:
       '1. If prefix[j] % k == prefix[i] % k, then (prefix[j] - prefix[i]) % k == 0, meaning the subarray (i, j] sums to a multiple of k.\n' +
       '2. We store the earliest index where each remainder was first seen.\n' +
@@ -585,6 +824,45 @@ class RandomizedSet:
             if pair[0] == key:
                 bucket.pop(i)
                 return`,
+    jsCode: `var MyHashMap = function() {
+    this.size = 1009; // prime number for better distribution
+    this.buckets = Array.from({ length: this.size }, () => []);
+};
+
+MyHashMap.prototype._hash = function(key) {
+    return key % this.size;
+};
+
+MyHashMap.prototype.put = function(key, value) {
+    const bucket = this.buckets[this._hash(key)];
+    for (const pair of bucket) {
+        if (pair[0] === key) {
+            pair[1] = value;
+            return;
+        }
+    }
+    bucket.push([key, value]);
+};
+
+MyHashMap.prototype.get = function(key) {
+    const bucket = this.buckets[this._hash(key)];
+    for (const pair of bucket) {
+        if (pair[0] === key) {
+            return pair[1];
+        }
+    }
+    return -1;
+};
+
+MyHashMap.prototype.remove = function(key) {
+    const bucket = this.buckets[this._hash(key)];
+    for (let i = 0; i < bucket.length; i++) {
+        if (bucket[i][0] === key) {
+            bucket.splice(i, 1);
+            return;
+        }
+    }
+};`,
     explanation:
       '1. We create 1009 buckets (a prime number reduces collision clustering).\n' +
       '2. _hash maps a key to a bucket index using key % size.\n' +

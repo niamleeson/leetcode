@@ -3,6 +3,7 @@ import { Link, useParams, Navigate } from 'react-router-dom';
 import { uniqueProblems } from '../data/problems';
 import { solutionMap } from '../data/solutions';
 import { ProblemProgress } from '../types';
+import { useLocalStorage } from '../hooks/useLocalStorage';
 import CodeBlock from './CodeBlock';
 
 interface ProblemPageProps {
@@ -96,6 +97,7 @@ export default function ProblemPage({ getProgress, onRate, onUpdateNotes, onRese
   const { id } = useParams();
   const [showNotes, setShowNotes] = useState(false);
   const [revealedHints, setRevealedHints] = useState(0);
+  const [language, setLanguage] = useLocalStorage<'python' | 'javascript'>('lc-language', 'python');
 
   const problemId = Number(id);
   const problem = uniqueProblems.find(p => p.id === problemId);
@@ -173,10 +175,42 @@ export default function ProblemPage({ getProgress, onRate, onUpdateNotes, onRese
             </section>
           )}
 
-          {/* ── Python Solution ── */}
+          {/* ── Solution ── */}
           <section>
-            <h2 className="text-xs font-semibold text-emerald-400 uppercase tracking-wider mb-2">Python Solution</h2>
-            <CodeBlock code={solution.code} />
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-xs font-semibold text-emerald-400 uppercase tracking-wider">
+                {language === 'python' ? 'Python' : 'JavaScript'} Solution
+              </h2>
+              <div className="flex items-center bg-gray-800 rounded-md p-0.5 text-xs">
+                <button
+                  onClick={() => setLanguage('python')}
+                  className={`px-2.5 py-1 rounded transition-colors ${
+                    language === 'python'
+                      ? 'bg-gray-600 text-white'
+                      : 'text-gray-400 hover:text-gray-200'
+                  }`}
+                >
+                  Python
+                </button>
+                <button
+                  onClick={() => setLanguage('javascript')}
+                  className={`px-2.5 py-1 rounded transition-colors ${
+                    language === 'javascript'
+                      ? 'bg-gray-600 text-white'
+                      : 'text-gray-400 hover:text-gray-200'
+                  }`}
+                >
+                  JavaScript
+                </button>
+              </div>
+            </div>
+            <CodeBlock
+              code={language === 'javascript' && solution.jsCode ? solution.jsCode : solution.code}
+              language={language === 'javascript' && solution.jsCode ? 'javascript' : 'python'}
+            />
+            {language === 'javascript' && !solution.jsCode && (
+              <p className="text-xs text-gray-500 mt-1">JavaScript solution not available, showing Python.</p>
+            )}
           </section>
 
           {/* ── Pseudocode ── */}

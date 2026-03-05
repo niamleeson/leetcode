@@ -34,6 +34,24 @@ Explanation: 342 + 465 = 807`,
             l2 = l2.next if l2 else None
 
         return dummy.next`,
+    jsCode: `var addTwoNumbers = function(l1, l2) {
+    const dummy = new ListNode(0);
+    let current = dummy;
+    let carry = 0;
+
+    while (l1 || l2 || carry) {
+        const val1 = l1 ? l1.val : 0;
+        const val2 = l2 ? l2.val : 0;
+        const total = val1 + val2 + carry;
+        carry = Math.floor(total / 10);
+        current.next = new ListNode(total % 10);
+        current = current.next;
+        l1 = l1 ? l1.next : null;
+        l2 = l2 ? l2.next : null;
+    }
+
+    return dummy.next;
+};`,
     explanation: `- A dummy head simplifies list construction so we don't special-case the first node.
 - Each iteration extracts the values from l1 and l2 (or 0 if that list is exhausted).
 - 'total' is the sum of both digits plus the carry from the previous position.
@@ -75,6 +93,23 @@ Explanation: The 2nd node from the end is 4, which is removed.`,
 
         slow.next = slow.next.next
         return dummy.next`,
+    jsCode: `var removeNthFromEnd = function(head, n) {
+    const dummy = new ListNode(0, head);
+    let fast = dummy;
+    let slow = dummy;
+
+    for (let i = 0; i < n + 1; i++) {
+        fast = fast.next;
+    }
+
+    while (fast) {
+        fast = fast.next;
+        slow = slow.next;
+    }
+
+    slow.next = slow.next.next;
+    return dummy.next;
+};`,
     explanation: `- A dummy node before head handles the edge case of removing the first node.
 - Fast is advanced n+1 steps so that when fast reaches None, slow is one node before the target.
 - Both pointers advance together maintaining the gap of n+1.
@@ -115,6 +150,24 @@ Output: [1,1,2,3,4,4]`,
 
         current.next = list1 if list1 else list2
         return dummy.next`,
+    jsCode: `var mergeTwoLists = function(list1, list2) {
+    const dummy = new ListNode(0);
+    let current = dummy;
+
+    while (list1 && list2) {
+        if (list1.val <= list2.val) {
+            current.next = list1;
+            list1 = list1.next;
+        } else {
+            current.next = list2;
+            list2 = list2.next;
+        }
+        current = current.next;
+    }
+
+    current.next = list1 ? list1 : list2;
+    return dummy.next;
+};`,
     explanation: `- A dummy node lets us build the merged list without special-casing the first element.
 - At each step, compare the front of both lists and attach the smaller value.
 - When one list runs out, append the remaining list directly (it's already sorted).
@@ -159,6 +212,30 @@ class Solution:
                 heapq.heappush(heap, (node.next.val, i, node.next))
 
         return dummy.next`,
+    jsCode: `var mergeKLists = function(lists) {
+    const dummy = new ListNode(0);
+    let current = dummy;
+
+    // MinPriorityQueue from datastructures-js (available on LeetCode)
+    const pq = new MinPriorityQueue({ priority: (node) => node.val });
+
+    for (const node of lists) {
+        if (node) {
+            pq.enqueue(node);
+        }
+    }
+
+    while (!pq.isEmpty()) {
+        const node = pq.dequeue().element;
+        current.next = node;
+        current = current.next;
+        if (node.next) {
+            pq.enqueue(node.next);
+        }
+    }
+
+    return dummy.next;
+};`,
     explanation: `- Initialize the heap with the head of each non-empty list. The index 'i' breaks ties for equal values.
 - Each heappop gives us the globally smallest node; we attach it to the result list.
 - If the popped node has a next node, push it into the heap to continue processing that list.
@@ -208,6 +285,33 @@ Explanation: Nodes are reversed in groups of 2. The last node (5) stays in place
         # head is now the tail of the reversed group
         head.next = self.reverseKGroup(current, k)
         return prev`,
+    jsCode: `var reverseKGroup = function(head, k) {
+    // Check if there are at least k nodes
+    let count = 0;
+    let node = head;
+    while (node && count < k) {
+        node = node.next;
+        count++;
+    }
+
+    if (count < k) {
+        return head;
+    }
+
+    // Reverse k nodes
+    let prev = null;
+    let current = head;
+    for (let i = 0; i < k; i++) {
+        const nxt = current.next;
+        current.next = prev;
+        prev = current;
+        current = nxt;
+    }
+
+    // head is now the tail of the reversed group
+    head.next = reverseKGroup(current, k);
+    return prev;
+};`,
     explanation: `- First, count k nodes ahead. If fewer than k remain, return head unchanged.
 - Reverse exactly k nodes using the standard iterative reversal (prev/current/next).
 - After reversal, 'prev' is the new head and the original 'head' is now the tail of this group.
@@ -254,6 +358,28 @@ Explanation: Each pair is [val, random_index]. The deep copy has the same struct
             current = current.next
 
         return old_to_new[head]`,
+    jsCode: `var copyRandomList = function(head) {
+    if (!head) return null;
+
+    const oldToNew = new Map();
+
+    // First pass: create all new nodes
+    let current = head;
+    while (current) {
+        oldToNew.set(current, new Node(current.val));
+        current = current.next;
+    }
+
+    // Second pass: set next and random pointers
+    current = head;
+    while (current) {
+        oldToNew.get(current).next = oldToNew.get(current.next) || null;
+        oldToNew.get(current).random = oldToNew.get(current.random) || null;
+        current = current.next;
+    }
+
+    return oldToNew.get(head);
+};`,
     explanation: `- The hash map old_to_new maps each original node to its corresponding copy.
 - First pass: iterate through the list and create a copy of each node (value only).
 - Second pass: for each original node, set the copy's next and random pointers by looking up the map.
@@ -291,6 +417,20 @@ Explanation: There is a cycle where the tail connects to the 1st node (0-indexed
                 return True
 
         return False`,
+    jsCode: `var hasCycle = function(head) {
+    let slow = head;
+    let fast = head;
+
+    while (fast && fast.next) {
+        slow = slow.next;
+        fast = fast.next.next;
+        if (slow === fast) {
+            return true;
+        }
+    }
+
+    return false;
+};`,
     explanation: `- slow advances 1 step, fast advances 2 steps each iteration.
 - If there is no cycle, fast will reach None and the loop exits returning False.
 - If there is a cycle, fast will eventually lap slow and they will meet, returning True.
@@ -333,6 +473,26 @@ Explanation: The tail connects to the node at index 1, so the cycle starts at no
                 return slow
 
         return None`,
+    jsCode: `var detectCycle = function(head) {
+    let slow = head;
+    let fast = head;
+
+    while (fast && fast.next) {
+        slow = slow.next;
+        fast = fast.next.next;
+        if (slow === fast) {
+            // Cycle detected; find the entry point
+            slow = head;
+            while (slow !== fast) {
+                slow = slow.next;
+                fast = fast.next;
+            }
+            return slow;
+        }
+    }
+
+    return null;
+};`,
     explanation: `- Phase 1: slow moves 1 step, fast moves 2 steps. If they meet, a cycle exists.
 - Phase 2: reset slow to head. Now both move 1 step at a time.
 - Mathematically, the distance from head to cycle start equals the distance from the meeting point to cycle start (going around the cycle).
@@ -387,6 +547,38 @@ Output: [1,5,2,4,3]`,
             second.next = tmp1
             first = tmp1
             second = tmp2`,
+    jsCode: `var reorderList = function(head) {
+    if (!head || !head.next) return;
+
+    // Find the middle
+    let slow = head, fast = head;
+    while (fast.next && fast.next.next) {
+        slow = slow.next;
+        fast = fast.next.next;
+    }
+
+    // Reverse the second half
+    let prev = null;
+    let current = slow.next;
+    slow.next = null;
+    while (current) {
+        const nxt = current.next;
+        current.next = prev;
+        prev = current;
+        current = nxt;
+    }
+
+    // Merge the two halves
+    let first = head, second = prev;
+    while (second) {
+        const tmp1 = first.next;
+        const tmp2 = second.next;
+        first.next = second;
+        second.next = tmp1;
+        first = tmp1;
+        second = tmp2;
+    }
+};`,
     explanation: `- Step 1: Use slow/fast pointers to find the midpoint. slow ends at the last node of the first half.
 - Step 2: Reverse the second half starting from slow.next, then disconnect the two halves.
 - Step 3: Interleave nodes from the first and second halves: first -> second -> first.next -> ...
@@ -458,6 +650,57 @@ class LRUCache:
             lru = self.tail.prev
             self._remove(lru)
             del self.cache[lru.key]`,
+    jsCode: `class DLLNode {
+    constructor(key = 0, val = 0) {
+        this.key = key;
+        this.val = val;
+        this.prev = null;
+        this.next = null;
+    }
+}
+
+var LRUCache = function(capacity) {
+    this.cap = capacity;
+    this.cache = new Map();
+    this.head = new DLLNode();
+    this.tail = new DLLNode();
+    this.head.next = this.tail;
+    this.tail.prev = this.head;
+};
+
+LRUCache.prototype._remove = function(node) {
+    node.prev.next = node.next;
+    node.next.prev = node.prev;
+};
+
+LRUCache.prototype._addToFront = function(node) {
+    node.next = this.head.next;
+    node.prev = this.head;
+    this.head.next.prev = node;
+    this.head.next = node;
+};
+
+LRUCache.prototype.get = function(key) {
+    if (!this.cache.has(key)) return -1;
+    const node = this.cache.get(key);
+    this._remove(node);
+    this._addToFront(node);
+    return node.val;
+};
+
+LRUCache.prototype.put = function(key, value) {
+    if (this.cache.has(key)) {
+        this._remove(this.cache.get(key));
+    }
+    const node = new DLLNode(key, value);
+    this.cache.set(key, node);
+    this._addToFront(node);
+    if (this.cache.size > this.cap) {
+        const lru = this.tail.prev;
+        this._remove(lru);
+        this.cache.delete(lru.key);
+    }
+};`,
     explanation: `- The hash map gives O(1) access to any node by key.
 - The doubly linked list maintains recency order (most recent at head, least recent at tail).
 - On get: move the accessed node to the front (mark it as most recently used).
@@ -495,6 +738,19 @@ Output: [5,4,3,2,1]`,
             current = nxt
 
         return prev`,
+    jsCode: `var reverseList = function(head) {
+    let prev = null;
+    let current = head;
+
+    while (current) {
+        const nxt = current.next;
+        current.next = prev;
+        prev = current;
+        current = nxt;
+    }
+
+    return prev;
+};`,
     explanation: `- prev starts as None (the new tail will point to None).
 - For each node: save the next node, reverse the pointer to point to prev, then advance both pointers.
 - When current becomes None, prev is the new head of the reversed list.
@@ -544,6 +800,35 @@ Output: true`,
             right = right.next
 
         return True`,
+    jsCode: `var isPalindrome = function(head) {
+    // Find the middle
+    let slow = head, fast = head;
+    while (fast && fast.next) {
+        slow = slow.next;
+        fast = fast.next.next;
+    }
+
+    // Reverse the second half
+    let prev = null;
+    while (slow) {
+        const nxt = slow.next;
+        slow.next = prev;
+        prev = slow;
+        slow = nxt;
+    }
+
+    // Compare both halves
+    let left = head, right = prev;
+    while (right) {
+        if (left.val !== right.val) {
+            return false;
+        }
+        left = left.next;
+        right = right.next;
+    }
+
+    return true;
+};`,
     explanation: `- slow/fast pointers find the middle: when fast reaches end, slow is at the midpoint.
 - Reverse the second half starting from slow, so prev becomes the head of the reversed half.
 - Compare nodes from the start and from the reversed second half. If all match, it's a palindrome.
@@ -586,6 +871,24 @@ Output: 2`,
             fast = nums[fast]
 
         return slow`,
+    jsCode: `var findDuplicate = function(nums) {
+    // Phase 1: Find the meeting point
+    let slow = nums[0];
+    let fast = nums[0];
+    do {
+        slow = nums[slow];
+        fast = nums[nums[fast]];
+    } while (slow !== fast);
+
+    // Phase 2: Find the cycle entrance
+    slow = nums[0];
+    while (slow !== fast) {
+        slow = nums[slow];
+        fast = nums[fast];
+    }
+
+    return slow;
+};`,
     explanation: `- Treat index -> nums[index] as a linked list. A duplicate means two indices point to the same value, creating a cycle.
 - Phase 1: slow moves one step (nums[slow]), fast moves two steps (nums[nums[fast]]). They will meet inside the cycle.
 - Phase 2: reset slow to nums[0]. Both move one step at a time. They meet at the cycle entrance = the duplicate value.
@@ -620,6 +923,16 @@ Explanation: The two lists merge at the node with value 8.`,
             b = b.next if b else headA
 
         return a`,
+    jsCode: `var getIntersectionNode = function(headA, headB) {
+    let a = headA, b = headB;
+
+    while (a !== b) {
+        a = a ? a.next : headB;
+        b = b ? b.next : headA;
+    }
+
+    return a;
+};`,
     explanation: `- Pointer 'a' traverses list A then list B; pointer 'b' traverses list B then list A.
 - Both pointers traverse exactly len(A) + len(B) nodes total.
 - If there is an intersection, they align and meet at the intersection node.
@@ -676,6 +989,41 @@ Output: [1,2,3,4]`,
         current.next = left if left else right
 
         return dummy.next`,
+    jsCode: `var sortList = function(head) {
+    if (!head || !head.next) return head;
+
+    // Split the list into two halves
+    let slow = head, fast = head.next;
+    while (fast && fast.next) {
+        slow = slow.next;
+        fast = fast.next.next;
+    }
+
+    const mid = slow.next;
+    slow.next = null;
+
+    // Recursively sort both halves
+    const left = sortList(head);
+    const right = sortList(mid);
+
+    // Merge the sorted halves
+    const dummy = new ListNode(0);
+    let current = dummy;
+    let l = left, r = right;
+    while (l && r) {
+        if (l.val <= r.val) {
+            current.next = l;
+            l = l.next;
+        } else {
+            current.next = r;
+            r = r.next;
+        }
+        current = current.next;
+    }
+    current.next = l ? l : r;
+
+    return dummy.next;
+};`,
     explanation: `- Base case: a list of 0 or 1 nodes is already sorted.
 - Find the middle using slow/fast pointers, then split the list by setting slow.next = None.
 - Recursively sort the left and right halves.
@@ -720,6 +1068,23 @@ Explanation: Inorder: left -> root -> right. Visit 1 (no left), then 3 (left of 
             current = current.right
 
         return result`,
+    jsCode: `var inorderTraversal = function(root) {
+    const result = [];
+    const stack = [];
+    let current = root;
+
+    while (current || stack.length) {
+        while (current) {
+            stack.push(current);
+            current = current.left;
+        }
+        current = stack.pop();
+        result.push(current.val);
+        current = current.right;
+    }
+
+    return result;
+};`,
     explanation: `- The outer loop runs as long as there are nodes to process (either current exists or the stack is non-empty).
 - The inner while loop pushes all left children onto the stack, going as far left as possible.
 - Pop from the stack to visit the node (inorder), then move to the right subtree.
@@ -755,6 +1120,15 @@ Explanation: The root's right child is 4, which is less than 5, violating the BS
             return validate(node.left, low, node.val) and validate(node.right, node.val, high)
 
         return validate(root)`,
+    jsCode: `var isValidBST = function(root) {
+    const validate = (node, low = -Infinity, high = Infinity) => {
+        if (!node) return true;
+        if (node.val <= low || node.val >= high) return false;
+        return validate(node.left, low, node.val) && validate(node.right, node.val, high);
+    };
+
+    return validate(root);
+};`,
     explanation: `- Each node must be within the range (low, high) established by its ancestors.
 - The root has the range (-inf, inf). Going left, the upper bound tightens to the parent's value. Going right, the lower bound tightens.
 - If a node's value is outside its valid range, return False immediately.
@@ -788,6 +1162,12 @@ Output: true`,
         if p.val != q.val:
             return False
         return self.isSameTree(p.left, q.left) and self.isSameTree(p.right, q.right)`,
+    jsCode: `var isSameTree = function(p, q) {
+    if (!p && !q) return true;
+    if (!p || !q) return false;
+    if (p.val !== q.val) return false;
+    return isSameTree(p.left, q.left) && isSameTree(p.right, q.right);
+};`,
     explanation: `- Base case 1: both nodes are None -- this subtree is the same, return True.
 - Base case 2: exactly one node is None -- trees differ in structure, return False.
 - If values differ, return False.
@@ -835,6 +1215,26 @@ class Solution:
             result.append(level)
 
         return result`,
+    jsCode: `var levelOrder = function(root) {
+    if (!root) return [];
+
+    const result = [];
+    const queue = [root];
+
+    while (queue.length) {
+        const levelSize = queue.length;
+        const level = [];
+        for (let i = 0; i < levelSize; i++) {
+            const node = queue.shift();
+            level.push(node.val);
+            if (node.left) queue.push(node.left);
+            if (node.right) queue.push(node.right);
+        }
+        result.push(level);
+    }
+
+    return result;
+};`,
     explanation: `- Start with the root in the queue.
 - For each level, record the current queue size (number of nodes at this level).
 - Process exactly that many nodes: add their values to the current level list and enqueue their children.
@@ -864,6 +1264,10 @@ Output: 3`,
         if not root:
             return 0
         return 1 + max(self.maxDepth(root.left), self.maxDepth(root.right))`,
+    jsCode: `var maxDepth = function(root) {
+    if (!root) return 0;
+    return 1 + Math.max(maxDepth(root.left), maxDepth(root.right));
+};`,
     explanation: `- Base case: a null node has depth 0.
 - For any node, its depth is 1 (for itself) plus the deeper of its two subtrees.
 - max() picks the longer path between left and right subtrees.
@@ -905,6 +1309,24 @@ Output: [3,9,20,null,null,15,7]`,
             return root
 
         return build(0, len(inorder) - 1)`,
+    jsCode: `var buildTree = function(preorder, inorder) {
+    const inorderMap = new Map();
+    inorder.forEach((val, idx) => inorderMap.set(val, idx));
+    let preIdx = 0;
+
+    const build = (left, right) => {
+        if (left > right) return null;
+        const rootVal = preorder[preIdx];
+        preIdx++;
+        const root = new TreeNode(rootVal);
+        const mid = inorderMap.get(rootVal);
+        root.left = build(left, mid - 1);
+        root.right = build(mid + 1, right);
+        return root;
+    };
+
+    return build(0, inorder.length - 1);
+};`,
     explanation: `- preorder[0] is always the root of the current subtree.
 - Finding the root in inorder tells us how many nodes are in the left vs right subtree.
 - We maintain a global preorder index (pre_idx) that increments each time we create a node.
@@ -946,6 +1368,19 @@ Output: true`,
             return 1 + max(left, right)
 
         return height(root) != -1`,
+    jsCode: `var isBalanced = function(root) {
+    const height = (node) => {
+        if (!node) return 0;
+        const left = height(node.left);
+        if (left === -1) return -1;
+        const right = height(node.right);
+        if (right === -1) return -1;
+        if (Math.abs(left - right) > 1) return -1;
+        return 1 + Math.max(left, right);
+    };
+
+    return height(root) !== -1;
+};`,
     explanation: `- height() returns the actual height of a balanced subtree, or -1 if it's unbalanced.
 - For each node, compute left and right heights. If either is -1, propagate -1 (unbalanced).
 - If the difference between left and right heights exceeds 1, return -1.
@@ -988,6 +1423,22 @@ Explanation: The optimal path is 15 -> 20 -> 7 with sum 42.`,
 
         dfs(root)
         return self.max_sum`,
+    jsCode: `var maxPathSum = function(root) {
+    let maxSum = -Infinity;
+
+    const dfs = (node) => {
+        if (!node) return 0;
+        const left = Math.max(dfs(node.left), 0);
+        const right = Math.max(dfs(node.right), 0);
+        // Path through this node as the "bend"
+        maxSum = Math.max(maxSum, left + node.val + right);
+        // Return best one-sided path sum
+        return node.val + Math.max(left, right);
+    };
+
+    dfs(root);
+    return maxSum;
+};`,
     explanation: `- At each node, compute the best sum from the left and right subtrees (clamped to 0 to discard negative paths).
 - left + node.val + right is the path that "bends" at this node (uses both children). Update global max.
 - Return node.val + max(left, right): the best one-sided path to pass up to the parent.
@@ -1035,6 +1486,26 @@ class Solution:
                     queue.append(node.right)
 
         return result`,
+    jsCode: `var rightSideView = function(root) {
+    if (!root) return [];
+
+    const result = [];
+    const queue = [root];
+
+    while (queue.length) {
+        const levelSize = queue.length;
+        for (let i = 0; i < levelSize; i++) {
+            const node = queue.shift();
+            if (i === levelSize - 1) {
+                result.push(node.val);
+            }
+            if (node.left) queue.push(node.left);
+            if (node.right) queue.push(node.right);
+        }
+    }
+
+    return result;
+};`,
     explanation: `- Standard BFS processes nodes level by level.
 - For each level, we only care about the last node (the rightmost visible node).
 - When i == level_size - 1, this is the last node in the current level, so we add it to the result.
@@ -1068,6 +1539,13 @@ Explanation: Every left child is swapped with its right child at every level.`,
         self.invertTree(root.left)
         self.invertTree(root.right)
         return root`,
+    jsCode: `var invertTree = function(root) {
+    if (!root) return null;
+    [root.left, root.right] = [root.right, root.left];
+    invertTree(root.left);
+    invertTree(root.right);
+    return root;
+};`,
     explanation: `- Base case: if the node is None, return None.
 - Swap the left and right children of the current node.
 - Recursively invert both subtrees (which are now swapped).
@@ -1109,6 +1587,23 @@ Explanation: The inorder traversal is [1,2,3,4], so the 1st smallest is 1.`,
             current = current.right
 
         return -1  # Should not reach here if k is valid`,
+    jsCode: `var kthSmallest = function(root, k) {
+    const stack = [];
+    let current = root;
+
+    while (current || stack.length) {
+        while (current) {
+            stack.push(current);
+            current = current.left;
+        }
+        current = stack.pop();
+        k--;
+        if (k === 0) return current.val;
+        current = current.right;
+    }
+
+    return -1; // Should not reach here if k is valid
+};`,
     explanation: `- Inorder traversal of a BST yields values in ascending order.
 - Use an iterative approach with a stack: go as far left as possible, then pop and process.
 - Each time we pop a node (visit it), decrement k. When k reaches 0, that node is the kth smallest.
@@ -1143,6 +1638,17 @@ Explanation: The LCA of nodes 2 and 8 is 6.`,
                 root = root.right
             else:
                 return root`,
+    jsCode: `var lowestCommonAncestor = function(root, p, q) {
+    while (root) {
+        if (p.val < root.val && q.val < root.val) {
+            root = root.left;
+        } else if (p.val > root.val && q.val > root.val) {
+            root = root.right;
+        } else {
+            return root;
+        }
+    }
+};`,
     explanation: `- In a BST, left subtree values < root < right subtree values.
 - If both p and q are smaller than root, the LCA must be in the left subtree.
 - If both are larger, the LCA must be in the right subtree.
@@ -1177,6 +1683,13 @@ Explanation: The LCA of nodes 5 and 1 is 3.`,
         if left and right:
             return root
         return left if left else right`,
+    jsCode: `var lowestCommonAncestor = function(root, p, q) {
+    if (!root || root === p || root === q) return root;
+    const left = lowestCommonAncestor(root.left, p, q);
+    const right = lowestCommonAncestor(root.right, p, q);
+    if (left && right) return root;
+    return left ? left : right;
+};`,
     explanation: `- Base cases: if root is None, p, or q, return root.
 - Recurse on left and right subtrees to search for p and q.
 - If both left and right return non-None, p and q are in different subtrees, so root is the LCA.
@@ -1230,6 +1743,39 @@ Output: [1,2,3,null,null,4,5]`,
             return node
 
         return dfs()`,
+    jsCode: `var serialize = function(root) {
+    const result = [];
+
+    const dfs = (node) => {
+        if (!node) {
+            result.push("null");
+            return;
+        }
+        result.push(String(node.val));
+        dfs(node.left);
+        dfs(node.right);
+    };
+
+    dfs(root);
+    return result.join(",");
+};
+
+var deserialize = function(data) {
+    const tokens = data.split(",");
+    let idx = 0;
+
+    const dfs = () => {
+        const val = tokens[idx];
+        idx++;
+        if (val === "null") return null;
+        const node = new TreeNode(Number(val));
+        node.left = dfs();
+        node.right = dfs();
+        return node;
+    };
+
+    return dfs();
+};`,
     explanation: `- Serialize: preorder DFS records each node's value, using "null" for absent children. Join with commas.
 - Deserialize: split by commas and use an iterator. Each call to dfs() consumes the next token.
 - If the token is "null", return None. Otherwise, create a node and recursively build left and right children.
@@ -1269,6 +1815,20 @@ Explanation: The longest path is [4,2,1,3] or [5,2,1,3], which has 3 edges.`,
 
         height(root)
         return self.diameter`,
+    jsCode: `var diameterOfBinaryTree = function(root) {
+    let diameter = 0;
+
+    const height = (node) => {
+        if (!node) return 0;
+        const left = height(node.left);
+        const right = height(node.right);
+        diameter = Math.max(diameter, left + right);
+        return 1 + Math.max(left, right);
+    };
+
+    height(root);
+    return diameter;
+};`,
     explanation: `- height() returns the height (number of edges to deepest leaf) of a subtree.
 - At each node, the path through that node has length left_height + right_height.
 - Update self.diameter with the maximum such path seen.
@@ -1308,6 +1868,17 @@ Explanation: The left subtree of root (rooted at 4) matches subRoot exactly.`,
         if not p or not q:
             return False
         return p.val == q.val and self.isSameTree(p.left, q.left) and self.isSameTree(p.right, q.right)`,
+    jsCode: `var isSubtree = function(root, subRoot) {
+    if (!root) return false;
+    if (isSame(root, subRoot)) return true;
+    return isSubtree(root.left, subRoot) || isSubtree(root.right, subRoot);
+};
+
+var isSame = function(p, q) {
+    if (!p && !q) return true;
+    if (!p || !q) return false;
+    return p.val === q.val && isSame(p.left, q.left) && isSame(p.right, q.right);
+};`,
     explanation: `- For each node in root, check if the tree rooted at that node is identical to subRoot.
 - isSameTree checks structural and value equality recursively.
 - If the current node doesn't match, try the left and right subtrees.
@@ -1345,6 +1916,18 @@ Explanation: The good nodes are 3 (root), 3 (left-left), 4 (right), and 5 (right
             return good
 
         return dfs(root, root.val)`,
+    jsCode: `var goodNodes = function(root) {
+    const dfs = (node, maxSoFar) => {
+        if (!node) return 0;
+        let good = node.val >= maxSoFar ? 1 : 0;
+        maxSoFar = Math.max(maxSoFar, node.val);
+        good += dfs(node.left, maxSoFar);
+        good += dfs(node.right, maxSoFar);
+        return good;
+    };
+
+    return dfs(root, root.val);
+};`,
     explanation: `- max_so_far tracks the maximum value from root to the current node.
 - If the current node's value >= max_so_far, it's a "good" node (no ancestor is larger).
 - Update max_so_far and recurse on both children, accumulating the count.
@@ -1382,6 +1965,18 @@ Explanation: Choosing the middle element as root ensures balance.`,
             return node
 
         return build(0, len(nums) - 1)`,
+    jsCode: `var sortedArrayToBST = function(nums) {
+    const build = (left, right) => {
+        if (left > right) return null;
+        const mid = Math.floor((left + right) / 2);
+        const node = new TreeNode(nums[mid]);
+        node.left = build(left, mid - 1);
+        node.right = build(mid + 1, right);
+        return node;
+    };
+
+    return build(0, nums.length - 1);
+};`,
     explanation: `- Choosing the middle element ensures both halves have roughly equal size, giving a balanced tree.
 - build(left, right) constructs a BST from nums[left..right].
 - Base case: left > right means the subarray is empty, return None.
@@ -1426,6 +2021,25 @@ Explanation: Paths summing to 8: [5,3], [5,2,1], [-3,11].`,
 
         dfs(root, 0)
         return self.count`,
+    jsCode: `var pathSum = function(root, targetSum) {
+    const prefixCounts = new Map([[0, 1]]);
+    let count = 0;
+
+    const dfs = (node, currentSum) => {
+        if (!node) return;
+        currentSum += node.val;
+        count += prefixCounts.get(currentSum - targetSum) || 0;
+        prefixCounts.set(currentSum, (prefixCounts.get(currentSum) || 0) + 1);
+
+        dfs(node.left, currentSum);
+        dfs(node.right, currentSum);
+
+        prefixCounts.set(currentSum, prefixCounts.get(currentSum) - 1);
+    };
+
+    dfs(root, 0);
+    return count;
+};`,
     explanation: `- current_sum is the cumulative sum from root to the current node.
 - If current_sum - targetSum exists in prefix_counts, then there's a subpath ending here with sum targetSum.
 - prefix_counts maps each prefix sum to how many times it has occurred on the current root-to-node path.
@@ -1475,6 +2089,28 @@ Explanation: Node 3 is removed. Its inorder successor (4) replaces it.`,
             root.right = self.deleteNode(root.right, successor.val)
 
         return root`,
+    jsCode: `var deleteNode = function(root, key) {
+    if (!root) return null;
+
+    if (key < root.val) {
+        root.left = deleteNode(root.left, key);
+    } else if (key > root.val) {
+        root.right = deleteNode(root.right, key);
+    } else {
+        // Node to delete found
+        if (!root.left) return root.right;
+        if (!root.right) return root.left;
+        // Node has two children: find inorder successor
+        let successor = root.right;
+        while (successor.left) {
+            successor = successor.left;
+        }
+        root.val = successor.val;
+        root.right = deleteNode(root.right, successor.val);
+    }
+
+    return root;
+};`,
     explanation: `- Search for the key using BST property: go left if key < root, right if key > root.
 - When found, handle three cases:
   1. No left child: replace with right child.

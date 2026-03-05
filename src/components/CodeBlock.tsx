@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import Prism from 'prismjs';
 import 'prismjs/components/prism-python';
+import 'prismjs/components/prism-javascript';
 import 'prismjs/themes/prism-tomorrow.css';
 
 interface CodeBlockProps {
@@ -15,7 +16,7 @@ export default function CodeBlock({ code, language = 'python' }: CodeBlockProps)
     if (codeRef.current) {
       Prism.highlightElement(codeRef.current);
     }
-  }, [code]);
+  }, [code, language]);
 
   return (
     <pre className="!bg-gray-950 !border !border-gray-800 !rounded-md !p-4 !text-xs overflow-x-auto !leading-relaxed !m-0">

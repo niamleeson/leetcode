@@ -21,6 +21,17 @@ export const solutions: ProblemSolution[] = [
             if child < len(g) and cookie >= g[child]:
                 child += 1
         return child`,
+    jsCode: `var findContentChildren = function(g, s) {
+    g.sort((a, b) => a - b);
+    s.sort((a, b) => a - b);
+    let child = 0;
+    for (const cookie of s) {
+        if (child < g.length && cookie >= g[child]) {
+            child++;
+        }
+    }
+    return child;
+};`,
     explanation:
       '1. Sort greed factors and cookie sizes in ascending order.\n' +
       '2. Use a pointer for the current child starting at 0.\n' +
@@ -57,6 +68,18 @@ export const solutions: ProblemSolution[] = [
                 third = stack.pop()
             stack.append(num)
         return False`,
+    jsCode: `var find132pattern = function(nums) {
+    const stack = [];
+    let third = -Infinity;
+    for (let i = nums.length - 1; i >= 0; i--) {
+        if (nums[i] < third) return true;
+        while (stack.length && stack[stack.length - 1] < nums[i]) {
+            third = stack.pop();
+        }
+        stack.push(nums[i]);
+    }
+    return false;
+};`,
     explanation:
       '1. Traverse from right to left, maintaining a decreasing stack.\n' +
       '2. "third" tracks the largest value popped (the "2" in 132).\n' +
@@ -85,6 +108,9 @@ export const solutions: ProblemSolution[] = [
     code: `class Solution:
     def repeatedSubstringPattern(self, s: str) -> bool:
         return s in (s + s)[1:-1]`,
+    jsCode: `var repeatedSubstringPattern = function(s) {
+    return (s + s).slice(1, -1).includes(s);
+};`,
     explanation:
       '1. Create the string (s + s) which doubles the original.\n' +
       '2. Remove the first and last character to break trivial matches.\n' +
@@ -149,6 +175,51 @@ class LFUCache:
         if not self.freq_keys[freq] and self.min_freq == freq:
             self.min_freq += 1
         self.freq_keys[freq + 1][key] = None`,
+    jsCode: `var LFUCache = function(capacity) {
+    this.cap = capacity;
+    this.keyVal = new Map();
+    this.keyFreq = new Map();
+    this.freqKeys = new Map();
+    this.minFreq = 0;
+};
+
+LFUCache.prototype.get = function(key) {
+    if (!this.keyVal.has(key)) return -1;
+    this._updateFreq(key);
+    return this.keyVal.get(key);
+};
+
+LFUCache.prototype.put = function(key, value) {
+    if (this.cap <= 0) return;
+    if (this.keyVal.has(key)) {
+        this.keyVal.set(key, value);
+        this._updateFreq(key);
+        return;
+    }
+    if (this.keyVal.size >= this.cap) {
+        const minKeys = this.freqKeys.get(this.minFreq);
+        const evictKey = minKeys.keys().next().value;
+        minKeys.delete(evictKey);
+        this.keyVal.delete(evictKey);
+        this.keyFreq.delete(evictKey);
+    }
+    this.keyVal.set(key, value);
+    this.keyFreq.set(key, 1);
+    if (!this.freqKeys.has(1)) this.freqKeys.set(1, new Map());
+    this.freqKeys.get(1).set(key, null);
+    this.minFreq = 1;
+};
+
+LFUCache.prototype._updateFreq = function(key) {
+    const freq = this.keyFreq.get(key);
+    this.keyFreq.set(key, freq + 1);
+    this.freqKeys.get(freq).delete(key);
+    if (this.freqKeys.get(freq).size === 0 && this.minFreq === freq) {
+        this.minFreq++;
+    }
+    if (!this.freqKeys.has(freq + 1)) this.freqKeys.set(freq + 1, new Map());
+    this.freqKeys.get(freq + 1).set(key, null);
+};`,
     explanation:
       '1. key_val stores the actual values; key_freq stores each key\'s access frequency.\n' +
       '2. freq_keys maps each frequency to an OrderedDict maintaining insertion order (LRU).\n' +
@@ -178,6 +249,15 @@ class LFUCache:
     code: `class Solution:
     def hammingDistance(self, x: int, y: int) -> int:
         return bin(x ^ y).count('1')`,
+    jsCode: `var hammingDistance = function(x, y) {
+    let xor = x ^ y;
+    let count = 0;
+    while (xor) {
+        count += xor & 1;
+        xor >>= 1;
+    }
+    return count;
+};`,
     explanation:
       '1. XOR x and y: each bit that differs between x and y becomes 1.\n' +
       '2. Count the number of 1-bits in the XOR result.\n' +
@@ -207,6 +287,11 @@ class LFUCache:
         nums.sort()
         median = nums[len(nums) // 2]
         return sum(abs(n - median) for n in nums)`,
+    jsCode: `var minMoves2 = function(nums) {
+    nums.sort((a, b) => a - b);
+    const median = nums[Math.floor(nums.length / 2)];
+    return nums.reduce((sum, n) => sum + Math.abs(n - median), 0);
+};`,
     explanation:
       '1. Sort the array to find the median element.\n' +
       '2. The median minimizes the sum of absolute deviations.\n' +
@@ -245,6 +330,20 @@ class LFUCache:
                     if c > 0 and grid[r][c - 1] == 1:
                         perimeter -= 2
         return perimeter`,
+    jsCode: `var islandPerimeter = function(grid) {
+    const rows = grid.length, cols = grid[0].length;
+    let perimeter = 0;
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            if (grid[r][c] === 1) {
+                perimeter += 4;
+                if (r > 0 && grid[r - 1][c] === 1) perimeter -= 2;
+                if (c > 0 && grid[r][c - 1] === 1) perimeter -= 2;
+            }
+        }
+    }
+    return perimeter;
+};`,
     explanation:
       '1. Each land cell contributes 4 edges to the perimeter.\n' +
       '2. For each shared edge with a neighbor above or to the left, subtract 2 (both cells lose one edge).\n' +
@@ -289,6 +388,24 @@ class LFUCache:
             memo[used] = False
             return False
         return can_win(0, desiredTotal)`,
+    jsCode: `var canIWin = function(maxChoosableInteger, desiredTotal) {
+    if (desiredTotal <= 0) return true;
+    if (maxChoosableInteger * (maxChoosableInteger + 1) / 2 < desiredTotal) return false;
+    const memo = new Map();
+    const canWin = (used, remaining) => {
+        if (memo.has(used)) return memo.get(used);
+        for (let i = 1; i <= maxChoosableInteger; i++) {
+            if (used & (1 << i)) continue;
+            if (i >= remaining || !canWin(used | (1 << i), remaining - i)) {
+                memo.set(used, true);
+                return true;
+            }
+        }
+        memo.set(used, false);
+        return false;
+    };
+    return canWin(0, desiredTotal);
+};`,
     explanation:
       '1. If the total sum of all numbers < desiredTotal, no one can win.\n' +
       '2. Use a bitmask to represent which numbers are used.\n' +
@@ -335,6 +452,29 @@ class LFUCache:
                     return "Neither"
             return "IPv6"
         return "Neither"`,
+    jsCode: `var validIPAddress = function(queryIP) {
+    if (queryIP.includes('.')) {
+        const parts = queryIP.split('.');
+        if (parts.length !== 4) return "Neither";
+        for (const part of parts) {
+            if (!part || !/^\\d+$/.test(part) || (part.length > 1 && part[0] === '0') || parseInt(part) > 255) {
+                return "Neither";
+            }
+        }
+        return "IPv4";
+    }
+    if (queryIP.includes(':')) {
+        const parts = queryIP.split(':');
+        if (parts.length !== 8) return "Neither";
+        for (const part of parts) {
+            if (!part || part.length > 4 || !/^[0-9a-fA-F]+$/.test(part)) {
+                return "Neither";
+            }
+        }
+        return "IPv6";
+    }
+    return "Neither";
+};`,
     explanation:
       '1. Check if the IP contains "." (potential IPv4) or ":" (potential IPv6).\n' +
       '2. For IPv4: split by ".", ensure 4 parts, each numeric with no leading zeros and value 0-255.\n' +
@@ -377,6 +517,28 @@ class LFUCache:
             if w and can_form(w):
                 result.append(w)
         return result`,
+    jsCode: `var findAllConcatenatedWordsInADict = function(words) {
+    const wordSet = new Set(words);
+    const result = [];
+    const canForm = (word) => {
+        const dp = new Array(word.length + 1).fill(false);
+        dp[0] = true;
+        for (let i = 1; i <= word.length; i++) {
+            for (let j = 0; j < i; j++) {
+                const sub = word.slice(j, i);
+                if (dp[j] && wordSet.has(sub) && sub !== word) {
+                    dp[i] = true;
+                    break;
+                }
+            }
+        }
+        return dp[word.length];
+    };
+    for (const w of words) {
+        if (w && canForm(w)) result.push(w);
+    }
+    return result;
+};`,
     explanation:
       '1. Build a set of all words for O(1) lookup.\n' +
       '2. For each word, run a word-break DP check.\n' +
@@ -412,6 +574,19 @@ class LFUCache:
                 for j in range(n, ones - 1, -1):
                     dp[i][j] = max(dp[i][j], dp[i - zeros][j - ones] + 1)
         return dp[m][n]`,
+    jsCode: `var findMaxForm = function(strs, m, n) {
+    const dp = Array.from({length: m + 1}, () => new Array(n + 1).fill(0));
+    for (const s of strs) {
+        const zeros = [...s].filter(c => c === '0').length;
+        const ones = s.length - zeros;
+        for (let i = m; i >= zeros; i--) {
+            for (let j = n; j >= ones; j--) {
+                dp[i][j] = Math.max(dp[i][j], dp[i - zeros][j - ones] + 1);
+            }
+        }
+    }
+    return dp[m][n];
+};`,
     explanation:
       '1. dp[i][j] = max subset size using at most i zeros and j ones.\n' +
       '2. For each string, count its zeros and ones.\n' +
@@ -452,6 +627,23 @@ class Solution:
                 dist = min(dist, house - heaters[idx - 1])
             result = max(result, dist)
         return result`,
+    jsCode: `var findRadius = function(houses, heaters) {
+    heaters.sort((a, b) => a - b);
+    let result = 0;
+    for (const house of houses) {
+        let lo = 0, hi = heaters.length - 1;
+        while (lo < hi) {
+            const mid = (lo + hi) >> 1;
+            if (heaters[mid] < house) lo = mid + 1;
+            else hi = mid;
+        }
+        let dist = Infinity;
+        if (lo < heaters.length) dist = Math.min(dist, heaters[lo] - house);
+        if (lo > 0) dist = Math.min(dist, house - heaters[lo - 1]);
+        result = Math.max(result, dist);
+    }
+    return result;
+};`,
     explanation:
       '1. Sort the heaters array for binary search.\n' +
       '2. For each house, find the insertion point in heaters.\n' +
@@ -481,6 +673,15 @@ class Solution:
     def findComplement(self, num: int) -> int:
         mask = (1 << num.bit_length()) - 1
         return num ^ mask`,
+    jsCode: `var findComplement = function(num) {
+    let bits = 0, temp = num;
+    while (temp > 0) {
+        bits++;
+        temp >>= 1;
+    }
+    const mask = (1 << bits) - 1;
+    return num ^ mask;
+};`,
     explanation:
       '1. num.bit_length() gives the number of bits in the binary representation.\n' +
       '2. Create a mask of all 1s with that many bits: (1 << bit_length) - 1.\n' +
@@ -522,6 +723,32 @@ class Solution:
                 else:
                     result.append((window[k // 2 - 1] + window[k // 2]) / 2.0)
         return result`,
+    jsCode: `var medianSlidingWindow = function(nums, k) {
+    const window = [];
+    const result = [];
+    const insert = (arr, val) => {
+        let lo = 0, hi = arr.length;
+        while (lo < hi) {
+            const mid = (lo + hi) >> 1;
+            if (arr[mid] < val) lo = mid + 1;
+            else hi = mid;
+        }
+        arr.splice(lo, 0, val);
+    };
+    const remove = (arr, val) => {
+        const idx = arr.indexOf(val);
+        arr.splice(idx, 1);
+    };
+    for (let i = 0; i < nums.length; i++) {
+        insert(window, nums[i]);
+        if (window.length > k) remove(window, nums[i - k]);
+        if (window.length === k) {
+            if (k % 2 === 1) result.push(window[Math.floor(k / 2)]);
+            else result.push((window[k / 2 - 1] + window[k / 2]) / 2);
+        }
+    }
+    return result;
+};`,
     explanation:
       '1. Maintain a SortedList of the current window elements.\n' +
       '2. Add each new element; remove the element leaving the window.\n' +
@@ -558,6 +785,18 @@ class Solution:
             else:
                 count = 0
         return max_count`,
+    jsCode: `var findMaxConsecutiveOnes = function(nums) {
+    let maxCount = 0, count = 0;
+    for (const num of nums) {
+        if (num === 1) {
+            count++;
+            maxCount = Math.max(maxCount, count);
+        } else {
+            count = 0;
+        }
+    }
+    return maxCount;
+};`,
     explanation:
       '1. Initialize max_count and current count to 0.\n' +
       '2. For each element, if it is 1, increment count and update max_count.\n' +
@@ -594,6 +833,18 @@ class Solution:
                 j = i + length - 1
                 dp[i][j] = max(nums[i] - dp[i + 1][j], nums[j] - dp[i][j - 1])
         return dp[0][n - 1] >= 0`,
+    jsCode: `var predictTheWinner = function(nums) {
+    const n = nums.length;
+    const dp = Array.from({length: n}, () => new Array(n).fill(0));
+    for (let i = 0; i < n; i++) dp[i][i] = nums[i];
+    for (let len = 2; len <= n; len++) {
+        for (let i = 0; i <= n - len; i++) {
+            const j = i + len - 1;
+            dp[i][j] = Math.max(nums[i] - dp[i + 1][j], nums[j] - dp[i][j - 1]);
+        }
+    }
+    return dp[0][n - 1] >= 0;
+};`,
     explanation:
       '1. dp[i][j] = max score difference the current player can achieve from subarray i to j.\n' +
       '2. Base case: dp[i][i] = nums[i] (only one element to pick).\n' +
@@ -640,6 +891,30 @@ class Solution:
                     visited.add((nr, nc))
                     queue.append((nr, nc))
         return False`,
+    jsCode: `var hasPath = function(maze, start, destination) {
+    const rows = maze.length, cols = maze[0].length;
+    const visited = new Set();
+    visited.add(start[0] + ',' + start[1]);
+    const queue = [[start[0], start[1]]];
+    const dirs = [[0,1],[0,-1],[1,0],[-1,0]];
+    while (queue.length) {
+        const [r, c] = queue.shift();
+        if (r === destination[0] && c === destination[1]) return true;
+        for (const [dr, dc] of dirs) {
+            let nr = r, nc = c;
+            while (nr + dr >= 0 && nr + dr < rows && nc + dc >= 0 && nc + dc < cols && maze[nr + dr][nc + dc] === 0) {
+                nr += dr;
+                nc += dc;
+            }
+            const key = nr + ',' + nc;
+            if (!visited.has(key)) {
+                visited.add(key);
+                queue.push([nr, nc]);
+            }
+        }
+    }
+    return false;
+};`,
     explanation:
       '1. Start BFS from the start position.\n' +
       '2. For each direction, roll the ball until it hits a wall or boundary.\n' +
@@ -682,6 +957,23 @@ class Solution:
             return sorted(left + right)
         merge_sort(nums)
         return self.count`,
+    jsCode: `var reversePairs = function(nums) {
+    let count = 0;
+    const mergeSort = (arr) => {
+        if (arr.length <= 1) return arr;
+        const mid = Math.floor(arr.length / 2);
+        const left = mergeSort(arr.slice(0, mid));
+        const right = mergeSort(arr.slice(mid));
+        let j = 0;
+        for (let i = 0; i < left.length; i++) {
+            while (j < right.length && left[i] > 2 * right[j]) j++;
+            count += j;
+        }
+        return [...left, ...right].sort((a, b) => a - b);
+    };
+    mergeSort(nums);
+    return count;
+};`,
     explanation:
       '1. Divide the array using merge sort.\n' +
       '2. Before merging, count cross-half reverse pairs using two pointers.\n' +
@@ -723,6 +1015,22 @@ class Solution:
             else:
                 result.extend(diags[d])
         return result`,
+    jsCode: `var findDiagonalOrder = function(mat) {
+    if (!mat.length) return [];
+    const m = mat.length, n = mat[0].length;
+    const diags = Array.from({length: m + n - 1}, () => []);
+    for (let i = 0; i < m; i++) {
+        for (let j = 0; j < n; j++) {
+            diags[i + j].push(mat[i][j]);
+        }
+    }
+    const result = [];
+    for (let d = 0; d < diags.length; d++) {
+        if (d % 2 === 0) result.push(...diags[d].reverse());
+        else result.push(...diags[d]);
+    }
+    return result;
+};`,
     explanation:
       '1. Elements on the same diagonal share the same i+j value.\n' +
       '2. Group elements into diagonals by their i+j sum.\n' +
@@ -772,6 +1080,30 @@ class Solution:
                     dist[nr][nc] = d + steps
                     heapq.heappush(heap, (d + steps, nr, nc))
         return -1`,
+    jsCode: `var shortestDistance = function(maze, start, destination) {
+    const rows = maze.length, cols = maze[0].length;
+    const dist = Array.from({length: rows}, () => new Array(cols).fill(Infinity));
+    dist[start[0]][start[1]] = 0;
+    const heap = [[0, start[0], start[1]]];
+    const dirs = [[0,1],[0,-1],[1,0],[-1,0]];
+    while (heap.length) {
+        heap.sort((a, b) => a[0] - b[0]);
+        const [d, r, c] = heap.shift();
+        if (d > dist[r][c]) continue;
+        if (r === destination[0] && c === destination[1]) return d;
+        for (const [dr, dc] of dirs) {
+            let nr = r, nc = c, steps = 0;
+            while (nr + dr >= 0 && nr + dr < rows && nc + dc >= 0 && nc + dc < cols && maze[nr + dr][nc + dc] === 0) {
+                nr += dr; nc += dc; steps++;
+            }
+            if (d + steps < dist[nr][nc]) {
+                dist[nr][nc] = d + steps;
+                heap.push([d + steps, nr, nc]);
+            }
+        }
+    }
+    return -1;
+};`,
     explanation:
       '1. Use Dijkstra with a min-heap, starting at start with distance 0.\n' +
       '2. For each position, roll in all 4 directions counting steps until hitting a wall.\n' +
@@ -805,6 +1137,14 @@ class Solution:
         for _ in range(2, n + 1):
             a, b = b, a + b
         return b`,
+    jsCode: `var fib = function(n) {
+    if (n <= 1) return n;
+    let a = 0, b = 1;
+    for (let i = 2; i <= n; i++) {
+        [a, b] = [b, a + b];
+    }
+    return b;
+};`,
     explanation:
       '1. Base cases: F(0) = 0, F(1) = 1.\n' +
       '2. Iterate from 2 to n, updating a and b to track the last two values.\n' +
@@ -842,6 +1182,18 @@ class Solution:
                 else:
                     dp[i][j] = max(dp[i + 1][j], dp[i][j - 1])
         return dp[0][n - 1]`,
+    jsCode: `var longestPalindromeSubseq = function(s) {
+    const n = s.length;
+    const dp = Array.from({length: n}, () => new Array(n).fill(0));
+    for (let i = n - 1; i >= 0; i--) {
+        dp[i][i] = 1;
+        for (let j = i + 1; j < n; j++) {
+            if (s[i] === s[j]) dp[i][j] = dp[i + 1][j - 1] + 2;
+            else dp[i][j] = Math.max(dp[i + 1][j], dp[i][j - 1]);
+        }
+    }
+    return dp[0][n - 1];
+};`,
     explanation:
       '1. dp[i][j] = length of longest palindromic subsequence in s[i..j].\n' +
       '2. Base case: single characters are palindromes of length 1.\n' +
@@ -879,6 +1231,19 @@ class Solution:
             else:
                 first_seen[count] = i
         return max_len`,
+    jsCode: `var findMaxLength = function(nums) {
+    let count = 0, maxLen = 0;
+    const firstSeen = new Map([[0, -1]]);
+    for (let i = 0; i < nums.length; i++) {
+        count += nums[i] === 1 ? 1 : -1;
+        if (firstSeen.has(count)) {
+            maxLen = Math.max(maxLen, i - firstSeen.get(count));
+        } else {
+            firstSeen.set(count, i);
+        }
+    }
+    return maxLen;
+};`,
     explanation:
       '1. Treat 0 as -1 and maintain a running sum (count).\n' +
       '2. If count == 0, the subarray from start to current index has equal 0s and 1s.\n' +
@@ -918,6 +1283,25 @@ class Solution:
     def pickIndex(self) -> int:
         target = random.randint(1, self.prefix[-1])
         return bisect.bisect_left(self.prefix, target)`,
+    jsCode: `var Solution = function(w) {
+    this.prefix = [];
+    let total = 0;
+    for (const weight of w) {
+        total += weight;
+        this.prefix.push(total);
+    }
+};
+
+Solution.prototype.pickIndex = function() {
+    const target = Math.floor(Math.random() * this.prefix[this.prefix.length - 1]) + 1;
+    let lo = 0, hi = this.prefix.length - 1;
+    while (lo < hi) {
+        const mid = (lo + hi) >> 1;
+        if (this.prefix[mid] < target) lo = mid + 1;
+        else hi = mid;
+    }
+    return lo;
+};`,
     explanation:
       '1. Build a prefix sum array where prefix[i] = sum of w[0..i].\n' +
       '2. Generate a random integer in [1, total_weight].\n' +
@@ -968,6 +1352,36 @@ class Solution:
                         dfs(r + dr, c + dc)
         dfs(r, c)
         return board`,
+    jsCode: `var updateBoard = function(board, click) {
+    const [r, c] = click;
+    if (board[r][c] === 'M') {
+        board[r][c] = 'X';
+        return board;
+    }
+    const rows = board.length, cols = board[0].length;
+    const dfs = (r, c) => {
+        if (r < 0 || r >= rows || c < 0 || c >= cols || board[r][c] !== 'E') return;
+        let mines = 0;
+        for (let dr = -1; dr <= 1; dr++) {
+            for (let dc = -1; dc <= 1; dc++) {
+                const nr = r + dr, nc = c + dc;
+                if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && board[nr][nc] === 'M') mines++;
+            }
+        }
+        if (mines > 0) {
+            board[r][c] = String(mines);
+        } else {
+            board[r][c] = 'B';
+            for (let dr = -1; dr <= 1; dr++) {
+                for (let dc = -1; dc <= 1; dc++) {
+                    dfs(r + dr, c + dc);
+                }
+            }
+        }
+    };
+    dfs(r, c);
+    return board;
+};`,
     explanation:
       '1. If the click is on a mine, mark it as \'X\' and return.\n' +
       '2. Otherwise, count adjacent mines in all 8 directions.\n' +
@@ -1007,6 +1421,18 @@ class Solution:
             inorder(node.right)
         inorder(root)
         return self.min_diff`,
+    jsCode: `var getMinimumDifference = function(root) {
+    let prev = null, minDiff = Infinity;
+    const inorder = (node) => {
+        if (!node) return;
+        inorder(node.left);
+        if (prev !== null) minDiff = Math.min(minDiff, node.val - prev);
+        prev = node.val;
+        inorder(node.right);
+    };
+    inorder(root);
+    return minDiff;
+};`,
     explanation:
       '1. In-order traversal of a BST visits nodes in ascending order.\n' +
       '2. The minimum difference must occur between two consecutive values.\n' +
@@ -1044,6 +1470,16 @@ class Solution:
             elif k == 0 and count[num] > 1:
                 result += 1
         return result`,
+    jsCode: `var findPairs = function(nums, k) {
+    const count = new Map();
+    for (const num of nums) count.set(num, (count.get(num) || 0) + 1);
+    let result = 0;
+    for (const [num, cnt] of count) {
+        if (k > 0 && count.has(num + k)) result++;
+        else if (k === 0 && cnt > 1) result++;
+    }
+    return result;
+};`,
     explanation:
       '1. Count occurrences of each number using Counter.\n' +
       '2. If k > 0, for each unique num, check if num + k exists (avoids double counting).\n' +
@@ -1082,6 +1518,21 @@ class Solution:
 
     def decode(self, shortUrl: str) -> str:
         return self.url_map[shortUrl]`,
+    jsCode: `var Codec = function() {
+    this.urlMap = {};
+    this.counter = 0;
+};
+
+Codec.prototype.encode = function(longUrl) {
+    this.counter++;
+    const short = "http://tinyurl.com/" + this.counter;
+    this.urlMap[short] = longUrl;
+    return short;
+};
+
+Codec.prototype.decode = function(shortUrl) {
+    return this.urlMap[shortUrl];
+};`,
     explanation:
       '1. Maintain a dictionary mapping short URLs to long URLs.\n' +
       '2. On encode, increment a counter to create a unique short code.\n' +
@@ -1140,6 +1591,33 @@ class Solution:
                 self.i += 1
             return node
         return parse()`,
+    jsCode: `var str2tree = function(s) {
+    if (!s) return null;
+    let i = 0;
+    const parse = () => {
+        if (i >= s.length) return null;
+        let sign = 1;
+        if (s[i] === '-') { sign = -1; i++; }
+        let num = 0;
+        while (i < s.length && s[i] >= '0' && s[i] <= '9') {
+            num = num * 10 + parseInt(s[i]);
+            i++;
+        }
+        const node = new TreeNode(sign * num);
+        if (i < s.length && s[i] === '(') {
+            i++;
+            node.left = parse();
+            i++;
+        }
+        if (i < s.length && s[i] === '(') {
+            i++;
+            node.right = parse();
+            i++;
+        }
+        return node;
+    };
+    return parse();
+};`,
     explanation:
       '1. Use a global index to track position in the string.\n' +
       '2. Parse the number (with possible negative sign) to create the node.\n' +
@@ -1177,6 +1655,18 @@ class Solution:
             reverse_inorder(node.left)
         reverse_inorder(root)
         return root`,
+    jsCode: `var convertBST = function(root) {
+    let total = 0;
+    const reverseInorder = (node) => {
+        if (!node) return;
+        reverseInorder(node.right);
+        total += node.val;
+        node.val = total;
+        reverseInorder(node.left);
+    };
+    reverseInorder(root);
+    return root;
+};`,
     explanation:
       '1. Reverse in-order traversal visits nodes from largest to smallest.\n' +
       '2. Maintain a running total of all visited node values.\n' +
@@ -1208,6 +1698,17 @@ class Solution:
         for i in range(0, len(arr), 2 * k):
             arr[i:i + k] = arr[i:i + k][::-1]
         return ''.join(arr)`,
+    jsCode: `var reverseStr = function(s, k) {
+    const arr = s.split('');
+    for (let i = 0; i < arr.length; i += 2 * k) {
+        let left = i, right = Math.min(i + k - 1, arr.length - 1);
+        while (left < right) {
+            [arr[left], arr[right]] = [arr[right], arr[left]];
+            left++; right--;
+        }
+    }
+    return arr.join('');
+};`,
     explanation:
       '1. Convert string to list for in-place modification.\n' +
       '2. Iterate in steps of 2k.\n' +
@@ -1253,6 +1754,32 @@ class Solution:
                     dist[nr][nc] = dist[r][c] + 1
                     queue.append((nr, nc))
         return dist`,
+    jsCode: `var updateMatrix = function(mat) {
+    const m = mat.length, n = mat[0].length;
+    const dist = Array.from({length: m}, () => new Array(n).fill(Infinity));
+    const queue = [];
+    for (let i = 0; i < m; i++) {
+        for (let j = 0; j < n; j++) {
+            if (mat[i][j] === 0) {
+                dist[i][j] = 0;
+                queue.push([i, j]);
+            }
+        }
+    }
+    const dirs = [[0,1],[0,-1],[1,0],[-1,0]];
+    let idx = 0;
+    while (idx < queue.length) {
+        const [r, c] = queue[idx++];
+        for (const [dr, dc] of dirs) {
+            const nr = r + dr, nc = c + dc;
+            if (nr >= 0 && nr < m && nc >= 0 && nc < n && dist[nr][nc] > dist[r][c] + 1) {
+                dist[nr][nc] = dist[r][c] + 1;
+                queue.push([nr, nc]);
+            }
+        }
+    }
+    return dist;
+};`,
     explanation:
       '1. Initialize distance matrix: 0 for cells with 0, infinity for cells with 1.\n' +
       '2. Add all 0-cells to the BFS queue.\n' +
@@ -1312,6 +1839,33 @@ class Solution:
         leaves(root.right)
         right_boundary(root.right)
         return boundary`,
+    jsCode: `var boundaryOfBinaryTree = function(root) {
+    if (!root) return [];
+    const boundary = [root.val];
+    const leftBoundary = (node) => {
+        if (!node || (!node.left && !node.right)) return;
+        boundary.push(node.val);
+        if (node.left) leftBoundary(node.left);
+        else leftBoundary(node.right);
+    };
+    const rightBoundary = (node) => {
+        if (!node || (!node.left && !node.right)) return;
+        if (node.right) rightBoundary(node.right);
+        else rightBoundary(node.left);
+        boundary.push(node.val);
+    };
+    const leaves = (node) => {
+        if (!node) return;
+        if (!node.left && !node.right) { boundary.push(node.val); return; }
+        leaves(node.left);
+        leaves(node.right);
+    };
+    leftBoundary(root.left);
+    leaves(root.left);
+    leaves(root.right);
+    rightBoundary(root.right);
+    return boundary;
+};`,
     explanation:
       '1. Start with the root value.\n' +
       '2. Collect left boundary: go left preferring left children, excluding leaves.\n' +
@@ -1348,6 +1902,21 @@ class Solution:
                 pos += brick
                 edge_count[pos] += 1
         return len(wall) - (max(edge_count.values()) if edge_count else 0)`,
+    jsCode: `var leastBricks = function(wall) {
+    const edgeCount = new Map();
+    for (const row of wall) {
+        let pos = 0;
+        for (let i = 0; i < row.length - 1; i++) {
+            pos += row[i];
+            edgeCount.set(pos, (edgeCount.get(pos) || 0) + 1);
+        }
+    }
+    let maxEdges = 0;
+    for (const count of edgeCount.values()) {
+        maxEdges = Math.max(maxEdges, count);
+    }
+    return wall.length - maxEdges;
+};`,
     explanation:
       '1. For each row, compute prefix sums (excluding the total width) to find edge positions.\n' +
       '2. Count how many rows have an edge at each position using a Counter.\n' +
@@ -1388,6 +1957,19 @@ class Solution:
         digits[i + 1:] = digits[i + 1:][::-1]
         result = int(''.join(digits))
         return result if result <= 2**31 - 1 else -1`,
+    jsCode: `var nextGreaterElement = function(n) {
+    const digits = String(n).split('');
+    let i = digits.length - 2;
+    while (i >= 0 && digits[i] >= digits[i + 1]) i--;
+    if (i < 0) return -1;
+    let j = digits.length - 1;
+    while (digits[j] <= digits[i]) j--;
+    [digits[i], digits[j]] = [digits[j], digits[i]];
+    const suffix = digits.splice(i + 1).reverse();
+    digits.push(...suffix);
+    const result = parseInt(digits.join(''));
+    return result > 2147483647 ? -1 : result;
+};`,
     explanation:
       '1. Convert n to a list of digit characters.\n' +
       '2. Find the rightmost index i where digits[i] < digits[i+1] (the pivot).\n' +
@@ -1417,6 +1999,9 @@ class Solution:
     code: `class Solution:
     def reverseWords(self, s: str) -> str:
         return ' '.join(word[::-1] for word in s.split(' '))`,
+    jsCode: `var reverseWords = function(s) {
+    return s.split(' ').map(word => word.split('').reverse().join('')).join(' ');
+};`,
     explanation:
       '1. Split the string by spaces to get individual words.\n' +
       '2. Reverse each word using slicing [::-1].\n' +
@@ -1449,6 +2034,15 @@ class Solution:
         if not root.children:
             return 1
         return 1 + max(self.maxDepth(child) for child in root.children)`,
+    jsCode: `var maxDepth = function(root) {
+    if (!root) return 0;
+    if (!root.children || root.children.length === 0) return 1;
+    let max = 0;
+    for (const child of root.children) {
+        max = Math.max(max, maxDepth(child));
+    }
+    return 1 + max;
+};`,
     explanation:
       '1. Base case: if root is None, return 0.\n' +
       '2. If root has no children, it is a leaf with depth 1.\n' +
@@ -1478,6 +2072,12 @@ class Solution:
     def arrayPairSum(self, nums: list[int]) -> int:
         nums.sort()
         return sum(nums[i] for i in range(0, len(nums), 2))`,
+    jsCode: `var arrayPairSum = function(nums) {
+    nums.sort((a, b) => a - b);
+    let sum = 0;
+    for (let i = 0; i < nums.length; i += 2) sum += nums[i];
+    return sum;
+};`,
     explanation:
       '1. Sort the array in ascending order.\n' +
       '2. Pair consecutive elements: (nums[0], nums[1]), (nums[2], nums[3]), etc.\n' +
@@ -1510,6 +2110,16 @@ class Solution:
             return mat
         flat = [mat[i][j] for i in range(m) for j in range(n)]
         return [flat[i * c:(i + 1) * c] for i in range(r)]`,
+    jsCode: `var matrixReshape = function(mat, r, c) {
+    const m = mat.length, n = mat[0].length;
+    if (m * n !== r * c) return mat;
+    const flat = mat.flat();
+    const result = [];
+    for (let i = 0; i < r; i++) {
+        result.push(flat.slice(i * c, (i + 1) * c));
+    }
+    return result;
+};`,
     explanation:
       '1. Check if total elements match: m*n must equal r*c.\n' +
       '2. Flatten the matrix into a 1D list.\n' +
@@ -1549,6 +2159,21 @@ class Solution:
             result.append(curr)
             queue.extend(children[curr])
         return result`,
+    jsCode: `var killProcess = function(pid, ppid, kill) {
+    const children = new Map();
+    for (let i = 0; i < pid.length; i++) {
+        if (!children.has(ppid[i])) children.set(ppid[i], []);
+        children.get(ppid[i]).push(pid[i]);
+    }
+    const result = [];
+    const queue = [kill];
+    while (queue.length) {
+        const curr = queue.shift();
+        result.push(curr);
+        if (children.has(curr)) queue.push(...children.get(curr));
+    }
+    return result;
+};`,
     explanation:
       '1. Build a map from parent ID to list of child IDs.\n' +
       '2. Start BFS from the kill target.\n' +
@@ -1585,6 +2210,17 @@ class Solution:
                 else:
                     dp[i][j] = max(dp[i - 1][j], dp[i][j - 1])
         return m + n - 2 * dp[m][n]`,
+    jsCode: `var minDistance = function(word1, word2) {
+    const m = word1.length, n = word2.length;
+    const dp = Array.from({length: m + 1}, () => new Array(n + 1).fill(0));
+    for (let i = 1; i <= m; i++) {
+        for (let j = 1; j <= n; j++) {
+            if (word1[i - 1] === word2[j - 1]) dp[i][j] = dp[i - 1][j - 1] + 1;
+            else dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
+        }
+    }
+    return m + n - 2 * dp[m][n];
+};`,
     explanation:
       '1. Compute the LCS length using standard DP.\n' +
       '2. dp[i][j] = LCS length of word1[:i] and word2[:j].\n' +
@@ -1649,6 +2285,42 @@ class FileSystem:
                     return node
             node = node.children[part]
         return node`,
+    jsCode: `var FileSystem = function() {
+    this.root = { children: {}, content: '', isFile: false };
+};
+
+FileSystem.prototype._navigate = function(path, create = false) {
+    let node = this.root;
+    if (path === '/') return node;
+    for (const part of path.split('/').slice(1)) {
+        if (!node.children[part]) {
+            if (create) node.children[part] = { children: {}, content: '', isFile: false };
+            else return node;
+        }
+        node = node.children[part];
+    }
+    return node;
+};
+
+FileSystem.prototype.ls = function(path) {
+    const node = this._navigate(path);
+    if (node.isFile) return [path.split('/').pop()];
+    return Object.keys(node.children).sort();
+};
+
+FileSystem.prototype.mkdir = function(path) {
+    this._navigate(path, true);
+};
+
+FileSystem.prototype.addContentToFile = function(filePath, content) {
+    const node = this._navigate(filePath, true);
+    node.isFile = true;
+    node.content += content;
+};
+
+FileSystem.prototype.readContentFromFile = function(filePath) {
+    return this._navigate(filePath).content;
+};`,
     explanation:
       '1. Use a Trie with each node representing a directory or file.\n' +
       '2. ls: navigate to path, if file return its name, if directory return sorted children.\n' +
@@ -1685,6 +2357,16 @@ class FileSystem:
             result.append(node.val)
         dfs(root)
         return result`,
+    jsCode: `var postorder = function(root) {
+    const result = [];
+    const dfs = (node) => {
+        if (!node) return;
+        for (const child of node.children) dfs(child);
+        result.push(node.val);
+    };
+    dfs(root);
+    return result;
+};`,
     explanation:
       '1. If the node is None, return.\n' +
       '2. Recursively visit all children first.\n' +
@@ -1719,6 +2401,14 @@ class FileSystem:
         return (dists[0] > 0 and
                 dists[0] == dists[1] == dists[2] == dists[3] and
                 dists[4] == dists[5])`,
+    jsCode: `var validSquare = function(p1, p2, p3, p4) {
+    const dist = (a, b) => (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2;
+    const dists = [dist(p1,p2), dist(p1,p3), dist(p1,p4),
+                   dist(p2,p3), dist(p2,p4), dist(p3,p4)].sort((a, b) => a - b);
+    return dists[0] > 0 &&
+           dists[0] === dists[1] && dists[1] === dists[2] && dists[2] === dists[3] &&
+           dists[4] === dists[5];
+};`,
     explanation:
       '1. Compute squared distances between all 6 pairs of points.\n' +
       '2. Sort the distances.\n' +
@@ -1756,6 +2446,20 @@ class FileSystem:
                     if n <= 0:
                         return True
         return n <= 0`,
+    jsCode: `var canPlaceFlowers = function(flowerbed, n) {
+    for (let i = 0; i < flowerbed.length; i++) {
+        if (flowerbed[i] === 0) {
+            const leftEmpty = i === 0 || flowerbed[i - 1] === 0;
+            const rightEmpty = i === flowerbed.length - 1 || flowerbed[i + 1] === 0;
+            if (leftEmpty && rightEmpty) {
+                flowerbed[i] = 1;
+                n--;
+                if (n <= 0) return true;
+            }
+        }
+    }
+    return n <= 0;
+};`,
     explanation:
       '1. Iterate through each plot in the flowerbed.\n' +
       '2. If the current plot and both neighbors are empty, plant a flower.\n' +
@@ -1794,6 +2498,25 @@ class Solution:
                 content = content[:-1]
                 content_map[content].append(directory + '/' + name)
         return [files for files in content_map.values() if len(files) > 1]`,
+    jsCode: `var findDuplicate = function(paths) {
+    const contentMap = new Map();
+    for (const path of paths) {
+        const parts = path.split(' ');
+        const directory = parts[0];
+        for (let i = 1; i < parts.length; i++) {
+            const idx = parts[i].indexOf('(');
+            const name = parts[i].slice(0, idx);
+            const content = parts[i].slice(idx + 1, -1);
+            if (!contentMap.has(content)) contentMap.set(content, []);
+            contentMap.get(content).push(directory + '/' + name);
+        }
+    }
+    const result = [];
+    for (const files of contentMap.values()) {
+        if (files.length > 1) result.push(files);
+    }
+    return result;
+};`,
     explanation:
       '1. Parse each path string: first token is directory, rest are "filename(content)".\n' +
       '2. Split filename and content, and map content to full file paths.\n' +
@@ -1832,6 +2555,22 @@ class Solution:
                 else:
                     i += 1
         return count`,
+    jsCode: `var triangleNumber = function(nums) {
+    nums.sort((a, b) => a - b);
+    let count = 0;
+    for (let k = nums.length - 1; k > 1; k--) {
+        let i = 0, j = k - 1;
+        while (i < j) {
+            if (nums[i] + nums[j] > nums[k]) {
+                count += j - i;
+                j--;
+            } else {
+                i++;
+            }
+        }
+    }
+    return count;
+};`,
     explanation:
       '1. Sort the array in ascending order.\n' +
       '2. Fix the largest side (nums[k]) and use two pointers i, j for the other two sides.\n' +
@@ -1867,6 +2606,14 @@ class Solution:
         root1.left = self.mergeTrees(root1.left, root2.left)
         root1.right = self.mergeTrees(root1.right, root2.right)
         return root1`,
+    jsCode: `var mergeTrees = function(root1, root2) {
+    if (!root1) return root2;
+    if (!root2) return root1;
+    root1.val += root2.val;
+    root1.left = mergeTrees(root1.left, root2.left);
+    root1.right = mergeTrees(root1.right, root2.right);
+    return root1;
+};`,
     explanation:
       '1. If one tree is None, return the other tree.\n' +
       '2. If both exist, add root2\'s value to root1.\n' +
@@ -1925,6 +2672,43 @@ class Solution:
 
     def isFull(self) -> bool:
         return self.count == self.capacity`,
+    jsCode: `var MyCircularQueue = function(k) {
+    this.queue = new Array(k);
+    this.head = 0;
+    this.count = 0;
+    this.capacity = k;
+};
+
+MyCircularQueue.prototype.enQueue = function(value) {
+    if (this.isFull()) return false;
+    const idx = (this.head + this.count) % this.capacity;
+    this.queue[idx] = value;
+    this.count++;
+    return true;
+};
+
+MyCircularQueue.prototype.deQueue = function() {
+    if (this.isEmpty()) return false;
+    this.head = (this.head + 1) % this.capacity;
+    this.count--;
+    return true;
+};
+
+MyCircularQueue.prototype.Front = function() {
+    return this.isEmpty() ? -1 : this.queue[this.head];
+};
+
+MyCircularQueue.prototype.Rear = function() {
+    return this.isEmpty() ? -1 : this.queue[(this.head + this.count - 1) % this.capacity];
+};
+
+MyCircularQueue.prototype.isEmpty = function() {
+    return this.count === 0;
+};
+
+MyCircularQueue.prototype.isFull = function() {
+    return this.count === this.capacity;
+};`,
     explanation:
       '1. Use a fixed array, head pointer, and count to track state.\n' +
       '2. enQueue: place value at (head + count) % capacity.\n' +
@@ -1970,6 +2754,28 @@ class Solution:
             dfs(node.right, d + 1)
         dfs(root, 1)
         return root`,
+    jsCode: `var addOneRow = function(root, val, depth) {
+    if (depth === 1) {
+        const newRoot = new TreeNode(val);
+        newRoot.left = root;
+        return newRoot;
+    }
+    const dfs = (node, d) => {
+        if (!node) return;
+        if (d === depth - 1) {
+            const oldLeft = node.left, oldRight = node.right;
+            node.left = new TreeNode(val);
+            node.right = new TreeNode(val);
+            node.left.left = oldLeft;
+            node.right.right = oldRight;
+            return;
+        }
+        dfs(node.left, d + 1);
+        dfs(node.right, d + 1);
+    };
+    dfs(root, 1);
+    return root;
+};`,
     explanation:
       '1. If depth is 1, create a new root with val and attach original tree as left child.\n' +
       '2. Otherwise, use DFS to find nodes at depth d-1.\n' +
@@ -2008,6 +2814,21 @@ class Solution:
             if time > deadline:
                 time += heapq.heappop(heap)
         return len(heap)`,
+    jsCode: `var scheduleCourse = function(courses) {
+    courses.sort((a, b) => a[1] - b[1]);
+    const heap = []; // max-heap using negative values
+    let time = 0;
+    const push = (val) => { heap.push(val); heap.sort((a, b) => b - a); };
+    const pop = () => heap.shift();
+    for (const [duration, deadline] of courses) {
+        time += duration;
+        push(duration);
+        if (time > deadline) {
+            time -= pop();
+        }
+    }
+    return heap.length;
+};`,
     explanation:
       '1. Sort courses by deadline (earliest deadline first).\n' +
       '2. Add each course; push its duration to a max-heap (negated for min-heap).\n' +
@@ -2053,6 +2874,28 @@ class Solution:
             cur_max = max(cur_max, nxt)
             heapq.heappush(heap, (nxt, row, idx + 1))
         return best`,
+    jsCode: `var smallestRange = function(nums) {
+    const heap = [];
+    let curMax = -Infinity;
+    for (let i = 0; i < nums.length; i++) {
+        heap.push([nums[i][0], i, 0]);
+        curMax = Math.max(curMax, nums[i][0]);
+    }
+    heap.sort((a, b) => a[0] - b[0]);
+    let best = [-Infinity, Infinity];
+    while (true) {
+        heap.sort((a, b) => a[0] - b[0]);
+        const [curMin, row, idx] = heap.shift();
+        if (curMax - curMin < best[1] - best[0]) {
+            best = [curMin, curMax];
+        }
+        if (idx + 1 === nums[row].length) break;
+        const nxt = nums[row][idx + 1];
+        curMax = Math.max(curMax, nxt);
+        heap.push([nxt, row, idx + 1]);
+    }
+    return best;
+};`,
     explanation:
       '1. Initialize heap with the first element from each list; track max.\n' +
       '2. The range [heap_min, cur_max] covers all k lists.\n' +
@@ -2093,6 +2936,16 @@ class Solution:
             else:
                 b -= 1
         return False`,
+    jsCode: `var judgeSquareSum = function(c) {
+    let a = 0, b = Math.floor(Math.sqrt(c));
+    while (a <= b) {
+        const total = a * a + b * b;
+        if (total === c) return true;
+        else if (total < c) a++;
+        else b--;
+    }
+    return false;
+};`,
     explanation:
       '1. Set a = 0 and b = floor(sqrt(c)).\n' +
       '2. Check if a^2 + b^2 == c.\n' +
@@ -2135,6 +2988,26 @@ class Solution:
                 result[stack.pop()] += time - prev_time + 1
                 prev_time = time + 1
         return result`,
+    jsCode: `var exclusiveTime = function(n, logs) {
+    const result = new Array(n).fill(0);
+    const stack = [];
+    let prevTime = 0;
+    for (const log of logs) {
+        const parts = log.split(':');
+        const fid = parseInt(parts[0]);
+        const typ = parts[1];
+        const time = parseInt(parts[2]);
+        if (typ === 'start') {
+            if (stack.length) result[stack[stack.length - 1]] += time - prevTime;
+            stack.push(fid);
+            prevTime = time;
+        } else {
+            result[stack.pop()] += time - prevTime + 1;
+            prevTime = time + 1;
+        }
+    }
+    return result;
+};`,
     explanation:
       '1. Use a stack to track active function IDs.\n' +
       '2. On start: add elapsed time to the current top function, push new function.\n' +
@@ -2178,6 +3051,22 @@ class Solution:
                     queue.append(node.right)
             result.append(level_sum / level_size)
         return result`,
+    jsCode: `var averageOfLevels = function(root) {
+    const result = [];
+    const queue = [root];
+    while (queue.length) {
+        const levelSize = queue.length;
+        let levelSum = 0;
+        for (let i = 0; i < levelSize; i++) {
+            const node = queue.shift();
+            levelSum += node.val;
+            if (node.left) queue.push(node.left);
+            if (node.right) queue.push(node.right);
+        }
+        result.push(levelSum / levelSize);
+    }
+    return result;
+};`,
     explanation:
       '1. Use a queue for level-order (BFS) traversal.\n' +
       '2. For each level, process all nodes and sum their values.\n' +
@@ -2239,6 +3128,43 @@ class AutocompleteSystem:
         else:
             self.cur = None
             return []`,
+    jsCode: `var AutocompleteSystem = function(sentences, times) {
+    this.root = {};
+    this.cur = this.root;
+    this.search = "";
+    for (let i = 0; i < sentences.length; i++) {
+        this._add(sentences[i], times[i]);
+    }
+};
+
+AutocompleteSystem.prototype._add = function(sentence, count) {
+    let node = this.root;
+    for (const c of sentence) {
+        if (!node[c]) node[c] = {};
+        node = node[c];
+        if (!node.sentences) node.sentences = {};
+        node.sentences[sentence] = (node.sentences[sentence] || 0) + count;
+    }
+};
+
+AutocompleteSystem.prototype.input = function(c) {
+    if (c === '#') {
+        this._add(this.search, 1);
+        this.search = "";
+        this.cur = this.root;
+        return [];
+    }
+    this.search += c;
+    if (this.cur && this.cur[c]) {
+        this.cur = this.cur[c];
+        const pairs = Object.entries(this.cur.sentences || {});
+        pairs.sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+        return pairs.slice(0, 3).map(p => p[0]);
+    } else {
+        this.cur = null;
+        return [];
+    }
+};`,
     explanation:
       '1. Build a Trie where each node stores all sentences passing through it with frequencies.\n' +
       '2. On character input, traverse the Trie and return top 3 by frequency (then alphabetical).\n' +
@@ -2277,6 +3203,19 @@ class AutocompleteSystem:
         actual_sum = sum(nums)
         missing = expected_sum - actual_sum + duplicate
         return [duplicate, missing]`,
+    jsCode: `var findErrorNums = function(nums) {
+    const n = nums.length;
+    const numSet = new Set();
+    let duplicate = -1;
+    for (const num of nums) {
+        if (numSet.has(num)) duplicate = num;
+        numSet.add(num);
+    }
+    const expectedSum = n * (n + 1) / 2;
+    const actualSum = nums.reduce((a, b) => a + b, 0);
+    const missing = expectedSum - actualSum + duplicate;
+    return [duplicate, missing];
+};`,
     explanation:
       '1. Iterate through nums to find the duplicate using a set.\n' +
       '2. Compute expected sum = n*(n+1)/2 and actual sum of nums.\n' +
@@ -2312,6 +3251,17 @@ class AutocompleteSystem:
                     return prefix
             return word
         return ' '.join(find_root(word) for word in sentence.split())`,
+    jsCode: `var replaceWords = function(dictionary, sentence) {
+    const rootSet = new Set(dictionary);
+    const findRoot = (word) => {
+        for (let i = 1; i <= word.length; i++) {
+            const prefix = word.slice(0, i);
+            if (rootSet.has(prefix)) return prefix;
+        }
+        return word;
+    };
+    return sentence.split(' ').map(findRoot).join(' ');
+};`,
     explanation:
       '1. Store all dictionary roots in a set for O(1) lookup.\n' +
       '2. For each word, check prefixes of increasing length.\n' +
@@ -2353,6 +3303,19 @@ class Solution:
             return s
         serialize(root)
         return result`,
+    jsCode: `var findDuplicateSubtrees = function(root) {
+    const count = new Map();
+    const result = [];
+    const serialize = (node) => {
+        if (!node) return '#';
+        const s = node.val + ',' + serialize(node.left) + ',' + serialize(node.right);
+        count.set(s, (count.get(s) || 0) + 1);
+        if (count.get(s) === 2) result.push(node);
+        return s;
+    };
+    serialize(root);
+    return result;
+};`,
     explanation:
       '1. Serialize each subtree using a postorder string representation.\n' +
       '2. Use a hash map to count occurrences of each serialization.\n' +
@@ -2389,6 +3352,16 @@ class Solution:
             seen.add(node.val)
             return dfs(node.left) or dfs(node.right)
         return dfs(root)`,
+    jsCode: `var findTarget = function(root, k) {
+    const seen = new Set();
+    const dfs = (node) => {
+        if (!node) return false;
+        if (seen.has(k - node.val)) return true;
+        seen.add(node.val);
+        return dfs(node.left) || dfs(node.right);
+    };
+    return dfs(root);
+};`,
     explanation:
       '1. Use DFS to traverse the tree.\n' +
       '2. For each node, check if (k - node.val) is in the seen set.\n' +
@@ -2423,6 +3396,15 @@ class Solution:
         node.left = self.constructMaximumBinaryTree(nums[:max_idx])
         node.right = self.constructMaximumBinaryTree(nums[max_idx + 1:])
         return node`,
+    jsCode: `var constructMaximumBinaryTree = function(nums) {
+    if (!nums.length) return null;
+    const maxVal = Math.max(...nums);
+    const maxIdx = nums.indexOf(maxVal);
+    const node = new TreeNode(maxVal);
+    node.left = constructMaximumBinaryTree(nums.slice(0, maxIdx));
+    node.right = constructMaximumBinaryTree(nums.slice(maxIdx + 1));
+    return node;
+};`,
     explanation:
       '1. Find the index of the maximum element in the array.\n' +
       '2. Create a TreeNode with the maximum value.\n' +
@@ -2466,6 +3448,24 @@ class Solution:
             fill(node.right, r + 1, mid + 1, right)
         fill(root, 0, 0, cols - 1)
         return result`,
+    jsCode: `var printTree = function(root) {
+    const getHeight = (node) => {
+        if (!node) return 0;
+        return 1 + Math.max(getHeight(node.left), getHeight(node.right));
+    };
+    const h = getHeight(root);
+    const cols = (1 << h) - 1;
+    const result = Array.from({length: h}, () => new Array(cols).fill(''));
+    const fill = (node, r, left, right) => {
+        if (!node) return;
+        const mid = Math.floor((left + right) / 2);
+        result[r][mid] = String(node.val);
+        fill(node.left, r + 1, left, mid - 1);
+        fill(node.right, r + 1, mid + 1, right);
+    };
+    fill(root, 0, 0, cols - 1);
+    return result;
+};`,
     explanation:
       '1. Compute the height of the tree to determine the matrix dimensions.\n' +
       '2. The matrix has height rows and 2^height - 1 columns.\n' +
@@ -2494,6 +3494,16 @@ class Solution:
     code: `class Solution:
     def judgeCircle(self, moves: str) -> bool:
         return moves.count('U') == moves.count('D') and moves.count('L') == moves.count('R')`,
+    jsCode: `var judgeCircle = function(moves) {
+    let x = 0, y = 0;
+    for (const m of moves) {
+        if (m === 'U') y++;
+        else if (m === 'D') y--;
+        else if (m === 'L') x--;
+        else if (m === 'R') x++;
+    }
+    return x === 0 && y === 0;
+};`,
     explanation:
       '1. Count occurrences of U, D, L, R.\n' +
       '2. U and D cancel out vertically; L and R cancel out horizontally.\n' +
@@ -2529,6 +3539,15 @@ class Solution:
             else:
                 hi = mid
         return arr[lo:lo + k]`,
+    jsCode: `var findClosestElements = function(arr, k, x) {
+    let lo = 0, hi = arr.length - k;
+    while (lo < hi) {
+        const mid = (lo + hi) >> 1;
+        if (x - arr[mid] > arr[mid + k] - x) lo = mid + 1;
+        else hi = mid;
+    }
+    return arr.slice(lo, lo + k);
+};`,
     explanation:
       '1. Binary search for the starting index of the k-element window.\n' +
       '2. Compare distances: if x is closer to arr[mid+k] than arr[mid], shift right.\n' +
@@ -2574,6 +3593,26 @@ class Solution:
                 return False
             remain[num] -= 1
         return True`,
+    jsCode: `var isPossible = function(nums) {
+    const remain = new Map();
+    const tails = new Map();
+    for (const num of nums) remain.set(num, (remain.get(num) || 0) + 1);
+    for (const num of nums) {
+        if (remain.get(num) === 0) continue;
+        if ((tails.get(num) || 0) > 0) {
+            tails.set(num, tails.get(num) - 1);
+            tails.set(num + 1, (tails.get(num + 1) || 0) + 1);
+        } else if ((remain.get(num + 1) || 0) > 0 && (remain.get(num + 2) || 0) > 0) {
+            remain.set(num + 1, remain.get(num + 1) - 1);
+            remain.set(num + 2, remain.get(num + 2) - 1);
+            tails.set(num + 3, (tails.get(num + 3) || 0) + 1);
+        } else {
+            return false;
+        }
+        remain.set(num, remain.get(num) - 1);
+    }
+    return true;
+};`,
     explanation:
       '1. remain counts how many of each number are left to assign.\n' +
       '2. tails counts how many subsequences can be extended with a given number.\n' +
@@ -2618,6 +3657,25 @@ class Solution:
                     queue.append((node.right, 2 * pos + 1))
             max_width = max(max_width, pos - first_pos + 1)
         return max_width`,
+    jsCode: `var widthOfBinaryTree = function(root) {
+    if (!root) return 0;
+    let maxWidth = 0;
+    const queue = [[root, 0n]];
+    while (queue.length) {
+        const levelSize = queue.length;
+        const firstPos = queue[0][1];
+        let lastPos = firstPos;
+        for (let i = 0; i < levelSize; i++) {
+            const [node, pos] = queue.shift();
+            lastPos = pos;
+            if (node.left) queue.push([node.left, 2n * (pos - firstPos)]);
+            if (node.right) queue.push([node.right, 2n * (pos - firstPos) + 1n]);
+        }
+        const width = Number(lastPos - firstPos) + 1;
+        maxWidth = Math.max(maxWidth, width);
+    }
+    return maxWidth;
+};`,
     explanation:
       '1. Assign positions using heap indexing: root=0, left=2*pos, right=2*pos+1.\n' +
       '2. Use BFS to traverse level by level.\n' +
@@ -2653,6 +3711,20 @@ class Solution:
                     digits[i], digits[last[k]] = digits[last[k]], digits[i]
                     return int(''.join(digits))
         return num`,
+    jsCode: `var maximumSwap = function(num) {
+    const digits = String(num).split('');
+    const last = {};
+    for (let i = 0; i < digits.length; i++) last[digits[i]] = i;
+    for (let i = 0; i < digits.length; i++) {
+        for (let k = 9; k > parseInt(digits[i]); k--) {
+            if (last[k] !== undefined && last[k] > i) {
+                [digits[i], digits[last[k]]] = [digits[last[k]], digits[i]];
+                return parseInt(digits.join(''));
+            }
+        }
+    }
+    return num;
+};`,
     explanation:
       '1. Record the last occurrence index of each digit (0-9).\n' +
       '2. From left to right, for each digit, check if a larger digit exists to its right.\n' +
@@ -2693,6 +3765,29 @@ class Solution:
                         count[i] += count[j]
         max_len = max(length)
         return sum(c for l, c in zip(length, count) if l == max_len)`,
+    jsCode: `var findNumberOfLIS = function(nums) {
+    const n = nums.length;
+    const length = new Array(n).fill(1);
+    const count = new Array(n).fill(1);
+    for (let i = 1; i < n; i++) {
+        for (let j = 0; j < i; j++) {
+            if (nums[j] < nums[i]) {
+                if (length[j] + 1 > length[i]) {
+                    length[i] = length[j] + 1;
+                    count[i] = count[j];
+                } else if (length[j] + 1 === length[i]) {
+                    count[i] += count[j];
+                }
+            }
+        }
+    }
+    const maxLen = Math.max(...length);
+    let result = 0;
+    for (let i = 0; i < n; i++) {
+        if (length[i] === maxLen) result += count[i];
+    }
+    return result;
+};`,
     explanation:
       '1. length[i] = length of longest increasing subsequence ending at i.\n' +
       '2. count[i] = number of longest increasing subsequences ending at i.\n' +
@@ -2731,6 +3826,19 @@ class Solution:
             else:
                 cur_len = 1
         return max_len`,
+    jsCode: `var findLengthOfLCIS = function(nums) {
+    if (!nums.length) return 0;
+    let maxLen = 1, curLen = 1;
+    for (let i = 1; i < nums.length; i++) {
+        if (nums[i] > nums[i - 1]) {
+            curLen++;
+            maxLen = Math.max(maxLen, curLen);
+        } else {
+            curLen = 1;
+        }
+    }
+    return maxLen;
+};`,
     explanation:
       '1. Track the current length of the increasing run.\n' +
       '2. If nums[i] > nums[i-1], extend the run.\n' +
@@ -2771,6 +3879,26 @@ class Solution:
             if diff == 1:
                 return True
         return False`,
+    jsCode: `var MagicDictionary = function() {
+    this.words = [];
+};
+
+MagicDictionary.prototype.buildDict = function(dictionary) {
+    this.words = dictionary;
+};
+
+MagicDictionary.prototype.search = function(searchWord) {
+    for (const word of this.words) {
+        if (word.length !== searchWord.length) continue;
+        let diff = 0;
+        for (let i = 0; i < word.length; i++) {
+            if (word[i] !== searchWord[i]) diff++;
+            if (diff > 1) break;
+        }
+        if (diff === 1) return true;
+    }
+    return false;
+};`,
     explanation:
       '1. Store the dictionary words.\n' +
       '2. For each search, compare with every word of the same length.\n' +
@@ -2823,6 +3951,30 @@ class MapSum:
                 return 0
             node = node.children[c]
         return node.total`,
+    jsCode: `var MapSum = function() {
+    this.root = {};
+    this.map = {};
+};
+
+MapSum.prototype.insert = function(key, val) {
+    const delta = val - (this.map[key] || 0);
+    this.map[key] = val;
+    let node = this.root;
+    for (const c of key) {
+        if (!node[c]) node[c] = { total: 0 };
+        node = node[c];
+        node.total += delta;
+    }
+};
+
+MapSum.prototype.sum = function(prefix) {
+    let node = this.root;
+    for (const c of prefix) {
+        if (!node[c]) return 0;
+        node = node[c];
+    }
+    return node.total;
+};`,
     explanation:
       '1. Each Trie node stores the sum of all values passing through it.\n' +
       '2. On insert, compute delta = new_val - old_val and update each node along the path.\n' +
@@ -2861,6 +4013,16 @@ class MapSum:
             else:
                 stack.append(int(op))
         return sum(stack)`,
+    jsCode: `var calPoints = function(operations) {
+    const stack = [];
+    for (const op of operations) {
+        if (op === 'C') stack.pop();
+        else if (op === 'D') stack.push(stack[stack.length - 1] * 2);
+        else if (op === '+') stack.push(stack[stack.length - 1] + stack[stack.length - 2]);
+        else stack.push(parseInt(op));
+    }
+    return stack.reduce((a, b) => a + b, 0);
+};`,
     explanation:
       '1. Use a stack to maintain the list of valid scores.\n' +
       '2. For a number, push it to the stack.\n' +
@@ -2902,6 +4064,32 @@ class MapSum:
                                 new_dp[nr][nc] += dp[r][c] / 8.0
             dp = new_dp
         return sum(dp[r][c] for r in range(n) for c in range(n))`,
+    jsCode: `var knightProbability = function(n, k, row, column) {
+    let dp = Array.from({length: n}, () => new Array(n).fill(0));
+    dp[row][column] = 1.0;
+    const moves = [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]];
+    for (let step = 0; step < k; step++) {
+        const newDp = Array.from({length: n}, () => new Array(n).fill(0));
+        for (let r = 0; r < n; r++) {
+            for (let c = 0; c < n; c++) {
+                if (dp[r][c] > 0) {
+                    for (const [dr, dc] of moves) {
+                        const nr = r + dr, nc = c + dc;
+                        if (nr >= 0 && nr < n && nc >= 0 && nc < n) {
+                            newDp[nr][nc] += dp[r][c] / 8.0;
+                        }
+                    }
+                }
+            }
+        }
+        dp = newDp;
+    }
+    let total = 0;
+    for (let r = 0; r < n; r++) {
+        for (let c = 0; c < n; c++) total += dp[r][c];
+    }
+    return total;
+};`,
     explanation:
       '1. Start with probability 1.0 at the initial position.\n' +
       '2. For each move, distribute probability from each cell to its 8 knight moves.\n' +
@@ -2957,6 +4145,39 @@ class MapSum:
                 max_sum = total
                 result = [l, j, r]
         return result`,
+    jsCode: `var maxSumOfThreeSubarrays = function(nums, k) {
+    const n = nums.length;
+    const sums = new Array(n - k + 1);
+    let s = 0;
+    for (let i = 0; i < k; i++) s += nums[i];
+    sums[0] = s;
+    for (let i = 1; i <= n - k; i++) {
+        s += nums[i + k - 1] - nums[i - 1];
+        sums[i] = s;
+    }
+    const left = new Array(sums.length);
+    let best = 0;
+    for (let i = 0; i < sums.length; i++) {
+        if (sums[i] > sums[best]) best = i;
+        left[i] = best;
+    }
+    const right = new Array(sums.length);
+    best = sums.length - 1;
+    for (let i = sums.length - 1; i >= 0; i--) {
+        if (sums[i] >= sums[best]) best = i;
+        right[i] = best;
+    }
+    let result = [-1, -1, -1], maxSum = 0;
+    for (let j = k; j < sums.length - k; j++) {
+        const l = left[j - k], r = right[j + k];
+        const total = sums[l] + sums[j] + sums[r];
+        if (total > maxSum) {
+            maxSum = total;
+            result = [l, j, r];
+        }
+    }
+    return result;
+};`,
     explanation:
       '1. Compute subarray sums of length k for each starting position.\n' +
       '2. Build left[i]: index of best subarray sum in [0..i].\n' +
@@ -2988,6 +4209,11 @@ class Solution:
     def topKFrequent(self, words: list[str], k: int) -> list[str]:
         count = Counter(words)
         return sorted(count.keys(), key=lambda w: (-count[w], w))[:k]`,
+    jsCode: `var topKFrequent = function(words, k) {
+    const count = new Map();
+    for (const w of words) count.set(w, (count.get(w) || 0) + 1);
+    return [...count.keys()].sort((a, b) => count.get(b) - count.get(a) || a.localeCompare(b)).slice(0, k);
+};`,
     explanation:
       '1. Count word frequencies using Counter.\n' +
       '2. Sort words by (-frequency, word) so higher frequency comes first, ties broken alphabetically.\n' +
@@ -3032,6 +4258,29 @@ class Solution:
                     dfs(r, c, r, c, shape)
                     shapes.add(tuple(shape))
         return len(shapes)`,
+    jsCode: `var numDistinctIslands = function(grid) {
+    const rows = grid.length, cols = grid[0].length;
+    const visited = new Set();
+    const shapes = new Set();
+    const dfs = (r, c, r0, c0, shape) => {
+        if (r < 0 || r >= rows || c < 0 || c >= cols || grid[r][c] === 0 || visited.has(r + ',' + c)) return;
+        visited.add(r + ',' + c);
+        shape.push((r - r0) + ',' + (c - c0));
+        for (const [dr, dc] of [[0,1],[0,-1],[1,0],[-1,0]]) {
+            dfs(r + dr, c + dc, r0, c0, shape);
+        }
+    };
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            if (grid[r][c] === 1 && !visited.has(r + ',' + c)) {
+                const shape = [];
+                dfs(r, c, r, c, shape);
+                shapes.add(shape.join('|'));
+            }
+        }
+    }
+    return shapes.size;
+};`,
     explanation:
       '1. DFS from each unvisited land cell to find the island.\n' +
       '2. Record each cell\'s position relative to the starting cell (r0, c0).\n' +
@@ -3083,6 +4332,28 @@ class Solution:
                 buckets[i] -= nums[idx]
             return False
         return backtrack(0)`,
+    jsCode: `var canPartitionKSubsets = function(nums, k) {
+    const total = nums.reduce((a, b) => a + b, 0);
+    if (total % k !== 0) return false;
+    const target = total / k;
+    nums.sort((a, b) => b - a);
+    if (nums[0] > target) return false;
+    const buckets = new Array(k).fill(0);
+    const backtrack = (idx) => {
+        if (idx === nums.length) return buckets.every(b => b === target);
+        const seen = new Set();
+        for (let i = 0; i < k; i++) {
+            if (buckets[i] + nums[idx] > target) continue;
+            if (seen.has(buckets[i])) continue;
+            seen.add(buckets[i]);
+            buckets[i] += nums[idx];
+            if (backtrack(idx + 1)) return true;
+            buckets[i] -= nums[idx];
+        }
+        return false;
+    };
+    return backtrack(0);
+};`,
     explanation:
       '1. Check if total sum is divisible by k.\n' +
       '2. Sort descending for early pruning (large numbers fail faster).\n' +
@@ -3118,6 +4389,14 @@ class Solution:
             else:
                 root = root.right
         return None`,
+    jsCode: `var searchBST = function(root, val) {
+    while (root) {
+        if (val === root.val) return root;
+        else if (val < root.val) root = root.left;
+        else root = root.right;
+    }
+    return null;
+};`,
     explanation:
       '1. Start at the root.\n' +
       '2. If val matches, return the current node.\n' +
@@ -3152,6 +4431,12 @@ class Solution:
         else:
             root.right = self.insertIntoBST(root.right, val)
         return root`,
+    jsCode: `var insertIntoBST = function(root, val) {
+    if (!root) return new TreeNode(val);
+    if (val < root.val) root.left = insertIntoBST(root.left, val);
+    else root.right = insertIntoBST(root.right, val);
+    return root;
+};`,
     explanation:
       '1. If root is None, create and return a new node with val.\n' +
       '2. If val < root.val, recursively insert into the left subtree.\n' +
@@ -3192,6 +4477,18 @@ class KthLargest:
         if len(self.heap) > self.k:
             heapq.heappop(self.heap)
         return self.heap[0]`,
+    jsCode: `var KthLargest = function(k, nums) {
+    this.k = k;
+    this.heap = [];
+    for (const num of nums) this.add(num);
+};
+
+KthLargest.prototype.add = function(val) {
+    this.heap.push(val);
+    this.heap.sort((a, b) => a - b);
+    while (this.heap.length > this.k) this.heap.shift();
+    return this.heap[0];
+};`,
     explanation:
       '1. Maintain a min-heap of size k.\n' +
       '2. The smallest element in the heap is the kth largest overall.\n' +
@@ -3235,6 +4532,26 @@ class KthLargest:
     def contains(self, key: int) -> bool:
         idx = key % self.size
         return key in self.buckets[idx]`,
+    jsCode: `var MyHashSet = function() {
+    this.size = 10007;
+    this.buckets = Array.from({length: this.size}, () => []);
+};
+
+MyHashSet.prototype.add = function(key) {
+    const idx = key % this.size;
+    if (!this.buckets[idx].includes(key)) this.buckets[idx].push(key);
+};
+
+MyHashSet.prototype.remove = function(key) {
+    const idx = key % this.size;
+    const pos = this.buckets[idx].indexOf(key);
+    if (pos !== -1) this.buckets[idx].splice(pos, 1);
+};
+
+MyHashSet.prototype.contains = function(key) {
+    const idx = key % this.size;
+    return this.buckets[idx].includes(key);
+};`,
     explanation:
       '1. Use an array of buckets with separate chaining.\n' +
       '2. Hash function: key % bucket_size maps keys to bucket indices.\n' +
@@ -3279,6 +4596,25 @@ class KthLargest:
         node.next = curr.next
         curr.next = node
         return head`,
+    jsCode: `var insert = function(head, insertVal) {
+    const node = new Node(insertVal);
+    if (!head) {
+        node.next = node;
+        return node;
+    }
+    let curr = head;
+    while (true) {
+        if (curr.val <= insertVal && insertVal <= curr.next.val) break;
+        if (curr.val > curr.next.val) {
+            if (insertVal >= curr.val || insertVal <= curr.next.val) break;
+        }
+        if (curr.next === head) break;
+        curr = curr.next;
+    }
+    node.next = curr.next;
+    curr.next = node;
+    return head;
+};`,
     explanation:
       '1. Case 1: insertVal fits between curr and curr.next normally.\n' +
       '2. Case 2: At the wrap-around (max -> min), insertVal is >= max or <= min.\n' +
@@ -3320,6 +4656,19 @@ class KthLargest:
                     dp[i][j] = min(dp[i - 1][j] + ord(s1[i - 1]),
                                    dp[i][j - 1] + ord(s2[j - 1]))
         return dp[m][n]`,
+    jsCode: `var minimumDeleteSum = function(s1, s2) {
+    const m = s1.length, n = s2.length;
+    const dp = Array.from({length: m + 1}, () => new Array(n + 1).fill(0));
+    for (let i = 1; i <= m; i++) dp[i][0] = dp[i - 1][0] + s1.charCodeAt(i - 1);
+    for (let j = 1; j <= n; j++) dp[0][j] = dp[0][j - 1] + s2.charCodeAt(j - 1);
+    for (let i = 1; i <= m; i++) {
+        for (let j = 1; j <= n; j++) {
+            if (s1[i - 1] === s2[j - 1]) dp[i][j] = dp[i - 1][j - 1];
+            else dp[i][j] = Math.min(dp[i - 1][j] + s1.charCodeAt(i - 1), dp[i][j - 1] + s2.charCodeAt(j - 1));
+        }
+    }
+    return dp[m][n];
+};`,
     explanation:
       '1. dp[i][j] = min ASCII delete sum to make s1[:i] and s2[:j] equal.\n' +
       '2. Base case: deleting all characters from one string.\n' +
@@ -3359,6 +4708,19 @@ class KthLargest:
                 left += 1
             count += right - left + 1
         return count`,
+    jsCode: `var numSubarrayProductLessThanK = function(nums, k) {
+    if (k <= 1) return 0;
+    let product = 1, left = 0, count = 0;
+    for (let right = 0; right < nums.length; right++) {
+        product *= nums[right];
+        while (product >= k) {
+            product /= nums[left];
+            left++;
+        }
+        count += right - left + 1;
+    }
+    return count;
+};`,
     explanation:
       '1. Maintain a sliding window [left, right] with running product.\n' +
       '2. Expand right and multiply into product.\n' +
@@ -3392,6 +4754,14 @@ class KthLargest:
             cash = max(cash, hold + prices[i] - fee)
             hold = max(hold, cash - prices[i])
         return cash`,
+    jsCode: `var maxProfit = function(prices, fee) {
+    let cash = 0, hold = -prices[0];
+    for (let i = 1; i < prices.length; i++) {
+        cash = Math.max(cash, hold + prices[i] - fee);
+        hold = Math.max(hold, cash - prices[i]);
+    }
+    return cash;
+};`,
     explanation:
       '1. cash: max profit when not holding stock.\n' +
       '2. hold: max profit when holding stock.\n' +
@@ -3454,6 +4824,44 @@ class MaxStack:
         val, idx = self.sorted.pop()
         self.removed.add(idx)
         return val`,
+    jsCode: `var MaxStack = function() {
+    this.stack = [];
+    this.sorted = [];
+    this.id = 0;
+    this.removed = new Set();
+};
+
+MaxStack.prototype.push = function(x) {
+    this.stack.push([this.id, x]);
+    this.sorted.push([x, this.id]);
+    this.sorted.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+    this.id++;
+};
+
+MaxStack.prototype.pop = function() {
+    while (this.removed.has(this.stack[this.stack.length - 1][0])) this.stack.pop();
+    const [idx, val] = this.stack.pop();
+    const pos = this.sorted.findIndex(e => e[1] === idx);
+    this.sorted.splice(pos, 1);
+    return val;
+};
+
+MaxStack.prototype.top = function() {
+    while (this.removed.has(this.stack[this.stack.length - 1][0])) this.stack.pop();
+    return this.stack[this.stack.length - 1][1];
+};
+
+MaxStack.prototype.peekMax = function() {
+    while (this.removed.has(this.sorted[this.sorted.length - 1][1])) this.sorted.pop();
+    return this.sorted[this.sorted.length - 1][0];
+};
+
+MaxStack.prototype.popMax = function() {
+    while (this.removed.has(this.sorted[this.sorted.length - 1][1])) this.sorted.pop();
+    const [val, idx] = this.sorted.pop();
+    this.removed.add(idx);
+    return val;
+};`,
     explanation:
       '1. Use a stack for LIFO operations and a SortedList for max operations.\n' +
       '2. Each element gets a unique ID to handle lazy deletion.\n' +
@@ -3490,6 +4898,18 @@ class MaxStack:
                 if len(word) > len(result):
                     result = word
         return result`,
+    jsCode: `var longestWord = function(words) {
+    words.sort();
+    const built = new Set(['']);
+    let result = '';
+    for (const word of words) {
+        if (built.has(word.slice(0, -1))) {
+            built.add(word);
+            if (word.length > result.length) result = word;
+        }
+    }
+    return result;
+};`,
     explanation:
       '1. Sort words lexicographically (shorter words first, ties broken alphabetically).\n' +
       '2. A word is buildable if its prefix (without last char) is already built.\n' +
@@ -3542,6 +4962,39 @@ class MaxStack:
                 result.append(''.join(buffer))
                 buffer = []
         return result`,
+    jsCode: `var removeComments = function(source) {
+    let inBlock = false;
+    const result = [];
+    let buffer = [];
+    for (const line of source) {
+        let i = 0;
+        while (i < line.length) {
+            if (inBlock) {
+                if (i + 1 < line.length && line.slice(i, i + 2) === '*/') {
+                    inBlock = false;
+                    i += 2;
+                } else {
+                    i++;
+                }
+            } else {
+                if (i + 1 < line.length && line.slice(i, i + 2) === '//') {
+                    break;
+                } else if (i + 1 < line.length && line.slice(i, i + 2) === '/*') {
+                    inBlock = true;
+                    i += 2;
+                } else {
+                    buffer.push(line[i]);
+                    i++;
+                }
+            }
+        }
+        if (!inBlock && buffer.length) {
+            result.push(buffer.join(''));
+            buffer = [];
+        }
+    }
+    return result;
+};`,
     explanation:
       '1. Track whether we are inside a block comment.\n' +
       '2. If inside a block comment, skip characters until */.\n' +
@@ -3593,6 +5046,42 @@ class MaxStack:
                 for r in range(write, -1, -1):
                     board[r][c] = 0
         return board`,
+    jsCode: `var candyCrush = function(board) {
+    const rows = board.length, cols = board[0].length;
+    while (true) {
+        const crush = new Set();
+        for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < cols - 2; c++) {
+                if (board[r][c] && board[r][c] === board[r][c+1] && board[r][c] === board[r][c+2]) {
+                    crush.add(r+','+c); crush.add(r+','+(c+1)); crush.add(r+','+(c+2));
+                }
+            }
+        }
+        for (let r = 0; r < rows - 2; r++) {
+            for (let c = 0; c < cols; c++) {
+                if (board[r][c] && board[r][c] === board[r+1][c] && board[r][c] === board[r+2][c]) {
+                    crush.add(r+','+c); crush.add((r+1)+','+c); crush.add((r+2)+','+c);
+                }
+            }
+        }
+        if (crush.size === 0) break;
+        for (const key of crush) {
+            const [r, c] = key.split(',').map(Number);
+            board[r][c] = 0;
+        }
+        for (let c = 0; c < cols; c++) {
+            let write = rows - 1;
+            for (let r = rows - 1; r >= 0; r--) {
+                if (board[r][c] !== 0) {
+                    board[write][c] = board[r][c];
+                    write--;
+                }
+            }
+            for (let r = write; r >= 0; r--) board[r][c] = 0;
+        }
+    }
+    return board;
+};`,
     explanation:
       '1. Find all cells to crush: 3+ consecutive same values horizontally or vertically.\n' +
       '2. Set crushed cells to 0.\n' +
@@ -3627,6 +5116,15 @@ class MaxStack:
                 return i
             left_sum += num
         return -1`,
+    jsCode: `var pivotIndex = function(nums) {
+    const total = nums.reduce((a, b) => a + b, 0);
+    let leftSum = 0;
+    for (let i = 0; i < nums.length; i++) {
+        if (leftSum === total - leftSum - nums[i]) return i;
+        leftSum += nums[i];
+    }
+    return -1;
+};`,
     explanation:
       '1. Compute the total sum of the array.\n' +
       '2. Maintain a running left_sum as we iterate.\n' +
@@ -3674,6 +5172,27 @@ class MaxStack:
                 curr.next = None
                 curr = nxt
         return result`,
+    jsCode: `var splitListToParts = function(head, k) {
+    let length = 0, curr = head;
+    while (curr) { length++; curr = curr.next; }
+    const baseSize = Math.floor(length / k);
+    let extra = length % k;
+    const result = [];
+    curr = head;
+    for (let i = 0; i < k; i++) {
+        result.push(curr);
+        const partSize = baseSize + (i < extra ? 1 : 0);
+        for (let j = 0; j < partSize - 1; j++) {
+            if (curr) curr = curr.next;
+        }
+        if (curr) {
+            const nxt = curr.next;
+            curr.next = null;
+            curr = nxt;
+        }
+    }
+    return result;
+};`,
     explanation:
       '1. Count the total number of nodes.\n' +
       '2. Each part has base_size nodes; the first "extra" parts get one more.\n' +
@@ -3736,6 +5255,41 @@ class Solution:
             if stack[-1][elem] > 1:
                 result.append(str(stack[-1][elem]))
         return ''.join(result)`,
+    jsCode: `var countOfAtoms = function(formula) {
+    const stack = [{}];
+    let i = 0;
+    const n = formula.length;
+    while (i < n) {
+        if (formula[i] === '(') {
+            stack.push({});
+            i++;
+        } else if (formula[i] === ')') {
+            i++;
+            let start = i;
+            while (i < n && formula[i] >= '0' && formula[i] <= '9') i++;
+            const mul = parseInt(formula.slice(start, i) || '1');
+            const top = stack.pop();
+            for (const [elem, cnt] of Object.entries(top)) {
+                stack[stack.length - 1][elem] = (stack[stack.length - 1][elem] || 0) + cnt * mul;
+            }
+        } else {
+            let start = i;
+            i++;
+            while (i < n && formula[i] >= 'a' && formula[i] <= 'z') i++;
+            const elem = formula.slice(start, i);
+            start = i;
+            while (i < n && formula[i] >= '0' && formula[i] <= '9') i++;
+            const cnt = parseInt(formula.slice(start, i) || '1');
+            stack[stack.length - 1][elem] = (stack[stack.length - 1][elem] || 0) + cnt;
+        }
+    }
+    const result = [];
+    for (const elem of Object.keys(stack[0]).sort()) {
+        result.push(elem);
+        if (stack[0][elem] > 1) result.push(String(stack[0][elem]));
+    }
+    return result.join('');
+};`,
     explanation:
       '1. Use a stack of dictionaries to handle nested parentheses.\n' +
       '2. On "(", push a new empty dictionary.\n' +
@@ -3785,6 +5339,31 @@ class Solution:
                 best = s1[i:end]
             i += 1
         return best`,
+    jsCode: `var minWindow = function(s1, s2) {
+    let best = "";
+    let i = 0;
+    while (i < s1.length) {
+        let j = 0;
+        while (i < s1.length && j < s2.length) {
+            if (s1[i] === s2[j]) j++;
+            i++;
+        }
+        if (j < s2.length) break;
+        let end = i;
+        j = s2.length - 1;
+        i--;
+        while (j >= 0) {
+            if (s1[i] === s2[j]) j--;
+            i--;
+        }
+        i++;
+        if (!best || end - i < best.length) {
+            best = s1.slice(i, end);
+        }
+        i++;
+    }
+    return best;
+};`,
     explanation:
       '1. Forward pass: find the end of a window where s2 is a subsequence of s1.\n' +
       '2. Backward pass: from the end, shrink to find the smallest start.\n' +
@@ -3820,6 +5399,17 @@ class Solution:
                 return False
         self.bookings.append((start, end))
         return True`,
+    jsCode: `var MyCalendar = function() {
+    this.bookings = [];
+};
+
+MyCalendar.prototype.book = function(start, end) {
+    for (const [s, e] of this.bookings) {
+        if (start < e && s < end) return false;
+    }
+    this.bookings.push([start, end]);
+    return true;
+};`,
     explanation:
       '1. Store all booked intervals in a list.\n' +
       '2. For a new event [start, end), check overlap with all existing events.\n' +
@@ -3859,6 +5449,23 @@ class Solution:
                 self.overlaps.append((max(start, s), min(end, e)))
         self.bookings.append((start, end))
         return True`,
+    jsCode: `var MyCalendarTwo = function() {
+    this.bookings = [];
+    this.overlaps = [];
+};
+
+MyCalendarTwo.prototype.book = function(start, end) {
+    for (const [s, e] of this.overlaps) {
+        if (start < e && s < end) return false;
+    }
+    for (const [s, e] of this.bookings) {
+        if (start < e && s < end) {
+            this.overlaps.push([Math.max(start, s), Math.min(end, e)]);
+        }
+    }
+    this.bookings.push([start, end]);
+    return true;
+};`,
     explanation:
       '1. overlaps stores intervals that are already double-booked.\n' +
       '2. For a new event, if it overlaps with any double booking, it would cause a triple booking.\n' +
@@ -3899,6 +5506,17 @@ class Solution:
             dfs(r, c - 1)
         dfs(sr, sc)
         return image`,
+    jsCode: `var floodFill = function(image, sr, sc, color) {
+    const original = image[sr][sc];
+    if (original === color) return image;
+    const dfs = (r, c) => {
+        if (r < 0 || r >= image.length || c < 0 || c >= image[0].length || image[r][c] !== original) return;
+        image[r][c] = color;
+        dfs(r + 1, c); dfs(r - 1, c); dfs(r, c + 1); dfs(r, c - 1);
+    };
+    dfs(sr, sc);
+    return image;
+};`,
     explanation:
       '1. Record the original color at (sr, sc).\n' +
       '2. If original == new color, no change needed (avoids infinite recursion).\n' +
@@ -3935,6 +5553,20 @@ class Solution:
         for i in range(2, max_val + 1):
             dp[i] = max(dp[i - 1], dp[i - 2] + i * count.get(i, 0))
         return dp[max_val]`,
+    jsCode: `var deleteAndEarn = function(nums) {
+    const count = new Map();
+    let maxVal = 0;
+    for (const num of nums) {
+        count.set(num, (count.get(num) || 0) + 1);
+        maxVal = Math.max(maxVal, num);
+    }
+    const dp = new Array(maxVal + 1).fill(0);
+    dp[1] = (count.get(1) || 0) * 1;
+    for (let i = 2; i <= maxVal; i++) {
+        dp[i] = Math.max(dp[i - 1], dp[i - 2] + i * (count.get(i) || 0));
+    }
+    return dp[maxVal];
+};`,
     explanation:
       '1. Count occurrences of each number.\n' +
       '2. This becomes House Robber: value[i] = i * count[i], and adjacent values cannot both be taken.\n' +
@@ -3982,6 +5614,24 @@ class Solution:
             memo[(r1, c1, r2)] = cherries
             return cherries
         return max(0, dp(0, 0, 0))`,
+    jsCode: `var cherryPickup = function(grid) {
+    const n = grid.length;
+    const memo = new Map();
+    const dp = (r1, c1, r2) => {
+        const c2 = r1 + c1 - r2;
+        if (r1 >= n || c1 >= n || r2 >= n || c2 >= n) return -Infinity;
+        if (grid[r1][c1] === -1 || grid[r2][c2] === -1) return -Infinity;
+        if (r1 === n - 1 && c1 === n - 1) return grid[r1][c1];
+        const key = r1 + ',' + c1 + ',' + r2;
+        if (memo.has(key)) return memo.get(key);
+        let cherries = grid[r1][c1];
+        if (r1 !== r2 || c1 !== c2) cherries += grid[r2][c2];
+        cherries += Math.max(dp(r1+1,c1,r2+1), dp(r1+1,c1,r2), dp(r1,c1+1,r2+1), dp(r1,c1+1,r2));
+        memo.set(key, cherries);
+        return cherries;
+    };
+    return Math.max(0, dp(0, 0, 0));
+};`,
     explanation:
       '1. Model as two simultaneous walks from (0,0) to (n-1,n-1).\n' +
       '2. Both take the same number of steps, so c2 = r1 + c1 - r2.\n' +
@@ -4035,6 +5685,36 @@ class Solution:
                     visited.add(neighbor)
                     queue.append(neighbor)
         return -1`,
+    jsCode: `var findClosestLeaf = function(root, k) {
+    const graph = new Map();
+    const leaves = new Set();
+    const build = (node, parent) => {
+        if (!node) return;
+        if (!node.left && !node.right) leaves.add(node.val);
+        if (!graph.has(node.val)) graph.set(node.val, []);
+        if (parent) {
+            graph.get(node.val).push(parent.val);
+            if (!graph.has(parent.val)) graph.set(parent.val, []);
+            graph.get(parent.val).push(node.val);
+        }
+        build(node.left, node);
+        build(node.right, node);
+    };
+    build(root, null);
+    const queue = [k];
+    const visited = new Set([k]);
+    while (queue.length) {
+        const val = queue.shift();
+        if (leaves.has(val)) return val;
+        for (const neighbor of (graph.get(val) || [])) {
+            if (!visited.has(neighbor)) {
+                visited.add(neighbor);
+                queue.push(neighbor);
+            }
+        }
+    }
+    return -1;
+};`,
     explanation:
       '1. Convert the tree to an undirected graph.\n' +
       '2. Identify all leaf nodes.\n' +
@@ -4071,6 +5751,22 @@ class Solution:
 
     def f(self, pref: str, suff: str) -> int:
         return self.lookup.get(pref + '#' + suff, -1)`,
+    jsCode: `var WordFilter = function(words) {
+    this.lookup = new Map();
+    for (let idx = 0; idx < words.length; idx++) {
+        const word = words[idx];
+        for (let i = 0; i <= word.length; i++) {
+            for (let j = 0; j <= word.length; j++) {
+                const key = word.slice(0, i) + '#' + word.slice(j);
+                this.lookup.set(key, idx);
+            }
+        }
+    }
+};
+
+WordFilter.prototype.f = function(pref, suff) {
+    return this.lookup.get(pref + '#' + suff) ?? -1;
+};`,
     explanation:
       '1. Precompute all prefix#suffix keys for each word.\n' +
       '2. Store the word index for each key (later index overwrites earlier).\n' +
@@ -4117,6 +5813,27 @@ class Solution:
                         visited.add(new_state)
                         queue.append((new_state, moves + 1))
         return -1`,
+    jsCode: `var openLock = function(deadends, target) {
+    const dead = new Set(deadends);
+    if (dead.has("0000")) return -1;
+    const queue = [["0000", 0]];
+    const visited = new Set(["0000"]);
+    while (queue.length) {
+        const [state, moves] = queue.shift();
+        if (state === target) return moves;
+        for (let i = 0; i < 4; i++) {
+            const d = parseInt(state[i]);
+            for (const nd of [(d + 1) % 10, (d + 9) % 10]) {
+                const newState = state.slice(0, i) + nd + state.slice(i + 1);
+                if (!visited.has(newState) && !dead.has(newState)) {
+                    visited.add(newState);
+                    queue.push([newState, moves + 1]);
+                }
+            }
+        }
+    }
+    return -1;
+};`,
     explanation:
       '1. BFS from "0000" explores states level by level (minimum moves).\n' +
       '2. Each state has 8 neighbors: each of 4 wheels turned +1 or -1.\n' +
@@ -4152,6 +5869,22 @@ class Solution:
                 result.append(Interval(prev_end, iv.start))
             prev_end = max(prev_end, iv.end)
         return result`,
+    jsCode: `var employeeFreeTime = function(schedule) {
+    const intervals = [];
+    for (const emp of schedule) {
+        for (const iv of emp) intervals.push(iv);
+    }
+    intervals.sort((a, b) => a.start - b.start);
+    const result = [];
+    let prevEnd = intervals[0].end;
+    for (let i = 1; i < intervals.length; i++) {
+        if (intervals[i].start > prevEnd) {
+            result.push(new Interval(prevEnd, intervals[i].start));
+        }
+        prevEnd = Math.max(prevEnd, intervals[i].end);
+    }
+    return result;
+};`,
     explanation:
       '1. Flatten all employees\' intervals into one list.\n' +
       '2. Sort by start time.\n' +
@@ -4183,6 +5916,11 @@ class Solution:
         for i, num in enumerate(nums2):
             index_map[num] = i
         return [index_map[num] for num in nums1]`,
+    jsCode: `var anagramMappings = function(nums1, nums2) {
+    const indexMap = new Map();
+    for (let i = 0; i < nums2.length; i++) indexMap.set(nums2[i], i);
+    return nums1.map(num => indexMap.get(num));
+};`,
     explanation:
       '1. Build a dictionary mapping each value in nums2 to its index.\n' +
       '2. For each element in nums1, look up its index in the dictionary.\n' +
@@ -4221,6 +5959,22 @@ class Solution:
                 pos[row[i + 1]] = i + 1
                 swaps += 1
         return swaps`,
+    jsCode: `var minSwapsCouples = function(row) {
+    const pos = {};
+    for (let i = 0; i < row.length; i++) pos[row[i]] = i;
+    let swaps = 0;
+    for (let i = 0; i < row.length; i += 2) {
+        const partner = row[i] ^ 1;
+        if (row[i + 1] !== partner) {
+            const j = pos[partner];
+            [row[i + 1], row[j]] = [row[j], row[i + 1]];
+            pos[row[j]] = j;
+            pos[row[i + 1]] = i + 1;
+            swaps++;
+        }
+    }
+    return swaps;
+};`,
     explanation:
       '1. Build a position map for quick lookup.\n' +
       '2. For each pair of seats, find the partner of the first person (XOR with 1).\n' +
@@ -4253,6 +6007,14 @@ class Solution:
                 if matrix[i][j] != matrix[i - 1][j - 1]:
                     return False
         return True`,
+    jsCode: `var isToeplitzMatrix = function(matrix) {
+    for (let i = 1; i < matrix.length; i++) {
+        for (let j = 1; j < matrix[0].length; j++) {
+            if (matrix[i][j] !== matrix[i - 1][j - 1]) return false;
+        }
+    }
+    return true;
+};`,
     explanation:
       '1. A Toeplitz matrix requires all diagonal elements to be the same.\n' +
       '2. Check each cell against its upper-left diagonal neighbor.\n' +
@@ -4298,6 +6060,25 @@ class Solution:
                 heapq.heappush(heap, (prev_cnt, prev_ch))
             prev_cnt, prev_ch = cnt + 1, ch
         return ''.join(result)`,
+    jsCode: `var reorganizeString = function(s) {
+    const count = {};
+    for (const c of s) count[c] = (count[c] || 0) + 1;
+    const maxCount = Math.max(...Object.values(count));
+    if (maxCount > Math.ceil(s.length / 2)) return "";
+    const heap = Object.entries(count).map(([ch, cnt]) => [-cnt, ch]);
+    heap.sort((a, b) => a[0] - b[0]);
+    const result = [];
+    let prevCnt = 0, prevCh = '';
+    while (heap.length) {
+        heap.sort((a, b) => a[0] - b[0]);
+        const [cnt, ch] = heap.shift();
+        result.push(ch);
+        if (prevCnt < 0) heap.push([prevCnt, prevCh]);
+        prevCnt = cnt + 1;
+        prevCh = ch;
+    }
+    return result.join('');
+};`,
     explanation:
       '1. If any character appears more than (n+1)/2 times, it\'s impossible.\n' +
       '2. Use a max-heap to always place the most frequent available character.\n' +
@@ -4353,6 +6134,31 @@ class Solution:
                 self.i += 1
             return sum(stack)
         return parse()`,
+    jsCode: `var calculate = function(s) {
+    let i = 0;
+    const parse = () => {
+        const stack = [];
+        let num = 0;
+        let op = '+';
+        while (i < s.length) {
+            const c = s[i];
+            if (c >= '0' && c <= '9') num = num * 10 + parseInt(c);
+            if (c === '(') { i++; num = parse(); }
+            if ('+-*/)'.includes(c) || i === s.length - 1) {
+                if (op === '+') stack.push(num);
+                else if (op === '-') stack.push(-num);
+                else if (op === '*') stack.push(stack.pop() * num);
+                else if (op === '/') stack.push(Math.trunc(stack.pop() / num));
+                op = c;
+                num = 0;
+                if (c === ')') break;
+            }
+            i++;
+        }
+        return stack.reduce((a, b) => a + b, 0);
+    };
+    return parse();
+};`,
     explanation:
       '1. Use a recursive parser with a stack for operator precedence.\n' +
       '2. + and - push to stack; * and / modify the stack top.\n' +
@@ -4402,6 +6208,29 @@ class Solution:
                     visited.add(new_state)
                     queue.append((new_state, moves + 1))
         return -1`,
+    jsCode: `var slidingPuzzle = function(board) {
+    const target = "123450";
+    const start = board[0].join('') + board[1].join('');
+    if (start === target) return 0;
+    const neighbors = {0:[1,3], 1:[0,2,4], 2:[1,5], 3:[0,4], 4:[1,3,5], 5:[2,4]};
+    const queue = [[start, 0]];
+    const visited = new Set([start]);
+    while (queue.length) {
+        const [state, moves] = queue.shift();
+        for (const nei of neighbors[state.indexOf('0')]) {
+            const arr = state.split('');
+            const z = state.indexOf('0');
+            [arr[z], arr[nei]] = [arr[nei], arr[z]];
+            const newState = arr.join('');
+            if (newState === target) return moves + 1;
+            if (!visited.has(newState)) {
+                visited.add(newState);
+                queue.push([newState, moves + 1]);
+            }
+        }
+    }
+    return -1;
+};`,
     explanation:
       '1. Flatten the board into a tuple for hashing.\n' +
       '2. BFS from the start state to the target state.\n' +
@@ -4445,6 +6274,26 @@ class Solution:
                     visited[nr][nc] = True
                     heapq.heappush(heap, (max(t, grid[nr][nc]), nr, nc))
         return -1`,
+    jsCode: `var swimInWater = function(grid) {
+    const n = grid.length;
+    const visited = Array.from({length: n}, () => new Array(n).fill(false));
+    const heap = [[grid[0][0], 0, 0]];
+    visited[0][0] = true;
+    const dirs = [[0,1],[0,-1],[1,0],[-1,0]];
+    while (heap.length) {
+        heap.sort((a, b) => a[0] - b[0]);
+        const [t, r, c] = heap.shift();
+        if (r === n - 1 && c === n - 1) return t;
+        for (const [dr, dc] of dirs) {
+            const nr = r + dr, nc = c + dc;
+            if (nr >= 0 && nr < n && nc >= 0 && nc < n && !visited[nr][nc]) {
+                visited[nr][nc] = true;
+                heap.push([Math.max(t, grid[nr][nc]), nr, nc]);
+            }
+        }
+    }
+    return -1;
+};`,
     explanation:
       '1. Use a min-heap prioritized by the minimum time needed to reach each cell.\n' +
       '2. Time to reach a cell = max(time to reach previous cell, elevation of new cell).\n' +
@@ -4479,6 +6328,11 @@ class Solution:
             return parent
         else:
             return 1 - parent`,
+    jsCode: `var kthGrammar = function(n, k) {
+    if (n === 1) return 0;
+    const parent = kthGrammar(n - 1, Math.ceil(k / 2));
+    return k % 2 === 1 ? parent : 1 - parent;
+};`,
     explanation:
       '1. Base case: row 1 has only "0".\n' +
       '2. The k-th symbol comes from the ceil(k/2)-th symbol of the previous row.\n' +
@@ -4518,6 +6372,19 @@ class Solution:
                     return (ty - sy) % tx == 0
                 ty %= tx
         return False`,
+    jsCode: `var reachingPoints = function(sx, sy, tx, ty) {
+    while (tx >= sx && ty >= sy) {
+        if (tx === sx && ty === sy) return true;
+        if (tx > ty) {
+            if (ty === sy) return (tx - sx) % ty === 0;
+            tx %= ty;
+        } else {
+            if (tx === sx) return (ty - sy) % tx === 0;
+            ty %= tx;
+        }
+    }
+    return false;
+};`,
     explanation:
       '1. Work backwards: the inverse of (x, x+y) is (x, y-x) when y > x.\n' +
       '2. Use modulo to efficiently skip many subtractions.\n' +
@@ -4557,6 +6424,18 @@ class Solution:
             inorder(node.right)
         inorder(root)
         return self.min_diff`,
+    jsCode: `var minDiffInBST = function(root) {
+    let prev = null, minDiff = Infinity;
+    const inorder = (node) => {
+        if (!node) return;
+        inorder(node.left);
+        if (prev !== null) minDiff = Math.min(minDiff, node.val - prev);
+        prev = node.val;
+        inorder(node.right);
+    };
+    inorder(root);
+    return minDiff;
+};`,
     explanation:
       '1. In-order traversal of a BST visits nodes in ascending order.\n' +
       '2. The minimum difference must be between consecutive values.\n' +
@@ -4595,6 +6474,21 @@ class Solution:
         for c, cnt in count.items():
             result.append(c * cnt)
         return ''.join(result)`,
+    jsCode: `var customSortString = function(order, s) {
+    const count = {};
+    for (const c of s) count[c] = (count[c] || 0) + 1;
+    const result = [];
+    for (const c of order) {
+        if (count[c]) {
+            result.push(c.repeat(count[c]));
+            delete count[c];
+        }
+    }
+    for (const [c, cnt] of Object.entries(count)) {
+        result.push(c.repeat(cnt));
+    }
+    return result.join('');
+};`,
     explanation:
       '1. Count occurrences of each character in s.\n' +
       '2. Iterate through order: append each character count[c] times.\n' +
