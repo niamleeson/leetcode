@@ -13,6 +13,8 @@ export const solutions: ProblemSolution[] = [
     examples: `Input: digits = "23"
 Output: ["ad","ae","af","bd","be","bf","cd","ce","cf"]
 Explanation: Digit 2 maps to "abc" and digit 3 maps to "def". All combinations of one letter from each digit are generated.`,
+    intuition:
+      "Think of each digit as a 'slot' with a few letter choices. You need to pick one letter per slot and list every possible combination. This is like a combination lock where each position has its own set of options -- backtracking systematically tries each option at each position, building the result one letter at a time.",
     approach:
       "Use backtracking to build combinations one character at a time. For each digit, iterate through its mapped letters, append the letter to the current path, recurse on the next digit, then backtrack.",
     code: `class Solution:
@@ -83,6 +85,8 @@ Explanation: Digit 2 maps to "abc" and digit 3 maps to "def". All combinations o
     examples: `Input: candidates = [2, 3, 6, 7], target = 7
 Output: [[2, 2, 3], [7]]
 Explanation: 2 + 2 + 3 = 7 and 7 = 7 are the two combinations that sum to the target.`,
+    intuition:
+      "Imagine you have unlimited coins of certain denominations and need to make exact change. At each step you decide whether to use the current coin again or move on to the next denomination. Sorting the candidates lets you stop early when a coin is too large, and always picking coins in non-decreasing order prevents counting the same combination twice.",
     approach:
       "Use backtracking with a start index to avoid duplicate combinations. At each step, either include the current candidate (allowing reuse by not advancing the index) or skip to the next candidate. Prune when the remaining target becomes negative.",
     code: `class Solution:
@@ -146,6 +150,8 @@ Explanation: 2 + 2 + 3 = 7 and 7 = 7 are the two combinations that sum to the ta
     examples: `Input: candidates = [10, 1, 2, 7, 6, 1, 5], target = 8
 Output: [[1, 1, 6], [1, 2, 5], [1, 7], [2, 6]]
 Explanation: Each combination sums to 8, and duplicates like [1, 2, 5] are listed only once.`,
+    intuition:
+      "This is like Combination Sum I, but each coin can only be used once and there may be duplicate coins. The key insight is that sorting groups duplicates together, and at each decision level you only pick the first occurrence of a value. This way, identical coins are treated as interchangeable, preventing duplicate combinations without needing a set.",
     approach:
       "Sort the array to group duplicates together. Use backtracking with a start index and skip duplicate candidates at the same recursion level to avoid generating duplicate combinations. Each element can be used at most once.",
     code: `class Solution:
@@ -211,6 +217,8 @@ Explanation: Each combination sums to 8, and duplicates like [1, 2, 5] are liste
     examples: `Input: nums = [1, 2, 3]
 Output: [[1,2,3],[1,3,2],[2,1,3],[2,3,1],[3,1,2],[3,2,1]]
 Explanation: All 6 permutations of the three distinct numbers are listed.`,
+    intuition:
+      "Think of filling positions in a line one by one. For the first position you can pick any element, for the second any remaining element, and so on. A 'used' set tracks which elements are already placed. This is different from combinations because order matters -- [1,2] and [2,1] are distinct results.",
     approach:
       "Use backtracking with a visited set (or swap-based approach). At each step pick any unused element, add it to the current permutation, recurse, then backtrack by removing it and marking it unvisited.",
     code: `class Solution:
@@ -275,6 +283,8 @@ Explanation: All 6 permutations of the three distinct numbers are listed.`,
     examples: `Input: nums = [1, 1, 2]
 Output: [[1,1,2],[1,2,1],[2,1,1]]
 Explanation: Only three unique permutations exist because the two 1s are indistinguishable.`,
+    intuition:
+      "When you have duplicate elements, swapping two identical items produces the same permutation. The trick is to sort the array and enforce a rule: among identical values, always use them in left-to-right order. If a duplicate's predecessor was not used at the current level, skip it -- this single rule eliminates all duplicate permutations.",
     approach:
       "Sort the array so duplicates are adjacent. Use backtracking with a used-index set and skip a duplicate element if the previous identical element at the same level was not used. This ensures each duplicate is only used in one fixed order.",
     code: `class Solution:
@@ -343,6 +353,8 @@ Explanation: Only three unique permutations exist because the two 1s are indisti
     examples: `Input: n = 4
 Output: [[".Q..","...Q","Q...","..Q."],["..Q.","Q...","...Q",".Q.."]]
 Explanation: There are exactly two ways to place 4 queens on a 4x4 board so none attack each other.`,
+    intuition:
+      "Since each row must have exactly one queen, you can place queens row by row and only worry about column and diagonal conflicts. The clever insight is that all cells on the same diagonal share the same (row + col) or (row - col) value, so you can check diagonal attacks in O(1) using sets instead of scanning the board.",
     approach:
       "Place queens row by row using backtracking. For each row, try every column; use sets to track which columns, positive diagonals (row + col), and negative diagonals (row - col) are already attacked. If a position is safe, place the queen and recurse to the next row.",
     code: `class Solution:
@@ -433,6 +445,8 @@ Explanation: There are exactly two ways to place 4 queens on a 4x4 board so none
     examples: `Input: n = 4, k = 2
 Output: [[1,2],[1,3],[1,4],[2,3],[2,4],[3,4]]
 Explanation: All 6 ways to choose 2 numbers from {1, 2, 3, 4} are listed.`,
+    intuition:
+      "Generating combinations is about choosing elements in increasing order so you never revisit earlier choices. Think of it as walking through the numbers left-to-right and at each step deciding 'do I include this number?' The start parameter ensures you only look forward, and pruning stops you when there are not enough numbers left to fill the remaining slots.",
     approach:
       "Use backtracking with a start parameter that only considers numbers greater than the last chosen number, ensuring combinations are generated in increasing order without duplicates. Prune when there are not enough remaining numbers to fill the combination.",
     code: `class Solution:
@@ -491,6 +505,8 @@ Explanation: All 6 ways to choose 2 numbers from {1, 2, 3, 4} are listed.`,
     examples: `Input: nums = [1, 2, 3]
 Output: [[], [1], [2], [3], [1,2], [1,3], [2,3], [1,2,3]]
 Explanation: All 8 subsets of {1, 2, 3} are listed, including the empty set and the full set.`,
+    intuition:
+      "Every subset is just a combination of any length. Unlike the combinations problem where you only collect results at a specific size, here every partial state in the recursion tree is a valid answer. Think of each element as a yes/no decision -- include it or skip it -- which naturally gives you 2^n total subsets.",
     approach:
       "Use backtracking where at each recursion level, you record the current subset (every node in the recursion tree is a valid subset). Iterate from a start index to the end, including each element and recursing further.",
     code: `class Solution:
@@ -543,6 +559,8 @@ Explanation: All 8 subsets of {1, 2, 3} are listed, including the empty set and 
     examples: `Input: board = [["A","B","C","E"],["S","F","C","S"],["A","D","E","E"]], word = "ABCCED"
 Output: true
 Explanation: The path A -> B -> C -> C -> E -> D exists by following adjacent cells.`,
+    intuition:
+      "This is like tracing a word with your finger on a letter grid. At each cell, you check if it matches the next letter in the word and explore neighboring cells. The key insight is marking cells as visited during your current path (and unmarking when you backtrack) so you do not reuse a cell within the same word trace.",
     approach:
       "For each cell matching the first letter of the word, start a DFS/backtracking search. Mark cells as visited during exploration (in-place by replacing with a sentinel). Explore all four directions; backtrack by restoring the original character.",
     code: `class Solution:
@@ -627,6 +645,8 @@ Explanation: The path A -> B -> C -> C -> E -> D exists by following adjacent ce
     examples: `Input: nums = [1, 2, 2]
 Output: [[], [1], [1,2], [1,2,2], [2], [2,2]]
 Explanation: Unlike the basic subsets problem, the duplicate 2s require deduplication to avoid repeats like having [2] listed twice.`,
+    intuition:
+      "This is the Subsets problem with one added twist: duplicates. Sorting the array groups identical values together. Then at each recursion level, if you have already tried a value, you skip its duplicates. The condition 'i > start' is crucial -- it means 'I already branched with this same value at this level, so skip it.'",
     approach:
       "Sort the array to bring duplicates together. Use backtracking identical to Subsets, but skip an element if it equals the previous element at the same recursion level (i > start and nums[i] == nums[i-1]).",
     code: `class Solution:
@@ -683,6 +703,8 @@ Explanation: Unlike the basic subsets problem, the duplicate 2s require deduplic
     examples: `Input: s = "aab"
 Output: [["a","a","b"],["aa","b"]]
 Explanation: Both partitions consist entirely of palindromic substrings.`,
+    intuition:
+      "Imagine placing dividers between characters in the string. Each segment between dividers must be a palindrome. At each position, you try every possible 'cut' length -- if the resulting prefix is a palindrome, you commit to that cut and recursively partition the remainder. This naturally explores all valid ways to divide the string.",
     approach:
       "Use backtracking. At each step, try every possible prefix of the remaining string. If the prefix is a palindrome, add it to the current partition and recurse on the rest. When the entire string is consumed, save the partition.",
     code: `class Solution:
@@ -759,6 +781,8 @@ Explanation: Both partitions consist entirely of palindromic substrings.`,
     examples: `Input: k = 3, n = 7
 Output: [[1, 2, 4]]
 Explanation: 1 + 2 + 4 = 7. No other combination of three distinct digits (1-9) sums to 7.`,
+    intuition:
+      "This is a constrained version of Combination Sum: your 'coins' are digits 1-9, each used at most once, and you need exactly k of them. Because the digit pool is tiny (only 9 options) and fixed, the search space is very manageable. Breaking early when a digit exceeds the remaining target prunes aggressively since digits are tried in increasing order.",
     approach:
       "Use backtracking with digits 1-9 as candidates. Maintain a start index to ensure increasing order (no duplicates). Prune when the remaining sum becomes negative or when the combination already has k elements but hasn't reached the target.",
     code: `class Solution:
@@ -826,6 +850,8 @@ Explanation: 1 + 2 + 4 = 7. No other combination of three distinct digits (1-9) 
     examples: `Input: beginWord = "hit", endWord = "cog", wordList = ["hot","dot","dog","lot","log","cog"]
 Output: 5
 Explanation: "hit" -> "hot" -> "dot" -> "dog" -> "cog" is the shortest transformation (5 words).`,
+    intuition:
+      "Think of each word as a node in a graph, with edges connecting words that differ by exactly one letter. Finding the shortest transformation is then just finding the shortest path in an unweighted graph, which BFS handles perfectly. The wildcard pattern trick (e.g., 'h*t') lets you efficiently find all one-letter neighbors without comparing every pair of words.",
     approach:
       "Use BFS from beginWord. For each word, generate all possible one-letter transformations using wildcard patterns. Use an adjacency map from patterns to words for O(1) neighbor lookups. BFS guarantees the shortest path is found first.",
     code: `class Solution:
@@ -924,6 +950,8 @@ Explanation: "hit" -> "hot" -> "dot" -> "dog" -> "cog" is the shortest transform
     examples: `Input: board = [["X","X","X","X"],["X","O","O","X"],["X","X","O","X"],["X","O","X","X"]]
 Output: [["X","X","X","X"],["X","X","X","X"],["X","X","X","X"],["X","O","X","X"]]
 Explanation: The 'O' at the bottom border is not surrounded, so it stays. The interior 'O's connected only to each other (not the border) are captured.`,
+    intuition:
+      "Instead of trying to determine which O's are surrounded (hard), flip the question: which O's are safe? Any O connected to the border cannot be captured. So start from border O's, mark everything they touch as safe, and then everything unmarked is surrounded. This 'think in reverse' trick simplifies the problem dramatically.",
     approach:
       "Instead of finding surrounded regions, find unsurrounded ones. Run DFS/BFS from every border 'O' and mark reachable 'O's as safe (e.g., 'S'). Then scan the entire board: remaining 'O's become 'X' (captured), and 'S' cells revert to 'O'.",
     code: `class Solution:
@@ -1011,6 +1039,8 @@ Explanation: The 'O' at the bottom border is not surrounded, so it stays. The in
     examples: `Input: adjList = [[2,4],[1,3],[2,4],[1,3]]
 Output: [[2,4],[1,3],[2,4],[1,3]]
 Explanation: The graph has 4 nodes. Node 1 connects to 2 and 4, node 2 connects to 1 and 3, etc. The clone has the same structure with new node objects.`,
+    intuition:
+      "Cloning a graph is like photocopying a social network -- for each person, you create a copy and replicate their friend connections. The hash map (original -> clone) is the key: it prevents creating duplicate copies and handles cycles by returning the existing clone when you revisit a node. Always store the clone before recursing into neighbors to break infinite loops.",
     approach:
       "Use DFS (or BFS) with a hash map mapping original nodes to their clones. When visiting a node, create its clone and store it in the map. For each neighbor, recursively clone it (or retrieve from the map if already cloned) and add to the clone's neighbors.",
     code: `class Solution:
@@ -1075,6 +1105,8 @@ Explanation: The graph has 4 nodes. Node 1 connects to 2 and 4, node 2 connects 
     examples: `Input: grid = [["1","1","0","0","0"],["1","1","0","0","0"],["0","0","1","0","0"],["0","0","0","1","1"]]
 Output: 3
 Explanation: There are three distinct groups of connected '1's separated by '0's.`,
+    intuition:
+      "Imagine pouring paint on each unvisited land cell. The paint floods to all connected land cells, forming one island. Each time you need to pour paint on a new cell (one not already painted), that is a new island. DFS is the flooding mechanism, and sinking cells to '0' after visiting them is the paint.",
     approach:
       "Scan the grid cell by cell. When a '1' is found, increment the island count and run DFS/BFS to mark all connected '1's as visited (by setting them to '0'). This ensures each island is counted exactly once.",
     code: `class Solution:
@@ -1152,6 +1184,8 @@ Explanation: There are three distinct groups of connected '1's separated by '0's
     examples: `Input: numCourses = 2, prerequisites = [[1,0]]
 Output: true
 Explanation: You take course 0 first, then course 1. There is no cycle.`,
+    intuition:
+      "If course A requires B and B requires A, you can never start -- that is a cycle. The question boils down to: does the prerequisite graph have a cycle? Kahn's algorithm peels off courses with no remaining prerequisites layer by layer. If every course eventually gets peeled off, there is no cycle and you can finish all courses.",
     approach:
       "Model the problem as cycle detection in a directed graph. Use DFS with three states per node: unvisited, in-progress, and completed. If DFS encounters an in-progress node, a cycle exists. Alternatively, use Kahn's algorithm (BFS topological sort) and check if all nodes are processed.",
     code: `class Solution:
@@ -1229,6 +1263,8 @@ Explanation: You take course 0 first, then course 1. There is no cycle.`,
     examples: `Input: numCourses = 4, prerequisites = [[1,0],[2,0],[3,1],[3,2]]
 Output: [0, 1, 2, 3] (or [0, 2, 1, 3])
 Explanation: Course 0 has no prerequisites. Courses 1 and 2 depend on 0. Course 3 depends on 1 and 2.`,
+    intuition:
+      "This extends Course Schedule I from 'can I finish?' to 'in what order?' Kahn's algorithm naturally produces a valid ordering: each course you process has all its prerequisites already completed. The order in which courses reach in-degree zero gives you a valid schedule. If the output is shorter than the total courses, a cycle makes it impossible.",
     approach:
       "Use BFS-based topological sort (Kahn's algorithm). Compute in-degrees, start with nodes of in-degree 0, and build the order by processing nodes level by level. If the resulting order has fewer than numCourses elements, a cycle exists.",
     code: `class Solution:
@@ -1306,6 +1342,8 @@ Explanation: Course 0 has no prerequisites. Courses 1 and 2 depend on 0. Course 
     examples: `Input: heights = [[1,2,2,3,5],[3,2,3,4,4],[2,4,5,3,1],[6,7,1,4,5],[5,1,1,2,4]]
 Output: [[0,4],[1,3],[1,4],[2,2],[3,0],[3,1],[4,0]]
 Explanation: These cells can reach both the Pacific (top/left) and Atlantic (bottom/right) oceans.`,
+    intuition:
+      "Checking from every cell whether water can flow to both oceans is expensive. Instead, reverse the flow: start from each ocean's border and flow uphill to find all cells that can drain into that ocean. Cells that appear in both the Pacific-reachable and Atlantic-reachable sets are your answer. Reversing the direction turns a hard problem into two simple flood fills.",
     approach:
       "Run DFS/BFS from each ocean's border cells in reverse (flow uphill). Start from Pacific-adjacent cells and mark all cells reachable by flowing uphill from the Pacific. Do the same from Atlantic-adjacent cells. The answer is the intersection of both reachable sets.",
     code: `class Solution:
@@ -1403,6 +1441,8 @@ Explanation: These cells can reach both the Pacific (top/left) and Atlantic (bot
     examples: `Input: edges = [[1,2],[1,3],[2,3]]
 Output: [2, 3]
 Explanation: Removing edge [2,3] leaves a valid tree. It is the last edge that, when added, creates a cycle.`,
+    intuition:
+      "A tree with n nodes has exactly n-1 edges, so the extra edge must create a cycle. Process edges one by one: if connecting two nodes that are already in the same group, that edge is redundant. Union-Find is perfect here because it efficiently tracks which nodes are connected and detects the moment an edge would form a cycle.",
     approach:
       "Use Union-Find (Disjoint Set Union). Process edges one by one. For each edge, if both nodes are already in the same connected component, this edge creates a cycle and is the redundant one. Since we process in order, the last such edge is returned.",
     code: `class Solution:
@@ -1481,6 +1521,8 @@ Explanation: Removing edge [2,3] leaves a valid tree. It is the last edge that, 
     examples: `Input: grid = [[0,0,1,0,0],[0,0,0,0,0],[0,1,1,0,1],[0,1,0,0,1],[0,1,1,1,1]]
 Output: 6
 Explanation: The largest island consists of the six 1's connected in the bottom-right area.`,
+    intuition:
+      "This is Number of Islands with a twist: instead of counting islands, measure each one. DFS naturally computes area by returning 1 for the current cell plus the areas of all four recursive calls. Sinking cells to 0 as you visit them prevents double-counting and eliminates the need for a separate visited set.",
     approach:
       "Iterate through each cell. When a land cell is found, run DFS to count the area of its island while marking cells as visited. Track the maximum area seen across all islands.",
     code: `class Solution:
@@ -1545,6 +1587,8 @@ Explanation: The largest island consists of the six 1's connected in the bottom-
     examples: `Input: times = [[2,1,1],[2,3,1],[3,4,1]], n = 4, k = 2
 Output: 2
 Explanation: From node 2, the signal reaches node 1 and 3 in 1 unit, and node 4 (via 3) in 2 units. The answer is max(1, 1, 2) = 2.`,
+    intuition:
+      "The signal spreads along the shortest (fastest) paths to every node. Dijkstra's algorithm finds the shortest path from one source to all other nodes in a weighted graph. The answer is simply the maximum of all shortest distances -- the last node to receive the signal determines the total delay.",
     approach:
       "Use Dijkstra's algorithm to find the shortest path from node k to all other nodes. The answer is the maximum shortest distance among all reachable nodes. If any node is unreachable, return -1.",
     code: `class Solution:
@@ -1618,6 +1662,8 @@ Explanation: From node 2, the signal reaches node 1 and 3 in 1 unit, and node 4 
     examples: `Input: n = 4, flights = [[0,1,100],[1,2,100],[2,0,100],[1,3,600],[2,3,200]], src = 0, dst = 3, k = 1
 Output: 700
 Explanation: The path 0 -> 1 -> 3 costs 700 with 1 stop, which is cheaper than 0 -> 1 -> 2 -> 3 (400) which has 2 stops.`,
+    intuition:
+      "The 'at most k stops' constraint makes standard Dijkstra tricky, but Bellman-Ford handles it naturally. Each round of relaxation allows paths with one more edge. So after k+1 rounds (k stops = k+1 flights), you have the cheapest prices reachable within the stop limit. Using a copy of the prices array each round prevents 'chaining' updates that would use too many stops.",
     approach:
       "Use the Bellman-Ford algorithm limited to k+1 relaxation rounds (k stops means k+1 edges). In each round, relax all edges using the distances from the previous round to avoid using more stops than allowed.",
     code: `class Solution:
@@ -1673,6 +1719,8 @@ Explanation: The path 0 -> 1 -> 3 costs 700 with 1 stop, which is cheaper than 0
     examples: `Input: grid = [[2,1,1],[1,1,0],[0,1,1]]
 Output: 4
 Explanation: It takes 4 minutes for the rot to spread from the top-left rotten orange to reach the bottom-right fresh orange.`,
+    intuition:
+      "All rotten oranges spread rot simultaneously, like a wave expanding outward. This is exactly what multi-source BFS does: start with all rotten oranges in the queue at once and expand one layer (one minute) at a time. Each BFS level represents one tick of the clock, and counting fresh oranges tells you whether all oranges eventually rot.",
     approach:
       "Use multi-source BFS. Start by adding all initially rotten oranges to the queue. Process level by level (each level = 1 minute). For each rotten orange, rot its fresh neighbors. Count the minutes and check if any fresh oranges remain.",
     code: `class Solution:
@@ -1769,6 +1817,8 @@ Explanation: It takes 4 minutes for the rot to spread from the top-left rotten o
     examples: `Input: tickets = [["MUC","LHR"],["JFK","MUC"],["SFO","SJC"],["LHR","SFO"]]
 Output: ["JFK","MUC","LHR","SFO","SJC"]
 Explanation: Starting from JFK, the unique itinerary uses all 4 tickets.`,
+    intuition:
+      "You need to use every ticket exactly once -- this is an Eulerian path problem (visit every edge once). Hierholzer's algorithm works by greedily following edges until you get stuck, then backtracking to find unused branches. Building the result in reverse (post-order) ensures dead-end airports are placed at the end of the itinerary where they belong.",
     approach:
       "Use Hierholzer's algorithm to find an Eulerian path. Build an adjacency list where destinations are sorted in reverse lexical order (so we can pop the smallest). Perform DFS; when a node has no more outgoing edges, add it to the front of the result (post-order).",
     code: `class Solution:
@@ -1831,6 +1881,8 @@ Explanation: Starting from JFK, the unique itinerary uses all 4 tickets.`,
     examples: `Input: equations = [["a","b"],["b","c"]], values = [2.0, 3.0], queries = [["a","c"],["b","a"],["a","e"]]
 Output: [6.0, 0.5, -1.0]
 Explanation: a/b=2, b/c=3, so a/c=6. b/a=1/2=0.5. "e" is unknown, so a/e=-1.`,
+    intuition:
+      "Division relationships form a chain: if a/b=2 and b/c=3, then a/c = (a/b) * (b/c) = 6. Model this as a weighted graph where each equation creates two directed edges (forward and reciprocal). Answering a query is just finding a path between two nodes and multiplying the edge weights along the way.",
     approach:
       "Model equations as a weighted directed graph: a/b = k means an edge a -> b with weight k and b -> a with weight 1/k. For each query, use BFS (or DFS) to find a path from the dividend to the divisor, multiplying weights along the way.",
     code: `class Solution:
@@ -1918,6 +1970,8 @@ Explanation: a/b=2, b/c=3, so a/c=6. b/a=1/2=0.5. "e" is unknown, so a/e=-1.`,
     examples: `Input: isConnected = [[1,1,0],[1,1,0],[0,0,1]]
 Output: 2
 Explanation: Cities 0 and 1 are connected (one province). City 2 is alone (another province). Total: 2.`,
+    intuition:
+      "This is the classic 'count connected components' problem, just presented as an adjacency matrix instead of a grid or edge list. Each DFS from an unvisited city explores its entire province. The number of times you need to start a fresh DFS equals the number of provinces, because each start means you found a group not connected to any previously seen group.",
     approach:
       "Count connected components using DFS (or Union-Find). For each unvisited city, start a DFS to visit all cities in its province. Each DFS initiation counts as one province.",
     code: `class Solution:
@@ -1983,6 +2037,8 @@ Explanation: Cities 0 and 1 are connected (one province). City 2 is alone (anoth
     examples: `Input: accounts = [["John","john@mail.com","john_newyork@mail.com"],["John","john@mail.com","john00@mail.com"],["Mary","mary@cool.com"],["John","johnnybravo@mail.com"]]
 Output: [["John","john00@mail.com","john@mail.com","john_newyork@mail.com"],["Mary","mary@cool.com"],["John","johnnybravo@mail.com"]]
 Explanation: The first two John accounts share "john@mail.com" and are merged. The third John has no shared emails.`,
+    intuition:
+      "Think of emails as people at a party. Emails within the same account 'know each other.' If two accounts share even one email, all their emails belong to the same person. Union-Find efficiently merges these groups: union all emails in each account, and shared emails automatically bridge accounts together. At the end, group by root to reconstruct merged accounts.",
     approach:
       "Use Union-Find. Map each email to a parent email. For each account, union all emails in that account together. After processing, group emails by their root parent, attach the account name, sort emails, and return.",
     code: `class Solution:
@@ -2079,6 +2135,8 @@ Explanation: The first two John accounts share "john@mail.com" and are merged. T
     examples: `Input: graph = [[1,2,3],[0,2],[0,1,3],[0,2]]
 Output: false
 Explanation: Node 0 connects to 1, 2, 3. If 0 is color A, then 1, 2, 3 must be color B. But 1 connects to 2, and both are color B, so it is not bipartite.`,
+    intuition:
+      "Imagine trying to split party guests into two rooms so that no two friends are in the same room. Start by placing one person in room A, then all their friends in room B, then all those friends' friends in room A, and so on. If you ever find a friend already in the same room, the split is impossible. This alternating assignment is exactly BFS 2-coloring.",
     approach:
       "Use BFS (or DFS) to attempt a 2-coloring. Start from each uncolored node and assign it color 0. For each neighbor, assign the opposite color. If a neighbor already has the same color as the current node, the graph is not bipartite.",
     code: `class Solution:
@@ -2148,6 +2206,8 @@ Explanation: Node 0 connects to 1, 2, 3. If 0 is color A, then 1, 2, 3 must be c
     examples: `Input: grid = [[0,0,0],[1,1,0],[1,1,0]]
 Output: 4
 Explanation: The path (0,0) -> (0,1) -> (0,2) -> (1,2) -> (2,2) has length 4.`,
+    intuition:
+      "BFS on an unweighted grid always finds the shortest path first. Since all moves (including diagonals) cost the same, the first time BFS reaches the destination is guaranteed to be the shortest path. Mark cells visited when enqueuing (not dequeuing) to prevent the same cell from being added to the queue multiple times.",
     approach:
       "Use BFS from the top-left cell. BFS on an unweighted grid naturally finds the shortest path. Explore all 8 directions (including diagonals). Track visited cells to avoid cycles.",
     code: `class Solution:
@@ -2222,6 +2282,8 @@ Explanation: The path (0,0) -> (0,1) -> (0,2) -> (1,2) -> (2,2) has length 4.`,
     examples: `Input: points = [[0,0],[2,2],[3,10],[5,2],[7,0]]
 Output: 20
 Explanation: The minimum spanning tree connects all 5 points with total Manhattan distance 20.`,
+    intuition:
+      "You need to connect all points with the least total wire -- this is the Minimum Spanning Tree problem. Prim's algorithm works like growing a network: start from any point, always connect the nearest unconnected point, and repeat. The greedy choice of always picking the cheapest available connection is proven to produce the optimal total cost.",
     approach:
       "This is a Minimum Spanning Tree (MST) problem. Use Prim's algorithm with a min-heap. Start from any point, greedily add the closest unvisited point, and repeat until all points are connected.",
     code: `class Solution:

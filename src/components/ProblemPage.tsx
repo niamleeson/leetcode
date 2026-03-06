@@ -145,6 +145,14 @@ export default function ProblemPage({ getProgress, onRate, onUpdateNotes, onRese
             </pre>
           </section>
 
+          {/* ── Intuition ── */}
+          {solution.intuition && (
+            <section>
+              <h2 className="text-xs font-semibold text-cyan-400 uppercase tracking-wider mb-2">Intuition</h2>
+              <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-line bg-cyan-950/20 border border-cyan-900/30 rounded-md p-4">{solution.intuition}</p>
+            </section>
+          )}
+
           {/* ── Approach ── */}
           <section>
             <h2 className="text-xs font-semibold text-blue-400 uppercase tracking-wider mb-2">Approach</h2>

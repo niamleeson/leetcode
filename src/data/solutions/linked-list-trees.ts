@@ -15,6 +15,8 @@ export const solutions: ProblemSolution[] = [
     examples: `Input: l1 = [2,4,3], l2 = [5,6,4]
 Output: [7,0,8]
 Explanation: 342 + 465 = 807`,
+    intuition:
+      'Since the digits are already stored in reverse order, we can add them just like we do by hand -- starting from the ones place and carrying over to the next. Walk both lists together, summing digits plus any carry, and build the result node by node.',
     approach:
       'Traverse both lists simultaneously, summing corresponding digits along with a carry. Create new nodes for each digit of the result. Continue until both lists are exhausted and there is no remaining carry.',
     code: `class Solution:
@@ -76,6 +78,8 @@ Explanation: 342 + 465 = 807`,
     examples: `Input: head = [1,2,3,4,5], n = 2
 Output: [1,2,3,5]
 Explanation: The 2nd node from the end is 4, which is removed.`,
+    intuition:
+      'Imagine two people walking along the list, but one starts n steps ahead. When the leader reaches the end, the follower is exactly at the node before the one to remove. This "fixed gap" trick lets you find the nth-from-end position in a single pass without knowing the list length.',
     approach:
       'Use two pointers separated by n nodes. Advance the fast pointer n steps ahead, then move both pointers together until fast reaches the end. The slow pointer will be just before the node to remove.',
     code: `class Solution:
@@ -132,6 +136,8 @@ Explanation: The 2nd node from the end is 4, which is removed.`,
       'You are given the heads of two sorted linked lists. Merge the two lists into one sorted list by splicing together the nodes of the first two lists. Return the head of the merged linked list.',
     examples: `Input: list1 = [1,2,4], list2 = [1,3,4]
 Output: [1,1,2,3,4,4]`,
+    intuition:
+      'Think of it like merging two sorted piles of cards into one. You always pick the smaller card from the top of either pile and place it next in the result. Since both piles are already sorted, the merged result will also be sorted.',
     approach:
       'Use a dummy node and a current pointer. Compare the heads of both lists, attach the smaller node, and advance that list. After one list is exhausted, attach the remainder of the other.',
     code: `class Solution:
@@ -190,6 +196,8 @@ Output: [1,1,2,3,4,4]`,
       'You are given an array of k linked lists, each sorted in ascending order. Merge all the linked lists into one sorted linked list and return it.',
     examples: `Input: lists = [[1,4,5],[1,3,4],[2,6]]
 Output: [1,1,2,3,4,4,5,6]`,
+    intuition:
+      'With k sorted lists, you need to repeatedly find the smallest element across all list heads. A min-heap acts like a "tournament" that always gives you the current winner (smallest value) in O(log k) time, which is much faster than scanning all k heads each time.',
     approach:
       'Use a min-heap (priority queue) to efficiently pick the smallest element across all k lists. Push the head of each list into the heap, then repeatedly extract the minimum and push its next node.',
     code: `import heapq
@@ -259,6 +267,8 @@ class Solution:
     examples: `Input: head = [1,2,3,4,5], k = 2
 Output: [2,1,4,3,5]
 Explanation: Nodes are reversed in groups of 2. The last node (5) stays in place.`,
+    intuition:
+      'Break the problem into small pieces: for each chunk of k nodes, reverse them as if they were a tiny linked list on their own, then stitch the reversed chunk back into the main list. If fewer than k nodes remain at the end, just leave them alone.',
     approach:
       'For each group, first check if there are k nodes remaining. If so, reverse those k nodes in-place, then connect the reversed group to the previous part and recurse/iterate for the next group.',
     code: `class Solution:
@@ -335,6 +345,8 @@ Explanation: Nodes are reversed in groups of 2. The last node (5) stays in place
     examples: `Input: head = [[7,null],[13,0],[11,4],[10,2],[1,0]]
 Output: [[7,null],[13,0],[11,4],[10,2],[1,0]]
 Explanation: Each pair is [val, random_index]. The deep copy has the same structure.`,
+    intuition:
+      'The tricky part is that random pointers can point to nodes you haven\'t copied yet. The key insight is to first create all the copy nodes (pass 1), then wire up the pointers (pass 2). A hash map from original-to-copy lets you instantly look up which copy node any pointer should reference.',
     approach:
       'Use a hash map that maps each original node to its copy. In the first pass, create all copied nodes. In the second pass, set the next and random pointers using the map.',
     code: `class Solution:
@@ -403,6 +415,8 @@ Explanation: Each pair is [val, random_index]. The deep copy has the same struct
     examples: `Input: head = [3,2,0,-4], pos = 1
 Output: true
 Explanation: There is a cycle where the tail connects to the 1st node (0-indexed).`,
+    intuition:
+      'Picture two runners on a track -- one fast, one slow. If the track is a straight line, the fast runner reaches the end first. But if the track loops back on itself, the fast runner will eventually lap the slow runner and they will meet. That meeting proves a loop exists.',
     approach:
       'Use Floyd\'s cycle detection (tortoise and hare). The slow pointer moves one step at a time, the fast pointer moves two. If they meet, there is a cycle; if fast reaches null, there is no cycle.',
     code: `class Solution:
@@ -454,6 +468,8 @@ Explanation: There is a cycle where the tail connects to the 1st node (0-indexed
     examples: `Input: head = [3,2,0,-4], pos = 1
 Output: Node with value 2
 Explanation: The tail connects to the node at index 1, so the cycle starts at node 2.`,
+    intuition:
+      'After the two runners meet inside the cycle, there is a neat mathematical property: the distance from the list head to the cycle start equals the distance from the meeting point to the cycle start (going forward). So resetting one pointer to the head and advancing both at the same speed guarantees they collide exactly at the cycle entrance.',
     approach:
       'First detect the cycle using Floyd\'s algorithm. Once slow and fast meet, reset one pointer to head. Then advance both one step at a time -- they will meet at the cycle\'s start.',
     code: `class Solution:
@@ -515,6 +531,8 @@ Explanation: The tail connects to the node at index 1, so the cycle starts at no
       'Given the head of a singly linked list L0 -> L1 -> ... -> Ln, reorder it to L0 -> Ln -> L1 -> Ln-1 -> L2 -> Ln-2 -> ... You may not modify the values; only nodes themselves may be changed.',
     examples: `Input: head = [1,2,3,4,5]
 Output: [1,5,2,4,3]`,
+    intuition:
+      'The reordered list alternates between taking from the front and the back. You can simulate this by splitting the list in half, reversing the second half (so its front is the original back), and then interleaving the two halves like shuffling a deck of cards.',
     approach:
       'Split the list into two halves using slow/fast pointers. Reverse the second half. Then merge the two halves by alternating nodes.',
     code: `class Solution:
@@ -604,6 +622,8 @@ cache.put(1, 1); cache.put(2, 2);
 cache.get(1);       // returns 1
 cache.put(3, 3);    // evicts key 2
 cache.get(2);       // returns -1 (not found)`,
+    intuition:
+      'No single data structure gives you both O(1) lookup and O(1) eviction of the least-recently-used item. The trick is combining two: a hash map for instant key lookup and a doubly linked list to maintain usage order. Every access moves a node to the front, so the back is always the least-recently-used item ready to evict.',
     approach:
       'Combine a hash map (for O(1) lookup) with a doubly linked list (for O(1) insertion/removal). The list maintains usage order: most recently used at front, least recently used at back.',
     code: `class Node:
@@ -724,6 +744,8 @@ LRUCache.prototype.put = function(key, value) {
       'Given the head of a singly linked list, reverse the list, and return the reversed list.',
     examples: `Input: head = [1,2,3,4,5]
 Output: [5,4,3,2,1]`,
+    intuition:
+      'Think of each node as an arrow pointing forward. To reverse the list, you just need to flip each arrow to point backward. Walk through the list one node at a time, redirecting each node\'s pointer from "next" to "previous." Three variables (prev, current, next) are all you need to avoid losing your place.',
     approach:
       'Iterate through the list, reversing each node\'s pointer to point to the previous node. Use three pointers: prev, current, and next to avoid losing references.',
     code: `class Solution:
@@ -773,6 +795,8 @@ Output: [5,4,3,2,1]`,
       'Given the head of a singly linked list, return true if it is a palindrome and false otherwise. Can you do it in O(1) space?',
     examples: `Input: head = [1,2,2,1]
 Output: true`,
+    intuition:
+      'A palindrome reads the same forwards and backwards. Since we can\'t easily go backwards in a linked list, the trick is to reverse the second half so both halves now read "forwards." Then just compare them element by element -- if they match, it\'s a palindrome.',
     approach:
       'Find the middle of the list using slow/fast pointers. Reverse the second half. Compare both halves node by node.',
     code: `class Solution:
@@ -851,6 +875,8 @@ Output: true`,
       'Given an array of integers nums containing n + 1 integers where each integer is in the range [1, n] inclusive, there is exactly one repeated number. Find it without modifying the array and using only O(1) extra space.',
     examples: `Input: nums = [1,3,4,2,2]
 Output: 2`,
+    intuition:
+      'The brilliant insight is to see the array as a linked list: index i points to index nums[i]. A duplicate value means two indices point to the same place, which creates a cycle. Once you see it as a cycle detection problem, you can apply Floyd\'s tortoise-and-hare algorithm -- the cycle entrance is the duplicate number.',
     approach:
       'Treat the array as a linked list where nums[i] points to index nums[i]. Since there is a duplicate, there must be a cycle. Use Floyd\'s algorithm to find the cycle entry point, which is the duplicate number.',
     code: `class Solution:
@@ -912,6 +938,8 @@ Output: 2`,
     examples: `Input: listA = [4,1,8,4,5], listB = [5,6,1,8,4,5], intersect at node 8
 Output: Node with value 8
 Explanation: The two lists merge at the node with value 8.`,
+    intuition:
+      'If the two lists have different lengths, the pointers will be "out of sync." The elegant trick: when a pointer finishes one list, redirect it to the head of the other. Both pointers now travel the same total distance (lenA + lenB), so they naturally align and meet at the intersection node -- or both reach null if there is none.',
     approach:
       'Use two pointers starting at each list head. When a pointer reaches the end, redirect it to the other list\'s head. Both pointers will meet at the intersection after traversing equal distances.',
     code: `class Solution:
@@ -955,6 +983,8 @@ Explanation: The two lists merge at the node with value 8.`,
       'Given the head of a linked list, return the list after sorting it in ascending order. Can you do it in O(n log n) time and O(1) space?',
     examples: `Input: head = [4,2,1,3]
 Output: [1,2,3,4]`,
+    intuition:
+      'Merge sort is a natural fit for linked lists because splitting at the midpoint and merging two sorted lists are both cheap operations with pointers. Repeatedly halve the list, sort each half, and merge them back -- the same divide-and-conquer strategy that gives O(n log n) performance.',
     approach:
       'Use merge sort on the linked list. Split the list in half using slow/fast pointers, recursively sort both halves, and merge them together.',
     code: `class Solution:
@@ -1051,6 +1081,8 @@ Output: [1,2,3,4]`,
     examples: `Input: root = [1,null,2,3]
 Output: [1,3,2]
 Explanation: Inorder: left -> root -> right. Visit 1 (no left), then 3 (left of 2), then 2.`,
+    intuition:
+      'Inorder traversal visits left, then root, then right. The stack simulates the recursion: keep going left as deep as possible (pushing nodes), then when you can\'t go further left, pop a node (that\'s your "visit"), and explore its right subtree. This left-root-right pattern naturally produces sorted order for BSTs.',
     approach:
       'Use an iterative approach with an explicit stack. Push all left children, then pop and process, then move to the right child.',
     code: `class Solution:
@@ -1108,6 +1140,8 @@ Explanation: Inorder: left -> root -> right. Visit 1 (no left), then 3 (left of 
     examples: `Input: root = [5,1,4,null,null,3,6]
 Output: false
 Explanation: The root's right child is 4, which is less than 5, violating the BST property.`,
+    intuition:
+      'It is not enough to check that each node is greater than its left child and less than its right child -- a node deep in the left subtree must also be less than its grandparent. The key insight is that every node has an allowed range (min, max) inherited from its ancestors. Pass this range down and verify each node falls within it.',
     approach:
       'Use recursive validation passing down the valid range (min, max) for each node. A node\'s value must fall within the range set by its ancestors.',
     code: `class Solution:
@@ -1151,6 +1185,8 @@ Explanation: The root's right child is 4, which is less than 5, violating the BS
       'Given the roots of two binary trees p and q, check if they are the same. Two binary trees are the same if they are structurally identical and the nodes have the same values.',
     examples: `Input: p = [1,2,3], q = [1,2,3]
 Output: true`,
+    intuition:
+      'Two trees are the same if their roots match and their subtrees match. This naturally leads to recursion: check the current nodes, then ask the same question about the left children and the right children. The base cases are simple -- two nulls are equal, one null and one non-null are not.',
     approach:
       'Recursively compare both trees. At each step, check if both nodes are null (same), one is null (different), or their values differ. Then recurse on left and right subtrees.',
     code: `class Solution:
@@ -1190,6 +1226,8 @@ Output: true`,
       'Given the root of a binary tree, return the level order traversal of its nodes\' values (i.e., from left to right, level by level).',
     examples: `Input: root = [3,9,20,null,null,15,7]
 Output: [[3],[9,20],[15,7]]`,
+    intuition:
+      'BFS (breadth-first search) naturally visits nodes level by level, like ripples spreading from a stone dropped in water. The key trick for grouping by level is to snapshot the queue size at the start of each level -- that tells you exactly how many nodes belong to the current level before their children get added.',
     approach:
       'Use BFS with a queue. Process all nodes at the current level before moving to the next. Track the level size to group nodes by level.',
     code: `from collections import deque
@@ -1257,6 +1295,8 @@ class Solution:
       'Given the root of a binary tree, return its maximum depth. The maximum depth is the number of nodes along the longest path from the root node down to the farthest leaf node.',
     examples: `Input: root = [3,9,20,null,null,15,7]
 Output: 3`,
+    intuition:
+      'The depth of a tree is like asking "how many floors does this building have?" Each node adds one floor, and you take the taller of the two subtrees. An empty tree has zero floors. This recursive thinking -- "my depth is 1 plus the deeper of my children" -- solves it in one line.',
     approach:
       'Use recursion. The maximum depth of a tree is 1 + the maximum of the depths of its left and right subtrees. A null node has depth 0.',
     code: `class Solution:
@@ -1290,6 +1330,8 @@ Output: 3`,
       'Given two integer arrays preorder and inorder where preorder is the preorder traversal and inorder is the inorder traversal of the same binary tree, construct and return the binary tree.',
     examples: `Input: preorder = [3,9,20,15,7], inorder = [9,3,15,20,7]
 Output: [3,9,20,null,null,15,7]`,
+    intuition:
+      'Preorder tells you "who is the root" (always the first element), and inorder tells you "what belongs to the left vs. right subtree" (everything left of the root in inorder is the left subtree). Combining these two pieces of information, you can reconstruct the tree by recursively identifying each root and splitting the remaining elements.',
     approach:
       'The first element of preorder is the root. Find it in inorder to split into left and right subtrees. Recursively build each subtree. Use a hash map for O(1) lookup of inorder indices.',
     code: `class Solution:
@@ -1350,6 +1392,8 @@ Output: [3,9,20,null,null,15,7]`,
       'Given a binary tree, determine if it is height-balanced. A height-balanced tree is one where the depths of the two subtrees of every node never differ by more than one.',
     examples: `Input: root = [3,9,20,null,null,15,7]
 Output: true`,
+    intuition:
+      'Instead of checking balance at each node from the top down (which recalculates heights repeatedly), work from the bottom up. As you compute each subtree\'s height, check if the left and right heights differ by more than 1. If any subtree fails, propagate a "broken" signal (-1) upward to stop early.',
     approach:
       'Use a bottom-up DFS that returns the height of each subtree. If any subtree is unbalanced, propagate -1 upward to short-circuit. This avoids recalculating heights repeatedly.',
     code: `class Solution:
@@ -1405,6 +1449,8 @@ Output: true`,
     examples: `Input: root = [-10,9,20,null,null,15,7]
 Output: 42
 Explanation: The optimal path is 15 -> 20 -> 7 with sum 42.`,
+    intuition:
+      'Any path must have a "highest point" -- a node where the path bends. At each node, consider it as that bend point: the best path through it is left-branch + node + right-branch. Track the global maximum of all such bend paths. But when reporting upward to a parent, you can only offer one branch (paths can\'t fork), so return the better side.',
     approach:
       'Use DFS. At each node, calculate the maximum "one-sided" path sum (node + best child). Update a global max considering the "through" path (left + node + right). Return only the one-sided sum upward.',
     code: `class Solution:
@@ -1462,6 +1508,8 @@ Explanation: The optimal path is 15 -> 20 -> 7 with sum 42.`,
     examples: `Input: root = [1,2,3,null,5,null,4]
 Output: [1,3,4]
 Explanation: From the right side, you see nodes 1, 3, and 4.`,
+    intuition:
+      'If you stand on the right side of the tree, you see the rightmost node at each level. BFS processes nodes level by level, so the last node you encounter at each level is exactly the one visible from the right. Just grab the last node from each level during a standard level-order traversal.',
     approach:
       'Use BFS (level order traversal). The last node in each level is visible from the right side. Alternatively, use DFS visiting right child first and recording the first node at each depth.',
     code: `from collections import deque
@@ -1529,6 +1577,8 @@ class Solution:
     examples: `Input: root = [4,2,7,1,3,6,9]
 Output: [4,7,2,9,6,3,1]
 Explanation: Every left child is swapped with its right child at every level.`,
+    intuition:
+      'Inverting a tree is like looking at it in a mirror -- every left child becomes the right child and vice versa. The recursive insight is simple: swap the two children of the current node, then invert each subtree. That\'s it -- the recursion handles every level automatically.',
     approach:
       'Recursively swap the left and right children of every node. Process the current node by swapping its children, then recurse on both subtrees.',
     code: `class Solution:
@@ -1569,6 +1619,8 @@ Explanation: Every left child is swapped with its right child at every level.`,
     examples: `Input: root = [3,1,4,null,2], k = 1
 Output: 1
 Explanation: The inorder traversal is [1,2,3,4], so the 1st smallest is 1.`,
+    intuition:
+      'A BST has a hidden superpower: its inorder traversal (left, root, right) visits nodes in sorted order. So finding the kth smallest is just doing an inorder traversal and counting to k. You can stop early once you hit the kth node -- no need to visit the whole tree.',
     approach:
       'Perform an inorder traversal of the BST. Inorder traversal of a BST visits nodes in sorted order. Stop at the kth node visited.',
     code: `class Solution:
@@ -1627,6 +1679,8 @@ Explanation: The inorder traversal is [1,2,3,4], so the 1st smallest is 1.`,
     examples: `Input: root = [6,2,8,0,4,7,9,null,null,3,5], p = 2, q = 8
 Output: 6
 Explanation: The LCA of nodes 2 and 8 is 6.`,
+    intuition:
+      'In a BST, the ordering property guides you like a compass. If both nodes are smaller than the current node, the LCA must be to the left. If both are larger, it must be to the right. The moment p and q "split" to different sides (or one equals the current node), you have found the lowest common ancestor.',
     approach:
       'Exploit the BST property. If both p and q are less than root, LCA is in the left subtree. If both are greater, LCA is in the right subtree. Otherwise, root is the LCA (the split point).',
     code: `class Solution:
@@ -1672,6 +1726,8 @@ Explanation: The LCA of nodes 2 and 8 is 6.`,
     examples: `Input: root = [3,5,1,6,2,0,8,null,null,7,4], p = 5, q = 1
 Output: 3
 Explanation: The LCA of nodes 5 and 1 is 3.`,
+    intuition:
+      'Search both subtrees for p and q. If p is found on the left side and q on the right side, the current node must be where their paths diverge -- making it the LCA. If both are found on the same side, the LCA is deeper on that side. The recursion naturally bubbles up the answer.',
     approach:
       'Recursively search both subtrees. If the current node is p or q, return it. If p and q are found in different subtrees, the current node is the LCA. If both are in the same subtree, propagate that result up.',
     code: `class Solution:
@@ -1713,6 +1769,8 @@ Explanation: The LCA of nodes 5 and 1 is 3.`,
     examples: `Input: root = [1,2,3,null,null,4,5]
 Serialized: "1,2,null,null,3,4,null,null,5,null,null"
 Output: [1,2,3,null,null,4,5]`,
+    intuition:
+      'The challenge is that a binary tree is not uniquely defined by its values alone -- you need to know the structure. By recording "null" for every missing child during a preorder traversal, you capture both the values and the exact shape. Deserialization then just replays the same preorder sequence, using "null" tokens to know when a subtree is empty.',
     approach:
       'Use preorder traversal for serialization, recording "null" for missing children. For deserialization, consume tokens in the same preorder sequence, recursively building the tree.',
     code: `class Codec:
@@ -1799,6 +1857,8 @@ var deserialize = function(data) {
     examples: `Input: root = [1,2,3,4,5]
 Output: 3
 Explanation: The longest path is [4,2,1,3] or [5,2,1,3], which has 3 edges.`,
+    intuition:
+      'The diameter passes through some node where it "bends." At that node, the diameter equals the left subtree height plus the right subtree height. By computing heights bottom-up and checking left_height + right_height at every node, you find the longest path without any extra traversals.',
     approach:
       'Use DFS to compute the height of each subtree. At each node, the diameter through that node is left_height + right_height. Track the maximum diameter seen.',
     code: `class Solution:
@@ -1852,6 +1912,8 @@ Explanation: The longest path is [4,2,1,3] or [5,2,1,3], which has 3 edges.`,
     examples: `Input: root = [3,4,5,1,2], subRoot = [4,1,2]
 Output: true
 Explanation: The left subtree of root (rooted at 4) matches subRoot exactly.`,
+    intuition:
+      'Try every node in the main tree as a potential "match point" for subRoot. At each node, ask: "Is the tree rooted here identical to subRoot?" This reuses the Same Tree comparison (problem 100) as a building block. If any node matches, you have found the subtree.',
     approach:
       'For each node in the main tree, check if the subtree rooted there is identical to subRoot. Use a helper function (same as problem 100) to compare two trees for exact equality.',
     code: `class Solution:
@@ -1902,6 +1964,8 @@ var isSame = function(p, q) {
     examples: `Input: root = [3,1,4,3,null,1,5]
 Output: 4
 Explanation: The good nodes are 3 (root), 3 (left-left), 4 (right), and 5 (right-right).`,
+    intuition:
+      'A node is "good" if it is the biggest (or tied for biggest) on the path from root to itself. As you DFS down the tree, carry the maximum value seen so far. If the current node\'s value meets or exceeds that running max, it is a good node. The root is always good since no ancestor can beat it.',
     approach:
       'Use DFS, passing the maximum value seen on the path from root to the current node. A node is "good" if its value is >= the current path maximum.',
     code: `class Solution:
@@ -1951,6 +2015,8 @@ Explanation: The good nodes are 3 (root), 3 (left-left), 4 (right), and 5 (right
     examples: `Input: nums = [-10,-3,0,5,9]
 Output: [0,-3,9,-10,null,5] (one valid answer)
 Explanation: Choosing the middle element as root ensures balance.`,
+    intuition:
+      'For a balanced BST, you want roughly equal nodes on each side. Since the array is sorted, the middle element is the perfect root -- it splits the array into two equal halves. Apply the same logic recursively to each half, like binary search in reverse: instead of searching a sorted array, you are building a tree from one.',
     approach:
       'Use the middle element as the root to ensure balance. Recursively build the left subtree from the left half and the right subtree from the right half.',
     code: `class Solution:
@@ -2000,6 +2066,8 @@ Explanation: Choosing the middle element as root ensures balance.`,
     examples: `Input: root = [10,5,-3,3,2,null,11,3,-2,null,1], targetSum = 8
 Output: 3
 Explanation: Paths summing to 8: [5,3], [5,2,1], [-3,11].`,
+    intuition:
+      'This is the subarray sum problem disguised as a tree problem. Keep a running sum from root to the current node. If (currentSum - target) was seen as a prefix sum earlier on this path, then the subpath between those two points sums to target. A hash map of prefix sums makes this lookup instant.',
     approach:
       'Use prefix sums with a hash map. Track the cumulative sum from root to the current node. If current_sum - targetSum exists in the prefix map, there is a valid path. This is similar to the subarray sum problem.',
     code: `class Solution:
@@ -2064,6 +2132,8 @@ Explanation: Paths summing to 8: [5,3], [5,2,1], [-3,11].`,
     examples: `Input: root = [5,3,6,2,4,null,7], key = 3
 Output: [5,4,6,2,null,null,7]
 Explanation: Node 3 is removed. Its inorder successor (4) replaces it.`,
+    intuition:
+      'Deleting a leaf or a node with one child is straightforward -- just remove it or replace it with its child. The tricky case is a node with two children: you need a replacement that keeps the BST valid. The inorder successor (smallest node in the right subtree) is the perfect candidate because it is greater than everything on the left and smaller than everything else on the right.',
     approach:
       'Search for the node to delete. If it has no children, remove it. If it has one child, replace it with that child. If it has two children, replace its value with its inorder successor (smallest in right subtree), then delete the successor.',
     code: `class Solution:

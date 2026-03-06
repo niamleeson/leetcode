@@ -10,6 +10,8 @@ export const solutions: ProblemSolution[] = [
       'Given an array of integers nums and an integer target, return the indices of the two numbers that add up to target. Each input has exactly one solution, and you may not use the same element twice.',
     examples:
       'Input: nums = [2, 7, 11, 15], target = 9\nOutput: [0, 1]\nExplanation: nums[0] + nums[1] = 2 + 7 = 9',
+    intuition:
+      'Think of it like looking up a word in a dictionary - instead of scanning every page (brute force), you can jump directly to the right page. For each number, you already know exactly what partner it needs (target minus itself). A hash map lets you instantly check if that partner has already appeared, turning a quadratic search into a linear one.',
     approach:
       'Use a hash map to store each number and its index as you iterate. For every number, check if (target - num) already exists in the map. This gives an O(n) single-pass solution.',
     code: `def twoSum(nums: list[int], target: int) -> list[int]:
@@ -55,6 +57,8 @@ export const solutions: ProblemSolution[] = [
       'Given an array of strings, group the anagrams together. An anagram is a word formed by rearranging the letters of another word using all original letters exactly once. You can return the answer in any order.',
     examples:
       'Input: strs = ["eat","tea","tan","ate","nat","bat"]\nOutput: [["bat"],["nat","tan"],["ate","eat","tea"]]',
+    intuition:
+      'Anagrams are words with the same letters jumbled up. If you sort the letters of any anagram, they all become the same string - for example, "eat", "tea", and "ate" all become "aet". This sorted form acts like a fingerprint: words with the same fingerprint belong in the same group, and a hash map lets you collect them efficiently.',
     approach:
       'Two strings are anagrams if and only if their sorted characters are identical. Use the sorted string as a hash map key to group all anagrams together.',
     code: `from collections import defaultdict
@@ -99,6 +103,8 @@ def groupAnagrams(strs: list[str]) -> list[list[str]]:
       'Given an unsorted array of integers nums, return the length of the longest consecutive elements sequence. The algorithm must run in O(n) time.',
     examples:
       'Input: nums = [100, 4, 200, 1, 3, 2]\nOutput: 4\nExplanation: The longest consecutive sequence is [1, 2, 3, 4].',
+    intuition:
+      'Imagine laying out all numbers on a number line. You want to find the longest unbroken chain. The key insight is: only start counting from the beginning of a chain. A number is the start of a chain if the number right before it (num - 1) does not exist. By using a set for O(1) lookups, you avoid redundant work and keep the solution linear.',
     approach:
       'Put all numbers in a set. For each number, only start counting a sequence if num-1 is NOT in the set (meaning this number is the start of a sequence). Then count upward while consecutive numbers exist.',
     code: `def longestConsecutive(nums: list[int]) -> int:
@@ -153,6 +159,8 @@ def groupAnagrams(strs: list[str]) -> list[list[str]]:
       'Given an integer array nums, return true if any value appears at least twice in the array, and return false if every element is distinct.',
     examples:
       'Input: nums = [1, 2, 3, 1]\nOutput: true\nExplanation: The element 1 appears twice.',
+    intuition:
+      'This is the most basic use of a set as a "memory." As you walk through the array, you ask one question for each number: "Have I seen you before?" A set answers that question in O(1) time. The moment you find a repeat, you are done.',
     approach:
       'Use a set to track numbers you have seen. As you iterate, if a number is already in the set, return true immediately. If you finish without finding a duplicate, return false.',
     code: `def containsDuplicate(nums: list[int]) -> bool:
@@ -196,6 +204,8 @@ def groupAnagrams(strs: list[str]) -> list[list[str]]:
       'Given two strings s and t, return true if t is an anagram of s, and false otherwise. An anagram uses all the original letters exactly once.',
     examples:
       'Input: s = "anagram", t = "nagaram"\nOutput: true',
+    intuition:
+      'Two words are anagrams if they use the exact same letters the exact same number of times - like two bags of Scrabble tiles with identical contents. Instead of sorting and comparing, you can simply count how many of each letter each word has. If the tallies match, they are anagrams.',
     approach:
       'Count the frequency of each character in both strings and compare the counts. If they match, the strings are anagrams. Use a hash map or Counter for O(n) comparison.',
     code: `from collections import Counter
@@ -237,6 +247,8 @@ def isAnagram(s: str, t: str) -> bool:
       'Given an integer array nums and an integer k, return the k most frequent elements. You may return the answer in any order. It is guaranteed that the answer is unique.',
     examples:
       'Input: nums = [1,1,1,2,2,3], k = 2\nOutput: [1, 2]\nExplanation: 1 appears 3 times and 2 appears 2 times.',
+    intuition:
+      'After counting frequencies, you need the top k. Sorting frequencies costs O(n log n), but notice that frequencies range from 1 to n. You can create an array of "buckets" where bucket i holds all numbers that appeared exactly i times. Then just walk backwards from the highest bucket to grab the most frequent elements. This is bucket sort applied to frequencies.',
     approach:
       'Use bucket sort: count frequencies, then create an array of buckets where index i holds all elements that appear i times. Iterate from the highest bucket downward to collect the top k elements. This runs in O(n) time.',
     code: `from collections import Counter
@@ -302,6 +314,8 @@ def topKFrequent(nums: list[int], k: int) -> list[int]:
       'Given an integer array nums, return an array answer where answer[i] is equal to the product of all elements of nums except nums[i]. You must solve it without using division and in O(n) time.',
     examples:
       'Input: nums = [1, 2, 3, 4]\nOutput: [24, 12, 8, 6]\nExplanation: For index 1, the product of all elements except 2 is 1*3*4 = 12.',
+    intuition:
+      'For each position, the "product of everything except me" is really just (product of everything to my left) times (product of everything to my right). You can compute all left-products in one sweep and all right-products in another sweep. This decomposes a seemingly hard problem into two simple running-product passes.',
     approach:
       'Build the result in two passes. First pass (left to right) stores the running product of all elements to the left. Second pass (right to left) multiplies in the running product of all elements to the right.',
     code: `def productExceptSelf(nums: list[int]) -> list[int]:
@@ -365,6 +379,8 @@ def topKFrequent(nums: list[int], k: int) -> list[int]:
       'Determine if a 9x9 Sudoku board is valid. Only the filled cells need to be validated: each row, each column, and each of the nine 3x3 sub-boxes must contain the digits 1-9 without repetition.',
     examples:
       'Input: board = [["5","3",".",".","7",".",".",".","."],["6",".",".","1","9","5",".",".","."],[".","9","8",".",".",".",".","6","."],["8",".",".",".","6",".",".",".","3"],["4",".",".","8",".","3",".",".","1"],["7",".",".",".","2",".",".",".","6"],[".","6",".",".",".",".","2","8","."],[".",".",".","4","1","9",".",".","5"],[".",".",".",".","8",".",".","7","9"]]\nOutput: true',
+    intuition:
+      'Sudoku validation boils down to one rule: no duplicates in any row, column, or 3x3 box. Think of it as keeping three attendance sheets - one per row, one per column, and one per box. As you scan each cell, you check all three sheets. The only trick is mapping a cell to its box, which the formula (row/3)*3 + (col/3) handles neatly.',
     approach:
       'Use three collections of sets -- one for rows, one for columns, and one for 3x3 boxes. Iterate through every cell; if a digit is already in the corresponding row, column, or box set, the board is invalid.',
     code: `def isValidSudoku(board: list[list[str]]) -> bool:
@@ -436,6 +452,8 @@ def topKFrequent(nums: list[int], k: int) -> list[int]:
       'Given an array of integers nums and an integer k, return the total number of subarrays whose sum equals k. A subarray is a contiguous non-empty sequence of elements.',
     examples:
       'Input: nums = [1, 1, 1], k = 2\nOutput: 2\nExplanation: The subarrays [1,1] starting at index 0 and [1,1] starting at index 1 both sum to 2.',
+    intuition:
+      'The sum of any subarray can be expressed as the difference of two prefix sums. If prefix[j] - prefix[i] = k, then the subarray between i and j sums to k. So the question becomes: for each prefix sum, how many earlier prefix sums equal (current - k)? A hash map counting prefix sums seen so far answers this instantly.',
     approach:
       'Use a prefix sum with a hash map. The sum of subarray [i+1..j] equals prefix[j] - prefix[i]. So for each prefix sum, count how many previous prefix sums equal (current_prefix - k).',
     code: `from collections import defaultdict
@@ -490,6 +508,8 @@ def subarraySum(nums: list[int], k: int) -> int:
       'Implement the RandomizedSet class that supports insert, remove, and getRandom, each in average O(1) time. insert(val) inserts val if not present. remove(val) removes val if present. getRandom() returns a random element with equal probability.',
     examples:
       'Input: ["RandomizedSet","insert","insert","getRandom","remove","insert","getRandom"]\n[[], [1], [2], [], [1], [2], []]\nOutput: [null, true, true, 1 or 2, true, false, 2]',
+    intuition:
+      'No single data structure gives you O(1) insert, delete, and random access. But you can combine two: a list gives O(1) random access by index, and a hash map gives O(1) lookup by value. The clever trick for O(1) deletion is to swap the element to remove with the last element, then pop the end of the list - avoiding the costly shift of elements.',
     approach:
       'Combine a list (for O(1) random access by index) with a hash map (value -> index for O(1) lookup). On removal, swap the target with the last element so you can pop from the end in O(1).',
     code: `import random
@@ -574,6 +594,8 @@ RandomizedSet.prototype.getRandom = function() {
       'Given an unsorted integer array nums, return the smallest missing positive integer. You must implement an algorithm that runs in O(n) time and uses O(1) extra space.',
     examples:
       'Input: nums = [3, 4, -1, 1]\nOutput: 2\nExplanation: 1 is present, 2 is missing.',
+    intuition:
+      'The answer must be between 1 and n+1. The key insight is that the array itself has n slots, so you can use it as its own hash map: put value v at index v-1. After this "cyclic sort," just scan for the first slot where the value does not match its index. This avoids using extra space by repurposing the input array.',
     approach:
       'Use the array itself as a hash map by placing each value v at index v-1 (cyclic sort). After rearranging, the first index i where nums[i] != i+1 gives the answer i+1.',
     code: `def firstMissingPositive(nums: list[int]) -> int:
@@ -635,6 +657,8 @@ RandomizedSet.prototype.getRandom = function() {
       'Given an array nums of size n, return the majority element. The majority element is the element that appears more than n/2 times. You may assume that the majority element always exists.',
     examples:
       'Input: nums = [2, 2, 1, 1, 1, 2, 2]\nOutput: 2\nExplanation: 2 appears 4 times out of 7 elements (4 > 7/2).',
+    intuition:
+      'Imagine a crowd where more than half the people support the same candidate. If supporters and opponents pair off and cancel each other out, the majority candidate will always have people left standing. That is the Boyer-Moore Voting Algorithm: maintain a candidate and cancel opposing votes. Since the majority has more than half the votes, it can never be fully cancelled.',
     approach:
       'Use Boyer-Moore Voting Algorithm: maintain a candidate and a count. Increment count when you see the candidate, decrement otherwise. When count hits 0, switch the candidate. The majority element will always survive.',
     code: `def majorityElement(nums: list[int]) -> int:
@@ -684,6 +708,8 @@ RandomizedSet.prototype.getRandom = function() {
       'Given an array nums of n integers where nums[i] is in the range [1, n], return an array of all integers in [1, n] that do not appear in nums. Solve it without extra space (output array does not count) and in O(n) time.',
     examples:
       'Input: nums = [4, 3, 2, 7, 8, 2, 3, 1]\nOutput: [5, 6]\nExplanation: 5 and 6 are missing from the range [1, 8].',
+    intuition:
+      'Since every value is between 1 and n and the array has n slots, each value naturally maps to an index (value - 1). You can "check off" a number by negating the element at its corresponding index. After one pass, any index still holding a positive number was never checked off, meaning that index+1 is missing from the array.',
     approach:
       'Use the array itself as a marker: for each value, mark the element at the corresponding index as negative. After marking, any index with a positive value indicates a missing number.',
     code: `def findDisappearedNumbers(nums: list[int]) -> list[int]:
@@ -732,6 +758,8 @@ RandomizedSet.prototype.getRandom = function() {
       'Given an integer array nums and an integer k, return true if nums has a good subarray. A good subarray has a length of at least two and its sum is a multiple of k.',
     examples:
       'Input: nums = [23, 2, 4, 6, 7], k = 6\nOutput: true\nExplanation: [2, 4] is a subarray of size 2 whose sum 6 is a multiple of 6.',
+    intuition:
+      'This builds on the prefix sum idea with a modular arithmetic twist. If two prefix sums have the same remainder when divided by k, their difference is a multiple of k. So you only need to track remainders, not full sums. Store the first index where each remainder appears, and if you see the same remainder again at least two positions later, you have found a valid subarray.',
     approach:
       'Use prefix sums modulo k. If two prefix sums have the same remainder mod k and their indices differ by at least 2, the subarray between them sums to a multiple of k. Store the first occurrence of each remainder.',
     code: `def checkSubarraySum(nums: list[int], k: int) -> bool:
@@ -793,6 +821,8 @@ RandomizedSet.prototype.getRandom = function() {
       'Design a HashMap without using any built-in hash table libraries. Implement put(key, value), get(key), and remove(key). Keys and values are integers in range [0, 10^6].',
     examples:
       'Input: ["MyHashMap","put","put","get","get","put","get","remove","get"]\n[[], [1,1], [2,2], [1], [3], [2,1], [2], [2], [2]]\nOutput: [null, null, null, 1, -1, null, 1, null, -1]',
+    intuition:
+      'Think of a hash map like a set of numbered mailboxes. A hash function tells you which mailbox a key belongs to (key % number_of_boxes). Sometimes two keys land in the same mailbox (a collision), so each mailbox holds a small list of (key, value) pairs. With enough mailboxes, each list stays short and lookups remain fast.',
     approach:
       'Use an array of buckets with chaining (linked list or list of pairs) to handle collisions. A simple hash function like key % bucket_count distributes keys across buckets.',
     code: `class MyHashMap:

@@ -15,6 +15,8 @@ Output: true
 
 Input: s = "(]"
 Output: false`,
+    intuition:
+      "Think of a stack like a pile of plates: you can only check the top plate. Each time you see an opening bracket, you place it on top. When you see a closing bracket, the most recent unmatched opening bracket (top of the stack) must be its match. If it is not, or there is nothing on the stack, the string is invalid.",
     approach:
       "Use a stack to track open brackets. When encountering a closing bracket, check if the top of the stack is the matching open bracket. If the stack is empty at the end, the string is valid.",
     code: `class Solution:
@@ -69,6 +71,8 @@ Output: false`,
       "Given n pairs of parentheses, write a function to generate all combinations of well-formed parentheses. Each combination must have exactly n opening and n closing parentheses arranged so that every prefix has at least as many opening as closing parentheses.",
     examples: `Input: n = 3
 Output: ["((()))","(()())","(())()","()(())","()()()"]`,
+    intuition:
+      "At every position, you have a choice: add '(' or ')'. But you can only add ')' if there are more open parens than close parens so far (otherwise you would create an invalid prefix). This constraint naturally prunes all invalid combinations, so backtracking with these two simple rules generates only valid strings.",
     approach:
       "Use backtracking to build strings character by character. At each step, you can add '(' if you haven't used all n, or ')' if the count of ')' is less than the count of '('. This ensures every generated string is valid.",
     code: `class Solution:
@@ -127,6 +131,8 @@ Output: ["((()))","(()())","(())()","()(())","()()()"]`,
     examples: `Input: heights = [2,1,5,6,2,3]
 Output: 10
 Explanation: The largest rectangle has area = 5 * 2 = 10 (bars at indices 2 and 3 with height 5).`,
+    intuition:
+      "Each bar can extend left and right until it hits a shorter bar. The key insight is that a monotonic increasing stack lets you efficiently find these boundaries. When you encounter a shorter bar, all taller bars on the stack have just found their right boundary, so you can calculate their maximum rectangle area immediately.",
     approach:
       "Use a monotonic increasing stack that stores indices. When a bar shorter than the stack top is encountered, pop and calculate the area using the popped bar's height. The width extends from the current index back to the new stack top. This processes each bar at most twice (push and pop), giving O(n) time.",
     code: `class Solution:
@@ -184,6 +190,8 @@ Explanation: The largest rectangle has area = 5 * 2 = 10 (bars at indices 2 and 
     examples: `Input: tokens = ["2","1","+","3","*"]
 Output: 9
 Explanation: ((2 + 1) * 3) = 9`,
+    intuition:
+      "Reverse Polish Notation eliminates the need for parentheses by placing operators after their operands. A stack is the perfect match because when you see an operator, the two most recent numbers on the stack are exactly its operands. Process the operation, push the result back, and continue -- the stack naturally handles nested expressions.",
     approach:
       "Use a stack. Push numbers onto the stack. When an operator is encountered, pop two operands, apply the operator, and push the result back. The final value on the stack is the answer.",
     code: `class Solution:
@@ -247,6 +255,8 @@ Explanation: ((2 + 1) * 3) = 9`,
     examples: `Input: ["MinStack","push","push","push","getMin","pop","top","getMin"]
        [[],[-2],[0],[-3],[],[],[],[]]
 Output: [null,null,null,null,-3,null,0,-2]`,
+    intuition:
+      "The trick is that the minimum can change when you pop elements. If you only store a single min variable, you lose track of what the min was before that element was pushed. By keeping a parallel stack that records the running minimum at each level, popping automatically restores the previous minimum -- like saving snapshots of the min at each step.",
     approach:
       "Use two stacks: one for the actual values and one to track the current minimum. On each push, also push the current minimum onto the min stack. On each pop, pop from both stacks. getMin simply returns the top of the min stack.",
     code: `class MinStack:
@@ -314,6 +324,8 @@ MinStack.prototype.getMin = function() {
     examples: `Input: s = "3[a2[c]]"
 Output: "accaccacc"
 Explanation: 2[c] -> "cc", a + "cc" -> "acc", 3["acc"] -> "accaccacc"`,
+    intuition:
+      "Think of each '[' as entering a new nested context and ']' as leaving it. You need to remember what you were building before you entered the bracket, which is exactly what a stack does. When you hit '[', save your current progress and start fresh. When you hit ']', restore the saved progress and append the repeated inner result.",
     approach:
       "Use two stacks: one for repeat counts and one for the string built so far before each '['. When encountering ']', pop both stacks and construct the repeated string. Build the current string as you go.",
     code: `class Solution:
@@ -386,6 +398,8 @@ Explanation: 2[c] -> "cc", a + "cc" -> "acc", 3["acc"] -> "accaccacc"`,
       "Given an array of integers temperatures represents the daily temperatures, return an array answer such that answer[i] is the number of days you have to wait after the ith day to get a warmer temperature. If there is no future day with a warmer temperature, answer[i] is 0.",
     examples: `Input: temperatures = [73,74,75,71,69,72,76,73]
 Output: [1,1,4,2,1,1,0,0]`,
+    intuition:
+      "Imagine standing in a line and looking forward for someone taller. You only care about the first taller person, not everyone in between. A monotonic decreasing stack keeps track of days still 'waiting' for a warmer day. When a warmer day arrives, it resolves all the cooler days stacked up behind it in one sweep.",
     approach:
       "Use a monotonic decreasing stack of indices. For each new temperature, pop all stack entries with a lower temperature and record the day difference. This ensures each element is pushed and popped at most once.",
     code: `class Solution:
@@ -438,6 +452,8 @@ Output: [1,1,4,2,1,1,0,0]`,
     examples: `Input: target = 12, position = [10,8,0,5,3], speed = [2,4,1,1,3]
 Output: 3
 Explanation: Cars starting at 10 and 8 form a fleet (both arrive at time 1). Car at 0 alone. Cars at 5 and 3 form a fleet.`,
+    intuition:
+      "The key insight is that a slower car closer to the target acts as a bottleneck -- faster cars behind it will catch up and be forced to match its speed. By processing cars from closest to farthest from the target, each car either forms a new fleet (takes longer than the car ahead) or gets absorbed into an existing fleet. The arrival time tells you everything.",
     approach:
       "Sort cars by position in descending order (closest to target first). Calculate the time each car would take to reach the target. Use a stack: if a car takes longer than the car ahead, it forms a new fleet. Otherwise, it merges into the fleet ahead.",
     code: `class Solution:
@@ -488,6 +504,8 @@ Explanation: Cars starting at 10 and 8 form a fleet (both arrive at time 1). Car
     examples: `Input: ["MyQueue","push","push","peek","pop","empty"]
        [[],[1],[2],[],[],[]]
 Output: [null,null,null,1,1,false]`,
+    intuition:
+      "A stack reverses order (LIFO), but a queue needs original order (FIFO). The clever trick is that reversing twice gives you back the original order. Push elements into one stack, and when you need to dequeue, pour them all into a second stack -- this double reversal produces FIFO order. You only need to pour when the output stack is empty, making it amortized O(1).",
     approach:
       "Use two stacks: an input stack and an output stack. Push always goes to the input stack. For pop/peek, if the output stack is empty, transfer all elements from input to output (reversing order). This gives amortized O(1) per operation.",
     code: `class MyQueue:
@@ -565,6 +583,8 @@ MyQueue.prototype._transfer = function() {
     examples: `Input: nums1 = [4,1,2], nums2 = [1,3,4,2]
 Output: [-1,3,-1]
 Explanation: For 4, no greater element to the right in nums2. For 1, next greater is 3. For 2, no greater element.`,
+    intuition:
+      "Instead of searching for the next greater element of each nums1 value separately, precompute the answer for every element in nums2 at once using a monotonic stack. When you find a larger element, it is the 'next greater' for all smaller elements sitting on the stack. Store the results in a hash map for O(1) lookup per nums1 element.",
     approach:
       "Precompute the next greater element for every element in nums2 using a monotonic decreasing stack. Store results in a hash map. Then look up each element of nums1 in the map.",
     code: `class Solution:
@@ -613,6 +633,8 @@ Explanation: For 4, no greater element to the right in nums2. For 1, next greate
     examples: `Input: nums = [1,2,1]
 Output: [2,-1,2]
 Explanation: For nums[0]=1, next greater is 2. For nums[1]=2, no greater exists. For nums[2]=1, circularly the next greater is 2.`,
+    intuition:
+      "The circular part is the only twist over the standard 'next greater element' problem. By looping through the array twice (using modulo for indices), elements near the end of the array get a chance to find their next greater element at the beginning. It is like walking around a circular track twice to make sure everyone has looked ahead far enough.",
     approach:
       "Simulate the circular array by iterating through the array twice (2 * n iterations). Use a monotonic decreasing stack of indices. The modulo operator handles the circular indexing. On the first pass, most elements get their answer; the second pass handles wraparound cases.",
     code: `class Solution:
@@ -667,6 +689,8 @@ Explanation: For nums[0]=1, next greater is 2. For nums[1]=2, no greater exists.
     examples: `Input: asteroids = [5,10,-5]
 Output: [5,10]
 Explanation: 10 and -5 collide, 10 survives. 5 and 10 never collide (same direction).`,
+    intuition:
+      "Collisions only happen when a right-moving asteroid (positive, already on the stack) meets a left-moving one (negative, incoming). Think of the stack as a row of asteroids moving right. Each new left-moving asteroid fights its way through the stack from the top, destroying smaller right-moving asteroids until it either gets destroyed itself or survives to be pushed onto the stack.",
     approach:
       "Use a stack. For each asteroid, if it's moving right (positive), push it. If it's moving left (negative), it can only collide with right-moving asteroids on the stack. Pop and compare until the left-moving asteroid is destroyed or survives.",
     code: `class Solution:
@@ -732,6 +756,8 @@ Explanation: 10 and -5 collide, 10 survives. 5 and 10 never collide (same direct
     examples: `Input: s = ")()())"
 Output: 4
 Explanation: The longest valid parentheses substring is "()()" with length 4.`,
+    intuition:
+      "The stack stores indices of unmatched characters, acting as boundary markers. The distance between the current index and the nearest unmatched index on the stack gives the length of the current valid substring. Initializing with -1 handles the edge case where the valid substring starts at the very beginning of the string.",
     approach:
       "Use a stack initialized with -1 as a base index. Push indices of '(' onto the stack. When encountering ')', pop the top. If the stack becomes empty, push the current index as a new base. Otherwise, the current valid length is i - stack[-1].",
     code: `class Solution:
@@ -797,6 +823,8 @@ Explanation: The longest valid parentheses substring is "()()" with length 4.`,
     examples: `Input: nums1 = [1,3], nums2 = [2]
 Output: 2.0
 Explanation: Merged array = [1,2,3], median is 2.`,
+    intuition:
+      "Instead of merging both arrays (O(m+n)), realize that finding the median means finding a dividing line that splits all elements into two equal halves. If you pick where to cut array1, the cut in array2 is determined. Binary search on the shorter array to find the cut where the largest element on the left side is smaller than the smallest element on the right side.",
     approach:
       "Binary search on the shorter array to find the correct partition. Partition both arrays such that all elements on the left are less than or equal to all elements on the right. The partition is correct when maxLeft1 <= minRight2 and maxLeft2 <= minRight1.",
     code: `class Solution:
@@ -884,6 +912,8 @@ Explanation: Merged array = [1,2,3], median is 2.`,
       "There is an integer array nums sorted in ascending order (with distinct values), which is possibly rotated at an unknown pivot. Given the array after rotation and an integer target, return the index of target if it is in the array, or -1 if it is not. You must write an algorithm with O(log n) runtime complexity.",
     examples: `Input: nums = [4,5,6,7,0,1,2], target = 0
 Output: 4`,
+    intuition:
+      "Even though the array is rotated, at least one half around the midpoint is always properly sorted. You can check which half is sorted in O(1) by comparing endpoints. If the target falls within the sorted half's range, search there; otherwise search the other half. This preserves the O(log n) halving property of binary search.",
     approach:
       "Use modified binary search. At each step, determine which half is sorted (at least one half always is). Then check if the target lies within the sorted half. If so, search that half; otherwise, search the other half.",
     code: `class Solution:
@@ -956,6 +986,8 @@ Output: 4`,
       "Given an array of integers nums sorted in non-decreasing order, find the starting and ending position of a given target value. If target is not found, return [-1, -1]. You must write an algorithm with O(log n) runtime complexity.",
     examples: `Input: nums = [5,7,7,8,8,10], target = 8
 Output: [3,4]`,
+    intuition:
+      "A normal binary search stops as soon as it finds the target, but you need the first and last positions. The trick is: when you find the target, do not stop. Instead, record it as a candidate and keep searching left (for the first occurrence) or right (for the last occurrence). Two modified binary searches give you both boundaries.",
     approach:
       "Run binary search twice: once to find the leftmost (first) occurrence and once to find the rightmost (last) occurrence. For the left search, when nums[mid] == target, continue searching left. For the right search, continue searching right.",
     code: `class Solution:
@@ -1046,6 +1078,8 @@ Output: [3,4]`,
       "You are given an m x n integer matrix where each row is sorted in non-decreasing order and the first integer of each row is greater than the last integer of the previous row. Given an integer target, return true if target is in the matrix. You must write an algorithm with O(log(m * n)) runtime complexity.",
     examples: `Input: matrix = [[1,3,5,7],[10,11,16,20],[23,30,34,60]], target = 3
 Output: true`,
+    intuition:
+      "Since each row starts with a value greater than the previous row's last value, the entire matrix is just a sorted array wrapped into rows. You can treat it as a 1D sorted array and do standard binary search. The only trick is converting a flat index to row/column coordinates using division and modulo.",
     approach:
       "Treat the 2D matrix as a flattened sorted 1D array. Use standard binary search with index mapping: for a flat index mid, the row is mid // cols and the column is mid % cols.",
     code: `class Solution:
@@ -1102,6 +1136,8 @@ Output: true`,
     examples: `Input: nums = [3,4,5,1,2]
 Output: 1
 Explanation: The original array was [1,2,3,4,5] rotated 3 times.`,
+    intuition:
+      "The minimum element sits at the 'rotation point' where the sorted order breaks. If the middle element is greater than the rightmost element, the break must be somewhere to the right (the array wraps around). Otherwise, the right side is properly sorted and the minimum is at mid or to the left. Comparing with the right end (not the left) is what makes this work correctly.",
     approach:
       "Use binary search comparing the middle element with the rightmost element. If nums[mid] > nums[hi], the minimum is in the right half (the rotation point is there). Otherwise, it is in the left half including mid.",
     code: `class Solution:
@@ -1152,6 +1188,8 @@ Explanation: The original array was [1,2,3,4,5] rotated 3 times.`,
       "Given an array of integers nums which is sorted in ascending order, and an integer target, write a function to search target in nums. If target exists, return its index. Otherwise, return -1. You must write an algorithm with O(log n) runtime complexity.",
     examples: `Input: nums = [-1,0,3,5,9,12], target = 9
 Output: 4`,
+    intuition:
+      "This is the fundamental divide-and-conquer pattern: since the array is sorted, checking the middle element tells you which half the target must be in. Each comparison eliminates half the remaining elements, which is why you find the answer in at most log(n) steps instead of scanning every element.",
     approach:
       "Classic binary search: maintain two pointers lo and hi. Compute mid, compare nums[mid] with target. If equal, return mid. If less, search right half. If greater, search left half. Return -1 if not found.",
     code: `class Solution:
@@ -1204,6 +1242,8 @@ Output: 4`,
     examples: `Input: piles = [3,6,7,11], h = 8
 Output: 4
 Explanation: At speed 4, hours needed = ceil(3/4)+ceil(6/4)+ceil(7/4)+ceil(11/4) = 1+2+2+3 = 8 <= 8.`,
+    intuition:
+      "This is a 'binary search on the answer' pattern. Instead of directly computing the answer, notice that if speed k works, then any speed greater than k also works. This monotonic property means you can binary search over possible speeds. For each candidate speed, a simple linear scan tells you whether it is fast enough.",
     approach:
       "Binary search on the answer (eating speed k). The minimum speed is 1 and the maximum is max(piles). For each candidate speed, calculate total hours needed. Use binary search to find the minimum k that finishes within h hours.",
     code: `class Solution:
@@ -1257,6 +1297,8 @@ Explanation: At speed 4, hours needed = ceil(3/4)+ceil(6/4)+ceil(7/4)+ceil(11/4)
     examples: `Input: nums = [1,2,3,1]
 Output: 2
 Explanation: nums[2] = 3 is a peak element.`,
+    intuition:
+      "Imagine hiking and you are at a point on a trail. If the path goes uphill to your right, there must be a peak somewhere to the right (since the trail eventually drops to negative infinity at the edge). Always walk uphill and you are guaranteed to reach a peak. Binary search just makes this 'walk uphill' process logarithmic by jumping to the midpoint each time.",
     approach:
       "Use binary search. If nums[mid] < nums[mid + 1], a peak must exist on the right side (since the array ends with -infinity). Otherwise, a peak exists on the left side including mid. This narrows to a peak in O(log n).",
     code: `class Solution:
@@ -1308,6 +1350,8 @@ Explanation: nums[2] = 3 is a peak element.`,
     examples: `Input: n = 5, bad = 4
 Output: 4
 Explanation: isBadVersion(3) -> false, isBadVersion(4) -> true, so 4 is the first bad version.`,
+    intuition:
+      "The versions form a pattern like [good, good, ..., good, bad, bad, ..., bad]. You are looking for the exact boundary where good switches to bad. Binary search is perfect for finding such a boundary: check the middle, and depending on whether it is good or bad, you know which half contains the transition point.",
     approach:
       "Binary search for the boundary between good and bad versions. If mid is bad, the first bad version is at mid or earlier. If mid is good, the first bad version is after mid. This minimizes the number of API calls to O(log n).",
     code: `# The isBadVersion API is already defined for you.
@@ -1364,6 +1408,8 @@ class Solution:
     examples: `Input: nums = [7,2,5,10,8], k = 2
 Output: 18
 Explanation: Split into [7,2,5] and [10,8]. The largest sum is 18 and this is the minimum possible.`,
+    intuition:
+      "Instead of trying all possible ways to split the array (exponentially many), flip the question: 'Given a maximum allowed subarray sum, can I split the array into k or fewer parts?' This yes/no question is easy to check greedily, and the answer has a monotonic property (if max_sum works, any larger value also works), making it perfect for binary search on the answer.",
     approach:
       "Binary search on the answer (the largest subarray sum). The minimum possible answer is max(nums) and the maximum is sum(nums). For each candidate, greedily check if we can split the array into k or fewer subarrays where each sum does not exceed the candidate.",
     code: `class Solution:
@@ -1443,6 +1489,8 @@ Explanation: Split into [7,2,5] and [10,8]. The largest sum is 18 and this is th
       "You are given a sorted array consisting of only integers where every element appears exactly twice, except for one element which appears exactly once. Return the single element that appears only once. Your solution must run in O(log n) time and O(1) space.",
     examples: `Input: nums = [1,1,3,3,5,7,7,8,8]
 Output: 5`,
+    intuition:
+      "When every element appears twice, pairs naturally align at even-odd index pairs (0-1, 2-3, 4-5...). The single element disrupts this alignment: before it, pairs start at even indices; after it, pairs start at odd indices. Binary search for the point where this pattern breaks by checking if the pair starting at an even index is still intact.",
     approach:
       "Use binary search on pair indices. In a valid pairing, pairs start at even indices. Before the single element, the first of each pair is at an even index. After the single element, this pattern shifts. Binary search for the point where the pattern breaks.",
     code: `class Solution:
@@ -1500,6 +1548,8 @@ Output: 5`,
     examples: `Input: weights = [1,2,3,4,5,6,7,8,9,10], days = 5
 Output: 15
 Explanation: Ship with capacity 15: Day 1: [1,2,3,4,5], Day 2: [6,7], Day 3: [8], Day 4: [9], Day 5: [10].`,
+    intuition:
+      "This is the same 'binary search on the answer' pattern as Koko Eating Bananas and Split Array Largest Sum. The ship capacity has a monotonic property: a bigger ship can always finish in fewer or equal days. So binary search over possible capacities, and for each one, greedily simulate loading packages day by day to check feasibility.",
     approach:
       "Binary search on the ship capacity. The minimum capacity is max(weights) (must fit the heaviest package) and the maximum is sum(weights) (ship everything in one day). For each candidate capacity, greedily simulate loading to check if all packages ship within the given days.",
     code: `class Solution:

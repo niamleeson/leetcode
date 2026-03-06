@@ -10,6 +10,8 @@ export const solutions: ProblemSolution[] = [
       'Given a string sequence and a string word, return the maximum k such that word concatenated k times is a substring of sequence. If word is not a substring of sequence, return 0.',
     examples:
       'Input: sequence = "ababc", word = "ab"\nOutput: 2\nExplanation: "abab" is a substring of "ababc", so k=2.',
+    intuition:
+      'Think of it like stacking copies of a word on top of each other - you keep adding one more copy and checking if the stack still fits inside the sequence. The moment it doesn\'t fit, you know the previous count was your answer.',
     approach:
       'Incrementally build the repeated word string (word, word*2, word*3, ...) and check if it is a substring of sequence. Return the largest k for which it is still found.',
     code: `class Solution:
@@ -48,6 +50,8 @@ export const solutions: ProblemSolution[] = [
       'You are given two linked lists list1 and list2 of sizes n and m. Remove nodes from the a-th to the b-th node in list1 and put list2 in their place. Return the head of the modified list.',
     examples:
       'Input: list1 = [0,1,2,3,4,5], a = 3, b = 4, list2 = [1000000,1000001,1000002]\nOutput: [0,1,2,1000000,1000001,1000002,5]',
+    intuition:
+      'Imagine cutting a section out of a chain and replacing it with a different chain. You just need to find where to make the two cuts (before position a and after position b), then link the new chain in between.',
     approach:
       'Traverse list1 to find the node just before position a and the node just after position b. Connect the node before a to the head of list2, and connect the tail of list2 to the node after b.',
     code: `class Solution:
@@ -105,6 +109,8 @@ export const solutions: ProblemSolution[] = [
       'Design a queue that supports push and pop operations at the front, middle, and back. Implement the FrontMiddleBackQueue class with pushFront, pushMiddle, pushBack, popFront, popMiddle, and popBack methods. Pop operations return -1 if the queue is empty.',
     examples:
       'Input: ["FrontMiddleBackQueue","pushFront","pushBack","pushMiddle","pushMiddle","popFront","popMiddle","popMiddle","popBack","popFront"]\n[[],[1],[2],[3],[4],[],[],[],[],[]]\nOutput: [null,null,null,null,null,1,3,4,2,-1]',
+    intuition:
+      'By splitting the data into two halves and keeping them balanced, the middle is always at the boundary between the two halves. This is like keeping two stacks back-to-back where the tops meet in the middle.',
     approach:
       'Use two deques to maintain the front and back halves. After each operation, rebalance so the front deque has either equal size or one fewer element than the back deque. This ensures the middle is always at a known position.',
     code: `from collections import deque
@@ -247,6 +253,8 @@ FrontMiddleBackQueue.prototype.popBack = function() {
       'You are given an array nums of n positive integers. You can perform two operations any number of times: multiply an odd number by 2, or divide an even number by 2. The deviation is max(nums) - min(nums). Return the minimum deviation after performing any number of operations.',
     examples:
       'Input: nums = [1,2,3,4]\nOutput: 1\nExplanation: Transform to [1,2,3,2] then to [2,2,3,2]. Deviation is 3-2=1.',
+    intuition:
+      'The trick is to first make all numbers as large as possible (multiply odds by 2), then only shrink the largest number. This way you are always reducing the range from one direction, guaranteeing you find the minimum deviation.',
     approach:
       'First, maximize all odd numbers by multiplying by 2 (they can only go up once). Then use a max-heap and repeatedly divide the maximum element by 2 while tracking the minimum. The deviation is minimized when the max can no longer be reduced.',
     code: `import heapq
@@ -311,6 +319,8 @@ class Solution:
       'Given an integer array nums and an integer k, return the maximum number of operations where you pick two numbers from the array whose sum equals k and remove them.',
     examples:
       'Input: nums = [1,2,3,4], k = 5\nOutput: 2\nExplanation: Remove (1,4) and (2,3).',
+    intuition:
+      'This is like a matching game - for each number, you need to find its partner that sums to k. A frequency map lets you instantly check if a partner exists, just like Two Sum but counting all valid pairs instead of just one.',
     approach:
       'Use a hash map to count occurrences. For each number, check if its complement (k - num) exists in the map. If so, form a pair and decrement both counts.',
     code: `from collections import Counter
@@ -366,6 +376,8 @@ class Solution:
       'Given a sorted integer array nums, return an array result where result[i] equals the sum of |nums[i] - nums[j]| for all j != i.',
     examples:
       'Input: nums = [2,3,5]\nOutput: [4,3,5]\nExplanation: result[0] = |2-3|+|2-5| = 4, result[1] = |3-2|+|3-5| = 3, result[2] = |5-2|+|5-3| = 5.',
+    intuition:
+      'Since the array is sorted, every element to the left of index i is smaller and every element to the right is larger. This means you can split the absolute difference sum into two simple formulas using prefix sums, avoiding the need to compare every pair.',
     approach:
       'Since the array is sorted, for index i, all elements to the left are <= nums[i] and all to the right are >= nums[i]. Use prefix sums to compute left and right contributions in O(1) per element.',
     code: `class Solution:
@@ -423,6 +435,8 @@ class Solution:
       'In a tournament with n teams, teams are paired: if even, n/2 matches with n/2 teams advancing; if odd, (n-1)/2 matches with (n-1)/2+1 teams advancing. Return the total number of matches played until one winner remains.',
     examples:
       'Input: n = 7\nOutput: 6\nExplanation: 3 matches (4 advance) -> 2 matches (2 advance) -> 1 match. Total = 6.',
+    intuition:
+      'Every match eliminates exactly one team. To go from n teams down to 1 winner, you must eliminate n-1 teams. So regardless of how the bracket works, the answer is always n-1.',
     approach:
       'Each match eliminates exactly one team. To go from n teams to 1 winner, exactly n-1 teams must be eliminated, so exactly n-1 matches are played.',
     code: `class Solution:
@@ -453,6 +467,8 @@ class Solution:
       'Given an array of positive integers nums, return the maximum sum of a subarray with all unique elements. You can erase (select) any contiguous subarray as long as it contains no duplicates.',
     examples:
       'Input: nums = [4,2,4,5,6]\nOutput: 17\nExplanation: The subarray [2,4,5,6] has all unique elements and sum 17.',
+    intuition:
+      'This is the classic sliding window pattern: expand the window to include new elements, and when you hit a duplicate, shrink from the left until the duplicate is removed. The set acts as your window\'s membership tracker.',
     approach:
       'Use a sliding window with a set to track elements in the current window. Expand the right pointer; if a duplicate is found, shrink from the left until it is removed. Track the maximum window sum.',
     code: `class Solution:
@@ -509,6 +525,8 @@ class Solution:
       'Students stand in a queue. Each student prefers circular (0) or square (1) sandwiches. Sandwiches are in a stack. The front student takes the top sandwich if it matches their preference, otherwise they move to the back of the queue. The process stops when no student in the queue wants the top sandwich. Return the number of students who cannot eat.',
     examples:
       'Input: students = [1,1,0,0], sandwiches = [0,1,0,1]\nOutput: 0',
+    intuition:
+      'The order students stand in doesn\'t matter - what matters is whether anyone in the entire queue wants the sandwich on top. Once no one wants the top sandwich, everyone remaining is stuck forever.',
     approach:
       'Count how many students want each type. Iterate through sandwiches: if a student wants the current sandwich, decrement that count. If no student wants the current top sandwich, the remaining students cannot eat.',
     code: `from collections import Counter
@@ -558,6 +576,8 @@ class Solution:
       'Given a string s of even length, split it into two halves. Two halves are alike if they have the same number of vowels (a, e, i, o, u, case-insensitive). Return true if they are alike.',
     examples:
       'Input: s = "book"\nOutput: true\nExplanation: "bo" has 1 vowel, "ok" has 1 vowel.',
+    intuition:
+      'Split the string in half and count vowels in each half. It\'s a straightforward counting problem - just remember to check both uppercase and lowercase vowels.',
     approach:
       'Count the vowels in the first half and the second half of the string, then compare. A single pass tracking a balance counter also works.',
     code: `class Solution:
@@ -600,6 +620,8 @@ class Solution:
       'A ball is dropped from the top of each column in an m x n grid. Each cell has a diagonal board: 1 redirects right, -1 redirects left. A ball gets stuck if it hits a wall or forms a V-shape. Return an array where answer[i] is the column the ball exits at the bottom, or -1 if it gets stuck.',
     examples:
       'Input: grid = [[1,1,1,-1,-1],[1,1,1,-1,-1],[-1,-1,-1,1,1],[1,1,1,1,-1],[-1,-1,-1,-1,-1]]\nOutput: [1,-1,-1,-1,-1]',
+    intuition:
+      'Simulate each ball falling through the grid row by row. A ball gets stuck when it hits a wall or when two adjacent boards form a V-shape that traps it. The key check is whether the current cell and its neighbor point in the same direction.',
     approach:
       'For each ball, simulate its path row by row. At each cell, check the direction and the adjacent cell. If they form a V or hit a wall, the ball is stuck. Otherwise move to the next row in the redirected column.',
     code: `class Solution:
@@ -657,6 +679,8 @@ class Solution:
       'Given an integer n, construct a sequence of length 2n-1 such that: 1 appears once, every integer from 2 to n appears exactly twice with exactly that many indices apart, and the sequence is lexicographically largest possible.',
     examples:
       'Input: n = 3\nOutput: [3,1,2,3,2]\nExplanation: 3 appears at indices 0 and 3 (distance 3), 2 at indices 2 and 4 (distance 2), 1 once.',
+    intuition:
+      'This is a constraint satisfaction problem best solved by backtracking. The greedy insight is to try placing larger numbers first - this naturally produces the lexicographically largest valid sequence since bigger numbers go into earlier positions.',
     approach:
       'Use backtracking. Try to place numbers from n down to 1 at the first empty position. For number i > 1, place it at positions j and j+i; for i = 1, place at j only. The greedy order (largest first) ensures lexicographic maximality.',
     code: `class Solution:
@@ -752,6 +776,8 @@ class Solution:
       'Given the head of a linked list and an integer k, return the list after swapping the values of the k-th node from the beginning and the k-th node from the end (1-indexed).',
     examples:
       'Input: head = [1,2,3,4,5], k = 2\nOutput: [1,4,3,2,5]',
+    intuition:
+      'The two-pointer technique for finding the k-th node from the end is elegant: advance one pointer k steps ahead, then move both together until the first reaches the end. The gap between them is always k, so the second pointer lands exactly where you need it.',
     approach:
       'Use two pointers. Move one pointer k steps from the head to find the k-th node. Then use a second pointer starting from head; advance both until the first reaches the end. The second pointer is at the k-th from end. Swap their values.',
     code: `class Solution:
@@ -806,6 +832,8 @@ class Solution:
       'Given an integer array nums, find the maximum absolute value of the sum of any subarray. A subarray is a contiguous non-empty sequence of elements.',
     examples:
       'Input: nums = [1,-3,2,3,-4]\nOutput: 5\nExplanation: Subarray [2,3] has sum 5.',
+    intuition:
+      'The maximum absolute sum is either the most positive subarray sum or the most negative subarray sum (in absolute value). Running Kadane\'s algorithm for both max and min simultaneously captures both extremes in a single pass.',
     approach:
       'Track both the maximum subarray sum and the minimum subarray sum using Kadane\'s algorithm. The answer is the maximum of the absolute values of these two extremes.',
     code: `class Solution:
@@ -852,6 +880,8 @@ class Solution:
       'A homogenous string consists of a single repeated character. Given string s, return the number of homogenous substrings modulo 10^9 + 7.',
     examples:
       'Input: s = "abbcccaa"\nOutput: 13\nExplanation: "a" x3, "b" x3, "c" x6, "aa" x1 = 13 homogenous substrings.',
+    intuition:
+      'A run of k identical characters contains exactly k*(k+1)/2 homogenous substrings. This is because you can start a substring at any position in the run and extend it to any later position, giving you 1 + 2 + ... + k choices.',
     approach:
       'Group consecutive identical characters. For a group of length k, the number of homogenous substrings is k*(k+1)/2. Sum across all groups.',
     code: `class Solution:
@@ -906,6 +936,8 @@ class Solution:
       'A nice string has every letter appearing in both lowercase and uppercase. Given a string s, return the longest nice substring. If there are multiple, return the one at the earliest index. If none, return an empty string.',
     examples:
       'Input: s = "YazaAay"\nOutput: "aAa"',
+    intuition:
+      'If any character appears in only one case (e.g., uppercase but no lowercase), no nice substring can include it. This character acts as a natural split point - the answer must lie entirely on one side.',
     approach:
       'Use divide and conquer. Find a character that appears in only one case — split the string at that character. Recursively find the longest nice substring in each part. Return the longer result.',
     code: `class Solution:
@@ -957,6 +989,8 @@ class Solution:
       'Given an m x n integer matrix isWater where isWater[i][j] == 1 is water and 0 is land, assign heights such that water cells have height 0, adjacent cells differ by at most 1, and the maximum height is maximized. Return the height matrix.',
     examples:
       'Input: isWater = [[0,1],[0,0]]\nOutput: [[1,0],[2,1]]',
+    intuition:
+      'This is a classic multi-source BFS problem, like water rippling outward from multiple sources simultaneously. Starting BFS from all water cells at once naturally assigns each land cell the maximum possible height while respecting the adjacency constraint.',
     approach:
       'Use multi-source BFS starting from all water cells (height 0). Expand outward layer by layer, assigning increasing heights. This naturally maximizes heights while satisfying the constraint.',
     code: `from collections import deque
@@ -1029,6 +1063,8 @@ class Solution:
       'Given two strings word1 and word2, merge them by adding letters in alternating order starting with word1. If one string is longer, append the remaining letters at the end.',
     examples:
       'Input: word1 = "abc", word2 = "pqr"\nOutput: "apbqcr"',
+    intuition:
+      'Think of it like shuffling two decks of cards together - take one card from each deck alternately. When one deck runs out, just add the remaining cards from the other deck.',
     approach:
       'Use two pointers to iterate through both strings simultaneously, appending one character from each. After the loop, append whatever remains from the longer string.',
     code: `class Solution:
@@ -1075,6 +1111,8 @@ class Solution:
       'You have n base flavors (costs baseCosts) and m topping types (costs toppingCosts). Each topping can be used 0, 1, or 2 times. Find the combination closest to target cost. If there is a tie, return the lower cost.',
     examples:
       'Input: baseCosts = [1,7], toppingCosts = [3,4], target = 10\nOutput: 10\nExplanation: Base 7 + topping 3 = 10.',
+    intuition:
+      'With at most 10 toppings and 3 choices each (0, 1, or 2), there are only about 59,000 combinations per base flavor. This is small enough for brute-force enumeration with backtracking, pruning branches that exceed the target.',
     approach:
       'For each base, enumerate all possible topping combinations using backtracking or bitmask. Track the cost closest to target, preferring the lower cost on ties.',
     code: `class Solution:
@@ -1132,6 +1170,8 @@ class Solution:
       'Two sentences are similar if one can be made equal to the other by inserting a sentence (possibly empty) somewhere. Given two sentences sentence1 and sentence2, return true if they are similar.',
     examples:
       'Input: sentence1 = "My name is Haley", sentence2 = "My Haley"\nOutput: true\nExplanation: Insert "name is" between "My" and "Haley".',
+    intuition:
+      'If you can insert a sentence in the middle of the shorter one to make it equal to the longer one, then the shorter sentence must be a prefix plus suffix of the longer one. Matching words from both ends reveals whether the gap in the middle is the only difference.',
     approach:
       'Split both sentences into words. Match words from the front (prefix) and from the back (suffix). If the total matched words cover the shorter sentence, they are similar.',
     code: `class Solution:
@@ -1183,6 +1223,8 @@ class Solution:
       'There are n friends in a circle numbered 1 to n. Starting from friend 1, count k friends clockwise and eliminate the k-th friend. Repeat until one friend remains. Return the winner. This is the Josephus problem.',
     examples:
       'Input: n = 5, k = 2\nOutput: 3',
+    intuition:
+      'This is the classic Josephus problem with a clean mathematical recurrence. Instead of simulating the elimination process, the formula J(n) = (J(n-1) + k) % n builds the answer bottom-up from the base case of 1 person.',
     approach:
       'Use the Josephus recurrence: J(1) = 0, J(n) = (J(n-1) + k) % n. The final answer is J(n) + 1 for 1-indexed result.',
     code: `class Solution:
@@ -1222,6 +1264,8 @@ class Solution:
       'Given n tasks with enqueue times and processing times, a single-threaded CPU processes the shortest task available (ties broken by index). Return the order in which tasks are processed.',
     examples:
       'Input: tasks = [[1,2],[2,4],[3,2],[4,1]]\nOutput: [0,2,3,1]',
+    intuition:
+      'Think of this like a task scheduler: sort tasks by when they arrive, and always process the shortest available task first. A min-heap lets you efficiently pick the shortest task from all tasks that have arrived by the current time.',
     approach:
       'Sort tasks by enqueue time. Use a min-heap keyed by (processing time, index). At each step, add all tasks that have arrived, then process the one with shortest processing time.',
     code: `import heapq
@@ -1288,6 +1332,8 @@ class Solution:
       'Given the head of a linked list, delete all nodes that have duplicate numbers, leaving only distinct numbers from the original list. Return the linked list sorted as well. (Remove all occurrences of duplicated values.)',
     examples:
       'Input: head = [1,2,3,2]\nOutput: [1,3]\nExplanation: 2 appears twice so all occurrences are removed.',
+    intuition:
+      'Two passes solve this elegantly: first count how many times each value appears, then keep only nodes that appear exactly once. The dummy head pattern simplifies building the filtered list.',
     approach:
       'First pass: count the frequency of each value using a hash map. Second pass: rebuild the list keeping only nodes with frequency 1 using a dummy head.',
     code: `from collections import Counter
@@ -1353,6 +1399,8 @@ class Solution:
       'Given an integer array nums and an integer k, you can increment any element by 1 in one operation (at most k operations total). Return the maximum possible frequency of any element after performing at most k operations.',
     examples:
       'Input: nums = [1,2,4], k = 5\nOutput: 3\nExplanation: Increment 1 twice and 2 twice to get [4,4,4]. Frequency of 4 is 3.',
+    intuition:
+      'After sorting, all elements in a window can be raised to match the rightmost (largest) element. The cost is simply target * window_size - sum_of_window. A sliding window efficiently finds the largest window where this cost stays within budget k.',
     approach:
       'Sort the array and use a sliding window. For the window to have all elements equal to nums[right], the cost is nums[right]*window_size - window_sum. Shrink the window when cost exceeds k.',
     code: `class Solution:
@@ -1405,6 +1453,8 @@ class Solution:
       'Implement SeatManager that manages n seats numbered 1 to n. Support reserve() which returns the smallest unreserved seat and reserves it, and unreserve(seatNumber) which unreserves the given seat.',
     examples:
       'Input: ["SeatManager","reserve","reserve","unreserve","reserve"]\n[[5],[],[],[2],[]]\nOutput: [null,1,2,null,2]',
+    intuition:
+      'A min-heap is the perfect data structure for \'always give me the smallest available item.\' Initialize it with all seats, pop for reserve, push back for unreserve - each operation is O(log n).',
     approach:
       'Use a min-heap to track available seats. Initially push all seats 1 to n. reserve() pops the minimum. unreserve() pushes the seat back.',
     code: `import heapq
@@ -1455,6 +1505,8 @@ SeatManager.prototype.unreserve = function(seatNumber) {
       'Given an array of positive integers arr, rearrange it and perform decreases so that arr[0] == 1 and the absolute difference between adjacent elements is at most 1. Return the maximum possible value of any element.',
     examples:
       'Input: arr = [2,2,1,2,1]\nOutput: 2\nExplanation: After sorting [1,1,2,2,2], we can have [1,2,2,2,2] -> max element is 2.',
+    intuition:
+      'Sorting puts the smallest values first where they can grow gradually. After sorting, each position can be at most 1 more than the previous, so you greedily assign the highest legal value at each step.',
     approach:
       'Sort the array and greedily assign values. Start with 1, and for each subsequent element, the value is at most previous + 1 (but cannot exceed the original value). The last element is the maximum.',
     code: `class Solution:
@@ -1496,6 +1548,8 @@ SeatManager.prototype.unreserve = function(seatNumber) {
       'Given a 2D array intervals where intervals[i] = [left_i, right_i] and an array queries, for each query return the size of the smallest interval containing it, or -1 if no interval contains it.',
     examples:
       'Input: intervals = [[1,4],[2,4],[3,6],[4,4]], queries = [2,3,4,5]\nOutput: [3,3,1,4]',
+    intuition:
+      'Process queries offline by sorting them alongside intervals. A min-heap keyed by interval size lets you always access the smallest covering interval, while lazy deletion removes intervals that no longer cover the current query point.',
     approach:
       'Sort intervals by left endpoint and queries by value. Use a min-heap keyed by interval size. For each query, add all intervals whose left <= query, remove those whose right < query, and return the top of the heap.',
     code: `import heapq
@@ -1562,6 +1616,8 @@ class Solution:
       'The min-product of an array is the minimum value multiplied by the sum. Given an array nums, return the maximum min-product of any non-empty subarray, modulo 10^9 + 7.',
     examples:
       'Input: nums = [1,2,3,2]\nOutput: 14\nExplanation: Subarray [2,3,2] has min 2 and sum 7, min-product = 14.',
+    intuition:
+      'For each element, find the widest subarray where it is the minimum using a monotonic stack. The min-product for that element is then its value times the sum of that subarray (computed via prefix sums). The key insight is that the monotonic stack efficiently finds the \'dominance range\' of each element.',
     approach:
       'For each element, find the widest subarray where it is the minimum (using monotonic stack for previous/next smaller element). The min-product is nums[i] * sum(subarray), computed using prefix sums.',
     code: `class Solution:
@@ -1643,6 +1699,8 @@ class Solution:
       'Given an array of strings words, find the longest string such that every prefix of it is also in words. If there are multiple, return the lexicographically smallest. If no such string exists, return "".',
     examples:
       'Input: words = ["k","ki","kir","kira","kiran"]\nOutput: "kiran"\nExplanation: Every prefix of "kiran" ("k","ki","kir","kira") is in the array.',
+    intuition:
+      'Put all words in a set for instant lookup, then check each word by verifying that every prefix (from length 1 up) exists in the set. Sorting by length descending lets you return the first valid word immediately.',
     approach:
       'Put all words into a set. Sort words by length (then lexicographically). For each word, check if all its prefixes exist in the set. Track the longest valid word.',
     code: `class Solution:
@@ -1692,6 +1750,8 @@ class Solution:
       'Given a binary string s, return the minimum number of swaps to make s alternating (no two adjacent characters are the same), or -1 if impossible.',
     examples:
       'Input: s = "111000"\nOutput: 1\nExplanation: Swap s[1] and s[4] to get "101010".',
+    intuition:
+      'An alternating string can only start with \'0\' or \'1\', giving just two possible patterns. Count how many positions mismatch each pattern - each swap fixes two mismatches, so the answer is mismatches / 2.',
     approach:
       'Count 0s and 1s. For an alternating string to exist, the counts must differ by at most 1. Compare with the two possible alternating patterns and count mismatches. Swaps needed = mismatches / 2.',
     code: `class Solution:
@@ -1754,6 +1814,8 @@ class Solution:
       'Given an array dist where dist[i] is the distance of the i-th train ride and a float hour representing the time limit, return the minimum integer speed such that you arrive on time. Each ride except the last must be rounded up to the next integer hour. Return -1 if impossible.',
     examples:
       'Input: dist = [1,3,2], hour = 6\nOutput: 1\nExplanation: At speed 1: ceil(1/1) + ceil(3/1) + 2/1 = 1+3+2 = 6 <= 6.',
+    intuition:
+      'Binary search on the answer is the key pattern here. For a given speed, you can calculate the exact travel time. Since higher speed means less time, the feasibility function is monotonic, making binary search perfect.',
     approach:
       'Binary search on the speed. For a given speed, compute total time (ceiling division for all rides except the last). Check if total time <= hour.',
     code: `import math
@@ -1820,6 +1882,8 @@ class Solution:
       'Given a binary string s and integers minJump and maxJump, starting at index 0, you can jump to index i+x where minJump <= x <= maxJump, but only if s[i+x] == "0". Return true if you can reach the last index.',
     examples:
       'Input: s = "011010", minJump = 2, maxJump = 3\nOutput: true\nExplanation: Jump from 0 -> 2 -> 5.',
+    intuition:
+      'Instead of BFS which could be slow, use a sliding window count of reachable positions. For each position i, it is reachable if any position in [i-maxJump, i-minJump] is reachable and s[i] is \'0\'. A running count avoids re-scanning the window each time.',
     approach:
       'Use BFS or a sliding window with a prefix sum of reachable positions. For each position, check if any position in [i - maxJump, i - minJump] is reachable.',
     code: `class Solution:
@@ -1874,6 +1938,8 @@ class Solution:
       'Given an array nums of even length n, pair all elements into n/2 pairs. The pair sum is the sum of elements in a pair. Minimize the maximum pair sum across all pairs.',
     examples:
       'Input: nums = [3,5,2,3]\nOutput: 7\nExplanation: Pairs (2,5) and (3,3) give max pair sum = 7.',
+    intuition:
+      'Pairing the smallest with the largest balances all pair sums, like distributing weight evenly across teams. Sorting and pairing from both ends is the greedy strategy that minimizes the maximum pair sum.',
     approach:
       'Sort the array and pair the smallest with the largest, second smallest with second largest, etc. This minimizes the maximum pair sum.',
     code: `class Solution:
@@ -1913,6 +1979,8 @@ class Solution:
       'Given two n x n binary matrices mat and target, return true if it is possible to rotate mat by 0, 90, 180, or 270 degrees to equal target.',
     examples:
       'Input: mat = [[0,1],[1,0]], target = [[1,0],[0,1]]\nOutput: true\nExplanation: Rotating mat 90 degrees clockwise gives target.',
+    intuition:
+      'There are only 4 possible rotations (0, 90, 180, 270 degrees). Simply rotate the matrix and compare with the target at each step. The rotation formula maps (i,j) to (j, n-1-i) for a 90-degree clockwise turn.',
     approach:
       'Rotate the matrix 90 degrees at a time (up to 4 times) and check if it matches target at each step. A 90-degree clockwise rotation maps (i,j) to (j, n-1-i).',
     code: `class Solution:
@@ -1957,6 +2025,8 @@ class Solution:
       'Given a 2D array triplets where each element is [a, b, c] and a target triplet [x, y, z], you can repeatedly pick two triplets and replace each value with the max of the two. Return true if the target can be obtained.',
     examples:
       'Input: triplets = [[2,5,3],[1,8,4],[1,7,5]], target = [2,7,5]\nOutput: true\nExplanation: Take max of triplets[0] and triplets[2] to get [2,7,5].',
+    intuition:
+      'A triplet is only useful if none of its values exceed the target - otherwise taking the max would overshoot. Among usable triplets, you just need to verify that each of the three target coordinates is achievable by at least one triplet.',
     approach:
       'A triplet is usable if none of its values exceed the corresponding target value. Among usable triplets, check if we can match each target coordinate.',
     code: `class Solution:
@@ -2003,6 +2073,8 @@ class Solution:
       'Given a string num representing a large integer, return the largest-valued odd number that is a non-empty substring of num, or an empty string if none exists.',
     examples:
       'Input: num = "52"\nOutput: "5"\nExplanation: The odd substrings are "5" and "25" (wait, 25 is odd? No. 5 is odd.) Actually "5" with value 5.',
+    intuition:
+      'A number is odd if and only if its last digit is odd. To get the largest odd substring, find the rightmost odd digit and take everything from the start up to that position.',
     approach:
       'A number is odd if its last digit is odd. Scan from the right to find the rightmost odd digit. The substring from the start to that digit is the largest odd number.',
     code: `class Solution:
@@ -2042,6 +2114,8 @@ class Solution:
       'A digit string of length n is "good" if digits at even indices (0-indexed) are even (0,2,4,6,8) and digits at odd indices are prime (2,3,5,7). Return the count of good strings of length n modulo 10^9+7.',
     examples:
       'Input: n = 1\nOutput: 5\nExplanation: Good strings are "0","2","4","6","8".',
+    intuition:
+      'This is pure combinatorics: even-indexed positions have 5 choices (0,2,4,6,8) and odd-indexed positions have 4 choices (2,3,5,7). The total is simply 5^(even positions) * 4^(odd positions), computed with fast modular exponentiation.',
     approach:
       'Even positions have 5 choices (0,2,4,6,8), odd positions have 4 choices (2,3,5,7). If n has ceil(n/2) even positions and floor(n/2) odd positions, the answer is 5^ceil(n/2) * 4^floor(n/2) mod 10^9+7.',
     code: `class Solution:
@@ -2090,6 +2164,8 @@ class Solution:
       'Given an m x n matrix maze with "." (empty) and "+" (wall), and an entrance coordinate, find the shortest path to any exit (border cell that is not the entrance). Return the number of steps, or -1 if impossible.',
     examples:
       'Input: maze = [["+","+",".","+"],[".",".",".","+"],["+","+","+","."]], entrance = [1,2]\nOutput: 1\nExplanation: (1,2) -> (0,2) which is a border cell.',
+    intuition:
+      'BFS from the entrance guarantees you find the shortest path. The first time you reach any border cell (that isn\'t the entrance), that\'s the nearest exit. Mark cells as walls to track visited positions.',
     approach:
       'BFS from the entrance. Mark visited cells. The first time we reach a border cell (that is not the entrance), return the distance.',
     code: `from collections import deque
@@ -2154,6 +2230,8 @@ class Solution:
       'Given a bi-directional graph with n vertices labeled 0 to n-1 and edges, determine if there is a valid path from source to destination.',
     examples:
       'Input: n = 3, edges = [[0,1],[1,2],[2,0]], source = 0, destination = 2\nOutput: true',
+    intuition:
+      'This is the most fundamental graph problem: can you get from A to B? Build an adjacency list and run BFS or DFS from the source. If you reach the destination, the path exists.',
     approach:
       'Build an adjacency list and use BFS or DFS from source. If destination is visited, return true. Union-Find also works.',
     code: `from collections import deque, defaultdict
@@ -2223,6 +2301,8 @@ class Solution:
       'Given n intersections and roads with travel times, find the number of ways to travel from intersection 0 to n-1 in the shortest time possible. Return the count modulo 10^9+7.',
     examples:
       'Input: n = 7, roads = [[0,6,7],[0,1,2],[1,2,3],[1,3,3],[6,3,3],[3,5,1],[6,5,1],[2,5,1],[0,4,5],[4,6,2]]\nOutput: 4',
+    intuition:
+      'Extend Dijkstra\'s algorithm with a count array. When you discover a shorter path, reset the count. When you find an equal-length path, add the counts together. This naturally accumulates all shortest path counts.',
     approach:
       'Use Dijkstra\'s algorithm with a count array. When you find a shorter path, update distance and reset count. When you find an equal-length path, add the counts.',
     code: `import heapq
@@ -2303,6 +2383,8 @@ class Solution:
       'There are n rooms labeled 0 to n-1. On day 0, you visit room 0. On each subsequent day, if you have visited room i an odd number of times, go to nextVisit[i]; otherwise go to (i+1) % n. Return the first day you visit all rooms, modulo 10^9+7.',
     examples:
       'Input: nextVisit = [0,0]\nOutput: 2\nExplanation: Day 0: room 0, Day 1: room 0 (odd visits, go to 0), Day 2: room 1 (even visits, go to 1).',
+    intuition:
+      'The key insight is that to advance from room i to room i+1, you must visit room i an even number of times. The DP recurrence captures the round-trip cost: going back to nextVisit[i] and returning to room i before finally moving forward.',
     approach:
       'Use DP. dp[i] = first day you visit room i. To reach room i+1, you must visit room i an even number of times. The recurrence involves going back to nextVisit[i] and returning.',
     code: `class Solution:
@@ -2346,6 +2428,8 @@ class Solution:
       'Design a data structure that supports adding points on a 2D plane and counting the number of axis-aligned squares that can be formed with a given query point as one corner.',
     examples:
       'Input: ["DetectSquares","add","add","add","count"]\n[[],[[3,10]],[[11,1]],[[3,1]],[[11,10]]]\nOutput: [null,null,null,null,1]',
+    intuition:
+      'For each query point, fix one side of the square along the same row. The side length determines exactly where to look for the other two corners. Multiplying point counts handles duplicates correctly.',
     approach:
       'Store point counts in a hash map. For a query point (qx, qy), iterate over all points (px, qy) on the same y-coordinate. For each, the side length is |px - qx|, then check if (qx, qy +/- side) and (px, qy +/- side) exist.',
     code: `from collections import defaultdict
@@ -2426,6 +2510,8 @@ DetectSquares.prototype.count = function(point) {
       'A teacher gives a True/False exam represented by string answerKey. You can change at most k answers. Return the maximum number of consecutive identical answers after making at most k changes.',
     examples:
       'Input: answerKey = "TTFF", k = 2\nOutput: 4\nExplanation: Change both F\'s to T\'s to get "TTTT".',
+    intuition:
+      'This is the \'longest substring with at most k replacements\' pattern. Run the sliding window twice - once treating T\'s as the characters to replace, once treating F\'s. The longer of the two windows is the answer.',
     approach:
       'Use a sliding window. Find the longest substring with at most k T\'s (all converted to F) and the longest with at most k F\'s (all converted to T). Return the maximum.',
     code: `class Solution:
@@ -2481,6 +2567,8 @@ DetectSquares.prototype.count = function(point) {
       'You have n + m dice rolls. The m rolls are given with mean of all n+m rolls. Find n missing observations such that the mean is exactly the given value. Return an empty array if impossible.',
     examples:
       'Input: rolls = [3,2,4,3], mean = 4, n = 2\nOutput: [6,6]\nExplanation: Total needed = 4*6 = 24. Given sum = 12. Missing sum = 12 -> [6,6].',
+    intuition:
+      'Calculate the total sum the missing dice must add up to, then distribute it as evenly as possible among n dice. If the required sum falls outside [n, 6n], it\'s impossible since each die shows 1 to 6.',
     approach:
       'Calculate the required sum of missing rolls = mean * (n + m) - sum(rolls). Distribute this sum among n dice (each 1-6). If the sum is out of range [n, 6n], return empty.',
     code: `class Solution:
@@ -2525,6 +2613,8 @@ DetectSquares.prototype.count = function(point) {
       'Design a stock price tracker. Support update(timestamp, price) which corrects or adds a record, current() returns the latest price, maximum() returns the highest, and minimum() returns the lowest among all current records.',
     examples:
       'Input: ["StockPrice","update","update","current","maximum","update","maximum"]\n[[],[1,10],[2,5],[],[],[1,3],[]]\nOutput: [null,null,null,5,10,null,5]',
+    intuition:
+      'The challenge is handling price corrections efficiently. Two heaps (max and min) with lazy deletion solve this: when the top of a heap doesn\'t match the current price for that timestamp, it\'s stale and can be discarded.',
     approach:
       'Use a hash map for timestamp -> price, a variable for latest timestamp, and two heaps (max and min) with lazy deletion for stale entries.',
     code: `import heapq
@@ -2609,6 +2699,8 @@ StockPrice.prototype.minimum = function() {
       'Alice and Bob play a game on a string of "A"s and "B"s. Alice removes an "A" that has both neighbors "A"; Bob removes a "B" with both neighbors "B". They alternate (Alice first). The player who cannot move loses. Return true if Alice wins.',
     examples:
       'Input: colors = "AAABABB"\nOutput: true\nExplanation: Alice can remove the middle A from "AAA" but Bob has no valid move.',
+    intuition:
+      'Each player\'s moves are independent - removing an A surrounded by A\'s doesn\'t affect Bob\'s B moves at all. So just count how many removable pieces each player has. Alice wins if she has strictly more moves than Bob.',
     approach:
       'Count the number of moves available to each player. For a run of k consecutive same characters, there are max(0, k-2) removable pieces. Alice wins if her count > Bob\'s count.',
     code: `class Solution:
@@ -2655,6 +2747,8 @@ StockPrice.prototype.minimum = function() {
       'Given a string s of "*" (plates) and "|" (candles), and queries [left, right], for each query return the number of plates between candles in the substring s[left..right].',
     examples:
       'Input: s = "**|**|***|", queries = [[2,5],[5,9]]\nOutput: [2,3]',
+    intuition:
+      'Precompute three arrays: prefix sums of plates, nearest candle to the left, and nearest candle to the right. For each query, find the innermost candle pair and count plates between them using prefix sums - all in O(1) per query.',
     approach:
       'Precompute prefix sums of plates, and for each index the nearest candle to the left and right. For each query, find the first candle from left and last candle from right, then count plates between them.',
     code: `class Solution:
@@ -2738,6 +2832,8 @@ StockPrice.prototype.minimum = function() {
       'A critical point in a linked list is a local minimum or local maximum. Given the head, return [minDistance, maxDistance] between any two critical points, or [-1, -1] if fewer than 2 critical points exist.',
     examples:
       'Input: head = [5,3,1,2,5,1,2]\nOutput: [1,3]\nExplanation: Critical points at positions 2 (min), 4 (max), 5 (min). Min dist=1, max dist=3.',
+    intuition:
+      'A critical point is a local min or max in the linked list. Collect all their positions, then the minimum distance is between consecutive critical points and the maximum distance is between the first and last.',
     approach:
       'Traverse the list and record positions of all critical points. The minimum distance is the minimum gap between consecutive critical points. The maximum distance is last - first.',
     code: `class Solution:
@@ -2806,6 +2902,8 @@ StockPrice.prototype.minimum = function() {
       'Given n specialty retail stores and an array quantities where quantities[i] is the number of products of type i, distribute all products to stores such that each store gets at most one type. Minimize the maximum number of products given to any store.',
     examples:
       'Input: n = 6, quantities = [11,6]\nOutput: 3\nExplanation: Distribute 11 products across 4 stores (3,3,3,2) and 6 across 2 stores (3,3). Max is 3.',
+    intuition:
+      'Binary search on the answer: if each store can hold at most x products, how many stores do you need? For each product type, you need ceil(quantity/x) stores. Find the smallest x where the total stores needed is at most n.',
     approach:
       'Binary search on the answer (maximum products per store). For a given max x, check if ceil(q/x) for each quantity sums to <= n stores.',
     code: `import math
@@ -2858,6 +2956,8 @@ class Solution:
       'There are n persons. Given a list of restrictions (pairs who cannot be friends, even indirectly through the same group) and friend requests, process each request: accept if adding the friendship doesn\'t violate any restriction, otherwise reject. Return a boolean array.',
     examples:
       'Input: n = 3, restrictions = [[0,1]], requests = [[0,2],[2,1]]\nOutput: [true,false]',
+    intuition:
+      'Union-Find manages friend groups, but before merging two groups, you must check every restriction. A restriction is violated if the two restricted people would end up in the same group after the merge.',
     approach:
       'Use Union-Find. For each request (u, v), tentatively merge their sets. Check if any restriction pair would end up in the same set. If so, reject; otherwise, accept and keep the merge.',
     code: `class Solution:
@@ -2934,6 +3034,8 @@ class Solution:
       'Given the head of a linked list, delete the middle node (floor(n/2)-th node, 0-indexed) and return the modified head.',
     examples:
       'Input: head = [1,3,4,7,1,2,6]\nOutput: [1,3,4,1,2,6]\nExplanation: The middle node (index 3, value 7) is removed.',
+    intuition:
+      'The slow/fast pointer technique finds the middle of a linked list in one pass. By starting fast slightly ahead, slow ends up right before the middle node, making deletion a simple pointer reassignment.',
     approach:
       'Use slow and fast pointers. Fast moves 2 steps, slow moves 1 step. When fast reaches the end, slow is at the middle. Use a prev pointer to delete the middle node.',
     code: `class Solution:
@@ -2982,6 +3084,8 @@ class Solution:
       'Given an array of bombs [x, y, r], detonating a bomb triggers all bombs within its blast radius. Those bombs trigger others in a chain reaction. Return the maximum number of bombs that can be detonated by choosing one bomb to start.',
     examples:
       'Input: bombs = [[2,1,3],[6,1,4]]\nOutput: 2\nExplanation: Detonating bomb 0 triggers bomb 1 (distance 4 <= radius 3? No, 4 > 3). Detonating bomb 1 triggers bomb 0 (distance 4 <= 4). Output: 2.',
+    intuition:
+      'Model this as a directed graph where bomb i has an edge to bomb j if j is within i\'s blast radius. Then the problem becomes finding the starting node that reaches the most nodes via BFS/DFS. Note the graph is directed - bomb i reaching j doesn\'t mean j reaches i.',
     approach:
       'Build a directed graph: edge from i to j if bomb i\'s radius covers bomb j. For each bomb, run BFS/DFS to count how many bombs are reachable. Return the maximum.',
     code: `from collections import deque
@@ -3065,6 +3169,8 @@ class Solution:
       'Given an integer array nums, return the sum of all subarray ranges. The range of a subarray is max - min.',
     examples:
       'Input: nums = [1,2,3]\nOutput: 4\nExplanation: Subarrays: [1]=0, [2]=0, [3]=0, [1,2]=1, [2,3]=1, [1,2,3]=2. Total=4.',
+    intuition:
+      'Instead of computing max-min for every subarray (O(n^2)), decompose it: the answer equals the sum of all subarray maximums minus the sum of all subarray minimums. Monotonic stacks efficiently compute each element\'s contribution as a max or min.',
     approach:
       'For each element, compute how many subarrays it is the max of and the min of using monotonic stacks. The answer is sum(nums[i] * max_count[i]) - sum(nums[i] * min_count[i]).',
     code: `class Solution:
@@ -3137,6 +3243,8 @@ class Solution:
       'Given an array of strings words, return the first palindromic string. If none exists, return an empty string.',
     examples:
       'Input: words = ["abc","car","ada","racecar","cool"]\nOutput: "ada"',
+    intuition:
+      'Simply iterate through the array and check if each string reads the same forwards and backwards. Return the first palindrome you find - no need for complex algorithms.',
     approach:
       'Iterate through the array and check if each string equals its reverse. Return the first one found.',
     code: `class Solution:
@@ -3176,6 +3284,8 @@ class Solution:
       'Given an array of sentences, return the maximum number of words in a single sentence. Words are separated by single spaces.',
     examples:
       'Input: sentences = ["alice and bob love leetcode", "i think so too", "this is great thanks very much"]\nOutput: 6',
+    intuition:
+      'The number of words in a sentence equals the number of spaces plus one. Count spaces in each sentence and return the maximum count plus one.',
     approach:
       'For each sentence, count the number of words by splitting on spaces (or counting spaces + 1). Return the maximum count.',
     code: `class Solution:
@@ -3211,6 +3321,8 @@ class Solution:
       'Given a binary matrix bank representing a floor plan where "1" is a security device, laser beams go between every pair of devices on consecutive rows containing devices (skipping empty rows). Return the total number of laser beams.',
     examples:
       'Input: bank = ["011001","000000","010100","001000"]\nOutput: 8',
+    intuition:
+      'Laser beams connect every device on one row to every device on the next non-empty row, giving a product of their counts. Skip empty rows and multiply consecutive non-empty row counts.',
     approach:
       'Count devices in each row. For consecutive non-empty rows, the number of beams is the product of their device counts. Sum all such products.',
     code: `class Solution:
@@ -3259,6 +3371,8 @@ class Solution:
       'In a linked list of even length n, the twin of node i is node (n-1-i). Return the maximum twin sum (node i value + its twin value).',
     examples:
       'Input: head = [5,4,2,1]\nOutput: 6\nExplanation: Twins are (5,1) and (4,2). Max twin sum = 6.',
+    intuition:
+      'Reverse the second half of the linked list so that twin pairs (i and n-1-i) are aligned for easy comparison. Then walk both halves simultaneously, tracking the maximum twin sum.',
     approach:
       'Use slow/fast pointers to find the middle. Reverse the second half. Then iterate both halves simultaneously, computing twin sums and tracking the maximum.',
     code: `class Solution:
@@ -3326,6 +3440,8 @@ class Solution:
       'Given a 0-indexed 2D array questions where questions[i] = [points, brainpower], if you solve question i you earn points but must skip the next brainpower questions. Return the maximum points you can earn.',
     examples:
       'Input: questions = [[3,2],[4,3],[4,4],[2,5]]\nOutput: 5\nExplanation: Solve question 0 (3 pts, skip 2), then question 3 (2 pts). Total = 5.',
+    intuition:
+      'This is a classic take-or-skip DP problem. Working from right to left, at each question you either skip it (keeping the best from the next question) or solve it (earning points but jumping ahead by brainpower). The DP naturally captures the optimal choice at each step.',
     approach:
       'Use DP from right to left. dp[i] = max points starting from question i. Either skip i (dp[i] = dp[i+1]) or solve i (points[i] + dp[i + brainpower[i] + 1]).',
     code: `class Solution:
@@ -3373,6 +3489,8 @@ class Solution:
       'Given an array nums of equal number of positive and negative integers, rearrange so that every consecutive pair of integers have opposite signs. The first element must be positive. Preserve relative order within positives and negatives.',
     examples:
       'Input: nums = [3,1,-2,-5,2,-4]\nOutput: [3,-2,1,-5,2,-4]',
+    intuition:
+      'Separate positive and negative numbers while preserving their relative order, then interleave them: positives at even indices, negatives at odd indices. The problem guarantees equal counts, so this always works.',
     approach:
       'Separate into positives and negatives (preserving order), then interleave them: positive at even indices, negative at odd indices.',
     code: `class Solution:
@@ -3417,6 +3535,8 @@ class Solution:
       'Given two permutations nums1 and nums2 of [0, n-1], count the number of good triplets. A triplet (x, y, z) is good if the relative order of x, y, z is the same in both arrays (pos in nums1 and nums2 are both increasing).',
     examples:
       'Input: nums1 = [2,0,1,3], nums2 = [0,1,2,3]\nOutput: 1\nExplanation: The good triplet is (0, 1, 3) at positions (1,2,3) in nums1 and (0,1,3) in nums2.',
+    intuition:
+      'Map each value to its position in nums2, then iterate through nums1. For each element as the potential middle of a triplet, use a Fenwick tree to efficiently count how many valid elements exist on the left and right.',
     approach:
       'Map positions: for each value, record its position in nums2. Then for each position in nums1, count how many elements before it have smaller nums2-positions (left count) and how many after have larger nums2-positions. Use a BIT/Fenwick tree.',
     code: `class Solution:
@@ -3495,6 +3615,8 @@ class Solution:
       'Given a linked list where the first and last nodes are 0, and 0s separate groups of non-zero nodes, merge each group into a single node whose value is the sum of the group. Return the modified list without the 0 nodes.',
     examples:
       'Input: head = [0,3,1,0,4,5,2,0]\nOutput: [4,11]\nExplanation: 3+1=4, 4+5+2=11.',
+    intuition:
+      'Zeros act as delimiters separating groups of numbers. Walk through the list summing values between consecutive zeros, and create a new node for each group sum. It\'s essentially a grouping and aggregation problem.',
     approach:
       'Traverse the list. Accumulate sums between consecutive zeros. When a zero is encountered (after the first), create a node with the accumulated sum.',
     code: `class Solution:
@@ -3553,6 +3675,8 @@ class Solution:
       'Given an array time where time[i] is the time for bus i to complete one trip, return the minimum time needed for all buses together to complete at least totalTrips trips.',
     examples:
       'Input: time = [1,2,3], totalTrips = 5\nOutput: 3\nExplanation: At t=3, bus 0 does 3 trips, bus 1 does 1, bus 2 does 1. Total = 5.',
+    intuition:
+      'Binary search on time is the key insight. For a given time t, each bus completes floor(t/time[i]) trips. If the total trips are enough, try less time; otherwise try more. The monotonic relationship makes binary search work perfectly.',
     approach:
       'Binary search on the answer (time t). For a given t, the total trips = sum(t // time[i]). Find the minimum t where total >= totalTrips.',
     code: `class Solution:
@@ -3601,6 +3725,8 @@ class Solution:
       'Given a mapping of digits 0-9 and an array nums, sort nums by their mapped values. The mapping replaces each digit. Preserve relative order for equal mapped values.',
     examples:
       'Input: mapping = [8,9,4,0,2,1,3,5,7,6], nums = [991,338,38]\nOutput: [338,38,991]',
+    intuition:
+      'Map each digit through the mapping to get the \'mapped value\' of each number, then sort by these mapped values. Use a stable sort to preserve relative order when mapped values are equal.',
     approach:
       'For each number, compute its mapped value by replacing each digit. Sort nums by their mapped values using a stable sort.',
     code: `class Solution:
@@ -3655,6 +3781,8 @@ class Solution:
       'Given descriptions where each element is [parent, child, isLeft], construct the binary tree and return its root. isLeft=1 means child is the left child of parent.',
     examples:
       'Input: descriptions = [[20,15,1],[20,17,0],[50,20,1],[50,80,0],[80,19,1]]\nOutput: [50,20,80,15,17,19]',
+    intuition:
+      'Build tree nodes in a hash map so you can connect parents to children in any order. The root is identified as the only node that never appears as a child in any description.',
     approach:
       'Create tree nodes in a hash map. Track all children. The root is the node that is never a child.',
     code: `class Solution:
@@ -3712,6 +3840,8 @@ class Solution:
       'Given two integer arrays nums1 and nums2, return a list of two lists: elements in nums1 not in nums2, and elements in nums2 not in nums1.',
     examples:
       'Input: nums1 = [1,2,3], nums2 = [2,4,6]\nOutput: [[1,3],[4,6]]',
+    intuition:
+      'Convert both arrays to sets and compute the set difference in each direction. Set subtraction gives you elements in one set but not the other, which is exactly what the problem asks for.',
     approach:
       'Convert both arrays to sets. The differences are set1 - set2 and set2 - set1.',
     code: `class Solution:
@@ -3748,6 +3878,8 @@ class Solution:
       'There are n piles of coins. From each pile, you can only take coins from the top. Choose exactly k coins in total to maximize the sum.',
     examples:
       'Input: piles = [[1,100,3],[7,8,9]], k = 2\nOutput: 101\nExplanation: Take 1 from pile 0, then 100 from pile 0. Total = 101.',
+    intuition:
+      'This is a knapsack problem where each pile offers multiple items (top 1, top 2, ... coins). Precompute prefix sums for each pile, then use DP to find the optimal allocation of k coins across all piles.',
     approach:
       'Use 2D DP. dp[i][j] = max value using first i piles and j coins. For each pile, try taking 0 to min(pile_size, j) coins from the top.',
     code: `class Solution:
@@ -3803,6 +3935,8 @@ class Solution:
       'Given an array candies where candies[i] is the number of candies in pile i and an integer k children, distribute candies such that each child gets the same number. Each pile can be split but not merged. Maximize the number of candies each child gets.',
     examples:
       'Input: candies = [5,8,6], k = 3\nOutput: 5\nExplanation: Split into piles of 5, [5,3], [5,1]. Each of 3 children gets 5.',
+    intuition:
+      'Binary search on the answer: if each child gets x candies, each pile of size c can serve floor(c/x) children. Find the largest x where the total children served is at least k.',
     approach:
       'Binary search on the answer (candies per child). For a given amount x, check if sum(pile // x) >= k.',
     code: `class Solution:
@@ -3850,6 +3984,8 @@ class Solution:
       'Given two integers num1 and num2, return the sum of the two integers.',
     examples:
       'Input: num1 = 12, num2 = 5\nOutput: 17',
+    intuition:
+      'Return num1 + num2. This is the simplest possible problem - just use the addition operator.',
     approach:
       'Simply return num1 + num2.',
     code: `class Solution:
@@ -3879,6 +4015,8 @@ class Solution:
       'Given an array of task difficulty levels, each round you complete 2 or 3 tasks of the same difficulty. Return the minimum number of rounds to complete all tasks, or -1 if impossible.',
     examples:
       'Input: tasks = [2,2,3,3,2,4,4,4,4,4]\nOutput: 4\nExplanation: 3 tasks of 2 (1 round), 2 tasks of 3 (1 round), 5 tasks of 4 (2 rounds: 3+2). Total = 4.',
+    intuition:
+      'Group tasks by difficulty and count frequencies. A frequency of 1 is impossible (you need at least 2 per round). For any frequency f >= 2, ceil(f/3) rounds is optimal because you prefer groups of 3 to minimize rounds.',
     approach:
       'Count frequency of each difficulty. If any frequency is 1, return -1. For frequency f: minimum rounds = ceil(f / 3).',
     code: `from collections import Counter
@@ -3927,6 +4065,8 @@ class Solution:
       'Given an m x n grid, some cells have guards and some have walls. Guards can see in 4 directions until blocked by a wall or another guard. Return the number of unguarded, unoccupied cells.',
     examples:
       'Input: m = 4, n = 6, guards = [[0,0],[1,1],[2,3]], walls = [[0,1],[2,2],[1,4]]\nOutput: 7',
+    intuition:
+      'Simulate guard vision by casting rays in 4 directions from each guard. A ray stops when it hits a wall or another guard. After marking all guarded cells, count the cells that remain unguarded.',
     approach:
       'Mark guard and wall positions. For each guard, expand in 4 directions marking cells as guarded until hitting a wall, guard, or boundary. Count unmarked cells.',
     code: `class Solution:
@@ -3989,6 +4129,8 @@ class Solution:
       'Given an array of positive integers candidates, find the largest combination (subset) such that the bitwise AND of all elements is greater than 0. Return the size of that largest combination.',
     examples:
       'Input: candidates = [16,17,71,62,12,24,14]\nOutput: 4',
+    intuition:
+      'For a bitwise AND to be greater than zero, all selected numbers must share at least one common \'1\' bit. Check each bit position independently - the largest group sharing any single bit is the answer.',
     approach:
       'For the AND to be > 0, all elements must share at least one common bit. For each bit position, count how many numbers have that bit set. The answer is the maximum count across all bit positions.',
     code: `class Solution:
@@ -4033,6 +4175,8 @@ class Solution:
       'Given arrays spells and potions and a threshold success, a pair (i, j) is successful if spells[i] * potions[j] >= success. For each spell, return the number of successful pairs.',
     examples:
       'Input: spells = [5,1,3], potions = [1,2,3,4,5], success = 7\nOutput: [4,0,3]',
+    intuition:
+      'Sort potions once, then for each spell, binary search for the minimum potion strength needed. Since spell * potion >= success means potion >= success/spell, all potions from that threshold onward are valid.',
     approach:
       'Sort potions. For each spell, binary search for the minimum potion value needed: ceil(success / spell). Count potions >= that value.',
     code: `import bisect
@@ -4089,6 +4233,8 @@ class Solution:
       'Distribute n bags of cookies among k children. Each bag goes to exactly one child. Minimize the maximum total cookies any single child receives (unfairness). Return that minimum unfairness.',
     examples:
       'Input: cookies = [8,15,10,20,8], k = 2\nOutput: 31\nExplanation: Give [8,15,8] to one child (31) and [10,20] to another (30). Max = 31.',
+    intuition:
+      'With at most 8 cookie bags, backtracking with pruning is efficient enough. Sort bags descending for better pruning, and skip children with identical current loads to avoid redundant search branches.',
     approach:
       'Use backtracking. Try assigning each cookie bag to each child, tracking the maximum load. Prune when the current maximum already exceeds the best answer found so far.',
     code: `class Solution:
@@ -4160,6 +4306,8 @@ class Solution:
       'Given n nodes and undirected edges, count the number of pairs (i, j) where i < j and there is no path between them.',
     examples:
       'Input: n = 3, edges = [[0,1],[0,2],[1,2]]\nOutput: 0',
+    intuition:
+      'Find connected components using Union-Find, then count pairs between different components. For components of sizes s1, s2, ..., the unreachable pairs are all cross-component pairs, computed by accumulating s * remaining.',
     approach:
       'Find all connected components and their sizes. For each component of size s, it contributes s * (n - s) / 2 unreachable pairs (when accumulated properly).',
     code: `class Solution:
@@ -4241,6 +4389,8 @@ class Solution:
       'Design a class SmallestInfiniteSet that contains all positive integers. Support popSmallest() to remove and return the smallest, and addBack(num) to add a number back if not present.',
     examples:
       'Input: ["SmallestInfiniteSet","addBack","popSmallest","popSmallest","popSmallest","addBack","popSmallest","popSmallest","popSmallest"]\n[[],[2],[],[],[],[1],[],[],[],[]]\nOutput: [null,null,1,2,3,null,1,4,5]',
+    intuition:
+      'Track a \'frontier\' - the smallest number that was never popped. Numbers added back below the frontier go into a min-heap. Pop from the heap first (if non-empty), otherwise advance the frontier.',
     approach:
       'Track the current smallest integer not yet popped (threshold). Use a sorted set (heap) for numbers added back that are below the threshold.',
     code: `import heapq
@@ -4309,6 +4459,8 @@ SmallestInfiniteSet.prototype.addBack = function(num) {
       'Given an integer array nums, return the number of subarrays filled with 0.',
     examples:
       'Input: nums = [1,3,0,0,2,0,0,4]\nOutput: 6\nExplanation: [0] x4, [0,0] x2. Total = 6.',
+    intuition:
+      'Each new zero in a consecutive run adds exactly \'run_length\' new zero-filled subarrays. This is because it extends every existing subarray in the run by one position, plus creates one new single-zero subarray.',
     approach:
       'Count consecutive zeros. A run of k zeros contributes k*(k+1)/2 subarrays.',
     code: `class Solution:
@@ -4358,6 +4510,8 @@ SmallestInfiniteSet.prototype.addBack = function(num) {
       'Design a number container system. Support change(index, number) to set the number at index, and find(number) to return the smallest index with that number (or -1 if not found).',
     examples:
       'Input: ["NumberContainers","find","change","change","change","change","find","change","find"]\n[[],[10],[2,10],[1,10],[3,10],[5,10],[10],[1,20],[10]]\nOutput: [null,-1,null,null,null,null,1,null,2]',
+    intuition:
+      'Maintain two mappings: index-to-number and number-to-sorted-indices. On change, remove the index from the old number\'s set and add it to the new number\'s set. Finding the smallest index is just accessing the front of the sorted set.',
     approach:
       'Use a dict mapping index -> number and a dict mapping number -> sorted set of indices. Use a SortedList or heap with lazy deletion.',
     code: `from collections import defaultdict
@@ -4427,6 +4581,8 @@ NumberContainers.prototype.find = function(number) {
       'Given an n x n matrix grid, return the number of pairs (r, c) where row r and column c are equal (same sequence of elements).',
     examples:
       'Input: grid = [[3,2,1],[1,7,6],[2,7,7]]\nOutput: 1\nExplanation: Row 2 = [2,7,7] equals Column 1 = [2,7,7].',
+    intuition:
+      'Convert each row to a hashable key (tuple or string) and count how many times each row pattern appears. Then for each column, convert it to the same format and look up how many matching rows exist.',
     approach:
       'Convert each row to a tuple and count frequencies. For each column (also as tuple), add the row frequency of that tuple.',
     code: `from collections import Counter
@@ -4480,6 +4636,8 @@ class Solution:
       'Given a directed graph where each node has at most one outgoing edge (given as edges[i]), and two nodes node1 and node2, find the node that minimizes max(dist(node1, node), dist(node2, node)). If there are ties, return the smallest index.',
     examples:
       'Input: edges = [2,2,3,-1], node1 = 0, node2 = 1\nOutput: 2',
+    intuition:
+      'Since each node has at most one outgoing edge, just follow the path from each start node recording distances. Then for each node reachable from both, find the one that minimizes the maximum of the two distances.',
     approach:
       'BFS/DFS from node1 and node2 to compute distances to all reachable nodes. For each node reachable from both, compute max(dist1, dist2) and find the minimum.',
     code: `class Solution:
@@ -4552,6 +4710,8 @@ class Solution:
       'Given a string s and integer k, return the length of the longest ideal subsequence where the absolute difference between consecutive characters is at most k.',
     examples:
       'Input: s = "acfgbd", k = 2\nOutput: 4\nExplanation: "acbd" — differences are 2, 1, 2, all <= 2.',
+    intuition:
+      'Maintain a DP array of 26 entries (one per letter). For each character in the string, look at all letters within distance k and take the best subsequence length among them. This works because the alphabet is small and fixed.',
     approach:
       'Use DP with an array of 26 entries (one per letter). For each character, the longest subsequence ending with it is 1 + max(dp[c-k..c+k]). Update dp[c].',
     code: `class Solution:
@@ -4600,6 +4760,8 @@ class Solution:
       'Given a string s with stars (*), for each star, remove the closest non-star character to its left and the star itself. Return the resulting string.',
     examples:
       'Input: s = "leet**cod*e"\nOutput: "lecoe"',
+    intuition:
+      'A stack perfectly models this: push regular characters, and when you see a star, pop the top character. The star removes the closest character to its left, which is exactly what a stack\'s top represents.',
     approach:
       'Use a stack. Push non-star characters. On a star, pop the top (removing the nearest left character). Join the remaining stack.',
     code: `class Solution:
@@ -4643,6 +4805,8 @@ class Solution:
       'Given n meeting rooms (0 to n-1) and meetings with [start, end] times, assign each meeting to the lowest-numbered available room. If no room is free, wait for the earliest one. Return the room that held the most meetings.',
     examples:
       'Input: n = 2, meetings = [[0,10],[1,5],[2,7],[3,4]]\nOutput: 0',
+    intuition:
+      'Use two heaps: one for available rooms (sorted by number) and one for busy rooms (sorted by end time). For each meeting, free up finished rooms, then assign the lowest-numbered available room. If none are free, wait for the earliest one to finish.',
     approach:
       'Use two heaps: one for available rooms (by room number), one for busy rooms (by end time, then room number). For each meeting (sorted by start), free up rooms that have finished, then assign.',
     code: `import heapq
@@ -4716,6 +4880,8 @@ class Solution:
       'Given a 2D array intervals where intervals[i] = [left, right], divide them into groups such that no two intervals in the same group overlap. Return the minimum number of groups.',
     examples:
       'Input: intervals = [[5,10],[6,8],[1,5],[2,3],[1,10]]\nOutput: 3',
+    intuition:
+      'The minimum number of non-overlapping groups equals the maximum number of intervals overlapping at any single point. A sweep line with +1 at each start and -1 at each end+1 finds this peak efficiently.',
     approach:
       'This is equivalent to finding the maximum number of overlapping intervals at any point. Use a sweep line: +1 at each start, -1 at each end+1. The peak is the answer.',
     code: `class Solution:
@@ -4768,6 +4934,8 @@ class Solution:
       'Given an array of strings words, for each word compute its "score" = sum over all prefixes p of word of (number of words in the array that have p as a prefix). Return the scores array.',
     examples:
       'Input: words = ["abc","ab","bc","b"]\nOutput: [5,4,3,2]',
+    intuition:
+      'A trie naturally counts prefix matches. As you insert each word, increment a counter at every node along the path. To score a word, simply sum the counters along its trie path - each counter tells you how many words share that prefix.',
     approach:
       'Build a trie. For each node, store how many words pass through it. For each word, sum the counts along its path from root to its last character.',
     code: `class Solution:
@@ -4834,6 +5002,8 @@ class Solution:
       'Given a tree with n nodes and values, a good path starts and ends at nodes with the same value, and no node on the path has a value greater than the start/end. Return the number of good paths (including single-node paths).',
     examples:
       'Input: vals = [1,3,2,1,3], edges = [[0,1],[0,2],[2,3],[2,4]]\nOutput: 6',
+    intuition:
+      'Process nodes by value in ascending order using Union-Find. For each value level, connect nodes to neighbors with smaller or equal values. Then count same-value nodes within each component - k such nodes contribute k*(k-1)/2 good paths.',
     approach:
       'Process nodes in order of their values using Union-Find. For each value group, connect edges where both endpoints have values <= current value. Count pairs within same component with the current value.',
     code: `from collections import defaultdict
@@ -4941,6 +5111,8 @@ class Solution:
       'Given an integer array nums that does not contain 0, find the largest positive integer k such that -k also exists in the array. Return k, or -1 if no such integer exists.',
     examples:
       'Input: nums = [-1,2,-3,3]\nOutput: 3',
+    intuition:
+      'Put all numbers in a set for O(1) lookup. For each positive number, check if its negation exists in the set. Track the maximum such positive number.',
     approach:
       'Use a set for O(1) lookup. Iterate through positive numbers in the array and check if the negation exists. Track the maximum.',
     code: `class Solution:
@@ -4984,6 +5156,8 @@ class Solution:
       'Given an integer array nums and an integer k, find the maximum sum of a subarray of length k with all distinct elements. Return 0 if no such subarray exists.',
     examples:
       'Input: nums = [1,5,4,2,9,9,9], k = 3\nOutput: 15\nExplanation: Subarray [5,4,2] or [4,2,9] both have sum 15 (wait, [1,5,4]=10, [5,4,2]=11, [4,2,9]=15). Output: 15.',
+    intuition:
+      'Use a fixed-size sliding window of length k with a frequency map. The window is valid (all distinct) when the number of unique elements equals k. Track the maximum sum across all valid windows.',
     approach:
       'Use a sliding window of size k with a hash map counting element frequencies. Track the number of distinct elements. When distinct count equals k, compute and track the sum.',
     code: `from collections import defaultdict
@@ -5046,6 +5220,8 @@ class Solution:
       'Given an array costs of worker costs, hire k workers. In each round, pick the cheapest among the first candidates or last candidates workers. Ties are broken by smaller index. Return the total cost.',
     examples:
       'Input: costs = [17,12,10,2,7,2,11,20,8], k = 3, candidates = 4\nOutput: 11',
+    intuition:
+      'Two min-heaps represent the candidate pools from the front and back of the array. Each round, hire the cheaper worker from either pool and refill from the unprocessed middle. The two-pointer approach ensures pools don\'t overlap.',
     approach:
       'Use two min-heaps: one for the first `candidates` workers and one for the last `candidates` workers. In each hiring round, pick the minimum from both heaps and refill from the unprocessed middle.',
     code: `import heapq
@@ -5131,6 +5307,8 @@ class Solution:
       'Given low, high, zero (append "0" zero times) and one (append "1" one times), count the number of good strings with length between low and high, modulo 10^9+7.',
     examples:
       'Input: low = 3, high = 3, zero = 1, one = 1\nOutput: 8\nExplanation: All binary strings of length 3: "000","001","010","011","100","101","110","111".',
+    intuition:
+      'This is like a coin change problem where you can add \'zero\' zeros or \'one\' ones at each step. The DP recurrence dp[i] = dp[i-zero] + dp[i-one] counts the number of ways to build strings of each length.',
     approach:
       'Use DP. dp[i] = number of ways to build a string of length i. dp[i] = dp[i - zero] + dp[i - one]. Sum dp[low] through dp[high].',
     code: `class Solution:
@@ -5185,6 +5363,8 @@ class Solution:
       'Alice starts at node 0 and Bob starts at node bob in a tree. They move simultaneously toward leaves (Alice) and node 0 (Bob). Each node has a reward collected once. If they arrive at a node at the same time, they split. Alice wants to maximize profit on any root-to-leaf path. Return Alice\'s max profit.',
     examples:
       'Input: edges = [[0,1],[1,2],[1,3],[3,4]], bob = 3, amount = [-2,4,2,-4,6]\nOutput: 6',
+    intuition:
+      'First trace Bob\'s unique path to node 0 to know when he arrives at each node. Then DFS as Alice, adjusting each node\'s reward based on who arrives first. Alice\'s answer is the maximum profit among all root-to-leaf paths.',
     approach:
       'First find Bob\'s unique path to node 0 using DFS. Record when Bob arrives at each node. Then DFS from node 0 for Alice, adjusting node values based on relative arrival times. Track the maximum leaf profit.',
     code: `from collections import defaultdict
@@ -5282,6 +5462,8 @@ class Solution:
       'Given an m x n binary matrix grid, create a difference matrix where diff[i][j] = onesRow_i + onesCol_j - zerosRow_i - zerosCol_j.',
     examples:
       'Input: grid = [[0,1,1],[1,0,1],[0,0,1]]\nOutput: [[0,0,4],[0,0,4],[-2,-2,2]]',
+    intuition:
+      'Precompute row and column sums of ones, then the formula simplifies algebraically to diff[i][j] = 2*rowOnes[i] + 2*colOnes[j] - m - n. No need to count zeros separately since zeros = total - ones.',
     approach:
       'Precompute the count of ones in each row and column. Then diff[i][j] = onesRow[i] + onesCol[j] - (n - onesRow[i]) - (m - onesCol[j]) = 2*onesRow[i] + 2*onesCol[j] - n - m.',
     code: `class Solution:
@@ -5324,6 +5506,8 @@ class Solution:
       'Given a positive integer n, find the pivot integer x such that the sum 1 + 2 + ... + x equals x + (x+1) + ... + n. Return -1 if no such integer exists.',
     examples:
       'Input: n = 8\nOutput: 6\nExplanation: 1+2+3+4+5+6 = 21 and 6+7+8 = 21.',
+    intuition:
+      'Setting sum(1..x) = sum(x..n) and simplifying gives x^2 = n*(n+1)/2. So the pivot exists only when the total sum is a perfect square, and the pivot is its square root.',
     approach:
       'Sum(1..x) = x*(x+1)/2. Sum(x..n) = n*(n+1)/2 - x*(x-1)/2. Set equal and solve: x^2 = n*(n+1)/2. Check if n*(n+1)/2 is a perfect square.',
     code: `import math
@@ -5365,6 +5549,8 @@ class Solution:
       'Given arrays nums1 and nums2 of length n and integer k, choose k indices. The score is sum(nums1[chosen]) * min(nums2[chosen]). Return the maximum score.',
     examples:
       'Input: nums1 = [1,3,3,2], nums2 = [2,1,3,4], k = 3\nOutput: 12\nExplanation: Choose indices 0,2,3. Score = (1+3+2) * min(2,3,4) = 6*2 = 12.',
+    intuition:
+      'Sort by nums2 descending so each new element is the new minimum. Maintain a min-heap of size k for the top nums1 values. At each step, score = heap_sum * current_nums2_value. This elegantly handles both the sum maximization and minimum tracking.',
     approach:
       'Sort indices by nums2 descending. Use a min-heap of size k for nums1 values. For each new index (which has the smallest nums2 so far), add nums1[i] to the heap and compute score = sum * nums2[i].',
     code: `import heapq
@@ -5419,6 +5605,8 @@ class Solution:
       'Given an array weights and k bags, split weights into k contiguous groups. The cost of a split is the sum of (first + last element) of each group. Return the difference between max and min possible costs.',
     examples:
       'Input: weights = [1,3,5,1], k = 2\nOutput: 4',
+    intuition:
+      'The total cost depends only on where you place the k-1 split points. Each split between indices i and i+1 contributes weights[i]+weights[i+1] to the cost. Sort these pair sums to find the best and worst k-1 splits, and the answer is their difference.',
     approach:
       'The cost depends on the k-1 split points. Each split between indices i and i+1 adds weights[i] + weights[i+1] to the cost (plus the fixed weights[0] + weights[n-1]). Sort the pair sums and pick the largest/smallest k-1.',
     code: `class Solution:
@@ -5464,6 +5652,8 @@ class Solution:
       'Given an array gifts and an integer k, for k seconds: pick the pile with the most gifts, leave floor(sqrt(gifts)) in that pile. Return the total gifts remaining after k seconds.',
     examples:
       'Input: gifts = [25,64,9,4,100], k = 4\nOutput: 29',
+    intuition:
+      'A max-heap lets you always grab the richest pile. Replace the top with floor(sqrt(top)) each round - the pile shrinks dramatically due to the square root. After k rounds, sum everything remaining.',
     approach:
       'Use a max-heap. For k iterations, pop the maximum, replace it with floor(sqrt(value)), and push back. Sum the remaining heap.',
     code: `import heapq
@@ -5512,6 +5702,8 @@ class Solution:
       'Given an integer array nums, create a 2D array where: each row contains distinct elements, every element of nums is in exactly one row, and the number of rows is minimized.',
     examples:
       'Input: nums = [1,3,4,1,2,3,1]\nOutput: [[1,3,4,2],[1,3],[1]]',
+    intuition:
+      'The number of rows needed equals the maximum frequency of any element. Distribute each element across as many rows as its frequency demands, ensuring each row gets at most one copy of each element.',
     approach:
       'Count frequencies. The number of rows = max frequency. Distribute elements row by row: for each element with frequency f, place it in the first f rows.',
     code: `from collections import Counter
@@ -5562,6 +5754,8 @@ class Solution:
       'Given an integer n, return a counter function that initially returns n and then returns 1 more than the previous value every subsequent time it is called.',
     examples:
       'Input: n = 10, calls = ["call","call","call"]\nOutput: [10,11,12]',
+    intuition:
+      'A closure captures and remembers the variable n from its enclosing scope. Each call returns the current value and increments it, maintaining state between calls without any external storage.',
     approach:
       'Use a closure that captures n. Each call returns the current value and increments it.',
     code: `class Solution:
@@ -5601,6 +5795,8 @@ class Solution:
       'Design a key-value cache where each entry expires after a given duration (in milliseconds). Support set(key, value, duration), get(key), and count() methods.',
     examples:
       'Input: ["TimeLimitedCache","set","get","count","get"]\n[[],[1,42,100],[1],[],[1]]\nAt t=0: set(1,42,100), t=50: get(1)->42, t=50: count()->1, t=150: get(1)->-1',
+    intuition:
+      'Store each cache entry with its expiry timestamp. On every access, check if the current time exceeds the expiry. This lazy expiration approach is simpler than using timers and works perfectly for this use case.',
     approach:
       'Store entries as (value, expiry_time) pairs in a dictionary. On get/count, check if the entry has expired.',
     code: `import time
@@ -5675,6 +5871,8 @@ TimeLimitedCache.prototype.count = function() {
       'Design a graph class that supports addEdge(u, v, cost) and shortestPath(node1, node2) using Dijkstra\'s algorithm.',
     examples:
       'Input: ["Graph","shortestPath","shortestPath","addEdge","shortestPath"]\n[[4,[[0,2,5],[0,1,2],[1,2,1],[3,0,3]]],[3,2],[0,3],[1,3,4],[0,3]]\nOutput: [null,6,-1,null,6]',
+    intuition:
+      'Store the graph as an adjacency list and run Dijkstra\'s algorithm for each shortest path query. Adding an edge just appends to the adjacency list. Early termination when the target node is popped from the heap speeds up queries.',
     approach:
       'Store edges in an adjacency list. For shortestPath, run Dijkstra\'s algorithm from node1 to node2. addEdge simply appends to the adjacency list.',
     code: `import heapq
@@ -5758,6 +5956,8 @@ Graph.prototype.shortestPath = function(node1, node2) {
       'Given an array of positive integers nums, you can traverse from index i to j if gcd(nums[i], nums[j]) > 1. Return true if all pairs of indices can reach each other through such traversals.',
     examples:
       'Input: nums = [2,3,6]\nOutput: true\nExplanation: gcd(2,6)=2>1, gcd(3,6)=3>1. All connected via index 2.',
+    intuition:
+      'Two numbers are connected if they share a prime factor. Use Union-Find with prime factors as intermediaries: factorize each number and union its index with the first index that shared each prime. If all indices end up in one component, the answer is true.',
     approach:
       'Factorize each number. Use Union-Find: for each number, union the index with a representative index for each of its prime factors. Check if all indices are in the same component.',
     code: `class Solution:
@@ -5854,6 +6054,8 @@ Graph.prototype.shortestPath = function(node1, node2) {
       'Given a linked list representing a non-negative integer (head is the most significant digit), return the linked list after doubling the number.',
     examples:
       'Input: head = [1,8,9]\nOutput: [3,7,8]\nExplanation: 189 * 2 = 378.',
+    intuition:
+      'Doubling a number represented as a linked list requires processing from the least significant digit for carry propagation. Recursion naturally traverses right-to-left, handling carries as it unwinds. Don\'t forget to prepend a new node if there\'s a final carry.',
     approach:
       'Reverse the list, double each digit with carry propagation, then reverse back. Alternatively, use recursion to handle the carry from right to left.',
     code: `class Solution:
@@ -5911,6 +6113,8 @@ Graph.prototype.shortestPath = function(node1, node2) {
       'Given two cells (sx, sy) and (fx, fy) on an infinite 2D grid, determine if you can reach (fx, fy) in exactly t seconds. Each second you move to any of the 8 adjacent cells (or stay is not allowed — you must move).',
     examples:
       'Input: sx = 2, sy = 4, fx = 7, fy = 7, t = 6\nOutput: true',
+    intuition:
+      'With 8-directional movement, the minimum time to reach any cell is max(|dx|, |dy|) because diagonal moves cover both dimensions simultaneously. Any extra time can be wasted by zigzagging back and forth.',
     approach:
       'The minimum time to reach (fx, fy) is max(|fx-sx|, |fy-sy|) due to diagonal moves. If t >= min_time, we can waste extra time by zigzagging. Special case: if start == end, t must not be 1.',
     code: `class Solution:
@@ -5950,6 +6154,8 @@ Graph.prototype.shortestPath = function(node1, node2) {
       'Given an array nums, in each operation you can remove 2 or 3 elements with the same value. Return the minimum number of operations to make the array empty, or -1 if impossible.',
     examples:
       'Input: nums = [2,3,3,2,2,4,2,3,4]\nOutput: 4',
+    intuition:
+      'This is identical to problem 2244: count frequencies, reject frequency 1, and use ceil(f/3) operations for each frequency. Removing 3 at a time is most efficient, with pairs of 2 handling the remainder.',
     approach:
       'Count frequencies. If any frequency is 1, return -1. For each frequency f, minimum operations = ceil(f / 3).',
     code: `from collections import Counter
@@ -5998,6 +6204,8 @@ class Solution:
       'Given an integer array nums and integer k, return the number of subarrays where the maximum element of the whole array appears at least k times.',
     examples:
       'Input: nums = [1,3,2,3,3], k = 2\nOutput: 6',
+    intuition:
+      'Only the global maximum element matters. Use a sliding window to count its occurrences. When the count reaches k, all subarrays extending to the left from the current window are valid. The count of valid left endpoints gives the contribution for each right endpoint.',
     approach:
       'Find the maximum element. Use a sliding window. For each right, when the count of max reaches k, all subarrays starting from 0 to left are valid. Move left to shrink.',
     code: `class Solution:
@@ -6052,6 +6260,8 @@ class Solution:
       'Given an array of positive integers nums, find the largest perimeter of a polygon whose sides are elements of nums. A valid polygon requires each side to be strictly less than the sum of all other sides. Return -1 if impossible.',
     examples:
       'Input: nums = [5,5,5]\nOutput: 15',
+    intuition:
+      'Sort the array and work backwards. For the largest element to be a valid polygon side, it must be strictly less than the sum of all smaller elements. Using more sides increases the sum of the rest, making validity more likely and the perimeter larger.',
     approach:
       'Sort the array. Iterate from the largest element down: if nums[i] < prefix_sum of all smaller elements, then using all elements up to i forms a valid polygon with maximum perimeter.',
     code: `class Solution:
@@ -6096,6 +6306,8 @@ class Solution:
       'Given an array nums, return the total frequency of elements that have the maximum frequency.',
     examples:
       'Input: nums = [1,2,2,3,1,4]\nOutput: 4\nExplanation: Elements 1 and 2 each appear 2 times (max frequency). Total = 2 + 2 = 4.',
+    intuition:
+      'Count frequencies, find the maximum frequency, then sum the frequencies of all elements that achieve this maximum. It\'s a two-step aggregation problem.',
     approach:
       'Count frequencies, find the max frequency, then sum all frequencies that equal the max.',
     code: `from collections import Counter
@@ -6136,6 +6348,8 @@ class Solution:
       'Given an array happiness and integer k, select k children. When you select a child, all unselected children lose 1 happiness (but not below 0). You select one at a time. Maximize the total happiness collected.',
     examples:
       'Input: happiness = [1,2,3], k = 2\nOutput: 4\nExplanation: Pick 3 first (others become [0,1]), then pick 1. Total = 3 + 1 = 4.',
+    intuition:
+      'Sort happiness descending and greedily pick the happiest children first. Each subsequent selection reduces all remaining happiness by 1, so the i-th child selected effectively loses i happiness from the decay.',
     approach:
       'Sort descending. When selecting the i-th child (0-indexed), their happiness is reduced by i (due to i prior selections). Greedily pick the highest values: max(0, happiness[i] - i).',
     code: `class Solution:
@@ -6182,6 +6396,8 @@ class Solution:
       'Given a string s, return the score defined as the sum of the absolute differences between ASCII values of adjacent characters.',
     examples:
       'Input: s = "hello"\nOutput: 13\nExplanation: |h-e| + |e-l| + |l-l| + |l-o| = 3+7+0+3 = 13.',
+    intuition:
+      'Iterate through adjacent character pairs and sum the absolute differences of their ASCII values. It\'s a straightforward linear scan with a simple computation at each step.',
     approach:
       'Iterate through adjacent pairs, summing the absolute differences of their ASCII values.',
     code: `class Solution:

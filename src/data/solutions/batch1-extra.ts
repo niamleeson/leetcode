@@ -10,6 +10,8 @@ export const solutions: ProblemSolution[] = [
       'The string "PAYPALISHIRING" is written in a zigzag pattern on a given number of rows. Write code that takes a string and number of rows and returns the string read line by line. For example, with 3 rows the zigzag looks like: P A H N / A P L S I I G / Y I R.',
     examples:
       'Input: s = "PAYPALISHIRING", numRows = 3\nOutput: "PAHNAPLSIIGYIR"',
+    intuition:
+      'Imagine writing a message on a zigzag fence - characters bounce between rows as you move along. The key insight is that you don\'t need to simulate the 2D grid; just track which row each character belongs to using a direction flag that flips at the top and bottom.',
     approach:
       'Simulate the zigzag by maintaining an array of strings for each row. Iterate through the string, appending each character to the current row, and change direction when you hit the top or bottom row. Concatenate all rows at the end.',
     code: `class Solution:
@@ -62,6 +64,8 @@ export const solutions: ProblemSolution[] = [
       'Given a signed 32-bit integer x, return x with its digits reversed. If reversing x causes the value to go outside the signed 32-bit integer range [-2^31, 2^31 - 1], then return 0. Assume the environment does not allow you to store 64-bit integers.',
     examples:
       'Input: x = 123\nOutput: 321',
+    intuition:
+      'Think of pulling digits off the end of a number like popping beads off a string and stacking them in reverse order. The tricky part is not the reversal itself but checking for overflow before it happens - you must verify before multiplying, not after.',
     approach:
       'Extract digits one by one from the end using modulo and division. Build the reversed number by multiplying by 10 and adding the extracted digit. Check for overflow before each multiplication.',
     code: `class Solution:
@@ -115,6 +119,8 @@ export const solutions: ProblemSolution[] = [
       'Implement the myAtoi(string s) function, which converts a string to a 32-bit signed integer. The algorithm strips leading whitespace, reads an optional sign, then reads digits until a non-digit character or end of string. Clamp the result to the 32-bit signed integer range [-2^31, 2^31 - 1].',
     examples:
       'Input: s = "   -42"\nOutput: -42',
+    intuition:
+      'This is a state machine problem in disguise. You\'re walking through a string handling whitespace, an optional sign, and digits in order. The key insight is to process one phase at a time and clamp the result to 32-bit bounds as you go.',
     approach:
       'Process the string character by character: skip whitespace, handle the optional sign, then accumulate digits. Clamp the result to the 32-bit signed integer range if it overflows.',
     code: `class Solution:
@@ -176,6 +182,8 @@ export const solutions: ProblemSolution[] = [
       'Given an integer x, return true if x is a palindrome, and false otherwise. A palindrome reads the same forward and backward. Negative numbers are not palindromes.',
     examples:
       'Input: x = 121\nOutput: true',
+    intuition:
+      'Instead of converting to a string (which uses extra space), you can reverse just the second half of the number and compare it to the first half. If the number reads the same forwards and backwards, the reversed second half will equal the first half.',
     approach:
       'Reverse the second half of the number and compare it with the first half. This avoids converting to a string and handles overflow naturally by only reversing half the digits.',
     code: `class Solution:
@@ -220,6 +228,8 @@ export const solutions: ProblemSolution[] = [
       "Given an input string s and a pattern p, implement regular expression matching with support for '.' and '*'. '.' matches any single character, and '*' matches zero or more of the preceding element. The matching should cover the entire input string.",
     examples:
       'Input: s = "aa", p = "a*"\nOutput: true',
+    intuition:
+      'The wildcard \'*\' doesn\'t stand alone - it modifies the character before it to mean \'zero or more.\' Build a DP table where each cell asks: does this prefix of the string match this prefix of the pattern? The star gives you two choices: skip the pattern pair entirely (zero occurrences) or consume one matching character and stay on the same pattern.',
     approach:
       "Use dynamic programming where dp[i][j] represents whether s[0..i-1] matches p[0..j-1]. Handle '*' by considering zero occurrences (dp[i][j-2]) or one+ occurrences if the current character matches.",
     code: `class Solution:
@@ -284,6 +294,8 @@ export const solutions: ProblemSolution[] = [
       'Given an integer, convert it to a Roman numeral. Roman numerals use symbols I, V, X, L, C, D, M with special subtractive forms like IV (4), IX (9), XL (40), XC (90), CD (400), CM (900).',
     examples:
       'Input: num = 1994\nOutput: "MCMXCIV"',
+    intuition:
+      'Think of making change with Roman numeral \'coins.\' Start with the largest denomination and greedily use as many as possible before moving to the next smaller one. The six subtractive forms (like IV, IX) are just additional denominations in your lookup table.',
     approach:
       'Use a greedy approach with a lookup table of values and their Roman representations in descending order. Repeatedly subtract the largest possible value and append the corresponding symbol.',
     code: `class Solution:
@@ -337,6 +349,8 @@ export const solutions: ProblemSolution[] = [
       'Given a Roman numeral string, convert it to an integer. Roman numerals use I=1, V=5, X=10, L=50, C=100, D=500, M=1000. When a smaller value appears before a larger value, it is subtracted (e.g., IV = 4).',
     examples:
       'Input: s = "MCMXCIV"\nOutput: 1994',
+    intuition:
+      'The trick is that Roman numerals are additive except when a smaller value precedes a larger one (like IV = 4). Scan left to right: if the current symbol is smaller than the next one, subtract it; otherwise add it. This single rule handles all cases.',
     approach:
       'Traverse the string from left to right. If the current value is less than the next value, subtract it; otherwise add it. This handles all subtractive cases naturally.',
     code: `class Solution:
@@ -387,6 +401,8 @@ export const solutions: ProblemSolution[] = [
       'Write a function to find the longest common prefix string amongst an array of strings. If there is no common prefix, return an empty string.',
     examples:
       'Input: strs = ["flower","flow","flight"]\nOutput: "fl"',
+    intuition:
+      'Imagine stacking all the strings on top of each other and reading down each column. The common prefix is the longest column where every string has the same character. Stop as soon as you find a mismatch or reach the end of any string.',
     approach:
       'Compare characters column by column across all strings. Start with the first character position and check if all strings share the same character at that position. Stop when a mismatch is found or a string ends.',
     code: `class Solution:
@@ -434,6 +450,8 @@ export const solutions: ProblemSolution[] = [
       'Given an integer array nums of length n and an integer target, find three integers in nums such that the sum is closest to target. Return the sum of the three integers. You may assume that each input would have exactly one solution.',
     examples:
       'Input: nums = [-1,2,1,-4], target = 1\nOutput: 2\nExplanation: The sum that is closest to the target is 2 (-1 + 2 + 1 = 2).',
+    intuition:
+      'This extends the two-pointer technique from 3Sum. After sorting, fix one number and use two pointers to find the pair that gets closest to the remaining target. Sorting enables the pointers to intelligently move toward the target rather than checking every combination.',
     approach:
       'Sort the array, then for each element use two pointers on the remaining elements. Track the closest sum seen so far. Move pointers based on whether the current sum is less than or greater than the target.',
     code: `class Solution:
@@ -492,6 +510,8 @@ export const solutions: ProblemSolution[] = [
       'Given an array nums of n integers, return an array of all the unique quadruplets [nums[a], nums[b], nums[c], nums[d]] such that a, b, c, d are distinct indices and nums[a] + nums[b] + nums[c] + nums[d] == target.',
     examples:
       'Input: nums = [1,0,-1,0,-2,2], target = 0\nOutput: [[-2,-1,1,2],[-2,0,0,2],[-1,0,0,1]]',
+    intuition:
+      'This is 3Sum with an extra layer. Fix two numbers with nested loops, then use two pointers for the remaining pair. Sorting the array first lets you skip duplicates at every level and use the two-pointer trick to avoid brute force.',
     approach:
       'Sort the array, then use two nested loops to fix the first two elements and a two-pointer approach for the remaining two. Skip duplicates at each level to avoid duplicate quadruplets.',
     code: `class Solution:
@@ -570,6 +590,8 @@ export const solutions: ProblemSolution[] = [
       'Given a linked list, swap every two adjacent nodes and return its head. You must solve the problem without modifying the values in the nodes (i.e., only nodes themselves may be changed).',
     examples:
       'Input: head = [1,2,3,4]\nOutput: [2,1,4,3]',
+    intuition:
+      'Think of swapping pairs like switching dance partners. For each pair, you rewire three pointers: the previous node points to the second, the first points to whatever comes after the pair, and the second points back to the first. A dummy node before the head simplifies the first swap.',
     approach:
       'Use a dummy node before the head. For each pair, rewire the pointers: prev.next points to second, first.next points to second.next, and second.next points to first. Advance by two nodes.',
     code: `class Solution:
@@ -623,6 +645,8 @@ export const solutions: ProblemSolution[] = [
       'Given an integer array nums and an integer val, remove all occurrences of val in-place. The order of the elements may be changed. Return k, the number of elements in nums which are not equal to val. The first k elements of nums should contain the elements which are not equal to val.',
     examples:
       'Input: nums = [3,2,2,3], val = 3\nOutput: 2, nums = [2,2,_,_]',
+    intuition:
+      'Use a \'write pointer\' that only advances when you find a keeper. As you scan through the array, every element that isn\'t the target value gets written to the write position. The write pointer naturally ends up at the new length.',
     approach:
       'Use a write pointer k that tracks the position for the next non-val element. Iterate through the array, and whenever the current element is not val, write it at position k and increment k.',
     code: `class Solution:
@@ -667,6 +691,8 @@ export const solutions: ProblemSolution[] = [
       'Given two strings haystack and needle, return the index of the first occurrence of needle in haystack, or -1 if needle is not part of haystack.',
     examples:
       'Input: haystack = "sadbutsad", needle = "sad"\nOutput: 0',
+    intuition:
+      'This is the classic substring search problem. The simplest approach slides a window of the needle\'s length across the haystack and checks for a match at each position. For interviews, this O(n*m) approach is usually sufficient.',
     approach:
       'Slide a window of size len(needle) across haystack and compare substrings. Return the starting index of the first match. For a more optimal approach, use the KMP algorithm.',
     code: `class Solution:
@@ -707,6 +733,8 @@ export const solutions: ProblemSolution[] = [
       'Given two integers dividend and divisor, divide two integers without using multiplication, division, and mod operator. Return the quotient after dividing dividend by divisor, truncated toward zero. If the quotient overflows 32-bit signed integer, return 2^31 - 1.',
     examples:
       'Input: dividend = 10, divisor = 3\nOutput: 3',
+    intuition:
+      'You can\'t use multiplication or division, but you can use bit shifting (which doubles/halves). The key insight is exponential search: keep doubling the divisor until it\'s too big, subtract the largest fit, and repeat. This is like making change with powers-of-two denominations.',
     approach:
       'Use bit shifting to perform exponential search. Repeatedly double the divisor (shift left) to find the largest multiple that fits, subtract it, and accumulate the quotient. Handle sign and overflow edge cases.',
     code: `class Solution:
@@ -766,6 +794,8 @@ export const solutions: ProblemSolution[] = [
       'You are given a string s and an array of strings words of the same length. Return all starting indices of substrings in s that are a concatenation of each word in words exactly once, in any order, without any intervening characters.',
     examples:
       'Input: s = "barfoothefoobarman", words = ["foo","bar"]\nOutput: [0,9]',
+    intuition:
+      'Think of the string as a grid of word-sized slots. For each possible starting offset (0 to word_length-1), use a sliding window that tracks how many of each word you\'ve seen. When your window contains exactly the right word counts, record the position.',
     approach:
       'Use a sliding window of size len(words) * len(words[0]). For each possible starting offset (0 to word_len-1), slide a window that tracks word counts. Compare with the required word frequency map.',
     code: `class Solution:
@@ -855,6 +885,8 @@ export const solutions: ProblemSolution[] = [
       'A permutation of an array of integers is an arrangement of its members into a sequence. The next permutation is the next lexicographically greater permutation. If no such arrangement exists, rearrange to the lowest possible order (ascending). Modify the array in-place.',
     examples:
       'Input: nums = [1,2,3]\nOutput: [1,3,2]',
+    intuition:
+      'The next permutation is found by making the smallest possible increase. Find the rightmost place where digits are still ascending (the \'pivot\'), swap it with the smallest larger digit to its right, then sort the remaining suffix to be as small as possible (reverse it, since it was descending).',
     approach:
       'Find the largest index i such that nums[i] < nums[i+1] (the pivot). Find the largest index j > i such that nums[j] > nums[i]. Swap nums[i] and nums[j], then reverse the suffix after i.',
     code: `class Solution:
@@ -913,6 +945,8 @@ export const solutions: ProblemSolution[] = [
       'Given a sorted array of distinct integers and a target value, return the index if the target is found. If not, return the index where it would be inserted in order. You must write an algorithm with O(log n) runtime complexity.',
     examples:
       'Input: nums = [1,3,5,6], target = 5\nOutput: 2',
+    intuition:
+      'Binary search naturally finds the insertion point. When the search ends without finding the target, the left pointer sits exactly where the target should be inserted to maintain sorted order. This is the foundation of many binary search applications.',
     approach:
       'Use binary search to find the target or the insertion point. The left pointer after binary search gives the correct insertion index.',
     code: `class Solution:
@@ -961,6 +995,8 @@ export const solutions: ProblemSolution[] = [
       "Write a program to solve a Sudoku puzzle by filling the empty cells. A sudoku solution must satisfy all of the following rules: each of the digits 1-9 must occur exactly once in each row, each column, and each of the 9 3x3 sub-boxes. The character '.' indicates empty cells.",
     examples:
       'Input: board = [["5","3",".",".","7",".",".",".","."],["6",".",".","1","9","5",".",".","."],[".","9","8",".",".",".",".","6","."],["8",".",".",".","6",".",".",".","3"],["4",".",".","8",".","3",".",".","1"],["7",".",".",".","2",".",".",".","6"],[".","6",".",".",".",".","2","8","."],[".",".",".","4","1","9",".",".","5"],[".",".",".",".","8",".",".","7","9"]]\nOutput: (the solved board)',
+    intuition:
+      'Sudoku solving is a classic constraint satisfaction problem. Try each valid digit in each empty cell and backtrack when you hit a dead end. The key optimization is tracking constraints with sets for rows, columns, and boxes, giving O(1) validity checks.',
     approach:
       'Use backtracking with constraint propagation. Track used digits in rows, columns, and boxes using sets. Try each digit 1-9 for empty cells, backtrack if no valid digit exists.',
     code: `class Solution:
@@ -1062,6 +1098,8 @@ export const solutions: ProblemSolution[] = [
       'The count-and-say sequence is a sequence of digit strings defined by the recursive formula: countAndSay(1) = "1", and countAndSay(n) is the run-length encoding of countAndSay(n-1). For example, "1" -> "11" -> "21" -> "1211" -> "111221".',
     examples:
       'Input: n = 4\nOutput: "1211"',
+    intuition:
+      'Each term describes the previous one by counting consecutive identical digits. Read \'1211\' aloud: \'one 1, one 2, two 1s\' gives \'111221.\' The problem is purely about simulation - iterate n-1 times, each time scanning groups of consecutive digits.',
     approach:
       'Iteratively build each term from the previous one. For each term, scan consecutive groups of the same digit and encode each group as (count)(digit).',
     code: `class Solution:
@@ -1119,6 +1157,8 @@ export const solutions: ProblemSolution[] = [
       'Given two non-negative integers num1 and num2 represented as strings, return the product of num1 and num2 also represented as a string. You must not use any built-in BigInteger library or convert the inputs to integer directly.',
     examples:
       'Input: num1 = "123", num2 = "456"\nOutput: "56088"',
+    intuition:
+      'This simulates the long multiplication you learned in school. Each digit pair multiplies into a specific position in the result array (positions i+j and i+j+1). Process all digit pairs first, then handle carries in a separate pass.',
     approach:
       'Simulate grade-school multiplication. Use an array of length m+n to store intermediate results. For each pair of digits, multiply and add to the correct position. Handle carries at the end.',
     code: `class Solution:
@@ -1174,6 +1214,8 @@ export const solutions: ProblemSolution[] = [
       "Given an input string s and a pattern p, implement wildcard pattern matching. '?' matches any single character. '*' matches any sequence of characters (including empty). The matching should cover the entire input string.",
     examples:
       'Input: s = "adceb", p = "*a*b"\nOutput: true',
+    intuition:
+      'Like regex matching but simpler: \'?\' matches exactly one character and \'*\' matches any sequence. The DP insight is that \'*\' gives two choices at each step - match zero characters (look left in the table) or consume one character and keep the star active (look up).',
     approach:
       "Use dynamic programming where dp[i][j] means s[:i] matches p[:j]. For '*', it can match empty (dp[i][j-1]) or any sequence (dp[i-1][j]). For '?' or exact match, use dp[i-1][j-1].",
     code: `class Solution:
@@ -1233,6 +1275,8 @@ export const solutions: ProblemSolution[] = [
       'You are given a 0-indexed array of integers nums of length n, where nums[i] is the maximum jump length from position i. Return the minimum number of jumps to reach nums[n - 1]. You can always reach the last index.',
     examples:
       'Input: nums = [2,3,1,1,4]\nOutput: 2',
+    intuition:
+      'Think of it like a frog jumping across lily pads. At each \'level\' of jumps, you know the farthest pad you can reach. When you\'ve exhausted the current level, you must take another jump, and the next level extends to the farthest reachable pad. This BFS-like thinking gives the minimum jumps.',
     approach:
       'Use a greedy BFS-like approach. Track the farthest position reachable from the current jump level. When you reach the end of the current level, increment jumps and extend the boundary to the farthest reachable position.',
     code: `class Solution:
@@ -1281,6 +1325,8 @@ export const solutions: ProblemSolution[] = [
       'Implement pow(x, n), which calculates x raised to the power n (i.e., x^n). n is an integer which can be negative.',
     examples:
       'Input: x = 2.00000, n = 10\nOutput: 1024.00000',
+    intuition:
+      'Naive repeated multiplication is too slow for large exponents. The key insight is that x^10 = (x^5)^2, and x^5 = x * (x^2)^2. By squaring and halving the exponent, you reduce O(n) multiplications to O(log n). This is called binary exponentiation.',
     approach:
       'Use binary exponentiation (fast power). If n is even, x^n = (x^2)^(n/2). If n is odd, x^n = x * x^(n-1). Handle negative exponents by computing 1/x^|n|.',
     code: `class Solution:
@@ -1332,6 +1378,8 @@ export const solutions: ProblemSolution[] = [
       'The n-queens puzzle is the problem of placing n queens on an n x n chessboard such that no two queens attack each other. Given an integer n, return the number of distinct solutions to the n-queens puzzle.',
     examples:
       'Input: n = 4\nOutput: 2',
+    intuition:
+      'Place queens one row at a time, using sets to track which columns and diagonals are under attack. The key insight is that cells on the same diagonal share the same (row-col) value, and cells on the same anti-diagonal share the same (row+col) value.',
     approach:
       'Use backtracking with sets to track occupied columns and diagonals. Place queens row by row, and for each row try each column. Use sets for O(1) conflict checking.',
     code: `class Solution:
@@ -1395,6 +1443,8 @@ export const solutions: ProblemSolution[] = [
       'Given a string s consisting of words and spaces, return the length of the last word in the string. A word is a maximal substring consisting of non-space characters only.',
     examples:
       'Input: s = "Hello World"\nOutput: 5',
+    intuition:
+      'The simplest approach is to split by spaces and return the length of the last word. If doing it manually, start from the end of the string, skip trailing spaces, then count characters until you hit a space or the beginning.',
     approach:
       'Strip trailing spaces, then count characters from the end until a space is encountered. Alternatively, use split and return the length of the last element.',
     code: `class Solution:
@@ -1440,6 +1490,8 @@ export const solutions: ProblemSolution[] = [
       'Given a positive integer n, generate an n x n matrix filled with elements from 1 to n^2 in spiral order.',
     examples:
       'Input: n = 3\nOutput: [[1,2,3],[8,9,4],[7,6,5]]',
+    intuition:
+      'Imagine walking a spiral path and dropping numbered tiles as you go. Maintain four boundaries (top, bottom, left, right) that shrink inward after each pass. Fill numbers 1 through n^2 by repeatedly going right, down, left, up.',
     approach:
       'Simulate the spiral traversal using four boundaries (top, bottom, left, right). Fill numbers 1 to n^2 by going right, down, left, up and shrinking boundaries after each direction.',
     code: `class Solution:
@@ -1505,6 +1557,8 @@ export const solutions: ProblemSolution[] = [
       'The set [1, 2, 3, ..., n] contains a total of n! unique permutations. Given n and k, return the kth permutation sequence. k is 1-indexed.',
     examples:
       'Input: n = 3, k = 3\nOutput: "213"',
+    intuition:
+      'The factorial number system maps directly to permutations. At each position, dividing k by (n-1)! tells you which of the remaining elements goes there. It\'s like a multi-digit number where each \'digit\' selects from a shrinking pool of options.',
     approach:
       'Use the factorial number system. At each position, determine which element goes there by dividing k-1 by (n-1)!. The quotient gives the index into the remaining available digits.',
     code: `class Solution:
@@ -1559,6 +1613,8 @@ export const solutions: ProblemSolution[] = [
       'Given the head of a linked list, rotate the list to the right by k places. For example, rotating [1,2,3,4,5] by 2 gives [4,5,1,2,3].',
     examples:
       'Input: head = [1,2,3,4,5], k = 2\nOutput: [4,5,1,2,3]',
+    intuition:
+      'First, find the actual rotation amount (k mod length, since rotating by the length is a no-op). Then make the list circular, walk to the new tail position (length - k from the start), and break the circle there. The next node becomes the new head.',
     approach:
       'Find the length of the list and compute k % length to handle large k values. Make the list circular by connecting the tail to the head, then break the circle at the new tail position (length - k nodes from the start).',
     code: `class Solution:
@@ -1623,6 +1679,8 @@ export const solutions: ProblemSolution[] = [
       'You are given an m x n integer array grid. There is a robot initially located at the top-left corner. The robot tries to move to the bottom-right corner, moving only right or down. An obstacle is marked as 1, empty space as 0. Return the number of possible unique paths.',
     examples:
       'Input: obstacleGrid = [[0,0,0],[0,1,0],[0,0,0]]\nOutput: 2',
+    intuition:
+      'This is a grid pathfinding problem with blocked cells. The key insight is that an obstacle means zero paths through that cell, while every other cell\'s path count is the sum of paths from above and from the left. This is standard 2D dynamic programming.',
     approach:
       'Use dynamic programming. dp[i][j] = number of paths to reach (i,j). If a cell has an obstacle, dp[i][j] = 0. Otherwise, dp[i][j] = dp[i-1][j] + dp[i][j-1]. Can optimize to 1D DP.',
     code: `class Solution:
@@ -1679,6 +1737,8 @@ export const solutions: ProblemSolution[] = [
       'Given an m x n grid filled with non-negative numbers, find a path from top left to bottom right which minimizes the sum of all numbers along its path. You can only move either down or right at any step.',
     examples:
       'Input: grid = [[1,3,1],[1,5,1],[4,2,1]]\nOutput: 7\nExplanation: path 1->3->1->1->1 = 7',
+    intuition:
+      'Each cell can only be reached from above or from the left, so the minimum cost to reach it is its own value plus the cheaper of those two options. Fill the DP table row by row, and the bottom-right cell gives the answer.',
     approach:
       'Use dynamic programming. dp[i][j] = minimum path sum to reach (i,j). dp[i][j] = grid[i][j] + min(dp[i-1][j], dp[i][j-1]). Can modify the grid in-place or use 1D DP.',
     code: `class Solution:
@@ -1731,6 +1791,8 @@ export const solutions: ProblemSolution[] = [
       'Given a string s, return whether s is a valid number. A valid number can be an integer or a decimal, optionally followed by an exponent part (e or E followed by an integer). It may start with an optional sign.',
     examples:
       'Input: s = "2e10"\nOutput: true',
+    intuition:
+      'This is a parsing problem best solved with a state machine. Track what you\'ve seen so far (digits, dot, exponent, sign) and validate transitions. The key insight is breaking the number into components: optional sign, integer/decimal part, optional exponent with its own optional sign and digits.',
     approach:
       'Use a state machine or flag-based approach. Track whether we have seen a digit, a dot, an exponent, and a sign. Validate transitions between these states as we process each character.',
     code: `class Solution:
@@ -1799,6 +1861,8 @@ export const solutions: ProblemSolution[] = [
       'You are given a large integer represented as an integer array digits, where each digits[i] is the ith digit. The digits are ordered from most significant to least significant. Increment the large integer by one and return the resulting array of digits.',
     examples:
       'Input: digits = [1,2,3]\nOutput: [1,2,4]',
+    intuition:
+      'Think of it like adding 1 by hand: start from the rightmost digit, add one, and carry over if it becomes 10. The only special case is when every digit carries over (like 999 + 1 = 1000), which requires prepending a 1.',
     approach:
       'Start from the last digit and add one. If it becomes 10, set it to 0 and carry to the next digit. If carry propagates past the first digit, prepend 1.',
     code: `class Solution:
@@ -1842,6 +1906,8 @@ export const solutions: ProblemSolution[] = [
       'Given two binary strings a and b, return their sum as a binary string.',
     examples:
       'Input: a = "11", b = "1"\nOutput: "100"',
+    intuition:
+      'This is elementary binary addition done right-to-left, just like decimal addition but with base 2. At each position, add the two bits and the carry. The sum bit is (total % 2) and the new carry is (total / 2).',
     approach:
       'Add the binary strings from right to left, keeping track of the carry. At each position, add the corresponding bits and the carry. Build the result string in reverse.',
     code: `class Solution:
@@ -1897,6 +1963,8 @@ export const solutions: ProblemSolution[] = [
       'Given an array of strings words and a width maxWidth, format the text such that each line has exactly maxWidth characters and is fully (left and right) justified. Pack as many words as you can in each line. Extra spaces between words should be distributed as evenly as possible. The last line should be left-justified.',
     examples:
       'Input: words = ["This","is","an","example","of","text","justification."], maxWidth = 16\nOutput: ["This    is    an","example  of text","justification.  "]',
+    intuition:
+      'The challenge is distributing spaces evenly. For each line, calculate total spaces needed, then divide them between word gaps. Extra spaces that don\'t divide evenly go to the leftmost gaps. The last line is left-justified with single spaces, which is a special case.',
     approach:
       'Greedily pack words into each line. For each line, calculate total spaces needed, distribute them evenly between words (with extra spaces going to the left slots). Left-justify the last line.',
     code: `class Solution:
@@ -1954,6 +2022,8 @@ export const solutions: ProblemSolution[] = [
       'Given a non-negative integer x, return the square root of x rounded down to the nearest integer. The returned integer should be non-negative as well. You must not use any built-in exponent function or operator.',
     examples:
       'Input: x = 8\nOutput: 2\nExplanation: The square root of 8 is 2.828..., rounded down to 2.',
+    intuition:
+      'Binary search works perfectly here: you\'re looking for the largest integer whose square is at most x. The search space is [0, x], and at each step you check if mid*mid is too big or too small. This converges in O(log x) steps.',
     approach:
       'Use binary search on the range [0, x]. For each midpoint, check if mid * mid <= x. Find the largest mid such that mid * mid <= x.',
     code: `class Solution:
@@ -1999,6 +2069,8 @@ export const solutions: ProblemSolution[] = [
       'Given an absolute Unix-style file path, simplify it to its canonical form. The canonical path starts with a single slash, directories are separated by single slashes, does not end with a trailing slash, and ".." means go up one directory.',
     examples:
       'Input: path = "/home//foo/"\nOutput: "/home/foo"',
+    intuition:
+      'Think of navigating a file system. A stack naturally models directory traversal: regular names push onto the stack, \'..\' pops from it, and \'.\' does nothing. At the end, join the stack contents with \'/\' to get the simplified path.',
     approach:
       'Split the path by "/", use a stack to process each component. Skip empty strings and ".". For "..", pop from the stack if non-empty. Join the stack with "/" and prepend "/".',
     code: `class Solution:
@@ -2046,6 +2118,8 @@ export const solutions: ProblemSolution[] = [
       'Given an integer array nums sorted in non-decreasing order, remove some duplicates in-place such that each unique element appears at most twice. The relative order of the elements should be kept the same. Return k, the number of valid elements.',
     examples:
       'Input: nums = [1,1,1,2,2,3]\nOutput: 5, nums = [1,1,2,2,3,_]',
+    intuition:
+      'The key insight is comparing each element to the one two positions back in the output. If they\'re different, this element is safe to include (it can\'t be a third duplicate). This single comparison replaces complex counting logic.',
     approach:
       'Use a write pointer. For each element, write it if it differs from the element two positions back in the output. This allows at most two copies of each value.',
     code: `class Solution:
@@ -2093,6 +2167,8 @@ export const solutions: ProblemSolution[] = [
       'There is an integer array nums sorted in non-decreasing order (with possible duplicates). nums is rotated at some pivot. Given the array after rotation and a target, return true if target is in nums, or false otherwise.',
     examples:
       'Input: nums = [2,5,6,0,0,1,2], target = 0\nOutput: true',
+    intuition:
+      'This is binary search in a rotated sorted array with duplicates. The main complication is when nums[lo] == nums[mid] - you can\'t tell which half is sorted. The fix is simple: just increment lo to skip the duplicate. This degrades worst-case to O(n) but average case remains O(log n).',
     approach:
       'Modified binary search. When duplicates make it impossible to determine which half is sorted (nums[lo] == nums[mid]), increment lo to skip the duplicate. Otherwise, determine which half is sorted and search accordingly.',
     code: `class Solution:
@@ -2159,6 +2235,8 @@ export const solutions: ProblemSolution[] = [
       'Given the head of a sorted linked list, delete all nodes that have duplicate numbers, leaving only distinct numbers from the original list. Return the linked list sorted as well.',
     examples:
       'Input: head = [1,2,3,3,4,4,5]\nOutput: [1,2,5]',
+    intuition:
+      'Use a pointer that looks ahead to detect runs of duplicate values. When you find a value that repeats, skip the entire run. A dummy node before the head handles the case where the head itself has duplicates.',
     approach:
       'Use a dummy node before head. For each node, check if it has duplicates (next node has same value). If so, skip all nodes with that value. If not, advance the pointer.',
     code: `class Solution:
@@ -2214,6 +2292,8 @@ export const solutions: ProblemSolution[] = [
       'Given the head of a sorted linked list, delete all duplicates such that each element appears only once. Return the linked list sorted as well.',
     examples:
       'Input: head = [1,1,2]\nOutput: [1,2]',
+    intuition:
+      'Walk through the sorted list and whenever the current node\'s value equals the next node\'s value, skip the next node by updating the pointer. Since the list is sorted, all duplicates are adjacent, making one pass sufficient.',
     approach:
       'Iterate through the list. When the current node has the same value as the next, skip the next node by updating the pointer. Otherwise, advance to the next node.',
     code: `class Solution:
@@ -2260,6 +2340,8 @@ export const solutions: ProblemSolution[] = [
       'Given a rows x cols binary matrix filled with 0s and 1s, find the largest rectangle containing only 1s and return its area.',
     examples:
       'Input: matrix = [["1","0","1","0","0"],["1","0","1","1","1"],["1","1","1","1","1"],["1","0","0","1","0"]]\nOutput: 6',
+    intuition:
+      'The key insight is reducing this 2D problem to a 1D one. For each row, build a histogram of consecutive 1s above (including the current row). Then apply the \'largest rectangle in histogram\' algorithm using a stack. This transforms an intimidating matrix problem into a familiar one.',
     approach:
       'Build a histogram of heights for each row (consecutive 1s above including current row). Then apply the largest rectangle in histogram algorithm using a stack for each row.',
     code: `class Solution:
@@ -2325,6 +2407,8 @@ export const solutions: ProblemSolution[] = [
       'Given the head of a linked list and a value x, partition it such that all nodes less than x come before nodes greater than or equal to x. You should preserve the original relative order of the nodes in each of the two partitions.',
     examples:
       'Input: head = [1,4,3,2,5,2], x = 3\nOutput: [1,2,2,4,3,5]',
+    intuition:
+      'Build two separate chains: one for nodes less than x, one for nodes greater than or equal to x. Walk through the original list, appending each node to the appropriate chain. Finally, connect the two chains together. A dummy head for each chain simplifies the logic.',
     approach:
       'Create two separate linked lists: one for nodes with values < x and one for nodes >= x. Iterate through the original list, appending each node to the appropriate list. Connect the two lists at the end.',
     code: `class Solution:
@@ -2384,6 +2468,8 @@ export const solutions: ProblemSolution[] = [
       'We can scramble a string s to get string t using a recursive algorithm: pick a random index and split the string into two non-empty substrings, then optionally swap the two substrings and recursively scramble each. Given two strings s1 and s2 of the same length, return true if s2 is a scrambled string of s1.',
     examples:
       'Input: s1 = "great", s2 = "rgeat"\nOutput: true',
+    intuition:
+      'Think of cutting a string in two and optionally swapping the pieces, then recursively doing the same to each piece. Two strings are scrambles if you can find a split point where either the straight or swapped halves match recursively. Character frequency comparison prunes impossible cases early.',
     approach:
       'Use memoized recursion. For each possible split point, check two cases: no swap (left matches left, right matches right) and swap (left matches right suffix, right matches left prefix). Prune with character frequency check.',
     code: `class Solution:
@@ -2450,6 +2536,8 @@ export const solutions: ProblemSolution[] = [
       'An n-bit gray code sequence is a sequence of 2^n integers where every two successive values differ in exactly one bit, the first and last values also differ in exactly one bit, and every value is in [0, 2^n - 1]. Return any valid n-bit gray code sequence starting with 0.',
     examples:
       'Input: n = 2\nOutput: [0,1,3,2]',
+    intuition:
+      'Each Gray code differs from the previous by exactly one bit. The elegant formula i XOR (i >> 1) generates this sequence directly. Alternatively, you can build it iteratively: reflect the current sequence and add a leading 1-bit to the reflected half.',
     approach:
       'Use the formula: the ith gray code is i XOR (i >> 1). Generate all 2^n values using this formula. Alternatively, build iteratively by reflecting the previous sequence and adding 2^(k-1).',
     code: `class Solution:
@@ -2486,6 +2574,8 @@ export const solutions: ProblemSolution[] = [
       'Given the head of a singly linked list and two integers left and right where left <= right, reverse the nodes of the list from position left to position right, and return the reversed list. Positions are 1-indexed.',
     examples:
       'Input: head = [1,2,3,4,5], left = 2, right = 4\nOutput: [1,4,3,2,5]',
+    intuition:
+      'Instead of actually removing and reinserting nodes, keep a pointer just before the reversal zone and repeatedly move the next node to the front of the reversed section. This \'thread-through\' technique reverses the sublist in one pass without extra space.',
     approach:
       'Navigate to the node just before position left. Then reverse the sublist from left to right by repeatedly moving the next node to the front of the reversed section.',
     code: `class Solution:
@@ -2538,6 +2628,8 @@ export const solutions: ProblemSolution[] = [
       'A valid IP address consists of exactly four integers separated by dots. Each integer is between 0 and 255 and cannot have leading zeros. Given a string s containing only digits, return all possible valid IP addresses that can be formed by inserting dots into s.',
     examples:
       'Input: s = "25525511135"\nOutput: ["255.255.11.135","255.255.111.35"]',
+    intuition:
+      'This is a constrained backtracking problem. At each step, try taking 1, 2, or 3 digits for the current IP segment. The constraints (0-255, no leading zeros, exactly 4 segments) prune most branches, making the search space small and fast.',
     approach:
       'Use backtracking to try placing dots at every valid position. At each step, try taking 1, 2, or 3 digits for the current segment, validating each segment is between 0-255 with no leading zeros.',
     code: `class Solution:
@@ -2598,6 +2690,8 @@ export const solutions: ProblemSolution[] = [
       'Given an integer n, return all the structurally unique BSTs which have exactly n nodes of unique values from 1 to n. Return the root nodes of all possible trees.',
     examples:
       'Input: n = 3\nOutput: [[1,null,2,null,3],[1,null,3,2],[2,1,3],[3,1,null,null,2],[3,2,null,1]]',
+    intuition:
+      'For a range of values [1..n], each value i can be the root. Its left subtree uses values [1..i-1] and its right subtree uses [i+1..n]. Generate all left and right subtrees recursively, then combine every left-right pair with root i. This Cartesian product approach naturally produces all valid BSTs.',
     approach:
       'Use recursive divide-and-conquer. For each possible root value i, recursively generate all left subtrees from [start, i-1] and all right subtrees from [i+1, end]. Combine each left-right pair with root i.',
     code: `class Solution:
@@ -2654,6 +2748,8 @@ export const solutions: ProblemSolution[] = [
       'Given an integer n, return the number of structurally unique BSTs which have exactly n nodes of unique values from 1 to n.',
     examples:
       'Input: n = 3\nOutput: 5',
+    intuition:
+      'The number of unique BSTs with n nodes follows the Catalan number pattern. If node i is the root, there are dp[i-1] left subtrees and dp[n-i] right subtrees, giving dp[i-1] * dp[n-i] combinations. Sum over all possible roots to get dp[n].',
     approach:
       'Use dynamic programming based on the Catalan number formula. dp[i] = sum of dp[j-1] * dp[i-j] for j from 1 to i, where dp[j-1] counts left subtrees and dp[i-j] counts right subtrees.',
     code: `class Solution:
@@ -2698,6 +2794,8 @@ export const solutions: ProblemSolution[] = [
       'Given strings s1, s2, and s3, find whether s3 is formed by an interleaving of s1 and s2. An interleaving is a configuration where s3 contains all characters of s1 and s2 while preserving the order of characters from each string.',
     examples:
       'Input: s1 = "aabcc", s2 = "dbbca", s3 = "aadbbcbcac"\nOutput: true',
+    intuition:
+      'Think of two people taking turns spelling out a word, each contributing characters from their own string in order. Use a 2D DP table where dp[i][j] asks: can the first i characters of s1 and first j characters of s2 interleave to form the first i+j characters of s3?',
     approach:
       'Use 2D dynamic programming. dp[i][j] = whether s3[:i+j] can be formed by interleaving s1[:i] and s2[:j]. Check if the next character in s3 matches the next character from s1 or s2.',
     code: `class Solution:
@@ -2755,6 +2853,8 @@ export const solutions: ProblemSolution[] = [
       'You are given the root of a binary search tree (BST), where the values of exactly two nodes of the tree were swapped by mistake. Recover the tree without changing its structure.',
     examples:
       'Input: root = [1,3,null,null,2]\nOutput: [3,1,null,null,2]\nExplanation: 3 and 1 are swapped.',
+    intuition:
+      'In a valid BST, an in-order traversal produces sorted values. If two nodes are swapped, you\'ll find one or two places where the order is violated. Track these violations during traversal to identify the two swapped nodes, then swap their values back.',
     approach:
       'Perform an in-order traversal of the BST. In a valid BST, in-order gives sorted values. Find the two places where the order is violated. The first violation gives the first swapped node, the second violation gives the second. Swap their values.',
     code: `class Solution:
@@ -2815,6 +2915,8 @@ export const solutions: ProblemSolution[] = [
       'Given the root of a binary tree, check whether it is a mirror of itself (i.e., symmetric around its center).',
     examples:
       'Input: root = [1,2,2,3,4,4,3]\nOutput: true',
+    intuition:
+      'A tree is symmetric if its left subtree is a mirror image of its right subtree. Two subtrees are mirrors when their roots are equal, the left child of one mirrors the right child of the other, and vice versa. This naturally leads to a recursive comparison.',
     approach:
       'Use recursion or iteration to compare the left and right subtrees. Two subtrees are mirrors if their roots are equal, the left subtree of one mirrors the right subtree of the other, and vice versa.',
     code: `class Solution:
@@ -2862,6 +2964,8 @@ export const solutions: ProblemSolution[] = [
       'Given the root of a binary tree, return the zigzag level order traversal of its nodes values (i.e., from left to right, then right to left for the next level and alternate between).',
     examples:
       'Input: root = [3,9,20,null,null,15,7]\nOutput: [[3],[20,9],[15,7]]',
+    intuition:
+      'This is level-order traversal with a twist: alternate levels are read in opposite directions. Use standard BFS, but reverse the values for odd-numbered levels. A deque can also handle this by alternating the end from which you read values.',
     approach:
       'Use BFS with a queue. Process level by level. For even levels, append values left-to-right; for odd levels, reverse the order (or use a deque to prepend).',
     code: `class Solution:
@@ -2931,6 +3035,8 @@ export const solutions: ProblemSolution[] = [
       'Given two integer arrays inorder and postorder where inorder is the inorder traversal and postorder is the postorder traversal of a binary tree, construct and return the binary tree.',
     examples:
       'Input: inorder = [9,3,15,20,7], postorder = [9,15,7,20,3]\nOutput: [3,9,20,null,null,15,7]',
+    intuition:
+      'The last element of postorder is always the root. Find that root in the inorder array to determine which elements belong to the left vs. right subtree. Process postorder from right to left, building the right subtree before the left, since postorder visits right subtrees later.',
     approach:
       'The last element of postorder is the root. Find it in inorder to split into left and right subtrees. Recursively build right subtree first (since postorder processes right before left when going backwards), then left subtree.',
     code: `class Solution:
@@ -2989,6 +3095,8 @@ export const solutions: ProblemSolution[] = [
       'Given the root of a binary tree, return the bottom-up level order traversal of its nodes values (i.e., from left to right, level by level from leaf to root).',
     examples:
       'Input: root = [3,9,20,null,null,15,7]\nOutput: [[15,7],[9,20],[3]]',
+    intuition:
+      'This is standard level-order BFS with the result reversed at the end. Alternatively, insert each level\'s values at the beginning of the result list. Either way, you get bottom-up level order from a top-down traversal.',
     approach:
       'Perform standard BFS level-order traversal and then reverse the result. Or, insert each level at the beginning of the result list.',
     code: `class Solution:
@@ -3050,6 +3158,8 @@ export const solutions: ProblemSolution[] = [
       'Given the head of a singly linked list where elements are sorted in ascending order, convert it to a height-balanced binary search tree.',
     examples:
       'Input: head = [-10,-3,0,5,9]\nOutput: [0,-3,9,-10,null,5]',
+    intuition:
+      'A sorted list maps directly to a balanced BST: the middle element becomes the root, the left half becomes the left subtree, and the right half becomes the right subtree. Use the slow/fast pointer technique to find the middle without converting to an array.',
     approach:
       'Use the slow/fast pointer technique to find the middle of the list as the root. Recursively build the left subtree from the first half and the right subtree from the second half.',
     code: `class Solution:
@@ -3107,6 +3217,8 @@ export const solutions: ProblemSolution[] = [
       'Given a binary tree, find its minimum depth. The minimum depth is the number of nodes along the shortest path from the root node down to the nearest leaf node. A leaf is a node with no children.',
     examples:
       'Input: root = [3,9,20,null,null,15,7]\nOutput: 2',
+    intuition:
+      'Unlike maximum depth, minimum depth requires finding the shallowest leaf. BFS is ideal here because it processes nodes level by level and returns immediately upon finding the first leaf. DFS would need to traverse the entire tree to be sure.',
     approach:
       'Use BFS for optimal performance. Process level by level and return the depth of the first leaf node encountered. This avoids traversing the entire tree.',
     code: `class Solution:
@@ -3159,6 +3271,8 @@ export const solutions: ProblemSolution[] = [
       'Given the root of a binary tree and an integer targetSum, return true if the tree has a root-to-leaf path such that adding up all the values along the path equals targetSum. A leaf is a node with no children.',
     examples:
       'Input: root = [5,4,8,11,null,13,4,7,2,null,null,null,1], targetSum = 22\nOutput: true',
+    intuition:
+      'Subtract the current node\'s value from the target as you go down. At each leaf, check if the remaining target is zero. This transforms the problem from \'find a path summing to target\' into \'find a leaf where the running subtraction reaches zero.\'',
     approach:
       'Use DFS recursion. At each node, subtract the node value from targetSum. At a leaf, check if the remaining sum is 0. Recurse on left and right children.',
     code: `class Solution:
@@ -3200,6 +3314,8 @@ export const solutions: ProblemSolution[] = [
       'Given the root of a binary tree and an integer targetSum, return all root-to-leaf paths where the sum of the node values in the path equals targetSum. Each path should be returned as a list of node values.',
     examples:
       'Input: root = [5,4,8,11,null,13,4,7,2,null,null,5,1], targetSum = 22\nOutput: [[5,4,11,2],[5,8,4,5]]',
+    intuition:
+      'This extends Path Sum by collecting all valid paths, not just checking existence. Use backtracking: maintain a current path list, add nodes as you go down, and when you reach a valid leaf, save a copy of the path. Remove the last node when backtracking up.',
     approach:
       'Use DFS backtracking. Maintain a current path list. At each leaf, if the remaining sum equals the leaf value, add a copy of the path to results. Backtrack by removing the last element after recursion.',
     code: `class Solution:
@@ -3255,6 +3371,8 @@ export const solutions: ProblemSolution[] = [
       'Given the root of a binary tree, flatten the tree into a "linked list" using the right pointers, in the same order as a pre-order traversal. Every node\'s left pointer should be null.',
     examples:
       'Input: root = [1,2,5,3,4,null,6]\nOutput: [1,null,2,null,3,null,4,null,5,null,6]',
+    intuition:
+      'Process the tree in reverse pre-order (right, left, root). Keep a pointer to the previously processed node. For each node, set its right child to the previous node and its left child to null. This threads the tree into a linked list without extra space.',
     approach:
       'Process the tree using a reverse pre-order traversal (right, left, root). Keep a prev pointer to the previously processed node. Set each node\'s right to prev and left to null.',
     code: `class Solution:
@@ -3305,6 +3423,8 @@ export const solutions: ProblemSolution[] = [
       'Given two strings s and t, return the number of distinct subsequences of s which equals t. A subsequence is a string that can be derived from another string by deleting some or no characters without changing the order.',
     examples:
       'Input: s = "rabbbit", t = "rabbit"\nOutput: 3',
+    intuition:
+      'Think of it as choosing which characters in s to \'highlight\' to spell out t. For each character in s, you either use it (if it matches the current character in t) or skip it. The DP counts all ways to make these choices, building up from smaller subproblems.',
     approach:
       'Use 2D DP where dp[i][j] = number of ways to form t[:j] from s[:i]. If s[i-1] == t[j-1], dp[i][j] = dp[i-1][j-1] + dp[i-1][j]. Otherwise, dp[i][j] = dp[i-1][j].',
     code: `class Solution:
@@ -3357,6 +3477,8 @@ export const solutions: ProblemSolution[] = [
       'You are given a perfect binary tree where all leaves are on the same level. Populate each next pointer to point to its next right node. If there is no next right node, the next pointer should be set to NULL. Initially, all next pointers are set to NULL.',
     examples:
       'Input: root = [1,2,3,4,5,6,7]\nOutput: [1,#,2,3,#,4,5,6,7,#]',
+    intuition:
+      'In a perfect binary tree, each node\'s left child connects to its right child, and each node\'s right child connects to the left child of the node\'s next sibling. The already-established next pointers at the current level let you traverse siblings to make these connections for the level below.',
     approach:
       'Use the already-established next pointers to traverse each level. For each node, connect left.next = right, and right.next = node.next.left (if node.next exists). Process level by level from top.',
     code: `class Solution:
@@ -3411,6 +3533,8 @@ export const solutions: ProblemSolution[] = [
       'Given a binary tree (not necessarily perfect), populate each next pointer to point to its next right node. If there is no next right node, the next pointer should be set to NULL.',
     examples:
       'Input: root = [1,2,3,4,5,null,7]\nOutput: [1,#,2,3,#,4,5,7,#]',
+    intuition:
+      'Unlike the perfect binary tree version, children may be missing. Use a dummy node to build a linked list of the next level while traversing the current level via its next pointers. The dummy\'s next becomes the head of the next level\'s chain.',
     approach:
       'Use a dummy node to build the next level while traversing the current level using next pointers. The dummy node acts as the head of the linked list for the next level.',
     code: `class Solution:
@@ -3467,6 +3591,8 @@ export const solutions: ProblemSolution[] = [
       'Given an integer numRows, return the first numRows of Pascal\'s triangle. In Pascal\'s triangle, each number is the sum of the two numbers directly above it.',
     examples:
       'Input: numRows = 5\nOutput: [[1],[1,1],[1,2,1],[1,3,3,1],[1,4,6,4,1]]',
+    intuition:
+      'Each row of Pascal\'s Triangle starts and ends with 1, and every interior element is the sum of the two elements directly above it. Build it row by row, using the previous row to compute the current one.',
     approach:
       'Build the triangle row by row. Each row starts and ends with 1. Interior elements are the sum of the two elements above from the previous row.',
     code: `class Solution:
@@ -3513,6 +3639,8 @@ export const solutions: ProblemSolution[] = [
       'Given an integer rowIndex, return the rowIndexth (0-indexed) row of Pascal\'s triangle. Can you optimize your algorithm to use only O(rowIndex) extra space?',
     examples:
       'Input: rowIndex = 3\nOutput: [1,3,3,1]',
+    intuition:
+      'You only need one row at a time. Update a single array from right to left so that each element becomes the sum of itself and its left neighbor. Right-to-left updating prevents overwriting values you still need for the current computation.',
     approach:
       'Use a single array and update it in place from right to left. This avoids needing the full triangle. Update each element by adding the element to its left from the previous iteration.',
     code: `class Solution:
@@ -3555,6 +3683,8 @@ export const solutions: ProblemSolution[] = [
       'Given a triangle array, return the minimum path sum from top to bottom. For each step, you may move to an adjacent number of the row below. Adjacent means index i or i+1 in the next row.',
     examples:
       'Input: triangle = [[2],[3,4],[6,5,7],[4,1,8,3]]\nOutput: 11\nExplanation: 2 + 3 + 5 + 1 = 11',
+    intuition:
+      'Start from the bottom of the triangle and work upward. For each cell, replace it with its value plus the minimum of its two children below. When you reach the top, the apex contains the minimum path sum. Bottom-up avoids the need for backtracking.',
     approach:
       'Use bottom-up DP. Start from the bottom row and work upward. For each cell, the minimum path sum is the cell value plus the minimum of its two children below. Modify the triangle in place or use a 1D array.',
     code: `class Solution:
@@ -3597,6 +3727,8 @@ export const solutions: ProblemSolution[] = [
       'You are given an integer array prices where prices[i] is the price of a given stock on the ith day. On each day, you may decide to buy and/or sell the stock. You can hold at most one share at a time. Find the maximum profit you can achieve.',
     examples:
       'Input: prices = [7,1,5,3,6,4]\nOutput: 7\nExplanation: Buy on day 2 (price=1), sell on day 3 (price=5), profit=4. Then buy on day 4 (price=3), sell on day 5 (price=6), profit=3. Total=7.',
+    intuition:
+      'The key insight is that you can capture every upswing. Whenever tomorrow\'s price is higher than today\'s, buy today and sell tomorrow. This greedy approach is equivalent to finding the optimal set of non-overlapping transactions because consecutive gains can be combined.',
     approach:
       'Greedily collect all positive price differences. Whenever the price goes up from one day to the next, add the difference to the profit. This is equivalent to buying and selling on consecutive days.',
     code: `class Solution:
@@ -3639,6 +3771,8 @@ export const solutions: ProblemSolution[] = [
       'You are given an array prices where prices[i] is the price of a given stock on the ith day. Find the maximum profit you can achieve. You may complete at most two transactions (buy-sell pairs). You may not engage in multiple transactions simultaneously.',
     examples:
       'Input: prices = [3,3,5,0,0,3,1,4]\nOutput: 6\nExplanation: Buy on day 4, sell on day 6 (profit=3), buy on day 7, sell on day 8 (profit=3). Total=6.',
+    intuition:
+      'Think of the price array as having a \'wall\' at each position that divides it into a left half and right half. Track four states as you scan: the best you can do after your first buy, first sell, second buy, and second sell. Each state builds on the previous one.',
     approach:
       'Track four states: after first buy, after first sell, after second buy, after second sell. Update each state optimally as you scan through prices.',
     code: `class Solution:
@@ -3686,6 +3820,8 @@ export const solutions: ProblemSolution[] = [
       'A transformation sequence from word beginWord to word endWord using a dictionary wordList is a sequence of words where every adjacent pair differs by a single letter and every word is in wordList. Return all the shortest transformation sequences from beginWord to endWord.',
     examples:
       'Input: beginWord = "hit", endWord = "cog", wordList = ["hot","dot","dog","lot","log","cog"]\nOutput: [["hit","hot","dot","dog","cog"],["hit","hot","lot","log","cog"]]',
+    intuition:
+      'First use BFS to find the shortest path length and record which words can reach which (building a predecessor map). Then use DFS/backtracking from the end word to reconstruct all shortest paths. The BFS guarantees you only explore shortest-path edges.',
     approach:
       'Use BFS to find shortest path length and build a parent/predecessor map. Then use DFS/backtracking from endWord to beginWord using the predecessor map to reconstruct all shortest paths.',
     code: `class Solution:
@@ -3788,6 +3924,8 @@ export const solutions: ProblemSolution[] = [
       'You are given the root of a binary tree containing digits from 0 to 9 only. Each root-to-leaf path represents a number (e.g., path 1->2->3 represents 123). Return the total sum of all root-to-leaf numbers.',
     examples:
       'Input: root = [1,2,3]\nOutput: 25\nExplanation: 12 + 13 = 25',
+    intuition:
+      'Each root-to-leaf path forms a number where each level adds a digit. As you DFS down the tree, multiply the accumulated number by 10 and add the current node\'s value. At each leaf, the accumulated value is one complete number to add to the total.',
     approach:
       'Use DFS, passing the current number formed so far. At each node, multiply the current number by 10 and add the node value. At leaf nodes, add the number to the total sum.',
     code: `class Solution:
@@ -3833,6 +3971,8 @@ export const solutions: ProblemSolution[] = [
       'Given a string s, return the minimum number of cuts needed so that every substring of the partition is a palindrome.',
     examples:
       'Input: s = "aab"\nOutput: 1\nExplanation: ["aa","b"]',
+    intuition:
+      'First, precompute which substrings are palindromes using a 2D table. Then use DP where dp[i] is the minimum cuts for the first i characters. For each position, check all palindromic substrings ending there and take the minimum cuts needed.',
     approach:
       'Use two DP arrays. First, precompute a 2D palindrome table. Then, dp[i] = minimum cuts for s[:i+1]. For each position, if s[j..i] is a palindrome, dp[i] = min(dp[i], dp[j-1] + 1).',
     code: `class Solution:
@@ -3895,6 +4035,8 @@ export const solutions: ProblemSolution[] = [
       'There are n children standing in a line. Each child is assigned a rating value. You are giving candies to these children with the rules: each child must have at least one candy, and children with a higher rating than their neighbors must get more candies. Return the minimum total number of candies.',
     examples:
       'Input: ratings = [1,0,2]\nOutput: 5\nExplanation: [2,1,2]',
+    intuition:
+      'Two separate scans capture the two constraints independently. Left-to-right ensures higher-rated children get more than their left neighbor; right-to-left ensures the same for the right neighbor. Taking the maximum of both scans at each position satisfies both constraints simultaneously.',
     approach:
       'Two-pass greedy. First pass left-to-right: if rating increases, give one more candy than the left neighbor. Second pass right-to-left: if rating increases going right, ensure more candies than the right neighbor. Take the max at each position.',
     code: `class Solution:
@@ -3943,6 +4085,8 @@ export const solutions: ProblemSolution[] = [
       'Given an integer array nums where every element appears exactly three times except for one element which appears exactly once. Find the single element and return it. Your algorithm should have linear runtime complexity and use only constant extra space.',
     examples:
       'Input: nums = [2,2,3,2]\nOutput: 3',
+    intuition:
+      'When a number appears three times, its bits appear in multiples of three at each position. Track bit counts modulo 3 using two variables (ones and twos). After processing all numbers, \'ones\' holds the bits of the number that appeared only once.',
     approach:
       'Use two variables (ones, twos) to track bits that have appeared once and twice. When a bit appears three times, clear it from both. After processing all numbers, ones holds the single number.',
     code: `class Solution:
@@ -3984,6 +4128,8 @@ export const solutions: ProblemSolution[] = [
       'Given a string s and a dictionary of strings wordDict, add spaces in s to construct a sentence where each word is a valid dictionary word. Return all possible sentences in any order.',
     examples:
       'Input: s = "catsanddog", wordDict = ["cat","cats","and","sand","dog"]\nOutput: ["cats and dog","cat sand dog"]',
+    intuition:
+      'This is Word Break with path reconstruction. At each position, try every dictionary word that matches the current prefix, then recursively solve the remaining suffix. Memoization avoids recomputing the same suffixes, turning exponential worst-case into polynomial.',
     approach:
       'Use memoized DFS/backtracking. For each position, try every word in the dictionary that matches the current prefix. Recursively solve the remaining substring and combine results.',
     code: `class Solution:
@@ -4049,6 +4195,8 @@ export const solutions: ProblemSolution[] = [
       'Given the root of a binary tree, return the preorder traversal of its nodes values. Preorder visits root, then left subtree, then right subtree.',
     examples:
       'Input: root = [1,null,2,3]\nOutput: [1,2,3]',
+    intuition:
+      'Pre-order traversal visits root, then left, then right. Iteratively, use a stack: pop a node, record its value, push right child first, then left child. Since stacks are LIFO, left gets processed before right, maintaining the correct order.',
     approach:
       'Use an iterative approach with a stack. Push root, then repeatedly pop, visit, push right child, then push left child (so left is processed first).',
     code: `class Solution:
@@ -4099,6 +4247,8 @@ export const solutions: ProblemSolution[] = [
       'Given the root of a binary tree, return the postorder traversal of its nodes values. Postorder visits left subtree, right subtree, then root.',
     examples:
       'Input: root = [1,null,2,3]\nOutput: [3,2,1]',
+    intuition:
+      'Post-order (left, right, root) is tricky iteratively. The clever trick: do a modified pre-order (root, right, left) by pushing left before right, then reverse the result. The reversed modified pre-order gives exactly post-order.',
     approach:
       'Use a modified preorder traversal (root, right, left) and reverse the result. Or use two stacks. The reversed modified preorder gives left, right, root (postorder).',
     code: `class Solution:
@@ -4149,6 +4299,8 @@ export const solutions: ProblemSolution[] = [
       'Given the head of a singly linked list, sort the list using insertion sort, and return the sorted list head.',
     examples:
       'Input: head = [4,2,1,3]\nOutput: [1,2,3,4]',
+    intuition:
+      'Build the sorted portion of the list from left to right. For each unsorted node, walk through the sorted portion to find where it belongs (like inserting a card into a sorted hand). A dummy head simplifies insertion at the beginning.',
     approach:
       'Build a sorted list from left to right. For each node, find the correct position in the sorted portion and insert it there. Use a dummy head to simplify insertion at the beginning.',
     code: `class Solution:
@@ -4201,6 +4353,8 @@ export const solutions: ProblemSolution[] = [
       'Given an array of points where points[i] = [xi, yi] represents a point on the X-Y plane, return the maximum number of points that lie on the same straight line.',
     examples:
       'Input: points = [[1,1],[2,2],[3,3]]\nOutput: 3',
+    intuition:
+      'For each anchor point, compute the slope to every other point and count how many share the same slope. Use a hash map keyed by slope. The key insight is representing slopes as reduced fractions (or using a tuple of delta_x, delta_y divided by their GCD) to avoid floating-point imprecision.',
     approach:
       'For each point, compute the slope to every other point and use a hash map to count points with the same slope. The maximum count for any slope plus one (the anchor point) is a candidate answer.',
     code: `class Solution:
@@ -4273,6 +4427,8 @@ export const solutions: ProblemSolution[] = [
       'Given an input string s, reverse the order of the words. A word is defined as a sequence of non-space characters. The words in s will be separated by at least one space. Return a string of the words in reverse order concatenated by a single space.',
     examples:
       'Input: s = "the sky is blue"\nOutput: "blue is sky the"',
+    intuition:
+      'Split the string by whitespace to get individual words, filter out empty strings, reverse the list, and join with single spaces. This handles multiple spaces, leading spaces, and trailing spaces all at once.',
     approach:
       'Split the string by whitespace to get individual words, reverse the list of words, and join them with single spaces. This handles multiple spaces and leading/trailing spaces.',
     code: `class Solution:
@@ -4304,6 +4460,8 @@ export const solutions: ProblemSolution[] = [
       'Suppose an array of length n sorted in ascending order is rotated between 1 and n times. The array may contain duplicates. Find the minimum element.',
     examples:
       'Input: nums = [2,2,2,0,1]\nOutput: 0',
+    intuition:
+      'Binary search in a rotated array with duplicates. When nums[mid] equals nums[hi], you can\'t determine which half contains the minimum, so shrink the search space by decrementing hi. This handles the ambiguity that duplicates create.',
     approach:
       'Use binary search. Compare mid with hi. If nums[mid] < nums[hi], the minimum is in the left half. If nums[mid] > nums[hi], the minimum is in the right half. If equal, decrement hi to skip the duplicate.',
     code: `class Solution:
@@ -4352,6 +4510,8 @@ export const solutions: ProblemSolution[] = [
       'Given a string s, return the length of the longest substring that contains at most two distinct characters.',
     examples:
       'Input: s = "eceba"\nOutput: 3\nExplanation: "ece" has 2 distinct characters.',
+    intuition:
+      'Use a sliding window with a character frequency map. Expand the window to the right, adding characters. When the window contains more than two distinct characters, shrink from the left until you\'re back to two. Track the maximum window size throughout.',
     approach:
       'Use a sliding window with a hash map tracking character counts. Expand the right pointer and add characters. When distinct characters exceed 2, shrink from the left until we have at most 2 distinct characters.',
     code: `class Solution:
@@ -4406,6 +4566,8 @@ export const solutions: ProblemSolution[] = [
       'Given two strings s and t, return true if they are both one edit distance apart, otherwise return false. An edit is: insert a character, delete a character, or replace a character.',
     examples:
       'Input: s = "ab", t = "acb"\nOutput: true',
+    intuition:
+      'Compare the two strings based on their length difference. If same length, find the first mismatch - everything after must be identical (one replace). If lengths differ by one, find the first mismatch and skip one character in the longer string - the rest must match (one insert/delete).',
     approach:
       'If lengths differ by more than 1, return false. Find the first differing character. If same length, the rest after that position must be equal (replace). If different lengths, skip one character in the longer string and the rest must match (insert/delete).',
     code: `class Solution:
@@ -4458,6 +4620,8 @@ export const solutions: ProblemSolution[] = [
       'You are given an inclusive range [lower, upper] and a sorted unique integer array nums. A number x is considered missing if x is in the range [lower, upper] and x is not in nums. Return the smallest sorted list of ranges that cover every missing number exactly.',
     examples:
       'Input: nums = [0,1,3,50,75], lower = 0, upper = 99\nOutput: [[2,2],[4,49],[51,74],[76,99]]',
+    intuition:
+      'Walk through the array while tracking the next expected number. Whenever there\'s a gap between what you expect and what you see, that gap is a missing range. The key is handling the boundaries (lower and upper) as implicit elements of the sequence.',
     approach:
       'Iterate through nums while tracking the expected next number (starting from lower). Whenever there is a gap between the expected number and the current number, record the missing range. Handle the final range after the loop.',
     code: `class Solution:
@@ -4502,6 +4666,8 @@ export const solutions: ProblemSolution[] = [
       'Given an integer array nums, return the maximum difference between two successive elements in its sorted form. If the array contains less than two elements, return 0. You must write an algorithm that runs in linear time.',
     examples:
       'Input: nums = [3,6,9,1]\nOutput: 3',
+    intuition:
+      'The pigeonhole principle guarantees the maximum gap is at least ceil((max-min)/(n-1)). Create buckets of this size so the max gap must occur between consecutive non-empty buckets, not within a bucket. This clever bucketing avoids comparison-based sorting to achieve O(n) time.',
     approach:
       'Use bucket sort / pigeonhole principle. The maximum gap is at least ceil((max-min)/(n-1)). Create buckets of this size. The maximum gap must be between consecutive non-empty buckets (not within a bucket).',
     code: `class Solution:
@@ -4572,6 +4738,8 @@ export const solutions: ProblemSolution[] = [
       'Given two version strings version1 and version2, compare them. Version strings consist of revisions separated by dots. Each revision is a non-negative integer. Compare revision by revision from left to right. Missing revisions are treated as 0.',
     examples:
       'Input: version1 = "1.01", version2 = "1.001"\nOutput: 0',
+    intuition:
+      'Split both version strings by dots and compare segment by segment as integers. If one version has fewer segments, treat the missing ones as zero. This handles cases like \'1.0\' equaling \'1\' and leading zeros within segments.',
     approach:
       'Split both versions by dots and compare integer values of corresponding revisions. If one version has fewer revisions, treat the missing ones as 0.',
     code: `class Solution:
@@ -4623,6 +4791,8 @@ export const solutions: ProblemSolution[] = [
       'Given two integers representing the numerator and denominator of a fraction, return the fraction in string format. If the fractional part is repeating, enclose the repeating part in parentheses.',
     examples:
       'Input: numerator = 1, denominator = 3\nOutput: "0.(3)"',
+    intuition:
+      'This is long division by hand. The key insight for detecting repeating decimals is that if a remainder repeats during division, the digits between the two occurrences of that remainder will repeat forever. Track remainder positions with a hash map.',
     approach:
       'Perform long division. Track remainders and their positions. When a remainder repeats, the digits between the two occurrences form the repeating part. Insert parentheses around it.',
     code: `class Solution:
@@ -4696,6 +4866,8 @@ export const solutions: ProblemSolution[] = [
       'Given an integer columnNumber, return its corresponding column title as it appears in an Excel sheet. For example, A = 1, B = 2, ..., Z = 26, AA = 27, AB = 28, ...',
     examples:
       'Input: columnNumber = 701\nOutput: "ZY"',
+    intuition:
+      'This is base-26 conversion, but 1-indexed (A=1, not A=0). The fix is to subtract 1 before taking modulo 26 at each step. This accounts for the fact that there\'s no \'zero\' character in the Excel column system.',
     approach:
       'This is essentially converting to base-26, but 1-indexed instead of 0-indexed. Repeatedly subtract 1, then take modulo 26 to get the current character, and divide by 26 for the next digit.',
     code: `class Solution:
@@ -4739,6 +4911,8 @@ export const solutions: ProblemSolution[] = [
       'Given a string columnTitle that represents the column title as appears in an Excel sheet, return its corresponding column number. A = 1, B = 2, ..., Z = 26, AA = 27, AB = 28, ...',
     examples:
       'Input: columnTitle = "AB"\nOutput: 28',
+    intuition:
+      'This is simply base-26 to decimal conversion. Process each character left to right, multiplying the running total by 26 and adding the character\'s value (A=1, B=2, ..., Z=26). It works just like converting binary or hexadecimal to decimal.',
     approach:
       'Process the string from left to right. For each character, multiply the running total by 26 and add the character value (A=1, B=2, ..., Z=26). This is base-26 conversion.',
     code: `class Solution:
@@ -4778,6 +4952,8 @@ export const solutions: ProblemSolution[] = [
       'Given an integer n, return the number of trailing zeroes in n!. Trailing zeroes are produced by factors of 10 = 2 * 5. Since there are always more factors of 2 than 5, count the factors of 5.',
     examples:
       'Input: n = 5\nOutput: 1',
+    intuition:
+      'Trailing zeros come from factors of 10, and 10 = 2 x 5. Since there are always more factors of 2 than 5, just count factors of 5. Every multiple of 5 contributes one factor, every multiple of 25 contributes an extra, and so on.',
     approach:
       'Count the number of factors of 5 in n!. Each multiple of 5 contributes one factor, each multiple of 25 contributes an extra, each multiple of 125 contributes yet another, and so on.',
     code: `class Solution:
@@ -4819,6 +4995,8 @@ export const solutions: ProblemSolution[] = [
       'Implement the BSTIterator class that represents an iterator over the in-order traversal of a binary search tree (BST). next() returns the next smallest number, hasNext() returns whether a next number exists. Both operations should run in average O(1) time and use O(h) memory.',
     examples:
       'Input: ["BSTIterator","next","next","hasNext","next","hasNext",...]\nOutput: [null,3,7,true,9,true,...]',
+    intuition:
+      'The stack stores the path to the next smallest element. Initialize by pushing all left children of the root. When next() is called, pop the top (the smallest), then push all left children of its right child. This lazily unfolds the in-order traversal on demand.',
     approach:
       'Use a stack to simulate in-order traversal. Push all left children onto the stack. When next() is called, pop the top, push all left children of its right child. The stack always contains the path to the next smallest element.',
     code: `class BSTIterator:
@@ -4883,6 +5061,8 @@ BSTIterator.prototype.hasNext = function() {
       'The demons have captured the princess and imprisoned her in the bottom-right corner of a dungeon. The knight starts at the top-left corner and can only move right or down. Each room has an integer representing health gained or lost. Determine the minimum initial health needed so the knight can rescue the princess (health must stay >= 1 at all times).',
     examples:
       'Input: dungeon = [[-2,-3,3],[-5,-10,1],[10,30,-5]]\nOutput: 7',
+    intuition:
+      'Work backwards from the princess to the start. At each cell, the knight needs enough health to survive the current cell and still have enough for the best path forward. The minimum health is max(1, future_need - current_cell), ensuring health never drops below 1.',
     approach:
       'Use bottom-up DP starting from the princess cell. dp[i][j] = minimum health needed when entering cell (i,j). dp[i][j] = max(1, min(dp[i+1][j], dp[i][j+1]) - dungeon[i][j]).',
     code: `class Solution:
@@ -4931,6 +5111,8 @@ BSTIterator.prototype.hasNext = function() {
       'Given a list of non-negative integers nums, arrange them such that they form the largest number and return it as a string. The result may be very large, so return a string instead of an integer.',
     examples:
       'Input: nums = [10,2]\nOutput: "210"',
+    intuition:
+      'The key comparison is: for two numbers a and b, which ordering (ab or ba) produces the larger result? Sort the numbers using this custom comparator, then concatenate them. This greedy choice at each position provably produces the globally largest number.',
     approach:
       'Sort the numbers using a custom comparator: for two numbers a and b, compare the concatenations ab vs ba. If ab > ba, a should come first. This greedy approach produces the largest number.',
     code: `class Solution:
@@ -4976,6 +5158,8 @@ BSTIterator.prototype.hasNext = function() {
       'The DNA sequence is composed of a series of nucleotides abbreviated as A, C, G, and T. Given a string s that represents a DNA sequence, return all the 10-letter-long sequences (substrings) that occur more than once in the DNA molecule.',
     examples:
       'Input: s = "AAAAACCCCCAAAAACCCCCCAAAAAGGGTTT"\nOutput: ["AAAAACCCCC","CCCCCAAAAA"]',
+    intuition:
+      'Use a sliding window of exactly 10 characters. Hash each window and track which sequences you\'ve seen. If a sequence appears more than once, it\'s repeated. The fixed window size makes this a straightforward sliding window + hash set problem.',
     approach:
       'Use a sliding window of size 10 and a hash set. For each window, check if the substring has been seen before. If yes, add it to the result set. If no, add it to the seen set.',
     code: `class Solution:
@@ -5021,6 +5205,8 @@ BSTIterator.prototype.hasNext = function() {
       'You are given an integer array prices where prices[i] is the price of a given stock on the ith day, and an integer k. Find the maximum profit you can achieve with at most k transactions.',
     examples:
       'Input: k = 2, prices = [2,4,1]\nOutput: 2',
+    intuition:
+      'This generalizes the stock trading problem to k transactions. Use DP with states tracking the number of completed transactions and whether you\'re holding stock. When k is large enough (>= n/2), it reduces to the unlimited transactions case (simple greedy).',
     approach:
       'Use DP with states: dp[j][0] = max profit with j transactions completed, not holding; dp[j][1] = holding. If k >= n/2, it reduces to unlimited transactions (greedy). Otherwise, use O(k) space DP.',
     code: `class Solution:
@@ -5079,6 +5265,8 @@ BSTIterator.prototype.hasNext = function() {
       'Given an integer array nums, rotate the array to the right by k steps, where k is non-negative. Do it in-place with O(1) extra memory.',
     examples:
       'Input: nums = [1,2,3,4,5,6,7], k = 3\nOutput: [5,6,7,1,2,3,4]',
+    intuition:
+      'The three-reverse trick is elegant: reverse the whole array, reverse the first k elements, then reverse the rest. Each reversal is O(n) and in-place. To see why it works, think of the array as two blocks that need to swap positions.',
     approach:
       'Use the three-reverse trick: reverse the entire array, then reverse the first k elements, then reverse the remaining elements. This achieves the rotation in-place.',
     code: `class Solution:
@@ -5131,6 +5319,8 @@ BSTIterator.prototype.hasNext = function() {
       'Reverse bits of a given 32 bits unsigned integer. Return the unsigned integer with its bits reversed.',
     examples:
       'Input: n = 43261596 (00000010100101000001111010011100)\nOutput: 964176192 (00111001011110000010100101000000)',
+    intuition:
+      'Build the reversed number bit by bit. Extract the last bit of n, shift it into position in the result, then shift n right. After 32 iterations, every bit has been placed in its mirror position.',
     approach:
       'Iterate 32 times. Each time, shift result left by 1 and add the last bit of n. Then shift n right by 1. This builds the reversed bit pattern.',
     code: `class Solution:
@@ -5172,6 +5362,8 @@ BSTIterator.prototype.hasNext = function() {
       'Write a solution to find all dates id where the temperature is higher than the previous day temperature. The Weather table has columns: id, recordDate, temperature. Return the result table with the id column.',
     examples:
       'Input: Weather table = [(1,"2015-01-01",10),(2,"2015-01-02",25),(3,"2015-01-03",20),(4,"2015-01-04",30)]\nOutput: [(2,),(4,)]',
+    intuition:
+      'Join the table with itself where one row is exactly one day before the other. Use date arithmetic (DATEDIFF or date subtraction) to pair consecutive days, then filter for rows where today\'s temperature exceeds yesterday\'s.',
     approach:
       'Join the table with itself on consecutive dates using DATEDIFF or date arithmetic. Select rows where the current temperature exceeds the previous day temperature.',
     code: `# SQL Solution:
@@ -5226,6 +5418,8 @@ def rising_temperature(weather: pd.DataFrame) -> pd.DataFrame:
       'Given two integers left and right that represent the range [left, right], return the bitwise AND of all numbers in this range, inclusive.',
     examples:
       'Input: left = 5, right = 7\nOutput: 4',
+    intuition:
+      'The bitwise AND of all numbers in a range zeros out any bit position where at least one number has a 0. As you count from left to right, lower bits flip frequently. The result is just the common binary prefix of left and right, with the rest zeroed out.',
     approach:
       'The bitwise AND of a range equals the common prefix of left and right in binary. Right-shift both until they are equal, then left-shift back by the number of shifts.',
     code: `class Solution:
@@ -5269,6 +5463,8 @@ def rising_temperature(weather: pd.DataFrame) -> pd.DataFrame:
       'Given the head of a linked list and an integer val, remove all the nodes of the linked list that have Node.val == val, and return the new head.',
     examples:
       'Input: head = [1,2,6,3,4,5,6], val = 6\nOutput: [1,2,3,4,5]',
+    intuition:
+      'Use a dummy node before the head to handle removal of the head uniformly. Walk through the list: if the next node\'s value matches the target, skip it by updating the pointer; otherwise, advance to the next node.',
     approach:
       'Use a dummy node before the head. Iterate through the list, skipping nodes with the target value by adjusting the previous node\'s next pointer.',
     code: `class Solution:
@@ -5314,6 +5510,8 @@ def rising_temperature(weather: pd.DataFrame) -> pd.DataFrame:
       'Given an integer n, return the number of prime numbers that are strictly less than n.',
     examples:
       'Input: n = 10\nOutput: 4\nExplanation: Primes less than 10: 2, 3, 5, 7.',
+    intuition:
+      'The Sieve of Eratosthenes is the classic algorithm: start with all numbers marked as prime, then for each prime p, mark all its multiples as not prime. The key optimization is starting from p^2 (smaller multiples were already marked by smaller primes).',
     approach:
       'Use the Sieve of Eratosthenes. Create a boolean array of size n, initially all True. For each prime p starting from 2, mark all multiples of p as not prime. Count remaining True values.',
     code: `class Solution:
@@ -5362,6 +5560,8 @@ def rising_temperature(weather: pd.DataFrame) -> pd.DataFrame:
       'Given two strings s and t, determine if they are isomorphic. Two strings are isomorphic if the characters in s can be replaced to get t, with a one-to-one mapping. No two characters may map to the same character, but a character may map to itself.',
     examples:
       'Input: s = "egg", t = "add"\nOutput: true',
+    intuition:
+      'Two strings are isomorphic if there\'s a consistent one-to-one mapping between their characters. Use two maps to track the bidirectional mapping. If a character in s maps to a different character in t than expected (or vice versa), the mapping is broken.',
     approach:
       'Use two hash maps: one mapping s chars to t chars, and one mapping t chars to s chars. For each character pair, verify the mappings are consistent in both directions.',
     code: `class Solution:
@@ -5416,6 +5616,8 @@ def rising_temperature(weather: pd.DataFrame) -> pd.DataFrame:
       'Given an m x n board of characters and a list of strings words, return all words on the board. Each word must be constructed from letters of sequentially adjacent cells (horizontal or vertical). A cell may not be used more than once in a word.',
     examples:
       'Input: board = [["o","a","a","n"],["e","t","a","e"],["i","h","k","r"],["i","f","l","v"]], words = ["oath","pea","eat","rain"]\nOutput: ["eat","oath"]',
+    intuition:
+      'Build a Trie from the word list, then DFS from each board cell following Trie paths. The Trie lets you search for all words simultaneously rather than one at a time. Pruning Trie branches after finding words prevents redundant exploration.',
     approach:
       'Build a Trie from the word list. DFS from each cell on the board, following Trie paths. When a complete word is found, add it to results. Prune Trie branches after finding words for efficiency.',
     code: `class Solution:
@@ -5507,6 +5709,8 @@ def rising_temperature(weather: pd.DataFrame) -> pd.DataFrame:
       'You are given a string s. You can convert s to a palindrome by adding characters in front of it. Return the shortest palindrome you can find by performing this transformation.',
     examples:
       'Input: s = "aacecaaa"\nOutput: "aaacecaaa"',
+    intuition:
+      'You need to find the longest palindromic prefix of the string, then prepend the reverse of the remaining suffix. The KMP failure function on s + \'#\' + reverse(s) efficiently finds this longest palindromic prefix without brute-force checking.',
     approach:
       'Find the longest palindromic prefix of s. The remaining suffix, reversed, needs to be prepended. Use KMP failure function on s + "#" + reverse(s) to find the longest palindromic prefix efficiently.',
     code: `class Solution:
@@ -5560,6 +5764,8 @@ def rising_temperature(weather: pd.DataFrame) -> pd.DataFrame:
       'A city skyline is formed by a group of buildings. Given the locations and heights of all the buildings, return the skyline formed by these buildings as a list of key points [x, y] sorted by x-coordinate.',
     examples:
       'Input: buildings = [[2,9,10],[3,7,15],[5,12,12],[15,20,10],[19,24,8]]\nOutput: [[2,10],[3,15],[7,12],[12,0],[15,10],[20,8],[24,0]]',
+    intuition:
+      'Think of buildings as creating \'events\' at their edges. At each left edge a height enters, at each right edge it leaves. Use a max-heap to track active heights. A skyline key point occurs whenever the maximum height changes between consecutive events.',
     approach:
       'Process building edges as events. At each x-coordinate, add heights for building starts and remove for ends. Use a max-heap to track the current maximum height. Record a key point when the max height changes.',
     code: `class Solution:
@@ -5628,6 +5834,8 @@ def rising_temperature(weather: pd.DataFrame) -> pd.DataFrame:
       'Given an integer array nums and an integer k, return true if there are two distinct indices i and j in the array such that nums[i] == nums[j] and abs(i - j) <= k.',
     examples:
       'Input: nums = [1,2,3,1], k = 3\nOutput: true',
+    intuition:
+      'Maintain a sliding window of the last k indices using a hash set. As you scan, check if the current element is already in the set (meaning a duplicate within distance k exists). If the set exceeds size k, remove the oldest element.',
     approach:
       'Use a sliding window with a hash set of size at most k. As you iterate, add the current element. If the set already contains it, return true. If the set size exceeds k, remove the oldest element.',
     code: `class Solution:
@@ -5673,6 +5881,8 @@ def rising_temperature(weather: pd.DataFrame) -> pd.DataFrame:
       'Given an integer array nums and two integers indexDiff and valueDiff, find a pair of indices (i, j) such that i != j, abs(i - j) <= indexDiff, and abs(nums[i] - nums[j]) <= valueDiff. Return true if such a pair exists.',
     examples:
       'Input: nums = [1,2,3,1], indexDiff = 3, valueDiff = 0\nOutput: true',
+    intuition:
+      'Bucket sort makes this elegant. Create buckets of size (valueDiff + 1) so any two elements in the same bucket are guaranteed to be within valueDiff. Also check adjacent buckets. Maintain a sliding window of indexDiff buckets to satisfy the index constraint.',
     approach:
       'Use bucket sort. Create buckets of size valueDiff + 1. For each element, check the same bucket and adjacent buckets. If any bucket contains an element within the value range, return true. Maintain a sliding window of indexDiff buckets.',
     code: `class Solution:
@@ -5731,6 +5941,8 @@ def rising_temperature(weather: pd.DataFrame) -> pd.DataFrame:
       'Given the root of a complete binary tree, return the number of nodes. A complete binary tree has every level fully filled except possibly the last, which is filled from left to right. Design an algorithm that runs in less than O(n) time complexity.',
     examples:
       'Input: root = [1,2,3,4,5,6]\nOutput: 6',
+    intuition:
+      'In a complete binary tree, either the left or right subtree is a perfect binary tree. Compare subtree heights: if equal, the left is perfect (count its nodes with 2^h - 1 + 1 and recurse right). If unequal, the right is perfect at one level shorter. This gives O(log^2 n) time.',
     approach:
       'Compare the left and right subtree heights. If equal, the left subtree is a perfect binary tree with 2^h - 1 nodes plus the root. Recurse on the right. If unequal, the right subtree is perfect, recurse on the left.',
     code: `class Solution:
@@ -5781,6 +5993,8 @@ def rising_temperature(weather: pd.DataFrame) -> pd.DataFrame:
       'Given a string s representing a valid expression containing digits, +, -, (, ), and spaces, implement a basic calculator to evaluate it. The expression may contain nested parentheses.',
     examples:
       'Input: s = "(1+(4+5+2)-3)+(6+8)"\nOutput: 23',
+    intuition:
+      'The stack handles nested parentheses by saving and restoring context. When you see \'(\', push the current result and sign, then reset. When you see \')\', pop and combine. Between parentheses, process numbers and +/- signs linearly.',
     approach:
       'Use a stack to handle parentheses. Track a running result and sign. When encountering "(", push current result and sign onto the stack. When encountering ")", pop and combine with the parenthesized result.',
     code: `class Solution:
@@ -5865,6 +6079,8 @@ def rising_temperature(weather: pd.DataFrame) -> pd.DataFrame:
       'Implement a last-in-first-out (LIFO) stack using only two queues. The implemented stack should support push, top, pop, and empty operations.',
     examples:
       'Input: ["MyStack","push","push","top","pop","empty"]\nOutput: [null,null,null,2,2,false]',
+    intuition:
+      'A queue is FIFO, but a stack needs LIFO. The trick: after pushing an element, rotate the entire queue so the new element ends up at the front. Now pop and peek just use the queue\'s front. Push is O(n), but pop and peek become O(1).',
     approach:
       'Use a single queue. On push, add the element, then rotate the queue so the new element is at the front. This makes pop and top O(1) while push is O(n).',
     code: `from collections import deque
@@ -5932,6 +6148,8 @@ MyStack.prototype.empty = function() {
       'Given a string s which represents an expression containing digits, +, -, *, and / (no parentheses), evaluate it and return its value. Integer division should truncate toward zero.',
     examples:
       'Input: s = "3+2*2"\nOutput: 7',
+    intuition:
+      'Process the expression in one pass using a stack. For + and -, push the number (with its sign) onto the stack for later. For * and /, immediately compute with the top of the stack. At the end, sum everything in the stack.',
     approach:
       'Use a stack. Process numbers and operators. For + and -, push the number (with sign) onto the stack. For * and /, pop the top and compute with the current number, push the result. Sum the stack at the end.',
     code: `class Solution:
@@ -5995,6 +6213,8 @@ MyStack.prototype.empty = function() {
       'Given an integer array of size n, find all elements that appear more than n/3 times. The algorithm should run in linear time and O(1) space.',
     examples:
       'Input: nums = [3,2,3]\nOutput: [3]',
+    intuition:
+      'There can be at most two elements appearing more than n/3 times. Boyer-Moore voting with two candidates efficiently finds them: maintain two candidates and their counts, and when neither matches, decrement both counts. A second pass verifies the candidates.',
     approach:
       'Use Boyer-Moore Voting with two candidates. There can be at most two majority elements. Track two candidates and their counts. Verify candidates in a second pass.',
     code: `class Solution:
@@ -6050,6 +6270,8 @@ MyStack.prototype.empty = function() {
       'Given an integer n, return true if it is a power of two. Otherwise, return false. An integer n is a power of two if there exists an integer x such that n == 2^x.',
     examples:
       'Input: n = 16\nOutput: true',
+    intuition:
+      'A power of two in binary has exactly one bit set (like 1, 10, 100, 1000). The bit trick n & (n-1) clears the lowest set bit. If the result is 0 and n is positive, there was only one set bit, confirming it\'s a power of two.',
     approach:
       'A power of two has exactly one bit set in binary. Use the bit trick: n & (n - 1) == 0 removes the lowest set bit. If the result is 0 and n > 0, it is a power of two.',
     code: `class Solution:
@@ -6082,6 +6304,8 @@ MyStack.prototype.empty = function() {
       'There is a singly-linked list and you are given a node to delete (not the tail). You do not have access to the head of the list. Delete the given node by modifying the list in-place.',
     examples:
       'Input: head = [4,5,1,9], node = 5\nOutput: [4,1,9]',
+    intuition:
+      'You can\'t access the previous node to rewire pointers, but you can \'become\' the next node. Copy the next node\'s value into the current node, then skip the next node entirely. It\'s like the current node disguises itself as its successor.',
     approach:
       'Since you cannot access the previous node, copy the value from the next node into the current node, then skip the next node. This effectively deletes the current node by overwriting it.',
     code: `class Solution:
@@ -6116,6 +6340,8 @@ MyStack.prototype.empty = function() {
       'Write an efficient algorithm that searches for a value target in an m x n integer matrix. The matrix has the property that integers in each row are sorted in ascending from left to right, and integers in each column are sorted in ascending from top to bottom.',
     examples:
       'Input: matrix = [[1,4,7,11,15],[2,5,8,12,19],[3,6,9,16,22],[10,13,14,17,24],[18,21,23,26,30]], target = 5\nOutput: true',
+    intuition:
+      'Start from the top-right corner. If the value is too large, move left (eliminating a column). If too small, move down (eliminating a row). Each step eliminates an entire row or column, giving O(m+n) time. This staircase search exploits both the row and column sorting.',
     approach:
       'Start from the top-right corner (or bottom-left). If the current value equals target, return true. If current > target, move left. If current < target, move down. This eliminates one row or column each step.',
     code: `class Solution:

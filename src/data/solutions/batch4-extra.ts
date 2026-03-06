@@ -10,6 +10,8 @@ export const solutions: ProblemSolution[] = [
       'Given a string s and an array of strings words, return the number of words[i] that is a subsequence of s. A subsequence is a sequence derived from another by deleting some or no elements without changing the order of the remaining elements.',
     examples:
       'Input: s = "abcde", words = ["a","bb","acd","ace"]\nOutput: 3\nExplanation: "a", "acd", "ace" are subsequences of "abcde".',
+    intuition:
+      'Instead of checking each word against s one by one, imagine all words waiting in line for their next needed letter. As you read through s character by character, you advance all the words that need that character simultaneously - like a conveyor belt sorting packages by their labels.',
     approach:
       'Use a bucket approach where each word is represented by an iterator tracking its next needed character. Group words by their current needed character. As we scan through s, advance matching iterators to their next character.',
     code: `class Solution:
@@ -76,6 +78,8 @@ export const solutions: ProblemSolution[] = [
       'Given two strings s and goal, return true if and only if s can become goal after some number of shifts on s. A shift on s consists of moving the leftmost character to the rightmost position.',
     examples:
       'Input: s = "abcde", goal = "cdeab"\nOutput: true\nExplanation: After 2 shifts, "abcde" becomes "cdeab".',
+    intuition:
+      'Imagine gluing two copies of the string end to end. Every possible rotation of the original string appears as a contiguous piece within this doubled string. So checking if goal is a rotation is just checking if it appears inside s+s.',
     approach:
       'Concatenate s with itself. If goal is a substring of s+s and both have the same length, then goal is a valid rotation of s.',
     code: `class Solution:
@@ -106,6 +110,8 @@ export const solutions: ProblemSolution[] = [
       'Given a directed acyclic graph (DAG) of n nodes labeled from 0 to n-1, find all possible paths from node 0 to node n-1. Return the paths in any order. The graph is given as an adjacency list where graph[i] is a list of all nodes you can visit from node i.',
     examples:
       'Input: graph = [[1,2],[3],[3],[]]\nOutput: [[0,1,3],[0,2,3]]\nExplanation: There are two paths: 0->1->3 and 0->2->3.',
+    intuition:
+      'Since the graph has no cycles (it is a DAG), every path you explore will eventually end. You can freely explore all possible routes from start to finish using DFS backtracking without worrying about getting stuck in loops.',
     approach:
       'Use DFS/backtracking starting from node 0. At each node, explore all neighbors. When we reach node n-1, add the current path to results. Since it is a DAG, no cycle detection is needed.',
     code: `class Solution:
@@ -163,6 +169,8 @@ export const solutions: ProblemSolution[] = [
       'There is a directed graph of n nodes with each node labeled from 0 to n-1. A node is a terminal node if there are no outgoing edges. A node is a safe node if every possible path starting from that node leads to a terminal node. Return an array of all the safe nodes sorted in ascending order.',
     examples:
       'Input: graph = [[1,2],[2,3],[5],[0],[5],[],[]]\nOutput: [2,4,5,6]\nExplanation: Nodes 5 and 6 are terminal. Node 2 leads to 5. Node 4 leads to 5.',
+    intuition:
+      'A node is safe if no matter which path you take from it, you never get stuck in a loop. The key insight is that cycle detection tells us everything: if a node can reach a cycle, it is unsafe. Three-color DFS lets us mark nodes as safe (no cycles reachable) or unsafe (part of or leads to a cycle).',
     approach:
       'Use a three-color DFS cycle detection. White (unvisited), Gray (in current path), Black (safe). A node is unsafe if it is part of or leads to a cycle. After DFS, all black nodes are safe.',
     code: `class Solution:
@@ -221,6 +229,8 @@ export const solutions: ProblemSolution[] = [
       'Sometimes people repeat letters to represent extra feeling. We define a word as stretchy if we can make the word equal to s by choosing a group of consecutive identical characters and extending it to have size 3 or more (if it already has size >= 3, any extension is allowed). Given a string s and a list of words, return the number of stretchy words.',
     examples:
       'Input: s = "heeellooo", words = ["hello","hi","helo"]\nOutput: 1\nExplanation: "hello" can be stretched to "heeellooo" but the others cannot.',
+    intuition:
+      'Think of both the target string and each candidate word as sequences of character groups (like \'hh\' or \'eee\'). The word can be stretched to match the target only if each group has the same character and the target group is either the same size or big enough (at least 3) to have been stretched.',
     approach:
       'For each word, use two pointers to compare groups of identical characters. A group in s can match a group in word if they have the same character, and either the counts are equal or the count in s is >= 3 and >= the count in word.',
     code: `class Solution:
@@ -306,6 +316,8 @@ export const solutions: ProblemSolution[] = [
       'Given the root of a binary tree, return the same tree where every subtree not containing a 1 has been removed. A subtree of a node is the node plus every node that is a descendant of that node.',
     examples:
       'Input: root = [1,null,0,0,1]\nOutput: [1,null,0,null,1]\nExplanation: The left child of the right subtree has value 0 and no children with 1, so it is pruned.',
+    intuition:
+      'Process the tree from the bottom up (post-order). After you have cleaned up a node\'s children, if the node itself is 0 and has no remaining children, it is dead weight and can be removed. Think of it like pruning dead branches from a plant - start at the tips and work inward.',
     approach:
       'Use post-order DFS. For each node, recursively prune left and right subtrees. If a node has value 0 and both children are None after pruning, return None to prune it.',
     code: `class Solution:
@@ -347,6 +359,8 @@ export const solutions: ProblemSolution[] = [
       'You are given an array routes where routes[i] is a bus route that the ith bus repeats forever. You will start at bus stop source and want to go to bus stop target. Return the least number of buses you must take to travel from source to target. Return -1 if it is not possible.',
     examples:
       'Input: routes = [[1,2,7],[3,6,7]], source = 1, target = 6\nOutput: 2\nExplanation: Take bus 0 from stop 1 to stop 7, then bus 1 from stop 7 to stop 6.',
+    intuition:
+      'Instead of thinking about individual bus stops, think about bus routes as nodes in a graph. Two routes are connected if they share a stop. The problem becomes finding the shortest path between routes, which BFS handles perfectly - each level of BFS is one bus ride.',
     approach:
       'Use BFS on bus routes rather than individual stops. Build a mapping from each stop to the routes that serve it. Start BFS from all routes containing the source stop, and expand to neighboring routes that share a stop.',
     code: `class Solution:
@@ -434,6 +448,8 @@ export const solutions: ProblemSolution[] = [
       'You are given an n x n binary grid. You are allowed to change at most one 0 to a 1. Return the size of the largest island in grid after applying this operation. An island is a 4-directionally connected group of 1s.',
     examples:
       'Input: grid = [[1,0],[0,1]]\nOutput: 3\nExplanation: Change one 0 to 1 and connect two islands.',
+    intuition:
+      'First, label and measure every existing island. Then for each water cell, imagine flipping it to land - it could bridge multiple neighboring islands together. By pre-computing island sizes, checking each water cell takes constant time instead of re-exploring the grid.',
     approach:
       'First, label each island with a unique id and record its size using DFS/BFS. Then for each 0 cell, check its 4 neighbors, collect the unique island ids and sum their sizes plus 1. Return the maximum.',
     code: `class Solution:
@@ -530,6 +546,8 @@ export const solutions: ProblemSolution[] = [
       'There are n dominoes in a line, and we push some of them to the left or right. Each second, a domino falling left pushes the adjacent domino to the left, and similarly for right. If a domino has forces from both sides simultaneously, it stays still. Given a string dominoes with characters L, R, and . determine the final state.',
     examples:
       'Input: dominoes = ".L.R...LR..L.."\nOutput: "LL.RR.LLRRLL.."',
+    intuition:
+      'Imagine each pushed domino exerts a force that weakens with distance, like gravity. Do two passes: one tracks rightward force, the other tracks leftward force. Where forces collide equally, the domino stays upright. The stronger force wins everywhere else.',
     approach:
       'Assign forces to each domino using two passes. In a left-to-right pass, accumulate rightward force (decreasing with distance). In a right-to-left pass, accumulate leftward force. The net force determines the final state of each domino.',
     code: `class Solution:
@@ -605,6 +623,8 @@ export const solutions: ProblemSolution[] = [
       'There are n rooms labeled from 0 to n-1 and all rooms are locked except for room 0. Your goal is to visit all rooms. When you visit a room, you may find a set of distinct keys that allow you to visit other rooms. Return true if you can visit all rooms.',
     examples:
       'Input: rooms = [[1],[2],[3],[]]\nOutput: true\nExplanation: Visit room 0 -> get key 1 -> visit room 1 -> get key 2 -> visit room 2 -> get key 3 -> visit room 3.',
+    intuition:
+      'This is just graph reachability in disguise. Rooms are nodes, keys are edges. Starting from room 0, can you reach all other rooms? A simple DFS or BFS answers this directly.',
     approach:
       'Use BFS or DFS starting from room 0. Maintain a visited set. For each room visited, add all keys found to the queue/stack if not yet visited. At the end, check if all rooms were visited.',
     code: `class Solution:
@@ -655,6 +675,8 @@ export const solutions: ProblemSolution[] = [
       'Given two strings s and t, return true if they are equal when both are typed into empty text editors. The character # means a backspace character. Note that after backspacing an empty text, the text will remain empty.',
     examples:
       'Input: s = "ab#c", t = "ad#c"\nOutput: true\nExplanation: Both become "ac".',
+    intuition:
+      'A stack perfectly simulates a text editor: push characters to type them, pop to backspace. Process both strings through this simulation and compare the final results.',
     approach:
       'Use a stack-based approach to build the final string for each input: push characters and pop on #. Compare the results. Alternatively, use O(1) space by iterating from the end with skip counters.',
     code: `class Solution:
@@ -703,6 +725,8 @@ export const solutions: ProblemSolution[] = [
       'Alice has some cards in her hand. She wants to rearrange the cards into groups so that each group is of size groupSize and consists of groupSize consecutive cards. Return true if she can, or false otherwise.',
     examples:
       'Input: hand = [1,2,3,6,2,3,4,7,8], groupSize = 3\nOutput: true\nExplanation: Groups: [1,2,3], [2,3,4], [6,7,8].',
+    intuition:
+      'Always start groups with the smallest available card - this is greedy and optimal because larger cards cannot help complete smaller groups. If at any point a needed consecutive card is missing, it is impossible.',
     approach:
       'Sort the cards and use a counter. For each smallest available card, try to form a group of consecutive cards of the required size. Decrement counts accordingly. If any card is missing, return false.',
     code: `class Solution:
@@ -757,6 +781,8 @@ export const solutions: ProblemSolution[] = [
       'You have an undirected, connected graph of n nodes labeled from 0 to n-1. Return the length of the shortest path that visits every node. You may start and stop at any node, revisit nodes, and reuse edges.',
     examples:
       'Input: graph = [[1,2,3],[0],[0],[0]]\nOutput: 4\nExplanation: One possible path is [1,0,2,0,3].',
+    intuition:
+      'Since you can revisit nodes, a regular shortest path approach would loop forever. The trick is encoding which nodes you have visited as a bitmask in your state. BFS on (current_node, visited_set) finds the shortest path that covers all nodes.',
     approach:
       'Use BFS with bitmask state (current_node, visited_mask). Start BFS from every node simultaneously. The first state where all bits are set is the answer.',
     code: `class Solution:
@@ -829,6 +855,8 @@ export const solutions: ProblemSolution[] = [
       'You are given an array representing a row of seats where seats[i] = 1 means a person is sitting in seat i, and seats[i] = 0 means the seat is empty. There is at least one empty seat and one person. Return the maximum distance to the closest person if you choose the optimal empty seat.',
     examples:
       'Input: seats = [1,0,0,0,1,0,1]\nOutput: 2\nExplanation: Sit at seat 2 (distance 2 from persons at seats 0 and 4).',
+    intuition:
+      'The best seat is always either at the very start, the very end, or exactly in the middle of the widest gap between two occupied seats. You only need to find the largest gap and compute the midpoint distance.',
     approach:
       'Track the index of the last occupied seat. For each empty seat, compute its distance to the nearest occupied neighbor. Handle edge cases where the best seat is at the start or end of the row.',
     code: `class Solution:
@@ -883,6 +911,8 @@ export const solutions: ProblemSolution[] = [
       'An array arr is a mountain array if arr.length >= 3, there exists some index i where arr[0] < arr[1] < ... < arr[i-1] < arr[i] > arr[i+1] > ... > arr[arr.length-1]. Given a mountain array, return the index of the peak element. You must solve it in O(log n) time.',
     examples:
       'Input: arr = [0,1,0]\nOutput: 1',
+    intuition:
+      'A mountain array is sorted ascending then descending. Binary search works because you can always tell which side of the peak you are on by comparing adjacent elements - if values are still increasing, the peak must be to the right.',
     approach:
       'Use binary search. If arr[mid] < arr[mid+1], the peak is to the right. Otherwise, the peak is at mid or to the left. Narrow the search space until you find the peak.',
     code: `class Solution:
@@ -927,6 +957,8 @@ export const solutions: ProblemSolution[] = [
       'There is an exam room with n seats in a single row, labeled from 0 to n-1. Implement the ExamRoom class: seat() finds and returns the seat that maximizes the distance to the closest person, and leave(p) indicates that the person at seat p will leave.',
     examples:
       'Input: ["ExamRoom","seat","seat","seat","seat","leave","seat"], [[10],[],[],[],[],[4],[]]\nOutput: [null,0,9,4,2,null,5]',
+    intuition:
+      'Think of occupied seats as dividing the row into segments. The best empty seat is in the middle of the widest segment, since that maximizes the minimum distance to the nearest person. The edges are special cases since they only have one neighbor.',
     approach:
       'Maintain a sorted list of occupied seats. When seating, find the largest gap between consecutive occupied seats (including edges 0 and n-1). Insert into the middle of the largest gap. For leave, simply remove the seat.',
     code: `class ExamRoom:
@@ -1008,6 +1040,8 @@ ExamRoom.prototype.leave = function(p) {
       'Given a balanced parentheses string s, return the score. () has score 1. AB has score A+B. (A) has score 2*A.',
     examples:
       'Input: s = "(()(()))"\nOutput: 6\nExplanation: Score = 2*(1 + 2*1) = 2*3 = 6.',
+    intuition:
+      'The stack tracks your current nesting depth. An empty pair () is worth 1 point. Wrapping something in parentheses doubles its score. The stack naturally handles these nested multiplications as you go deeper and come back out.',
     approach:
       'Use a stack to track scores at each depth. When seeing (, push a new scope. When seeing ), pop the scope, compute the score (max(2*inner, 1)), and add it to the parent scope.',
     code: `class Solution:
@@ -1056,6 +1090,8 @@ ExamRoom.prototype.leave = function(p) {
       'There are n workers. You are given the quality and wage arrays. To hire k workers, every worker must be paid at least their minimum wage expectation, and the pay must be proportional to their quality (same ratio for all hired workers). Return the minimum cost.',
     examples:
       'Input: quality = [10,20,5], wage = [70,50,30], k = 2\nOutput: 105.0\nExplanation: Hire worker 0 and 2, pay ratio = 7.0, cost = 7*10 + 7*5 = 105.',
+    intuition:
+      'The key insight is that all hired workers must be paid at the same wage-to-quality ratio, and that ratio is set by the most expensive worker (highest ratio). So sort by ratio, and for each potential rate-setter, keep the k workers with the smallest quality to minimize total cost.',
     approach:
       'Sort workers by their wage/quality ratio. For each worker considered as the one setting the rate, use a max-heap to maintain the k smallest quality values. The cost is ratio * total_quality.',
     code: `class Solution:
@@ -1115,6 +1151,8 @@ ExamRoom.prototype.leave = function(p) {
       'At a lemonade stand, each lemonade costs $5. Customers queue up and pay with $5, $10, or $20 bills. You must provide the correct change. Return true if you can provide every customer with the correct change, starting with no change.',
     examples:
       'Input: bills = [5,5,5,10,20]\nOutput: true\nExplanation: Collect three $5, give one as change for $10, then give one $10 and one $5 as change for $20.',
+    intuition:
+      'Five-dollar bills are the most versatile for making change, so conserve them. When giving change for $20, prefer using a $10 + $5 over three $5s. This greedy approach ensures you always have the most flexible bills available.',
     approach:
       'Greedily track the count of $5 and $10 bills. For $10, give one $5. For $20, prefer giving one $10 + one $5, otherwise give three $5s. If you cannot make change, return false.',
     code: `class Solution:
@@ -1178,6 +1216,8 @@ ExamRoom.prototype.leave = function(p) {
       'Given an integer array nums and an integer k, return the length of the shortest non-empty subarray of nums with a sum of at least k. If there is no such subarray, return -1.',
     examples:
       'Input: nums = [2,-1,2], k = 3\nOutput: 3\nExplanation: The subarray [2,-1,2] has sum 3.',
+    intuition:
+      'Unlike the positive-only case where a sliding window works, negative numbers can make prefix sums decrease. A monotone deque of prefix sums lets you efficiently find the shortest subarray summing to at least k, because you only need to consider prefix sums in increasing order.',
     approach:
       'Compute prefix sums. Use a monotone deque to maintain increasing prefix sums. For each index, pop from the front while the difference meets k (tracking min length), and pop from the back to maintain monotonicity.',
     code: `class Solution:
@@ -1239,6 +1279,8 @@ ExamRoom.prototype.leave = function(p) {
       'Given the root of a binary tree, the value of a target node, and an integer k, return an array of the values of all nodes that have a distance k from the target node.',
     examples:
       'Input: root = [3,5,1,6,2,0,8,null,null,7,4], target = 5, k = 2\nOutput: [7,4,1]\nExplanation: Nodes at distance 2 from node 5 are 7, 4, and 1.',
+    intuition:
+      'A binary tree only has edges going down to children. To find nodes at distance k in all directions, add parent pointers to turn the tree into a regular graph. Then BFS from the target node for exactly k levels gives you all nodes at distance k.',
     approach:
       'First, build a parent map using DFS so we can traverse upward. Then BFS from the target node, expanding to left child, right child, and parent, for exactly k levels.',
     code: `class Solution:
@@ -1310,6 +1352,8 @@ ExamRoom.prototype.leave = function(p) {
       'Given a 2D integer array matrix, return the transpose of matrix. The transpose flips a matrix over its main diagonal, switching the row and column indices.',
     examples:
       'Input: matrix = [[1,2,3],[4,5,6],[7,8,9]]\nOutput: [[1,4,7],[2,5,8],[3,6,9]]',
+    intuition:
+      'Transposing a matrix simply means swapping rows and columns. The element at row i, column j moves to row j, column i. Think of it as flipping the matrix along its main diagonal.',
     approach:
       'Create a new matrix where element at position [i][j] comes from the original matrix at position [j][i]. The new matrix has dimensions cols x rows.',
     code: `class Solution:
@@ -1350,6 +1394,8 @@ ExamRoom.prototype.leave = function(p) {
       'A car starts at position 0 with startFuel liters of fuel. It uses 1 liter per unit distance. Along the way, there are gas stations at given positions with given fuel amounts. Return the minimum number of refueling stops to reach the target, or -1 if impossible.',
     examples:
       'Input: target = 100, startFuel = 10, stations = [[10,60],[20,30],[30,30],[60,40]]\nOutput: 2\nExplanation: Start with 10, reach station 0, refuel 60. Then reach station 3, refuel 40. Reach 100.',
+    intuition:
+      'Imagine you are driving and collecting fuel coupons from stations you pass. When you run out of gas, you retroactively redeem the biggest coupon you have collected. This greedy strategy with a max-heap minimizes the number of stops.',
     approach:
       'Use a greedy approach with a max-heap. As we pass each station, add its fuel to the heap. When we run out of fuel, greedily refuel from the station with the most fuel we have passed.',
     code: `class Solution:
@@ -1414,6 +1460,8 @@ ExamRoom.prototype.leave = function(p) {
       'A robot on an infinite XY-plane starts at (0,0) facing north. It receives commands: -2 means turn left 90 degrees, -1 means turn right 90 degrees, and a positive integer k means move forward k units one step at a time. There are obstacles. Return the maximum Euclidean distance squared the robot ever gets from the origin.',
     examples:
       'Input: commands = [4,-1,3], obstacles = []\nOutput: 25\nExplanation: Robot goes to (0,4), turns right, then goes to (3,4). Max distance squared = 9+16 = 25.',
+    intuition:
+      'This is pure simulation - just follow the commands step by step. The key optimization is using a set for obstacle positions so you can check for collisions in constant time as you move one unit at a time.',
     approach:
       'Simulate the robot movement. Use a set of obstacle positions for O(1) lookup. Move one step at a time and check for obstacles. Track the maximum distance squared from the origin.',
     code: `class Solution:
@@ -1481,6 +1529,8 @@ ExamRoom.prototype.leave = function(p) {
       'Given the head of a singly linked list, return the middle node. If there are two middle nodes, return the second middle node.',
     examples:
       'Input: head = [1,2,3,4,5]\nOutput: [3,4,5]\nExplanation: The middle node is 3.',
+    intuition:
+      'The slow-and-fast pointer trick works like two runners on a track. If one runs twice as fast, when the fast one finishes, the slow one is exactly at the halfway point. This elegantly finds the middle without counting the total length first.',
     approach:
       'Use the slow and fast pointer technique. Move slow one step and fast two steps at a time. When fast reaches the end, slow is at the middle.',
     code: `class Solution:
@@ -1521,6 +1571,8 @@ ExamRoom.prototype.leave = function(p) {
       'We want to split a group of n people (labeled 1 to n) into two groups. We are given an array of dislikes where dislikes[i] = [a, b] indicates persons a and b dislike each other. Return true if it is possible to split everyone into two groups such that no two people in the same group dislike each other.',
     examples:
       'Input: n = 4, dislikes = [[1,2],[1,3],[2,4]]\nOutput: true\nExplanation: Group1 = [1,4], Group2 = [2,3].',
+    intuition:
+      'If two people dislike each other, they must be in different groups. This is exactly the graph bipartiteness problem: can you color the graph with two colors such that no adjacent nodes share a color? BFS with alternating colors reveals the answer.',
     approach:
       'This is a graph bipartiteness check. Build an adjacency list and use BFS/DFS to try 2-coloring the graph. If we find a conflict, return false.',
     code: `class Solution:
@@ -1597,6 +1649,8 @@ ExamRoom.prototype.leave = function(p) {
       'Given two integer arrays preorder and postorder representing the preorder and postorder traversals of a binary tree, construct and return the binary tree. If there exist multiple answers, return any.',
     examples:
       'Input: preorder = [1,2,4,5,3,6,7], postorder = [4,5,2,6,7,3,1]\nOutput: [1,2,3,4,5,6,7]',
+    intuition:
+      'In preorder, the root comes first and the left child is second. Finding that left child in postorder tells you exactly how many nodes belong to the left subtree. This split lets you recursively build both subtrees.',
     approach:
       'The first element of preorder is the root. The second element is the root of the left subtree. Find this element in postorder to determine the size of the left subtree, then recursively build both subtrees.',
     code: `class Solution:
@@ -1651,6 +1705,8 @@ ExamRoom.prototype.leave = function(p) {
       'Design a stack-like data structure FreqStack. push(val) pushes val onto the stack. pop() removes and returns the most frequent element. If there is a tie, the element closest to the top of the stack is removed.',
     examples:
       'Input: ["FreqStack","push","push","push","push","push","push","pop","pop","pop","pop"]\n[[],[5],[7],[5],[7],[4],[5],[],[],[],[]] \nOutput: [null,null,null,null,null,null,null,5,7,5,4]',
+    intuition:
+      'The trick is maintaining a stack for each frequency level. When you push a value, it goes onto the stack for its new frequency. When you pop, you take from the highest frequency stack - and since stacks are LIFO, ties automatically favor the most recently pushed element.',
     approach:
       'Maintain a frequency map and a map from frequency to a stack of elements. Track the current max frequency. On pop, pop from the stack at max frequency and decrement if that stack becomes empty.',
     code: `class FreqStack:
@@ -1714,6 +1770,8 @@ FreqStack.prototype.pop = function() {
       'An array is monotonic if it is either monotone increasing or monotone decreasing. Return true if the given array is monotonic.',
     examples:
       'Input: nums = [1,2,2,3]\nOutput: true\nExplanation: The array is monotone increasing.',
+    intuition:
+      'An array is monotonic if it never reverses direction. Track two flags: could it be non-decreasing, and could it be non-increasing. If either survives a full scan, the array is monotonic.',
     approach:
       'Track two boolean flags: one for increasing and one for decreasing. Iterate through the array comparing adjacent elements. If both flags are violated, return false.',
     code: `class Solution:
@@ -1756,6 +1814,8 @@ FreqStack.prototype.pop = function() {
       'Design a class StockSpanner that collects daily price quotes and returns the span of the stock price for the current day. The span is the max number of consecutive days (starting from today, going backwards) for which the price was less than or equal to today\'s price.',
     examples:
       'Input: ["StockSpanner","next","next","next","next","next","next","next"]\n[[],[100],[80],[60],[70],[60],[75],[85]]\nOutput: [null,1,1,1,2,1,4,6]',
+    intuition:
+      'A monotonic decreasing stack naturally absorbs smaller elements. When a new price arrives that is higher than previous prices, those previous prices get \'consumed\' into the new price\'s span. Each element is pushed and popped at most once, giving amortized O(1) per call.',
     approach:
       'Use a monotonic stack storing (price, span) pairs. When a new price comes in, pop all stack entries with price <= current price, accumulating their spans. Push the new price with the total span.',
     code: `class StockSpanner:
@@ -1803,6 +1863,8 @@ StockSpanner.prototype.next = function(price) {
       'Given an integer array nums, move all the even integers at the beginning of the array followed by all the odd integers. Return any array that satisfies this condition.',
     examples:
       'Input: nums = [3,1,2,4]\nOutput: [2,4,3,1]\nExplanation: [4,2,3,1], [2,4,1,3] are also accepted.',
+    intuition:
+      'Like the Dutch national flag problem, use two pointers from opposite ends. The left pointer seeks odd numbers, the right pointer seeks even numbers, and they swap when both find what they are looking for. This partitions the array in-place.',
     approach:
       'Use a two-pointer approach. One pointer starts at the beginning and one at the end. Swap when the left pointer finds an odd number and the right pointer finds an even number.',
     code: `class Solution:
@@ -1851,6 +1913,8 @@ StockSpanner.prototype.next = function(price) {
       'Given an array of integers arr, find the sum of min(b) for every contiguous subarray b of arr. Return the answer modulo 10^9 + 7.',
     examples:
       'Input: arr = [3,1,2,4]\nOutput: 17\nExplanation: Subarrays are [3],[1],[2],[4],[3,1],[1,2],[2,4],[3,1,2],[1,2,4],[3,1,2,4]. Mins: 3+1+2+4+1+1+2+1+1+1 = 17.',
+    intuition:
+      'Instead of checking every subarray, ask: for each element, how many subarrays is it the minimum of? A monotonic stack finds the boundaries where each element stops being the minimum, letting you count its contribution in O(1) per element.',
     approach:
       'For each element, determine how many subarrays it is the minimum of. Use a monotonic stack to find the previous less element (PLE) and next less element (NLE). The contribution of arr[i] is arr[i] * left * right.',
     code: `class Solution:
@@ -1919,6 +1983,8 @@ StockSpanner.prototype.next = function(price) {
       'You are given an n x n board with cells labeled from 1 to n^2 in a Boustrophedon style (alternating left-right and right-left from bottom to top). Some cells have snakes or ladders (board[r][c] != -1 redirects you). Starting from square 1, return the minimum number of moves to reach square n^2, or -1.',
     examples:
       'Input: board = [[-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1],[-1,-1,-1,-1,-1,-1],[-1,35,-1,-1,13,-1],[-1,-1,-1,-1,-1,-1],[-1,15,-1,-1,-1,-1]]\nOutput: 4',
+    intuition:
+      'This is a shortest path problem in disguise. Each board square is a node, dice rolls are edges, and snakes/ladders are teleports. BFS from square 1 finds the minimum number of moves, since each BFS level represents one dice roll.',
     approach:
       'Use BFS from square 1. Convert square numbers to board coordinates, checking for snakes/ladders. Each move considers rolling 1-6 on the die. BFS guarantees the minimum number of moves.',
     code: `class Solution:
@@ -2001,6 +2067,8 @@ StockSpanner.prototype.next = function(price) {
       'Given an array of integers nums, sort the array in ascending order and return it. You must solve it without using any built-in sort functions, with O(n log n) time complexity and the smallest space complexity possible.',
     examples:
       'Input: nums = [5,2,3,1]\nOutput: [1,2,3,5]',
+    intuition:
+      'Merge sort embodies the divide-and-conquer philosophy: break the problem in half, solve each half, then combine. Merging two sorted halves into one sorted array is efficient because you only need to compare the fronts of each half.',
     approach:
       'Implement merge sort or quicksort. Merge sort divides the array in half, recursively sorts each half, and merges them. It guarantees O(n log n) worst-case time.',
     code: `class Solution:
@@ -2064,6 +2132,8 @@ StockSpanner.prototype.next = function(price) {
       'Given a circular integer array nums, find the maximum possible sum of a non-empty subarray. A circular array means the end connects to the beginning. A subarray may only include each element at most once.',
     examples:
       'Input: nums = [1,-2,3,-2]\nOutput: 3\nExplanation: Subarray [3] has maximum sum 3.',
+    intuition:
+      'A circular max subarray either sits in the middle (normal Kadane\'s) or wraps around the ends. The wrap-around case is the total sum minus the minimum subarray in the middle. Compare both cases to get the answer.',
     approach:
       'The answer is either the max subarray (Kadane\'s) or total_sum - min_subarray (wrapping case). If all elements are negative, return the max element. Otherwise, return max(max_subarray, total - min_subarray).',
     code: `class Solution:
@@ -2117,6 +2187,8 @@ StockSpanner.prototype.next = function(price) {
       'A parentheses string is valid if every open parenthesis has a matching close parenthesis and vice versa. Given a parentheses string s, return the minimum number of parentheses you must add to make the string valid.',
     examples:
       'Input: s = "())"\nOutput: 1\nExplanation: Add one ( at the beginning.',
+    intuition:
+      'Simply count parentheses that cannot find a match. Unmatched \'(\' need a \')\' added, and unmatched \')\' need a \'(\' added. The total unmatched count is the minimum additions needed.',
     approach:
       'Track the number of unmatched open and close parentheses. Increment open count on ( and decrement on ) if there are unmatched opens. Otherwise increment the unmatched close count. The answer is the sum of both.',
     code: `class Solution:
@@ -2163,6 +2235,8 @@ StockSpanner.prototype.next = function(price) {
       'A binary string is monotone increasing if it consists of some number of 0s followed by some number of 1s. Given a binary string s, return the minimum number of flips to make s monotone increasing.',
     examples:
       'Input: s = "00110"\nOutput: 1\nExplanation: Flip the last character to get "00111".',
+    intuition:
+      'At each position in the string, you face a choice: flip this 0 to a 1, or flip all the 1s you have seen so far to 0s. By tracking both costs as you scan left to right, you can make the optimal choice at each step in O(1) time.',
     approach:
       'Iterate through the string tracking the count of 1s seen so far and the minimum flips. At each position, either flip all previous 1s to 0s or flip the current 0 to 1. Take the minimum.',
     code: `class Solution:
@@ -2207,6 +2281,8 @@ StockSpanner.prototype.next = function(price) {
       'Every valid email has a local name and domain name separated by @. In the local name, . is ignored and everything after + is ignored. Given a list of emails, return the number of unique addresses that actually receive mail.',
     examples:
       'Input: emails = ["test.email+alex@leetcode.com","test.e.mail+bob.cathy@leetcode.com","testemail+david@lee.tcode.com"]\nOutput: 2',
+    intuition:
+      'The problem is just string normalization. Clean each email by removing dots and everything after \'+\' in the local part, then use a set to count unique results. The cleaning rules are straightforward string operations.',
     approach:
       'For each email, split into local and domain parts. In the local part, remove dots and truncate at +. Combine with domain and add to a set. Return the set size.',
     code: `class Solution:
@@ -2250,6 +2326,8 @@ StockSpanner.prototype.next = function(price) {
       'Given an n x n array of integers matrix, return the minimum sum of any falling path through matrix. A falling path starts at any element in the first row and chooses the element in the next row that is either directly below or diagonally left/right.',
     examples:
       'Input: matrix = [[2,1,3],[6,5,4],[7,8,9]]\nOutput: 13\nExplanation: Path 1->5->7 = 13.',
+    intuition:
+      'Imagine rain falling down the matrix - at each cell, the water came from one of three cells above it. DP tracks the cheapest path to reach each cell, and the answer is the cheapest endpoint in the last row.',
     approach:
       'Use dynamic programming. For each cell in row i, the minimum path sum is matrix[i][j] + min(dp[i-1][j-1], dp[i-1][j], dp[i-1][j+1]). Process row by row and return the minimum of the last row.',
     code: `class Solution:
@@ -2306,6 +2384,8 @@ StockSpanner.prototype.next = function(price) {
       'You are given an n x n binary matrix grid where 1 represents land and 0 represents water. There are exactly two islands. Return the smallest number of 0s you must flip to connect the two islands.',
     examples:
       'Input: grid = [[0,1],[1,0]]\nOutput: 1',
+    intuition:
+      'Think of it as two islands with an ocean between them. First, find one island completely using DFS. Then expand outward from that island using BFS, like ripples in water. The moment a ripple touches the other island, you have found the shortest bridge.',
     approach:
       'Use DFS to find and mark the first island. Then use BFS from all cells of the first island, expanding outward. The first time we reach a cell of the second island, the BFS level is the answer.',
     code: `class Solution:
@@ -2400,6 +2480,8 @@ StockSpanner.prototype.next = function(price) {
       'A chess knight can move on a phone dial pad. Given an integer n, return how many distinct phone numbers of length n you can dial starting from any numeric cell. The answer may be large, return it modulo 10^9 + 7.',
     examples:
       'Input: n = 1\nOutput: 10\nExplanation: Each digit 0-9 is a valid single-digit number.',
+    intuition:
+      'A knight on a phone pad has fixed moves from each digit. This is a counting problem: how many length-n sequences exist? DP tracks how many ways to be at each digit after each step, building up from length 1 to length n.',
     approach:
       'Use DP where dp[digit] = number of ways to reach that digit in the current step. Predefine the knight moves from each digit. Iterate n-1 times, updating the DP table.',
     code: `class Solution:
@@ -2463,6 +2545,8 @@ StockSpanner.prototype.next = function(price) {
       'You are given an array of logs. Each log is a space-delimited string of words where the first word is an identifier. Letter-logs come before digit-logs. Letter-logs are sorted lexicographically by content then by identifier. Digit-logs retain their relative order.',
     examples:
       'Input: logs = ["dig1 8 1 5 1","let1 art can","dig2 3 6","let2 own kit dig","let3 art zero"]\nOutput: ["let1 art can","let3 art zero","let2 own kit dig","dig1 8 1 5 1","dig2 3 6"]',
+    intuition:
+      'Separate the two types of logs, sort only the letter-logs by their special rules, and keep digit-logs in their original order. Then concatenate letter-logs first, followed by digit-logs.',
     approach:
       'Separate letter-logs and digit-logs. Sort letter-logs by (content, identifier). Concatenate sorted letter-logs with digit-logs in original order.',
     code: `class Solution:
@@ -2516,6 +2600,8 @@ StockSpanner.prototype.next = function(price) {
       'Given the root of a binary search tree and two integers low and high, return the sum of values of all nodes with a value in the inclusive range [low, high].',
     examples:
       'Input: root = [10,5,15,3,7,null,18], low = 7, high = 15\nOutput: 32\nExplanation: Nodes 7, 10, and 15 are in range. 7+10+15 = 32.',
+    intuition:
+      'The BST property gives you free pruning. If a node\'s value is below the range, everything in its left subtree is also below the range - skip it entirely. Similarly for values above the range. This cuts the search space dramatically.',
     approach:
       'Use DFS exploiting BST properties. If the current node value is less than low, only search the right subtree. If greater than high, only search the left subtree. Otherwise, include the value and search both.',
     code: `class Solution:
@@ -2557,6 +2643,8 @@ StockSpanner.prototype.next = function(price) {
       'You are given an array of points where points[i] = [xi, yi]. Return the minimum area of a rectangle formed from these points, with sides parallel to the X and Y axes. If there is no such rectangle, return 0.',
     examples:
       'Input: points = [[1,1],[1,3],[3,1],[3,3],[2,2]]\nOutput: 4\nExplanation: Rectangle from (1,1), (1,3), (3,1), (3,3) has area 4.',
+    intuition:
+      'Sorting by x-coordinate first ensures you process points left to right. For each new point, it can pair with points that have a lower y-coordinate. Maintaining a set of candidate y-values lets you efficiently find the closest legal pair.',
     approach:
       'Store all points in a set. For each pair of points that could be diagonal corners (different x and y), check if the other two corners exist. Track the minimum area.',
     code: `class Solution:
@@ -2613,6 +2701,8 @@ StockSpanner.prototype.next = function(price) {
       'You are given an integer array nums. In one move, you can pick an index i and increment nums[i] by 1. Return the minimum number of moves to make every value in nums unique.',
     examples:
       'Input: nums = [1,2,2]\nOutput: 1\nExplanation: Increment one of the 2s to 3.',
+    intuition:
+      'Sort the array and greedily ensure each element is at least one more than the previous. When you need to bump a value up, the difference is the number of moves. Sorting makes it clear what the minimum unique values should be.',
     approach:
       'Sort the array. Iterate through and ensure each element is at least prev + 1. If it is not, increment it to prev + 1 and count the difference as moves.',
     code: `class Solution:
@@ -2661,6 +2751,8 @@ StockSpanner.prototype.next = function(price) {
       'Given two integer arrays pushed and popped, each with distinct values, return true if this could have been the result of a sequence of push and pop operations on an initially empty stack.',
     examples:
       'Input: pushed = [1,2,3,4,5], popped = [4,5,3,2,1]\nOutput: true\nExplanation: Push 1,2,3,4; pop 4; push 5; pop 5,3,2,1.',
+    intuition:
+      'Simulate the push/pop process. Push elements in order. After each push, keep popping if the stack top matches the next expected pop value. If the stack is empty at the end, the sequence is valid.',
     approach:
       'Simulate the process using a stack. Push elements from the pushed array. After each push, pop from the stack while the top matches the next expected popped element. If the stack is empty at the end, return true.',
     code: `class Solution:
@@ -2709,6 +2801,8 @@ StockSpanner.prototype.next = function(price) {
       'On a 2D plane, we place n stones at integer coordinates. A stone can be removed if it shares the same row or column as another stone that has not been removed. Return the largest possible number of stones that can be removed.',
     examples:
       'Input: stones = [[0,0],[0,1],[1,0],[1,2],[2,1],[2,2]]\nOutput: 5',
+    intuition:
+      'Stones in the same row or column are connected. This forms groups (connected components via Union-Find). Within each group of size k, you can remove k-1 stones by always leaving one behind. So the answer is total stones minus the number of groups.',
     approach:
       'Stones in the same row or column form connected components. Within each connected component of size k, we can remove k-1 stones. Use Union-Find to group stones by shared rows/columns. Answer = total stones - number of components.',
     code: `class Solution:
@@ -2764,6 +2858,8 @@ StockSpanner.prototype.next = function(price) {
       'For a binary tree T, we can define a flip operation as choosing any node and swapping the left and right child subtrees. Two binary trees are flip equivalent if we can make one equal to the other after some number of flips. Return true if root1 and root2 are flip equivalent.',
     examples:
       'Input: root1 = [1,2,3,4,5,6,null,null,null,7,8], root2 = [1,3,2,null,6,4,5,null,null,null,null,8,7]\nOutput: true',
+    intuition:
+      'For each internal node in a full binary tree, it must match either (pre=left first) or (pre=right first). Count the nodes where both children have different structures. Each such node doubles the possible arrangements, giving 2^(count of ambiguous nodes).',
     approach:
       'Recursively compare two trees. At each node, either the children match directly or they match after flipping. Check both possibilities.',
     code: `class Solution:
@@ -2804,6 +2900,8 @@ StockSpanner.prototype.next = function(price) {
       'In an alien language, they use the English lowercase letters but in a different order. Given a sequence of words and the order of the alien alphabet, return true if the words are sorted lexicographically in this alien language.',
     examples:
       'Input: words = ["hello","leetcode"], order = "hlabcdefgijkmnopqrstuvwxyz"\nOutput: true\nExplanation: h comes before l in this alien language.',
+    intuition:
+      'Build a mapping from the alien alphabet to standard order (0, 1, 2, ...). Then check if the words are sorted according to this custom mapping - just like checking if words are alphabetically sorted, but with a different alphabet.',
     approach:
       'Build a mapping from each character to its rank in the alien order. Compare each adjacent pair of words character by character using the alien order. If all pairs are in order, return true.',
     code: `class Solution:
@@ -2857,6 +2955,8 @@ StockSpanner.prototype.next = function(price) {
       'Given the root of a binary tree, determine if it is a complete binary tree. A complete binary tree is one where every level except the last is completely filled, and all nodes in the last level are as far left as possible.',
     examples:
       'Input: root = [1,2,3,4,5,6]\nOutput: true',
+    intuition:
+      'In a complete binary tree, if you number nodes by BFS order, every null should come after all non-null nodes. BFS the tree and once you see a null, every subsequent node must also be null. Any non-null after a null means it is not complete.',
     approach:
       'Use BFS level by level. Once we encounter a None node, all subsequent nodes must also be None. If we see a non-None node after a None, the tree is not complete.',
     code: `class Solution:
@@ -2913,6 +3013,8 @@ StockSpanner.prototype.next = function(price) {
       'You are installing cameras on tree nodes. Each camera at a node can monitor its parent, itself, and its immediate children. Return the minimum number of cameras needed to monitor all nodes.',
     examples:
       'Input: root = [0,0,null,0,0]\nOutput: 1\nExplanation: One camera at the root monitors all 3 nodes.',
+    intuition:
+      'Work from the bottom up. Leaf nodes should NOT have cameras (wasteful). Instead, their parents should have cameras. This greedy strategy of placing cameras at every other level from the bottom minimizes the total number needed.',
     approach:
       'Use a greedy DFS approach. Each node returns one of three states: 0 (needs coverage), 1 (has camera), 2 (covered). Place cameras at parents of uncovered nodes, working bottom-up.',
     code: `class Solution:
@@ -2969,6 +3071,8 @@ StockSpanner.prototype.next = function(price) {
       'Given an integer array nums and an integer k, return the number of non-empty subarrays that have a sum divisible by k.',
     examples:
       'Input: nums = [4,5,0,-2,-3,1], k = 5\nOutput: 7\nExplanation: Subarrays with sum divisible by 5: [4,5,0,-2,-3,1], [5], [5,0], [5,0,-2,-3], [0], [0,-2,-3], [-2,-3].',
+    intuition:
+      'If two prefix sums have the same remainder when divided by k, their difference (the subarray between them) is divisible by k. Count prefix sums by remainder using a hash map, and the number of pairs with each remainder gives the answer.',
     approach:
       'Use prefix sums modulo k. Two prefix sums with the same remainder mod k define a subarray divisible by k. Count remainders using a hash map.',
     code: `class Solution:
@@ -3015,6 +3119,8 @@ StockSpanner.prototype.next = function(price) {
       'You are given an integer array arr. From each index, you perform jumps alternating between odd and even jumps. In an odd jump, jump to the smallest value >= arr[i] among indices > i (pick leftmost if tied). In an even jump, jump to the largest value <= arr[i]. Return how many starting indices can reach the end.',
     examples:
       'Input: arr = [10,13,12,14,15]\nOutput: 2\nExplanation: From index 3 and 4 you can reach the end.',
+    intuition:
+      'After transforming the array to +1/-1, you need to find when the running sum first reaches certain values. Use a map to record when each running sum is first achieved, and for each query jump, binary search or directly look up the answer.',
     approach:
       'Work backwards from the end. Use a sorted structure (SortedList or monotonic stack) to find the next higher and next lower elements. Use DP with two states: odd[i] (can reach end with odd jump from i) and even[i].',
     code: `class Solution:
@@ -3095,6 +3201,8 @@ StockSpanner.prototype.next = function(price) {
       'Given an integer array nums sorted in non-decreasing order, return an array of the squares of each number sorted in non-decreasing order.',
     examples:
       'Input: nums = [-4,-1,0,3,10]\nOutput: [0,1,9,16,100]',
+    intuition:
+      'Since the input is sorted, the largest squares come from either end (large negative or large positive numbers). Use two pointers from both ends, comparing absolute values and filling the result array from the largest position backward.',
     approach:
       'Use two pointers at the start and end. The largest square is either from the most negative or most positive value. Build the result array from right to left.',
     code: `class Solution:
@@ -3149,6 +3257,8 @@ StockSpanner.prototype.next = function(price) {
       'Given an integer array arr, return the length of a maximum size turbulent subarray. A subarray is turbulent if the comparison sign flips between each pair of adjacent elements (alternating > and < or < and >).',
     examples:
       'Input: arr = [9,4,2,10,7,8,8,1,9]\nOutput: 5\nExplanation: arr[1..4] = [4,2,10,7,8] is turbulent.',
+    intuition:
+      'A turbulent subarray alternates between increasing and decreasing. Scan the array once, extending the current turbulent window when the alternating pattern continues, and resetting when it breaks.',
     approach:
       'Track two counters: inc (length of turbulent subarray ending with an increase) and dec (length ending with a decrease). At each step, update based on comparison with the previous element.',
     code: `class Solution:
@@ -3205,6 +3315,8 @@ StockSpanner.prototype.next = function(price) {
       'You are given the root of a binary tree with n nodes where each node has node.val coins. There are n coins in total. In one move, you can move a coin from one node to an adjacent node. Return the minimum number of moves needed so that every node has exactly one coin.',
     examples:
       'Input: root = [3,0,0]\nOutput: 2\nExplanation: Move 2 coins from root to its children.',
+    intuition:
+      'Think of each node as needing exactly 1 coin. If it has excess, it must send coins out. If it has deficit, it must receive coins. The total moves equals the sum of absolute flows across all edges, which you can compute bottom-up with DFS.',
     approach:
       'Use post-order DFS. Each node returns its excess coins (positive = surplus, negative = deficit). The number of moves through each edge equals the absolute value of the excess. Sum all these.',
     code: `class Solution:
@@ -3255,6 +3367,8 @@ StockSpanner.prototype.next = function(price) {
       'On a 2D grid, there are 4 types of squares: 1 is the starting square, 2 is the ending square, 0 is an empty square to walk over, -1 is an obstacle. Return the number of 4-directional paths from start to end that walk over every non-obstacle square exactly once.',
     examples:
       'Input: grid = [[1,0,0,0],[0,0,0,0],[0,0,2,-1]]\nOutput: 2',
+    intuition:
+      'With a grid this small (at most 20 cells), you can try every possible path that visits all non-obstacle cells exactly once. Backtracking with cell marking handles this exhaustive search efficiently.',
     approach:
       'Count the number of empty squares (plus start). Use backtracking DFS from the start square. When reaching the end, check if all empty squares have been visited. Count valid paths.',
     code: `class Solution:
@@ -3333,6 +3447,8 @@ StockSpanner.prototype.next = function(price) {
       'Design a time-based key-value data structure that can store multiple values for the same key at different timestamps and retrieve the value at a certain timestamp. set(key, value, timestamp) stores the key-value pair with the given timestamp. get(key, timestamp) returns the value with the largest timestamp <= the given timestamp.',
     examples:
       'Input: ["TimeMap","set","get","get","set","get","get"]\n[[],["foo","bar",1],["foo",1],["foo",3],["foo","bar2",4],["foo",4],["foo",5]]\nOutput: [null,null,"bar","bar",null,"bar2","bar2"]',
+    intuition:
+      'Instead of copying the entire map on each timestamp, store a list of (timestamp, value) pairs for each key. When retrieving, binary search for the latest timestamp that does not exceed the query timestamp. This is both space and time efficient.',
     approach:
       'Use a dictionary mapping keys to a list of (timestamp, value) pairs. Since timestamps are strictly increasing, the list is sorted. Use binary search for get() to find the largest timestamp <= the query.',
     code: `class TimeMap:
@@ -3402,6 +3518,8 @@ TimeMap.prototype.get = function(key, timestamp) {
       'You plan to travel on some days given in an array days. You can buy 1-day, 7-day, or 30-day passes at given costs. Return the minimum cost to cover all travel days.',
     examples:
       'Input: days = [1,4,6,7,8,20], costs = [2,7,15]\nOutput: 11\nExplanation: Buy a 7-day pass on day 1 (covers days 1-7) and a 1-day pass on days 8 and 20.',
+    intuition:
+      'At each travel day, decide whether to buy a 1-day, 7-day, or 30-day pass. DP forward through the days: the cost on day i is the minimum of (cost[i-1] + 1-day price) vs (cost[i-7] + 7-day price) vs (cost[i-30] + 30-day price).',
     approach:
       'Use DP where dp[i] is the min cost to cover travel from days[i] onward. For each travel day, try buying a 1-day, 7-day, or 30-day pass and take the minimum cost.',
     code: `class Solution:
@@ -3460,6 +3578,8 @@ TimeMap.prototype.get = function(key, timestamp) {
       'You are given two lists of closed intervals firstList and secondList, each sorted by start time and pairwise disjoint. Return the intersection of these two interval lists.',
     examples:
       'Input: firstList = [[0,2],[5,10],[13,23],[24,25]], secondList = [[1,5],[8,12],[15,24],[25,26]]\nOutput: [[1,2],[5,5],[8,10],[15,23],[24,24],[25,25]]',
+    intuition:
+      'Two sorted interval lists can be intersected with a two-pointer merge. The intersection of any two overlapping intervals is [max of starts, min of ends]. Advance whichever pointer has the earlier-ending interval.',
     approach:
       'Use two pointers, one for each list. At each step, compute the intersection of the current intervals. If they overlap, add the intersection. Advance the pointer with the smaller end.',
     code: `class Solution:
@@ -3512,6 +3632,8 @@ TimeMap.prototype.get = function(key, timestamp) {
       'Given the root of a binary tree, calculate the vertical order traversal. For each column (left to right), report nodes from top to bottom. Nodes in the same row and column are sorted by value.',
     examples:
       'Input: root = [3,9,20,null,null,15,7]\nOutput: [[9],[3,15],[20],[7]]',
+    intuition:
+      'Assign (column, row) coordinates to each node during DFS. Sorting all nodes by column, then row, then value gives you the vertical order traversal. Grouping by column produces the final result.',
     approach:
       'DFS to collect (col, row, val) for each node. Sort by column, then row, then value. Group by column to build the result.',
     code: `class Solution:
@@ -3578,6 +3700,8 @@ TimeMap.prototype.get = function(key, timestamp) {
       'You are given an array of strings equations where each is of the form "xi==xj" or "xi!=xj". Return true if it is possible to assign integers to variable names to satisfy all the given equations.',
     examples:
       'Input: equations = ["a==b","b!=a"]\nOutput: false\nExplanation: a==b and b!=a are contradictory.',
+    intuition:
+      'If a==b and b==c, then a==c. This is transitivity, which Union-Find handles perfectly. Group all equal variables together, then check that no inequality constraint connects two variables in the same group.',
     approach:
       'Use Union-Find. First process all == equations to union the variables. Then check all != equations. If two variables in a != equation are in the same component, return false.',
     code: `class Solution:
@@ -3641,6 +3765,8 @@ TimeMap.prototype.get = function(key, timestamp) {
       'Given an integer array nums and an integer k, return the number of good subarrays. A good subarray has exactly k different integers.',
     examples:
       'Input: nums = [1,2,1,2,3], k = 2\nOutput: 7\nExplanation: [1,2], [2,1], [1,2], [2,3], [1,2,1], [2,1,2], [1,2,1,2] are good subarrays.',
+    intuition:
+      'Counting subarrays with exactly k distinct values is hard directly, but \'at most k\' minus \'at most k-1\' gives you \'exactly k\'. The sliding window easily solves the \'at most k\' variant by shrinking the window when distinct count exceeds k.',
     approach:
       'Use the technique: exactly(k) = atMost(k) - atMost(k-1). Implement atMost(k) using a sliding window with a frequency map.',
     code: `class Solution:
@@ -3699,6 +3825,8 @@ TimeMap.prototype.get = function(key, timestamp) {
       'In a town with n people labeled 1 to n, there might be a town judge. The judge trusts nobody but everybody else trusts the judge. Given trust[i] = [a, b] meaning person a trusts person b, return the judge\'s label or -1.',
     examples:
       'Input: n = 2, trust = [[1,2]]\nOutput: 2\nExplanation: Person 1 trusts person 2, and person 2 trusts nobody. Person 2 is the judge.',
+    intuition:
+      'The town judge trusts nobody (out-degree 0) and is trusted by everyone else (in-degree n-1). Track trust scores: +1 for being trusted, -1 for trusting someone. The person with score n-1 is the judge.',
     approach:
       'Track the trust balance for each person: +1 for being trusted, -1 for trusting someone. The judge has a trust balance of n-1 (trusted by everyone, trusts nobody).',
     code: `class Solution:
@@ -3746,6 +3874,8 @@ TimeMap.prototype.get = function(key, timestamp) {
       'Given a string array words, return an array of all characters that show up in all strings within the list, including duplicates. You may return the answer in any order.',
     examples:
       'Input: words = ["bella","label","roller"]\nOutput: ["e","l","l"]\nExplanation: e appears in all words; l appears at least twice in all words.',
+    intuition:
+      'For a character to appear in every string, it must be present in all of them. The minimum count across all strings determines how many times it appears in the common result. Intersect character frequency maps across all strings.',
     approach:
       'For each character, track the minimum frequency across all words. The common characters are those with minimum frequency > 0, repeated that many times.',
     code: `class Solution:
@@ -3799,6 +3929,8 @@ TimeMap.prototype.get = function(key, timestamp) {
       'Given an integer array nums and an integer k, modify the array by choosing an index i and replacing nums[i] with -nums[i], exactly k times. You may choose the same index multiple times. Return the largest possible sum of the array.',
     examples:
       'Input: nums = [4,2,3], k = 1\nOutput: 5\nExplanation: Negate 2 to get [4,-2,3], but better to negate the smallest: not applicable here. Actually negate index 0 is not optimal. Negate 2: sum = 4 + (-2) + 3 = 5.',
+    intuition:
+      'Sort the array and greedily negate the smallest values first. If all values are positive and you still have negations left, repeatedly negate the smallest element (toggling it). This maximizes the total sum.',
     approach:
       'Sort the array. Negate the most negative numbers first. If k remains odd after all negatives are flipped, negate the smallest absolute value element.',
     code: `class Solution:
@@ -3851,6 +3983,8 @@ TimeMap.prototype.get = function(key, timestamp) {
       'In a row of dominoes, tops[i] and bottoms[i] represent the top and bottom halves of the i-th domino. We can rotate a domino to swap its top and bottom values. Return the minimum number of rotations so that all values in tops are the same, or all values in bottoms are the same. Return -1 if impossible.',
     examples:
       'Input: tops = [2,1,2,4,2,2], bottoms = [5,2,6,2,3,2]\nOutput: 2\nExplanation: Rotate index 1 and 3 to make all tops equal to 2.',
+    intuition:
+      'If a domino shows (a, b), it matches another (c, d) if you can rotate either so they share a value. The answer must be one of the four values on the first two dominoes. Check each candidate to see if it can fill an entire row.',
     approach:
       'Only tops[0] or bottoms[0] can be the target value (one of them must appear in every domino). Check both candidates. For each, count how many rotations are needed to make all tops or all bottoms equal to that value.',
     code: `class Solution:
@@ -3904,6 +4038,8 @@ TimeMap.prototype.get = function(key, timestamp) {
       'Given an array of integers preorder representing the preorder traversal of a BST, construct the tree and return its root.',
     examples:
       'Input: preorder = [8,5,1,7,10,12]\nOutput: [8,5,10,1,7,null,12]',
+    intuition:
+      'In a BST preorder traversal, the root comes first, followed by all left-subtree values (smaller), then all right-subtree values (larger). Use upper bounds during recursion: each value must be less than the bound set by its ancestors.',
     approach:
       'Use a recursive approach with upper bound. The first element is the root. Recursively build left subtree (values < root) and right subtree (values > root), using bounds to determine where each subtree ends.',
     code: `class Solution:
@@ -3955,6 +4091,8 @@ TimeMap.prototype.get = function(key, timestamp) {
       'You are given a list of song durations in seconds. Return the number of pairs of songs for which their total duration in seconds is divisible by 60.',
     examples:
       'Input: time = [30,20,150,100,40]\nOutput: 3\nExplanation: Pairs (30,150), (20,100), (20,40) have durations divisible by 60.',
+    intuition:
+      'For a pair of song durations to sum to a multiple of 60, their remainders mod 60 must add up to 60 (or both be 0). Count songs by their remainder and pair complementary remainders, just like the two-sum pattern.',
     approach:
       'This is similar to Two Sum with modulo. For each song, compute its remainder mod 60. Count how many previous songs have a complementary remainder (60 - remainder) % 60.',
     code: `class Solution:
@@ -4002,6 +4140,8 @@ TimeMap.prototype.get = function(key, timestamp) {
       'Given the head of a linked list, return an array answer where answer[i] is the next greater value for the i-th node. If there is no greater value, answer[i] = 0.',
     examples:
       'Input: head = [2,1,5]\nOutput: [5,5,0]',
+    intuition:
+      'For each node, you need the value of the next larger node in the linked list. A monotonic stack processes elements and resolves \'next greater\' relationships efficiently. Convert to an array first or use a stack directly on the linked list.',
     approach:
       'Convert the linked list to an array. Use a monotonic decreasing stack to find the next greater element for each position.',
     code: `class Solution:
@@ -4055,6 +4195,8 @@ TimeMap.prototype.get = function(key, timestamp) {
       'You are given an m x n binary matrix grid, where 0 represents sea and 1 represents land. A land cell is an enclave if it cannot reach any boundary of the grid by walking through land. Return the number of land cells that are enclaves.',
     examples:
       'Input: grid = [[0,0,0,0],[1,0,1,0],[0,1,1,0],[0,0,0,0]]\nOutput: 3',
+    intuition:
+      'A cell on the boundary or connected to the boundary can reach the edge. Flood-fill from all boundary land cells. Any land cell NOT reached by this flood-fill is enclosed and cannot reach the boundary.',
     approach:
       'DFS/BFS from all boundary land cells to mark them as visited. Any remaining land cell that is not visited is an enclave. Count unvisited land cells.',
     code: `class Solution:
@@ -4113,6 +4255,8 @@ TimeMap.prototype.get = function(key, timestamp) {
       'You are given the root of a binary tree where each node has a value 0 or 1. Each root-to-leaf path represents a binary number. Return the sum of these numbers.',
     examples:
       'Input: root = [1,0,1,0,1,0,1]\nOutput: 22\nExplanation: Paths: 100=4, 101=5, 110=6, 111=7. Sum = 22.',
+    intuition:
+      'Each root-to-leaf path forms a binary number. As you traverse from root to leaf, shift the accumulated value left by 1 and add the current bit. The DFS carries this running value, and you sum up all leaf values.',
     approach:
       'DFS from root to leaves, maintaining the current binary value. At each node, shift left and add the node value. At leaves, add the value to the total.',
     code: `class Solution:
@@ -4158,6 +4302,8 @@ TimeMap.prototype.get = function(key, timestamp) {
       'Given the root of a binary tree, find the maximum value v for which there exist different nodes a and b where v = |a.val - b.val| and a is an ancestor of b.',
     examples:
       'Input: root = [8,3,10,1,6,null,14,null,null,4,7,13]\nOutput: 7\nExplanation: |8 - 1| = 7.',
+    intuition:
+      'The maximum difference between an ancestor and a descendant is determined by the min and max values along each root-to-leaf path. Pass the running min and max down through DFS, and compute the difference at each node.',
     approach:
       'DFS while tracking the minimum and maximum values along the path from root to the current node. At each leaf, the maximum difference is max_val - min_val. Return the overall maximum.',
     code: `class Solution:
@@ -4202,6 +4348,8 @@ TimeMap.prototype.get = function(key, timestamp) {
       'Given an array of integers nums, return the length of the longest arithmetic subsequence. A sequence is arithmetic if the difference between consecutive elements is constant.',
     examples:
       'Input: nums = [3,6,9,12]\nOutput: 4\nExplanation: The whole array is an arithmetic sequence with difference 3.',
+    intuition:
+      'For each pair of elements, their difference defines an arithmetic sequence they could belong to. DP with dp[i][diff] = length of longest AP ending at index i with common difference diff builds the answer incrementally.',
     approach:
       'Use DP where dp[i][d] is the length of the longest arithmetic subsequence ending at index i with common difference d. For each pair (i, j) where j < i, compute d = nums[i] - nums[j] and update dp[i][d].',
     code: `class Solution:
@@ -4252,6 +4400,8 @@ TimeMap.prototype.get = function(key, timestamp) {
       'A company has 2n people to interview. The cost of flying person i to city A is costs[i][0] and to city B is costs[i][1]. Return the minimum total cost to fly exactly n people to each city.',
     examples:
       'Input: costs = [[10,20],[30,200],[400,50],[30,20]]\nOutput: 110\nExplanation: Fly persons 0,1 to A and 2,3 to B. Cost = 10+30+50+20 = 110.',
+    intuition:
+      'Assign everyone to city A first. Then figure out which people benefit most from switching to city B by computing the savings (costA - costB). Sort by savings and switch the top half to city B. This greedy split minimizes total cost.',
     approach:
       'Sort by the cost difference (cost_A - cost_B). Send the first n people (with most savings for A) to city A and the rest to city B.',
     code: `class Solution:
@@ -4296,6 +4446,8 @@ TimeMap.prototype.get = function(key, timestamp) {
       'Given an integer array nums and two integers firstLen and secondLen, return the maximum sum of elements in two non-overlapping subarrays of lengths firstLen and secondLen. The subarrays can appear in either order.',
     examples:
       'Input: nums = [0,6,5,2,2,5,1,9,4], firstLen = 1, secondLen = 2\nOutput: 20\nExplanation: [9] and [6,5] give sum 20.',
+    intuition:
+      'Think of it as choosing two non-overlapping windows of sizes firstLen and secondLen. Try every possible split point: maximum of firstLen-window on the left plus secondLen-window on the right, and vice versa.',
     approach:
       'Use prefix sums and track the maximum subarray of length firstLen seen so far as we slide a window of length secondLen. Do this for both orderings (first before second, and second before first).',
     code: `class Solution:
@@ -4350,6 +4502,8 @@ TimeMap.prototype.get = function(key, timestamp) {
       'Given the root of a BST, convert it to a Greater Tree where every key of the original BST is changed to the original key plus the sum of all keys greater than the original key in BST.',
     examples:
       'Input: root = [4,1,6,0,2,5,7,null,null,null,3,null,null,null,8]\nOutput: [30,36,21,36,35,26,15,null,null,null,33,null,null,null,8]',
+    intuition:
+      'In a BST, an in-order traversal visits nodes in ascending order. A reverse in-order traversal (right, root, left) visits in descending order. Keep a running sum as you traverse in reverse order, and each node\'s new value is this running sum.',
     approach:
       'Use reverse in-order traversal (right, node, left). Maintain a running sum. At each node, add the running sum to the node value and update the running sum.',
     code: `class Solution:
@@ -4400,6 +4554,8 @@ TimeMap.prototype.get = function(key, timestamp) {
       'A robot starts at (0,0) facing north and executes instructions: G = go forward 1 unit, L = turn left 90 degrees, R = turn right 90 degrees. The instructions repeat forever. Return true if there exists a circle in the plane such that the robot never leaves the circle.',
     examples:
       'Input: instructions = "GGLLGG"\nOutput: true\nExplanation: The robot moves back to the origin after the instructions.',
+    intuition:
+      'Imagine the robot executing its instructions once, twice, three times, etc. If after one cycle the robot is back at the origin, or it is not facing north (meaning it will spiral back eventually), it is bounded. Otherwise, it will drift away forever.',
     approach:
       'After one cycle of instructions, the robot is bounded if it returns to the origin OR it is not facing north. If not facing north, after 4 cycles it will return to origin.',
     code: `class Solution:
@@ -4452,6 +4608,8 @@ TimeMap.prototype.get = function(key, timestamp) {
       'You have a collection of stones, each with a positive integer weight. Each turn, choose the two heaviest stones and smash them. If they have equal weight, both are destroyed. Otherwise, the heavier stone loses weight equal to the lighter stone. Return the weight of the last remaining stone, or 0.',
     examples:
       'Input: stones = [2,7,4,1,8,1]\nOutput: 1\nExplanation: Smash 7 and 8 -> 1. Smash 2 and 4 -> 2. Smash 1 and 2 -> 1. Smash 1 and 1 -> 0. Last stone = 1.',
+    intuition:
+      'Always smash the two heaviest stones - this is the greedy choice. A max-heap gives you the two largest values efficiently. Keep smashing until one or zero stones remain.',
     approach:
       'Use a max-heap. Repeatedly extract the two largest, compute their difference, and if non-zero, push it back. Continue until 0 or 1 stones remain.',
     code: `class Solution:
@@ -4499,6 +4657,8 @@ TimeMap.prototype.get = function(key, timestamp) {
       'You are given a string s. Repeatedly remove all adjacent duplicate pairs until no more can be removed. Return the final string.',
     examples:
       'Input: s = "abbaca"\nOutput: "ca"\nExplanation: Remove "bb" -> "aaca", remove "aa" -> "ca".',
+    intuition:
+      'A stack naturally handles cascading duplicate removals. Push each character, but if it matches the stack top, pop instead. Adjacent duplicates cancel out like matching parentheses.',
     approach:
       'Use a stack. For each character, if it matches the stack top, pop (they cancel out). Otherwise, push it. The remaining stack is the answer.',
     code: `class Solution:
@@ -4542,6 +4702,8 @@ TimeMap.prototype.get = function(key, timestamp) {
       'You are given an array of words. A word chain is a sequence where each word is a predecessor of the next (you can insert exactly one letter to get the next word). Return the length of the longest word chain.',
     examples:
       'Input: words = ["a","b","ba","bca","bda","bdca"]\nOutput: 4\nExplanation: "a" -> "ba" -> "bda" -> "bdca".',
+    intuition:
+      'Sort words by length so you process shorter words first. For each word, try removing one character at a time - if the shorter word exists and has a chain, extend it. This bottom-up DP with a hash map builds the longest chain efficiently.',
     approach:
       'Sort words by length. Use DP where dp[word] is the longest chain ending at that word. For each word, try removing each character and check if the resulting word has a chain length we can extend.',
     code: `class Solution:
@@ -4595,6 +4757,8 @@ TimeMap.prototype.get = function(key, timestamp) {
       'You have a collection of stones with integer weights. Each turn, pick any two stones and smash them (resulting in |x-y| if different, 0 if equal). Return the smallest possible weight of the remaining stone (or 0).',
     examples:
       'Input: stones = [2,7,4,1,8,1]\nOutput: 1',
+    intuition:
+      'Smashing stones is equivalent to assigning + or - to each stone and minimizing the absolute sum. This is a partition problem: split stones into two groups with sums as close as possible. Knapsack DP finds the best split.',
     approach:
       'This is equivalent to partitioning stones into two groups to minimize the absolute difference of their sums. Use a knapsack DP to find the closest achievable sum to total/2.',
     code: `class Solution:
@@ -4642,6 +4806,8 @@ TimeMap.prototype.get = function(key, timestamp) {
       'Given an integer array nums sorted in ascending order with all elements unique, and an integer k, return the k-th missing number starting from the leftmost number of the array.',
     examples:
       'Input: nums = [4,7,9,10], k = 1\nOutput: 5\nExplanation: The first missing number after 4 is 5.',
+    intuition:
+      'The number of missing values before index i can be computed directly: nums[i] - nums[0] - i. Binary search on this function finds exactly where the k-th missing number falls.',
     approach:
       'Use binary search. The number of missing elements before index i is nums[i] - nums[0] - i. Binary search for the smallest index where the missing count >= k.',
     code: `class Solution:
@@ -4695,6 +4861,8 @@ TimeMap.prototype.get = function(key, timestamp) {
       'You are given two strings of equal length s1 and s2, and a string baseStr. s1[i] and s2[i] are equivalent characters. Return the lexicographically smallest equivalent string of baseStr by using the equivalency information from s1 and s2.',
     examples:
       'Input: s1 = "parker", s2 = "morris", baseStr = "parser"\nOutput: "makkek"',
+    intuition:
+      'Characters linked by equivalence form groups - Union-Find handles this perfectly. The trick is always making the lexicographically smallest character the group representative, so looking up any character instantly gives you its smallest equivalent.',
     approach:
       'Use Union-Find where equivalent characters are unioned. Always make the lexicographically smallest character the root. For each character in baseStr, find its root to get the smallest equivalent.',
     code: `class Solution:
@@ -4757,6 +4925,8 @@ TimeMap.prototype.get = function(key, timestamp) {
       'For two strings s and t, t divides s if s = t + t + ... + t (t concatenated some number of times). Given two strings str1 and str2, return the largest string x such that x divides both str1 and str2.',
     examples:
       'Input: str1 = "ABCABC", str2 = "ABC"\nOutput: "ABC"',
+    intuition:
+      'If a GCD string exists, then str1 + str2 must equal str2 + str1 (because both are built from the same repeating block). Once you verify this, the GCD string length is simply gcd(len1, len2), just like with numbers.',
     approach:
       'If str1 + str2 != str2 + str1, no common divisor exists. Otherwise, the GCD string has length gcd(len(str1), len(str2)).',
     code: `class Solution:
@@ -4794,6 +4964,8 @@ TimeMap.prototype.get = function(key, timestamp) {
       'There is a car with capacity empty seats. Given an array trips where trips[i] = [numPassengers, from, to], the car picks up numPassengers at from and drops them off at to. Return true if it is possible to pick up and drop off all passengers for all trips.',
     examples:
       'Input: trips = [[2,1,5],[3,3,7]], capacity = 4\nOutput: false\nExplanation: At location 3, the car has 2+3=5 passengers but capacity is 4.',
+    intuition:
+      'Think of each trip as passengers getting on at one location and off at another. A difference array records these changes at each location. Sweeping through gives the running total of passengers, which must never exceed capacity.',
     approach:
       'Use a difference array or sweep line. For each trip, add passengers at the pickup location and subtract at the dropoff. Then sweep through all locations checking if capacity is exceeded.',
     code: `class Solution:
@@ -4845,6 +5017,8 @@ TimeMap.prototype.get = function(key, timestamp) {
       'You are given a MountainArray interface with get(index) and length() methods. The array first increases then decreases. Given a target, return the minimum index such that MountainArray.get(index) == target. Return -1 if not found. You may call get() at most 100 times.',
     examples:
       'Input: array = [1,2,3,4,5,3,1], target = 3\nOutput: 2',
+    intuition:
+      'The mountain array is two sorted halves joined at the peak. Find the peak with one binary search, then search each half with standard binary search. Search the ascending side first to guarantee the minimum index.',
     approach:
       'First, binary search for the peak. Then binary search the ascending side for the target. If not found, binary search the descending side.',
     code: `class Solution:
@@ -4930,6 +5104,8 @@ TimeMap.prototype.get = function(key, timestamp) {
       'You are given books where books[i] = [thickness, height] and a shelf width. Place books in order on shelves. Return the minimum total height of the bookcase.',
     examples:
       'Input: books = [[1,1],[2,3],[2,3],[1,1],[1,1],[1,1],[1,2]], shelfWidth = 4\nOutput: 6',
+    intuition:
+      'For each book, you must decide where to start a new shelf. Try grouping the current book with previous books on the same shelf (as long as width allows). DP picks the grouping that minimizes total height, since each shelf\'s height is its tallest book.',
     approach:
       'Use DP where dp[i] is the minimum height to place the first i books. For each book i, try placing books i, i-1, i-2, ... on the current shelf as long as the total width fits. The shelf height is the max height on the current shelf.',
     code: `class Solution:
@@ -4990,6 +5166,8 @@ TimeMap.prototype.get = function(key, timestamp) {
       'Given a valid IPv4 address, return a defanged version of that IP address. A defanged IP address replaces every period "." with "[.]".',
     examples:
       'Input: address = "1.1.1.1"\nOutput: "1[.]1[.]1[.]1"',
+    intuition:
+      'This is the simplest possible string transformation - just replace every dot with \'[.]\'. A single string replace call does the job.',
     approach:
       'Simply replace all occurrences of "." with "[.]" using string replacement.',
     code: `class Solution:
@@ -5020,6 +5198,8 @@ TimeMap.prototype.get = function(key, timestamp) {
       'Given the root of a binary tree and an array of values to_delete, remove nodes with those values and return the resulting forest (list of trees) as a list of roots.',
     examples:
       'Input: root = [1,2,3,4,5,6,7], to_delete = [3,5]\nOutput: [[1,2,null,4],[6],[7]]',
+    intuition:
+      'When deleting a node, its children become orphaned and start new trees in the forest. DFS with a flag tracking whether the current node is a root handles both deletion and forest collection in one pass.',
     approach:
       'Use DFS. Convert to_delete to a set. For each node, if it is to be deleted, its children become new roots (if they exist). Return None for deleted nodes so the parent disconnects them.',
     code: `class Solution:
@@ -5075,6 +5255,8 @@ TimeMap.prototype.get = function(key, timestamp) {
       'Given the root of a binary tree, return the lowest common ancestor of its deepest leaves. A node is a deepest leaf if it has the largest depth in the tree.',
     examples:
       'Input: root = [3,5,1,6,2,0,8,null,null,7,4]\nOutput: 2\nExplanation: Deepest leaves are 7 and 4. Their LCA is 2.',
+    intuition:
+      'If both subtrees of a node have the same maximum depth, that node is the LCA of the deepest leaves. If one subtree is deeper, the LCA must be in that deeper subtree. DFS returning (depth, LCA) makes this a clean recursive solution.',
     approach:
       'DFS returning (depth, lca_node) for each subtree. If left and right depths are equal, the current node is the LCA. Otherwise, return the result from the deeper subtree.',
     code: `class Solution:
@@ -5126,6 +5308,8 @@ TimeMap.prototype.get = function(key, timestamp) {
       'You are given a directed graph of n nodes with red and blue colored edges. Find the shortest path from node 0 to each node such that the edge colors alternate along the path. Return -1 if no such path exists.',
     examples:
       'Input: n = 3, redEdges = [[0,1],[1,2]], blueEdges = [[2,1]]\nOutput: [0,1,2]',
+    intuition:
+      'Since edges must alternate colors, your BFS state needs to include the last color used. Start from node 0 with both colors as options, and at each step, switch to the opposite color. The first visit to each node gives the shortest alternating path.',
     approach:
       'BFS with state (node, last_color). Start from node 0 with both colors as possible starting edges. Track the shortest distance to each node regardless of the last color used.',
     code: `class Solution:
@@ -5209,6 +5393,8 @@ TimeMap.prototype.get = function(key, timestamp) {
       'The Tribonacci sequence is defined as: T0 = 0, T1 = 1, T2 = 1, and Tn = Tn-1 + Tn-2 + Tn-3 for n >= 3. Given n, return the value of Tn.',
     examples:
       'Input: n = 4\nOutput: 4\nExplanation: T3 = 0+1+1 = 2, T4 = 1+1+2 = 4.',
+    intuition:
+      'Just like Fibonacci but summing three terms instead of two. Keep three variables and slide them forward. No recursion or array needed - just simple iteration.',
     approach:
       'Use iterative DP with three variables. Start with T0=0, T1=1, T2=1 and compute forward.',
     code: `class Solution:
@@ -5254,6 +5440,8 @@ TimeMap.prototype.get = function(key, timestamp) {
       'Alice and Bob play a game with piles of stones. On each turn, the player can take all stones from the first X remaining piles where 1 <= X <= 2M. M starts at 1 and is updated to max(M, X) after each turn. Alice goes first. Return the maximum number of stones Alice can get.',
     examples:
       'Input: piles = [2,7,9,4,4]\nOutput: 10',
+    intuition:
+      'This is a minimax game: each player wants to maximize their own stones. The elegant insight is that the current player gets total_remaining minus whatever the opponent will get. Memoized recursion on (pile_index, M) solves this efficiently.',
     approach:
       'Use DP with memoization. State is (index, M). Compute suffix sums for efficient range queries. At each state, try taking 1 to 2M piles and choose the option that maximizes the current player\'s stones.',
     code: `class Solution:
@@ -5319,6 +5507,8 @@ TimeMap.prototype.get = function(key, timestamp) {
       'Implement a SnapshotArray that supports set(index, val), snap() which takes a snapshot and returns the snap_id, and get(index, snap_id) which returns the value at the given index at the time of the given snap.',
     examples:
       'Input: ["SnapshotArray","set","snap","set","get"]\n[[3],[0,5],[],[0,6],[0,0]]\nOutput: [null,null,0,null,5]',
+    intuition:
+      'Copying the entire array on every snapshot is wasteful. Instead, for each index, only record changes with their snapshot ID. Binary search on these sparse records retrieves any historical value efficiently.',
     approach:
       'For each index, store a list of (snap_id, value) pairs. On get, binary search for the correct snap_id. This avoids copying the entire array on each snap.',
     code: `class SnapshotArray:
@@ -5387,6 +5577,8 @@ SnapshotArray.prototype.get = function(index, snap_id) {
       'You have n dice, each with k faces numbered 1 to k. Return the number of possible ways to roll the dice so that the sum of the face-up numbers equals target. Return the answer modulo 10^9 + 7.',
     examples:
       'Input: n = 1, k = 6, target = 3\nOutput: 1\nExplanation: Only one way: roll a 3.',
+    intuition:
+      'Think of it as distributing dice rolls to hit a target sum. Each die adds 1 to k, so DP builds up: dp[sum] after i dice = sum of dp[sum - face] from the previous round. A rolling 1D array keeps space minimal.',
     approach:
       'Use DP where dp[i][j] is the number of ways to get sum j using i dice. For each die, try all face values 1 to k. Optimize space by using a rolling array.',
     code: `class Solution:
@@ -5441,6 +5633,8 @@ SnapshotArray.prototype.get = function(index, snap_id) {
       'Given the root of a binary tree, return the smallest level (1-indexed) with the maximum sum of node values.',
     examples:
       'Input: root = [1,7,0,7,-8,null,null]\nOutput: 2\nExplanation: Level 1 sum = 1, Level 2 sum = 7+0 = 7, Level 3 sum = 7+(-8) = -1. Max is 7 at level 2.',
+    intuition:
+      'BFS processes the tree level by level naturally. Sum each level\'s values and track which level has the highest sum. Since BFS processes levels in order, the first maximum found is the smallest-numbered level.',
     approach:
       'BFS level by level. Compute the sum of each level and track the level with the maximum sum.',
     code: `class Solution:
@@ -5506,6 +5700,8 @@ SnapshotArray.prototype.get = function(index, snap_id) {
       'Given an n x n grid containing only 0s (water) and 1s (land), return the maximum Manhattan distance from any water cell to its nearest land cell. Return -1 if there is no land or no water.',
     examples:
       'Input: grid = [[1,0,1],[0,0,0],[1,0,1]]\nOutput: 2',
+    intuition:
+      'Imagine all land cells simultaneously sending out ripples. Multi-source BFS from every land cell finds the distance to the nearest land for every water cell. The last water cell reached has the maximum distance.',
     approach:
       'Multi-source BFS from all land cells simultaneously. The BFS level when we visit the last water cell is the answer.',
     code: `class Solution:
@@ -5581,6 +5777,8 @@ SnapshotArray.prototype.get = function(index, snap_id) {
       'Given two integer arrays arr1 and arr2, return the minimum number of operations to make arr1 strictly increasing. In one operation, you can choose an element from arr2 to replace an element in arr1. Return -1 if impossible.',
     examples:
       'Input: arr1 = [1,5,3,6,7], arr2 = [1,3,2,4]\nOutput: 1\nExplanation: Replace 5 with 2 or 4 to make arr1 strictly increasing.',
+    intuition:
+      'At each position, you have two choices: keep the original value (if it maintains strict increase) or replace it with the smallest valid value from arr2. DP tracks all possible (last_value, operations) states, and binary search finds the best replacement efficiently.',
     approach:
       'Sort arr2 and remove duplicates. Use DP where dp[i] is a map from the last value to the minimum operations. For each element, either keep it (if > previous) or replace it with the smallest value from arr2 that is > previous.',
     code: `class Solution:
@@ -5652,6 +5850,8 @@ SnapshotArray.prototype.get = function(index, snap_id) {
       'There are n servers numbered 0 to n-1 connected by undirected edges. A critical connection is an edge whose removal disconnects the graph. Return all critical connections.',
     examples:
       'Input: n = 4, connections = [[0,1],[1,2],[2,0],[1,3]]\nOutput: [[1,3]]',
+    intuition:
+      'A bridge is an edge whose removal disconnects the graph. Tarjan\'s algorithm finds bridges by tracking how far back each subtree can reach. If a child\'s subtree cannot reach above the current edge, that edge is a bridge.',
     approach:
       'Use Tarjan\'s bridge-finding algorithm. DFS with discovery times and low values. An edge (u, v) is a bridge if low[v] > disc[u], meaning v cannot reach u or any ancestor without using edge (u,v).',
     code: `class Solution:
@@ -5727,6 +5927,8 @@ SnapshotArray.prototype.get = function(index, snap_id) {
       'Given an array of integers arr, return true if the number of occurrences of each value in the array is unique.',
     examples:
       'Input: arr = [1,2,2,1,1,3]\nOutput: true\nExplanation: 1 occurs 3 times, 2 occurs 2 times, 3 occurs 1 time. All different.',
+    intuition:
+      'Count how often each value appears, then check if all those counts are distinct. If the number of unique counts equals the number of distinct values, every occurrence count is unique.',
     approach:
       'Count the frequency of each value. Then check if all frequencies are unique by comparing the length of frequencies with the length of the set of frequencies.',
     code: `class Solution:
@@ -5765,6 +5967,8 @@ SnapshotArray.prototype.get = function(index, snap_id) {
       'You are given two strings s and t of the same length and an integer maxCost. The cost of changing s[i] to t[i] is |s[i] - t[i]|. Return the maximum length of a substring of s that can be changed to the corresponding substring of t with a cost not exceeding maxCost.',
     examples:
       'Input: s = "abcd", t = "bcdf", maxCost = 3\nOutput: 3\nExplanation: "abc" -> "bcd" costs |a-b|+|b-c|+|c-d| = 1+1+1 = 3.',
+    intuition:
+      'The per-character cost forms an array, and you need the longest subarray with sum at most maxCost. A sliding window expands right and shrinks left whenever the cost exceeds the budget - classic window technique.',
     approach:
       'Use a sliding window. Compute the cost array (|s[i] - t[i]| for each i). Expand the right pointer, and shrink from the left when the window cost exceeds maxCost.',
     code: `class Solution:
@@ -5817,6 +6021,8 @@ SnapshotArray.prototype.get = function(index, snap_id) {
       'You are given a string s and an integer k. Repeatedly remove k adjacent equal characters until no more can be removed. Return the final string.',
     examples:
       'Input: s = "deeedbbcccbdaa", k = 3\nOutput: "aa"\nExplanation: Remove "eee" -> "dbbcccbdaa", remove "ccc" -> "dbbbbdaa", remove "bbbb" (k=3 removes 3 of them) -> wait, "bbbb" has 4, remove 3 -> "dbdaa", remove "ddd"? No. Actually: "deeedbbcccbdaa" -> remove "eee" -> "dbbcccbdaa" -> remove "ccc" -> "dbbbbdaa" -> remove "bbbb" (4 >= 3, remove 3) -> "dbdaa" -> remove "ddd"? No. Re-eval: stack approach handles this correctly.',
+    intuition:
+      'A stack of (character, count) pairs handles cascading removals perfectly. When a run reaches length k, pop it off. This may expose a new match at the stack top, which the next character will handle automatically.',
     approach:
       'Use a stack of (character, count) pairs. For each character, if it matches the stack top, increment the count. When count reaches k, pop it. This handles cascading removals.',
     code: `class Solution:
@@ -5866,6 +6072,8 @@ SnapshotArray.prototype.get = function(index, snap_id) {
       'We have n chips at various positions. Moving a chip by 2 positions costs 0, moving by 1 position costs 1. Return the minimum cost to move all chips to the same position.',
     examples:
       'Input: position = [1,2,3]\nOutput: 1\nExplanation: Move chip at 2 to 1 (cost 1) or to 3 (cost 1). Min cost = 1.',
+    intuition:
+      'Moving a chip 2 positions is free, so all chips on even positions can be gathered at any even spot for free, and all odd chips at any odd spot for free. The cost is just moving the smaller group by one position to join the other.',
     approach:
       'Since moving by 2 is free, all chips on even positions can be grouped together for free, and all on odd positions can be grouped for free. The cost is the minimum of the count of even-position chips and odd-position chips.',
     code: `class Solution:
@@ -5903,6 +6111,8 @@ SnapshotArray.prototype.get = function(index, snap_id) {
       'In a gold mine grid, each cell has an integer representing the amount of gold. Return the maximum amount of gold you can collect starting from any cell with gold and moving to adjacent cells (up, down, left, right). You cannot visit a cell more than once or visit cells with 0 gold.',
     examples:
       'Input: grid = [[0,6,0],[5,8,7],[0,9,0]]\nOutput: 24\nExplanation: Path: 9->8->7 = 24 or 6->8->9 = 23. Actually 9->8->7 = 24.',
+    intuition:
+      'The grid is small enough for brute-force backtracking. Start DFS from every gold cell, collect as much as possible, and backtrack. Setting cells to 0 during traversal prevents revisiting, and restoring them enables trying other paths.',
     approach:
       'Use DFS/backtracking from every cell with gold. Mark cells as visited during traversal and unmark on backtrack. Track the maximum gold collected across all starting points.',
     code: `class Solution:
@@ -5968,6 +6178,8 @@ SnapshotArray.prototype.get = function(index, snap_id) {
       'You are given an array of coordinates where coordinates[i] = [x, y]. Check if these points make a straight line in the XY plane.',
     examples:
       'Input: coordinates = [[1,2],[2,3],[3,4],[4,5],[5,6],[6,7]]\nOutput: true',
+    intuition:
+      'Two points always form a line. Every additional point must satisfy the same slope relationship. Using cross multiplication (dy1 * dx2 == dy2 * dx1) avoids division and handles vertical lines cleanly.',
     approach:
       'Check if all points have the same slope relative to the first two points. Use cross multiplication to avoid division: (y2-y1)*(x-x1) == (y-y1)*(x2-x1) for all points.',
     code: `class Solution:
@@ -6014,6 +6226,8 @@ SnapshotArray.prototype.get = function(index, snap_id) {
       'We have n jobs where job i has startTime[i], endTime[i], and profit[i]. Return the maximum profit you can take such that no two chosen jobs overlap. A job that ends at time x can be followed by a job starting at time x.',
     examples:
       'Input: startTime = [1,2,3,3], endTime = [3,4,5,6], profit = [50,10,40,70]\nOutput: 120\nExplanation: Take jobs 1 and 4: profit = 50 + 70 = 120.',
+    intuition:
+      'Sort jobs by end time, then for each job, decide: skip it, or take it plus the best profit from non-overlapping earlier jobs. Binary search quickly finds the last compatible job. This is the weighted job scheduling pattern.',
     approach:
       'Sort jobs by end time. Use DP where dp[i] is the max profit considering the first i jobs. For each job, either skip it or take it (find the last non-overlapping job using binary search).',
     code: `class Solution:
@@ -6069,6 +6283,8 @@ SnapshotArray.prototype.get = function(index, snap_id) {
       'You are given an array of strings arr. A string s is formed by the concatenation of a subsequence of arr that has unique characters. Return the maximum possible length of s.',
     examples:
       'Input: arr = ["un","iq","ue"]\nOutput: 4\nExplanation: "uniq" or "ique" has 4 unique characters.',
+    intuition:
+      'With at most 16 valid strings, you can try all subsets via backtracking. Bitmasks encode which characters are used, making conflict detection a simple bitwise AND. If two bitmasks have no overlap, the strings can be concatenated.',
     approach:
       'Use backtracking or DP with bitmasks. Filter out strings with duplicate characters. Try including or excluding each string, tracking used characters with a bitmask.',
     code: `class Solution:
@@ -6140,6 +6356,8 @@ SnapshotArray.prototype.get = function(index, snap_id) {
       'Given an array of integers nums and an integer k, return the number of nice subarrays. A nice subarray has exactly k odd numbers.',
     examples:
       'Input: nums = [1,1,2,1,1], k = 3\nOutput: 2\nExplanation: Subarrays [1,1,2,1] and [1,2,1,1] have 3 odd numbers.',
+    intuition:
+      'Counting subarrays with exactly k odd numbers is tricky, but \'at most k\' is easy with a sliding window. The clever identity \'exactly k = atMost(k) - atMost(k-1)\' converts the hard problem into two easy ones.',
     approach:
       'Use the technique: exactly(k) = atMost(k) - atMost(k-1). atMost(k) uses a sliding window counting odd numbers.',
     code: `class Solution:
@@ -6195,6 +6413,8 @@ SnapshotArray.prototype.get = function(index, snap_id) {
       'Given a string s of parentheses and lowercase English letters, remove the minimum number of parentheses to make the resulting string valid. A valid string has matched parentheses.',
     examples:
       'Input: s = "lee(t(c)o)de)"\nOutput: "lee(t(c)o)de"',
+    intuition:
+      'Use a stack to match parentheses: push \'(\' indices, pop on \')\'. Unmatched parentheses (remaining \'(\' in the stack or \')\' that found no match) are the ones to remove. This identifies the minimum removals in one pass.',
     approach:
       'Use a stack to identify unmatched parentheses. First pass: track indices of unmatched ( and ). Second pass: build the result excluding those indices.',
     code: `class Solution:
@@ -6248,6 +6468,8 @@ SnapshotArray.prototype.get = function(index, snap_id) {
       'Given a 2D grid where 0 represents land and 1 represents water, a closed island is a group of 0s completely surrounded by 1s. Return the number of closed islands.',
     examples:
       'Input: grid = [[1,1,1,1,1,1,1,0],[1,0,0,0,0,1,1,0],[1,0,1,0,1,1,1,0],[1,0,0,0,0,1,0,1],[1,1,1,1,1,1,1,0]]\nOutput: 2',
+    intuition:
+      'A closed island cannot touch the grid boundary. First, flood-fill all land connected to the boundary to eliminate it. Then every remaining land region is completely enclosed by water, making it a closed island.',
     approach:
       'First, flood-fill (DFS) all land connected to the boundary to mark it as water. Then count the remaining islands of 0s using DFS. Each remaining island is a closed island.',
     code: `class Solution:
@@ -6316,6 +6538,8 @@ SnapshotArray.prototype.get = function(index, snap_id) {
       'Given a list of words, an array of letters you can use, and a score for each letter a-z, return the maximum score of any valid set of words you can form. Each letter can only be used once.',
     examples:
       'Input: words = ["dog","cat","dad","good"], letters = ["a","a","c","d","d","d","g","o","o"], score = [1,0,9,5,0,0,3,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0]\nOutput: 23\nExplanation: "dad" (5+1+5=11) + "good" (3+2+2+5=12) = 23.',
+    intuition:
+      'With few words (up to 14), trying all subsets is feasible. For each subset, check if the available letters suffice and compute the total score. Backtracking with pruning avoids checking obviously invalid combinations.',
     approach:
       'Use backtracking/subset enumeration. Try all subsets of words, checking if the available letters are sufficient. Track the maximum score among valid subsets.',
     code: `class Solution:
@@ -6386,6 +6610,8 @@ SnapshotArray.prototype.get = function(index, snap_id) {
       'You are given an array of products and a searchWord. After each character of searchWord is typed, suggest at most 3 products from the array that have the typed string as a prefix. Return the list of suggestions after each character typed.',
     examples:
       'Input: products = ["mobile","mouse","moneypot","monitor","mousepad"], searchWord = "mouse"\nOutput: [["mobile","moneypot","monitor"],["mobile","moneypot","monitor"],["mouse","mousepad"],["mouse","mousepad"],["mouse","mousepad"]]',
+    intuition:
+      'Sorting products alphabetically means products with the same prefix are adjacent. For each prefix typed, binary search finds the insertion point, and the next 3 products at that point are your suggestions (if they match the prefix).',
     approach:
       'Sort the products lexicographically. For each prefix, use binary search to find the insertion point and return up to 3 products starting from that point that match the prefix.',
     code: `class Solution:

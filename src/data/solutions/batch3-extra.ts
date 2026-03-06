@@ -10,6 +10,8 @@ export const solutions: ProblemSolution[] = [
       'You are an awesome parent and want to give your children some cookies. Each child i has a greed factor g[i], which is the minimum size of a cookie that the child will be content with. Each cookie j has a size s[j]. If s[j] >= g[i], you can assign cookie j to child i, and the child will be content. Maximize the number of content children.',
     examples:
       'Input: g = [1,2,3], s = [1,1]\nOutput: 1\nExplanation: You have 2 cookies of size 1 but 3 children. Only 1 child can be content.',
+    intuition:
+      'Think of it like distributing snacks at a party - give the smallest snack to the least picky person first. Sorting both arrays and matching greedily ensures no cookie is wasted on a child who could have been satisfied with something smaller.',
     approach:
       'Sort both arrays. Use two pointers: iterate through cookies and children greedily. Assign the smallest sufficient cookie to the least greedy child first.',
     code: `class Solution:
@@ -55,6 +57,8 @@ export const solutions: ProblemSolution[] = [
       'Given an array of n integers nums, a 132 pattern is a subsequence nums[i], nums[j], nums[k] such that i < j < k and nums[i] < nums[k] < nums[j]. Return true if there is a 132 pattern in nums, otherwise return false.',
     examples:
       'Input: nums = [3,1,4,2]\nOutput: true\nExplanation: The subsequence [1,4,2] is a 132 pattern (1 < 2 < 4).',
+    intuition:
+      'Imagine scanning from right to left and maintaining the best candidate for the \'3\' (peak) and \'2\' (middle) values. The stack keeps track of potential peaks, and whenever we pop a smaller value, it becomes our best \'2\'. If we then find something smaller than \'2\', we have our \'1\' and the pattern is complete.',
     approach:
       'Traverse the array from right to left using a monotonic stack. Maintain a variable for the "2" element (third). When we pop from the stack, we update the third element. If any element is less than third, we found a 132 pattern.',
     code: `class Solution:
@@ -103,6 +107,8 @@ export const solutions: ProblemSolution[] = [
       'Given a string s, check if it can be constructed by taking a substring of it and appending multiple copies of the substring together. Return true if so, otherwise false.',
     examples:
       'Input: s = "abab"\nOutput: true\nExplanation: It is the substring "ab" repeated twice.',
+    intuition:
+      'If a string is made of a repeating pattern like \'abcabc\', then doubling it (\'abcabcabcabc\') creates extra copies where the pattern realigns at shifted positions. By removing the first and last characters to prevent trivial matches, finding the original string in the doubled version proves it must be built from repeats.',
     approach:
       'Concatenate s with itself and remove the first and last characters. If s is found in this modified string, it is a repeated pattern. This works because a repeated string will realign within the doubled version.',
     code: `class Solution:
@@ -134,6 +140,8 @@ export const solutions: ProblemSolution[] = [
       'Design and implement a data structure for a Least Frequently Used (LFU) cache. Implement the LFUCache class with get and put methods. When the cache reaches its capacity, it should invalidate and remove the least frequently used key before inserting a new item. When there is a tie, the least recently used key is evicted.',
     examples:
       'Input: ["LFUCache","put","put","get","put","get","get","put","get","get","get"]\n[[2],[1,1],[2,2],[1],[3,3],[2],[3],[4,4],[1],[3],[4]]\nOutput: [null,null,null,1,null,-1,3,null,-1,3,4]',
+    intuition:
+      'Think of it like a library where books are organized by how often they are checked out. You need to quickly find and remove the least popular book, and among equally unpopular books, the one that has not been touched the longest. Using a frequency-to-ordered-list mapping gives you O(1) access to exactly that book.',
     approach:
       'Use a hash map for key-to-value, a hash map for key-to-frequency, and a hash map from frequency to an OrderedDict (which maintains insertion order for LRU within the same frequency). Track the minimum frequency to find eviction candidates in O(1).',
     code: `from collections import defaultdict, OrderedDict
@@ -244,6 +252,8 @@ LFUCache.prototype._updateFreq = function(key) {
       'The Hamming distance between two integers is the number of positions at which the corresponding bits are different. Given two integers x and y, return the Hamming distance between them.',
     examples:
       'Input: x = 1, y = 4\nOutput: 2\nExplanation: 1 (0001) and 4 (0100) differ in 2 bit positions.',
+    intuition:
+      'XOR is like a spotlight that highlights differences - when you XOR two numbers, every bit position where they differ lights up as a 1. Counting those lit-up bits gives you the Hamming distance directly.',
     approach:
       'XOR the two numbers to get a value where set bits represent differences. Then count the number of set bits using bin().count("1") or Brian Kernighan\'s algorithm.',
     code: `class Solution:
@@ -280,6 +290,8 @@ LFUCache.prototype._updateFreq = function(key) {
       'Given an integer array nums of size n, return the minimum number of moves required to make all array elements equal. In one move, you can increment or decrement an element by 1.',
     examples:
       'Input: nums = [1,2,3]\nOutput: 2\nExplanation: [1,2,3] => [2,2,3] => [2,2,2]. Only 2 moves needed.',
+    intuition:
+      'Imagine all the numbers standing on a number line and you need to pick a meeting point that minimizes total travel. The median is that optimal meeting point because moving away from it always increases total distance for more elements than it decreases.',
     approach:
       'The optimal target is the median of the array. Sort the array, find the median, and sum the absolute differences from each element to the median.',
     code: `class Solution:
@@ -315,6 +327,8 @@ LFUCache.prototype._updateFreq = function(key) {
       'You are given a 2D grid map of 1s (land) and 0s (water). The grid cells are connected horizontally/vertically (not diagonally). The grid is completely surrounded by water. There is exactly one island. Determine the perimeter of the island.',
     examples:
       'Input: grid = [[0,1,0,0],[1,1,1,0],[0,1,0,0],[1,1,0,0]]\nOutput: 16',
+    intuition:
+      'Picture each land cell as a square tile with 4 exposed edges. When two tiles are side by side, they share an edge and each loses one from its perimeter. So start with 4 per tile and subtract 2 for every pair of adjacent tiles.',
     approach:
       'For each land cell, start with 4 edges. For each adjacent land cell, subtract 1 edge (shared boundary). Alternatively, count land cells * 4 minus 2 * number of adjacent land pairs.',
     code: `class Solution:
@@ -367,6 +381,8 @@ LFUCache.prototype._updateFreq = function(key) {
       'In the "100 game," two players take turns adding any integer from 1 to maxChoosableInteger to a running total. The player who causes the total to reach or exceed desiredTotal wins. Given maxChoosableInteger and desiredTotal, determine if the first player can always force a win assuming both play optimally. No number can be reused.',
     examples:
       'Input: maxChoosableInteger = 10, desiredTotal = 11\nOutput: false\nExplanation: No matter which number player 1 picks, player 2 can always win.',
+    intuition:
+      'This is a game theory problem where you need to think backwards from the end. A bitmask captures which numbers have been used, and at each state, the current player wins if they can pick a number that either reaches the goal immediately or leaves the opponent in a losing position.',
     approach:
       'Use bitmask DP with memoization. Each bitmask represents which numbers have been chosen. At each state, try all unchosen numbers and check if any choice leads to a win (reaching the total or forcing the opponent into a losing state).',
     code: `class Solution:
@@ -430,6 +446,8 @@ LFUCache.prototype._updateFreq = function(key) {
       'Given a string queryIP, return "IPv4" if it is a valid IPv4 address, "IPv6" if it is a valid IPv6 address, or "Neither" if it is not a correct IP of any type. A valid IPv4 has four decimal numbers (0-255) separated by dots with no leading zeros. A valid IPv6 has eight groups of four hexadecimal digits separated by colons.',
     examples:
       'Input: queryIP = "172.16.254.1"\nOutput: "IPv4"',
+    intuition:
+      'This is a parsing problem - split the address by the appropriate delimiter and validate each segment against the rules. The key insight is to check for \'.\' or \':\' first to determine the type, then validate the exact format rules for IPv4 (numeric 0-255, no leading zeros) or IPv6 (1-4 hex digits).',
     approach:
       'Split by "." for IPv4 or ":" for IPv6 and validate each part. For IPv4, check 4 parts, each numeric, no leading zeros, value 0-255. For IPv6, check 8 parts, each 1-4 hex chars.',
     code: `class Solution:
@@ -498,6 +516,8 @@ LFUCache.prototype._updateFreq = function(key) {
       'Given an array of strings words (without duplicates), return all the concatenated words. A concatenated word is a string that is comprised entirely of at least two shorter words from the given array.',
     examples:
       'Input: words = ["cat","cats","catsdogcats","dog","dogcatsdog","hippopotamuses","rat","ratcatdogcat"]\nOutput: ["catsdogcats","dogcatsdog","ratcatdogcat"]',
+    intuition:
+      'Each word is potentially a chain of shorter words glued together. By putting all words in a set and running the Word Break DP on each one, you can check if it decomposes into at least two dictionary words. The set gives instant lookup, and DP handles all possible split points.',
     approach:
       'Put all words in a set. For each word, use dynamic programming (word break) to check if it can be split into at least two words from the set.',
     code: `class Solution:
@@ -562,6 +582,8 @@ LFUCache.prototype._updateFreq = function(key) {
       'You are given an array of binary strings strs, and two integers m and n. Return the size of the largest subset of strs such that there are at most m 0s and n 1s in the subset.',
     examples:
       'Input: strs = ["10","0001","111001","1","0"], m = 5, n = 3\nOutput: 4\nExplanation: The largest subset with at most 5 zeros and 3 ones is {"10","0001","1","0"}, size 4.',
+    intuition:
+      'This is a knapsack problem with two budgets instead of one - you have a limited supply of zeros and ones. Each binary string \'costs\' some zeros and ones, and you want to pick the maximum number of strings that fit within both budgets, just like choosing items that fit in a backpack with two weight limits.',
     approach:
       'This is a 0/1 knapsack problem with two constraints (m zeros and n ones). Use a 2D DP array dp[i][j] representing the max subset size with i zeros and j ones available.',
     code: `class Solution:
@@ -610,6 +632,8 @@ LFUCache.prototype._updateFreq = function(key) {
       'You have houses and heaters on a horizontal line. Find the minimum radius such that all houses can be covered by at least one heater. Every heater warms all houses within its radius.',
     examples:
       'Input: houses = [1,2,3], heaters = [2]\nOutput: 1\nExplanation: A heater at position 2 with radius 1 covers all houses.',
+    intuition:
+      'Think of each house needing to be within range of some heater. For each house, find its closest heater using binary search, then the answer is the worst-case distance across all houses - because the radius must cover even the most isolated house.',
     approach:
       'Sort both arrays. For each house, binary search to find the nearest heater. The answer is the maximum of all minimum distances from each house to its nearest heater.',
     code: `import bisect
@@ -667,6 +691,8 @@ class Solution:
       'The complement of an integer is the integer you get when you flip all the 0s to 1s and all the 1s to 0s in its binary representation. Given a positive integer num, output its complement.',
     examples:
       'Input: num = 5\nOutput: 2\nExplanation: Binary of 5 is 101, complement is 010 which is 2.',
+    intuition:
+      'To flip all bits of a number, XOR it with a mask of all 1s that has the same bit width. For example, 101 XOR 111 = 010. The trick is constructing that all-1s mask, which is (1 shifted left by the number of bits) minus 1.',
     approach:
       'Find a bitmask with all 1s that has the same number of bits as num. XOR num with this mask to flip all bits.',
     code: `class Solution:
@@ -705,6 +731,8 @@ class Solution:
       'The median is the middle value in an ordered integer list. Given an array nums and an integer k, return the median of each window of size k moving from left to right. Answers within 10^-5 of the actual value are accepted.',
     examples:
       'Input: nums = [1,3,-1,-3,5,3,6,7], k = 3\nOutput: [1.0,-1.0,-1.0,3.0,5.0,6.0]',
+    intuition:
+      'Imagine keeping a sorted guest list for a sliding window of k visitors. As the window moves, you add one person and remove another while maintaining sorted order, letting you instantly read the median from the middle position.',
     approach:
       'Use a SortedList (from sortedcontainers) to maintain the window in sorted order. For each window position, add the new element, remove the old one, and retrieve the median from the sorted structure.',
     code: `from sortedcontainers import SortedList
@@ -772,6 +800,8 @@ class Solution:
       'Given a binary array nums, return the maximum number of consecutive 1s in the array.',
     examples:
       'Input: nums = [1,1,0,1,1,1]\nOutput: 3\nExplanation: The last three elements are consecutive 1s.',
+    intuition:
+      'This is like counting the longest streak of heads when flipping coins. Just keep a running tally that resets to zero whenever you see a 0, and remember the highest tally you have ever reached.',
     approach:
       'Iterate through the array maintaining a count of consecutive 1s. Reset the count when a 0 is encountered. Track the maximum count seen.',
     code: `class Solution:
@@ -820,6 +850,8 @@ class Solution:
       'You are given an integer array nums. Two players take turns picking a number from either end of the array. Player 1 starts first. Return true if Player 1 can win or tie. Each player plays optimally.',
     examples:
       'Input: nums = [1,5,2]\nOutput: false\nExplanation: Player 1 picks 1 or 2, Player 2 always gets 5 and wins.',
+    intuition:
+      'Think of this as a zero-sum game where each player tries to maximize their advantage. The key insight is that dp[i][j] represents the net score advantage the current player can achieve from the subarray i to j, and each player picks the end that maximizes their relative advantage.',
     approach:
       'Use interval DP. dp[i][j] represents the maximum score difference the current player can achieve from nums[i..j]. The current player picks nums[i] or nums[j] and the opponent faces the remaining subarray.',
     code: `class Solution:
@@ -868,6 +900,8 @@ class Solution:
       'There is a ball in a maze with empty spaces and walls. The ball can go through the empty spaces by rolling up, down, left or right, but it won\'t stop rolling until hitting a wall. Determine whether the ball can stop at the destination.',
     examples:
       'Input: maze = [[0,0,1,0,0],[0,0,0,0,0],[0,0,0,1,0],[1,1,0,1,1],[0,0,0,0,0]], start = [0,4], destination = [4,4]\nOutput: true',
+    intuition:
+      'Unlike normal BFS where you move one step at a time, the ball rolls until it hits a wall. So each \'node\' in your search is a stopping position (where the ball rests against a wall), and you explore by rolling in all four directions to find the next stopping positions.',
     approach:
       'Use BFS or DFS. From each position, roll the ball in all four directions until it hits a wall. The stopping position is a new node to explore. Track visited stopping positions to avoid cycles.',
     code: `from collections import deque
@@ -938,6 +972,8 @@ class Solution:
       'Given an integer array nums, return the number of reverse pairs in the array. A reverse pair is a pair (i, j) where 0 <= i < j < nums.length and nums[i] > 2 * nums[j].',
     examples:
       'Input: nums = [1,3,2,3,1]\nOutput: 2\nExplanation: The reverse pairs are (1,4) => 3 > 2*1 and (3,4) => 3 > 2*1.',
+    intuition:
+      'Merge sort naturally divides the array into sorted halves, and during the merge step you can efficiently count cross-half pairs because both halves are sorted. This turns a brute-force O(n^2) counting problem into O(n log n) by leveraging the sorted order.',
     approach:
       'Use merge sort. During the merge step, count pairs where nums[i] > 2 * nums[j] before merging the two halves. This allows counting in O(n log n) time.',
     code: `class Solution:
@@ -997,6 +1033,8 @@ class Solution:
       'Given an m x n matrix mat, return an array of all the elements of the array in a diagonal order. You start from the top-left and alternate between going up-right and down-left.',
     examples:
       'Input: mat = [[1,2,3],[4,5,6],[7,8,9]]\nOutput: [1,2,4,7,5,3,6,8,9]',
+    intuition:
+      'The key insight is that all elements on the same diagonal share the same sum of (row + column) indices. Group elements by this sum, then alternate the direction - reverse even-numbered diagonals and keep odd ones as-is - to produce the zigzag traversal.',
     approach:
       'Group elements by the sum of their indices (i+j). Elements on the same diagonal have the same i+j sum. For even diagonals, reverse the order (go upward). For odd diagonals, keep the order (go downward).',
     code: `class Solution:
@@ -1054,6 +1092,8 @@ class Solution:
       'There is a ball in a maze with empty spaces and walls. The ball rolls until hitting a wall. Find the shortest distance for the ball to stop at the destination. If impossible, return -1. The distance is the number of empty spaces traveled.',
     examples:
       'Input: maze = [[0,0,1,0,0],[0,0,0,0,0],[0,0,0,1,0],[1,1,0,1,1],[0,0,0,0,0]], start = [0,4], destination = [4,4]\nOutput: 12',
+    intuition:
+      'Unlike Maze I where you just check reachability, here rolling distances vary so you need shortest-path logic. Dijkstra\'s algorithm works perfectly because each \'edge\' (rolling in one direction) has a different cost equal to the number of cells traveled.',
     approach:
       'Use Dijkstra\'s algorithm or BFS with distance tracking. From each stopping position, roll in all four directions and calculate the distance traveled. Update the shortest distance to each stopping position.',
     code: `import heapq
@@ -1127,6 +1167,8 @@ class Solution:
       'The Fibonacci numbers form a sequence where each number is the sum of the two preceding ones, starting from 0 and 1. Given n, calculate F(n).',
     examples:
       'Input: n = 4\nOutput: 3\nExplanation: F(4) = F(3) + F(2) = 2 + 1 = 3.',
+    intuition:
+      'The Fibonacci sequence only depends on the last two numbers, so there is no need to store the entire sequence or use recursion. Just keep two variables and slide them forward like a two-element window, updating the sum at each step.',
     approach:
       'Use iterative bottom-up approach with two variables to track the last two Fibonacci numbers. This avoids recursion overhead and uses O(1) space.',
     code: `class Solution:
@@ -1168,6 +1210,8 @@ class Solution:
       'Given a string s, find the longest palindromic subsequence\'s length in s. A subsequence is derived by deleting some or no elements without changing the order of the remaining elements.',
     examples:
       'Input: s = "bbbab"\nOutput: 4\nExplanation: One possible longest palindromic subsequence is "bbbb".',
+    intuition:
+      'Think of building a palindrome by examining the outer characters first. If the endpoints of a substring match, they can wrap around the inner palindrome to extend it by 2. If they do not match, the best palindrome must exclude at least one end.',
     approach:
       'Use 2D DP where dp[i][j] is the length of the longest palindromic subsequence in s[i..j]. If s[i] == s[j], dp[i][j] = dp[i+1][j-1] + 2. Otherwise, dp[i][j] = max(dp[i+1][j], dp[i][j-1]).',
     code: `class Solution:
@@ -1217,6 +1261,8 @@ class Solution:
       'Given a binary array nums, return the maximum length of a contiguous subarray with an equal number of 0s and 1s.',
     examples:
       'Input: nums = [0,1,0]\nOutput: 2\nExplanation: [0,1] is the longest contiguous subarray with equal 0s and 1s.',
+    intuition:
+      'Replace every 0 with -1, and now equal numbers of 0s and 1s becomes a subarray with sum 0. Using a prefix sum with a hash map, when you see the same prefix sum twice, the subarray between those positions has a net sum of zero - meaning equal 0s and 1s.',
     approach:
       'Replace 0s with -1s and find the longest subarray with sum 0. Use a hash map to store the first occurrence of each prefix sum. When the same prefix sum appears again, the subarray between those indices has sum 0.',
     code: `class Solution:
@@ -1267,6 +1313,8 @@ class Solution:
       'You are given a 0-indexed array of positive integers w where w[i] describes the weight of the ith index. Implement the function pickIndex() which randomly picks an index in the range [0, w.length - 1] (inclusive) and returns it. The probability of picking index i is w[i] / sum(w).',
     examples:
       'Input: ["Solution","pickIndex","pickIndex"]\n[[[1,3]],[],[]]\nOutput: [null,1,1]\nExplanation: pickIndex returns 1 with probability 3/4 and 0 with probability 1/4.',
+    intuition:
+      'Think of the weights as segments on a number line - weight 3 takes up three units of space. Build a prefix sum to create these segments, then pick a random point on the line and binary search to find which segment it falls in. Larger weights occupy more space and get picked more often.',
     approach:
       'Build a prefix sum array from the weights. To pick an index, generate a random number in [1, total_weight] and binary search for the first prefix sum >= that number.',
     code: `import random
@@ -1325,6 +1373,8 @@ Solution.prototype.pickIndex = function() {
       'Given a 2D minesweeper board and a click position, return the board after revealing according to the rules: if a mine (\'M\') is clicked, mark it as \'X\'. If an empty square with no adjacent mines is clicked, reveal it as \'B\' and recursively reveal all adjacent unrevealed squares. If an empty square with adjacent mines is clicked, show the count.',
     examples:
       'Input: board = [["E","E","E"],["E","E","E"],["E","E","E"]], click = [1,1]\nOutput: [["B","B","B"],["B","B","B"],["B","B","B"]]',
+    intuition:
+      'This works exactly like the real Minesweeper game. Click a cell, count its neighboring mines. If zero mines nearby, it is safe to auto-reveal all neighbors recursively. If mines are nearby, show the count and stop expanding. DFS naturally handles the cascading reveal.',
     approach:
       'Use DFS/BFS from the click position. If a mine, mark it. Otherwise, count adjacent mines: if 0, mark as \'B\' and recurse into all 8 neighbors. If > 0, mark with the count digit.',
     code: `class Solution:
@@ -1405,6 +1455,8 @@ Solution.prototype.pickIndex = function() {
       'Given the root of a Binary Search Tree (BST), return the minimum absolute difference between the values of any two different nodes in the tree.',
     examples:
       'Input: root = [4,2,6,1,3]\nOutput: 1\nExplanation: The minimum absolute difference is between 2 and 3 (or 3 and 4).',
+    intuition:
+      'In a BST, an in-order traversal visits nodes in ascending order. The minimum difference must occur between two consecutive values in this sorted sequence, so you only need to compare each node with the one visited just before it.',
     approach:
       'Perform an in-order traversal of the BST, which visits nodes in sorted order. The minimum difference must be between consecutive nodes in this sorted order. Track the previous node and update the minimum difference.',
     code: `class Solution:
@@ -1456,6 +1508,8 @@ Solution.prototype.pickIndex = function() {
       'Given an array of integers nums and an integer k, return the number of unique k-diff pairs in the array. A k-diff pair is (nums[i], nums[j]) where i != j and |nums[i] - nums[j]| == k.',
     examples:
       'Input: nums = [3,1,4,1,5], k = 2\nOutput: 2\nExplanation: The pairs are (1,3) and (3,5).',
+    intuition:
+      'Instead of checking all pairs (O(n^2)), use a frequency map. For k > 0, each unique number num forms a pair if num + k also exists. For k = 0, a number forms a pair with itself only if it appears at least twice. Checking only num + k (not num - k) avoids counting pairs twice.',
     approach:
       'Use a Counter to count occurrences. If k == 0, count numbers that appear more than once. If k > 0, for each unique number, check if num + k also exists in the counter.',
     code: `from collections import Counter
@@ -1503,6 +1557,8 @@ class Solution:
       'TinyURL is a URL shortening service. Design the encode and decode methods. There is no restriction on how your encode/decode algorithm should work. You just need to ensure that a URL can be encoded to a tiny URL and the tiny URL can be decoded back to the original URL.',
     examples:
       'Input: url = "https://leetcode.com/problems/design-tinyurl"\nOutput: "https://leetcode.com/problems/design-tinyurl"',
+    intuition:
+      'This is a design question with no single correct answer. The simplest approach uses a counter to generate unique short codes and a dictionary to map them back to original URLs. The key insight is that encode and decode are inverse operations connected through a shared lookup table.',
     approach:
       'Use a hash map to store mappings. Generate a unique short code (e.g., using a counter or hash) and map it to the original URL. Decode by looking up the short code in the map.',
     code: `class Codec:
@@ -1556,6 +1612,8 @@ Codec.prototype.decode = function(shortUrl) {
       'You need to construct a binary tree from a string consisting of parenthesis and integers. The whole input represents a binary tree. It contains an integer followed by zero, one, or two pairs of parenthesis. The first pair represents the left child and the second represents the right child.',
     examples:
       'Input: s = "4(2(3)(1))(6(5))"\nOutput: [4,2,6,3,1,5]',
+    intuition:
+      'The string has a recursive structure: a number optionally followed by parenthesized subtrees. A recursive parser that reads the number, then checks for \'(\' to parse left and right children, naturally mirrors the tree structure and builds it top-down.',
     approach:
       'Use a recursive parser or a stack. Parse the number, then if there is a \'(\', recursively parse the left child. If there is another \'(\', parse the right child. Match closing parentheses.',
     code: `class TreeNode:
@@ -1641,6 +1699,8 @@ class Solution:
       'Given the root of a Binary Search Tree (BST), convert it to a Greater Tree where every key of the original BST is changed to the original key plus the sum of all keys greater than the original key in BST.',
     examples:
       'Input: root = [4,1,6,0,2,5,7,null,null,null,3,null,null,null,8]\nOutput: [30,36,21,36,35,26,15,null,null,null,33,null,null,null,8]',
+    intuition:
+      'In a BST, all values greater than a node are in its right subtree and certain ancestors. By traversing right-to-left (reverse in-order), you visit nodes from largest to smallest and can accumulate a running sum, updating each node to include all greater values.',
     approach:
       'Perform a reverse in-order traversal (right, root, left). Maintain a running sum of all visited nodes. Update each node\'s value by adding the running sum.',
     code: `class Solution:
@@ -1690,6 +1750,8 @@ class Solution:
       'Given a string s and an integer k, reverse the first k characters for every 2k characters counting from the start of the string. If there are fewer than k characters left, reverse all of them.',
     examples:
       'Input: s = "abcdefg", k = 2\nOutput: "bacdfeg"',
+    intuition:
+      'Process the string in chunks of 2k characters. In each chunk, reverse only the first k characters and leave the rest alone. The pattern is simple and repetitive, making it easy to implement with a loop that jumps by 2k each iteration.',
     approach:
       'Process the string in chunks of 2k. For each chunk, reverse the first k characters and keep the rest as is.',
     code: `class Solution:
@@ -1732,6 +1794,8 @@ class Solution:
       'Given an m x n binary matrix mat, return the distance of the nearest 0 for each cell. The distance between two adjacent cells is 1.',
     examples:
       'Input: mat = [[0,0,0],[0,1,0],[1,1,1]]\nOutput: [[0,0,0],[0,1,0],[1,2,1]]',
+    intuition:
+      'Think of all the 0-cells as sources that radiate outward simultaneously, like dropping stones in a pond at every 0 position. Multi-source BFS expands one layer at a time, so each 1-cell gets marked with the distance to its nearest 0 the first time the wave reaches it.',
     approach:
       'Use multi-source BFS starting from all cells containing 0 simultaneously. This radiates outward layer by layer, computing the shortest distance to a 0 for all cells.',
     code: `from collections import deque
@@ -1803,6 +1867,8 @@ class Solution:
       'The boundary of a binary tree is the concatenation of the root, the left boundary, the leaves, and the right boundary (in reverse), without duplicates. Return the values of the boundary in anti-clockwise order starting from the root.',
     examples:
       'Input: root = [1,null,2,3,4]\nOutput: [1,3,4,2]',
+    intuition:
+      'Think of tracing the outline of the tree counterclockwise. You collect three distinct parts: the left edge going down, the bottom leaves going left to right, and the right edge going back up. The trick is handling these three parts separately to avoid duplicates.',
     approach:
       'Collect three parts: left boundary (excluding leaves), all leaves (left to right), and right boundary (excluding leaves, in reverse). Handle edge cases where the tree is skewed.',
     code: `class Solution:
@@ -1889,6 +1955,8 @@ class Solution:
       'There is a rectangular brick wall in front of you. Draw a vertical line from the top to the bottom of the wall, crossing the fewest bricks as possible. Return the minimum number of crossed bricks. You cannot draw a line along the two vertical edges of the wall.',
     examples:
       'Input: wall = [[1,2,2,1],[3,1,2],[1,3,2],[2,4],[3,1,2],[1,3,1,1]]\nOutput: 2',
+    intuition:
+      'Instead of thinking about where the line crosses bricks, think about where it passes through gaps. Count the gap positions (edge positions between bricks) across all rows. The line that passes through the most gaps crosses the fewest bricks.',
     approach:
       'For each row, compute the prefix sums (excluding the last) which represent edge positions. Count how many rows have an edge at each position. The answer is total rows minus the maximum edge count.',
     code: `from collections import Counter
@@ -1940,6 +2008,8 @@ class Solution:
       'Given a positive integer n, find the smallest integer which has exactly the same digits as n and is greater in value. If no such positive integer exists, return -1. The result must fit in a 32-bit integer.',
     examples:
       'Input: n = 12\nOutput: 21',
+    intuition:
+      'This is the classic \'next permutation\' algorithm applied to digits. Find the rightmost digit that can be made larger by swapping with a digit to its right, swap with the smallest such digit, then sort the remaining suffix to get the smallest possible next number.',
     approach:
       'This is the "next permutation" problem applied to digits. Find the rightmost digit smaller than the digit to its right, swap it with the smallest larger digit to its right, then reverse the suffix.',
     code: `class Solution:
@@ -1994,6 +2064,8 @@ class Solution:
       'Given a string s, reverse the order of characters in each word within a sentence while still preserving whitespace and initial word order.',
     examples:
       'Input: s = "Let\'s take LeetCode contest"\nOutput: "s\'teL ekat edoCteeL tsetnoc"',
+    intuition:
+      'Split the sentence into words, reverse each word individually, and join them back. The word order stays the same - only the characters within each word get flipped. It is a straightforward map operation on each word.',
     approach:
       'Split the string by spaces, reverse each word individually, then join them back with spaces.',
     code: `class Solution:
@@ -2025,6 +2097,8 @@ class Solution:
       'Given an n-ary tree, find its maximum depth. The maximum depth is the number of nodes along the longest path from the root node down to the farthest leaf node.',
     examples:
       'Input: root = [1,null,3,2,4,null,5,6]\nOutput: 3',
+    intuition:
+      'Just like finding the depth of a binary tree, but each node can have multiple children instead of just two. The depth of any node is 1 plus the maximum depth among all its children, applied recursively down to the leaves.',
     approach:
       'Use recursive DFS. The depth of a node is 1 + max depth of its children. For a leaf node, the depth is 1.',
     code: `class Solution:
@@ -2066,6 +2140,8 @@ class Solution:
       'Given an integer array nums of 2n integers, group these integers into n pairs such that the sum of min(ai, bi) for all pairs is maximized. Return the maximized sum.',
     examples:
       'Input: nums = [1,4,3,2]\nOutput: 4\nExplanation: Pairs (1,2) and (3,4) give min(1,2) + min(3,4) = 1 + 3 = 4.',
+    intuition:
+      'To maximize the sum of minimums in pairs, pair numbers that are close in value together. Sorting and pairing consecutive elements ensures you \'waste\' the minimum amount - the larger number in each pair is sacrificed, so you want that sacrifice to be as small as possible.',
     approach:
       'Sort the array and pair consecutive elements. The sum of elements at even indices (0, 2, 4, ...) gives the maximum sum. This works because pairing similar-valued elements minimizes waste.',
     code: `class Solution:
@@ -2101,6 +2177,8 @@ class Solution:
       'You are given an m x n matrix mat and two integers r and c representing the number of rows and columns of the wanted reshaped matrix. If the reshape operation is not possible or illegal, return the original matrix.',
     examples:
       'Input: mat = [[1,2],[3,4]], r = 1, c = 4\nOutput: [[1,2,3,4]]',
+    intuition:
+      'Reshaping a matrix is just rearranging elements in a different grid layout. Flatten the original matrix into a 1D list, then fill the new dimensions row by row. The only constraint is that the total number of elements must match.',
     approach:
       'First check if m*n == r*c. If not, return the original. Flatten the matrix into a 1D list, then fill the new r x c matrix row by row.',
     code: `class Solution:
@@ -2143,6 +2221,8 @@ class Solution:
       'Given n processes with their IDs in pid and their parent process IDs in ppid, when you kill a process, all its child processes are also killed. Return a list of process IDs that will be killed given the kill target.',
     examples:
       'Input: pid = [1,3,10,5], ppid = [3,0,5,3], kill = 5\nOutput: [5,10]',
+    intuition:
+      'This is a tree traversal problem in disguise. Build a parent-to-children adjacency list, then BFS or DFS from the kill target. Every process you visit is a descendant that also gets killed, just like deleting a folder deletes everything inside it.',
     approach:
       'Build an adjacency list (parent -> children) from pid and ppid. Use BFS/DFS starting from the kill target to find all descendant processes.',
     code: `from collections import defaultdict, deque
@@ -2197,6 +2277,8 @@ class Solution:
       'Given two strings word1 and word2, return the minimum number of steps required to make word1 and word2 the same. In each step, you can delete one character in either string.',
     examples:
       'Input: word1 = "sea", word2 = "eat"\nOutput: 2\nExplanation: Delete "s" from "sea" and "t" from "eat" to get "ea".',
+    intuition:
+      'The characters you keep in both strings must form a common subsequence. To minimize deletions, maximize what you keep - which is the Longest Common Subsequence. The answer is the total characters minus twice the LCS length, since you delete non-LCS characters from both strings.',
     approach:
       'Find the Longest Common Subsequence (LCS) of the two strings. The minimum deletions = len(word1) + len(word2) - 2 * LCS_length.',
     code: `class Solution:
@@ -2244,6 +2326,8 @@ class Solution:
       'Design a data structure that simulates an in-memory file system. Implement the FileSystem class with ls, mkdir, addContentToFile, and readContentFromFile methods.',
     examples:
       'Input: ["FileSystem","ls","mkdir","addContentToFile","ls","readContentFromFile"]\n[[],["/"],["/a/b/c"],["/a/b/c/d","hello"],["/"],["/a/b/c/d"]]\nOutput: [null,[],null,null,["a"],"hello"]',
+    intuition:
+      'A file system is naturally a tree structure. Using a Trie where each node represents a directory or file, you can navigate paths by splitting on \'/\' and walking down the tree. Each node holds its children and optionally file content.',
     approach:
       'Use a Trie-like structure where each node represents a directory or file. Each node has a dictionary of children and optional file content. Navigate the path and perform the appropriate operation.',
     code: `class TrieNode:
@@ -2344,6 +2428,8 @@ FileSystem.prototype.readContentFromFile = function(filePath) {
       'Given the root of an n-ary tree, return the postorder traversal of its nodes\' values. In postorder, children are visited before the root.',
     examples:
       'Input: root = [1,null,3,2,4,null,5,6]\nOutput: [5,6,3,2,4,1]',
+    intuition:
+      'Postorder means \'children first, then parent.\' Recursively visit all children, then record the current node. This bottom-up approach processes leaves before their parents, which is useful when you need to compute something from the bottom of the tree upward.',
     approach:
       'Use recursive DFS: visit all children first, then the root. Alternatively, use an iterative approach with a stack.',
     code: `class Solution:
@@ -2390,6 +2476,8 @@ FileSystem.prototype.readContentFromFile = function(filePath) {
       'Given the coordinates of four points in 2D space p1, p2, p3, p4, return true if the four points construct a valid square. A valid square has four equal sides and two equal diagonals.',
     examples:
       'Input: p1 = [0,0], p2 = [1,1], p3 = [1,0], p4 = [0,1]\nOutput: true',
+    intuition:
+      'Four points form a square if and only if they produce exactly two distinct pairwise distances: four equal shorter distances (the sides) and two equal longer distances (the diagonals). Computing all six distances and checking this pattern is a clean geometric test.',
     approach:
       'Compute all 6 pairwise distances. A valid square has exactly 4 equal sides and 2 equal diagonals (longer). Check that there are exactly 2 distinct distances with correct counts.',
     code: `class Solution:
@@ -2432,6 +2520,8 @@ FileSystem.prototype.readContentFromFile = function(filePath) {
       'You have a long flowerbed where some plots are planted (1) and some are empty (0). Flowers cannot be planted in adjacent plots. Given the flowerbed and n, return if n new flowers can be planted without violating the no-adjacent-flowers rule.',
     examples:
       'Input: flowerbed = [1,0,0,0,1], n = 1\nOutput: true',
+    intuition:
+      'Scan the flowerbed left to right and greedily plant wherever you can. A spot is valid if it and both its neighbors are empty (or it is at an edge). Planting greedily never hurts because planting earlier never blocks a better solution later.',
     approach:
       'Greedily scan the flowerbed. If a position is 0 and both neighbors (or boundaries) are also 0, plant a flower there and decrement n. Return true if n reaches 0.',
     code: `class Solution:
@@ -2483,6 +2573,8 @@ FileSystem.prototype.readContentFromFile = function(filePath) {
       'Given a list of directory info strings, each containing a directory path followed by files with their content in parentheses, find all groups of duplicate files (files with the same content). Return a list of groups, where each group contains file paths with the same content.',
     examples:
       'Input: paths = ["root/a 1.txt(abcd) 2.txt(efgh)","root/c 3.txt(abcd)"]\nOutput: [["root/a/1.txt","root/c/3.txt"]]',
+    intuition:
+      'Group files by their content using a hash map. Parse each path string to extract the directory, filename, and content, then map content to the list of full file paths. Any content with more than one file path indicates duplicates.',
     approach:
       'Parse each path string to extract directory, filename, and content. Use a hash map from content to list of file paths. Return only groups with more than one file.',
     code: `from collections import defaultdict
@@ -2540,6 +2632,8 @@ class Solution:
       'Given an integer array nums, return the number of triplets chosen from the array that can make triangles if we take them as side lengths of a triangle. Three sides form a valid triangle if the sum of any two sides is greater than the third.',
     examples:
       'Input: nums = [2,2,3,4]\nOutput: 3\nExplanation: Valid triplets are (2,3,4), (2,3,4), (2,2,3).',
+    intuition:
+      'The triangle inequality states a + b > c for the longest side c. Sort the array, fix the largest side, and use two pointers for the smaller sides. When the two smaller sides sum exceeds the largest, all indices between the pointers also form valid triangles with the current pair.',
     approach:
       'Sort the array. Fix the largest side and use two pointers to find pairs where the sum exceeds the largest side. Since the array is sorted, we only need to check a + b > c.',
     code: `class Solution:
@@ -2594,6 +2688,8 @@ class Solution:
       'You are given two binary trees root1 and root2. Merge the two trees into a new binary tree. If two nodes overlap, sum their values. If one tree has a node where the other does not, use the existing node.',
     examples:
       'Input: root1 = [1,3,2,5], root2 = [2,1,3,null,4,null,7]\nOutput: [3,4,5,5,4,null,7]',
+    intuition:
+      'Imagine overlaying two trees on top of each other. Where both have a node, add the values. Where only one has a node, keep it as-is. Recursion handles this naturally: merge left children together and right children together.',
     approach:
       'Use recursion. If both nodes exist, create a new node with summed values and recurse on children. If only one exists, return it. If neither exists, return None.',
     code: `class Solution:
@@ -2637,6 +2733,8 @@ class Solution:
       'Design your implementation of the circular queue. The circular queue is a linear data structure that uses a fixed-size array and connects the end back to the beginning. Implement enQueue, deQueue, Front, Rear, isEmpty, and isFull.',
     examples:
       'Input: ["MyCircularQueue","enQueue","enQueue","deQueue","enQueue","Rear","isFull","Front"]\n[[3],[1],[2],[],[3],[],[],[]]  Output: [null,true,true,true,true,3,false,2]',
+    intuition:
+      'A circular queue wraps around like a clock. Use a fixed-size array with a head pointer and a count. Modular arithmetic (% capacity) handles the wrap-around, so when you reach the end of the array, you loop back to the beginning.',
     approach:
       'Use a fixed-size array with head and tail pointers and a count. enQueue adds at tail, deQueue removes at head. Use modular arithmetic to wrap around.',
     code: `class MyCircularQueue:
@@ -2732,6 +2830,8 @@ MyCircularQueue.prototype.isFull = function() {
       'Given the root of a binary tree, an integer val, and an integer depth, add a row of nodes with value val at the given depth. The root node is at depth 1. For depth d, every node at depth d-1 gets new left and right children with value val, and the original subtrees become children of the new nodes.',
     examples:
       'Input: root = [4,2,6,3,1,5], val = 1, depth = 2\nOutput: [4,1,1,2,null,null,6,3,1,5]',
+    intuition:
+      'Find all nodes at depth d-1 using DFS, then insert new nodes between them and their children. The new left child takes over the original left subtree, and the new right child takes over the original right subtree, effectively pushing everything down one level at that depth.',
     approach:
       'Use BFS or DFS to reach depth d-1. At each node at depth d-1, create new nodes with val and attach the original children to the new nodes. Handle the special case when depth is 1.',
     code: `class Solution:
@@ -2799,6 +2899,8 @@ MyCircularQueue.prototype.isFull = function() {
       'There are n courses, each with a duration and a deadline. You can only take one course at a time and must finish it before its deadline. Return the maximum number of courses you can take.',
     examples:
       'Input: courses = [[100,200],[200,1300],[1000,1250],[2000,3200]]\nOutput: 3',
+    intuition:
+      'Sort courses by deadline and greedily take them. If a course would miss its deadline, check if swapping out the longest course you have already taken would help - if the current course is shorter, the swap frees up time without reducing the count. A max-heap efficiently tracks the longest course.',
     approach:
       'Sort courses by deadline. Use a max-heap to greedily add courses. If adding a course exceeds its deadline, replace the longest course taken so far if the current course is shorter.',
     code: `import heapq
@@ -2852,6 +2954,8 @@ class Solution:
       'You have k sorted lists of integers. Find the smallest range [a, b] that includes at least one number from each of the k lists.',
     examples:
       'Input: nums = [[4,10,15,24,26],[0,9,12,20],[5,18,22,30]]\nOutput: [20,24]',
+    intuition:
+      'Imagine k pointers, one in each sorted list. The range [min, max] of current pointers always covers all lists. To shrink the range, advance the pointer at the minimum value (since increasing the min narrows the range). A min-heap efficiently tracks which pointer has the smallest value.',
     approach:
       'Use a min-heap with one element from each list. Track the current max. The range is [heap_min, current_max]. Advance the min element\'s list and update until a list is exhausted.',
     code: `import heapq
@@ -2919,6 +3023,8 @@ class Solution:
       'Given a non-negative integer c, decide whether there exist two integers a and b such that a^2 + b^2 = c.',
     examples:
       'Input: c = 5\nOutput: true\nExplanation: 1^2 + 2^2 = 5.',
+    intuition:
+      'This is like Two Sum on a sorted array of perfect squares. Start with two pointers: a = 0 and b = sqrt(c). If a^2 + b^2 is too large, decrease b; if too small, increase a. The two pointers converge to find a valid pair or prove none exists.',
     approach:
       'Use two pointers: start with a = 0 and b = int(sqrt(c)). If a^2 + b^2 == c, return true. If too large, decrease b. If too small, increase a.',
     code: `import math
@@ -2969,6 +3075,8 @@ class Solution:
       'On a single-threaded CPU, we execute n functions. Each function has a unique ID, and logs record "start" and "end" events with timestamps. Functions can call other functions (nested). Return the exclusive time of each function (total time not spent in called functions).',
     examples:
       'Input: n = 2, logs = ["0:start:0","1:start:2","1:end:5","0:end:6"]\nOutput: [3,4]',
+    intuition:
+      'Think of function calls as nested boxes. A stack tracks which function is currently running. When a new function starts, the outer function pauses. When it ends, the outer function resumes. By tracking timestamps, you can calculate exactly how long each function ran exclusively.',
     approach:
       'Use a stack to track the currently executing function. When a new function starts, pause the current one. When a function ends, calculate its time and resume the previous one.',
     code: `class Solution:
@@ -3031,6 +3139,8 @@ class Solution:
       'Given the root of a binary tree, return the average value of the nodes on each level in the form of an array.',
     examples:
       'Input: root = [3,9,20,null,null,15,7]\nOutput: [3.0,14.5,11.0]',
+    intuition:
+      'Level-order traversal (BFS) naturally groups nodes by their depth. Process one level at a time, summing values and dividing by the count to get each level\'s average. The queue size at the start of each iteration tells you how many nodes are at that level.',
     approach:
       'Use BFS (level-order traversal). For each level, compute the sum and count of nodes, then calculate the average.',
     code: `from collections import deque
@@ -3090,6 +3200,8 @@ class Solution:
       'Design a search autocomplete system. Users type characters one by one. For each character typed, return the top 3 historical hot sentences that match the prefix typed so far. If two sentences have the same frequency, sort alphabetically. Typing "#" means the sentence is finished and should be recorded.',
     examples:
       'Input: ["AutocompleteSystem","input","input","input","input"]\n[[["i love you","island","iroman","i love leetcode"],[5,3,2,2]],["i"],[" "],["a"],["#"]]\nOutput: [null,["i love you","island","i love leetcode"],["i love you","i love leetcode"],[],[]',
+    intuition:
+      'A Trie stores all historical sentences, and each node caches which sentences pass through it with their frequencies. As the user types each character, you walk down the Trie and return the top-3 matches sorted by frequency. This gives efficient prefix-based search.',
     approach:
       'Use a Trie to store sentences with their frequencies. On each character input, traverse the Trie to find matching sentences. On "#", record the current sentence in the Trie.',
     code: `class TrieNode:
@@ -3188,6 +3300,8 @@ AutocompleteSystem.prototype.input = function(c) {
       'You have a set of integers from 1 to n. One number got duplicated and one got lost. Given the array nums, find the number that occurs twice and the number that is missing.',
     examples:
       'Input: nums = [1,2,2,4]\nOutput: [2,3]',
+    intuition:
+      'Finding the duplicate is easy with a set - it is the number you see twice. For the missing number, use math: the expected sum of 1 to n minus the actual sum gives you (missing - duplicate), and since you already know the duplicate, you can solve for the missing number.',
     approach:
       'Use a set or counting approach. The sum difference between expected and actual gives the missing - duplicate relationship. Alternatively, use a set to find the duplicate and compute the missing from the sum.',
     code: `class Solution:
@@ -3239,6 +3353,8 @@ AutocompleteSystem.prototype.input = function(c) {
       'Given a dictionary consisting of many roots and a sentence consisting of words separated by spaces, replace each word in the sentence with the shortest root that is a prefix of it. If a word has no matching root, keep it unchanged.',
     examples:
       'Input: dictionary = ["cat","bat","rat"], sentence = "the cattle was rattled by the battery"\nOutput: "the cat was rat by the bat"',
+    intuition:
+      'For each word in the sentence, find its shortest matching root (prefix). Store roots in a set and check prefixes from shortest to longest - the first match is the shortest root. This greedy prefix check replaces each word with its root or keeps it unchanged.',
     approach:
       'Build a Trie from the dictionary roots. For each word in the sentence, traverse the Trie to find the shortest matching prefix (root). Replace the word with the root if found.',
     code: `class Solution:
@@ -3285,6 +3401,8 @@ AutocompleteSystem.prototype.input = function(c) {
       'Given the root of a binary tree, return all duplicate subtrees. Two trees are duplicates if they have the same structure and node values. Return the root node of any one duplicate for each group.',
     examples:
       'Input: root = [1,2,3,4,null,2,4,null,null,4]\nOutput: [[2,4],[4]]',
+    intuition:
+      'Give each subtree a unique fingerprint by serializing it (e.g., \'2,4,#,#,#\'). If two subtrees have the same fingerprint, they are duplicates. A hash map counts fingerprint occurrences, and you add to the result when a fingerprint appears for the second time.',
     approach:
       'Serialize each subtree using postorder traversal. Use a hash map to count serialized forms. When a serialization appears the second time, add the subtree root to the result.',
     code: `from collections import defaultdict
@@ -3339,6 +3457,8 @@ class Solution:
       'Given the root of a Binary Search Tree and a target number k, return true if there exist two elements in the BST such that their sum is equal to the given target.',
     examples:
       'Input: root = [5,3,6,2,4,null,7], k = 9\nOutput: true\nExplanation: 2 + 7 = 9.',
+    intuition:
+      'This is Two Sum applied to a tree. Traverse the BST with DFS, keeping a set of values seen so far. For each node, check if (target - node.val) is in the set. If yes, you have found a pair that sums to the target.',
     approach:
       'Use in-order traversal to get sorted values, then use two pointers. Alternatively, use DFS with a hash set to check if (k - node.val) has been seen.',
     code: `class Solution:
@@ -3385,6 +3505,8 @@ class Solution:
       'You are given an integer array with no duplicates. A maximum binary tree is built on this array as follows: the root is the maximum element, the left subtree is built from elements to the left of the max, and the right subtree from elements to the right.',
     examples:
       'Input: nums = [3,2,1,6,0,5]\nOutput: [6,3,5,null,2,0,null,null,1]',
+    intuition:
+      'The construction mirrors how you would build a sorted array into a BST: find the dominant element (the max), make it the root, and recursively build the left and right subtrees from the elements before and after it. The max element naturally separates the array into two halves.',
     approach:
       'Recursively find the max element, create a node, and build left and right subtrees from the respective subarrays.',
     code: `class Solution:
@@ -3428,6 +3550,8 @@ class Solution:
       'Given the root of a binary tree, construct a matrix to display it. The matrix has height rows and 2^height - 1 columns. Place the root at the middle of the first row, and recursively place children at the midpoints of their respective sections.',
     examples:
       'Input: root = [1,2,3,null,4]\nOutput: [["","","","1","","",""],["","2","","","","3",""],["","","4","","","",""]]',
+    intuition:
+      'Think of the matrix as a complete binary tree layout. The root goes at the center column, and each child goes at the center of its half. Recursively dividing the column range in half for left and right children places every node at the correct position.',
     approach:
       'First compute the tree height to determine dimensions. Then use DFS to place each node at the correct row and column position based on the formula.',
     code: `class Solution:
@@ -3489,6 +3613,8 @@ class Solution:
       'There is a robot starting at the origin (0, 0) on a 2D plane. Given a sequence of its moves (U, D, L, R), judge if the robot returns to the origin after completing all moves.',
     examples:
       'Input: moves = "UD"\nOutput: true',
+    intuition:
+      'The robot returns to origin only if every move is canceled out: each \'U\' needs a \'D\', and each \'L\' needs an \'R\'. Simply count each direction and check that opposing moves are balanced.',
     approach:
       'Count the occurrences of each move. The robot returns to the origin if the number of U equals D and the number of L equals R.',
     code: `class Solution:
@@ -3527,6 +3653,8 @@ class Solution:
       'Given a sorted integer array arr, two integers k and x, return the k closest integers to x in the array. The result should also be sorted in ascending order. An integer a is closer to x than b if |a - x| < |b - x|, or |a - x| == |b - x| and a < b.',
     examples:
       'Input: arr = [1,2,3,4,5], k = 4, x = 3\nOutput: [1,2,3,4]',
+    intuition:
+      'Since the array is sorted, the k closest elements form a contiguous window. Binary search for the optimal starting position of this window by comparing the distances from x to the left and right boundaries. This avoids sorting and gives O(log n) search.',
     approach:
       'Use binary search to find the left boundary of the k-element window. The window starts at some index i and includes arr[i..i+k-1]. Binary search for the optimal starting index.',
     code: `class Solution:
@@ -3571,6 +3699,8 @@ class Solution:
       'Given an integer array nums sorted in non-decreasing order, return true if you can split it into one or more subsequences such that each subsequence consists of consecutive integers and has a length of at least 3.',
     examples:
       'Input: nums = [1,2,3,3,4,5]\nOutput: true\nExplanation: [1,2,3] and [3,4,5].',
+    intuition:
+      'Greedily extend existing subsequences rather than starting new ones. Think of it like train cars: it is better to attach a number to an existing train (subsequence) than to start a new train, because starting a new train requires finding two more consecutive numbers.',
     approach:
       'Use a greedy approach with two maps: one for remaining counts and one for tails (subsequences ending at a value that can be extended). For each number, try to extend an existing subsequence first, then start a new one.',
     code: `from collections import Counter
@@ -3636,6 +3766,8 @@ class Solution:
       'Given the root of a binary tree, return the maximum width of the given tree. The maximum width is the maximum among the widths of each level. The width of one level is defined as the length between the end-nodes (the leftmost and rightmost non-null nodes), including null nodes in between.',
     examples:
       'Input: root = [1,3,2,5,3,null,9]\nOutput: 4\nExplanation: Level 3 has width 4 (from node 5 to node 9).',
+    intuition:
+      'Assign each node a position index as if the tree were stored in an array (left child = 2*pos, right child = 2*pos+1). The width at each level is simply the difference between the rightmost and leftmost positions plus 1, naturally accounting for null nodes in between.',
     approach:
       'Use BFS with position indexing. Assign each node a position (root = 0, left child = 2*pos, right = 2*pos+1). The width at each level is rightmost - leftmost + 1.',
     code: `from collections import deque
@@ -3699,6 +3831,8 @@ class Solution:
       'You are given an integer num. You can swap two digits at most once to get the maximum valued number. Return the maximum valued number you can get.',
     examples:
       'Input: num = 2736\nOutput: 7236',
+    intuition:
+      'To maximize the number with one swap, you want to bring the largest possible digit as far left as possible. Record the last occurrence of each digit 0-9, then scan from left to right - for each digit, check if a larger digit exists later and swap with its rightmost occurrence.',
     approach:
       'For each digit, check if there is a larger digit to its right. If so, swap with the rightmost occurrence of the largest such digit to maximize the result.',
     code: `class Solution:
@@ -3748,6 +3882,8 @@ class Solution:
       'Given an integer array nums, return the number of longest increasing subsequences. Note that the sequence must be strictly increasing.',
     examples:
       'Input: nums = [1,3,5,4,7]\nOutput: 2\nExplanation: The two longest increasing subsequences are [1,3,4,7] and [1,3,5,7].',
+    intuition:
+      'Extend the standard LIS dynamic programming to also track counts. When you find a longer subsequence ending at j that extends to i, reset the count. When you find an equally long one, add to the count. The total is the sum of counts at all positions achieving the maximum length.',
     approach:
       'Use DP with two arrays: length[i] for the longest increasing subsequence ending at i, and count[i] for the number of such subsequences. Update both arrays as you process each element.',
     code: `class Solution:
@@ -3811,6 +3947,8 @@ class Solution:
       'Given an unsorted array of integers nums, return the length of the longest continuous increasing subsequence (subarray). The subsequence must be strictly increasing and contiguous.',
     examples:
       'Input: nums = [1,3,5,4,7]\nOutput: 3\nExplanation: [1,3,5] is the longest continuous increasing subsequence.',
+    intuition:
+      'This is simpler than LIS because the subsequence must be contiguous. Just keep a running counter that increments when each element is larger than the previous and resets otherwise. Track the maximum counter value throughout.',
     approach:
       'Use a single pass with a counter. Increment the counter when the current element is greater than the previous. Reset when it is not. Track the maximum.',
     code: `class Solution:
@@ -3862,6 +4000,8 @@ class Solution:
       'Design a data structure that is initialized with a list of distinct words. Implement a function that determines if a given string can match any word in the dictionary by changing exactly one character.',
     examples:
       'Input: ["MagicDictionary","buildDict","search","search","search"]\n[[],[[\"hello\",\"leetcode\"]],["hello"],["hhllo"],["hell"]]\nOutput: [null,null,false,true,false]',
+    intuition:
+      'For each search query, compare it against every dictionary word of the same length and count character differences. If exactly one character differs, it is a match. This brute-force approach works because the dictionary is typically small.',
     approach:
       'Store the words. For search, compare the query with each word of the same length. Count character differences. Return true if exactly one difference is found.',
     code: `class MagicDictionary:
@@ -3922,6 +4062,8 @@ MagicDictionary.prototype.search = function(searchWord) {
       'Design a map that receives a list of key-value pairs and returns the sum of all values whose keys start with a given prefix. Implement insert(key, val) and sum(prefix).',
     examples:
       'Input: ["MapSum","insert","sum","insert","sum"]\n[[],["apple",3],["ap"],["app",2],["ap"]]\nOutput: [null,null,3,null,5]',
+    intuition:
+      'A Trie where each node stores the cumulative sum of all keys passing through it. On insert, propagate the delta (new value minus old value) along the path. On prefix sum query, just navigate to the prefix node and read its stored total.',
     approach:
       'Use a Trie where each node stores the sum of values of all keys passing through it. On insert, update the delta (new value - old value) along the path. On sum, return the value at the prefix node.',
     code: `class TrieNode:
@@ -3998,6 +4140,8 @@ MapSum.prototype.sum = function(prefix) {
       'You are keeping score for a baseball game with strange rules. Given a list of operations, apply them: an integer records a new score, "+" records the sum of the previous two, "D" records double the previous, "C" invalidates the previous score. Return the sum of all scores.',
     examples:
       'Input: ops = ["5","2","C","D","+"]\nOutput: 30\nExplanation: 5, 2, remove 2, 5*2=10, 5+10=15. Sum = 5+10+15 = 30.',
+    intuition:
+      'A stack is the perfect data structure here because each operation references the most recent scores. Numbers push onto the stack, \'C\' pops the last score, \'D\' doubles the last, and \'+\' sums the last two. At the end, sum everything remaining on the stack.',
     approach:
       'Use a stack to track valid scores. Process each operation: push numbers, pop for "C", push double or sum for "D" and "+". Return the sum of the stack.',
     code: `class Solution:
@@ -4046,6 +4190,8 @@ MapSum.prototype.sum = function(prefix) {
       'On an n x n chessboard, a knight starts at the cell (row, column) and makes exactly k moves. Each move is chosen uniformly at random from the 8 possible knight moves. Return the probability that the knight remains on the board after k moves.',
     examples:
       'Input: n = 3, k = 2, row = 0, column = 0\nOutput: 0.0625',
+    intuition:
+      'Think of probability flowing like water through the board. Start with probability 1.0 at the knight\'s position and each move splits it equally across 8 possible destinations. Moves that go off the board lose that probability. After k steps, sum all remaining probability on the board.',
     approach:
       'Use dynamic programming. dp[step][r][c] is the probability of being at (r,c) after step moves. For each step, for each cell, distribute the probability equally to all 8 possible destinations that are on the board.',
     code: `class Solution:
@@ -4113,6 +4259,8 @@ MapSum.prototype.sum = function(prefix) {
       'Given an integer array nums and an integer k, find three non-overlapping subarrays of length k with maximum sum. Return the starting indices. If there are multiple answers, return the lexicographically smallest one.',
     examples:
       'Input: nums = [1,2,1,2,6,7,5,1], k = 2\nOutput: [0,3,5]',
+    intuition:
+      'Fix the middle subarray position and use precomputed arrays to instantly look up the best left and right subarrays. Building \'best from left up to position i\' and \'best from right starting at position i\' arrays lets you evaluate every middle position in O(1).',
     approach:
       'Compute prefix sums, then for each possible middle subarray position, find the best left and right subarrays using precomputed arrays of best left starting index and best right starting index.',
     code: `class Solution:
@@ -4201,6 +4349,8 @@ MapSum.prototype.sum = function(prefix) {
       'Given an array of strings words and an integer k, return the k most frequent strings. Return the answer sorted by frequency from highest to lowest. If two words have the same frequency, sort them lexicographically.',
     examples:
       'Input: words = ["i","love","leetcode","i","love","coding"], k = 2\nOutput: ["i","love"]',
+    intuition:
+      'Count word frequencies, then sort by frequency (descending) with ties broken alphabetically. The sorting key (-frequency, word) handles both criteria in one pass. Return the first k results.',
     approach:
       'Use a Counter to count frequencies, then sort by (-frequency, word) to handle ties lexicographically. Return the first k results.',
     code: `from collections import Counter
@@ -4237,6 +4387,8 @@ class Solution:
       'Given an m x n binary grid, count the number of distinct islands. An island is a group of 1s connected 4-directionally. Two islands are considered the same if one can be translated to match the other.',
     examples:
       'Input: grid = [[1,1,0,0,0],[1,1,0,0,0],[0,0,0,1,1],[0,0,0,1,1]]\nOutput: 1',
+    intuition:
+      'Two islands are the \'same\' if one can be slid on top of the other. By recording each cell\'s position relative to the island\'s starting cell, you get a translation-invariant shape signature. Store these signatures in a set to count distinct shapes.',
     approach:
       'Use DFS to explore each island. Record the shape by storing relative positions (offset from the starting cell). Store shapes in a set to count distinct islands.',
     code: `class Solution:
@@ -4304,6 +4456,8 @@ class Solution:
       'Given an integer array nums and an integer k, return true if it is possible to divide this array into k non-empty subsets whose sums are all equal.',
     examples:
       'Input: nums = [4,3,2,3,5,2,1], k = 4\nOutput: true\nExplanation: 4 subsets with equal sum 5: (5), (1,4), (2,3), (2,3).',
+    intuition:
+      'Think of filling k buckets to the same target sum. Use backtracking to try placing each number in each bucket, but prune aggressively: sort descending so large numbers fail fast, and skip duplicate bucket values to avoid redundant work.',
     approach:
       'Check if total sum is divisible by k. Use backtracking with a bitmask to try assigning each number to one of k buckets. Sort in descending order and prune early.',
     code: `class Solution:
@@ -4377,6 +4531,8 @@ class Solution:
       'You are given the root of a binary search tree (BST) and an integer val. Find the node in the BST that the node\'s value equals val and return the subtree rooted with that node. If such a node does not exist, return null.',
     examples:
       'Input: root = [4,2,7,1,3], val = 2\nOutput: [2,1,3]',
+    intuition:
+      'A BST is like a sorted decision tree. At each node, compare the target with the node\'s value to decide whether to go left or right. This halves the search space at each step, like binary search in an array.',
     approach:
       'Use BST property to search: if val < node.val, go left; if val > node.val, go right; if equal, return the node.',
     code: `class Solution:
@@ -4420,6 +4576,8 @@ class Solution:
       'You are given the root node of a BST and a value to insert. Return the root node of the BST after the insertion. It is guaranteed that the new value does not exist in the original BST.',
     examples:
       'Input: root = [4,2,7,1,3], val = 5\nOutput: [4,2,7,1,3,5]',
+    intuition:
+      'In a BST, a new value always becomes a leaf node. Navigate down the tree using BST comparisons (go left if smaller, right if larger) until you reach a null position, then insert the new node there.',
     approach:
       'Traverse the BST to find the correct position for the new value. When you reach a null position, insert a new node there.',
     code: `class Solution:
@@ -4460,6 +4618,8 @@ class Solution:
       'Design a class to find the kth largest element in a stream. Implement KthLargest with a constructor that accepts k and an initial array, and an add method that returns the kth largest element after adding a value.',
     examples:
       'Input: ["KthLargest","add","add","add","add","add"]\n[[3,[4,5,8,2]],[3],[5],[10],[9],[4]]\nOutput: [null,4,5,5,8,8]',
+    intuition:
+      'A min-heap of size k acts like a velvet rope at a VIP section - it only keeps the top k elements. The smallest element in the heap is always the kth largest overall. When a new value arrives, it either replaces the smallest or gets rejected.',
     approach:
       'Use a min-heap of size k. The kth largest element is always at the top of the heap. When adding, push to heap and pop if size exceeds k.',
     code: `import heapq
@@ -4512,6 +4672,8 @@ KthLargest.prototype.add = function(val) {
       'Design a HashSet without using any built-in hash table libraries. Implement add, remove, and contains operations.',
     examples:
       'Input: ["MyHashSet","add","add","contains","contains","add","contains","remove","contains"]\n[[],[1],[2],[1],[3],[2],[2],[2],[2]]\nOutput: [null,null,null,true,false,null,true,null,false]',
+    intuition:
+      'A hash set uses a hash function to map keys to bucket indices, then stores keys in their bucket. Using separate chaining (a list per bucket), you handle collisions gracefully. The key insight is that a good hash function distributes keys evenly across buckets.',
     approach:
       'Use a boolean array of size 10^6+1 since keys range from 0 to 10^6. Alternatively, implement with buckets and chaining for a more realistic hash set.',
     code: `class MyHashSet:
@@ -4575,6 +4737,8 @@ MyHashSet.prototype.contains = function(key) {
       'Given a circular sorted linked list, insert a new integer value into it such that it remains sorted. The list may have duplicate values. Return any node of the list.',
     examples:
       'Input: head = [3,4,1], insertVal = 2\nOutput: [3,4,1,2]',
+    intuition:
+      'In a sorted circular list, there are three insertion cases: the value fits between two nodes normally, it is the new max or min (insert at the wrap-around point), or all values are the same (insert anywhere). Traversing the list once handles all cases.',
     approach:
       'Traverse the list to find the correct insertion point. Handle three cases: normal insertion between two nodes, insertion at the wrap-around point (max to min), and when all values are the same.',
     code: `class Solution:
@@ -4638,6 +4802,8 @@ MyHashSet.prototype.contains = function(key) {
       'Given two strings s1 and s2, return the lowest ASCII sum of deleted characters to make two strings equal.',
     examples:
       'Input: s1 = "sea", s2 = "eat"\nOutput: 231\nExplanation: Delete "s" from "sea" (115) and "t" from "eat" (116). Total = 231.',
+    intuition:
+      'This is like edit distance but only with deletions, and costs are ASCII values instead of 1. If characters match, no deletion is needed. Otherwise, try deleting from either string and take the cheaper option. DP builds up the solution from smaller subproblems.',
     approach:
       'Use DP similar to edit distance. dp[i][j] is the minimum ASCII delete sum for s1[:i] and s2[:j]. If characters match, no deletion needed. Otherwise, try deleting from either string.',
     code: `class Solution:
@@ -4692,6 +4858,8 @@ MyHashSet.prototype.contains = function(key) {
       'Given an array of positive integers nums and an integer k, return the number of contiguous subarrays where the product of all elements is strictly less than k.',
     examples:
       'Input: nums = [10,5,2,6], k = 100\nOutput: 8',
+    intuition:
+      'Use a sliding window where you maintain the running product. Expand the right end and shrink the left end whenever the product exceeds k. The key insight is that for each new right position, all subarrays ending there and starting from left to right are valid, giving (right - left + 1) new subarrays.',
     approach:
       'Use a sliding window. Expand the right pointer and multiply into the product. If the product >= k, shrink from the left. The number of valid subarrays ending at right is (right - left + 1).',
     code: `class Solution:
@@ -4744,6 +4912,8 @@ MyHashSet.prototype.contains = function(key) {
       'You are given an array prices where prices[i] is the price of a stock on day i, and a transaction fee. Find the maximum profit you can achieve. You may complete as many transactions as you like, but you pay the fee for each transaction.',
     examples:
       'Input: prices = [1,3,2,8,4,9], fee = 2\nOutput: 8\nExplanation: Buy at 1, sell at 8 (profit 5), buy at 4, sell at 9 (profit 3). Total = 8.',
+    intuition:
+      'Model two states: holding stock and not holding stock. Each day you can buy, sell (paying the fee), or do nothing. The fee makes you want to hold longer for bigger gains rather than trading frequently, and the DP naturally captures this tradeoff.',
     approach:
       'Use DP with two states: cash (not holding stock) and hold (holding stock). On each day, decide whether to buy, sell, or do nothing.',
     code: `class Solution:
@@ -4785,6 +4955,8 @@ MyHashSet.prototype.contains = function(key) {
       'Design a max stack data structure that supports push, pop, top, peekMax, and popMax. popMax retrieves and removes the maximum element. If there are multiple maximum elements, only remove the top-most one.',
     examples:
       'Input: ["MaxStack","push","push","push","top","popMax","top","peekMax","pop","top"]\n[[],[5],[1],[5],[],[],[],[],[],[]]\nOutput: [null,null,null,null,5,5,1,5,5,5]',
+    intuition:
+      'A regular stack cannot efficiently find and remove the maximum. By maintaining both a stack (for LIFO order) and a sorted structure (for max queries), with lazy deletion via unique IDs to keep them in sync, all operations become efficient.',
     approach:
       'Use a doubly linked list for order and a sorted dictionary (or heap) mapping values to list nodes. This allows O(log n) for all operations including popMax.',
     code: `from sortedcontainers import SortedList
@@ -4885,6 +5057,8 @@ MaxStack.prototype.popMax = function() {
       'Given an array of strings words representing an English dictionary, return the longest word in words that can be built one character at a time by other words in words. If there are multiple answers, return the one that is lexicographically smallest.',
     examples:
       'Input: words = ["w","wo","wor","worl","world"]\nOutput: "world"',
+    intuition:
+      'Sort the words so shorter ones come first. A word is \'buildable\' only if removing its last character gives a word already in your built set - meaning it was constructed one letter at a time. This ensures every prefix along the way is also a valid word.',
     approach:
       'Sort the words. Use a set to track buildable words. A word is buildable if its prefix (word minus last character) is in the set. Track the longest buildable word.',
     code: `class Solution:
@@ -4933,6 +5107,8 @@ MaxStack.prototype.popMax = function() {
       'Given a C++ program represented as an array of source code lines, remove all comments. Line comments (//) remove everything after them on the same line. Block comments (/* */) can span multiple lines. Return the resulting source code.',
     examples:
       'Input: source = ["/*Test program */", "int main()", "{ ", "  // variable declaration ", "int a, b, c;", "/* This is a test", "   multiline  ", "   comment for ", "   testing */", "a = b + c;", "}"]\nOutput: ["int main()","{ ","  ","int a, b, c;","a = b + c;","}"]',
+    intuition:
+      'Track a boolean flag for whether you are inside a block comment. Process two characters at a time to detect \'//\' and \'/* */\'. Line comments skip the rest of the line, block comments skip until \'*/\'. Buffer non-comment characters and flush at line boundaries.',
     approach:
       'Process character by character, tracking whether we are inside a block comment. Handle line comments by skipping the rest of the line. Handle block comments by skipping until the closing */.',
     code: `class Solution:
@@ -5018,6 +5194,8 @@ MaxStack.prototype.popMax = function() {
       'Implement a simplified Candy Crush game on a 2D board. Repeatedly find and crush (set to 0) all groups of 3 or more same-valued candies in a row or column. After crushing, let candies fall down by gravity. Repeat until no more crushing is possible. Return the final board.',
     examples:
       'Input: board = [[110,5,112],[210,5,5],[5,5,112],[5,5,5],[210,12,5]]\nOutput: [[0,0,0],[0,0,0],[0,0,0],[110,0,112],[210,12,5]]',
+    intuition:
+      'Simulate the game in a loop: find all groups of 3+ identical candies in rows and columns, crush them by setting to 0, then apply gravity by compacting each column downward. Repeat until no more crushing happens. The key is to mark all crushable cells before removing them.',
     approach:
       'Repeat: 1) Find all cells to crush (mark cells part of 3+ consecutive same values horizontally or vertically). 2) Crush them. 3) Apply gravity. Stop when no cells are crushed.',
     code: `class Solution:
@@ -5105,6 +5283,8 @@ MaxStack.prototype.popMax = function() {
       'Given an array of integers nums, calculate the pivot index. The pivot index is where the sum of all numbers to the left equals the sum of all numbers to the right. Return the leftmost pivot index. If no such index exists, return -1.',
     examples:
       'Input: nums = [1,7,3,6,5,6]\nOutput: 3\nExplanation: Left sum = 1+7+3 = 11, Right sum = 5+6 = 11.',
+    intuition:
+      'The pivot index is where left sum equals right sum. Instead of computing both sums from scratch each time, maintain a running left sum and derive the right sum as (total - leftSum - currentElement). This turns an O(n^2) approach into O(n).',
     approach:
       'Compute the total sum. Iterate with a running left sum. At each index, right sum = total - left - nums[i]. If left == right, return the index.',
     code: `class Solution:
@@ -5148,6 +5328,8 @@ MaxStack.prototype.popMax = function() {
       'Given the head of a singly linked list and an integer k, split the linked list into k consecutive parts. The parts should be as equal in length as possible, with earlier parts being at most one node longer.',
     examples:
       'Input: head = [1,2,3], k = 5\nOutput: [[1],[2],[3],[],[]]',
+    intuition:
+      'Divide the list length by k to get the base size for each part, with the first (length % k) parts getting one extra node. Then walk through the list, cutting it at the right positions. It is like dealing cards as evenly as possible.',
     approach:
       'Count the total length. Each part has length // k nodes, and the first (length % k) parts get one extra node. Split the list accordingly.',
     code: `class Solution:
@@ -5216,6 +5398,8 @@ MaxStack.prototype.popMax = function() {
       'Given a chemical formula as a string, return the count of each atom sorted alphabetically. The formula can contain parentheses with multipliers.',
     examples:
       'Input: formula = "Mg(OH)2"\nOutput: "H2MgO2"',
+    intuition:
+      'A stack of dictionaries handles nested parentheses naturally. Each \'(\' pushes a new scope, each \')\' pops and multiplies counts by the following number before merging into the parent scope. This mirrors how mathematical expressions with nested parentheses are evaluated.',
     approach:
       'Use a stack of dictionaries. On "(", push a new dict. On ")", pop the dict, multiply counts by the following number, and merge into the previous dict. Parse element names and counts normally.',
     code: `from collections import defaultdict
@@ -5313,6 +5497,8 @@ class Solution:
       'Given strings s1 and s2, return the minimum contiguous substring part of s1, such that s2 is a subsequence of that part. If there is no such window, return an empty string. If there are multiple answers, return the one with the leftmost starting index.',
     examples:
       'Input: s1 = "abcdebdde", s2 = "bde"\nOutput: "bcde"',
+    intuition:
+      'This is a two-pointer approach on steroids. First scan forward to find any subsequence match, then scan backward from the endpoint to find the tightest (shortest) window containing that subsequence. Repeat from the next position to find all candidates.',
     approach:
       'Use a two-pointer approach. Find the end of a window where s2 is a subsequence, then shrink from the right to find the minimum. Track the best window found.',
     code: `class Solution:
@@ -5387,6 +5573,8 @@ class Solution:
       'Implement a MyCalendar class to store events. A new event can be added if it does not cause a double booking. An event is represented as [start, end) (half-open interval). Return true if the event can be booked.',
     examples:
       'Input: ["MyCalendar","book","book","book"]\n[[],[10,20],[15,25],[20,30]]\nOutput: [null,true,false,true]',
+    intuition:
+      'Think of a calendar as a sorted list of time intervals. A new event can be booked only if it does not overlap with any existing event. Binary search or linear scan through sorted intervals to check for conflicts before adding the new event.',
     approach:
       'Maintain a sorted list of bookings. For each new event, check if it overlaps with any existing event. Two intervals [s1, e1) and [s2, e2) overlap if s1 < e2 and s2 < e1.',
     code: `class MyCalendar:
@@ -5433,6 +5621,8 @@ MyCalendar.prototype.book = function(start, end) {
       'Implement a MyCalendarTwo class. An event can be added if doing so does not cause a triple booking. A triple booking happens when three events have a common time. Return true if the event can be booked without causing a triple booking.',
     examples:
       'Input: ["MyCalendarTwo","book","book","book","book","book","book"]\n[[],[10,20],[50,60],[10,40],[5,15],[5,10],[25,55]]\nOutput: [null,true,true,true,false,true,true]',
+    intuition:
+      'Track events using a difference array or sorted intervals. For each booking, check if any time point would be triple-booked. Maintaining a count of overlapping events at each point lets you quickly determine if adding a new event would cause a triple booking.',
     approach:
       'Maintain two lists: one for single bookings and one for overlaps (double bookings). A new event fails if it overlaps with any double booking. Otherwise, compute new double bookings and add the event.',
     code: `class MyCalendarTwo:
@@ -5489,6 +5679,8 @@ MyCalendarTwo.prototype.book = function(start, end) {
       'An image is represented by an m x n grid of integers. Perform a flood fill starting from pixel (sr, sc) with a new color. A flood fill changes the starting pixel and all connected pixels of the same original color to the new color.',
     examples:
       'Input: image = [[1,1,1],[1,1,0],[1,0,1]], sr = 1, sc = 1, color = 2\nOutput: [[2,2,2],[2,2,0],[2,0,1]]',
+    intuition:
+      'Flood fill is like pouring paint from a starting pixel. Use BFS or DFS to spread the new color to all connected pixels that share the original color. The key edge case is when the new color is the same as the original - do nothing to avoid infinite loops.',
     approach:
       'Use DFS or BFS from the starting pixel. Change the color and recurse to all 4-directionally connected pixels with the same original color. Handle the case where the new color equals the original.',
     code: `class Solution:
@@ -5540,6 +5732,8 @@ MyCalendarTwo.prototype.book = function(start, end) {
       'Given an array of integers nums, you can perform the operation: pick nums[i], earn nums[i] points, and delete every element equal to nums[i]-1 and nums[i]+1. Return the maximum points you can earn.',
     examples:
       'Input: nums = [3,4,2]\nOutput: 6\nExplanation: Pick 2 (earn 2), then 4 is deleted, pick 3 (earn 3). Wrong! Actually: delete 3, pick 4 earns 4, then pick 2 earns 2. Total = 6.',
+    intuition:
+      'This is the house robber problem in disguise. Group numbers by value and sum their contributions, then you cannot pick adjacent values (taking value v means skipping v-1 and v+1). DP on the sorted unique values with the robber recurrence gives the optimal answer.',
     approach:
       'This reduces to the House Robber problem. Group numbers by value. You cannot take both value v and v+1. Use DP: for each value, decide to take all of them or skip.',
     code: `from collections import Counter
@@ -5590,6 +5784,8 @@ class Solution:
       'You are given an n x n grid representing a field of cherries. Starting from (0,0) to (n-1,n-1) and back, collect the maximum number of cherries. You can only move right/down going forward and left/up going back. Cells with -1 are blocked.',
     examples:
       'Input: grid = [[0,1,-1],[1,0,-1],[1,1,1]]\nOutput: 5',
+    intuition:
+      'Think of two people walking simultaneously from top-left to bottom-right. Using DP with shared steps, you avoid counting the same cherry twice. The key insight is that two simultaneous paths can be modeled with three variables (step, row1, row2) since columns are determined by the step.',
     approach:
       'Model as two people walking from (0,0) to (n-1,n-1) simultaneously. Use 3D DP where dp[r1][c1][r2] represents the max cherries when person 1 is at (r1,c1) and person 2 is at (r2, r1+c1-r2). If both are at the same cell, count cherries only once.',
     code: `class Solution:
@@ -5655,6 +5851,8 @@ class Solution:
       'Given the root of a binary tree where every node has a unique value, and a target integer k, return the value of the nearest leaf node to the target k.',
     examples:
       'Input: root = [1,3,2], k = 1\nOutput: 2 (or 3)',
+    intuition:
+      'Find the target node, then work outward like ripples in a pond. BFS from the target through parent pointers (built during an initial traversal) finds the closest leaf. Alternatively, DFS to compute distances to the nearest leaf above and below the target.',
     approach:
       'Build an undirected graph from the tree. Then BFS from the target node to find the closest leaf.',
     code: `from collections import defaultdict, deque
@@ -5738,6 +5936,8 @@ class Solution:
       'Design a special dictionary that searches words by prefix and suffix. Implement the WordFilter class with a constructor that takes a list of words and a method f(pref, suff) that returns the index of the word with the given prefix and suffix. If multiple words match, return the largest index.',
     examples:
       'Input: ["WordFilter","f"]\n[[["apple"]],["a","e"]]\nOutput: [null,0]',
+    intuition:
+      'Preprocess each word\'s suffixes combined with the full word (e.g., \'apple\' generates \'#apple\', \'e#apple\', \'le#apple\', etc.) and store them in a Trie or hash map. This way, a query for prefix + suffix becomes a single lookup of the combined key.',
     approach:
       'For each word, generate all possible prefix#suffix combinations and store them in a dictionary mapping to the word index. For query f(pref, suff), look up pref#suff.',
     code: `class WordFilter:
@@ -5790,6 +5990,8 @@ WordFilter.prototype.f = function(pref, suff) {
       'You have a lock with 4 circular wheels, each with digits 0-9. The lock starts at "0000". You are given a list of deadends (states that block further moves) and a target string. Each move turns one wheel one slot (up or down). Return the minimum moves to reach the target, or -1 if impossible.',
     examples:
       'Input: deadends = ["0201","0101","0102","1212","2002"], target = "0202"\nOutput: 6',
+    intuition:
+      'Think of each lock state as a node in a graph, with edges connecting states that differ by one digit rotation. BFS from \'0000\' finds the shortest path to the target while avoiding deadend nodes. It is a classic shortest-path problem on an implicit graph of 10,000 states.',
     approach:
       'Use BFS from "0000". Each state has 8 neighbors (4 wheels x 2 directions). Skip deadends. Return the number of BFS levels to reach the target.',
     code: `from collections import deque
@@ -5857,6 +6059,8 @@ class Solution:
       'We are given a list of schedules for each employee, where each schedule is a list of non-overlapping intervals sorted by start time. Return the list of finite intervals representing the common free time for all employees.',
     examples:
       'Input: schedule = [[[1,2],[5,6]],[[1,3]],[[4,10]]]\nOutput: [[3,4]]',
+    intuition:
+      'Merge all employee schedules, sort the intervals, and find the gaps between merged intervals. The free time slots are the spaces between consecutive non-overlapping merged intervals. Sorting and merging converts the problem into simple gap detection.',
     approach:
       'Flatten all intervals, sort by start time, and merge overlapping intervals. The gaps between merged intervals are the common free time.',
     code: `class Solution:
@@ -5908,6 +6112,8 @@ class Solution:
       'Given two integer arrays nums1 and nums2 where nums2 is an anagram of nums1, return a mapping array result where result[i] is the index j such that nums1[i] == nums2[j].',
     examples:
       'Input: nums1 = [12,28,46,32,50], nums2 = [50,12,32,46,28]\nOutput: [1,4,3,2,0]',
+    intuition:
+      'Each character in s maps to exactly one character in t and vice versa. Use two hash maps for bidirectional mapping. If a mapping conflict is detected, the strings are not isomorphic. This ensures the mapping is a true bijection.',
     approach:
       'Build a hash map from value to index for nums2. For each element in nums1, look up its index in nums2.',
     code: `class Solution:
@@ -5944,6 +6150,8 @@ class Solution:
       'There are n couples sitting in 2n seats arranged in a row. You want each couple to sit side by side. A couple is (2i, 2i+1) for each i. Return the minimum number of swaps so that every couple is sitting side by side.',
     examples:
       'Input: row = [0,2,1,3]\nOutput: 1\nExplanation: Swap row[1] and row[2] to get [0,1,2,3].',
+    intuition:
+      'Think of couples as nodes in a graph where each pair should sit together. Count the number of swaps needed by finding cycles of misplaced couples. Each cycle of length k requires k-1 swaps, or equivalently, for each seat pair, if the couple is not together, swap one person to fix it greedily.',
     approach:
       'Greedy: for each pair of adjacent seats (0,1), (2,3), ..., if the two people are not a couple, find the partner of the first person and swap them in. Each swap fixes at least one couple.',
     code: `class Solution:
@@ -5998,6 +6206,8 @@ class Solution:
       'Given an m x n matrix, return true if the matrix is Toeplitz. A matrix is Toeplitz if every diagonal from top-left to bottom-right has the same elements.',
     examples:
       'Input: matrix = [[1,2,3,4],[5,1,2,3],[9,5,1,2]]\nOutput: true',
+    intuition:
+      'A Toeplitz matrix has the same value along every top-left to bottom-right diagonal. Simply check that each element equals the one diagonally above-left (mat[r][c] == mat[r-1][c-1]). If all such pairs match, the matrix is Toeplitz.',
     approach:
       'For each cell (i, j) where i > 0 and j > 0, check if it equals the cell diagonally above-left (i-1, j-1). If any mismatch, return false.',
     code: `class Solution:
@@ -6038,6 +6248,8 @@ class Solution:
       'Given a string s, rearrange the characters so that no two adjacent characters are the same. If not possible, return an empty string.',
     examples:
       'Input: s = "aab"\nOutput: "aba"',
+    intuition:
+      'Place the most frequent character first to maximize spacing between repeats. Use a max-heap to always pick the most frequent remaining character, but never pick the same one twice in a row by holding the last-used character aside for one round.',
     approach:
       'Use a max-heap of (count, char). Always place the most frequent character, but alternate to avoid adjacent duplicates. After placing a char, push the previously placed char back into the heap.',
     code: `import heapq
@@ -6102,6 +6314,8 @@ class Solution:
       'Implement a basic calculator to evaluate a simple expression string. The expression may contain non-negative integers, +, -, *, / operators, and parentheses. Return the result of the evaluation. Integer division truncates toward zero.',
     examples:
       'Input: s = "2*(5+5*2)/3+(6/2+8)"\nOutput: 21',
+    intuition:
+      'Handle operator precedence with a recursive descent parser or a stack-based approach. Parse numbers and operators, using recursion for parenthesized sub-expressions. Multiply and divide are evaluated before add and subtract, which can be handled by processing them immediately while deferring addition and subtraction.',
     approach:
       'Use a recursive descent parser or a stack-based approach. Handle operator precedence: * and / before + and -. Recursively evaluate expressions inside parentheses.',
     code: `class Solution:
@@ -6182,6 +6396,8 @@ class Solution:
       'On a 2x3 board, there are five tiles labeled 1-5 and an empty square (0). In one move, you can swap the empty square with an adjacent tile. Return the least number of moves to reach the solved state [[1,2,3],[4,5,0]], or -1 if impossible.',
     examples:
       'Input: board = [[1,2,3],[4,0,5]]\nOutput: 1',
+    intuition:
+      'The 2x3 board has only 720 possible states (6! permutations). BFS from the initial state, trying all possible moves of the blank tile, finds the shortest path to the solved state. Represent each state as a string for easy hashing and visited checking.',
     approach:
       'Use BFS on the board state (represented as a tuple). The target state is (1,2,3,4,5,0). For each state, generate all possible next states by swapping 0 with its neighbors.',
     code: `from collections import deque
@@ -6254,6 +6470,8 @@ class Solution:
       'You are given an n x n integer matrix grid where grid[i][j] represents the elevation at that point. Starting from the top-left, you want to reach the bottom-right. At time t, you can swim in any direction to adjacent cells as long as the elevation of both cells is at most t. Return the minimum time to swim from (0,0) to (n-1,n-1).',
     examples:
       'Input: grid = [[0,2],[1,3]]\nOutput: 3',
+    intuition:
+      'Think of cells as nodes with edge weights equal to the maximum elevation along the path. You want the path from top-left to bottom-right that minimizes the maximum elevation encountered. Binary search on the answer with BFS/DFS, or use Dijkstra treating edge weight as the max of adjacent cell values.',
     approach:
       'Use Dijkstra-like approach with a min-heap. The cost to reach a cell is the maximum elevation along the path. Use a priority queue to always expand the cell with the lowest required time.',
     code: `import heapq
@@ -6317,6 +6535,8 @@ class Solution:
       'We build a table of n rows. The first row is "0". Each subsequent row replaces "0" with "01" and "1" with "10". Given n and k (1-indexed), return the k-th symbol in the n-th row.',
     examples:
       'Input: n = 2, k = 1\nOutput: 0\nExplanation: Row 1: 0, Row 2: 01.',
+    intuition:
+      'Each row doubles in length, but you only need one value. Instead of building the whole row, work backwards: determine if position K in row N came from position (K+1)/2 in row N-1 and whether it was flipped. This reduces the problem from exponential to O(N) time.',
     approach:
       'The k-th symbol in row n depends on the ceil(k/2)-th symbol in row n-1. If k is odd, it equals the parent. If k is even, it is flipped. Recursively reduce to row 1.',
     code: `class Solution:
@@ -6356,6 +6576,8 @@ class Solution:
       'A move consists of taking a point (x, y) and transforming it to either (x, x+y) or (x+y, y). Given a starting point (sx, sy) and a target point (tx, ty), return true if a sequence of moves can transform the start into the target.',
     examples:
       'Input: sx = 1, sy = 1, tx = 3, ty = 5\nOutput: true\nExplanation: (1,1) -> (1,2) -> (3,2) -> (3,5).',
+    intuition:
+      'Work backwards from the target (x, y) to (1, 1). At each step, the larger coordinate must have been produced by adding the smaller to it, so subtract the smaller from the larger. Use modulo for efficiency when one coordinate is much larger than the other.',
     approach:
       'Work backwards from the target. If tx > ty, the previous point was (tx - ty, ty). If ty > tx, it was (tx, ty - tx). Use modulo to skip multiple subtractions. Continue until reaching or passing the start.',
     code: `class Solution:
@@ -6408,6 +6630,8 @@ class Solution:
       'Given the root of a Binary Search Tree (BST), return the minimum difference between the values of any two different nodes in the tree.',
     examples:
       'Input: root = [4,2,6,1,3]\nOutput: 1',
+    intuition:
+      'In a BST, an in-order traversal gives sorted values. The minimum difference between any two nodes must be between consecutive values in this sorted order. Track the previous value during in-order traversal and update the minimum difference at each step.',
     approach:
       'Perform an in-order traversal to get values in sorted order. The minimum difference is between consecutive values. Track the previous value during traversal.',
     code: `class Solution:
@@ -6459,6 +6683,8 @@ class Solution:
       'You are given two strings order and s. All the characters of order are unique and were sorted in some custom order previously. Permute the characters of s so that they match the order that order was sorted. Characters not in order can be placed anywhere.',
     examples:
       'Input: order = "cba", s = "abcd"\nOutput: "cbad"',
+    intuition:
+      'Map each character to its position in the order string. Characters in the order come first (sorted by their order position), followed by characters not in the order string. Alternatively, count characters in s and rebuild by iterating through order first, then appending the rest.',
     approach:
       'Count the characters in s. First append characters that appear in order (in order), then append remaining characters.',
     code: `from collections import Counter

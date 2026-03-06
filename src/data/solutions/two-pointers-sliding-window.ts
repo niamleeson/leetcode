@@ -10,6 +10,8 @@ export const solutions: ProblemSolution[] = [
       "Given an integer array 'height' of length n, find two lines that together with the x-axis form a container that holds the most water. Return the maximum amount of water the container can store. You may not slant the container.",
     examples:
       "Input: height = [1,8,6,2,5,4,8,3,7]\nOutput: 49\nExplanation: Lines at indices 1 and 8 (heights 8 and 7) form a container of width 7, so area = min(8,7) * 7 = 49.",
+    intuition:
+      "Start with the widest possible container (pointers at both ends) and work inward. The key insight is that the shorter line is always the bottleneck -- moving the taller line inward can only make things worse (less width, same height limit), so you always move the shorter one hoping to find something taller.",
     approach:
       "Use two pointers starting at both ends of the array. Calculate the area between the two pointers, then move the pointer with the smaller height inward. The shorter line limits the water, so moving it gives the only chance of finding a taller line that could increase the area.",
     code: `class Solution:
@@ -56,6 +58,8 @@ export const solutions: ProblemSolution[] = [
       "Given an integer array nums, return all triplets [nums[i], nums[j], nums[k]] such that i != j != k and nums[i] + nums[j] + nums[k] == 0. The solution set must not contain duplicate triplets.",
     examples:
       "Input: nums = [-1,0,1,2,-1,-4]\nOutput: [[-1,-1,2],[-1,0,1]]\nExplanation: The distinct triplets that sum to zero are [-1,-1,2] and [-1,0,1].",
+    intuition:
+      "Three Sum reduces to Two Sum once you fix one number. By sorting the array first, you can fix each number and then use two pointers on the rest to find pairs that complement it to zero. Sorting also makes it trivial to skip duplicates -- identical values are adjacent, so you just check if the current value equals the previous one.",
     approach:
       "Sort the array first. For each element, use two pointers on the remaining subarray to find pairs that sum to the negative of the current element. Skip duplicates at every level to avoid duplicate triplets.",
     code: `class Solution:
@@ -120,6 +124,8 @@ export const solutions: ProblemSolution[] = [
       "Given n non-negative integers representing an elevation map where the width of each bar is 1, compute how much water it can trap after raining.",
     examples:
       "Input: height = [0,1,0,2,1,0,1,3,2,1,2,1]\nOutput: 6\nExplanation: The elevation map traps 6 units of rain water between the bars.",
+    intuition:
+      "Water above any bar is trapped by whichever side is shorter -- the tallest bar on the left or the tallest bar on the right. Think of it like two walls: water can only rise to the height of the shorter wall. By processing from the side with the smaller known max, you can guarantee the water level at that position without needing to know the exact max on the other side (you already know it is at least as tall).",
     approach:
       "Use two pointers from both ends while tracking the maximum height seen from the left and right. Water at each position is determined by the minimum of the two max heights minus the current height. Always process the side with the smaller max height.",
     code: `class Solution:
@@ -173,6 +179,8 @@ export const solutions: ProblemSolution[] = [
       "A phrase is a palindrome if, after converting all uppercase letters to lowercase and removing all non-alphanumeric characters, it reads the same forward and backward. Given a string s, return true if it is a palindrome.",
     examples:
       'Input: s = "A man, a plan, a canal: Panama"\nOutput: true\nExplanation: After cleaning, the string becomes "amanaplanacanalpanama", which is a palindrome.',
+    intuition:
+      "A palindrome reads the same forwards and backwards, so you just need to check that characters match from both ends moving inward. The twist here is ignoring non-letter/number characters and case -- just skip over punctuation and spaces, and compare everything in lowercase. No need to actually build a cleaned string.",
     approach:
       "Use two pointers starting from both ends of the string. Skip non-alphanumeric characters and compare lowercase versions of the characters at both pointers.",
     code: `class Solution:
@@ -219,6 +227,8 @@ function isAlphanumeric(c) {
       "Given a 1-indexed array of integers 'numbers' that is already sorted in non-decreasing order, find two numbers that add up to a specific target. Return the indices of the two numbers (1-indexed) as [index1, index2].",
     examples:
       "Input: numbers = [2,7,11,15], target = 9\nOutput: [1,2]\nExplanation: 2 + 7 = 9, so index1 = 1 and index2 = 2.",
+    intuition:
+      "Because the array is sorted, the sum of the smallest and largest elements gives you a starting point. If the sum is too small, the only way to increase it is to move the left pointer right (to a bigger number). If too large, move the right pointer left. This binary-search-like narrowing guarantees you find the pair in one pass.",
     approach:
       "Use two pointers at the start and end. If the sum is too small, move the left pointer right; if too large, move the right pointer left. The sorted order guarantees convergence to the answer.",
     code: `class Solution:
@@ -263,6 +273,8 @@ function isAlphanumeric(c) {
       "Given an integer array nums sorted in non-decreasing order, remove the duplicates in-place such that each unique element appears only once. Return the number of unique elements k, with the first k elements of nums holding the unique values.",
     examples:
       "Input: nums = [1,1,2]\nOutput: 2, nums = [1,2,...]\nExplanation: The function returns k = 2 with the first two elements of nums being 1 and 2.",
+    intuition:
+      "Since the array is sorted, all duplicates are grouped together. Think of a slow pointer as a 'writer' that only moves forward when it sees a new value, and a fast pointer as a 'reader' scanning every element. Whenever the reader finds something different from what the writer last wrote, it hands it over. This naturally compacts all unique values to the front.",
     approach:
       "Use a slow pointer to track the position for the next unique element and a fast pointer to scan through the array. When a new unique element is found, place it at the slow pointer position and advance slow.",
     code: `class Solution:
@@ -302,6 +314,8 @@ function isAlphanumeric(c) {
       "Given an array nums with n objects colored red (0), white (1), or blue (2), sort them in-place so that objects of the same color are adjacent in the order red, white, blue. Do not use the library sort function.",
     examples:
       "Input: nums = [2,0,2,1,1,0]\nOutput: [0,0,1,1,2,2]\nExplanation: The array is sorted in-place with all 0s first, then 1s, then 2s.",
+    intuition:
+      "With only three possible values, you can partition the array into three zones in one pass. Imagine three regions growing from both ends and the middle: 0s accumulate on the left, 2s on the right, and 1s stay in the middle. The mid pointer scans through undecided elements and swaps each one into its correct zone.",
     approach:
       "Use the Dutch National Flag algorithm with three pointers: low for the boundary of 0s, mid for the current element, and high for the boundary of 2s. Swap elements to their correct regions as mid advances.",
     code: `class Solution:
@@ -348,6 +362,8 @@ function isAlphanumeric(c) {
       "Given an integer array nums, move all 0s to the end of it while maintaining the relative order of the non-zero elements. You must do this in-place without making a copy of the array.",
     examples:
       "Input: nums = [0,1,0,3,12]\nOutput: [1,3,12,0,0]\nExplanation: All non-zero elements are moved to the front in their original order, and zeros fill the rest.",
+    intuition:
+      "Think of the slow pointer as a 'placement position' for the next non-zero value. Every time the fast pointer finds a non-zero, it gets swapped into the next available slot at slow. This is like removing all zeros and compacting the non-zero elements to the front, with zeros naturally filling the vacated spots at the end.",
     approach:
       "Use a slow pointer to track the position for the next non-zero element. Iterate with a fast pointer; when a non-zero element is found, swap it to the slow pointer position. This preserves order and pushes zeros to the end.",
     code: `class Solution:
@@ -382,6 +398,8 @@ function isAlphanumeric(c) {
       "Write a function that reverses a string given as an array of characters. You must do this by modifying the input array in-place with O(1) extra memory.",
     examples:
       'Input: s = ["h","e","l","l","o"]\nOutput: ["o","l","l","e","h"]\nExplanation: The array is reversed in-place.',
+    intuition:
+      "Reversing is just swapping mirror-image positions: the first element goes to the last, the second to the second-to-last, and so on. Two pointers from opposite ends, swapping and moving inward, handle this perfectly. It is the simplest possible two-pointer pattern.",
     approach:
       "Use two pointers at both ends of the array. Swap the characters at the two pointers and move them toward the center until they meet.",
     code: `class Solution:
@@ -415,6 +433,8 @@ function isAlphanumeric(c) {
       "Given two strings s and t, return true if s is a subsequence of t. A subsequence is formed by deleting some (or no) characters from t without changing the relative order of the remaining characters.",
     examples:
       'Input: s = "abc", t = "ahbgdc"\nOutput: true\nExplanation: "abc" is a subsequence of "ahbgdc" (a_h_b_g_d_c).',
+    intuition:
+      "A subsequence just means the characters appear in order, not necessarily consecutively. Walk through t one character at a time -- whenever you see the next character you need from s, check it off and move on to the next one. If you check off all characters of s before running out of t, it is a subsequence. The greedy approach of matching as early as possible always works.",
     approach:
       "Use two pointers, one for each string. Advance the pointer for s only when the characters match. Advance the pointer for t at every step. If the s-pointer reaches the end, s is a subsequence.",
     code: `class Solution:
@@ -451,6 +471,8 @@ function isAlphanumeric(c) {
       "Given a string s, return true if the string can be made a palindrome after deleting at most one character from it.",
     examples:
       'Input: s = "abca"\nOutput: true\nExplanation: Deleting \'c\' gives "aba", which is a palindrome.',
+    intuition:
+      "Start with a normal palindrome check from both ends. If the characters match, great -- keep going. The moment you hit a mismatch, you get to use your one deletion: either skip the left character or the right character. Whichever skip leads to a valid palindrome in the remaining substring means the answer is true. This branching only happens once, so it stays efficient.",
     approach:
       "Use two pointers from both ends. When a mismatch is found, try skipping either the left or the right character and check if the remaining substring is a palindrome. If either works, return true.",
     code: `class Solution:
@@ -506,6 +528,8 @@ function isAlphanumeric(c) {
       "You are given an array people where people[i] is the weight of the i-th person, and an integer limit representing the weight limit of each boat. Each boat carries at most two people, provided their combined weight does not exceed limit. Return the minimum number of boats.",
     examples:
       "Input: people = [3,2,2,1], limit = 3\nOutput: 3\nExplanation: Boats carry (1,2), (2), (3). Three boats are needed.",
+    intuition:
+      "Each boat fits at most two people. The heaviest person must go on a boat regardless, so the best you can do is pair them with the lightest person. If even the lightest person cannot share with them, nobody can, so the heavy person rides alone. Sorting and using two pointers from both ends implements this greedy pairing optimally.",
     approach:
       "Sort the array. Use two pointers: pair the lightest with the heaviest person. If they fit together, move both pointers inward. Otherwise, the heaviest person rides alone. Count boats accordingly.",
     code: `class Solution:
@@ -548,6 +572,8 @@ function isAlphanumeric(c) {
       "You are given two integer arrays nums1 and nums2, sorted in non-decreasing order, and two integers m and n representing the number of elements in nums1 and nums2. Merge nums2 into nums1 as one sorted array in-place. nums1 has enough space (length m + n) to hold the result.",
     examples:
       "Input: nums1 = [1,2,3,0,0,0], m = 3, nums2 = [2,5,6], n = 3\nOutput: [1,2,2,3,5,6]\nExplanation: Merging [1,2,3] and [2,5,6] produces [1,2,2,3,5,6].",
+    intuition:
+      "If you merge from the front, you would overwrite elements in nums1 that you still need. The trick is to merge from the back -- the empty space at the end of nums1 is exactly where the largest elements should go. By placing the largest remaining element at the end and working backwards, you never overwrite anything you have not already processed.",
     approach:
       "Merge from the back to avoid overwriting elements in nums1 that have not been processed yet. Use three pointers: one at the end of nums1's valid elements, one at the end of nums2, and one at the very end of nums1.",
     code: `class Solution:
@@ -594,6 +620,8 @@ function isAlphanumeric(c) {
       "Given a string s, find the length of the longest substring without repeating characters.",
     examples:
       'Input: s = "abcabcbb"\nOutput: 3\nExplanation: The longest substring without repeating characters is "abc" with length 3.',
+    intuition:
+      "Imagine a window sliding over the string that grows as long as all characters inside it are unique. The moment a duplicate appears, you shrink the window from the left until the duplicate is gone. A set tracks what is currently in the window, making duplicate detection instant. This is the classic sliding window pattern: expand to explore, shrink to restore a constraint.",
     approach:
       "Use a sliding window with a set (or dictionary) to track characters in the current window. Expand the right end; when a duplicate is found, shrink from the left until the duplicate is removed.",
     code: `class Solution:
@@ -638,6 +666,8 @@ function isAlphanumeric(c) {
       "Given two strings s and t, return the minimum window substring of s such that every character in t (including duplicates) is included in the window. If no such substring exists, return the empty string.",
     examples:
       'Input: s = "ADOBECODEBANC", t = "ABC"\nOutput: "BANC"\nExplanation: "BANC" is the smallest window in s that contains A, B, and C.',
+    intuition:
+      "First grow the window until it contains all required characters, then shrink it from the left to find the smallest valid window. The 'formed' counter is the key optimization -- instead of comparing entire frequency maps each time, you just track how many distinct characters have met their required count. When formed equals the number of distinct characters in t, the window is valid.",
     approach:
       "Use a sliding window with two frequency maps. Expand the right end to include characters; when all required characters are covered, shrink from the left to minimize the window. Track the number of satisfied character requirements to avoid repeatedly comparing maps.",
     code: `class Solution:
@@ -731,6 +761,8 @@ function isAlphanumeric(c) {
       "You are given an array prices where prices[i] is the price of a given stock on the i-th day. You want to maximize profit by choosing a single day to buy and a single later day to sell. Return the maximum profit, or 0 if no profit is possible.",
     examples:
       "Input: prices = [7,1,5,3,6,4]\nOutput: 5\nExplanation: Buy on day 2 (price = 1) and sell on day 5 (price = 6), profit = 5.",
+    intuition:
+      "You want to buy at the lowest point before selling at the highest point after it. As you walk through prices day by day, just remember the cheapest price you have seen so far. At each day, the best you could do is sell at today's price having bought at that cheapest point. This one-pass approach naturally finds the optimal buy-sell pair.",
     approach:
       "Track the minimum price seen so far as you scan left to right. At each position, the maximum profit achievable by selling today is today's price minus the minimum so far. Keep a running maximum of this profit.",
     code: `class Solution:
@@ -766,6 +798,8 @@ function isAlphanumeric(c) {
       "You are given a string s and an integer k. You can choose any character in the string and change it to any other uppercase English letter at most k times. Return the length of the longest substring containing the same letter after performing at most k replacements.",
     examples:
       'Input: s = "AABABBA", k = 1\nOutput: 4\nExplanation: Replace one B in "ABAB" to get "AAAA" (or replace one A to get "BBBB"), giving length 4.',
+    intuition:
+      "In any window, the optimal strategy is to keep the most frequent character and replace all others. So the number of replacements needed is window_size minus the count of the most frequent character. If that exceeds k, the window is too big. The clever trick is that you never need to decrease the max frequency when shrinking -- a smaller max frequency could never produce a longer answer than what you already found.",
     approach:
       "Use a sliding window tracking the frequency of each character. The key insight: if window_length - max_frequency > k, the window is invalid (too many replacements needed). Shrink from the left in that case. We do not need to decrease max_frequency when shrinking because a smaller max_frequency cannot produce a longer valid window.",
     code: `class Solution:
@@ -814,6 +848,8 @@ function isAlphanumeric(c) {
       "Given two strings s1 and s2, return true if s2 contains a permutation of s1. In other words, return true if one of s1's permutations is a substring of s2.",
     examples:
       'Input: s1 = "ab", s2 = "eidbaooo"\nOutput: true\nExplanation: s2 contains "ba", which is a permutation of "ab".',
+    intuition:
+      "A permutation of s1 is just a rearrangement -- it has exactly the same character frequencies. So the question becomes: is there any substring of s2 with length equal to s1 that has the same character frequencies? Slide a fixed-size window across s2, updating character counts as you add/remove one character at a time. The 'matches' counter avoids comparing all 26 frequencies every step.",
     approach:
       "Use a fixed-size sliding window of length len(s1) over s2. Maintain a frequency count of the window and compare it with the frequency count of s1. Use a 'matches' counter to track how many of the 26 characters have equal frequencies.",
     code: `class Solution:
@@ -900,6 +936,8 @@ function isAlphanumeric(c) {
       "You are given an array of integers nums and a sliding window of size k that moves from left to right. Return an array of the maximum value in each window position.",
     examples:
       "Input: nums = [1,3,-1,-3,5,3,6,7], k = 3\nOutput: [3,3,5,5,6,7]\nExplanation: Window positions and their maxima: [1,3,-1]->3, [3,-1,-3]->3, [-1,-3,5]->5, [-3,5,3]->5, [5,3,6]->6, [3,6,7]->7.",
+    intuition:
+      "A monotonic decreasing deque keeps potential maximums in order. When a new element enters, remove all smaller elements from the back -- they can never be the maximum again because the new element is both larger and newer (will stay in the window longer). The front of the deque is always the current maximum. This gives O(1) amortized max lookups as the window slides.",
     approach:
       "Use a monotonic decreasing deque that stores indices. The front of the deque is always the index of the maximum in the current window. Remove indices from the front if they are out of the window, and from the back if the new element is greater (they can never be the maximum).",
     code: `class Solution:
@@ -952,6 +990,8 @@ function isAlphanumeric(c) {
       "Given an array of positive integers nums and a positive integer target, return the minimal length of a contiguous subarray whose sum is greater than or equal to target. If there is no such subarray, return 0.",
     examples:
       "Input: target = 7, nums = [2,3,1,2,4,3]\nOutput: 2\nExplanation: The subarray [4,3] has sum 7 and is the shortest subarray with sum >= target.",
+    intuition:
+      "Since all numbers are positive, growing the window always increases the sum and shrinking always decreases it. This monotonic property makes sliding window perfect: expand until the sum is big enough, then shrink as much as possible to find the shortest valid subarray. Every element is added and removed at most once, so it is O(n) despite the nested loops.",
     approach:
       "Use a sliding window. Expand the window by adding elements from the right. When the window sum meets or exceeds the target, try to shrink from the left while updating the minimum length.",
     code: `class Solution:
@@ -996,6 +1036,8 @@ function isAlphanumeric(c) {
       "Given two strings s and p, return an array of all the start indices of p's anagrams in s. An anagram is a rearrangement of all the characters of a string.",
     examples:
       'Input: s = "cbaebabacd", p = "abc"\nOutput: [0,6]\nExplanation: Substrings starting at index 0 ("cba") and index 6 ("bac") are anagrams of "abc".',
+    intuition:
+      "This is the same core idea as Permutation in String (567) -- an anagram is just a permutation, meaning identical character frequencies. Slide a window of size len(p) across s, and at each position check if the character frequencies match. The 'matches' counter incrementally tracks agreement across all 26 letters, so each slide costs O(1) instead of O(26).",
     approach:
       "Use a fixed-size sliding window of length len(p). Maintain frequency counts for the window and for p, with a 'matches' counter tracking how many of the 26 characters have equal frequencies. When matches equals 26, record the start index.",
     code: `class Solution:
@@ -1087,6 +1129,8 @@ function isAlphanumeric(c) {
       "You are visiting a farm with a row of fruit trees. Each tree produces one type of fruit (given as an integer). You have two baskets, each of which can hold only one type of fruit. Starting from any tree, pick fruits from each consecutive tree, stopping when you would need a third type. Return the maximum number of fruits you can collect.",
     examples:
       "Input: fruits = [1,2,1]\nOutput: 3\nExplanation: Pick all three trees: types 1 and 2 fit in two baskets.",
+    intuition:
+      "Strip away the fruit basket story and the problem is: find the longest contiguous subarray with at most 2 distinct values. A sliding window with a hash map counting each type does the job. Grow the window freely, and whenever a third type appears, shrink from the left until you are back to 2 types. The map size directly tells you how many distinct types are in the window.",
     approach:
       "This is equivalent to finding the longest subarray with at most 2 distinct elements. Use a sliding window with a hash map tracking fruit counts. When more than 2 types exist, shrink from the left.",
     code: `class Solution:
@@ -1134,6 +1178,8 @@ function isAlphanumeric(c) {
       "Given a binary array nums and an integer k, return the maximum number of consecutive 1s in the array if you can flip at most k 0s to 1s.",
     examples:
       "Input: nums = [1,1,1,0,0,0,1,1,1,1,0], k = 2\nOutput: 6\nExplanation: Flip the two 0s at indices 5 and 10 (0-indexed) to get [1,1,1,0,0,1,1,1,1,1,1], giving 6 consecutive 1s.",
+    intuition:
+      "Instead of thinking about flipping zeros, reframe the problem: find the longest window that contains at most k zeros. Any such window can become all 1s by flipping those zeros. This reframing turns it into a standard sliding window problem -- grow the window, count zeros, and shrink when you have too many.",
     approach:
       "Use a sliding window that allows at most k zeros inside it. Expand the right end; when the count of zeros exceeds k, shrink from the left. The maximum window size is the answer.",
     code: `class Solution:
