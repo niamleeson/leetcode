@@ -14,8 +14,10 @@ const DSA_CATEGORIES = [
       'Tries',
       'Heap / Priority Queue',
       'Union Find',
+      'Monotonic Stack',
       'Monotonic Queue',
       'Segment Tree',
+      'Binary Indexed Tree',
     ],
   },
   {
@@ -31,6 +33,7 @@ const DSA_CATEGORIES = [
       'Divide & Conquer',
       'String Algorithms',
       'Minimum Spanning Tree',
+      'Topological Sort',
     ],
   },
   {

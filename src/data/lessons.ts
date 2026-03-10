@@ -3181,6 +3181,514 @@ KRUSKAL vs PRIM:
 WHEN TO USE: "connect all nodes with minimum cost" = MST.`,
   },
 
+  'Monotonic Stack': {
+    topic: 'Monotonic Stack',
+    overview: `A monotonic stack maintains elements in sorted (increasing or decreasing) order. When a new element breaks the monotonic property, we pop elements until the property is restored. Each pop reveals a relationship (like "next greater element").
+
+Two types:
+• Monotonic decreasing stack: Pop when current > top → finds NEXT GREATER element
+• Monotonic increasing stack: Pop when current < top → finds NEXT SMALLER element
+
+Key insight: Every element is pushed and popped at most once → O(n) total.
+
+Classic problems: Next Greater Element, Daily Temperatures, Largest Rectangle in Histogram, Trapping Rain Water.`,
+    keyPatterns: [
+      'Next greater element: Decreasing stack, pop when current is larger',
+      'Next smaller element: Increasing stack, pop when current is smaller',
+      'Largest rectangle in histogram: Find left and right boundaries using monotonic stack',
+      'Trapping rain water: Track left/right max heights (or use stack for valleys)',
+      'Stock span: How many consecutive days with price <= today',
+    ],
+    template: `# Next Greater Element (for each element, find the next one that is larger)
+def next_greater(nums):
+    n = len(nums)
+    result = [-1] * n
+    stack = []  # indices, values decreasing
+    for i in range(n):
+        while stack and nums[i] > nums[stack[-1]]:
+            j = stack.pop()
+            result[j] = nums[i]  # nums[i] is the next greater for nums[j]
+        stack.append(i)
+    return result
+
+# Daily Temperatures (days until warmer day)
+def daily_temperatures(temps):
+    n = len(temps)
+    result = [0] * n
+    stack = []  # indices
+    for i in range(n):
+        while stack and temps[i] > temps[stack[-1]]:
+            j = stack.pop()
+            result[j] = i - j
+        stack.append(i)
+    return result
+
+# Largest Rectangle in Histogram
+def largest_rectangle(heights):
+    stack = []  # indices, heights increasing
+    max_area = 0
+    heights.append(0)  # sentinel to flush remaining
+    for i, h in enumerate(heights):
+        while stack and heights[stack[-1]] > h:
+            height = heights[stack.pop()]
+            width = i if not stack else i - stack[-1] - 1
+            max_area = max(max_area, height * width)
+        stack.append(i)
+    heights.pop()
+    return max_area
+
+# Trapping Rain Water (stack approach)
+def trap(height):
+    stack = []
+    water = 0
+    for i, h in enumerate(height):
+        while stack and h > height[stack[-1]]:
+            bottom = height[stack.pop()]
+            if not stack:
+                break
+            width = i - stack[-1] - 1
+            bounded_height = min(h, height[stack[-1]]) - bottom
+            water += width * bounded_height
+        stack.append(i)
+    return water`,
+    jsTemplate: `// Next Greater Element
+function nextGreater(nums) {
+    const n = nums.length, result = new Array(n).fill(-1);
+    const stack = [];
+    for (let i = 0; i < n; i++) {
+        while (stack.length && nums[i] > nums[stack[stack.length - 1]]) {
+            const j = stack.pop();
+            result[j] = nums[i];
+        }
+        stack.push(i);
+    }
+    return result;
+}
+
+// Daily Temperatures
+function dailyTemperatures(temps) {
+    const n = temps.length, result = new Array(n).fill(0);
+    const stack = [];
+    for (let i = 0; i < n; i++) {
+        while (stack.length && temps[i] > temps[stack[stack.length - 1]]) {
+            const j = stack.pop();
+            result[j] = i - j;
+        }
+        stack.push(i);
+    }
+    return result;
+}
+
+// Largest Rectangle in Histogram
+function largestRectangleArea(heights) {
+    const stack = [];
+    let maxArea = 0;
+    heights.push(0); // sentinel
+    for (let i = 0; i < heights.length; i++) {
+        while (stack.length && heights[stack[stack.length - 1]] > heights[i]) {
+            const height = heights[stack.pop()];
+            const width = stack.length ? i - stack[stack.length - 1] - 1 : i;
+            maxArea = Math.max(maxArea, height * width);
+        }
+        stack.push(i);
+    }
+    heights.pop();
+    return maxArea;
+}
+
+// Trapping Rain Water
+function trap(height) {
+    const stack = [];
+    let water = 0;
+    for (let i = 0; i < height.length; i++) {
+        while (stack.length && height[i] > height[stack[stack.length - 1]]) {
+            const bottom = height[stack.pop()];
+            if (!stack.length) break;
+            const width = i - stack[stack.length - 1] - 1;
+            const h = Math.min(height[i], height[stack[stack.length - 1]]) - bottom;
+            water += width * h;
+        }
+        stack.push(i);
+    }
+    return water;
+}`,
+    complexity: 'O(n) time (each element pushed/popped once). O(n) space for the stack.',
+    commonMistakes: [
+      'Confusing increasing vs decreasing: next GREATER = decreasing stack, next SMALLER = increasing',
+      'Storing values instead of indices (need indices for distance/width calculations)',
+      'Largest rectangle: forgetting the sentinel value at the end to flush the stack',
+      'Trapping rain water: not checking if stack is empty after popping',
+    ],
+    tips: [
+      '"Next greater element" → monotonic DECREASING stack',
+      '"Next smaller element" → monotonic INCREASING stack',
+      'Always store INDICES, not values (you can always look up the value)',
+      'Largest rectangle in histogram is the hardest monotonic stack problem — master it and the rest are easy',
+      'For circular arrays (Next Greater Element II), iterate 2*n with index % n',
+    ],
+    memorization: `HOW TO MEMORIZE MONOTONIC STACK:
+The core loop is always the same:
+
+  for i in range(n):
+      while stack and CONDITION(nums[i], nums[stack[-1]]):
+          j = stack.pop()
+          # j just found its answer: i (or nums[i])
+      stack.append(i)
+
+The ONLY thing that changes is the CONDITION:
+  Next GREATER: nums[i] > nums[stack[-1]]  (decreasing stack)
+  Next SMALLER: nums[i] < nums[stack[-1]]  (increasing stack)
+
+Mnemonic: "Pop the losers, push the current"
+  - A "loser" is any element that just found something greater/smaller than itself
+  - The current element is the winner that caused the pop
+
+LARGEST RECTANGLE (the king of monotonic stack):
+  Think of it as "for each bar, what's the widest rectangle using this bar's height?"
+  - Pop when current bar is shorter → popped bar found its right boundary
+  - Left boundary = new stack top (or 0 if empty)
+  - Width = right - left - 1
+
+  Trick: append 0 at the end to force all remaining bars to pop.
+
+QUICK REFERENCE:
+  Next Greater Element → pop when bigger → result[j] = nums[i]
+  Daily Temperatures → pop when warmer → result[j] = i - j
+  Largest Rectangle → pop when shorter → area = height * width
+  Trapping Rain Water → pop when taller → water += width * bounded_height`,
+  },
+
+  'Binary Indexed Tree': {
+    topic: 'Binary Indexed Tree',
+    overview: `A Binary Indexed Tree (BIT), also called Fenwick Tree, is a data structure for efficient prefix sum queries and point updates in O(log n). It's simpler and faster than a Segment Tree for these specific operations.
+
+Key idea: Each index i is responsible for a range of elements determined by its lowest set bit (LSB). The LSB of i = i & (-i).
+• Update: Add delta to index i, propagate upward (i += i & (-i))
+• Query: Sum from 1 to i, accumulate downward (i -= i & (-i))
+
+Use 1-indexed arrays. Range sum [l, r] = query(r) - query(l-1).`,
+    keyPatterns: [
+      'Prefix sum + point update: The core BIT use case',
+      'Range sum query: query(r) - query(l-1)',
+      'Count inversions: Use BIT as a frequency array, query "how many smaller seen so far"',
+      'Count of smaller numbers after self: Process right to left, BIT tracks seen values',
+    ],
+    template: `class BIT:
+    def __init__(self, n):
+        self.n = n
+        self.tree = [0] * (n + 1)  # 1-indexed
+
+    def update(self, i, delta):
+        """Add delta to index i (1-indexed)"""
+        while i <= self.n:
+            self.tree[i] += delta
+            i += i & (-i)  # move to parent
+
+    def query(self, i):
+        """Sum from index 1 to i (inclusive)"""
+        total = 0
+        while i > 0:
+            total += self.tree[i]
+            i -= i & (-i)  # move to predecessor
+        return total
+
+    def range_query(self, l, r):
+        """Sum from index l to r (inclusive, 1-indexed)"""
+        return self.query(r) - self.query(l - 1)
+
+# Build from array
+def build_bit(nums):
+    bit = BIT(len(nums))
+    for i, val in enumerate(nums):
+        bit.update(i + 1, val)  # 1-indexed
+    return bit
+
+# Range Sum Query - Mutable
+class NumArray:
+    def __init__(self, nums):
+        self.nums = nums[:]
+        self.bit = BIT(len(nums))
+        for i, val in enumerate(nums):
+            self.bit.update(i + 1, val)
+
+    def update(self, index, val):
+        delta = val - self.nums[index]
+        self.nums[index] = val
+        self.bit.update(index + 1, delta)
+
+    def sumRange(self, left, right):
+        return self.bit.range_query(left + 1, right + 1)
+
+# Count inversions using BIT
+def count_inversions(nums):
+    # Coordinate compress
+    sorted_unique = sorted(set(nums))
+    rank = {v: i + 1 for i, v in enumerate(sorted_unique)}
+    bit = BIT(len(sorted_unique))
+    inversions = 0
+    for num in reversed(nums):
+        inversions += bit.query(rank[num] - 1)  # count smaller seen so far
+        bit.update(rank[num], 1)
+    return inversions`,
+    jsTemplate: `class BIT {
+    constructor(n) {
+        this.n = n;
+        this.tree = new Array(n + 1).fill(0); // 1-indexed
+    }
+    update(i, delta) {
+        while (i <= this.n) { this.tree[i] += delta; i += i & (-i); }
+    }
+    query(i) {
+        let total = 0;
+        while (i > 0) { total += this.tree[i]; i -= i & (-i); }
+        return total;
+    }
+    rangeQuery(l, r) { return this.query(r) - this.query(l - 1); }
+}
+
+// Range Sum Query - Mutable
+class NumArray {
+    constructor(nums) {
+        this.nums = [...nums];
+        this.bit = new BIT(nums.length);
+        for (let i = 0; i < nums.length; i++) this.bit.update(i + 1, nums[i]);
+    }
+    update(index, val) {
+        const delta = val - this.nums[index];
+        this.nums[index] = val;
+        this.bit.update(index + 1, delta);
+    }
+    sumRange(left, right) {
+        return this.bit.rangeQuery(left + 1, right + 1);
+    }
+}
+
+// Count inversions
+function countInversions(nums) {
+    const sorted = [...new Set(nums)].sort((a, b) => a - b);
+    const rank = new Map();
+    sorted.forEach((v, i) => rank.set(v, i + 1));
+    const bit = new BIT(sorted.length);
+    let inversions = 0;
+    for (let i = nums.length - 1; i >= 0; i--) {
+        inversions += bit.query(rank.get(nums[i]) - 1);
+        bit.update(rank.get(nums[i]), 1);
+    }
+    return inversions;
+}`,
+    complexity: 'Build: O(n log n). Update: O(log n). Query: O(log n). Space: O(n).',
+    commonMistakes: [
+      'Using 0-indexed instead of 1-indexed (BIT MUST be 1-indexed)',
+      'Wrong direction: update goes UP (i += lsb), query goes DOWN (i -= lsb)',
+      'Forgetting to compute delta for update (new_val - old_val, not new_val)',
+      'Not coordinate-compressing when values are large or negative',
+    ],
+    tips: [
+      'BIT is simpler than Segment Tree but ONLY supports prefix-type queries (sum, count)',
+      'For range min/max queries, you need Segment Tree instead',
+      'i & (-i) gives the lowest set bit — this is the magic that makes BIT work',
+      'BIT is 1-indexed. Always add 1 when converting from 0-indexed arrays.',
+      'For "count of smaller numbers" problems: BIT as a frequency array is the classic technique',
+    ],
+    memorization: `HOW TO MEMORIZE BIT (Fenwick Tree):
+Only 2 functions to memorize. They're mirror images:
+
+UPDATE (propagate UP):
+  while i <= n:
+      tree[i] += delta
+      i += i & (-i)       # add lowest set bit
+
+QUERY (accumulate DOWN):
+  while i > 0:
+      total += tree[i]
+      i -= i & (-i)       # remove lowest set bit
+
+Mnemonic: "Update goes UP (+), Query comes DOWN (-)"
+
+The magic operation: i & (-i) = lowest set bit
+  Example: 12 = 1100 → i & (-i) = 0100 = 4
+  So index 12 covers 4 elements (indices 9-12)
+
+RANGE SUM: query(r) - query(l-1)  (same as prefix sum idea)
+
+BIT vs SEGMENT TREE:
+  BIT: simpler, faster constant, but only prefix sums/counts
+  Segment Tree: more complex, but handles range min/max/any operation
+
+WHEN TO USE: "prefix sum + updates" or "count smaller/larger elements"`,
+  },
+
+  'Topological Sort': {
+    topic: 'Topological Sort',
+    overview: `Topological sort orders nodes in a Directed Acyclic Graph (DAG) such that for every edge u → v, u comes before v. It answers: "in what order should I process these items given their dependencies?"
+
+Two algorithms:
+• Kahn's (BFS): Start with nodes that have no dependencies (in-degree 0), peel them off layer by layer
+• DFS post-order: Run DFS, add node to result AFTER visiting all descendants, then reverse
+
+If the graph has a cycle, topological sort is impossible (detect by checking if all nodes are in the result).`,
+    keyPatterns: [
+      'Course schedule: Can you finish all courses? (cycle detection via topo sort)',
+      'Build order: What order to build packages given dependencies?',
+      'Alien dictionary: Derive character ordering from sorted alien words',
+      'Longest path in DAG: Process in topological order, relax edges',
+    ],
+    template: `from collections import deque, defaultdict
+
+# Kahn's Algorithm (BFS-based topological sort)
+def topological_sort_kahn(num_nodes, edges):
+    graph = defaultdict(list)
+    in_degree = [0] * num_nodes
+    for u, v in edges:
+        graph[u].append(v)
+        in_degree[v] += 1
+
+    queue = deque()
+    for i in range(num_nodes):
+        if in_degree[i] == 0:
+            queue.append(i)
+
+    order = []
+    while queue:
+        node = queue.popleft()
+        order.append(node)
+        for neighbor in graph[node]:
+            in_degree[neighbor] -= 1
+            if in_degree[neighbor] == 0:
+                queue.append(neighbor)
+
+    if len(order) != num_nodes:
+        return []  # cycle detected!
+    return order
+
+# Course Schedule (can finish all courses?)
+def can_finish(numCourses, prerequisites):
+    return len(topological_sort_kahn(numCourses, prerequisites)) == numCourses
+
+# Course Schedule II (return the order)
+def find_order(numCourses, prerequisites):
+    return topological_sort_kahn(numCourses, prerequisites)
+
+# DFS-based topological sort
+def topological_sort_dfs(num_nodes, edges):
+    graph = defaultdict(list)
+    for u, v in edges:
+        graph[u].append(v)
+
+    UNVISITED, IN_PROGRESS, DONE = 0, 1, 2
+    state = [UNVISITED] * num_nodes
+    order = []
+
+    def dfs(node):
+        if state[node] == IN_PROGRESS:
+            return False  # cycle!
+        if state[node] == DONE:
+            return True
+        state[node] = IN_PROGRESS
+        for neighbor in graph[node]:
+            if not dfs(neighbor):
+                return False
+        state[node] = DONE
+        order.append(node)
+        return True
+
+    for i in range(num_nodes):
+        if state[i] == UNVISITED:
+            if not dfs(i):
+                return []  # cycle
+    order.reverse()
+    return order`,
+    jsTemplate: `// Kahn's Algorithm (BFS topological sort)
+function topologicalSortKahn(numNodes, edges) {
+    const graph = Array.from({length: numNodes}, () => []);
+    const inDegree = new Array(numNodes).fill(0);
+    for (const [u, v] of edges) {
+        graph[u].push(v);
+        inDegree[v]++;
+    }
+    const queue = [];
+    for (let i = 0; i < numNodes; i++) {
+        if (inDegree[i] === 0) queue.push(i);
+    }
+    const order = [];
+    while (queue.length) {
+        const node = queue.shift();
+        order.push(node);
+        for (const neighbor of graph[node]) {
+            inDegree[neighbor]--;
+            if (inDegree[neighbor] === 0) queue.push(neighbor);
+        }
+    }
+    return order.length === numNodes ? order : []; // empty = cycle
+}
+
+// Course Schedule
+function canFinish(numCourses, prerequisites) {
+    return topologicalSortKahn(numCourses, prerequisites).length === numCourses;
+}
+
+// DFS-based topological sort
+function topologicalSortDFS(numNodes, edges) {
+    const graph = Array.from({length: numNodes}, () => []);
+    for (const [u, v] of edges) graph[u].push(v);
+    const UNVISITED = 0, IN_PROGRESS = 1, DONE = 2;
+    const state = new Array(numNodes).fill(UNVISITED);
+    const order = [];
+    function dfs(node) {
+        if (state[node] === IN_PROGRESS) return false; // cycle
+        if (state[node] === DONE) return true;
+        state[node] = IN_PROGRESS;
+        for (const neighbor of graph[node]) {
+            if (!dfs(neighbor)) return false;
+        }
+        state[node] = DONE;
+        order.push(node);
+        return true;
+    }
+    for (let i = 0; i < numNodes; i++) {
+        if (state[i] === UNVISITED && !dfs(i)) return [];
+    }
+    return order.reverse();
+}`,
+    complexity: 'O(V + E) for both Kahn\'s and DFS approaches.',
+    commonMistakes: [
+      'Forgetting cycle detection (check if all nodes are in the result)',
+      'DFS: not using 3 states (UNVISITED/IN_PROGRESS/DONE) — 2 states miss cycles',
+      'DFS: forgetting to reverse the post-order result',
+      'Building the graph in wrong direction (u→v means u must come before v)',
+    ],
+    tips: [
+      'Kahn\'s is more intuitive: "remove nodes with no dependencies, repeat"',
+      'DFS approach is useful when you also need cycle detection with detailed path',
+      '"Course schedule" = topological sort. "Can finish?" = is the graph a DAG?',
+      'Alien dictionary: compare adjacent words to extract character ordering edges, then topo sort',
+    ],
+    memorization: `HOW TO MEMORIZE TOPOLOGICAL SORT:
+KAHN'S ALGORITHM (BFS - memorize this one):
+  1. Count in-degrees for all nodes
+  2. Start queue with all 0-in-degree nodes (no dependencies)
+  3. Pop node, add to result
+  4. For each neighbor: decrement in-degree, if 0 → add to queue
+  5. If result.length != num_nodes → CYCLE exists
+
+Mnemonic: "Peel the onion layer by layer"
+  - Each layer = nodes with no remaining dependencies
+  - Peel = remove from graph (decrement neighbors' in-degrees)
+  - If onion has no more layers but nodes remain = cycle
+
+DFS APPROACH:
+  - 3 states: UNVISITED, IN_PROGRESS, DONE
+  - IN_PROGRESS → IN_PROGRESS = CYCLE (back edge)
+  - Add to result in POST-ORDER (after all children), then REVERSE
+
+Mnemonic: "Visit all children first, then add yourself. Reverse at the end."
+
+WHEN TO USE:
+  - "Order of operations with dependencies" → topo sort
+  - "Can all tasks be completed?" → is it a DAG? (topo sort, check length)
+  - "Alien/custom ordering" → extract edges from constraints, topo sort`,
+  },
+
   'Concurrency': {
     topic: 'Concurrency',
     overview: `Concurrency problems test your understanding of thread synchronization - making multiple threads cooperate safely. The core challenge: threads run in unpredictable order (the OS schedules them), so you need primitives to enforce ordering, mutual exclusion, and coordination.

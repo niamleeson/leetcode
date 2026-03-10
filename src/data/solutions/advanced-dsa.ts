@@ -736,4 +736,245 @@ function merge(left, right) {
       'For dense graphs (many edges), Prim\'s with heap can be faster.',
     ],
   },
+
+  // ===========================================================================
+  // MONOTONIC STACK
+  // ===========================================================================
+
+  // 739. Daily Temperatures
+  {
+    id: 739,
+    description:
+      'Given an array of integers temperatures, return an array answer such that answer[i] is the number of days you have to wait after the ith day to get a warmer temperature. If there is no future day with a warmer temperature, answer[i] = 0.',
+    examples:
+      'Input: temperatures = [73,74,75,71,69,72,76,73]\nOutput: [1,1,4,2,1,1,0,0]',
+    intuition:
+      'For each day, we need the NEXT warmer day. This is the classic "next greater element" problem. Use a decreasing monotonic stack of indices. When we see a temperature warmer than the stack top, the top just found its answer: the distance from its index to the current index.',
+    approach:
+      'Maintain a stack of indices in decreasing temperature order. For each new day: while the stack top is cooler, pop it and record the distance. Push the current day.',
+    code: `def dailyTemperatures(temperatures):
+    n = len(temperatures)
+    result = [0] * n
+    stack = []  # indices, temps are decreasing
+    for i in range(n):
+        while stack and temperatures[i] > temperatures[stack[-1]]:
+            j = stack.pop()
+            result[j] = i - j
+        stack.append(i)
+    return result`,
+    jsCode: `var dailyTemperatures = function(temperatures) {
+    const n = temperatures.length;
+    const result = new Array(n).fill(0);
+    const stack = [];
+    for (let i = 0; i < n; i++) {
+        while (stack.length && temperatures[i] > temperatures[stack[stack.length - 1]]) {
+            const j = stack.pop();
+            result[j] = i - j;
+        }
+        stack.push(i);
+    }
+    return result;
+};`,
+    explanation:
+      '1. Stack holds indices in decreasing order of their temperatures.\n' +
+      '2. When temperatures[i] > temperatures[stack top], the top found its next warmer day.\n' +
+      '3. Pop and record distance (i - j). Repeat for all cooler stack elements.\n' +
+      '4. Push i. Elements remaining on the stack have no warmer day (answer stays 0).\n' +
+      '5. Each index is pushed and popped at most once → O(n).',
+    timeComplexity: 'O(n)',
+    spaceComplexity: 'O(n)',
+    hints: [
+      'This is "next greater element" but you return the INDEX DISTANCE, not the value.',
+      'Store indices on the stack, not temperatures.',
+      'Decreasing stack: pop when current is GREATER than top.',
+    ],
+  },
+
+  // 84. Largest Rectangle in Histogram
+  {
+    id: 84,
+    description:
+      'Given an array of integers heights representing the histogram\'s bar heights where the width of each bar is 1, return the area of the largest rectangle in the histogram.',
+    examples:
+      'Input: heights = [2,1,5,6,2,3]\nOutput: 10\nExplanation: The rectangle of height 5 and width 2 (indices 2-3) has area 10.',
+    intuition:
+      'For each bar, the largest rectangle using that bar\'s height extends left and right until hitting a shorter bar. We need the "previous smaller" and "next smaller" for each bar. A monotonic increasing stack finds both: when we pop a bar (because the current bar is shorter), the popped bar\'s right boundary is the current index, and its left boundary is the new stack top.',
+    approach:
+      'Use increasing monotonic stack. When popping, the popped height\'s rectangle extends from the new stack top + 1 to current index - 1. Add a sentinel 0 at the end to flush remaining bars.',
+    code: `def largestRectangleArea(heights):
+    stack = []
+    max_area = 0
+    heights.append(0)  # sentinel
+    for i, h in enumerate(heights):
+        while stack and heights[stack[-1]] > h:
+            height = heights[stack.pop()]
+            width = i if not stack else i - stack[-1] - 1
+            max_area = max(max_area, height * width)
+        stack.append(i)
+    heights.pop()
+    return max_area`,
+    jsCode: `var largestRectangleArea = function(heights) {
+    const stack = [];
+    let maxArea = 0;
+    heights.push(0);
+    for (let i = 0; i < heights.length; i++) {
+        while (stack.length && heights[stack[stack.length - 1]] > heights[i]) {
+            const height = heights[stack.pop()];
+            const width = stack.length ? i - stack[stack.length - 1] - 1 : i;
+            maxArea = Math.max(maxArea, height * width);
+        }
+        stack.push(i);
+    }
+    heights.pop();
+    return maxArea;
+};`,
+    explanation:
+      '1. Maintain increasing stack of indices.\n' +
+      '2. When heights[i] < stack top, pop. The popped bar\'s height is the rectangle height.\n' +
+      '3. Width = distance from new stack top to current index (exclusive on both sides).\n' +
+      '4. If stack is empty after pop, width = i (rectangle extends to the beginning).\n' +
+      '5. Sentinel 0 at the end ensures all bars get popped.',
+    timeComplexity: 'O(n)',
+    spaceComplexity: 'O(n)',
+    hints: [
+      'The sentinel heights.append(0) is crucial — it forces all remaining bars to be processed.',
+      'Width calculation: if stack is empty, the popped bar was the smallest seen so far (width = i).',
+      'This is the hardest monotonic stack problem. Master it and the rest are easy.',
+    ],
+  },
+
+  // ===========================================================================
+  // TOPOLOGICAL SORT
+  // ===========================================================================
+
+  // 207. Course Schedule
+  {
+    id: 207,
+    description:
+      'There are numCourses courses labeled from 0 to numCourses - 1. You are given an array prerequisites where prerequisites[i] = [ai, bi] indicates that you must take course bi before course ai. Return true if you can finish all courses.',
+    examples:
+      'Input: numCourses = 2, prerequisites = [[1,0]]\nOutput: true\nExplanation: Take course 0, then course 1.\n\nInput: numCourses = 2, prerequisites = [[1,0],[0,1]]\nOutput: false\nExplanation: Circular dependency.',
+    intuition:
+      'This is asking: "does the dependency graph have a cycle?" If yes, impossible to finish all courses. If no (it\'s a DAG), a valid ordering exists. Topological sort answers this: if it processes all nodes, no cycle exists.',
+    approach:
+      'Build a directed graph from prerequisites. Run Kahn\'s algorithm (BFS topological sort). If the result includes all courses, return true. If not, there\'s a cycle.',
+    code: `from collections import deque, defaultdict
+
+def canFinish(numCourses, prerequisites):
+    graph = defaultdict(list)
+    in_degree = [0] * numCourses
+    for course, prereq in prerequisites:
+        graph[prereq].append(course)
+        in_degree[course] += 1
+
+    queue = deque(i for i in range(numCourses) if in_degree[i] == 0)
+    count = 0
+    while queue:
+        node = queue.popleft()
+        count += 1
+        for neighbor in graph[node]:
+            in_degree[neighbor] -= 1
+            if in_degree[neighbor] == 0:
+                queue.append(neighbor)
+    return count == numCourses`,
+    jsCode: `var canFinish = function(numCourses, prerequisites) {
+    const graph = Array.from({length: numCourses}, () => []);
+    const inDegree = new Array(numCourses).fill(0);
+    for (const [course, prereq] of prerequisites) {
+        graph[prereq].push(course);
+        inDegree[course]++;
+    }
+    const queue = [];
+    for (let i = 0; i < numCourses; i++) {
+        if (inDegree[i] === 0) queue.push(i);
+    }
+    let count = 0;
+    while (queue.length) {
+        const node = queue.shift();
+        count++;
+        for (const neighbor of graph[node]) {
+            inDegree[neighbor]--;
+            if (inDegree[neighbor] === 0) queue.push(neighbor);
+        }
+    }
+    return count === numCourses;
+};`,
+    explanation:
+      '1. Build adjacency list and count in-degrees.\n' +
+      '2. Start with all courses that have no prerequisites (in-degree 0).\n' +
+      '3. Process each, decrementing neighbors\' in-degrees.\n' +
+      '4. When a neighbor reaches in-degree 0, it\'s ready to take.\n' +
+      '5. If we process all courses, no cycle → can finish. Otherwise, a cycle prevents completion.',
+    timeComplexity: 'O(V + E)',
+    spaceComplexity: 'O(V + E)',
+    hints: [
+      '"Can finish all courses?" = "Is the prerequisite graph a DAG?" = "Does topological sort succeed?"',
+      'Kahn\'s: start with 0 in-degree nodes, peel layers.',
+      'Edge direction: prerequisite[i] = [a, b] means b → a (take b before a).',
+    ],
+  },
+
+  // 210. Course Schedule II
+  {
+    id: 210,
+    description:
+      'Return the ordering of courses you should take to finish all courses. If there are many valid answers, return any. If impossible, return an empty array.',
+    examples:
+      'Input: numCourses = 4, prerequisites = [[1,0],[2,0],[3,1],[3,2]]\nOutput: [0,2,1,3] or [0,1,2,3]',
+    intuition:
+      'Same as Course Schedule but instead of just checking if it\'s possible, we need to return the actual order. Kahn\'s algorithm naturally produces the topological order as it peels layers.',
+    approach:
+      'Run Kahn\'s algorithm and collect the order. If all nodes are processed, return the order. Otherwise return empty array.',
+    code: `from collections import deque, defaultdict
+
+def findOrder(numCourses, prerequisites):
+    graph = defaultdict(list)
+    in_degree = [0] * numCourses
+    for course, prereq in prerequisites:
+        graph[prereq].append(course)
+        in_degree[course] += 1
+
+    queue = deque(i for i in range(numCourses) if in_degree[i] == 0)
+    order = []
+    while queue:
+        node = queue.popleft()
+        order.append(node)
+        for neighbor in graph[node]:
+            in_degree[neighbor] -= 1
+            if in_degree[neighbor] == 0:
+                queue.append(neighbor)
+    return order if len(order) == numCourses else []`,
+    jsCode: `var findOrder = function(numCourses, prerequisites) {
+    const graph = Array.from({length: numCourses}, () => []);
+    const inDegree = new Array(numCourses).fill(0);
+    for (const [course, prereq] of prerequisites) {
+        graph[prereq].push(course);
+        inDegree[course]++;
+    }
+    const queue = [];
+    for (let i = 0; i < numCourses; i++) {
+        if (inDegree[i] === 0) queue.push(i);
+    }
+    const order = [];
+    while (queue.length) {
+        const node = queue.shift();
+        order.push(node);
+        for (const neighbor of graph[node]) {
+            if (--inDegree[neighbor] === 0) queue.push(neighbor);
+        }
+    }
+    return order.length === numCourses ? order : [];
+};`,
+    explanation:
+      '1. Identical to Course Schedule but we return the order array instead of a boolean.\n' +
+      '2. Kahn\'s algorithm naturally produces a valid topological order.\n' +
+      '3. If multiple valid orders exist, the one we get depends on queue processing order.\n' +
+      '4. Empty result = cycle detected (impossible to complete all courses).',
+    timeComplexity: 'O(V + E)',
+    spaceComplexity: 'O(V + E)',
+    hints: [
+      'This is Course Schedule + "return the order". Same algorithm, just collect results.',
+      'If the result length < numCourses, there\'s a cycle.',
+    ],
+  },
 ];

@@ -32,7 +32,8 @@ export type Topic =
   | 'Concurrency'
   | 'Monotonic Queue'
   | 'String Algorithms'
-  | 'Minimum Spanning Tree';
+  | 'Minimum Spanning Tree'
+  | 'Topological Sort';
 
 export interface Problem {
   id: number;

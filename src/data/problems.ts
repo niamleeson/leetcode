@@ -749,6 +749,25 @@ export const problems: Problem[] = [
   { id: 1584, title: "Min Cost to Connect All Points", difficulty: "Medium", topics: ["Minimum Spanning Tree", "Union Find", "Graphs"], url: "https://leetcode.com/problems/min-cost-to-connect-all-points/" },
   { id: 1168, title: "Optimize Water Distribution in a Village", difficulty: "Hard", topics: ["Minimum Spanning Tree", "Union Find", "Graphs"], url: "https://leetcode.com/problems/optimize-water-distribution-in-a-village/", isPremium: true },
   { id: 1489, title: "Find Critical and Pseudo-Critical Edges in Minimum Spanning Tree", difficulty: "Hard", topics: ["Minimum Spanning Tree", "Union Find", "Graphs"], url: "https://leetcode.com/problems/find-critical-and-pseudo-critical-edges-in-minimum-spanning-tree/" },
+
+  // ---- MONOTONIC STACK (dedicated) ----
+  { id: 496, title: "Next Greater Element I", difficulty: "Easy", topics: ["Monotonic Stack", "Stack"], url: "https://leetcode.com/problems/next-greater-element-i/" },
+  { id: 503, title: "Next Greater Element II", difficulty: "Medium", topics: ["Monotonic Stack", "Stack"], url: "https://leetcode.com/problems/next-greater-element-ii/" },
+  { id: 739, title: "Daily Temperatures", difficulty: "Medium", topics: ["Monotonic Stack", "Stack"], url: "https://leetcode.com/problems/daily-temperatures/" },
+  { id: 84, title: "Largest Rectangle in Histogram", difficulty: "Hard", topics: ["Monotonic Stack", "Stack"], url: "https://leetcode.com/problems/largest-rectangle-in-histogram/" },
+  { id: 42, title: "Trapping Rain Water", difficulty: "Hard", topics: ["Monotonic Stack", "Two Pointers", "Stack"], url: "https://leetcode.com/problems/trapping-rain-water/" },
+  { id: 901, title: "Online Stock Span", difficulty: "Medium", topics: ["Monotonic Stack", "Stack", "Design"], url: "https://leetcode.com/problems/online-stock-span/" },
+
+  // ---- BINARY INDEXED TREE (dedicated) ----
+  { id: 303, title: "Range Sum Query - Immutable", difficulty: "Easy", topics: ["Binary Indexed Tree", "Arrays & Hashing"], url: "https://leetcode.com/problems/range-sum-query-immutable/" },
+
+  // ---- TOPOLOGICAL SORT ----
+  { id: 207, title: "Course Schedule", difficulty: "Medium", topics: ["Topological Sort", "Graphs"], url: "https://leetcode.com/problems/course-schedule/" },
+  { id: 210, title: "Course Schedule II", difficulty: "Medium", topics: ["Topological Sort", "Graphs"], url: "https://leetcode.com/problems/course-schedule-ii/" },
+  { id: 269, title: "Alien Dictionary", difficulty: "Hard", topics: ["Topological Sort", "Graphs", "String"], url: "https://leetcode.com/problems/alien-dictionary/", isPremium: true },
+  { id: 310, title: "Minimum Height Trees", difficulty: "Medium", topics: ["Topological Sort", "Graphs", "Trees"], url: "https://leetcode.com/problems/minimum-height-trees/" },
+  { id: 802, title: "Find Eventual Safe States", difficulty: "Medium", topics: ["Topological Sort", "Graphs"], url: "https://leetcode.com/problems/find-eventual-safe-states/" },
+  { id: 1462, title: "Course Schedule IV", difficulty: "Medium", topics: ["Topological Sort", "Graphs"], url: "https://leetcode.com/problems/course-schedule-iv/" },
 ];
 
 // Merge all batches and deduplicate by problem id
@@ -793,6 +812,7 @@ export const TOPICS = [
   'Monotonic Queue',
   'String Algorithms',
   'Minimum Spanning Tree',
+  'Topological Sort',
 ] as const;
 
 // Recommended study order (topics listed from foundational to advanced)
@@ -820,4 +840,7 @@ export const STUDY_ORDER: string[] = [
   'Segment Tree',
   'String Algorithms',
   'Minimum Spanning Tree',
+  'Monotonic Stack',
+  'Binary Indexed Tree',
+  'Topological Sort',
 ];
