@@ -132,8 +132,8 @@ export default function LessonPanel({ topic }: LessonPanelProps) {
           {/* Memorization Techniques */}
           {lesson.memorization && (
             <div>
-              <h4 className="text-sm font-semibold text-purple-300 mb-2">Memorization Techniques</h4>
-              <p className="text-sm text-gray-400 leading-relaxed whitespace-pre-line bg-purple-950/20 border border-purple-900/30 rounded-md p-3">
+              <h4 className="text-sm font-semibold text-gray-300 mb-2">Memorization Techniques</h4>
+              <p className="text-sm text-gray-400 leading-relaxed whitespace-pre-line bg-gray-800/40 border border-gray-700/40 rounded-md p-3">
                 {lesson.memorization}
               </p>
             </div>

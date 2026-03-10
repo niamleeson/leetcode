@@ -205,7 +205,7 @@ function TopicCard({ lesson, language, setLanguage }: {
             {activeTab === 'memorization' && (
               <div>
                 {lesson.memorization ? (
-                  <div className="bg-purple-950/20 border border-purple-900/30 rounded-md p-4">
+                  <div className="bg-gray-800/40 border border-gray-700/40 rounded-md p-4">
                     <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-line font-mono">
                       {lesson.memorization}
                     </p>
@@ -229,7 +229,7 @@ function AllMnemonics() {
     <div className="space-y-6">
       {/* Table of contents */}
       <div className="bg-gray-900 border border-gray-800 rounded-lg p-4">
-        <h3 className="text-sm font-semibold text-purple-300 mb-2">Jump to topic</h3>
+        <h3 className="text-sm font-semibold text-gray-300 mb-2">Jump to topic</h3>
         <div className="flex flex-wrap gap-2">
           {allTopics.map(name => {
             const lesson = lessons[name];
@@ -238,7 +238,7 @@ function AllMnemonics() {
               <a
                 key={name}
                 href={`#mnemonic-${name.replace(/[^a-zA-Z0-9]/g, '-')}`}
-                className="text-xs px-2 py-1 rounded bg-gray-800 text-gray-400 hover:text-purple-300 hover:bg-purple-950/30 transition-colors"
+                className="text-xs px-2 py-1 rounded bg-gray-800 text-gray-400 hover:text-gray-300 hover:bg-gray-700/50 transition-colors"
               >
                 {name}
               </a>
@@ -266,9 +266,9 @@ function AllMnemonics() {
                   <div
                     key={topicName}
                     id={`mnemonic-${topicName.replace(/[^a-zA-Z0-9]/g, '-')}`}
-                    className="bg-purple-950/20 border border-purple-900/30 rounded-lg p-4 scroll-mt-4"
+                    className="bg-gray-800/40 border border-gray-700/40 rounded-lg p-4 scroll-mt-4"
                   >
-                    <h3 className="text-sm font-bold text-purple-300 mb-2">{lesson.topic}</h3>
+                    <h3 className="text-sm font-bold text-gray-300 mb-2">{lesson.topic}</h3>
                     <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-line font-mono">
                       {lesson.memorization}
                     </p>
@@ -319,7 +319,7 @@ export default function DSAReference() {
             onClick={() => setView('mnemonics')}
             className={`text-xs px-3 py-1.5 rounded transition-colors ${
               view === 'mnemonics'
-                ? 'bg-purple-600 text-white'
+                ? 'bg-gray-600 text-white'
                 : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
             }`}
           >
@@ -333,7 +333,7 @@ export default function DSAReference() {
       ) : (
         <>
           {/* Quick reference card */}
-          <div className="bg-gradient-to-r from-blue-950/40 to-purple-950/40 border border-blue-900/30 rounded-lg p-4">
+          <div className="bg-gradient-to-r from-blue-950/40 to-gray-900/40 border border-blue-900/30 rounded-lg p-4">
             <h3 className="text-sm font-semibold text-blue-300 mb-2">Quick Decision Guide</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-gray-400">
               <div><span className="text-blue-400">Find pair with sum?</span> → Hash Map</div>
