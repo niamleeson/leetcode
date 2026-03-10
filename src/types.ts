@@ -28,7 +28,8 @@ export type Topic =
   | 'Divide & Conquer'
   | 'Ordered Set'
   | 'Segment Tree'
-  | 'Binary Indexed Tree';
+  | 'Binary Indexed Tree'
+  | 'Concurrency';
 
 export interface Problem {
   id: number;

@@ -6,6 +6,7 @@ export interface TopicLesson {
   complexity: string;
   commonMistakes: string[];
   tips: string[];
+  memorization?: string;  // Mnemonics and techniques for memorizing templates
 }
 
 export const lessons: Record<string, TopicLesson> = {
@@ -63,6 +64,19 @@ def subarray_sum(nums, k):
       'For "group by" problems, define a canonical key (sorted tuple, char count tuple)',
       'Prefix sum + hash map solves most subarray sum problems in O(n)',
     ],
+    memorization: `HOW TO MEMORIZE THE HASH MAP TEMPLATE:
+The "Two Sum" pattern is the mother of all hash map problems. Memorize it as 3 steps:
+  1. CREATE the map (seen = {})
+  2. COMPUTE what you need (complement = target - num)
+  3. CHECK if it exists, else STORE current
+
+Mnemonic: "CCC" - Create, Compute, Check
+
+For Prefix Sum, remember the equation:
+  subarray_sum(i, j) = prefix[j] - prefix[i]
+Initialize with {0: 1} because an empty prefix sums to 0.
+
+VISUAL ANCHOR: Picture a dictionary/phonebook. Instead of scanning every entry (O(n^2)), you flip directly to the right page (O(1) lookup). That's what hash maps do.`,
   },
 
   'Two Pointers': {
@@ -136,6 +150,19 @@ def remove_duplicates(nums):
       'To skip duplicates: while left < right and nums[left] == nums[left+1]: left += 1',
       'Trapping rain water: track left_max and right_max with two pointers',
     ],
+    memorization: `HOW TO MEMORIZE TWO POINTERS:
+Three shapes to visualize:
+  1. PINCH (opposite ends): left=0, right=n-1, squeeze inward like a vise
+  2. RACE (same direction): fast runs ahead, slow follows - like a tortoise and hare
+  3. ANCHOR + SCAN: fix one pointer, scan with another (3Sum)
+
+Mnemonic for sorted pair problems: "Too small? Move left. Too big? Move right."
+This one sentence IS the algorithm. If sum < target, you need bigger (left++). If sum > target, you need smaller (right--).
+
+For 3Sum: "Fix one, two-pointer the rest, skip duplicates."
+  - Outer loop: fix nums[i]
+  - Inner: two-pointer on [i+1 ... n-1]
+  - Skip: if nums[i] == nums[i-1], continue`,
   },
 
   'Sliding Window': {
@@ -207,6 +234,25 @@ def max_sum_subarray(nums, k):
       'Use Counter for character frequency matching problems',
       'The "missing" counter pattern avoids comparing entire frequency maps',
     ],
+    memorization: `HOW TO MEMORIZE SLIDING WINDOW:
+Think of it as an inchworm crawling across the array:
+  - RIGHT side expands (the worm stretches forward)
+  - LEFT side contracts (the tail catches up)
+
+The template is always the same skeleton:
+  left = 0
+  for right in range(n):
+      ADD nums[right] to window
+      while WINDOW IS INVALID:
+          REMOVE nums[left] from window
+          left += 1
+      UPDATE answer
+
+Mnemonic: "ARRU" - Add Right, Remove Until valid, Update answer
+
+LONGEST vs SHORTEST:
+  - Longest valid window: shrink only when INVALID, update answer AFTER shrinking
+  - Shortest valid window: shrink while VALID, update answer BEFORE shrinking`,
   },
 
   'Stack': {
@@ -274,6 +320,27 @@ def eval_rpn(tokens):
       'For calculator problems: process digits into numbers, handle signs with stack',
       'Largest rectangle in histogram is the classic monotonic stack problem',
     ],
+    memorization: `HOW TO MEMORIZE STACK PATTERNS:
+Mnemonic: "LIFO = Last In First Out" - like a stack of plates.
+
+PARENTHESES (the easiest stack problem - memorize this first):
+  for char in s:
+      if OPENING: push
+      if CLOSING: pop and check match
+  return stack is empty
+
+MONOTONIC STACK (the most important pattern):
+  Visualize a mountain range. You scan left to right. When you see a taller peak, all shorter peaks to its left now know their "next greater element."
+
+  for i in range(n):
+      while stack and nums[i] > nums[stack[-1]]:
+          j = stack.pop()        # j found its next greater: i
+          result[j] = i - j      # or nums[i], depending on problem
+      stack.append(i)
+
+Memory trick: "Pop the losers, push the current."
+  - Next GREATER element = DECREASING stack (pop when current is bigger)
+  - Next SMALLER element = INCREASING stack (pop when current is smaller)`,
   },
 
   'Binary Search': {
@@ -356,6 +423,29 @@ def search_rotated(nums, target):
       'Koko bananas, ship packages, split array → all "search on answer" pattern',
       'For rotated arrays: determine which half is sorted, then check if target is in that half',
     ],
+    memorization: `HOW TO MEMORIZE BINARY SEARCH:
+There are only 2 templates you need. Memorize the DIFFERENCE:
+
+TEMPLATE 1 - Exact match (find target):
+  while left <= right:        # NOTE: <=
+      mid = left + (right - left) // 2
+      if nums[mid] == target: return mid
+      elif nums[mid] < target: left = mid + 1
+      else: right = mid - 1
+
+TEMPLATE 2 - Boundary/minimum feasible (find first true):
+  while left < right:         # NOTE: <
+      mid = left + (right - left) // 2
+      if condition(mid): right = mid
+      else: left = mid + 1
+  return left
+
+Mnemonic: "Exact = <=, Boundary = <"
+
+SEARCH ON ANSWER pattern recognition:
+When a problem says "find the MINIMUM X such that..." or "find the MAXIMUM X such that..." and you can write a function can_do(x) -> bool, it's binary search on answer.
+
+Memory trick: "Can I do it with X? Yes/No → Binary search the boundary."`,
   },
 
   'Linked List': {
@@ -438,6 +528,28 @@ def remove_nth_from_end(head, n):
       'For "reorder/rearrange" problems: find middle → reverse second half → merge',
       'Merge K sorted lists: use heap or divide-and-conquer',
     ],
+    memorization: `HOW TO MEMORIZE LINKED LIST:
+There are really only 4 operations to memorize. Use the mnemonic "RDMF":
+  R - Reverse: prev/curr/nxt dance
+  D - Dummy head: always create one for edge cases
+  M - Middle: fast/slow pointers
+  F - Fast/slow: cycle detection
+
+REVERSAL (the hardest to memorize - practice this one most):
+  prev = None; curr = head
+  while curr:
+      nxt = curr.next     # Save next
+      curr.next = prev    # Reverse link
+      prev = curr         # Advance prev
+      curr = nxt          # Advance curr
+  return prev
+
+Memory trick: "Save, Reverse, Advance, Advance" (SRAA)
+Or think of it as: "Look ahead, point back, step forward (x2)"
+
+FAST/SLOW for cycle detection:
+  Tortoise and Hare - hare moves 2x. If there's a cycle, they MUST meet.
+  If hare reaches null, no cycle.`,
   },
 
   'Trees': {
@@ -524,6 +636,34 @@ def diameter(root):
       'BST inorder traversal gives sorted order',
       'Serialize/deserialize: use preorder + null markers',
     ],
+    memorization: `HOW TO MEMORIZE TREE PATTERNS:
+Every tree problem is one of 3 things:
+  1. TRAVERSAL (DFS or BFS) - just visit nodes in order
+  2. RECURSIVE PROPERTY - "is this tree X?" (balanced, symmetric, BST)
+  3. PATH/AGGREGATION - combine info from subtrees
+
+THE UNIVERSAL DFS SKELETON (memorize this one thing):
+  def dfs(node):
+      if not node: return BASE_CASE
+      left = dfs(node.left)
+      right = dfs(node.right)
+      return COMBINE(left, right)
+
+Examples of COMBINE:
+  - Max depth: return 1 + max(left, right)
+  - Is balanced: return -1 if abs(left-right) > 1 else 1 + max(left, right)
+  - Diameter: update global with left+right, return 1 + max(left, right)
+
+BFS SKELETON:
+  queue = deque([root])
+  while queue:
+      for _ in range(len(queue)):  # process one LEVEL
+          node = queue.popleft()
+          # process node
+          if node.left: queue.append(node.left)
+          if node.right: queue.append(node.right)
+
+Memory trick: "BFS = Queue + Level loop. DFS = Recursion + Base case."`,
   },
 
   'Tries': {
@@ -577,6 +717,24 @@ class Trie:
       'Word Search II: build trie from words, DFS from each grid cell',
       'Can store additional data at nodes (count, word reference, etc.)',
     ],
+    memorization: `HOW TO MEMORIZE TRIE:
+A Trie is just a tree where each edge is a character. Memorize the node:
+  class TrieNode:
+      children = {}    # char -> TrieNode
+      is_end = False   # marks end of a complete word
+
+All three operations (insert, search, startsWith) share the SAME walk:
+  node = root
+  for char in word:
+      if char not in node.children: [create or return False]
+      node = node.children[char]
+
+The only difference:
+  - insert: create missing nodes, set is_end = True at the end
+  - search: return False if missing, check is_end at the end
+  - startsWith: return False if missing, return True at the end (no is_end check)
+
+Mnemonic: "Trie = Tree of Characters. Walk char by char."`,
   },
 
   'Heap / Priority Queue': {
@@ -642,6 +800,25 @@ class MedianFinder:
       'heapq.nlargest(k, ...) and heapq.nsmallest(k, ...) are convenient',
       'Task scheduler: greedily pick the most frequent task',
     ],
+    memorization: `HOW TO MEMORIZE HEAP:
+Python heapq cheat sheet (memorize these 4 operations):
+  heapq.heappush(heap, item)    # add item
+  heapq.heappop(heap)           # remove & return smallest
+  heap[0]                        # peek at smallest (don't pop)
+  heapq.heapify(list)           # convert list to heap in O(n)
+
+MAX-HEAP TRICK: Python only has min-heap. Negate values!
+  heapq.heappush(heap, -val)    # push negated
+  -heapq.heappop(heap)          # pop and negate back
+
+TWO HEAPS FOR MEDIAN (the trickiest pattern):
+  Picture a see-saw: left side (max-heap) and right side (min-heap).
+  Keep them balanced (left can have 1 extra).
+  Median = top of left (if odd) or average of both tops (if even).
+
+  Steps: push to left → balance by moving left-top to right → rebalance sizes
+
+Mnemonic: "Heap = always know the extreme. Min-heap = smallest on top. Negate for max."`,
   },
 
   'Backtracking': {
@@ -734,6 +911,28 @@ def solve_n_queens(n):
       'For "can reuse elements": recurse with same index. For "use once": index + 1',
       'Draw the decision tree to visualize the recursion',
     ],
+    memorization: `HOW TO MEMORIZE BACKTRACKING:
+The template is ALWAYS this skeleton - memorize it as "Choose, Explore, Unchoose":
+
+  def backtrack(start, path):
+      if GOAL_REACHED:
+          result.append(path[:])   # NOTE: copy!
+          return
+      for i in range(start, len(nums)):
+          if SKIP_CONDITION: continue    # pruning
+          path.append(nums[i])           # CHOOSE
+          backtrack(i + 1, path)          # EXPLORE (i+1 for no reuse, i for reuse)
+          path.pop()                      # UNCHOOSE
+
+THREE VARIATIONS (only the loop changes):
+  Subsets/Combinations: for i in range(start, n) → no duplicates via start index
+  Permutations: for i in range(n) if not used[i] → try all positions
+  Reuse allowed: backtrack(i, path) instead of backtrack(i+1, path)
+
+DUPLICATE HANDLING: Sort first, then:
+  if i > start and nums[i] == nums[i-1]: continue
+
+Mnemonic: "CEO" - Choose, Explore, unchoOse`,
   },
 
   'Graphs': {
@@ -830,6 +1029,40 @@ def network_delay(times, n, k):
       'Cycle detection: DFS with 3 states (unvisited, in-progress, done)',
       'Multi-source BFS: add all sources to queue initially (rotting oranges)',
     ],
+    memorization: `HOW TO MEMORIZE GRAPH ALGORITHMS:
+Mnemonic: "BFS = Queue = Shortest. DFS = Stack/Recursion = Explore all."
+
+BFS SKELETON (memorize for shortest path / level-order):
+  queue = deque([start])
+  visited = {start}
+  while queue:
+      node = queue.popleft()
+      for neighbor in graph[node]:
+          if neighbor not in visited:
+              visited.add(neighbor)
+              queue.append(neighbor)
+
+DFS SKELETON:
+  def dfs(node):
+      visited.add(node)
+      for neighbor in graph[node]:
+          if neighbor not in visited:
+              dfs(neighbor)
+
+TOPOLOGICAL SORT (Kahn's - memorize as "peel the onion"):
+  1. Count in-degrees
+  2. Start with all 0-in-degree nodes
+  3. Pop node, reduce neighbors' in-degrees
+  4. Add new 0-in-degree nodes to queue
+  Mnemonic: "Remove nodes with no dependencies, ripple through"
+
+DIJKSTRA (memorize as "greedy BFS with a heap"):
+  heap = [(0, start)]
+  while heap: pop smallest, relax neighbors
+  Key: skip if already found shorter (lazy deletion)
+
+GRID PROBLEMS: "It's just a graph where neighbors are up/down/left/right"
+  dirs = [(0,1),(0,-1),(1,0),(-1,0)]`,
   },
 
   'Dynamic Programming': {
@@ -918,6 +1151,27 @@ def can_partition(nums):
       'Space optimization: if dp[i] only depends on dp[i-1], use two rows or rolling array',
       'LIS has O(n log n) solution using patience sorting (binary search)',
     ],
+    memorization: `HOW TO MEMORIZE DP:
+DP is intimidating, but every problem follows the same 4 steps:
+  1. DEFINE STATE: What does dp[i] (or dp[i][j]) represent?
+  2. RECURRENCE: How does dp[i] relate to previous states?
+  3. BASE CASE: What is dp[0] (or dp[0][0])?
+  4. ANSWER: Where is the final answer? (dp[n], dp[n][m], max(dp))
+
+Mnemonic: "DRBA" - Define, Recurrence, Base, Answer
+
+THE 5 DP PATTERNS (covers 90% of problems):
+  1. Linear: dp[i] = f(dp[i-1], dp[i-2]) → House Robber, Climbing Stairs
+  2. Knapsack: dp[i] = min/max over dp[i-coin] → Coin Change, Partition
+  3. Two-string: dp[i][j] = f(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]) → LCS, Edit Distance
+  4. Interval: dp[i][j] = f(dp[i][k], dp[k][j]) for k in range → Matrix Chain, Burst Balloons
+  5. State machine: states = {hold, not_hold, cooldown} → Buy/Sell Stock
+
+STARTING STRATEGY: Can't figure out the DP? Write brute-force recursion first, then add @lru_cache. That IS top-down DP.
+
+0/1 vs UNBOUNDED KNAPSACK:
+  0/1 (each item once): inner loop goes BACKWARD
+  Unbounded (reuse items): inner loop goes FORWARD`,
   },
 
   'Greedy': {
@@ -987,6 +1241,26 @@ def can_complete_circuit(gas, cost):
       'Prove correctness by contradiction: "if greedy choice is wrong, we can swap for better"',
       'Jump Game: just track the farthest you can reach',
     ],
+    memorization: `HOW TO MEMORIZE GREEDY:
+Greedy is the simplest concept but hardest to prove correct. The trick: memorize the PATTERNS, not the proofs.
+
+PATTERN 1 - "Farthest reach" (Jump Game):
+  farthest = 0
+  for each i: farthest = max(farthest, i + nums[i])
+  if i > farthest: stuck!
+
+PATTERN 2 - "Sort by end, pick non-overlapping" (Interval Scheduling):
+  Sort by end time. If current start >= last end, take it.
+
+PATTERN 3 - "Deficit reset" (Gas Station):
+  Track running tank. If tank < 0, restart from next station.
+
+HOW TO KNOW IF GREEDY WORKS:
+Ask yourself: "If I make the locally best choice, can it ever hurt me later?"
+  - Yes → Use DP instead
+  - No → Greedy works!
+
+Mnemonic: "Greedy = sort + scan + local best choice"`,
   },
 
   'Intervals': {
@@ -1050,6 +1324,26 @@ def min_meeting_rooms(intervals):
       'Meeting rooms II: think of it as "how many meetings overlap at peak?"',
       'Alternative for meeting rooms: sweep line with +1 at start, -1 at end',
     ],
+    memorization: `HOW TO MEMORIZE INTERVAL PROBLEMS:
+Rule #1: ALWAYS SORT FIRST. The only question is: by start or by end?
+  - Merge intervals → sort by start
+  - Scheduling / non-overlapping → sort by end
+
+MERGE TEMPLATE (memorize this, it covers most interval problems):
+  intervals.sort()
+  merged = [intervals[0]]
+  for s, e in intervals[1:]:
+      if s <= merged[-1][1]:          # overlaps!
+          merged[-1][1] = max(merged[-1][1], e)   # extend
+      else:
+          merged.append([s, e])       # new interval
+
+MEETING ROOMS II (how many concurrent?):
+Two approaches, memorize whichever clicks:
+  1. Heap: sort by start, use min-heap of end times. If earliest end <= current start, pop it. Heap size = rooms needed.
+  2. Sweep line: events = [(start, +1), (end, -1)], sort, running sum, track max.
+
+Mnemonic: "Overlap = start of next <= end of current"`,
   },
 
   'Math & Geometry': {
@@ -1118,6 +1412,30 @@ def my_pow(x, n):
       'Sieve of Eratosthenes for counting primes',
       'Happy number: use cycle detection (set or fast/slow pointer)',
     ],
+    memorization: `HOW TO MEMORIZE MATH & GEOMETRY:
+MATRIX ROTATION 90° CW (most common):
+  Step 1: Transpose (swap matrix[i][j] with matrix[j][i])
+  Step 2: Reverse each row
+  Mnemonic: "Transpose then Reverse = Rotate Right"
+
+SPIRAL ORDER (memorize the 4-wall shrink):
+  top, bottom, left, right = boundaries
+  Go: right → down → left → up
+  After each direction: shrink that boundary
+  Mnemonic: "Clockwise = RDLU (Right Down Left Up), shrink after each"
+
+DIGIT EXTRACTION:
+  while n > 0:
+      last_digit = n % 10
+      n = n // 10
+  Mnemonic: "Mod 10 peels, Div 10 shifts"
+
+FAST POWER (x^n in O(log n)):
+  result = 1
+  while n > 0:
+      if n is odd: result *= x
+      x *= x; n //= 2
+  Mnemonic: "Square x each time, multiply into result when bit is set"`,
   },
 
   'Bit Manipulation': {
@@ -1170,5 +1488,225 @@ def reverse_bits(n):
       'Use bit mask as set: if (mask >> i) & 1 checks if bit i is set',
       'For "single number" variants with 3 occurrences, count bits modulo 3',
     ],
+    memorization: `HOW TO MEMORIZE BIT MANIPULATION:
+THE 6 OPERATORS (memorize what each does to bits):
+  &  AND:  1 & 1 = 1, else 0  → "Both must be 1"
+  |  OR:   0 | 0 = 0, else 1  → "Either can be 1"
+  ^  XOR:  same = 0, diff = 1 → "Toggle / cancel duplicates"
+  ~  NOT:  flip all bits
+  << LEFT SHIFT:  multiply by 2
+  >> RIGHT SHIFT: divide by 2
+
+THE 3 TRICKS YOU NEED (covers 90% of bit problems):
+  1. XOR all elements: duplicates cancel → find the unique one
+     result = 0; for num: result ^= num
+
+  2. n & (n-1): removes the LOWEST set bit
+     Use for: counting bits, checking power of 2
+     Power of 2 check: n > 0 and n & (n-1) == 0
+
+  3. n & 1: checks if last bit is set (odd/even)
+     Extract bit i: (n >> i) & 1
+     Set bit i: n | (1 << i)
+
+Mnemonic: "XOR cancels twins. AND(n, n-1) kills the lowest bit."`,
+  },
+
+  'Concurrency': {
+    topic: 'Concurrency',
+    overview: `Concurrency problems test your understanding of thread synchronization - making multiple threads cooperate safely. The core challenge: threads run in unpredictable order (the OS schedules them), so you need primitives to enforce ordering, mutual exclusion, and coordination.
+
+CORE PRIMITIVES (memorize these 5):
+1. Lock (Mutex) - Only one thread can hold it. Use for protecting shared data.
+2. Semaphore(n) - Allows up to n threads to pass. Like a bouncer allowing n people in.
+3. Event/Condition - One thread signals, others wait. Like a starting gun.
+4. Barrier(n) - Blocks until n threads arrive, then releases all. Like "ready, set, go!"
+5. Queue - Thread-safe FIFO. The backbone of producer-consumer patterns.
+
+THE 4 KEY PATTERNS:
+1. Sequential ordering: Use Events to chain thread execution (A -> B -> C)
+2. Alternating/turn-taking: Use paired Semaphores as ping-pong signals
+3. Producer-Consumer: Use Semaphores for capacity + Lock for data protection
+4. Resource allocation: Use Semaphores to limit concurrency + Locks for resources
+
+DEADLOCK - THE ENEMY:
+Deadlock requires ALL 4 conditions (break any one to prevent it):
+1. Mutual exclusion - resource held exclusively
+2. Hold and wait - hold one resource while waiting for another
+3. No preemption - can't forcibly take a resource
+4. Circular wait - A waits for B, B waits for A
+
+MEMORIZATION TECHNIQUE - "The Semaphore Mental Model":
+Think of a Semaphore(n) as a jar with n tokens:
+- acquire() = take a token out (blocks if jar is empty)
+- release() = put a token back in
+- Semaphore(0) = starts empty = "wait for a signal"
+- Semaphore(1) = acts like a Lock/Mutex
+- Semaphore(n) = allows n concurrent threads`,
+    keyPatterns: [
+      'Sequential ordering: Event chain - each step sets the next Event (Print in Order)',
+      'Alternating execution: Two Semaphores as ping-pong - release the other after your turn (FooBar)',
+      'Producer-Consumer: Semaphore(capacity) for empty slots + Semaphore(0) for full slots + Lock (Blocking Queue)',
+      'Resource grouping: Semaphore for ratio + Barrier for grouping (H2O)',
+      'Deadlock prevention: Limit concurrency with Semaphore(n-1) to break circular wait (Dining Philosophers)',
+      'Dispatcher pattern: One master thread decides who acts next via targeted semaphore release (FizzBuzz)',
+    ],
+    template: `# ============================================================
+# TEMPLATE 1: Sequential Ordering (Print in Order pattern)
+# Mnemonic: "Chain of Events" - each step lights the next fuse
+# ============================================================
+import threading
+
+class Sequential:
+    def __init__(self):
+        self.event1 = threading.Event()  # gate between step 1 and 2
+        self.event2 = threading.Event()  # gate between step 2 and 3
+
+    def step1(self, action):
+        action()              # do work
+        self.event1.set()     # open gate for step 2
+
+    def step2(self, action):
+        self.event1.wait()    # wait for step 1
+        action()              # do work
+        self.event2.set()     # open gate for step 3
+
+    def step3(self, action):
+        self.event2.wait()    # wait for step 2
+        action()
+
+# ============================================================
+# TEMPLATE 2: Alternating / Turn-taking (FooBar pattern)
+# Mnemonic: "Ping-Pong Semaphores" - pass the ball back and forth
+# ============================================================
+class Alternating:
+    def __init__(self, n):
+        self.n = n
+        self.sem_a = threading.Semaphore(1)  # A goes first
+        self.sem_b = threading.Semaphore(0)  # B waits
+
+    def thread_a(self, action):
+        for _ in range(self.n):
+            self.sem_a.acquire()   # wait for my turn
+            action()               # do work
+            self.sem_b.release()   # signal B's turn
+
+    def thread_b(self, action):
+        for _ in range(self.n):
+            self.sem_b.acquire()   # wait for my turn
+            action()               # do work
+            self.sem_a.release()   # signal A's turn
+
+# ============================================================
+# TEMPLATE 3: Producer-Consumer (Bounded Blocking Queue)
+# Mnemonic: "Two Jars" - empty_slots jar + full_slots jar
+# ============================================================
+from collections import deque
+
+class ProducerConsumer:
+    def __init__(self, capacity):
+        self.queue = deque()
+        self.lock = threading.Lock()
+        self.empty = threading.Semaphore(capacity)  # counts empty slots
+        self.full = threading.Semaphore(0)           # counts items
+
+    def produce(self, item):
+        self.empty.acquire()     # wait for empty slot
+        with self.lock:
+            self.queue.append(item)
+        self.full.release()      # signal: item available
+
+    def consume(self):
+        self.full.acquire()      # wait for item
+        with self.lock:
+            item = self.queue.popleft()
+        self.empty.release()     # signal: slot freed
+        return item
+
+# ============================================================
+# TEMPLATE 4: Deadlock Prevention (Dining Philosophers)
+# Mnemonic: "One Less Chair" - limit diners to n-1
+# ============================================================
+class DeadlockFree:
+    def __init__(self, n_resources):
+        self.resources = [threading.Lock() for _ in range(n_resources)]
+        self.limit = threading.Semaphore(n_resources - 1)  # one less!
+
+    def use_resources(self, left, right, action):
+        self.limit.acquire()
+        self.resources[left].acquire()
+        self.resources[right].acquire()
+        action()
+        self.resources[right].release()
+        self.resources[left].release()
+        self.limit.release()
+
+# ============================================================
+# TEMPLATE 5: Barrier Grouping (H2O pattern)
+# Mnemonic: "Bouncer + Barrier" - control ratio then group
+# ============================================================
+class GroupBarrier:
+    def __init__(self):
+        self.sem_type_a = threading.Semaphore(2)  # allow 2 of type A
+        self.sem_type_b = threading.Semaphore(1)  # allow 1 of type B
+        self.barrier = threading.Barrier(3)        # group of 3
+
+    def type_a(self, action):
+        self.sem_type_a.acquire()
+        self.barrier.wait()      # wait for full group
+        action()
+        self.sem_type_a.release()
+
+    def type_b(self, action):
+        self.sem_type_b.acquire()
+        self.barrier.wait()      # wait for full group
+        action()
+        self.sem_type_b.release()`,
+    complexity: 'Concurrency primitives are O(1) for acquire/release. Total work is O(n) where n is the number of operations. The key cost is blocking/waiting time, not CPU time.',
+    commonMistakes: [
+      'Deadlock: acquiring locks in inconsistent order across threads',
+      'Forgetting to release a lock/semaphore in error paths (use "with" statement)',
+      'Using Semaphore(1) when you actually need a Lock (Lock is re-entrant aware)',
+      'Race condition: reading shared state without holding a lock',
+      'Starvation: one thread always wins the lock while others wait forever',
+      'Not signaling termination: worker threads loop forever after main is done',
+    ],
+    tips: [
+      'MEMORIZE THIS: Semaphore(0) = "wait for signal", Semaphore(1) = "mutex", Semaphore(n) = "allow n threads"',
+      'For ordering problems, draw the dependency graph first, then add one Event per edge',
+      'For alternating patterns, always use TWO semaphores with initial values (1, 0)',
+      'For deadlock prevention, the simplest fix is Semaphore(n-1) to break circular wait',
+      'Producer-Consumer = two semaphores counting opposite things (empty + full = capacity)',
+      'When in doubt, use a Lock to protect shared data and Semaphores to coordinate timing',
+      'Python tip: "with lock:" is safer than lock.acquire()/release() because it handles exceptions',
+    ],
+    memorization: `HOW TO MEMORIZE CONCURRENCY:
+Think of concurrency primitives as PHYSICAL OBJECTS:
+
+  Lock/Mutex = A bathroom door lock. Only one person at a time.
+  Semaphore(n) = A parking lot with n spots. Full? Wait in line.
+  Event = A starting pistol. Everyone waits, one person fires.
+  Barrier(n) = A restaurant that only seats groups of n.
+  Condition = A waiting room with an announcement speaker.
+
+THE 5 TEMPLATES MAP TO 5 REAL-WORLD SCENARIOS:
+  1. Sequential (Events): Relay race - pass the baton
+  2. Alternating (2 Semaphores): Tennis - your turn, my turn
+  3. Producer-Consumer (2 Semaphores + Lock): Assembly line with limited conveyor belt
+  4. Deadlock prevention (Semaphore(n-1)): Musical chairs - fewer chairs than people guarantees someone always sits
+  5. Grouping (Semaphore + Barrier): Elevator - waits for exact capacity
+
+SEMAPHORE CHEAT SHEET:
+  Semaphore(0)  →  gate starts CLOSED  →  "wait for a signal"
+  Semaphore(1)  →  gate starts OPEN    →  acts like a Lock/Mutex
+  Semaphore(n)  →  allows n through    →  rate limiter
+
+DEADLOCK PREVENTION (memorize the 4 conditions, break ANY one):
+  1. Mutual exclusion    → can't usually avoid
+  2. Hold and wait       → request all resources at once
+  3. No preemption       → allow timeouts / try-lock
+  4. Circular wait       → order resources OR limit concurrency (Semaphore(n-1))
+
+Mnemonic: "MHNC" - Mutual exclusion, Hold-and-wait, No preemption, Circular wait`,
   },
 };

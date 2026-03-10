@@ -699,6 +699,15 @@ export const problems: Problem[] = [
   { id: 1019, title: "Next Greater Node In Linked List", difficulty: "Medium", topics: ["Linked List", "Stack", "Monotonic Stack"], url: "https://leetcode.com/problems/next-greater-node-in-linked-list/" },
   { id: 1020, title: "Number of Enclaves", difficulty: "Medium", topics: ["Graphs", "Matrix", "Union Find"], url: "https://leetcode.com/problems/number-of-enclaves/" },
   { id: 1031, title: "Maximum Sum of Two Non-Overlapping Subarrays", difficulty: "Medium", topics: ["Dynamic Programming", "Arrays & Hashing"], url: "https://leetcode.com/problems/maximum-sum-of-two-non-overlapping-subarrays/" },
+
+  // ---- CONCURRENCY ----
+  { id: 1114, title: "Print in Order", difficulty: "Easy", topics: ["Concurrency"], url: "https://leetcode.com/problems/print-in-order/" },
+  { id: 1115, title: "Print FooBar Alternately", difficulty: "Medium", topics: ["Concurrency"], url: "https://leetcode.com/problems/print-foobar-alternately/" },
+  { id: 1116, title: "Print Zero Even Odd", difficulty: "Medium", topics: ["Concurrency"], url: "https://leetcode.com/problems/print-zero-even-odd/" },
+  { id: 1117, title: "Building H2O", difficulty: "Medium", topics: ["Concurrency"], url: "https://leetcode.com/problems/building-h2o/" },
+  { id: 1188, title: "Design Bounded Blocking Queue", difficulty: "Medium", topics: ["Concurrency", "Design"], url: "https://leetcode.com/problems/design-bounded-blocking-queue/", isPremium: true },
+  { id: 1195, title: "Fizz Buzz Multithreaded", difficulty: "Medium", topics: ["Concurrency"], url: "https://leetcode.com/problems/fizz-buzz-multithreaded/" },
+  { id: 1226, title: "The Dining Philosophers", difficulty: "Medium", topics: ["Concurrency"], url: "https://leetcode.com/problems/the-dining-philosophers/" },
 ];
 
 // Merge all batches and deduplicate by problem id
@@ -739,6 +748,7 @@ export const TOPICS = [
   'Ordered Set',
   'Segment Tree',
   'Binary Indexed Tree',
+  'Concurrency',
 ] as const;
 
 // Recommended study order (topics listed from foundational to advanced)
@@ -759,4 +769,5 @@ export const STUDY_ORDER: string[] = [
   'Intervals',
   'Math & Geometry',
   'Bit Manipulation',
+  'Concurrency',
 ];

@@ -14,6 +14,7 @@ const navItems = [
   { path: '/', label: 'Dashboard' },
   { path: '/study', label: 'Study Session', badgeKey: 'due' as const },
   { path: '/problems', label: 'All Problems' },
+  { path: '/dsa', label: 'DSA Reference' },
   { path: '/search', label: 'Search' },
 ];
 

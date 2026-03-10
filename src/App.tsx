@@ -7,6 +7,7 @@ import StudySession from './components/StudySession';
 import AllProblems from './components/AllProblems';
 import SearchView from './components/SearchView';
 import ProblemPage from './components/ProblemPage';
+import DSAReference from './components/DSAReference';
 import { Topic } from './types';
 import { STUDY_ORDER } from './data/problems';
 
@@ -62,6 +63,7 @@ export default function App() {
               getProgress={store.getProgress}
             />
           } />
+          <Route path="/dsa" element={<DSAReference />} />
           <Route path="/topic/:slug" element={
             <TopicRoute store={store} />
           } />
