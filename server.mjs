@@ -1,7 +1,6 @@
 import express from 'express';
 import cors from 'cors';
 import { spawn } from 'child_process';
-import { createInterface } from 'readline';
 
 const app = express();
 app.use(cors());
@@ -31,107 +30,46 @@ function cleanEnv() {
   return env;
 }
 
-// ---------------------------------------------------------------------------
-// Persistent Claude CLI process
-// ---------------------------------------------------------------------------
-let claudeProcess = null;
-let claudeReady = false;
-let responseCallback = null;
-let responseBuf = '';
-let restartCount = 0;
-const MAX_RESTARTS = 5;
-
-function spawnClaude() {
-  log(`Spawning persistent Claude CLI (model: ${MODEL})...`);
-
-  claudeProcess = spawn('claude', [
-    '-p',
-    '--model', MODEL,
-    '--verbose',
-    '--output-format', 'stream-json',
-    '--input-format', 'stream-json',
-  ], {
-    env: cleanEnv(),
-    stdio: ['pipe', 'pipe', 'pipe'],
-  });
-
-  log(`Claude process spawned (PID: ${claudeProcess.pid})`);
-  claudeReady = true;
-
-  // Read stdout line by line (each line is a JSON message)
-  const rl = createInterface({ input: claudeProcess.stdout });
-  rl.on('line', (line) => {
-    try {
-      const msg = JSON.parse(line);
-
-      if (msg.type === 'assistant' && msg.subtype === 'text') {
-        // Accumulate text chunks
-        responseBuf += msg.content || '';
-      } else if (msg.type === 'result') {
-        // Final result — resolve the pending callback
-        const finalText = msg.result || responseBuf;
-        log(`Claude response complete (${finalText.length} chars)`);
-        if (responseCallback) {
-          responseCallback.resolve(finalText.trim());
-          responseCallback = null;
-        }
-        responseBuf = '';
-      }
-    } catch {
-      // Non-JSON line, ignore
-    }
-  });
-
-  claudeProcess.stderr.on('data', (data) => {
-    const text = data.toString().trim();
-    if (text) log(`Claude stderr: ${text}`);
-  });
-
-  claudeProcess.on('close', (code, signal) => {
-    logError(`Claude process exited (code: ${code}, signal: ${signal})`);
-    claudeReady = false;
-    claudeProcess = null;
-    if (responseCallback) {
-      responseCallback.reject(new Error(`Claude process died (code ${code})`));
-      responseCallback = null;
-    }
-    // Auto-restart after 2s (with cap)
-    restartCount++;
-    if (restartCount <= MAX_RESTARTS) {
-      log(`Restarting Claude process in 2s... (restart ${restartCount}/${MAX_RESTARTS})`);
-      setTimeout(spawnClaude, 2000);
-    } else {
-      logError(`Max restarts (${MAX_RESTARTS}) reached. Not restarting. Fix the issue and restart the server.`);
-    }
-  });
-
-  claudeProcess.on('error', (err) => {
-    logError(`Claude process error: ${err.message}`);
-    claudeReady = false;
-  });
-}
-
-function sendToClaude(prompt) {
+// Equivalent to Python's subprocess.run(capture_output=True, text=True)
+// Key: close stdin immediately so claude CLI doesn't hang waiting for input
+function callClaude(prompt) {
   return new Promise((resolve, reject) => {
-    if (!claudeProcess || !claudeReady) {
-      return reject(new Error('Claude process not ready'));
-    }
-    if (responseCallback) {
-      return reject(new Error('Another request is in progress'));
-    }
+    const child = spawn('claude', ['-p', prompt, '--model', MODEL], {
+      env: cleanEnv(),
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
 
-    responseBuf = '';
-    responseCallback = { resolve, reject };
+    // Close stdin immediately — this is what Python subprocess.run does
+    // and what was missing in the Node version
+    child.stdin.end();
 
-    // Send user message as stream-json
-    const msg = JSON.stringify({ type: 'user', content: prompt });
-    claudeProcess.stdin.write(msg + '\n');
+    let stdout = '';
+    let stderr = '';
+
+    child.stdout.on('data', (d) => { stdout += d.toString(); });
+    child.stderr.on('data', (d) => { stderr += d.toString(); });
+
+    const timer = setTimeout(() => {
+      child.kill('SIGTERM');
+      reject(new Error(`Timeout after 120s`));
+    }, 120000);
+
+    child.on('close', (code) => {
+      clearTimeout(timer);
+      if (code !== 0) {
+        reject(new Error(stderr.trim() || `exit ${code}`));
+      } else {
+        resolve(stdout.trim());
+      }
+    });
+
+    child.on('error', (err) => {
+      clearTimeout(timer);
+      reject(err);
+    });
   });
 }
 
-// ---------------------------------------------------------------------------
-// API
-// ---------------------------------------------------------------------------
 let requestId = 0;
 
 app.post('/api/ask', async (req, res) => {
@@ -149,35 +87,33 @@ app.post('/api/ask', async (req, res) => {
 
   const prompt = `The user is studying LeetCode/DSA and highlighted the following text:\n\n"${highlighted}"\n\nTheir question: ${question}\n\nGive a concise, helpful explanation. Keep it under 200 words.`;
 
-  const startTime = Date.now();
+  // Retry: 2 attempts with 2s sleep (matches creator-recommendation-playground)
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const startTime = Date.now();
+      log(`[#${id}] Attempt ${attempt + 1}: claude -p "<prompt>" --model ${MODEL}`);
 
-  try {
-    log(`[#${id}] Sending to persistent Claude process...`);
-    const answer = await sendToClaude(prompt);
-    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+      const answer = await callClaude(prompt);
+      const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
 
-    log(`[#${id}] Success (${elapsed}s), ${answer.length} chars`);
-    log(`[#${id}] Response: "${answer.substring(0, 150)}${answer.length > 150 ? '...' : ''}"`);
-    return res.json({ answer });
-  } catch (e) {
-    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-    logError(`[#${id}] Failed (${elapsed}s): ${e.message}`);
-    return res.status(500).json({ error: e.message });
+      log(`[#${id}] Success (${elapsed}s), ${answer.length} chars`);
+      log(`[#${id}] Response: "${answer.substring(0, 150)}${answer.length > 150 ? '...' : ''}"`);
+      return res.json({ answer });
+    } catch (e) {
+      logError(`[#${id}] Attempt ${attempt + 1} failed: ${e.message}`);
+      if (attempt === 0) {
+        log(`[#${id}] Retrying in 2s...`);
+        await new Promise(r => setTimeout(r, 2000));
+      }
+    }
   }
-});
 
-app.get('/api/status', (req, res) => {
-  res.json({
-    ready: claudeReady,
-    pid: claudeProcess?.pid || null,
-    model: MODEL,
-    busy: !!responseCallback,
-  });
+  logError(`[#${id}] All attempts failed`);
+  res.status(500).json({ error: 'Claude CLI failed after 2 attempts' });
 });
 
 const PORT = 3456;
 app.listen(PORT, () => {
   log(`Claude API server running on http://localhost:${PORT}`);
-  log(`Model: ${MODEL}`);
-  spawnClaude();
+  log(`Model: ${MODEL}, Timeout: 120s, Retries: 2`);
 });
