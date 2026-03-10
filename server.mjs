@@ -38,6 +38,8 @@ let claudeProcess = null;
 let claudeReady = false;
 let responseCallback = null;
 let responseBuf = '';
+let restartCount = 0;
+const MAX_RESTARTS = 5;
 
 function spawnClaude() {
   log(`Spawning persistent Claude CLI (model: ${MODEL})...`);
@@ -45,6 +47,7 @@ function spawnClaude() {
   claudeProcess = spawn('claude', [
     '-p',
     '--model', MODEL,
+    '--verbose',
     '--output-format', 'stream-json',
     '--input-format', 'stream-json',
   ], {
@@ -92,9 +95,14 @@ function spawnClaude() {
       responseCallback.reject(new Error(`Claude process died (code ${code})`));
       responseCallback = null;
     }
-    // Auto-restart after 2s
-    log('Restarting Claude process in 2s...');
-    setTimeout(spawnClaude, 2000);
+    // Auto-restart after 2s (with cap)
+    restartCount++;
+    if (restartCount <= MAX_RESTARTS) {
+      log(`Restarting Claude process in 2s... (restart ${restartCount}/${MAX_RESTARTS})`);
+      setTimeout(spawnClaude, 2000);
+    } else {
+      logError(`Max restarts (${MAX_RESTARTS}) reached. Not restarting. Fix the issue and restart the server.`);
+    }
   });
 
   claudeProcess.on('error', (err) => {
