@@ -222,8 +222,70 @@ function TopicCard({ lesson, language, setLanguage }: {
   );
 }
 
+function AllMnemonics() {
+  const allTopics = DSA_CATEGORIES.flatMap(c => c.topics);
+
+  return (
+    <div className="space-y-6">
+      {/* Table of contents */}
+      <div className="bg-gray-900 border border-gray-800 rounded-lg p-4">
+        <h3 className="text-sm font-semibold text-purple-300 mb-2">Jump to topic</h3>
+        <div className="flex flex-wrap gap-2">
+          {allTopics.map(name => {
+            const lesson = lessons[name];
+            if (!lesson?.memorization) return null;
+            return (
+              <a
+                key={name}
+                href={`#mnemonic-${name.replace(/[^a-zA-Z0-9]/g, '-')}`}
+                className="text-xs px-2 py-1 rounded bg-gray-800 text-gray-400 hover:text-purple-300 hover:bg-purple-950/30 transition-colors"
+              >
+                {name}
+              </a>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* All mnemonics */}
+      {DSA_CATEGORIES.map(category => {
+        const topicsWithMnemonics = category.topics.filter(
+          name => lessons[name]?.memorization
+        );
+        if (!topicsWithMnemonics.length) return null;
+
+        return (
+          <div key={category.name}>
+            <h2 className="text-lg font-semibold text-gray-200 mb-3 border-b border-gray-800 pb-2">
+              {category.name}
+            </h2>
+            <div className="space-y-4">
+              {topicsWithMnemonics.map(topicName => {
+                const lesson = lessons[topicName]!;
+                return (
+                  <div
+                    key={topicName}
+                    id={`mnemonic-${topicName.replace(/[^a-zA-Z0-9]/g, '-')}`}
+                    className="bg-purple-950/20 border border-purple-900/30 rounded-lg p-4 scroll-mt-4"
+                  >
+                    <h3 className="text-sm font-bold text-purple-300 mb-2">{lesson.topic}</h3>
+                    <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-line font-mono">
+                      {lesson.memorization}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function DSAReference() {
   const [language, setLanguage] = useLocalStorage<'python' | 'javascript'>('lc-language', 'python');
+  const [view, setView] = useState<'topics' | 'mnemonics'>('topics');
 
   return (
     <div className="space-y-8">
@@ -233,58 +295,90 @@ export default function DSAReference() {
           <div>
             <h1 className="text-2xl font-bold text-white">DSA Reference Guide</h1>
             <p className="text-gray-400 mt-1 text-sm">
-              All data structures, algorithms, and concurrency patterns with templates, intuition, and memorization techniques.
+              {view === 'topics'
+                ? 'All data structures, algorithms, and concurrency patterns with templates, intuition, and memorization techniques.'
+                : 'All memorization mnemonics in one page.'}
             </p>
           </div>
-          <LanguageToggle language={language} setLanguage={setLanguage} />
+          {view === 'topics' && (
+            <LanguageToggle language={language} setLanguage={setLanguage} />
+          )}
+        </div>
+        <div className="mt-3 flex gap-2">
+          <button
+            onClick={() => setView('topics')}
+            className={`text-xs px-3 py-1.5 rounded transition-colors ${
+              view === 'topics'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+            }`}
+          >
+            By Topic
+          </button>
+          <button
+            onClick={() => setView('mnemonics')}
+            className={`text-xs px-3 py-1.5 rounded transition-colors ${
+              view === 'mnemonics'
+                ? 'bg-purple-600 text-white'
+                : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+            }`}
+          >
+            All Mnemonics
+          </button>
         </div>
       </div>
 
-      {/* Quick reference card */}
-      <div className="bg-gradient-to-r from-blue-950/40 to-purple-950/40 border border-blue-900/30 rounded-lg p-4">
-        <h3 className="text-sm font-semibold text-blue-300 mb-2">Quick Decision Guide</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-gray-400">
-          <div><span className="text-blue-400">Find pair with sum?</span> → Hash Map</div>
-          <div><span className="text-blue-400">Sorted array pair?</span> → Two Pointers</div>
-          <div><span className="text-blue-400">Subarray/substring?</span> → Sliding Window</div>
-          <div><span className="text-blue-400">Nested/matching?</span> → Stack</div>
-          <div><span className="text-blue-400">Min/max feasible?</span> → Binary Search on Answer</div>
-          <div><span className="text-blue-400">Pointer dance?</span> → Linked List</div>
-          <div><span className="text-blue-400">Hierarchical?</span> → Tree (DFS/BFS)</div>
-          <div><span className="text-blue-400">Prefix lookup?</span> → Trie</div>
-          <div><span className="text-blue-400">Top-K / stream?</span> → Heap</div>
-          <div><span className="text-blue-400">All combinations?</span> → Backtracking</div>
-          <div><span className="text-blue-400">Shortest path?</span> → BFS / Dijkstra</div>
-          <div><span className="text-blue-400">Overlapping subproblems?</span> → DP</div>
-          <div><span className="text-blue-400">Local optimal = global?</span> → Greedy</div>
-          <div><span className="text-blue-400">Ranges/schedules?</span> → Intervals (sort first)</div>
-          <div><span className="text-blue-400">Find unique / toggle?</span> → Bit Manipulation (XOR)</div>
-          <div><span className="text-blue-400">Thread ordering?</span> → Semaphore / Event</div>
-        </div>
-      </div>
-
-      {/* Categories */}
-      {DSA_CATEGORIES.map(category => (
-        <div key={category.name}>
-          <h2 className="text-lg font-semibold text-gray-200 mb-3 border-b border-gray-800 pb-2">
-            {category.name}
-          </h2>
-          <div className="space-y-3">
-            {category.topics.map(topicName => {
-              const lesson = lessons[topicName];
-              if (!lesson) return null;
-              return (
-                <TopicCard
-                  key={topicName}
-                  lesson={lesson}
-                  language={language}
-                  setLanguage={setLanguage}
-                />
-              );
-            })}
+      {view === 'mnemonics' ? (
+        <AllMnemonics />
+      ) : (
+        <>
+          {/* Quick reference card */}
+          <div className="bg-gradient-to-r from-blue-950/40 to-purple-950/40 border border-blue-900/30 rounded-lg p-4">
+            <h3 className="text-sm font-semibold text-blue-300 mb-2">Quick Decision Guide</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-gray-400">
+              <div><span className="text-blue-400">Find pair with sum?</span> → Hash Map</div>
+              <div><span className="text-blue-400">Sorted array pair?</span> → Two Pointers</div>
+              <div><span className="text-blue-400">Subarray/substring?</span> → Sliding Window</div>
+              <div><span className="text-blue-400">Nested/matching?</span> → Stack</div>
+              <div><span className="text-blue-400">Min/max feasible?</span> → Binary Search on Answer</div>
+              <div><span className="text-blue-400">Pointer dance?</span> → Linked List</div>
+              <div><span className="text-blue-400">Hierarchical?</span> → Tree (DFS/BFS)</div>
+              <div><span className="text-blue-400">Prefix lookup?</span> → Trie</div>
+              <div><span className="text-blue-400">Top-K / stream?</span> → Heap</div>
+              <div><span className="text-blue-400">All combinations?</span> → Backtracking</div>
+              <div><span className="text-blue-400">Shortest path?</span> → BFS / Dijkstra</div>
+              <div><span className="text-blue-400">Overlapping subproblems?</span> → DP</div>
+              <div><span className="text-blue-400">Local optimal = global?</span> → Greedy</div>
+              <div><span className="text-blue-400">Ranges/schedules?</span> → Intervals (sort first)</div>
+              <div><span className="text-blue-400">Find unique / toggle?</span> → Bit Manipulation (XOR)</div>
+              <div><span className="text-blue-400">Thread ordering?</span> → Semaphore / Event</div>
+            </div>
           </div>
-        </div>
-      ))}
+
+          {/* Categories */}
+          {DSA_CATEGORIES.map(category => (
+            <div key={category.name}>
+              <h2 className="text-lg font-semibold text-gray-200 mb-3 border-b border-gray-800 pb-2">
+                {category.name}
+              </h2>
+              <div className="space-y-3">
+                {category.topics.map(topicName => {
+                  const lesson = lessons[topicName];
+                  if (!lesson) return null;
+                  return (
+                    <TopicCard
+                      key={topicName}
+                      lesson={lesson}
+                      language={language}
+                      setLanguage={setLanguage}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </>
+      )}
     </div>
   );
 }
