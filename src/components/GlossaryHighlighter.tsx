@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Markdown from 'react-markdown';
 import { useGlossary, GlossaryEntry } from '../hooks/useGlossary';
 
 function GlossaryTooltip({ entry, onClose }: { entry: GlossaryEntry; onClose: () => void }) {
@@ -9,7 +10,9 @@ function GlossaryTooltip({ entry, onClose }: { entry: GlossaryEntry; onClose: ()
         <button onClick={onClose} className="text-gray-500 hover:text-gray-300 text-xs">&times;</button>
       </div>
       <p className="text-xs text-gray-500 mb-1 italic">Q: {entry.question}</p>
-      <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-line">{entry.answer}</p>
+      <div className="text-sm text-gray-300 leading-relaxed prose prose-invert prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-code:text-blue-300 prose-code:bg-gray-800 prose-code:px-1 prose-code:rounded">
+        <Markdown>{entry.answer}</Markdown>
+      </div>
     </div>
   );
 }

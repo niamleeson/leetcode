@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import Markdown from 'react-markdown';
 import { useGlossary } from '../hooks/useGlossary';
 
 const API_URL = 'http://localhost:3456/api/ask';
@@ -179,7 +180,9 @@ export default function AskClaudePanel({ highlighted, position, onClose, onLoadi
         <div className="px-3 pb-3">
           <div className="bg-gray-800/60 border border-gray-700/50 rounded-md p-3">
             <p className="text-xs font-medium text-emerald-400 mb-1">Claude's answer:</p>
-            <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-line">{answer}</p>
+            <div className="text-sm text-gray-300 leading-relaxed prose prose-invert prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-code:text-blue-300 prose-code:bg-gray-800 prose-code:px-1 prose-code:rounded prose-pre:bg-gray-950 prose-pre:border prose-pre:border-gray-800">
+              <Markdown>{answer}</Markdown>
+            </div>
           </div>
           <p className="text-xs text-gray-600 mt-1">Saved to glossary</p>
         </div>

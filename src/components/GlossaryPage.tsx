@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Markdown from 'react-markdown';
 import { useGlossary } from '../hooks/useGlossary';
 
 export default function GlossaryPage() {
@@ -45,7 +46,9 @@ export default function GlossaryPage() {
                   <div className="flex-1 min-w-0">
                     <h3 className="text-sm font-semibold text-blue-300">{entry.term}</h3>
                     <p className="text-xs text-gray-500 mt-1 italic">Q: {entry.question}</p>
-                    <p className="text-sm text-gray-300 mt-2 leading-relaxed whitespace-pre-line">{entry.answer}</p>
+                    <div className="text-sm text-gray-300 mt-2 leading-relaxed prose prose-invert prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-code:text-blue-300 prose-code:bg-gray-800 prose-code:px-1 prose-code:rounded prose-pre:bg-gray-950 prose-pre:border prose-pre:border-gray-800">
+                      <Markdown>{entry.answer}</Markdown>
+                    </div>
                     <p className="text-xs text-gray-600 mt-2">
                       {new Date(entry.createdAt).toLocaleDateString()}
                     </p>
