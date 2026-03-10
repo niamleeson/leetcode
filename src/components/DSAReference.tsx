@@ -85,7 +85,7 @@ function TopicCard({ lesson, language, setLanguage }: {
   setLanguage: (lang: 'python' | 'javascript') => void;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'template' | 'memorization'>('overview');
+  const [activeTab, setActiveTab] = useState<'template' | 'memorization' | 'overview'>('template');
 
   const showJs = language === 'javascript' && lesson.jsTemplate;
 
@@ -116,7 +116,7 @@ function TopicCard({ lesson, language, setLanguage }: {
         <div className="border-t border-gray-800">
           {/* Tabs */}
           <div className="flex border-b border-gray-800">
-            {(['overview', 'template', 'memorization'] as const).map(tab => (
+            {(['template', 'memorization', 'overview'] as const).map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
