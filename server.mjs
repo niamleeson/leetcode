@@ -28,7 +28,7 @@ function cleanEnv() {
   return env;
 }
 
-function callClaude(prompt, model = 'haiku') {
+function callClaude(prompt, model = 'opus') {
   return new Promise((resolve, reject) => {
     execFile('claude', ['-p', prompt, '--model', model], {
       env: cleanEnv(),
@@ -67,7 +67,7 @@ app.post('/api/ask', async (req, res) => {
       const startTime = Date.now();
       log(`[#${id}] Attempt ${attempt + 1}: spawning claude -p "<prompt>" --model haiku`);
 
-      const answer = await callClaude(prompt, 'haiku');
+      const answer = await callClaude(prompt, 'opus');
       const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
 
       log(`[#${id}] Success (${elapsed}s), ${answer.length} chars`);
