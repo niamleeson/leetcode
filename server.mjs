@@ -65,7 +65,7 @@ app.post('/api/ask', async (req, res) => {
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
       const startTime = Date.now();
-      log(`[#${id}] Attempt ${attempt + 1}: spawning claude -p "<prompt>" --model haiku`);
+      log(`[#${id}] Attempt ${attempt + 1}: spawning claude -p "<prompt>" --model opus`);
 
       const answer = await callClaude(prompt, 'opus');
       const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
@@ -89,6 +89,6 @@ app.post('/api/ask', async (req, res) => {
 const PORT = 3456;
 app.listen(PORT, () => {
   log(`Claude API server running on http://localhost:${PORT}`);
-  log(`Using: claude -p <prompt> --model haiku`);
+  log(`Using: claude -p <prompt> --model opus`);
   log(`Timeout: 120s, Retries: 2`);
 });
