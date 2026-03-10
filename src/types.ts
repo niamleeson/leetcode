@@ -29,7 +29,10 @@ export type Topic =
   | 'Ordered Set'
   | 'Segment Tree'
   | 'Binary Indexed Tree'
-  | 'Concurrency';
+  | 'Concurrency'
+  | 'Monotonic Queue'
+  | 'String Algorithms'
+  | 'Minimum Spanning Tree';
 
 export interface Problem {
   id: number;

@@ -2298,6 +2298,889 @@ THE 3 TRICKS YOU NEED (covers 90% of bit problems):
 Mnemonic: "XOR cancels twins. AND(n, n-1) kills the lowest bit."`,
   },
 
+  'Union Find': {
+    topic: 'Union Find',
+    overview: `Union-Find (Disjoint Set Union) tracks a collection of non-overlapping sets. It supports two operations efficiently:
+• Find(x): Which set does x belong to? (returns the set representative/root)
+• Union(x, y): Merge the sets containing x and y
+
+Two optimizations make it nearly O(1) per operation:
+• Path compression: During find, point every node directly to the root
+• Union by rank: Attach the shorter tree under the taller tree
+
+Use cases: connected components, cycle detection, Kruskal's MST, grouping/merging.`,
+    keyPatterns: [
+      'Connected components: Union all edges, count distinct roots',
+      'Cycle detection: If find(u) == find(v) before union, adding edge (u,v) creates a cycle',
+      'Kruskal\'s MST: Sort edges by weight, union greedily, skip cycles',
+      'Accounts merge / grouping: Union items sharing a common key',
+    ],
+    template: `class UnionFind:
+    def __init__(self, n):
+        self.parent = list(range(n))
+        self.rank = [0] * n
+        self.components = n
+
+    def find(self, x):
+        while self.parent[x] != x:
+            self.parent[x] = self.parent[self.parent[x]]  # path compression
+            x = self.parent[x]
+        return x
+
+    def union(self, x, y):
+        px, py = self.find(x), self.find(y)
+        if px == py:
+            return False  # already connected
+        # Union by rank
+        if self.rank[px] < self.rank[py]:
+            px, py = py, px
+        self.parent[py] = px
+        if self.rank[px] == self.rank[py]:
+            self.rank[px] += 1
+        self.components -= 1
+        return True
+
+    def connected(self, x, y):
+        return self.find(x) == self.find(y)
+
+# Usage: connected components
+def count_components(n, edges):
+    uf = UnionFind(n)
+    for u, v in edges:
+        uf.union(u, v)
+    return uf.components
+
+# Usage: cycle detection
+def has_cycle(n, edges):
+    uf = UnionFind(n)
+    for u, v in edges:
+        if not uf.union(u, v):
+            return True  # u and v already connected = cycle
+    return False`,
+    jsTemplate: `class UnionFind {
+    constructor(n) {
+        this.parent = Array.from({length: n}, (_, i) => i);
+        this.rank = new Array(n).fill(0);
+        this.components = n;
+    }
+    find(x) {
+        while (this.parent[x] !== x) {
+            this.parent[x] = this.parent[this.parent[x]]; // path compression
+            x = this.parent[x];
+        }
+        return x;
+    }
+    union(x, y) {
+        let px = this.find(x), py = this.find(y);
+        if (px === py) return false;
+        if (this.rank[px] < this.rank[py]) [px, py] = [py, px];
+        this.parent[py] = px;
+        if (this.rank[px] === this.rank[py]) this.rank[px]++;
+        this.components--;
+        return true;
+    }
+    connected(x, y) { return this.find(x) === this.find(y); }
+}
+
+// Usage: connected components
+function countComponents(n, edges) {
+    const uf = new UnionFind(n);
+    for (const [u, v] of edges) uf.union(u, v);
+    return uf.components;
+}
+
+// Usage: cycle detection
+function hasCycle(n, edges) {
+    const uf = new UnionFind(n);
+    for (const [u, v] of edges) {
+        if (!uf.union(u, v)) return true;
+    }
+    return false;
+}`,
+    complexity: 'O(alpha(n)) per operation where alpha is inverse Ackermann (effectively O(1)). Build: O(n).',
+    commonMistakes: [
+      'Forgetting path compression (degrades to O(n) per find)',
+      'Union without checking if already connected (incorrect component count)',
+      'Using 0-indexed vs 1-indexed parent array (off-by-one)',
+      'Not tracking component count separately (re-counting roots is O(n))',
+    ],
+    tips: [
+      'Union-Find is better than BFS/DFS when edges arrive incrementally (online)',
+      'For "are X and Y connected?" after batch operations, UF is simpler than graph traversal',
+      'Path compression alone gives O(log n). Adding union by rank gives O(alpha(n)).',
+      'Common interview signal: "connected", "grouped", "merge", "same component"',
+    ],
+    memorization: `HOW TO MEMORIZE UNION-FIND:
+The entire data structure is just 3 functions. Memorize them:
+
+FIND (with path compression):
+  def find(x):
+      while parent[x] != x:
+          parent[x] = parent[parent[x]]  # point to grandparent
+          x = parent[x]
+      return x
+
+UNION (by rank):
+  def union(x, y):
+      px, py = find(x), find(y)
+      if px == py: return False  # already together
+      if rank[px] < rank[py]: swap
+      parent[py] = px           # attach smaller under larger
+      if rank[px] == rank[py]: rank[px] += 1
+      return True
+
+INIT:
+  parent = [0, 1, 2, ..., n-1]  # everyone is their own boss
+  rank = [0, 0, ..., 0]
+
+Mnemonic: "Find your boss, merge the smaller team under the bigger one."
+
+PATH COMPRESSION visual: Instead of A -> B -> C -> Root,
+make it A -> Root, B -> Root, C -> Root (flat tree = fast lookup).
+
+WHEN TO USE: If you see "connected components" or "are X and Y in the same group?" → Union-Find.`,
+  },
+
+  'Monotonic Queue': {
+    topic: 'Monotonic Queue',
+    overview: `A monotonic queue (usually implemented with a deque) maintains elements in sorted order within a sliding window. It solves "sliding window min/max" in O(n) instead of O(nk).
+
+Two types:
+• Monotonic decreasing deque: front is always the MAX (for sliding window maximum)
+• Monotonic increasing deque: front is always the MIN (for sliding window minimum)
+
+Key insight: when a new element arrives that is larger than existing elements, those existing elements can NEVER be the answer for any future window (the new element is both newer and larger). So we remove them.`,
+    keyPatterns: [
+      'Sliding window maximum: Decreasing deque, front = max, remove smaller from back',
+      'Sliding window minimum: Increasing deque, front = min, remove larger from back',
+      'Window with max-min constraint: Use TWO deques (one for max, one for min)',
+      'Deque stores indices (not values) so we can check if front is outside the window',
+    ],
+    template: `from collections import deque
+
+# Sliding Window Maximum
+def max_sliding_window(nums, k):
+    dq = deque()  # indices, values decreasing
+    result = []
+    for i in range(len(nums)):
+        # Remove elements outside window
+        while dq and dq[0] < i - k + 1:
+            dq.popleft()
+        # Remove smaller elements from back (they lose to nums[i])
+        while dq and nums[dq[-1]] <= nums[i]:
+            dq.pop()
+        dq.append(i)
+        if i >= k - 1:
+            result.append(nums[dq[0]])  # front is the max
+    return result
+
+# Sliding Window Minimum (just flip the comparison)
+def min_sliding_window(nums, k):
+    dq = deque()  # indices, values increasing
+    result = []
+    for i in range(len(nums)):
+        while dq and dq[0] < i - k + 1:
+            dq.popleft()
+        while dq and nums[dq[-1]] >= nums[i]:  # >= instead of <=
+            dq.pop()
+        dq.append(i)
+        if i >= k - 1:
+            result.append(nums[dq[0]])
+    return result
+
+# Longest subarray where max - min <= limit
+def longest_subarray(nums, limit):
+    max_dq = deque()  # decreasing
+    min_dq = deque()  # increasing
+    left = result = 0
+    for right in range(len(nums)):
+        while max_dq and nums[max_dq[-1]] <= nums[right]: max_dq.pop()
+        while min_dq and nums[min_dq[-1]] >= nums[right]: min_dq.pop()
+        max_dq.append(right)
+        min_dq.append(right)
+        while nums[max_dq[0]] - nums[min_dq[0]] > limit:
+            left += 1
+            if max_dq[0] < left: max_dq.popleft()
+            if min_dq[0] < left: min_dq.popleft()
+        result = max(result, right - left + 1)
+    return result`,
+    jsTemplate: `// Sliding Window Maximum
+function maxSlidingWindow(nums, k) {
+    const dq = []; // indices, values decreasing
+    const result = [];
+    for (let i = 0; i < nums.length; i++) {
+        while (dq.length && dq[0] < i - k + 1) dq.shift();
+        while (dq.length && nums[dq[dq.length - 1]] <= nums[i]) dq.pop();
+        dq.push(i);
+        if (i >= k - 1) result.push(nums[dq[0]]);
+    }
+    return result;
+}
+
+// Sliding Window Minimum (flip comparison)
+function minSlidingWindow(nums, k) {
+    const dq = []; // indices, values increasing
+    const result = [];
+    for (let i = 0; i < nums.length; i++) {
+        while (dq.length && dq[0] < i - k + 1) dq.shift();
+        while (dq.length && nums[dq[dq.length - 1]] >= nums[i]) dq.pop();
+        dq.push(i);
+        if (i >= k - 1) result.push(nums[dq[0]]);
+    }
+    return result;
+}
+
+// Longest subarray where max - min <= limit
+function longestSubarray(nums, limit) {
+    const maxDq = [], minDq = [];
+    let left = 0, result = 0;
+    for (let right = 0; right < nums.length; right++) {
+        while (maxDq.length && nums[maxDq[maxDq.length-1]] <= nums[right]) maxDq.pop();
+        while (minDq.length && nums[minDq[minDq.length-1]] >= nums[right]) minDq.pop();
+        maxDq.push(right);
+        minDq.push(right);
+        while (nums[maxDq[0]] - nums[minDq[0]] > limit) {
+            left++;
+            if (maxDq[0] < left) maxDq.shift();
+            if (minDq[0] < left) minDq.shift();
+        }
+        result = Math.max(result, right - left + 1);
+    }
+    return result;
+}`,
+    complexity: 'O(n) time (each element enters and leaves deque once). O(k) space for the deque.',
+    commonMistakes: [
+      'Storing values instead of indices (can\'t check if element left the window)',
+      'Forgetting to remove expired front elements (stale max/min)',
+      'Wrong comparison direction: <= for max deque, >= for min deque',
+      'Using a regular queue instead of deque (can\'t pop from back)',
+    ],
+    tips: [
+      'Monotonic deque = monotonic stack + ability to pop from front (for window expiry)',
+      'Always store INDICES, look up values via nums[idx]',
+      'Front = answer (max or min). Back = where new elements enter.',
+      'The deque never has more than k elements, so space is O(k).',
+    ],
+    memorization: `HOW TO MEMORIZE MONOTONIC QUEUE:
+It's a deque with 3 operations per element. Memorize this loop:
+
+  for i in range(n):
+      EXPIRE: remove front if outside window
+      CLEAN:  remove back elements that lose to nums[i]
+      ADD:    append i to back
+      RECORD: if window full, front is the answer
+
+Mnemonic: "ECA-R" - Expire, Clean, Add, Record
+
+FOR MAX: decreasing deque. Remove back if <= current.
+FOR MIN: increasing deque. Remove back if >= current.
+
+Think of it as a "hall of fame" that only keeps potential winners:
+  - New champion arrives → old losers are kicked out (back removal)
+  - Champion retires → removed from front (window expiry)
+  - Current champion → always at the front
+
+WHEN TO USE: "sliding window" + "max/min" in the same sentence → monotonic deque.`,
+  },
+
+  'Divide & Conquer': {
+    topic: 'Divide & Conquer',
+    overview: `Divide and Conquer splits a problem into smaller subproblems, solves each recursively, then combines the results. The three steps:
+1. DIVIDE: Split the problem (usually in half)
+2. CONQUER: Recursively solve subproblems (base case: trivially small)
+3. COMBINE: Merge subproblem solutions into final answer
+
+Classic algorithms:
+• Merge Sort: split, sort halves, merge - O(n log n)
+• Quick Sort/Select: partition around pivot - O(n log n) avg / O(n) for select
+• Binary Search: eliminate half each step - O(log n)
+• Count inversions: modified merge sort - O(n log n)`,
+    keyPatterns: [
+      'Merge sort: Split in half, sort each, merge two sorted arrays',
+      'Quick select: Partition, recurse into ONE side containing target',
+      'Count inversions: During merge, count how many left elements are greater than right',
+      'Closest pair: Split by x-coordinate, recursively solve halves, check strip',
+    ],
+    template: `# Merge Sort
+def merge_sort(nums):
+    if len(nums) <= 1:
+        return nums
+    mid = len(nums) // 2
+    left = merge_sort(nums[:mid])
+    right = merge_sort(nums[mid:])
+    return merge(left, right)
+
+def merge(left, right):
+    result = []
+    i = j = 0
+    while i < len(left) and j < len(right):
+        if left[i] <= right[j]:
+            result.append(left[i]); i += 1
+        else:
+            result.append(right[j]); j += 1
+    result.extend(left[i:])
+    result.extend(right[j:])
+    return result
+
+# Quick Select (kth smallest)
+import random
+def quick_select(nums, k):
+    pivot = random.choice(nums)
+    less = [x for x in nums if x < pivot]
+    equal = [x for x in nums if x == pivot]
+    greater = [x for x in nums if x > pivot]
+
+    if k <= len(less):
+        return quick_select(less, k)
+    elif k <= len(less) + len(equal):
+        return pivot
+    else:
+        return quick_select(greater, k - len(less) - len(equal))
+
+# Count inversions (modified merge sort)
+def count_inversions(nums):
+    if len(nums) <= 1:
+        return nums, 0
+    mid = len(nums) // 2
+    left, left_inv = count_inversions(nums[:mid])
+    right, right_inv = count_inversions(nums[mid:])
+    merged = []
+    inversions = left_inv + right_inv
+    i = j = 0
+    while i < len(left) and j < len(right):
+        if left[i] <= right[j]:
+            merged.append(left[i]); i += 1
+        else:
+            merged.append(right[j]); j += 1
+            inversions += len(left) - i  # all remaining left > right[j]
+    merged.extend(left[i:])
+    merged.extend(right[j:])
+    return merged, inversions`,
+    jsTemplate: `// Merge Sort
+function mergeSort(nums) {
+    if (nums.length <= 1) return nums;
+    const mid = Math.floor(nums.length / 2);
+    const left = mergeSort(nums.slice(0, mid));
+    const right = mergeSort(nums.slice(mid));
+    return merge(left, right);
+}
+
+function merge(left, right) {
+    const result = [];
+    let i = 0, j = 0;
+    while (i < left.length && j < right.length) {
+        if (left[i] <= right[j]) result.push(left[i++]);
+        else result.push(right[j++]);
+    }
+    while (i < left.length) result.push(left[i++]);
+    while (j < right.length) result.push(right[j++]);
+    return result;
+}
+
+// Quick Select (kth smallest, 0-indexed)
+function quickSelect(nums, k) {
+    const pivot = nums[Math.floor(Math.random() * nums.length)];
+    const less = nums.filter(x => x < pivot);
+    const equal = nums.filter(x => x === pivot);
+    const greater = nums.filter(x => x > pivot);
+    if (k < less.length) return quickSelect(less, k);
+    else if (k < less.length + equal.length) return pivot;
+    else return quickSelect(greater, k - less.length - equal.length);
+}
+
+// Count inversions
+function countInversions(nums) {
+    if (nums.length <= 1) return [nums, 0];
+    const mid = Math.floor(nums.length / 2);
+    const [left, leftInv] = countInversions(nums.slice(0, mid));
+    const [right, rightInv] = countInversions(nums.slice(mid));
+    const merged = [];
+    let inv = leftInv + rightInv, i = 0, j = 0;
+    while (i < left.length && j < right.length) {
+        if (left[i] <= right[j]) merged.push(left[i++]);
+        else { merged.push(right[j++]); inv += left.length - i; }
+    }
+    while (i < left.length) merged.push(left[i++]);
+    while (j < right.length) merged.push(right[j++]);
+    return [merged, inv];
+}`,
+    complexity: 'Merge sort: O(n log n). Quick select: O(n) avg, O(n^2) worst. Binary search: O(log n).',
+    commonMistakes: [
+      'Quick select: not randomizing pivot (worst case O(n^2) on sorted input)',
+      'Merge: forgetting to append remaining elements after one side is exhausted',
+      'Count inversions: counting inversions in wrong direction',
+      'Not handling base case (length 0 or 1)',
+    ],
+    tips: [
+      'Merge sort is stable, quicksort is not (but quicksort is in-place)',
+      'Quick select is O(n) on average vs O(n log n) for sorting - use it for kth element',
+      'If a problem says "count pairs where left > right", think merge sort + count inversions',
+      'Master theorem: T(n) = aT(n/b) + O(n^d) determines the complexity',
+    ],
+    memorization: `HOW TO MEMORIZE DIVIDE & CONQUER:
+The pattern is always 3 steps: SPLIT, SOLVE, COMBINE
+
+MERGE SORT (memorize the merge function, it's the core):
+  i, j = 0, 0  (two pointers on two sorted arrays)
+  while both have elements:
+      take the smaller one
+  append remaining from whichever side isn't empty
+
+QUICK SELECT (memorize as "partition + recurse ONE side"):
+  1. Pick random pivot
+  2. Split into less, equal, greater
+  3. If k is in less → recurse left
+     If k is in equal → return pivot
+     If k is in greater → recurse right (adjust k)
+
+  Why O(n)? Each step does O(n) work but halves the problem:
+  n + n/2 + n/4 + ... = 2n = O(n)
+
+WHEN TO USE D&C:
+  - Sorting → merge sort
+  - kth element → quick select
+  - "Count X across all pairs" → modified merge sort
+  - Any problem that naturally splits in half
+
+Mnemonic: "Split in half, solve each half, stitch together."`,
+  },
+
+  'Segment Tree': {
+    topic: 'Segment Tree',
+    overview: `A Segment Tree is a binary tree where each node stores aggregate information (sum, min, max, etc.) about a range of the array. It supports:
+• Range query: Get aggregate over [l, r] in O(log n)
+• Point update: Update a single element in O(log n)
+• (Advanced) Range update with lazy propagation
+
+Structure: Array of size 4n. Node i covers a range, children are 2i and 2i+1.
+Leaves are individual elements. Each parent = combine(left_child, right_child).`,
+    keyPatterns: [
+      'Range sum query + update: Most common use case',
+      'Range min/max query: Change combine function to min/max',
+      'Count in range: Each node stores count of elements satisfying condition',
+      'Lazy propagation: Batch updates to ranges (advanced)',
+    ],
+    template: `class SegmentTree:
+    def __init__(self, nums):
+        self.n = len(nums)
+        self.tree = [0] * (4 * self.n)
+        if self.n > 0:
+            self._build(nums, 1, 0, self.n - 1)
+
+    def _build(self, nums, node, start, end):
+        if start == end:
+            self.tree[node] = nums[start]
+            return
+        mid = (start + end) // 2
+        self._build(nums, 2 * node, start, mid)
+        self._build(nums, 2 * node + 1, mid + 1, end)
+        self.tree[node] = self.tree[2 * node] + self.tree[2 * node + 1]
+
+    def update(self, idx, val):
+        self._update(1, 0, self.n - 1, idx, val)
+
+    def _update(self, node, start, end, idx, val):
+        if start == end:
+            self.tree[node] = val
+            return
+        mid = (start + end) // 2
+        if idx <= mid:
+            self._update(2 * node, start, mid, idx, val)
+        else:
+            self._update(2 * node + 1, mid + 1, end, idx, val)
+        self.tree[node] = self.tree[2 * node] + self.tree[2 * node + 1]
+
+    def query(self, l, r):
+        return self._query(1, 0, self.n - 1, l, r)
+
+    def _query(self, node, start, end, l, r):
+        if r < start or end < l:
+            return 0  # no overlap
+        if l <= start and end <= r:
+            return self.tree[node]  # full overlap
+        mid = (start + end) // 2
+        return (self._query(2 * node, start, mid, l, r) +
+                self._query(2 * node + 1, mid + 1, end, l, r))`,
+    jsTemplate: `class SegmentTree {
+    constructor(nums) {
+        this.n = nums.length;
+        this.tree = new Array(4 * this.n).fill(0);
+        if (this.n > 0) this._build(nums, 1, 0, this.n - 1);
+    }
+    _build(nums, node, start, end) {
+        if (start === end) { this.tree[node] = nums[start]; return; }
+        const mid = Math.floor((start + end) / 2);
+        this._build(nums, 2*node, start, mid);
+        this._build(nums, 2*node+1, mid+1, end);
+        this.tree[node] = this.tree[2*node] + this.tree[2*node+1];
+    }
+    update(idx, val) { this._update(1, 0, this.n-1, idx, val); }
+    _update(node, start, end, idx, val) {
+        if (start === end) { this.tree[node] = val; return; }
+        const mid = Math.floor((start + end) / 2);
+        if (idx <= mid) this._update(2*node, start, mid, idx, val);
+        else this._update(2*node+1, mid+1, end, idx, val);
+        this.tree[node] = this.tree[2*node] + this.tree[2*node+1];
+    }
+    query(l, r) { return this._query(1, 0, this.n-1, l, r); }
+    _query(node, start, end, l, r) {
+        if (r < start || end < l) return 0;
+        if (l <= start && end <= r) return this.tree[node];
+        const mid = Math.floor((start + end) / 2);
+        return this._query(2*node, start, mid, l, r) +
+               this._query(2*node+1, mid+1, end, l, r);
+    }
+}`,
+    complexity: 'Build: O(n). Query: O(log n). Update: O(log n). Space: O(n).',
+    commonMistakes: [
+      'Allocating too little space (use 4n, not 2n)',
+      'Wrong merge function (sum vs min vs max)',
+      'Off-by-one in range checks (use inclusive ranges consistently)',
+      'Forgetting to update parent after modifying child in update',
+    ],
+    tips: [
+      'For range sum + point update: segment tree is the go-to',
+      'For range min/max: change + to min/max in build/update/query',
+      'BIT (Fenwick tree) is simpler for range sum, but segment tree is more versatile',
+      'If you need range UPDATE (not point update): add lazy propagation',
+    ],
+    memorization: `HOW TO MEMORIZE SEGMENT TREE:
+The tree has 3 functions: BUILD, UPDATE, QUERY. All recursive with same structure.
+
+Node indexing: node i has children 2i and 2i+1.
+Each node covers a range [start, end].
+
+BUILD:
+  if leaf (start == end): tree[node] = nums[start]
+  else: build left, build right, tree[node] = left + right
+
+UPDATE (point):
+  if leaf: set value
+  else: recurse into correct child, recalculate parent
+
+QUERY (range):
+  3 cases:
+  1. NO OVERLAP (query range outside node range): return 0
+  2. FULL OVERLAP (node range inside query range): return tree[node]
+  3. PARTIAL: split and recurse into both children
+
+Mnemonic for query: "None? Zero. All? Return. Partial? Split."
+
+WHEN TO USE: "range query + update" in the same problem → Segment Tree.
+If only queries (no updates): prefix sum is simpler.`,
+  },
+
+  'String Algorithms': {
+    topic: 'String Algorithms',
+    overview: `String matching algorithms find patterns within text efficiently. The key algorithms:
+
+• KMP (Knuth-Morris-Pratt): O(n+m) pattern matching using failure function (LPS array)
+• Rabin-Karp: O(n+m) average using rolling hash, simpler to code
+• Z-Algorithm: O(n+m) using Z-array (length of longest substring starting at i that matches prefix)
+
+The core idea: preprocess the pattern to avoid redundant comparisons. When a mismatch occurs, use preprocessed info to skip ahead instead of restarting from scratch.`,
+    keyPatterns: [
+      'KMP: Build LPS array, use it to skip ahead on mismatch',
+      'Rabin-Karp: Rolling hash comparison, only verify on hash match',
+      'Repeated pattern detection: Use LPS - if n % (n - lps[n-1]) == 0, it repeats',
+      'Multiple pattern search: Aho-Corasick (trie of patterns + KMP failure links)',
+    ],
+    template: `# KMP - pattern matching
+def kmp_search(text, pattern):
+    # Build LPS (Longest Proper Prefix which is also Suffix)
+    m = len(pattern)
+    lps = [0] * m
+    length = 0
+    i = 1
+    while i < m:
+        if pattern[i] == pattern[length]:
+            length += 1
+            lps[i] = length
+            i += 1
+        elif length > 0:
+            length = lps[length - 1]  # key: don't reset, jump back
+        else:
+            lps[i] = 0
+            i += 1
+
+    # Search
+    i = j = 0  # i for text, j for pattern
+    results = []
+    while i < len(text):
+        if text[i] == pattern[j]:
+            i += 1; j += 1
+            if j == m:
+                results.append(i - j)
+                j = lps[j - 1]
+        elif j > 0:
+            j = lps[j - 1]  # skip ahead using LPS
+        else:
+            i += 1
+    return results
+
+# Rabin-Karp - rolling hash
+def rabin_karp(text, pattern):
+    n, m = len(text), len(pattern)
+    if m > n: return -1
+    base, mod = 26, 10**9 + 7
+    power = pow(base, m - 1, mod)
+
+    # Hash the pattern and first window
+    p_hash = t_hash = 0
+    for i in range(m):
+        p_hash = (p_hash * base + ord(pattern[i])) % mod
+        t_hash = (t_hash * base + ord(text[i])) % mod
+
+    for i in range(n - m + 1):
+        if p_hash == t_hash and text[i:i+m] == pattern:
+            return i  # match found
+        if i + m < n:
+            t_hash = (t_hash - ord(text[i]) * power) % mod
+            t_hash = (t_hash * base + ord(text[i + m])) % mod
+    return -1`,
+    jsTemplate: `// KMP - pattern matching
+function kmpSearch(text, pattern) {
+    const m = pattern.length;
+    const lps = new Array(m).fill(0);
+    let len = 0, i = 1;
+    while (i < m) {
+        if (pattern[i] === pattern[len]) { len++; lps[i] = len; i++; }
+        else if (len > 0) { len = lps[len - 1]; }
+        else { lps[i] = 0; i++; }
+    }
+    i = 0; let j = 0;
+    const results = [];
+    while (i < text.length) {
+        if (text[i] === pattern[j]) {
+            i++; j++;
+            if (j === m) { results.push(i - j); j = lps[j - 1]; }
+        } else if (j > 0) { j = lps[j - 1]; }
+        else { i++; }
+    }
+    return results;
+}
+
+// Rabin-Karp - rolling hash
+function rabinKarp(text, pattern) {
+    const n = text.length, m = pattern.length;
+    if (m > n) return -1;
+    const base = 26, mod = 1e9 + 7;
+    let power = 1;
+    for (let i = 0; i < m - 1; i++) power = (power * base) % mod;
+
+    let pHash = 0, tHash = 0;
+    for (let i = 0; i < m; i++) {
+        pHash = (pHash * base + pattern.charCodeAt(i)) % mod;
+        tHash = (tHash * base + text.charCodeAt(i)) % mod;
+    }
+    for (let i = 0; i <= n - m; i++) {
+        if (pHash === tHash && text.slice(i, i + m) === pattern) return i;
+        if (i + m < n) {
+            tHash = ((tHash - text.charCodeAt(i) * power) % mod + mod) % mod;
+            tHash = (tHash * base + text.charCodeAt(i + m)) % mod;
+        }
+    }
+    return -1;
+}`,
+    complexity: 'KMP: O(n+m) guaranteed. Rabin-Karp: O(n+m) average, O(nm) worst (hash collisions).',
+    commonMistakes: [
+      'KMP: Wrong LPS construction (using length = 0 reset instead of length = lps[length-1])',
+      'Rabin-Karp: Not handling negative modular arithmetic (add mod before taking mod)',
+      'Rabin-Karp: Not verifying on hash match (hash collisions exist)',
+      'Off-by-one in the power computation for Rabin-Karp',
+    ],
+    tips: [
+      'KMP is deterministic O(n+m). Rabin-Karp is simpler but has worst-case O(nm).',
+      'For single pattern search: KMP. For multiple pattern search: Aho-Corasick.',
+      'Rabin-Karp shines for multi-pattern matching (check hash against a set of pattern hashes).',
+      'LPS array also solves "repeated substring pattern" and "shortest palindrome".',
+    ],
+    memorization: `HOW TO MEMORIZE KMP:
+KMP has exactly 2 parts: BUILD LPS, then SEARCH. Both have the same structure.
+
+LPS BUILD (the hard part - memorize this):
+  lps = [0] * m
+  length = 0, i = 1
+  while i < m:
+      if match: length++, lps[i] = length, i++
+      elif length > 0: length = lps[length - 1]  ← THE KEY LINE
+      else: lps[i] = 0, i++
+
+The key line says: "I can't extend the current prefix-suffix match, but maybe a shorter one works."
+
+SEARCH:
+  i = j = 0
+  while i < n:
+      if match: i++, j++ (if j == m: found it!)
+      elif j > 0: j = lps[j - 1]  ← same key idea
+      else: i++
+
+RABIN-KARP is easier to memorize:
+  Hash the pattern. Slide a window across text.
+  Rolling hash: remove leftmost char, add rightmost char.
+  If hashes match, verify with string comparison.
+
+Mnemonic: "KMP = never re-check matched characters. LPS tells you where to jump."`,
+  },
+
+  'Minimum Spanning Tree': {
+    topic: 'Minimum Spanning Tree',
+    overview: `A Minimum Spanning Tree (MST) connects all nodes in a weighted graph with minimum total edge weight, using exactly n-1 edges and no cycles.
+
+Two classic algorithms:
+• Kruskal's: Sort edges by weight, greedily add cheapest non-cycle edge (uses Union-Find)
+• Prim's: Start from any node, always add cheapest edge to an unvisited node (uses min-heap)
+
+Kruskal's is simpler to code and better for sparse graphs. Prim's is better for dense graphs.`,
+    keyPatterns: [
+      'Kruskal\'s: Sort edges + Union-Find to avoid cycles',
+      'Prim\'s: Min-heap + visited set, BFS-like expansion',
+      'MST has exactly n-1 edges for n nodes',
+      'If all edge weights are distinct, the MST is unique',
+    ],
+    template: `# Kruskal's Algorithm
+class UnionFind:
+    def __init__(self, n):
+        self.parent = list(range(n))
+        self.rank = [0] * n
+    def find(self, x):
+        while self.parent[x] != x:
+            self.parent[x] = self.parent[self.parent[x]]
+            x = self.parent[x]
+        return x
+    def union(self, x, y):
+        px, py = self.find(x), self.find(y)
+        if px == py: return False
+        if self.rank[px] < self.rank[py]: px, py = py, px
+        self.parent[py] = px
+        if self.rank[px] == self.rank[py]: self.rank[px] += 1
+        return True
+
+def kruskal(n, edges):
+    # edges = [(weight, u, v), ...]
+    edges.sort()
+    uf = UnionFind(n)
+    mst_cost = 0
+    mst_edges = 0
+    for weight, u, v in edges:
+        if uf.union(u, v):
+            mst_cost += weight
+            mst_edges += 1
+            if mst_edges == n - 1:
+                break
+    return mst_cost if mst_edges == n - 1 else -1  # -1 if not connected
+
+# Prim's Algorithm
+import heapq
+def prim(n, adj):
+    # adj[u] = [(weight, v), ...]
+    visited = set()
+    heap = [(0, 0)]  # (cost, start_node)
+    total = 0
+    while heap and len(visited) < n:
+        cost, u = heapq.heappop(heap)
+        if u in visited:
+            continue
+        visited.add(u)
+        total += cost
+        for weight, v in adj[u]:
+            if v not in visited:
+                heapq.heappush(heap, (weight, v))
+    return total if len(visited) == n else -1`,
+    jsTemplate: `// Kruskal's Algorithm
+class UnionFind {
+    constructor(n) {
+        this.parent = Array.from({length: n}, (_, i) => i);
+        this.rank = new Array(n).fill(0);
+    }
+    find(x) {
+        while (this.parent[x] !== x) {
+            this.parent[x] = this.parent[this.parent[x]];
+            x = this.parent[x];
+        }
+        return x;
+    }
+    union(x, y) {
+        let px = this.find(x), py = this.find(y);
+        if (px === py) return false;
+        if (this.rank[px] < this.rank[py]) [px, py] = [py, px];
+        this.parent[py] = px;
+        if (this.rank[px] === this.rank[py]) this.rank[px]++;
+        return true;
+    }
+}
+
+function kruskal(n, edges) {
+    // edges = [[weight, u, v], ...]
+    edges.sort((a, b) => a[0] - b[0]);
+    const uf = new UnionFind(n);
+    let mstCost = 0, mstEdges = 0;
+    for (const [weight, u, v] of edges) {
+        if (uf.union(u, v)) {
+            mstCost += weight;
+            mstEdges++;
+            if (mstEdges === n - 1) break;
+        }
+    }
+    return mstEdges === n - 1 ? mstCost : -1;
+}
+
+// Prim's Algorithm (using sorted array as simple heap)
+function prim(n, adj) {
+    const visited = new Set();
+    const heap = [[0, 0]]; // [cost, node]
+    let total = 0;
+    while (heap.length && visited.size < n) {
+        heap.sort((a, b) => a[0] - b[0]);
+        const [cost, u] = heap.shift();
+        if (visited.has(u)) continue;
+        visited.add(u);
+        total += cost;
+        for (const [weight, v] of (adj[u] || [])) {
+            if (!visited.has(v)) heap.push([weight, v]);
+        }
+    }
+    return visited.size === n ? total : -1;
+}`,
+    complexity: 'Kruskal: O(E log E) for sorting. Prim: O(E log V) with heap.',
+    commonMistakes: [
+      'Kruskal: Not checking if graph is connected (MST needs n-1 edges)',
+      'Prim: Forgetting to skip already-visited nodes popped from heap',
+      'Not handling disconnected graphs (return -1 or error)',
+      'Generating duplicate edges in undirected graph',
+    ],
+    tips: [
+      'Kruskal = sort edges + Union-Find. Prim = min-heap + visited.',
+      'Kruskal is easier to code and think about. Use it by default.',
+      'Prim is better when the graph is very dense (E close to V^2).',
+      'MST problems often disguise themselves: "minimum cost to connect all X".',
+    ],
+    memorization: `HOW TO MEMORIZE MST:
+KRUSKAL'S (memorize this one, it's simpler):
+  1. Sort all edges by weight
+  2. For each edge (cheapest first):
+     - If union(u, v) succeeds: add edge to MST
+     - If union fails: skip (would create cycle)
+  3. Stop when you have n-1 edges
+
+Mnemonic: "Sort, Union, Skip cycles, Stop at n-1"
+
+PRIM'S:
+  1. Start from any node, add to visited
+  2. Push all its edges to min-heap
+  3. Pop cheapest edge to unvisited node, add that node
+  4. Repeat until all nodes visited
+
+Mnemonic: "Start anywhere, always grab the cheapest bridge to new land"
+
+KRUSKAL vs PRIM:
+  Kruskal = global view (sort ALL edges, pick cheapest)
+  Prim = local view (grow from one node, pick cheapest neighbor)
+  Both give the same MST.
+
+WHEN TO USE: "connect all nodes with minimum cost" = MST.`,
+  },
+
   'Concurrency': {
     topic: 'Concurrency',
     overview: `Concurrency problems test your understanding of thread synchronization - making multiple threads cooperate safely. The core challenge: threads run in unpredictable order (the OS schedules them), so you need primitives to enforce ordering, mutual exclusion, and coordination.

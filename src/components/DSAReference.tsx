@@ -13,6 +13,9 @@ const DSA_CATEGORIES = [
       'Trees',
       'Tries',
       'Heap / Priority Queue',
+      'Union Find',
+      'Monotonic Queue',
+      'Segment Tree',
     ],
   },
   {
@@ -25,6 +28,9 @@ const DSA_CATEGORIES = [
       'Graphs',
       'Dynamic Programming',
       'Greedy',
+      'Divide & Conquer',
+      'String Algorithms',
+      'Minimum Spanning Tree',
     ],
   },
   {

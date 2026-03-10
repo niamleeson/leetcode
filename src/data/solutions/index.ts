@@ -16,6 +16,7 @@ import { solutions as batch4Extra } from './batch4-extra';
 import { solutions as batch5Extra } from './batch5-extra';
 import { solutions as batch6Extra } from './batch6-extra';
 import { solutions as concurrency } from './concurrency';
+import { solutions as advancedDsa } from './advanced-dsa';
 
 const allSolutions: ProblemSolution[] = [
   ...arraysHashing,
@@ -31,6 +32,7 @@ const allSolutions: ProblemSolution[] = [
   ...batch5Extra,
   ...batch6Extra,
   ...concurrency,
+  ...advancedDsa,
 ];
 
 // Build a map for O(1) lookup by problem ID

@@ -708,6 +708,47 @@ export const problems: Problem[] = [
   { id: 1188, title: "Design Bounded Blocking Queue", difficulty: "Medium", topics: ["Concurrency", "Design"], url: "https://leetcode.com/problems/design-bounded-blocking-queue/", isPremium: true },
   { id: 1195, title: "Fizz Buzz Multithreaded", difficulty: "Medium", topics: ["Concurrency"], url: "https://leetcode.com/problems/fizz-buzz-multithreaded/" },
   { id: 1226, title: "The Dining Philosophers", difficulty: "Medium", topics: ["Concurrency"], url: "https://leetcode.com/problems/the-dining-philosophers/" },
+
+  // ---- UNION FIND ----
+  { id: 200, title: "Number of Islands", difficulty: "Medium", topics: ["Union Find", "Graphs", "Matrix"], url: "https://leetcode.com/problems/number-of-islands/" },
+  { id: 547, title: "Number of Provinces", difficulty: "Medium", topics: ["Union Find", "Graphs"], url: "https://leetcode.com/problems/number-of-provinces/" },
+  { id: 684, title: "Redundant Connection", difficulty: "Medium", topics: ["Union Find", "Graphs"], url: "https://leetcode.com/problems/redundant-connection/" },
+  { id: 721, title: "Accounts Merge", difficulty: "Medium", topics: ["Union Find", "Graphs", "String"], url: "https://leetcode.com/problems/accounts-merge/" },
+  { id: 839, title: "Similar String Groups", difficulty: "Hard", topics: ["Union Find", "String"], url: "https://leetcode.com/problems/similar-string-groups/" },
+  { id: 990, title: "Satisfiability of Equality Equations", difficulty: "Medium", topics: ["Union Find", "String"], url: "https://leetcode.com/problems/satisfiability-of-equality-equations/" },
+  { id: 1319, title: "Number of Operations to Make Network Connected", difficulty: "Medium", topics: ["Union Find", "Graphs"], url: "https://leetcode.com/problems/number-of-operations-to-make-network-connected/" },
+
+  // ---- MONOTONIC QUEUE ----
+  { id: 239, title: "Sliding Window Maximum", difficulty: "Hard", topics: ["Monotonic Queue", "Sliding Window"], url: "https://leetcode.com/problems/sliding-window-maximum/" },
+  { id: 862, title: "Shortest Subarray with Sum at Least K", difficulty: "Hard", topics: ["Monotonic Queue", "Binary Search"], url: "https://leetcode.com/problems/shortest-subarray-with-sum-at-least-k/" },
+  { id: 1438, title: "Longest Continuous Subarray With Absolute Diff Less Than or Equal to Limit", difficulty: "Medium", topics: ["Monotonic Queue", "Sliding Window"], url: "https://leetcode.com/problems/longest-continuous-subarray-with-absolute-diff-less-than-or-equal-to-limit/" },
+  { id: 1499, title: "Max Value of Equation", difficulty: "Hard", topics: ["Monotonic Queue", "Sliding Window"], url: "https://leetcode.com/problems/max-value-of-equation/" },
+
+  // ---- DIVIDE & CONQUER ----
+  { id: 23, title: "Merge k Sorted Lists", difficulty: "Hard", topics: ["Divide & Conquer", "Linked List", "Heap / Priority Queue"], url: "https://leetcode.com/problems/merge-k-sorted-lists/" },
+  { id: 215, title: "Kth Largest Element in an Array", difficulty: "Medium", topics: ["Divide & Conquer", "Heap / Priority Queue"], url: "https://leetcode.com/problems/kth-largest-element-in-an-array/" },
+  { id: 912, title: "Sort an Array", difficulty: "Medium", topics: ["Divide & Conquer"], url: "https://leetcode.com/problems/sort-an-array/" },
+  { id: 493, title: "Reverse Pairs", difficulty: "Hard", topics: ["Divide & Conquer", "Binary Indexed Tree", "Segment Tree"], url: "https://leetcode.com/problems/reverse-pairs/" },
+  { id: 315, title: "Count of Smaller Numbers After Self", difficulty: "Hard", topics: ["Divide & Conquer", "Binary Indexed Tree", "Segment Tree"], url: "https://leetcode.com/problems/count-of-smaller-numbers-after-self/" },
+
+  // ---- SEGMENT TREE ----
+  { id: 307, title: "Range Sum Query - Mutable", difficulty: "Medium", topics: ["Segment Tree", "Binary Indexed Tree"], url: "https://leetcode.com/problems/range-sum-query-mutable/" },
+  { id: 218, title: "The Skyline Problem", difficulty: "Hard", topics: ["Segment Tree", "Divide & Conquer", "Heap / Priority Queue"], url: "https://leetcode.com/problems/the-skyline-problem/" },
+  { id: 732, title: "My Calendar III", difficulty: "Hard", topics: ["Segment Tree", "Design"], url: "https://leetcode.com/problems/my-calendar-iii/" },
+  { id: 699, title: "Falling Squares", difficulty: "Hard", topics: ["Segment Tree"], url: "https://leetcode.com/problems/falling-squares/" },
+
+  // ---- STRING ALGORITHMS ----
+  { id: 28, title: "Find the Index of the First Occurrence in a String", difficulty: "Easy", topics: ["String Algorithms", "String"], url: "https://leetcode.com/problems/find-the-index-of-the-first-occurrence-in-a-string/" },
+  { id: 214, title: "Shortest Palindrome", difficulty: "Hard", topics: ["String Algorithms", "String"], url: "https://leetcode.com/problems/shortest-palindrome/" },
+  { id: 459, title: "Repeated Substring Pattern", difficulty: "Easy", topics: ["String Algorithms", "String"], url: "https://leetcode.com/problems/repeated-substring-pattern/" },
+  { id: 686, title: "Repeated String Match", difficulty: "Medium", topics: ["String Algorithms", "String"], url: "https://leetcode.com/problems/repeated-string-match/" },
+  { id: 1392, title: "Longest Happy Prefix", difficulty: "Hard", topics: ["String Algorithms", "String"], url: "https://leetcode.com/problems/longest-happy-prefix/" },
+
+  // ---- MINIMUM SPANNING TREE ----
+  { id: 1135, title: "Connecting Cities With Minimum Cost", difficulty: "Medium", topics: ["Minimum Spanning Tree", "Union Find", "Graphs"], url: "https://leetcode.com/problems/connecting-cities-with-minimum-cost/", isPremium: true },
+  { id: 1584, title: "Min Cost to Connect All Points", difficulty: "Medium", topics: ["Minimum Spanning Tree", "Union Find", "Graphs"], url: "https://leetcode.com/problems/min-cost-to-connect-all-points/" },
+  { id: 1168, title: "Optimize Water Distribution in a Village", difficulty: "Hard", topics: ["Minimum Spanning Tree", "Union Find", "Graphs"], url: "https://leetcode.com/problems/optimize-water-distribution-in-a-village/", isPremium: true },
+  { id: 1489, title: "Find Critical and Pseudo-Critical Edges in Minimum Spanning Tree", difficulty: "Hard", topics: ["Minimum Spanning Tree", "Union Find", "Graphs"], url: "https://leetcode.com/problems/find-critical-and-pseudo-critical-edges-in-minimum-spanning-tree/" },
 ];
 
 // Merge all batches and deduplicate by problem id
@@ -749,6 +790,9 @@ export const TOPICS = [
   'Segment Tree',
   'Binary Indexed Tree',
   'Concurrency',
+  'Monotonic Queue',
+  'String Algorithms',
+  'Minimum Spanning Tree',
 ] as const;
 
 // Recommended study order (topics listed from foundational to advanced)
@@ -770,4 +814,10 @@ export const STUDY_ORDER: string[] = [
   'Math & Geometry',
   'Bit Manipulation',
   'Concurrency',
+  'Union Find',
+  'Monotonic Queue',
+  'Divide & Conquer',
+  'Segment Tree',
+  'String Algorithms',
+  'Minimum Spanning Tree',
 ];
