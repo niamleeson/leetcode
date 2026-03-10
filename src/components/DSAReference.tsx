@@ -110,11 +110,6 @@ function TopicCard({ lesson, language, setLanguage }: {
         </svg>
       </button>
 
-      {!expanded && (
-        <div className="px-4 pb-3">
-          <p className="text-xs text-gray-500 line-clamp-2">{lesson.overview.split('\n')[0]}</p>
-        </div>
-      )}
 
       {expanded && (
         <div className="border-t border-gray-800">
