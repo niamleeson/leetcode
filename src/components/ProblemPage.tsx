@@ -5,6 +5,7 @@ import { solutionMap } from '../data/solutions';
 import { ProblemProgress } from '../types';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import CodeBlock from './CodeBlock';
+import GlossaryHighlighter from './GlossaryHighlighter';
 
 interface ProblemPageProps {
   getProgress: (id: number) => ProblemProgress;
@@ -139,7 +140,7 @@ export default function ProblemPage({ getProgress, onRate, onUpdateNotes, onRese
           {/* ── Problem Description ── */}
           <section className="space-y-3">
             <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Problem</h2>
-            <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-line">{solution.description}</p>
+            <GlossaryHighlighter text={solution.description} className="text-sm text-gray-300 leading-relaxed whitespace-pre-line" />
             <pre className="bg-gray-950 border border-gray-800 rounded-md p-3 text-xs text-gray-300 overflow-x-auto whitespace-pre-wrap font-mono">
               {solution.examples}
             </pre>
@@ -149,14 +150,14 @@ export default function ProblemPage({ getProgress, onRate, onUpdateNotes, onRese
           {solution.intuition && (
             <section>
               <h2 className="text-xs font-semibold text-cyan-400 uppercase tracking-wider mb-2">Intuition</h2>
-              <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-line bg-cyan-950/20 border border-cyan-900/30 rounded-md p-4">{solution.intuition}</p>
+              <div className="text-sm text-gray-300 leading-relaxed whitespace-pre-line bg-cyan-950/20 border border-cyan-900/30 rounded-md p-4"><GlossaryHighlighter text={solution.intuition} /></div>
             </section>
           )}
 
           {/* ── Approach ── */}
           <section>
             <h2 className="text-xs font-semibold text-blue-400 uppercase tracking-wider mb-2">Approach</h2>
-            <p className="text-sm text-gray-400 leading-relaxed">{solution.approach}</p>
+            <GlossaryHighlighter text={solution.approach} className="text-sm text-gray-400 leading-relaxed" />
           </section>
 
           {/* ── Hints ── */}
@@ -242,7 +243,7 @@ export default function ProblemPage({ getProgress, onRate, onUpdateNotes, onRese
           {/* ── Explanation ── */}
           <section>
             <h2 className="text-xs font-semibold text-yellow-400 uppercase tracking-wider mb-2">Explanation</h2>
-            <p className="text-sm text-gray-400 leading-relaxed whitespace-pre-line">{solution.explanation}</p>
+            <GlossaryHighlighter text={solution.explanation} className="text-sm text-gray-400 leading-relaxed whitespace-pre-line" />
           </section>
 
           {/* ── Complexity ── */}

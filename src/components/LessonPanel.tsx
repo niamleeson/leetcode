@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { lessons } from '../data/lessons';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import CodeBlock from './CodeBlock';
+import GlossaryHighlighter from './GlossaryHighlighter';
 
 interface LessonPanelProps {
   topic: string;
@@ -41,7 +42,7 @@ export default function LessonPanel({ topic }: LessonPanelProps) {
           {/* Overview */}
           <div>
             <h4 className="text-sm font-semibold text-blue-300 mb-2">Overview</h4>
-            <p className="text-sm text-gray-400 leading-relaxed whitespace-pre-line">{lesson.overview}</p>
+            <GlossaryHighlighter text={lesson.overview} className="text-sm text-gray-400 leading-relaxed whitespace-pre-line" />
           </div>
 
           {/* Key Patterns */}
@@ -133,9 +134,9 @@ export default function LessonPanel({ topic }: LessonPanelProps) {
           {lesson.memorization && (
             <div>
               <h4 className="text-sm font-semibold text-gray-300 mb-2">Memorization Techniques</h4>
-              <p className="text-sm text-gray-400 leading-relaxed whitespace-pre-line bg-gray-800/40 border border-gray-700/40 rounded-md p-3">
-                {lesson.memorization}
-              </p>
+              <div className="text-sm text-gray-400 leading-relaxed whitespace-pre-line bg-gray-800/40 border border-gray-700/40 rounded-md p-3">
+                <GlossaryHighlighter text={lesson.memorization!} />
+              </div>
             </div>
           )}
         </div>

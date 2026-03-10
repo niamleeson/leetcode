@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { lessons, TopicLesson } from '../data/lessons';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import CodeBlock from './CodeBlock';
+import GlossaryHighlighter from './GlossaryHighlighter';
 
 const DSA_CATEGORIES = [
   {
@@ -137,7 +138,7 @@ function TopicCard({ lesson, language, setLanguage }: {
           <div className="p-4 space-y-4">
             {activeTab === 'overview' && (
               <>
-                <p className="text-sm text-gray-400 leading-relaxed whitespace-pre-line">{lesson.overview}</p>
+                <GlossaryHighlighter text={lesson.overview} className="text-sm text-gray-400 leading-relaxed whitespace-pre-line" />
 
                 <div>
                   <h4 className="text-xs font-semibold text-blue-300 uppercase tracking-wider mb-2">Key Patterns</h4>
@@ -206,9 +207,7 @@ function TopicCard({ lesson, language, setLanguage }: {
               <div>
                 {lesson.memorization ? (
                   <div className="bg-gray-800/40 border border-gray-700/40 rounded-md p-4">
-                    <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-line font-mono">
-                      {lesson.memorization}
-                    </p>
+                    <GlossaryHighlighter text={lesson.memorization!} className="text-sm text-gray-300 leading-relaxed whitespace-pre-line font-mono" />
                   </div>
                 ) : (
                   <p className="text-sm text-gray-500 italic">Memorization techniques coming soon for this topic.</p>
@@ -269,9 +268,7 @@ function AllMnemonics() {
                     className="bg-gray-800/40 border border-gray-700/40 rounded-lg p-4 scroll-mt-4"
                   >
                     <h3 className="text-sm font-bold text-gray-300 mb-2">{lesson.topic}</h3>
-                    <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-line font-mono">
-                      {lesson.memorization}
-                    </p>
+                    <GlossaryHighlighter text={lesson.memorization!} className="text-sm text-gray-300 leading-relaxed whitespace-pre-line font-mono" />
                   </div>
                 );
               })}
