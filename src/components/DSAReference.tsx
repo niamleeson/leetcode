@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { lessons, TopicLesson } from '../data/lessons';
+import { useLocalStorage } from '../hooks/useLocalStorage';
 import CodeBlock from './CodeBlock';
 
 const DSA_CATEGORIES = [
@@ -42,9 +43,45 @@ const DSA_CATEGORIES = [
   },
 ];
 
-function TopicCard({ lesson }: { lesson: TopicLesson }) {
+function LanguageToggle({ language, setLanguage }: {
+  language: 'python' | 'javascript';
+  setLanguage: (lang: 'python' | 'javascript') => void;
+}) {
+  return (
+    <div className="inline-flex rounded-md bg-gray-800 p-0.5">
+      <button
+        onClick={() => setLanguage('python')}
+        className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
+          language === 'python'
+            ? 'bg-blue-600 text-white'
+            : 'text-gray-400 hover:text-gray-200'
+        }`}
+      >
+        Python
+      </button>
+      <button
+        onClick={() => setLanguage('javascript')}
+        className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
+          language === 'javascript'
+            ? 'bg-yellow-600 text-white'
+            : 'text-gray-400 hover:text-gray-200'
+        }`}
+      >
+        JavaScript
+      </button>
+    </div>
+  );
+}
+
+function TopicCard({ lesson, language, setLanguage }: {
+  lesson: TopicLesson;
+  language: 'python' | 'javascript';
+  setLanguage: (lang: 'python' | 'javascript') => void;
+}) {
   const [expanded, setExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'template' | 'memorization'>('overview');
+
+  const showJs = language === 'javascript' && lesson.jsTemplate;
 
   return (
     <div className="bg-gray-900 border border-gray-800 rounded-lg overflow-hidden">
@@ -138,8 +175,21 @@ function TopicCard({ lesson }: { lesson: TopicLesson }) {
 
             {activeTab === 'template' && (
               <div>
-                <h4 className="text-xs font-semibold text-blue-300 uppercase tracking-wider mb-2">Python Templates</h4>
-                <CodeBlock code={lesson.template} />
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-xs font-semibold text-blue-300 uppercase tracking-wider">
+                    {showJs ? 'JavaScript' : 'Python'} Templates
+                  </h4>
+                  <LanguageToggle language={language} setLanguage={setLanguage} />
+                </div>
+                <CodeBlock
+                  code={showJs ? lesson.jsTemplate! : lesson.template}
+                  language={showJs ? 'javascript' : 'python'}
+                />
+                {language === 'javascript' && !lesson.jsTemplate && (
+                  <p className="text-xs text-yellow-500/70 mt-2 italic">
+                    JavaScript template not available for this topic. Showing Python.
+                  </p>
+                )}
               </div>
             )}
 
@@ -164,23 +214,20 @@ function TopicCard({ lesson }: { lesson: TopicLesson }) {
 }
 
 export default function DSAReference() {
-  const [expandAll, setExpandAll] = useState(false);
+  const [language, setLanguage] = useLocalStorage<'python' | 'javascript'>('lc-language', 'python');
 
   return (
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-white">DSA Reference Guide</h1>
-        <p className="text-gray-400 mt-1 text-sm">
-          All data structures, algorithms, and concurrency patterns with templates, intuition, and memorization techniques.
-        </p>
-        <div className="mt-3 flex gap-2">
-          <button
-            onClick={() => setExpandAll(!expandAll)}
-            className="text-xs px-3 py-1.5 rounded bg-gray-800 text-gray-300 hover:bg-gray-700 transition-colors"
-          >
-            {expandAll ? 'Collapse All' : 'Expand All'}
-          </button>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-white">DSA Reference Guide</h1>
+            <p className="text-gray-400 mt-1 text-sm">
+              All data structures, algorithms, and concurrency patterns with templates, intuition, and memorization techniques.
+            </p>
+          </div>
+          <LanguageToggle language={language} setLanguage={setLanguage} />
         </div>
       </div>
 
@@ -217,7 +264,14 @@ export default function DSAReference() {
             {category.topics.map(topicName => {
               const lesson = lessons[topicName];
               if (!lesson) return null;
-              return <TopicCard key={topicName} lesson={lesson} />;
+              return (
+                <TopicCard
+                  key={topicName}
+                  lesson={lesson}
+                  language={language}
+                  setLanguage={setLanguage}
+                />
+              );
             })}
           </div>
         </div>

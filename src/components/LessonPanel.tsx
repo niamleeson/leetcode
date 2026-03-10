@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { lessons } from '../data/lessons';
+import { useLocalStorage } from '../hooks/useLocalStorage';
 import CodeBlock from './CodeBlock';
 
 interface LessonPanelProps {
@@ -9,8 +10,11 @@ interface LessonPanelProps {
 export default function LessonPanel({ topic }: LessonPanelProps) {
   const lesson = lessons[topic];
   const [expanded, setExpanded] = useState(true);
+  const [language, setLanguage] = useLocalStorage<'python' | 'javascript'>('lc-language', 'python');
 
   if (!lesson) return null;
+
+  const showJs = language === 'javascript' && lesson.jsTemplate;
 
   return (
     <div className="bg-gray-900 border border-blue-900/40 rounded-lg overflow-hidden">
@@ -55,8 +59,42 @@ export default function LessonPanel({ topic }: LessonPanelProps) {
 
           {/* Code Template */}
           <div>
-            <h4 className="text-sm font-semibold text-blue-300 mb-2">Python Template</h4>
-            <CodeBlock code={lesson.template} />
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="text-sm font-semibold text-blue-300">
+                {showJs ? 'JavaScript' : 'Python'} Template
+              </h4>
+              <div className="inline-flex rounded-md bg-gray-800 p-0.5">
+                <button
+                  onClick={() => setLanguage('python')}
+                  className={`px-2.5 py-1 text-xs font-medium rounded transition-colors ${
+                    language === 'python'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-400 hover:text-gray-200'
+                  }`}
+                >
+                  Python
+                </button>
+                <button
+                  onClick={() => setLanguage('javascript')}
+                  className={`px-2.5 py-1 text-xs font-medium rounded transition-colors ${
+                    language === 'javascript'
+                      ? 'bg-yellow-600 text-white'
+                      : 'text-gray-400 hover:text-gray-200'
+                  }`}
+                >
+                  JavaScript
+                </button>
+              </div>
+            </div>
+            <CodeBlock
+              code={showJs ? lesson.jsTemplate! : lesson.template}
+              language={showJs ? 'javascript' : 'python'}
+            />
+            {language === 'javascript' && !lesson.jsTemplate && (
+              <p className="text-xs text-yellow-500/70 mt-2 italic">
+                JavaScript template not available. Showing Python.
+              </p>
+            )}
           </div>
 
           {/* Complexity */}
