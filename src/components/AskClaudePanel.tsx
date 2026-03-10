@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useGlossary } from '../hooks/useGlossary';
 
 const API_URL = 'http://localhost:3456/api/ask';
@@ -7,9 +7,10 @@ interface AskClaudePanelProps {
   highlighted: string;
   position: { top: number; left: number } | null;
   onClose: () => void;
+  onLoadingChange?: (loading: boolean) => void;
 }
 
-export default function AskClaudePanel({ highlighted, position, onClose }: AskClaudePanelProps) {
+export default function AskClaudePanel({ highlighted, position, onClose, onLoadingChange }: AskClaudePanelProps) {
   const [question, setQuestion] = useState('');
   const [answer, setAnswer] = useState('');
   const [loading, setLoading] = useState(false);
@@ -17,6 +18,14 @@ export default function AskClaudePanel({ highlighted, position, onClose }: AskCl
   const { addEntry } = useGlossary();
   const panelRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const loadingRef = useRef(false);
+
+  // Keep ref in sync so event handlers see latest value
+  loadingRef.current = loading;
+
+  useEffect(() => {
+    onLoadingChange?.(loading);
+  }, [loading, onLoadingChange]);
 
   useEffect(() => {
     setQuestion('');
@@ -25,25 +34,38 @@ export default function AskClaudePanel({ highlighted, position, onClose }: AskCl
     setTimeout(() => inputRef.current?.focus(), 50);
   }, [highlighted]);
 
-  // Close on click outside
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
-        onClose();
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+  const safeClose = useCallback(() => {
+    if (!loadingRef.current) onClose();
   }, [onClose]);
 
-  // Close on Escape
+  // Close on click outside — but NOT while loading
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (loadingRef.current) return;
+      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
+        const selection = window.getSelection()?.toString().trim();
+        if (!selection || selection.length < 2) {
+          onClose();
+        }
+      }
+    };
+    const timer = setTimeout(() => {
+      document.addEventListener('mouseup', handleClickOutside);
+    }, 150);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('mouseup', handleClickOutside);
+    };
+  }, [onClose]);
+
+  // Close on Escape — but NOT while loading
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') safeClose();
     };
     document.addEventListener('keydown', handleKey);
     return () => document.removeEventListener('keydown', handleKey);
-  }, [onClose]);
+  }, [safeClose]);
 
   const handleSubmit = async () => {
     if (!question.trim()) return;
@@ -91,8 +113,17 @@ export default function AskClaudePanel({ highlighted, position, onClose }: AskCl
     >
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-gray-800">
-        <span className="text-xs font-medium text-gray-400">Ask Claude</span>
-        <button onClick={onClose} className="text-gray-500 hover:text-gray-300 text-sm">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-medium text-gray-400">Ask Claude</span>
+          {loading && (
+            <span className="inline-block w-2 h-2 bg-blue-400 rounded-full animate-pulse" />
+          )}
+        </div>
+        <button
+          onClick={safeClose}
+          disabled={loading}
+          className="text-gray-500 hover:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed text-sm"
+        >
           &times;
         </button>
       </div>
@@ -116,7 +147,9 @@ export default function AskClaudePanel({ highlighted, position, onClose }: AskCl
           disabled={loading}
         />
         <div className="flex items-center justify-between mt-2">
-          <span className="text-xs text-gray-600">{loading ? '' : 'Cmd+Enter to submit'}</span>
+          <span className="text-xs text-gray-600">
+            {loading ? 'Waiting for Claude...' : 'Cmd+Enter to submit'}
+          </span>
           <button
             onClick={handleSubmit}
             disabled={loading || !question.trim()}
@@ -126,6 +159,20 @@ export default function AskClaudePanel({ highlighted, position, onClose }: AskCl
           </button>
         </div>
       </div>
+
+      {/* Loading indicator */}
+      {loading && (
+        <div className="px-3 pb-3">
+          <div className="bg-gray-800/60 border border-gray-700/50 rounded-md p-3 flex items-center gap-2">
+            <div className="flex gap-1">
+              <span className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+              <span className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+              <span className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+            </div>
+            <span className="text-xs text-gray-500">Claude is thinking...</span>
+          </div>
+        </div>
+      )}
 
       {/* Answer */}
       {answer && (

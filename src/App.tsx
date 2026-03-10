@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAppStore } from './store/useStore';
 import Sidebar from './components/Sidebar';
@@ -29,6 +29,7 @@ export default function App() {
   const store = useAppStore();
   const [highlighted, setHighlighted] = useState('');
   const [panelPos, setPanelPos] = useState<{ top: number; left: number } | null>(null);
+  const panelLockedRef = useRef(false);
 
   const handleClose = useCallback(() => {
     setHighlighted('');
@@ -37,6 +38,9 @@ export default function App() {
 
   useEffect(() => {
     const handleMouseUp = () => {
+      // Don't replace panel while a request is pending
+      if (panelLockedRef.current) return;
+
       const selection = window.getSelection();
       const text = selection?.toString().trim();
 
@@ -55,16 +59,23 @@ export default function App() {
       if (!range) return;
 
       const rect = range.getBoundingClientRect();
+
+      // Position panel near the selection using viewport-relative coords
+      // (panel uses position: fixed, so we use viewport coords directly)
       const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
 
-      // Position: try to place to the right, fall back to below
-      let top = rect.top + window.scrollY;
-      let left = rect.right + 12;
+      let top = rect.bottom + 8;
+      let left = rect.left;
 
-      // If panel would overflow right side, place below
+      // If panel would overflow right side, clamp it
       if (left + 384 > viewportWidth) {
-        top = rect.bottom + window.scrollY + 8;
-        left = Math.max(16, Math.min(rect.left, viewportWidth - 400));
+        left = Math.max(16, viewportWidth - 400);
+      }
+
+      // If panel would overflow bottom, place above the selection
+      if (top + 300 > viewportHeight) {
+        top = Math.max(8, rect.top - 300);
       }
 
       setHighlighted(text);
@@ -138,6 +149,7 @@ export default function App() {
             highlighted={highlighted}
             position={panelPos}
             onClose={handleClose}
+            onLoadingChange={(v) => { panelLockedRef.current = v; }}
           />
         </div>
       )}
