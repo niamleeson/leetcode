@@ -6,8 +6,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const CLAUDE_PATH = '/Users/jaykim/.local/bin/claude';
-
 function timestamp() {
   return new Date().toISOString().replace('T', ' ').replace('Z', '');
 }
@@ -20,19 +18,35 @@ function logError(...args) {
   console.error(`[${timestamp()}] ERROR:`, ...args);
 }
 
-// Build a clean env — strip Claude Code session vars
+// Match creator-recommendation-playground: only strip CLAUDECODE
 function cleanEnv() {
   const env = {};
   for (const [key, val] of Object.entries(process.env)) {
-    if (key === 'CLAUDECODE' || key.startsWith('CLAUDE_')) continue;
+    if (key === 'CLAUDECODE') continue;
     env[key] = val;
   }
   return env;
 }
 
+function callClaude(prompt, model = 'haiku') {
+  return new Promise((resolve, reject) => {
+    execFile('claude', ['-p', prompt, '--model', model], {
+      env: cleanEnv(),
+      timeout: 120000,
+      maxBuffer: 1024 * 1024,
+    }, (error, stdout, stderr) => {
+      if (error) {
+        reject(new Error(stderr?.trim() || `exit ${error.code}`));
+      } else {
+        resolve(stdout.trim());
+      }
+    });
+  });
+}
+
 let requestId = 0;
 
-app.post('/api/ask', (req, res) => {
+app.post('/api/ask', async (req, res) => {
   const id = ++requestId;
   const { highlighted, question } = req.body;
 
@@ -47,39 +61,34 @@ app.post('/api/ask', (req, res) => {
 
   const prompt = `The user is studying LeetCode/DSA and highlighted the following text:\n\n"${highlighted}"\n\nTheir question: ${question}\n\nGive a concise, helpful explanation. Keep it under 200 words.`;
 
-  const args = ['-p', prompt, '--model', 'haiku'];
-  log(`[#${id}] Spawning: claude -p "<prompt>" --model haiku`);
+  // Retry logic: 2 attempts with 2s sleep (matches creator-recommendation-playground)
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const startTime = Date.now();
+      log(`[#${id}] Attempt ${attempt + 1}: spawning claude -p "<prompt>" --model haiku`);
 
-  const startTime = Date.now();
+      const answer = await callClaude(prompt, 'haiku');
+      const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
 
-  // execFile is equivalent to Python's subprocess.run(capture_output=True)
-  execFile(CLAUDE_PATH, args, {
-    env: cleanEnv(),
-    timeout: 120000,
-    maxBuffer: 1024 * 1024,
-  }, (error, stdout, stderr) => {
-    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-
-    if (error) {
-      logError(`[#${id}] CLI failed (${elapsed}s): code=${error.code}, signal=${error.signal}, killed=${error.killed}`);
-      if (stderr) logError(`[#${id}] stderr: ${stderr.trim()}`);
-      logError(`[#${id}] error.message: ${error.message}`);
-      return res.status(500).json({
-        error: 'Claude CLI failed',
-        details: stderr?.trim() || error.message,
-      });
+      log(`[#${id}] Success (${elapsed}s), ${answer.length} chars`);
+      log(`[#${id}] Response: "${answer.substring(0, 150)}${answer.length > 150 ? '...' : ''}"`);
+      return res.json({ answer });
+    } catch (e) {
+      logError(`[#${id}] Attempt ${attempt + 1} failed: ${e.message}`);
+      if (attempt === 0) {
+        log(`[#${id}] Retrying in 2s...`);
+        await new Promise(r => setTimeout(r, 2000));
+      }
     }
+  }
 
-    const answer = stdout.trim();
-    log(`[#${id}] Success (${elapsed}s), ${answer.length} chars`);
-    log(`[#${id}] Response: "${answer.substring(0, 150)}${answer.length > 150 ? '...' : ''}"`);
-    res.json({ answer });
-  });
+  logError(`[#${id}] All attempts failed`);
+  res.status(500).json({ error: 'Claude CLI failed after 2 attempts' });
 });
 
 const PORT = 3456;
 app.listen(PORT, () => {
   log(`Claude API server running on http://localhost:${PORT}`);
-  log(`Claude CLI path: ${CLAUDE_PATH}`);
-  log(`Timeout: 120s`);
+  log(`Using: claude -p <prompt> --model haiku`);
+  log(`Timeout: 120s, Retries: 2`);
 });
