@@ -3,7 +3,7 @@ import { useGlossary, GlossaryEntry } from '../hooks/useGlossary';
 
 function GlossaryTooltip({ entry, onClose }: { entry: GlossaryEntry; onClose: () => void }) {
   return (
-    <div className="absolute z-40 w-80 bg-gray-900 border border-gray-700 rounded-lg shadow-xl shadow-black/40 p-3 mt-1">
+    <div className="absolute z-[9999] w-80 bg-gray-900 border border-gray-700 rounded-lg shadow-xl shadow-black/40 p-3 mt-1">
       <div className="flex items-center justify-between mb-2">
         <span className="text-xs font-medium text-blue-400">Glossary: {entry.term}</span>
         <button onClick={onClose} className="text-gray-500 hover:text-gray-300 text-xs">&times;</button>
