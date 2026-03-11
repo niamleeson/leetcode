@@ -351,26 +351,8 @@ function AllMnemonics() {
                       <span className="text-gray-500">{isOpen ? '▾' : '▸'}</span>
                     </button>
                     {isOpen && (
-                      <div className="p-4 pt-0 space-y-3">
-                        {/* General mnemonics */}
-                        {general && (
-                          <MemoAccordion title="General Mnemonics & Patterns" defaultOpen={true}>
-                            <GlossaryHighlighter text={general} className="text-sm text-gray-300 leading-relaxed whitespace-pre-line font-mono" />
-                          </MemoAccordion>
-                        )}
-
-                        {/* Template-by-template */}
-                        {templates.length > 0 && (
-                          <MemoAccordion title="Template-by-Template Memorization" defaultOpen={true}>
-                            <div className="space-y-1">
-                              {templates.map((entry, i) => (
-                                <MemoAccordion key={i} title={entry.name}>
-                                  <pre className="text-xs text-gray-400 leading-relaxed whitespace-pre-wrap font-mono py-2">{entry.body}</pre>
-                                </MemoAccordion>
-                              ))}
-                            </div>
-                          </MemoAccordion>
-                        )}
+                      <div className="p-4 pt-2">
+                        <GlossaryHighlighter text={lesson.memorization!} className="text-sm text-gray-300 leading-relaxed whitespace-pre-line font-mono" />
                       </div>
                     )}
                   </div>
