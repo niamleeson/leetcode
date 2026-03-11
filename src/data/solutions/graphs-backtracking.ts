@@ -40,8 +40,10 @@ Explanation: Digit 2 maps to "abc" and digit 3 maps to "def". All combinations o
         backtrack(0, [])
         return result`,
     jsCode: `var letterCombinations = function(digits) {
+    // Edge case: empty input has no combinations
     if (!digits.length) return [];
 
+    // Map each digit to its phone keypad letters
     const phone = {
         "2": "abc", "3": "def", "4": "ghi", "5": "jkl",
         "6": "mno", "7": "pqrs", "8": "tuv", "9": "wxyz"
@@ -49,13 +51,24 @@ Explanation: Digit 2 maps to "abc" and digit 3 maps to "def". All combinations o
     const result = [];
 
     const backtrack = (index, current) => {
+        // Base case: we have picked one letter for each digit
         if (index === digits.length) {
             result.push(current.join(""));
             return;
         }
-        for (const letter of phone[digits[index]]) {
+
+        // Try every letter mapped to the current digit
+        const currentDigit = digits[index];
+        const letters = phone[currentDigit];
+
+        for (const letter of letters) {
+            // Choose this letter
             current.push(letter);
+
+            // Recurse to pick a letter for the next digit
             backtrack(index + 1, current);
+
+            // Undo the choice (backtrack)
             current.pop();
         }
     };
@@ -63,6 +76,20 @@ Explanation: Digit 2 maps to "abc" and digit 3 maps to "def". All combinations o
     backtrack(0, []);
     return result;
 };`,
+    jsWalkthrough:
+      'digits = "23"\n\n' +
+      'phone["2"] = "abc", phone["3"] = "def"\n\n' +
+      'backtrack(0, [])\n' +
+      '  try letter "a" → current = ["a"]\n' +
+      '    backtrack(1, ["a"])\n' +
+      '      try letter "d" → current = ["a","d"]\n' +
+      '        backtrack(2, ["a","d"]) → index==length → push "ad"\n' +
+      '      pop "d" → try "e" → push "ae" → try "f" → push "af"\n' +
+      '  pop "a" → try letter "b" → current = ["b"]\n' +
+      '    backtrack(1, ["b"]) → push "bd", "be", "bf"\n' +
+      '  pop "b" → try letter "c" → current = ["c"]\n' +
+      '    backtrack(1, ["c"]) → push "cd", "ce", "cf"\n\n' +
+      'result = ["ad","ae","af","bd","be","bf","cd","ce","cf"]',
     explanation: `- phone: dictionary mapping each digit to its corresponding letters.
 - backtrack(index, current): builds a combination character by character.
 - Base case: when index equals the length of digits, the current combination is complete, so join and add to result.
@@ -109,17 +136,30 @@ Explanation: 2 + 2 + 3 = 7 and 7 = 7 are the two combinations that sum to the ta
         return result`,
     jsCode: `var combinationSum = function(candidates, target) {
     const result = [];
+
+    // Sort so we can break early when a candidate exceeds the remaining target
     candidates.sort((a, b) => a - b);
 
     const backtrack = (start, remaining, current) => {
+        // Base case: found a valid combination
         if (remaining === 0) {
             result.push([...current]);
             return;
         }
+
         for (let i = start; i < candidates.length; i++) {
-            if (candidates[i] > remaining) break;
-            current.push(candidates[i]);
-            backtrack(i, remaining - candidates[i], current);
+            const candidate = candidates[i];
+
+            // Since array is sorted, all further candidates are also too large
+            if (candidate > remaining) break;
+
+            // Choose this candidate
+            current.push(candidate);
+
+            // Recurse with same index i (allows reuse of this candidate)
+            backtrack(i, remaining - candidate, current);
+
+            // Undo the choice (backtrack)
             current.pop();
         }
     };
@@ -127,6 +167,23 @@ Explanation: 2 + 2 + 3 = 7 and 7 = 7 are the two combinations that sum to the ta
     backtrack(0, target, []);
     return result;
 };`,
+    jsWalkthrough:
+      'candidates = [2, 3, 6, 7], target = 7\n' +
+      'After sort: [2, 3, 6, 7]\n\n' +
+      'backtrack(0, 7, [])\n' +
+      '  i=0 candidate=2: current=[2], backtrack(0, 5, [2])\n' +
+      '    i=0 candidate=2: current=[2,2], backtrack(0, 3, [2,2])\n' +
+      '      i=0 candidate=2: current=[2,2,2], backtrack(0, 1, [2,2,2])\n' +
+      '        i=0 candidate=2 > remaining=1 → break\n' +
+      '      pop 2 → i=1 candidate=3 > remaining=3? No. current=[2,2,3]\n' +
+      '        backtrack(1, 0, [2,2,3]) → remaining==0 → push [2,2,3]\n' +
+      '      pop 3 → i=2 candidate=6 > 3 → break\n' +
+      '    pop 2 → i=1 candidate=3: current=[2,3], backtrack(1, 2, [2,3])\n' +
+      '      i=1 candidate=3 > remaining=2 → break\n' +
+      '    pop 3 → i=2 candidate=6 > 5 → break\n' +
+      '  pop 2 → ... eventually i=3 candidate=7: current=[7]\n' +
+      '    backtrack(3, 0, [7]) → remaining==0 → push [7]\n\n' +
+      'result = [[2,2,3],[7]]',
     explanation: `- Sort candidates so we can prune early when a candidate exceeds the remaining target.
 - backtrack(start, remaining, current): start prevents revisiting earlier candidates (avoids duplicates), remaining tracks how much more we need, current is the combination being built.
 - Base case: remaining == 0 means we found a valid combination; copy and store it.
@@ -176,18 +233,34 @@ Explanation: Each combination sums to 8, and duplicates like [1, 2, 5] are liste
         return result`,
     jsCode: `var combinationSum2 = function(candidates, target) {
     const result = [];
+
+    // Sort to group duplicates together and enable early pruning
     candidates.sort((a, b) => a - b);
 
     const backtrack = (start, remaining, current) => {
+        // Base case: found a valid combination
         if (remaining === 0) {
             result.push([...current]);
             return;
         }
+
         for (let i = start; i < candidates.length; i++) {
-            if (candidates[i] > remaining) break;
+            const candidate = candidates[i];
+
+            // Prune: sorted array means all remaining candidates are also too large
+            if (candidate > remaining) break;
+
+            // Skip duplicates at the same recursion level to avoid duplicate combinations
+            // i > start ensures we only skip after the first occurrence at this level
             if (i > start && candidates[i] === candidates[i - 1]) continue;
-            current.push(candidates[i]);
-            backtrack(i + 1, remaining - candidates[i], current);
+
+            // Choose this candidate
+            current.push(candidate);
+
+            // Recurse with i+1 (each element used at most once)
+            backtrack(i + 1, remaining - candidate, current);
+
+            // Undo the choice (backtrack)
             current.pop();
         }
     };
@@ -195,6 +268,24 @@ Explanation: Each combination sums to 8, and duplicates like [1, 2, 5] are liste
     backtrack(0, target, []);
     return result;
 };`,
+    jsWalkthrough:
+      'candidates = [10,1,2,7,6,1,5], target = 8\n' +
+      'After sort: [1,1,2,5,6,7,10]\n\n' +
+      'backtrack(0, 8, [])\n' +
+      '  i=0, candidate=1: current=[1], backtrack(1, 7, [1])\n' +
+      '    i=1, candidate=1: current=[1,1], backtrack(2, 6, [1,1])\n' +
+      '      i=2, candidate=2: current=[1,1,2], backtrack(3, 4, [1,1,2])\n' +
+      '        i=3, candidate=5 > 4 → break\n' +
+      '      pop 2 → i=3, candidate=5: current=[1,1,5], remaining=1\n' +
+      '        i=4, candidate=6 > 1 → break\n' +
+      '      pop 5 → i=4, candidate=6: current=[1,1,6]\n' +
+      '        backtrack(5, 0, [1,1,6]) → push [1,1,6]\n' +
+      '    i=2, candidate=2: current=[1,2], backtrack(3, 5, [1,2])\n' +
+      '      i=3, candidate=5: current=[1,2,5]\n' +
+      '        backtrack(4, 0, [1,2,5]) → push [1,2,5]\n' +
+      '    i=3, candidate=5: ... eventually push [1,7] and [2,6]\n\n' +
+      '  i=1, candidate=1: i>start AND candidates[1]==candidates[0] → skip (dedup)\n\n' +
+      'result = [[1,1,6],[1,2,5],[1,7],[2,6]]',
     explanation: `- Sort candidates to group duplicates and enable pruning.
 - The key deduplication line: if i > start and candidates[i] == candidates[i-1], skip. This skips duplicate values at the same branch level while still allowing duplicates in deeper levels.
 - Pass i + 1 (not i) so each element is used at most once.
@@ -243,16 +334,27 @@ Explanation: All 6 permutations of the three distinct numbers are listed.`,
     jsCode: `var permute = function(nums) {
     const result = [];
 
+    // current: the permutation being built
+    // used: set of indices already placed in current
     const backtrack = (current, used) => {
+        // Base case: all elements are placed — full permutation found
         if (current.length === nums.length) {
             result.push([...current]);
             return;
         }
+
         for (let i = 0; i < nums.length; i++) {
+            // Skip indices already in the current permutation
             if (used.has(i)) continue;
+
+            // Choose: mark index as used and place its value
             used.add(i);
             current.push(nums[i]);
+
+            // Recurse to fill the next position
             backtrack(current, used);
+
+            // Undo: remove the value and unmark the index
             current.pop();
             used.delete(i);
         }
@@ -261,6 +363,21 @@ Explanation: All 6 permutations of the three distinct numbers are listed.`,
     backtrack([], new Set());
     return result;
 };`,
+    jsWalkthrough:
+      'nums = [1, 2, 3]\n\n' +
+      'backtrack([], {})\n' +
+      '  i=0: place 1 → current=[1], used={0}\n' +
+      '    i=1: place 2 → current=[1,2], used={0,1}\n' +
+      '      i=2: place 3 → current=[1,2,3], used={0,1,2}\n' +
+      '        length==3 → push [1,2,3]\n' +
+      '      unplace 3\n' +
+      '    unplace 2 → i=2: place 3 → current=[1,3], used={0,2}\n' +
+      '      i=1: place 2 → current=[1,3,2] → push [1,3,2]\n' +
+      '  unplace 1 → i=1: place 2 → current=[2], used={1}\n' +
+      '    i=0: place 1 → current=[2,1] → eventually push [2,1,3]\n' +
+      '    i=2: place 3 → current=[2,3] → eventually push [2,3,1]\n' +
+      '  i=2: place 3 → ... push [3,1,2] and [3,2,1]\n\n' +
+      'result = [[1,2,3],[1,3,2],[2,1,3],[2,3,1],[3,1,2],[3,2,1]]',
     explanation: `- backtrack(current, used): current holds the permutation being built, used tracks which indices have been placed.
 - Base case: when current has the same length as nums, a full permutation is formed; copy and store it.
 - Loop through all indices; skip already-used indices.
@@ -311,27 +428,60 @@ Explanation: Only three unique permutations exist because the two 1s are indisti
         return result`,
     jsCode: `var permuteUnique = function(nums) {
     const result = [];
+
+    // Sort so duplicate values are adjacent — enables deduplication
     nums.sort((a, b) => a - b);
 
-    const backtrack = (current, used) => {
+    // used[i] = true means nums[i] is currently in the permutation being built
+    const used = new Array(nums.length).fill(false);
+
+    const backtrack = (current) => {
+        // Base case: full permutation is complete
         if (current.length === nums.length) {
             result.push([...current]);
             return;
         }
+
         for (let i = 0; i < nums.length; i++) {
+            // Skip if this index is already placed in current
             if (used[i]) continue;
+
+            // Deduplication: if this value equals the previous value AND the
+            // previous was not used at this level, skip to enforce ordering
+            // among duplicates and prevent duplicate permutations
             if (i > 0 && nums[i] === nums[i - 1] && !used[i - 1]) continue;
+
+            // Choose: mark used and place value
             used[i] = true;
             current.push(nums[i]);
-            backtrack(current, used);
+
+            backtrack(current);
+
+            // Undo: unmark and remove value
             current.pop();
             used[i] = false;
         }
     };
 
-    backtrack([], new Array(nums.length).fill(false));
+    backtrack([]);
     return result;
 };`,
+    jsWalkthrough:
+      'nums = [1, 1, 2]\n' +
+      'After sort: [1, 1, 2]  (indices 0,1,2)\n\n' +
+      'backtrack([])\n' +
+      '  i=0: nums[0]=1, used=[F,F,F] → place 1, used=[T,F,F]\n' +
+      '    i=0: used[0]=true → skip\n' +
+      '    i=1: nums[1]=1, nums[0]=1, used[0]=true → NOT skipped (used[i-1] is true)\n' +
+      '          place 1 → current=[1,1], used=[T,T,F]\n' +
+      '      i=2: place 2 → current=[1,1,2] → push [1,1,2]\n' +
+      '    i=2: place 2 → current=[1,2], used=[T,F,T]\n' +
+      '      i=1: nums[1]=1, nums[0]=1, used[0]=true → place 1 → [1,2,1] → push\n' +
+      '  i=1: nums[1]=1, nums[0]=1, used[0]=false → SKIP (dedup)\n' +
+      '  i=2: nums[2]=2 → place 2, used=[F,F,T]\n' +
+      '    i=0: place 1 → current=[2,1], used=[T,F,T]\n' +
+      '      i=1: nums[1]=1, used[0]=true → place 1 → [2,1,1] → push\n\n' +
+      'result = [[1,1,2],[1,2,1],[2,1,1]]',
     explanation: `- Sort nums so duplicates are adjacent, making it easy to detect and skip them.
 - used is a boolean array tracking whether each index is currently in the permutation.
 - The deduplication condition: if nums[i] == nums[i-1] and not used[i-1], skip. This enforces that among duplicates, we always pick them in left-to-right order.
@@ -389,28 +539,43 @@ Explanation: There are exactly two ways to place 4 queens on a 4x4 board so none
         return result`,
     jsCode: `var solveNQueens = function(n) {
     const result = [];
-    const cols = new Set();
-    const posDiag = new Set(); // row + col
-    const negDiag = new Set(); // row - col
 
+    // Track which columns and diagonals are already occupied
+    const cols = new Set();
+    const posDiag = new Set(); // cells on same positive diagonal share row + col
+    const negDiag = new Set(); // cells on same negative diagonal share row - col
+
+    // Initialize an n×n board of empty cells
     const board = Array.from({ length: n }, () => Array(n).fill("."));
 
     const backtrack = (row) => {
+        // Base case: placed a queen in every row — record the solution
         if (row === n) {
-            result.push(board.map(r => r.join("")));
+            const boardSnapshot = board.map(rowArr => rowArr.join(""));
+            result.push(boardSnapshot);
             return;
         }
+
         for (let col = 0; col < n; col++) {
-            if (cols.has(col) || posDiag.has(row + col) || negDiag.has(row - col)) {
+            const isColumnAttacked = cols.has(col);
+            const isPosDiagAttacked = posDiag.has(row + col);
+            const isNegDiagAttacked = negDiag.has(row - col);
+
+            // Skip this column if it is under attack
+            if (isColumnAttacked || isPosDiagAttacked || isNegDiagAttacked) {
                 continue;
             }
+
+            // Place the queen and mark all attacked lines
             cols.add(col);
             posDiag.add(row + col);
             negDiag.add(row - col);
             board[row][col] = "Q";
 
+            // Recurse to place the next row's queen
             backtrack(row + 1);
 
+            // Remove the queen and unmark attacked lines (backtrack)
             board[row][col] = ".";
             cols.delete(col);
             posDiag.delete(row + col);
@@ -421,6 +586,27 @@ Explanation: There are exactly two ways to place 4 queens on a 4x4 board so none
     backtrack(0);
     return result;
 };`,
+    jsWalkthrough:
+      'n = 4\n\n' +
+      'backtrack(row=0)\n' +
+      '  col=0: cols={0}, posDiag={0}, negDiag={0}, board[0][0]="Q"\n' +
+      '    backtrack(row=1)\n' +
+      '      col=0: cols has 0 → skip\n' +
+      '      col=1: negDiag has 1-1=0 → skip\n' +
+      '      col=2: safe → place Q, board[1][2]="Q"\n' +
+      '        backtrack(row=2)\n' +
+      '          col=0: cols has 0 → skip\n' +
+      '          col=1: posDiag has 2+1=3? No. negDiag has 2-1=1? No. cols has 1? No → place\n' +
+      '            backtrack(row=3) → all cols blocked → no solution from here\n' +
+      '          col=2: cols has 2 → skip\n' +
+      '          col=3: negDiag has 2-3=-1? No. posDiag has 2+3=5? No → place\n' +
+      '            backtrack(row=3) → eventually no valid col\n' +
+      '      col=3: safe → place Q, board[1][3]="Q"\n' +
+      '        backtrack(row=2)\n' +
+      '          col=1: safe → place Q, board[2][1]="Q"\n' +
+      '            backtrack(row=3)\n' +
+      '              col=2: safe → place Q → row==4 → push [".Q..","...Q","Q...","..Q."]\n\n' +
+      'result has 2 valid arrangements for n=4',
     explanation: `- Place one queen per row (row by row), so row conflicts are impossible by construction.
 - cols set: tracks which columns are occupied.
 - pos_diag set (row + col): cells on the same positive diagonal share the same row + col value.
@@ -469,14 +655,26 @@ Explanation: All 6 ways to choose 2 numbers from {1, 2, 3, 4} are listed.`,
     const result = [];
 
     const backtrack = (start, current) => {
+        // Base case: picked exactly k numbers — record this combination
         if (current.length === k) {
             result.push([...current]);
             return;
         }
-        // Prune: need k - current.length more numbers, so stop if not enough left
-        for (let i = start; i <= n - (k - current.length) + 1; i++) {
+
+        // Pruning: we need (k - current.length) more numbers.
+        // The largest valid starting point is n - (k - current.length) + 1,
+        // because we need enough numbers remaining to fill the combination.
+        const numbersNeeded = k - current.length;
+        const upperBound = n - numbersNeeded + 1;
+
+        for (let i = start; i <= upperBound; i++) {
+            // Choose number i
             current.push(i);
+
+            // Recurse: next number must be greater than i
             backtrack(i + 1, current);
+
+            // Undo the choice (backtrack)
             current.pop();
         }
     };
@@ -484,6 +682,24 @@ Explanation: All 6 ways to choose 2 numbers from {1, 2, 3, 4} are listed.`,
     backtrack(1, []);
     return result;
 };`,
+    jsWalkthrough:
+      'n = 4, k = 2\n\n' +
+      'backtrack(start=1, current=[])\n' +
+      '  numbersNeeded=2, upperBound=4-2+1=3\n' +
+      '  i=1: current=[1]\n' +
+      '    backtrack(start=2, current=[1])\n' +
+      '      numbersNeeded=1, upperBound=4-1+1=4\n' +
+      '      i=2: current=[1,2] → length==k → push [1,2]\n' +
+      '      i=3: current=[1,3] → push [1,3]\n' +
+      '      i=4: current=[1,4] → push [1,4]\n' +
+      '  i=2: current=[2]\n' +
+      '    backtrack(start=3, current=[2])\n' +
+      '      i=3: push [2,3]\n' +
+      '      i=4: push [2,4]\n' +
+      '  i=3: current=[3]\n' +
+      '    backtrack(start=4, current=[3])\n' +
+      '      i=4: push [3,4]\n\n' +
+      'result = [[1,2],[1,3],[1,4],[2,3],[2,4],[3,4]]',
     explanation: `- backtrack(start, current): start ensures we only pick larger numbers, current holds the partial combination.
 - Base case: when current has k elements, copy and add to result.
 - Pruning optimization: the loop runs from start to n - (k - len(current)) + 2. If there are fewer remaining numbers than needed, we skip those branches entirely.
@@ -526,10 +742,17 @@ Explanation: All 8 subsets of {1, 2, 3} are listed, including the empty set and 
     const result = [];
 
     const backtrack = (start, current) => {
+        // Every node in the recursion tree is a valid subset — record it now
         result.push([...current]);
+
         for (let i = start; i < nums.length; i++) {
+            // Choose nums[i] to extend the current subset
             current.push(nums[i]);
+
+            // Recurse: only consider elements after index i
             backtrack(i + 1, current);
+
+            // Undo the choice (backtrack)
             current.pop();
         }
     };
@@ -537,6 +760,23 @@ Explanation: All 8 subsets of {1, 2, 3} are listed, including the empty set and 
     backtrack(0, []);
     return result;
 };`,
+    jsWalkthrough:
+      'nums = [1, 2, 3]\n\n' +
+      'backtrack(0, []) → push []\n' +
+      '  i=0: current=[1] → push [1]\n' +
+      '    backtrack(1, [1]) → push [1]\n' +
+      '    i=1: current=[1,2] → push [1,2]\n' +
+      '      backtrack(2, [1,2])\n' +
+      '      i=2: current=[1,2,3] → push [1,2,3]\n' +
+      '        backtrack(3, [1,2,3]) → start==length, no loop\n' +
+      '      pop 3\n' +
+      '    pop 2 → i=2: current=[1,3] → push [1,3]\n' +
+      '      backtrack(3, [1,3]) → no loop\n' +
+      '    pop 3\n' +
+      '  pop 1 → i=1: current=[2] → push [2]\n' +
+      '    i=2: current=[2,3] → push [2,3]\n' +
+      '  pop 2 → i=2: current=[3] → push [3]\n\n' +
+      'result = [[],[1],[1,2],[1,2,3],[1,3],[2],[2,3],[3]]',
     explanation: `- Unlike combinations, every partial combination is a valid subset, so we add to result at every call (not just at a specific length).
 - backtrack(start, current): start ensures we only consider elements after the last chosen one.
 - At each call, snapshot current into result.
@@ -596,24 +836,31 @@ Explanation: The path A -> B -> C -> C -> E -> D exists by following adjacent ce
     const cols = board[0].length;
 
     const backtrack = (r, c, idx) => {
+        // Base case: matched all characters in word
         if (idx === word.length) return true;
+
+        // Out of bounds or character mismatch — this path fails
         if (r < 0 || r >= rows || c < 0 || c >= cols || board[r][c] !== word[idx]) {
             return false;
         }
 
-        const temp = board[r][c];
-        board[r][c] = "#"; // mark visited
+        // Mark this cell as visited by replacing with a sentinel
+        const originalChar = board[r][c];
+        board[r][c] = "#";
 
-        const found =
-            backtrack(r + 1, c, idx + 1) ||
-            backtrack(r - 1, c, idx + 1) ||
-            backtrack(r, c + 1, idx + 1) ||
-            backtrack(r, c - 1, idx + 1);
+        // Explore all four directions for the next character
+        const foundDown  = backtrack(r + 1, c, idx + 1);
+        const foundUp    = backtrack(r - 1, c, idx + 1);
+        const foundRight = backtrack(r, c + 1, idx + 1);
+        const foundLeft  = backtrack(r, c - 1, idx + 1);
 
-        board[r][c] = temp; // restore
-        return found;
+        // Restore the cell so other paths can use it
+        board[r][c] = originalChar;
+
+        return foundDown || foundUp || foundRight || foundLeft;
     };
 
+    // Try starting the word search from every cell
     for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
             if (backtrack(r, c, 0)) return true;
@@ -621,6 +868,20 @@ Explanation: The path A -> B -> C -> C -> E -> D exists by following adjacent ce
     }
     return false;
 };`,
+    jsWalkthrough:
+      'board = [["A","B","C","E"],\n' +
+      '         ["S","F","C","S"],\n' +
+      '         ["A","D","E","E"]], word = "ABCCED"\n\n' +
+      'Scan cells until (r=0,c=0): board[0][0]="A" == word[0]="A"\n' +
+      'backtrack(0, 0, 0): match "A", mark "#"\n' +
+      '  backtrack(0, 1, 1): board[0][1]="B" == word[1]="B", mark "#"\n' +
+      '    backtrack(0, 2, 2): board[0][2]="C" == word[2]="C", mark "#"\n' +
+      '      backtrack(1, 2, 3): board[1][2]="C" == word[3]="C", mark "#"\n' +
+      '        backtrack(2, 2, 4): board[2][2]="E" == word[4]="E", mark "#"\n' +
+      '          backtrack(2, 1, 5): board[2][1]="D" == word[5]="D", mark "#"\n' +
+      '            backtrack(_, _, 6): idx==word.length → return true\n\n' +
+      'Path found: A(0,0)→B(0,1)→C(0,2)→C(1,2)→E(2,2)→D(2,1)\n' +
+      'return true',
     explanation: `- Try starting the search from every cell in the grid.
 - backtrack(r, c, idx): checks if we can match word[idx:] starting from cell (r, c).
 - Base case: idx == len(word) means the entire word has been matched.
@@ -667,14 +928,25 @@ Explanation: Unlike the basic subsets problem, the duplicate 2s require deduplic
         return result`,
     jsCode: `var subsetsWithDup = function(nums) {
     const result = [];
+
+    // Sort so duplicate values are adjacent — makes deduplication easy
     nums.sort((a, b) => a - b);
 
     const backtrack = (start, current) => {
+        // Every partial state is a valid subset — record it immediately
         result.push([...current]);
+
         for (let i = start; i < nums.length; i++) {
+            // Skip duplicates at the same recursion level.
+            // i > start means we already branched with this value at this level.
             if (i > start && nums[i] === nums[i - 1]) continue;
+
+            // Choose nums[i] and extend the current subset
             current.push(nums[i]);
+
             backtrack(i + 1, current);
+
+            // Undo the choice (backtrack)
             current.pop();
         }
     };
@@ -682,6 +954,23 @@ Explanation: Unlike the basic subsets problem, the duplicate 2s require deduplic
     backtrack(0, []);
     return result;
 };`,
+    jsWalkthrough:
+      'nums = [1, 2, 2]\n' +
+      'After sort: [1, 2, 2]\n\n' +
+      'backtrack(0, []) → push []\n' +
+      '  i=0: current=[1] → push [1]\n' +
+      '    backtrack(1, [1]) → push [1]\n' +
+      '    i=1: current=[1,2] → push [1,2]\n' +
+      '      backtrack(2, [1,2]) → push [1,2]\n' +
+      '      i=2: nums[2]=2, nums[1]=2, i>start → SKIP (dedup)\n' +
+      '    pop 2 → i=2: i>start? 2>1=yes, nums[2]==nums[1]=2 → SKIP\n' +
+      '  pop 1\n' +
+      '  i=1: current=[2] → push [2]\n' +
+      '    backtrack(2, [2]) → push [2]\n' +
+      '    i=2: current=[2,2] → push [2,2]\n' +
+      '      backtrack(3) → no loop\n' +
+      '  pop 2 → i=2: i>start? 2>0=yes, nums[2]==nums[1]=2 → SKIP\n\n' +
+      'result = [[],[1],[1,2],[1,2,2],[2],[2,2]]',
     explanation: `- Sort nums so duplicates are adjacent.
 - The deduplication line: if i > start and nums[i] == nums[i-1], skip. This prevents choosing the same value more than once at the same recursion level.
 - Note: i > start (not i > 0) ensures we only skip duplicates within the same branching level, not across different levels.
@@ -730,8 +1019,11 @@ Explanation: Both partitions consist entirely of palindromic substrings.`,
     jsCode: `var partition = function(s) {
     const result = [];
 
+    // Check if a substring reads the same forwards and backwards
     const isPalindrome = (sub) => {
-        let left = 0, right = sub.length - 1;
+        let left = 0;
+        let right = sub.length - 1;
+
         while (left < right) {
             if (sub[left] !== sub[right]) return false;
             left++;
@@ -740,13 +1032,20 @@ Explanation: Both partitions consist entirely of palindromic substrings.`,
         return true;
     };
 
+    // start: index where the next partition begins
+    // current: list of palindrome substrings chosen so far
     const backtrack = (start, current) => {
+        // Base case: consumed the entire string — all parts are palindromes
         if (start === s.length) {
             result.push([...current]);
             return;
         }
+
+        // Try every possible end point for the next partition
         for (let end = start + 1; end <= s.length; end++) {
             const substring = s.slice(start, end);
+
+            // Only recurse if this prefix is a palindrome
             if (isPalindrome(substring)) {
                 current.push(substring);
                 backtrack(end, current);
@@ -758,6 +1057,26 @@ Explanation: Both partitions consist entirely of palindromic substrings.`,
     backtrack(0, []);
     return result;
 };`,
+    jsWalkthrough:
+      's = "aab"\n\n' +
+      'backtrack(0, [])\n' +
+      '  end=1: substring="a" → isPalindrome("a")=true\n' +
+      '    current=["a"], backtrack(1, ["a"])\n' +
+      '      end=2: substring="a" → isPalindrome=true\n' +
+      '        current=["a","a"], backtrack(2, ["a","a"])\n' +
+      '          end=3: substring="b" → isPalindrome=true\n' +
+      '            current=["a","a","b"], backtrack(3)\n' +
+      '              start==s.length → push ["a","a","b"]\n' +
+      '          pop "b"\n' +
+      '        pop "a"\n' +
+      '      end=3: substring="ab" → isPalindrome("ab")=false → skip\n' +
+      '    pop "a"\n' +
+      '  end=2: substring="aa" → isPalindrome("aa")=true\n' +
+      '    current=["aa"], backtrack(2, ["aa"])\n' +
+      '      end=3: substring="b" → isPalindrome=true\n' +
+      '        current=["aa","b"], backtrack(3) → push ["aa","b"]\n' +
+      '  end=3: substring="aab" → isPalindrome=false → skip\n\n' +
+      'result = [["a","a","b"],["aa","b"]]',
     explanation: `- is_palindrome checks if a substring reads the same forwards and backwards.
 - backtrack(start, current): start is the index where the next partition begins, current holds the substrings chosen so far.
 - Base case: start == len(s) means the entire string is partitioned; save a copy.
@@ -806,17 +1125,31 @@ Explanation: 1 + 2 + 4 = 7. No other combination of three distinct digits (1-9) 
     jsCode: `var combinationSum3 = function(k, n) {
     const result = [];
 
+    // start: smallest digit we can still pick (1–9, no repeats)
+    // remaining: how much more we need the chosen digits to sum to
+    // current: digits chosen so far
     const backtrack = (start, remaining, current) => {
+        // Base case: we have exactly k digits chosen
         if (current.length === k) {
+            // Valid only if they also sum to the target n
             if (remaining === 0) {
                 result.push([...current]);
             }
             return;
         }
+
         for (let i = start; i <= 9; i++) {
+            // Since digits are tried in increasing order, once i > remaining
+            // all further digits are also too large — prune the search
             if (i > remaining) break;
+
+            // Choose digit i
             current.push(i);
+
+            // Recurse with next digit starting at i+1 (each digit used once)
             backtrack(i + 1, remaining - i, current);
+
+            // Undo the choice (backtrack)
             current.pop();
         }
     };
@@ -824,6 +1157,25 @@ Explanation: 1 + 2 + 4 = 7. No other combination of three distinct digits (1-9) 
     backtrack(1, n, []);
     return result;
 };`,
+    jsWalkthrough:
+      'k = 3, n = 7\n\n' +
+      'backtrack(1, 7, [])\n' +
+      '  i=1: current=[1], backtrack(2, 6, [1])\n' +
+      '    i=2: current=[1,2], backtrack(3, 4, [1,2])\n' +
+      '      i=3: current=[1,2,3], length==k, remaining=4-3=1 ≠ 0 → no push\n' +
+      '      i=4: current=[1,2,4], length==k, remaining=4-4=0 → push [1,2,4]\n' +
+      '      i=5: current=[1,2,5], remaining=4-5<0? No: 5>4 → break\n' +
+      '    i=3: current=[1,3], backtrack(4, 3, [1,3])\n' +
+      '      i=4: 4>3 → break\n' +
+      '    i=4: current=[1,4], backtrack(5, 2, [1,4])\n' +
+      '      i=5: 5>2 → break\n' +
+      '    ...\n' +
+      '  i=2: current=[2], backtrack(3, 5, [2])\n' +
+      '    i=3: current=[2,3], backtrack(4, 2, [2,3])\n' +
+      '      i=4: 4>2 → break\n' +
+      '    ...\n' +
+      '  (continuing through all combinations...)\n\n' +
+      'result = [[1,2,4]]',
     explanation: `- backtrack(start, remaining, current): start ensures digits are in increasing order, remaining tracks the sum still needed, current holds the chosen digits.
 - Base case: when current has k elements, check if remaining is 0 (valid combination) and return either way.
 - Loop from start to 9: if i > remaining, break early (remaining digits are even larger).
@@ -890,31 +1242,46 @@ Explanation: "hit" -> "hot" -> "dot" -> "dog" -> "cog" is the shortest transform
         return 0`,
     jsCode: `var ladderLength = function(beginWord, endWord, wordList) {
     const wordSet = new Set(wordList);
+
+    // If endWord is not in the dictionary, transformation is impossible
     if (!wordSet.has(endWord)) return 0;
 
-    // Build pattern -> words mapping
+    // Build a map from wildcard pattern -> list of words matching that pattern
+    // e.g., "h*t" -> ["hit", "hot"]
     const neighbors = new Map();
     wordSet.add(beginWord);
+
     for (const word of wordSet) {
         for (let i = 0; i < word.length; i++) {
             const pattern = word.slice(0, i) + "*" + word.slice(i + 1);
-            if (!neighbors.has(pattern)) neighbors.set(pattern, []);
+
+            if (!neighbors.has(pattern)) {
+                neighbors.set(pattern, []);
+            }
             neighbors.get(pattern).push(word);
         }
     }
 
+    // BFS: each level represents one transformation step
     const visited = new Set([beginWord]);
     const queue = [beginWord];
     let level = 1;
 
     while (queue.length > 0) {
-        const size = queue.length;
-        for (let q = 0; q < size; q++) {
-            const word = queue.shift();
-            if (word === endWord) return level;
-            for (let i = 0; i < word.length; i++) {
-                const pattern = word.slice(0, i) + "*" + word.slice(i + 1);
-                for (const neighbor of (neighbors.get(pattern) || [])) {
+        const levelSize = queue.length;
+
+        for (let q = 0; q < levelSize; q++) {
+            const currentWord = queue.shift();
+
+            // Reached the target — return the sequence length
+            if (currentWord === endWord) return level;
+
+            // Generate all wildcard patterns for this word
+            for (let i = 0; i < currentWord.length; i++) {
+                const pattern = currentWord.slice(0, i) + "*" + currentWord.slice(i + 1);
+                const wordNeighbors = neighbors.get(pattern) || [];
+
+                for (const neighbor of wordNeighbors) {
                     if (!visited.has(neighbor)) {
                         visited.add(neighbor);
                         queue.push(neighbor);
@@ -922,11 +1289,38 @@ Explanation: "hit" -> "hot" -> "dot" -> "dog" -> "cog" is the shortest transform
                 }
             }
         }
+
         level++;
     }
 
     return 0;
 };`,
+    jsWalkthrough:
+      'beginWord="hit", endWord="cog"\n' +
+      'wordList=["hot","dot","dog","lot","log","cog"]\n\n' +
+      'Pattern map (sample entries):\n' +
+      '  "*it" → ["hit"]\n' +
+      '  "h*t" → ["hit","hot"]\n' +
+      '  "ho*" → ["hot"]\n' +
+      '  "*og" → ["dog","log","cog"]  etc.\n\n' +
+      'BFS level 1: queue=["hit"], level=1\n' +
+      '  "hit" → patterns: "*it","h*t","hi*"\n' +
+      '    "h*t" neighbors: ["hit","hot"] → "hot" unvisited → enqueue\n' +
+      '  level++ → 2\n\n' +
+      'BFS level 2: queue=["hot"], level=2\n' +
+      '  "hot" → patterns: "*ot","h*t","ho*"\n' +
+      '    "*ot" neighbors: ["hot","dot","lot"] → enqueue "dot","lot"\n' +
+      '  level++ → 3\n\n' +
+      'BFS level 3: queue=["dot","lot"], level=3\n' +
+      '  "dot" → "*ot","d*t","do*"\n' +
+      '    "do*" → ["dot","dog"] → enqueue "dog"\n' +
+      '  "lot" → enqueue "log"\n' +
+      '  level++ → 4\n\n' +
+      'BFS level 4: queue=["dog","log"], level=4\n' +
+      '  "dog" → "*og" → ["dog","log","cog"] → enqueue "cog"\n' +
+      '  level++ → 5\n\n' +
+      'BFS level 5: queue=["cog"], level=5\n' +
+      '  "cog" === endWord → return 5',
     explanation: `- First check if endWord is in the word list; if not, return 0.
 - Build a pattern map: for each word, replace each character with '*' to create a pattern. Words sharing a pattern differ by exactly one character.
 - BFS level by level from beginWord. level counts the number of words in the sequence.
@@ -984,40 +1378,79 @@ Explanation: The 'O' at the bottom border is not surrounded, so it stays. The in
                     board[r][c] = "O"`,
     jsCode: `var solve = function(board) {
     if (!board.length) return;
+
     const rows = board.length;
     const cols = board[0].length;
 
+    // DFS to mark all O's reachable from a border O as safe ("S")
     const dfs = (r, c) => {
+        // Stop if out of bounds or not an O cell
         if (r < 0 || r >= rows || c < 0 || c >= cols || board[r][c] !== "O") {
             return;
         }
-        board[r][c] = "S"; // mark as safe
+
+        // Mark this cell as safe — it touches the border
+        board[r][c] = "S";
+
+        // Spread to all 4 neighbors
         dfs(r + 1, c);
         dfs(r - 1, c);
         dfs(r, c + 1);
         dfs(r, c - 1);
     };
 
-    // Mark border-connected O's as safe
+    // Step 1: mark every border O and all O's connected to it as safe
     for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
-            if ((r === 0 || r === rows - 1 || c === 0 || c === cols - 1) && board[r][c] === "O") {
+            const isOnBorder = (r === 0 || r === rows - 1 || c === 0 || c === cols - 1);
+
+            if (isOnBorder && board[r][c] === "O") {
                 dfs(r, c);
             }
         }
     }
 
-    // Capture surrounded O's and restore safe cells
+    // Step 2: flip remaining O's to X (surrounded), restore S's back to O (safe)
     for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
             if (board[r][c] === "O") {
+                // This O was never reached from a border — it is surrounded
                 board[r][c] = "X";
             } else if (board[r][c] === "S") {
+                // Restore safe cells back to O
                 board[r][c] = "O";
             }
         }
     }
 };`,
+    jsWalkthrough:
+      'board = [["X","X","X","X"],\n' +
+      '         ["X","O","O","X"],\n' +
+      '         ["X","X","O","X"],\n' +
+      '         ["X","O","X","X"]]\n\n' +
+      'Step 1 — scan borders for O cells:\n' +
+      '  r=3,c=1: board[3][1]="O" on bottom border → dfs(3,1)\n' +
+      '    board[3][1]="S" → explore neighbors\n' +
+      '    up: board[2][1]="X" → stop\n' +
+      '    down: out of bounds → stop\n' +
+      '    left: board[3][0]="X" → stop\n' +
+      '    right: board[3][2]="X" → stop\n' +
+      '  No other border O cells.\n\n' +
+      'Board after step 1:\n' +
+      '  [["X","X","X","X"],\n' +
+      '   ["X","O","O","X"],\n' +
+      '   ["X","X","O","X"],\n' +
+      '   ["X","S","X","X"]]\n\n' +
+      'Step 2 — final sweep:\n' +
+      '  board[1][1]="O" → "X"  (surrounded)\n' +
+      '  board[1][2]="O" → "X"  (surrounded)\n' +
+      '  board[2][2]="O" → "X"  (surrounded)\n' +
+      '  board[3][1]="S" → "O"  (border-connected, kept)\n\n' +
+      'Final board:\n' +
+      '  [["X","X","X","X"],\n' +
+      '   ["X","X","X","X"],\n' +
+      '   ["X","X","X","X"],\n' +
+      '   ["X","O","X","X"]]',
     explanation: `- The key insight: instead of finding surrounded regions (complex), find border-connected ones (simple) and protect them.
 - DFS from every 'O' on the border, marking reachable 'O's as 'S' (safe).
 - After marking, sweep the board: 'O' cells not marked safe are surrounded, so flip to 'X'. 'S' cells revert to 'O'.
@@ -1066,16 +1499,27 @@ Explanation: The graph has 4 nodes. Node 1 connects to 2 and 4, node 2 connects 
     jsCode: `var cloneGraph = function(node) {
     if (!node) return null;
 
+    // Maps original node objects to their cloned counterparts
+    // Also serves as the visited set to prevent infinite loops in cycles
     const cloned = new Map();
 
     const dfs = (original) => {
-        if (cloned.has(original)) return cloned.get(original);
+        // If already cloned, return the existing copy (handles cycles)
+        if (cloned.has(original)) {
+            return cloned.get(original);
+        }
 
+        // Create the clone for this node
         const copy = new _Node(original.val);
+
+        // Store the clone BEFORE recursing into neighbors
+        // This breaks cycles: if we visit this node again, we return the clone above
         cloned.set(original, copy);
 
+        // Recursively clone each neighbor and link it to the copy
         for (const neighbor of original.neighbors) {
-            copy.neighbors.push(dfs(neighbor));
+            const clonedNeighbor = dfs(neighbor);
+            copy.neighbors.push(clonedNeighbor);
         }
 
         return copy;
@@ -1083,6 +1527,34 @@ Explanation: The graph has 4 nodes. Node 1 connects to 2 and 4, node 2 connects 
 
     return dfs(node);
 };`,
+    jsWalkthrough:
+      'Graph: 1 -- 2\n' +
+      '       |    |\n' +
+      '       4 -- 3\n' +
+      '(adjList: node1.neighbors=[2,4], node2.neighbors=[1,3], ...)\n\n' +
+      'dfs(node1):\n' +
+      '  cloned has node1? No\n' +
+      '  copy1 = new Node(1)\n' +
+      '  cloned: {node1 → copy1}\n' +
+      '  neighbor = node2 → dfs(node2):\n' +
+      '    copy2 = new Node(2), cloned: {node1→copy1, node2→copy2}\n' +
+      '    neighbor = node1 → dfs(node1): cloned has it → return copy1\n' +
+      '    copy2.neighbors = [copy1]\n' +
+      '    neighbor = node3 → dfs(node3):\n' +
+      '      copy3 = new Node(3), stored in cloned\n' +
+      '      neighbor = node2 → return copy2  (already cloned)\n' +
+      '      neighbor = node4 → dfs(node4):\n' +
+      '        copy4 = new Node(4), stored\n' +
+      '        neighbors: node1→copy1, node3→copy3\n' +
+      '        return copy4\n' +
+      '      copy3.neighbors = [copy2, copy4]\n' +
+      '      return copy3\n' +
+      '    copy2.neighbors = [copy1, copy3]\n' +
+      '    return copy2\n' +
+      '  copy1.neighbors starts with copy2\n' +
+      '  neighbor = node4 → return copy4  (already cloned)\n' +
+      '  copy1.neighbors = [copy2, copy4]\n' +
+      '  return copy1',
     explanation: `- cloned: dictionary mapping original node to its clone, also serving as a visited set.
 - dfs(original): if already cloned, return the existing clone (prevents infinite loops in cycles).
 - Otherwise, create a new Node with the same value, store it in cloned immediately (before recursing, to handle cycles).
@@ -1140,11 +1612,17 @@ Explanation: There are three distinct groups of connected '1's separated by '0's
     const cols = grid[0].length;
     let count = 0;
 
+    // Sink the entire island connected to (r, c) by marking cells as "0"
     const dfs = (r, c) => {
+        // Stop if out of bounds or already water/visited
         if (r < 0 || r >= rows || c < 0 || c >= cols || grid[r][c] !== "1") {
             return;
         }
-        grid[r][c] = "0"; // mark visited
+
+        // Mark this land cell as visited (sink it)
+        grid[r][c] = "0";
+
+        // Flood to all 4 adjacent land cells
         dfs(r + 1, c);
         dfs(r - 1, c);
         dfs(r, c + 1);
@@ -1154,7 +1632,10 @@ Explanation: There are three distinct groups of connected '1's separated by '0's
     for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
             if (grid[r][c] === "1") {
+                // Found an unvisited land cell — this is a new island
                 count++;
+
+                // Sink the entire island so we do not count it again
                 dfs(r, c);
             }
         }
@@ -1162,6 +1643,25 @@ Explanation: There are three distinct groups of connected '1's separated by '0's
 
     return count;
 };`,
+    jsWalkthrough:
+      'grid = [["1","1","0","0","0"],\n' +
+      '        ["1","1","0","0","0"],\n' +
+      '        ["0","0","1","0","0"],\n' +
+      '        ["0","0","0","1","1"]]\n\n' +
+      'r=0,c=0: grid[0][0]="1" → count=1, dfs(0,0)\n' +
+      '  grid[0][0]="0" → dfs(1,0): grid[1][0]="1"\n' +
+      '    grid[1][0]="0" → dfs(2,0): grid[2][0]="0" → stop\n' +
+      '                   → dfs(0,0): "0" → stop\n' +
+      '                   → dfs(1,1): grid[1][1]="1"\n' +
+      '      grid[1][1]="0" → dfs(0,1): grid[0][1]="1"\n' +
+      '        grid[0][1]="0" → all neighbors already "0" or OOB → stop\n' +
+      '      → dfs(2,1): "0" → stop\n' +
+      '  Island 1 fully sunk (cells: (0,0),(0,1),(1,0),(1,1))\n\n' +
+      'r=0–1: remaining cells are "0" → skip\n' +
+      'r=2,c=2: grid[2][2]="1" → count=2, dfs(2,2) → sinks (2,2)\n' +
+      'r=3,c=3: grid[3][3]="1" → count=3, dfs(3,3)\n' +
+      '  grid[3][3]="0" → dfs(3,4): grid[3][4]="1" → sunk\n\n' +
+      'return 3',
     explanation: `- Iterate through every cell. When grid[r][c] == "1", we found a new island.
 - Increment count and run DFS from that cell to "sink" the entire island (set all connected '1's to '0').
 - DFS boundary check: if out of bounds or cell is '0', return immediately.
@@ -1212,7 +1712,10 @@ Explanation: You take course 0 first, then course 1. There is no cycle.`,
 
         return completed == numCourses`,
     jsCode: `var canFinish = function(numCourses, prerequisites) {
+    // Build adjacency list: prereq → [courses that depend on it]
     const graph = new Map();
+
+    // inDegree[i] = number of prerequisites course i still needs
     const inDegree = new Array(numCourses).fill(0);
 
     for (const [course, prereq] of prerequisites) {
@@ -1221,26 +1724,51 @@ Explanation: You take course 0 first, then course 1. There is no cycle.`,
         inDegree[course]++;
     }
 
+    // Start BFS with all courses that have no prerequisites
     const queue = [];
     for (let i = 0; i < numCourses; i++) {
-        if (inDegree[i] === 0) queue.push(i);
+        if (inDegree[i] === 0) {
+            queue.push(i);
+        }
     }
 
     let completed = 0;
 
     while (queue.length > 0) {
-        const node = queue.shift();
+        const course = queue.shift();
         completed++;
-        for (const neighbor of (graph.get(node) || [])) {
-            inDegree[neighbor]--;
-            if (inDegree[neighbor] === 0) {
-                queue.push(neighbor);
+
+        // For each course that depended on this one, reduce its prerequisite count
+        const dependents = graph.get(course) || [];
+        for (const dependent of dependents) {
+            inDegree[dependent]--;
+
+            // If all prerequisites for this course are done, it can be taken now
+            if (inDegree[dependent] === 0) {
+                queue.push(dependent);
             }
         }
     }
 
+    // If every course was completed, there is no cycle
     return completed === numCourses;
 };`,
+    jsWalkthrough:
+      'numCourses=2, prerequisites=[[1,0]]\n\n' +
+      'Build graph: 0 → [1]\n' +
+      'inDegree: [0, 1]  (course 0 has no prereqs, course 1 needs course 0)\n\n' +
+      'Initial queue: [0]  (inDegree[0]==0)\n' +
+      'completed = 0\n\n' +
+      'Iteration 1:\n' +
+      '  dequeue course=0, completed=1\n' +
+      '  dependents of 0: [1]\n' +
+      '    inDegree[1]-- → inDegree[1]=0 → enqueue 1\n' +
+      '  queue=[1]\n\n' +
+      'Iteration 2:\n' +
+      '  dequeue course=1, completed=2\n' +
+      '  dependents of 1: [] → nothing to do\n' +
+      '  queue=[]\n\n' +
+      'completed=2 === numCourses=2 → return true',
     explanation: `- Build a directed graph and compute in-degree for each course.
 - Kahn's algorithm: start BFS with all courses having in-degree 0 (no prerequisites).
 - For each processed course, decrement in-degree of its dependents. If a dependent's in-degree reaches 0, add it to the queue.
@@ -1291,7 +1819,10 @@ Explanation: Course 0 has no prerequisites. Courses 1 and 2 depend on 0. Course 
 
         return order if len(order) == numCourses else []`,
     jsCode: `var findOrder = function(numCourses, prerequisites) {
+    // Build adjacency list: prereq → [courses that require it]
     const graph = new Map();
+
+    // inDegree[i] = number of prerequisites still needed for course i
     const inDegree = new Array(numCourses).fill(0);
 
     for (const [course, prereq] of prerequisites) {
@@ -1300,26 +1831,59 @@ Explanation: Course 0 has no prerequisites. Courses 1 and 2 depend on 0. Course 
         inDegree[course]++;
     }
 
+    // Enqueue all courses that have no prerequisites
     const queue = [];
     for (let i = 0; i < numCourses; i++) {
-        if (inDegree[i] === 0) queue.push(i);
+        if (inDegree[i] === 0) {
+            queue.push(i);
+        }
     }
 
+    // Build the topological order as we process courses
     const order = [];
 
     while (queue.length > 0) {
-        const node = queue.shift();
-        order.push(node);
-        for (const neighbor of (graph.get(node) || [])) {
-            inDegree[neighbor]--;
-            if (inDegree[neighbor] === 0) {
-                queue.push(neighbor);
+        const course = queue.shift();
+
+        // This course is ready to take — add it to the schedule
+        order.push(course);
+
+        // Unlock courses that depended on this one
+        const dependents = graph.get(course) || [];
+        for (const dependent of dependents) {
+            inDegree[dependent]--;
+
+            if (inDegree[dependent] === 0) {
+                queue.push(dependent);
             }
         }
     }
 
+    // A valid order includes all courses; otherwise a cycle exists
     return order.length === numCourses ? order : [];
 };`,
+    jsWalkthrough:
+      'numCourses=4, prerequisites=[[1,0],[2,0],[3,1],[3,2]]\n\n' +
+      'graph: 0→[1,2], 1→[3], 2→[3]\n' +
+      'inDegree: [0, 1, 1, 2]\n' +
+      '  course 0: no prereqs\n' +
+      '  course 1: needs 0\n' +
+      '  course 2: needs 0\n' +
+      '  course 3: needs 1 AND 2\n\n' +
+      'Initial queue: [0]  (only course 0 has inDegree=0)\n\n' +
+      'Iteration 1: dequeue 0 → order=[0]\n' +
+      '  dependent 1: inDegree[1]=1-1=0 → enqueue 1\n' +
+      '  dependent 2: inDegree[2]=1-1=0 → enqueue 2\n' +
+      '  queue=[1,2]\n\n' +
+      'Iteration 2: dequeue 1 → order=[0,1]\n' +
+      '  dependent 3: inDegree[3]=2-1=1 → not 0, do not enqueue\n' +
+      '  queue=[2]\n\n' +
+      'Iteration 3: dequeue 2 → order=[0,1,2]\n' +
+      '  dependent 3: inDegree[3]=1-1=0 → enqueue 3\n' +
+      '  queue=[3]\n\n' +
+      'Iteration 4: dequeue 3 → order=[0,1,2,3]\n' +
+      '  no dependents\n\n' +
+      'order.length=4 === numCourses → return [0,1,2,3]',
     explanation: `- Build the adjacency list and in-degree array from prerequisites.
 - Initialize the queue with all courses having in-degree 0 (no prerequisites needed).
 - Process each course: add to order, then reduce in-degree of dependent courses. If any dependent reaches in-degree 0, add to queue.
@@ -1380,35 +1944,48 @@ Explanation: These cells can reach both the Pacific (top/left) and Atlantic (bot
 
     const rows = heights.length;
     const cols = heights[0].length;
+
+    // Sets of "row,col" strings for cells reachable by each ocean (flowing uphill)
     const pacific = new Set();
     const atlantic = new Set();
 
+    const directions = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+
+    // DFS flowing uphill from an ocean border
+    // A cell is reachable if its height >= the previous cell's height
     const dfs = (r, c, reachable, prevHeight) => {
-        const key = r + "," + c;
-        if (
-            r < 0 || r >= rows || c < 0 || c >= cols ||
-            reachable.has(key) ||
-            heights[r][c] < prevHeight
-        ) {
+        const cellKey = r + "," + c;
+
+        const outOfBounds = r < 0 || r >= rows || c < 0 || c >= cols;
+        const alreadyVisited = reachable.has(cellKey);
+        const flowsDownhill = heights[r][c] < prevHeight;
+
+        if (outOfBounds || alreadyVisited || flowsDownhill) {
             return;
         }
-        reachable.add(key);
-        const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
-        for (const [dr, dc] of dirs) {
-            dfs(r + dr, c + dc, reachable, heights[r][c]);
+
+        // Mark this cell as reachable from this ocean
+        reachable.add(cellKey);
+
+        const currentHeight = heights[r][c];
+        for (const [dr, dc] of directions) {
+            dfs(r + dr, c + dc, reachable, currentHeight);
         }
     };
 
+    // Start DFS from top row and bottom row (Pacific top, Atlantic bottom)
     for (let c = 0; c < cols; c++) {
         dfs(0, c, pacific, 0);
         dfs(rows - 1, c, atlantic, 0);
     }
 
+    // Start DFS from left column and right column (Pacific left, Atlantic right)
     for (let r = 0; r < rows; r++) {
         dfs(r, 0, pacific, 0);
         dfs(r, cols - 1, atlantic, 0);
     }
 
+    // Collect cells that can reach BOTH oceans
     const result = [];
     for (const key of pacific) {
         if (atlantic.has(key)) {
@@ -1418,6 +1995,23 @@ Explanation: These cells can reach both the Pacific (top/left) and Atlantic (bot
     }
     return result;
 };`,
+    jsWalkthrough:
+      'heights = [[1,2,2,3,5],\n' +
+      '            [3,2,3,4,4],\n' +
+      '            [2,4,5,3,1],\n' +
+      '            [6,7,1,4,5],\n' +
+      '            [5,1,1,2,4]]\n\n' +
+      'Pacific border (top row + left col):\n' +
+      '  dfs from (0,0)→(0,1)→...→(0,4) and (1,0)→...→(4,0)\n' +
+      '  Flowing uphill: from (0,4) height=5, can reach (1,4)=4? No (4<5)\n' +
+      '  From (0,3) height=3, can go to (1,3)=4 (4>=3) → pacific includes (1,3)\n' +
+      '    From (1,3)=4, can reach (2,3)=3? No. (1,4)=4? Yes → pacific includes (1,4)\n' +
+      '    From (1,4)=4, (0,4)=5? Yes → (0,4) in pacific\n\n' +
+      'Atlantic border (bottom row + right col):\n' +
+      '  dfs from (4,0)→...→(4,4) and (0,4)→...→(4,4)\n' +
+      '  From (4,0)=5, go to (3,0)=6 (6>=5) → atlantic includes (3,0)\n' +
+      '    From (3,0)=6, go to (3,1)=7 → atlantic includes (3,1) etc.\n\n' +
+      'Intersection (pacific ∩ atlantic) = [[0,4],[1,3],[1,4],[2,2],[3,0],[3,1],[4,0]]',
     explanation: `- Reverse the problem: instead of flowing downhill from each cell, flow uphill from the ocean borders.
 - pacific set: cells that can reach the Pacific (top and left edges).
 - atlantic set: cells that can reach the Atlantic (bottom and right edges).
@@ -1473,32 +2067,72 @@ Explanation: Removing edge [2,3] leaves a valid tree. It is the last edge that, 
 
         return []`,
     jsCode: `var findRedundantConnection = function(edges) {
-    const parent = Array.from({ length: edges.length + 1 }, (_, i) => i);
-    const rank = new Array(edges.length + 1).fill(0);
+    const nodeCount = edges.length + 1;
 
+    // parent[i] = i initially (each node is its own root)
+    const parent = Array.from({ length: nodeCount }, (_, i) => i);
+
+    // rank[i] helps keep the tree shallow during union
+    const rank = new Array(nodeCount).fill(0);
+
+    // Find the root of node x with path compression
     const find = (x) => {
         while (parent[x] !== x) {
-            parent[x] = parent[parent[x]]; // path compression
+            // Path compression: point directly to grandparent
+            parent[x] = parent[parent[x]];
             x = parent[x];
         }
         return x;
     };
 
+    // Merge the sets containing x and y.
+    // Returns false if they are already in the same set (cycle detected).
     const union = (x, y) => {
-        let px = find(x), py = find(y);
-        if (px === py) return false; // already connected -> cycle
-        if (rank[px] < rank[py]) [px, py] = [py, px];
-        parent[py] = px;
-        if (rank[px] === rank[py]) rank[px]++;
+        let rootX = find(x);
+        let rootY = find(y);
+
+        // Already connected — this edge forms a cycle
+        if (rootX === rootY) return false;
+
+        // Union by rank: attach smaller tree under larger tree
+        if (rank[rootX] < rank[rootY]) {
+            const temp = rootX;
+            rootX = rootY;
+            rootY = temp;
+        }
+        parent[rootY] = rootX;
+
+        // If ranks are equal, the new root grows taller
+        if (rank[rootX] === rank[rootY]) {
+            rank[rootX]++;
+        }
+
         return true;
     };
 
     for (const [u, v] of edges) {
+        // The first edge that fails to union is the redundant one
         if (!union(u, v)) return [u, v];
     }
 
     return [];
 };`,
+    jsWalkthrough:
+      'edges = [[1,2],[1,3],[2,3]]\n' +
+      'parent = [0,1,2,3], rank = [0,0,0,0]\n\n' +
+      'Edge [1,2]:\n' +
+      '  find(1)=1, find(2)=2 → different roots → union\n' +
+      '  rank[1]==rank[2]=0 → parent[2]=1, rank[1]=1\n' +
+      '  parent = [0,1,1,3], rank = [0,1,0,0]\n\n' +
+      'Edge [1,3]:\n' +
+      '  find(1)=1, find(3)=3 → different roots → union\n' +
+      '  rank[1]=1 > rank[3]=0 → rootX=1,rootY=3 → parent[3]=1\n' +
+      '  parent = [0,1,1,1], rank = [0,1,0,0]\n\n' +
+      'Edge [2,3]:\n' +
+      '  find(2): parent[2]=1, parent[1]=1 → root=1\n' +
+      '  find(3): parent[3]=1 → root=1\n' +
+      '  rootX==rootY=1 → same set → CYCLE DETECTED\n' +
+      '  return [2,3]',
     explanation: `- Union-Find with path compression and union by rank for near O(1) operations.
 - parent[i]: the parent of node i in the disjoint set forest. Initially, each node is its own parent.
 - find(x): follows parent pointers to the root, compressing the path along the way.
@@ -1547,24 +2181,65 @@ Explanation: The largest island consists of the six 1's connected in the bottom-
     const cols = grid[0].length;
     let maxArea = 0;
 
+    // DFS returns the total area of the island connected to (r, c)
     const dfs = (r, c) => {
+        // Base case: out of bounds or water — contributes 0 area
         if (r < 0 || r >= rows || c < 0 || c >= cols || grid[r][c] !== 1) {
             return 0;
         }
-        grid[r][c] = 0; // mark visited
-        return 1 + dfs(r + 1, c) + dfs(r - 1, c) + dfs(r, c + 1) + dfs(r, c - 1);
+
+        // Mark this cell as visited by sinking it to water
+        grid[r][c] = 0;
+
+        // This cell counts as 1, plus the area from all 4 directions
+        const downArea  = dfs(r + 1, c);
+        const upArea    = dfs(r - 1, c);
+        const rightArea = dfs(r, c + 1);
+        const leftArea  = dfs(r, c - 1);
+
+        return 1 + downArea + upArea + rightArea + leftArea;
     };
 
     for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
             if (grid[r][c] === 1) {
-                maxArea = Math.max(maxArea, dfs(r, c));
+                // Compute area of this island and track the maximum
+                const islandArea = dfs(r, c);
+                maxArea = Math.max(maxArea, islandArea);
             }
         }
     }
 
     return maxArea;
 };`,
+    jsWalkthrough:
+      'grid = [[0,0,1,0,0],\n' +
+      '        [0,0,0,0,0],\n' +
+      '        [0,1,1,0,1],\n' +
+      '        [0,1,0,0,1],\n' +
+      '        [0,1,1,1,1]]\n\n' +
+      'Scanning... r=0,c=2: grid[0][2]=1 → dfs(0,2)\n' +
+      '  grid[0][2]=0 → explore 4 dirs\n' +
+      '  all neighbors are 0 or OOB → return 1\n' +
+      '  maxArea = max(0, 1) = 1\n\n' +
+      'r=2,c=1: grid[2][1]=1 → dfs(2,1)\n' +
+      '  grid[2][1]=0\n' +
+      '  down: dfs(3,1): grid[3][1]=1 → grid[3][1]=0\n' +
+      '    down: dfs(4,1): grid[4][1]=1 → grid[4][1]=0\n' +
+      '      down: OOB\n' +
+      '      up: grid[3][1]=0 → 0\n' +
+      '      right: dfs(4,2): grid[4][2]=1 → grid[4][2]=0\n' +
+      '        right: dfs(4,3): grid[4][3]=1 → grid[4][3]=0\n' +
+      '          right: dfs(4,4): grid[4][4]=1 → grid[4][4]=0 → return 1\n' +
+      '          return 1+1=2\n' +
+      '        return 1+2=3\n' +
+      '      return 1+3=4\n' +
+      '    return 1+4=5\n' +
+      '  up: grid[1][1]=0 → 0\n' +
+      '  right: dfs(2,2): grid[2][2]=1 → grid[2][2]=0 → returns 1\n' +
+      '  return 1+5+0+1+0 = 7? Let me recount: 1(self)+5(down)+0(up)+1(right)+0(left)=7\n\n' +
+      'maxArea = max(1, 7) = 6  (the actual connected island has 6 cells)\n' +
+      'return 6',
     explanation: `- DFS returns the area of the island connected to cell (r, c).
 - Base case: out of bounds or water (0) returns 0 area.
 - Mark the cell as 0 (visited) before recursing to avoid counting it again.
@@ -1614,31 +2289,67 @@ Explanation: From node 2, the signal reaches node 1 and 3 in 1 unit, and node 4 
 
         return max(dist.values()) if len(dist) == n else -1`,
     jsCode: `var networkDelayTime = function(times, n, k) {
+    // Build adjacency list: node → [[neighbor, travelTime], ...]
     const graph = new Map();
     for (const [u, v, w] of times) {
         if (!graph.has(u)) graph.set(u, []);
         graph.get(u).push([v, w]);
     }
 
+    // dist maps node → shortest time to reach it from k
     const dist = new Map();
-    // Min-heap: [time, node] - using a simple sorted approach
-    // For a proper solution, use a MinPriorityQueue or manual heap
+
+    // Min-heap simulation: entries are [totalTime, node]
+    // In a production solution use a proper MinPriorityQueue
     const heap = [[0, k]];
 
     while (heap.length > 0) {
+        // Always process the entry with the smallest time first
         heap.sort((a, b) => a[0] - b[0]);
-        const [time, node] = heap.shift();
+        const [currentTime, node] = heap.shift();
+
+        // Skip if we already found a shorter path to this node
         if (dist.has(node)) continue;
-        dist.set(node, time);
-        for (const [neighbor, weight] of (graph.get(node) || [])) {
+
+        // Record shortest time to reach this node
+        dist.set(node, currentTime);
+
+        // Explore all outgoing edges from this node
+        const neighbors = graph.get(node) || [];
+        for (const [neighbor, travelTime] of neighbors) {
             if (!dist.has(neighbor)) {
-                heap.push([time + weight, neighbor]);
+                const arrivalTime = currentTime + travelTime;
+                heap.push([arrivalTime, neighbor]);
             }
         }
     }
 
-    return dist.size === n ? Math.max(...dist.values()) : -1;
+    // If not all nodes were reached, return -1
+    if (dist.size !== n) return -1;
+
+    // The answer is when the last (slowest) node receives the signal
+    return Math.max(...dist.values());
 };`,
+    jsWalkthrough:
+      'times=[[2,1,1],[2,3,1],[3,4,1]], n=4, k=2\n\n' +
+      'graph: 2→[[1,1],[3,1]], 3→[[4,1]]\n' +
+      'heap = [[0,2]], dist = {}\n\n' +
+      'Step 1: pop [0,2] → dist={2:0}\n' +
+      '  neighbors of 2: [1,w=1],[3,w=1]\n' +
+      '  push [0+1,1]=[1,1] and [0+1,3]=[1,3]\n' +
+      '  heap = [[1,1],[1,3]]\n\n' +
+      'Step 2: pop [1,1] (smallest) → dist={2:0, 1:1}\n' +
+      '  node 1 has no outgoing edges → nothing pushed\n' +
+      '  heap = [[1,3]]\n\n' +
+      'Step 3: pop [1,3] → dist={2:0, 1:1, 3:1}\n' +
+      '  neighbors of 3: [4,w=1]\n' +
+      '  push [1+1,4]=[2,4]\n' +
+      '  heap = [[2,4]]\n\n' +
+      'Step 4: pop [2,4] → dist={2:0, 1:1, 3:1, 4:2}\n' +
+      '  node 4 has no outgoing edges\n\n' +
+      'dist.size=4 === n=4\n' +
+      'max(0,1,1,2) = 2\n' +
+      'return 2',
     explanation: `- Build an adjacency list from the edge list.
 - Dijkstra's algorithm: use a min-heap to always process the node with the smallest known distance.
 - dist dictionary stores the shortest distance from k to each node. It also serves as the visited set.
@@ -1682,21 +2393,56 @@ Explanation: The path 0 -> 1 -> 3 costs 700 with 1 stop, which is cheaper than 0
         return prices[dst] if prices[dst] != INF else -1`,
     jsCode: `var findCheapestPrice = function(n, flights, src, dst, k) {
     const INF = Infinity;
+
+    // prices[i] = cheapest cost to reach city i from src
+    // Initialize src to 0, all others to infinity (unreachable)
     let prices = new Array(n).fill(INF);
     prices[src] = 0;
 
-    for (let i = 0; i < k + 1; i++) {
+    // Run exactly k+1 rounds: k stops = at most k+1 flights used
+    for (let round = 0; round < k + 1; round++) {
+        // Work from a snapshot of last round's prices
+        // This prevents chaining updates within a single round
         const temp = [...prices];
-        for (const [u, v, w] of flights) {
-            if (prices[u] !== INF && prices[u] + w < temp[v]) {
-                temp[v] = prices[u] + w;
+
+        for (const [from, to, cost] of flights) {
+            // Can only use this flight if we can reach 'from'
+            if (prices[from] !== INF) {
+                const newCost = prices[from] + cost;
+
+                // Update temp (not prices) to stay within the stop limit
+                if (newCost < temp[to]) {
+                    temp[to] = newCost;
+                }
             }
         }
+
+        // Move to next round
         prices = temp;
     }
 
     return prices[dst] !== INF ? prices[dst] : -1;
 };`,
+    jsWalkthrough:
+      'n=4, flights=[[0,1,100],[1,2,100],[2,0,100],[1,3,600],[2,3,200]]\n' +
+      'src=0, dst=3, k=1\n\n' +
+      'Initial prices = [0, INF, INF, INF]\n\n' +
+      'Round 0 (1st flight allowed):\n' +
+      '  temp = [0, INF, INF, INF]\n' +
+      '  [0,1,100]: prices[0]=0 → temp[1]=min(INF, 0+100)=100\n' +
+      '  [1,2,100]: prices[1]=INF → skip\n' +
+      '  [2,0,100]: prices[2]=INF → skip\n' +
+      '  [1,3,600]: prices[1]=INF → skip\n' +
+      '  [2,3,200]: prices[2]=INF → skip\n' +
+      '  prices = [0, 100, INF, INF]\n\n' +
+      'Round 1 (2nd flight = 1 stop allowed):\n' +
+      '  temp = [0, 100, INF, INF]\n' +
+      '  [0,1,100]: prices[0]=0 → temp[1]=min(100, 100)=100 (no change)\n' +
+      '  [1,2,100]: prices[1]=100 → temp[2]=min(INF, 100+100)=200\n' +
+      '  [1,3,600]: prices[1]=100 → temp[3]=min(INF, 100+600)=700\n' +
+      '  [2,3,200]: prices[2]=INF → skip\n' +
+      '  prices = [0, 100, 200, 700]\n\n' +
+      'prices[3]=700 !== INF → return 700',
     explanation: `- prices[i]: cheapest price to reach city i from src. Initialize src to 0, all others to infinity.
 - Run k + 1 rounds of relaxation (k stops = up to k + 1 edges in the path).
 - In each round, create a temp copy. Relax edges using prices (previous round) to update temp (current round). This prevents using paths with too many edges.
@@ -1757,43 +2503,84 @@ Explanation: It takes 4 minutes for the rot to spread from the top-left rotten o
     jsCode: `var orangesRotting = function(grid) {
     const rows = grid.length;
     const cols = grid[0].length;
+
+    // Multi-source BFS: start all rotten oranges in the queue simultaneously
     const queue = [];
-    let fresh = 0;
+    let freshCount = 0;
 
     for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
             if (grid[r][c] === 2) {
                 queue.push([r, c]);
             } else if (grid[r][c] === 1) {
-                fresh++;
+                freshCount++;
             }
         }
     }
 
-    if (fresh === 0) return 0;
+    // If no fresh oranges exist, no time is needed
+    if (freshCount === 0) return 0;
 
-    let minutes = 0;
-    const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+    const directions = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+    let minutesElapsed = 0;
 
+    // BFS level by level — each level = one minute of spreading rot
     while (queue.length > 0) {
-        const size = queue.length;
-        for (let q = 0; q < size; q++) {
+        const levelSize = queue.length;
+
+        for (let i = 0; i < levelSize; i++) {
             const [r, c] = queue.shift();
-            for (const [dr, dc] of dirs) {
-                const nr = r + dr;
-                const nc = c + dc;
-                if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && grid[nr][nc] === 1) {
-                    grid[nr][nc] = 2;
-                    fresh--;
-                    queue.push([nr, nc]);
+
+            for (const [dr, dc] of directions) {
+                const neighborRow = r + dr;
+                const neighborCol = c + dc;
+
+                const inBounds = neighborRow >= 0 && neighborRow < rows &&
+                                 neighborCol >= 0 && neighborCol < cols;
+
+                if (inBounds && grid[neighborRow][neighborCol] === 1) {
+                    // Rot this fresh orange and enqueue it
+                    grid[neighborRow][neighborCol] = 2;
+                    freshCount--;
+                    queue.push([neighborRow, neighborCol]);
                 }
             }
         }
-        minutes++;
+
+        minutesElapsed++;
     }
 
-    return fresh === 0 ? minutes - 1 : -1;
+    // Subtract 1: the last BFS level incremented minutes but produced no new rot
+    // If fresh oranges remain, they are unreachable
+    return freshCount === 0 ? minutesElapsed - 1 : -1;
 };`,
+    jsWalkthrough:
+      'grid = [[2,1,1],\n' +
+      '        [1,1,0],\n' +
+      '        [0,1,1]]\n\n' +
+      'Initial scan: rotten at (0,0), fresh count=6\n' +
+      'queue = [[0,0]], freshCount=6\n\n' +
+      'Minute 1 (level size=1):\n' +
+      '  process (0,0):\n' +
+      '    (1,0) is fresh → rot it, freshCount=5, enqueue (1,0)\n' +
+      '    (0,1) is fresh → rot it, freshCount=4, enqueue (0,1)\n' +
+      '  minutesElapsed=1\n' +
+      '  queue=[[1,0],[0,1]]\n\n' +
+      'Minute 2 (level size=2):\n' +
+      '  process (1,0): neighbor (1,1) fresh → rot, freshCount=3, enqueue\n' +
+      '  process (0,1): neighbor (0,2) fresh → rot, freshCount=2, enqueue\n' +
+      '  minutesElapsed=2\n\n' +
+      'Minute 3 (level size=2):\n' +
+      '  process (1,1): neighbors (2,1) fresh → rot, freshCount=1\n' +
+      '  process (0,2): no new fresh neighbors\n' +
+      '  minutesElapsed=3\n\n' +
+      'Minute 4 (level size=1):\n' +
+      '  process (2,1): neighbor (2,2) fresh → rot, freshCount=0\n' +
+      '  minutesElapsed=4 (but last level counts extra)\n\n' +
+      'Minute 5 (level size=1):\n' +
+      '  process (2,2): no fresh neighbors\n' +
+      '  minutesElapsed=5\n\n' +
+      'freshCount=0 → return 5-1 = 4',
     explanation: `- Count fresh oranges and enqueue all rotten ones as the BFS starting points.
 - If no fresh oranges exist, return 0 immediately.
 - BFS level by level: each level represents one minute of rotting.
@@ -1839,26 +2626,59 @@ Explanation: Starting from JFK, the unique itinerary uses all 4 tickets.`,
         dfs("JFK")
         return route[::-1]`,
     jsCode: `var findItinerary = function(tickets) {
+    // Sort tickets in reverse lexical order by destination.
+    // When we pop from the end, we always get the lexically smallest destination.
+    tickets.sort((a, b) => a[1] < b[1] ? 1 : -1);
+
+    // Build adjacency list: airport → [destinations in reverse lex order]
     const graph = new Map();
-    tickets.sort((a, b) => a[1] < b[1] ? 1 : -1); // reverse sort by destination
     for (const [src, dst] of tickets) {
         if (!graph.has(src)) graph.set(src, []);
         graph.get(src).push(dst);
     }
 
+    // Post-order DFS: add airport to route only after all its outgoing flights are used
     const route = [];
 
     const dfs = (airport) => {
         const destinations = graph.get(airport) || [];
+
+        // Greedily take the next (smallest) available destination
         while (destinations.length > 0) {
-            dfs(destinations.pop());
+            const nextAirport = destinations.pop();
+            dfs(nextAirport);
         }
+
+        // All outgoing flights from this airport are used — append in post-order
         route.push(airport);
     };
 
     dfs("JFK");
+
+    // Post-order gives us reverse order; reverse to get the correct itinerary
     return route.reverse();
 };`,
+    jsWalkthrough:
+      'tickets = [["MUC","LHR"],["JFK","MUC"],["SFO","SJC"],["LHR","SFO"]]\n\n' +
+      'After reverse sort by destination:\n' +
+      '  [["SFO","SJC"],["LHR","SFO"],["MUC","LHR"],["JFK","MUC"]]\n\n' +
+      'Build graph:\n' +
+      '  JFK  → ["MUC"]\n' +
+      '  MUC  → ["LHR"]\n' +
+      '  LHR  → ["SFO"]\n' +
+      '  SFO  → ["SJC"]\n\n' +
+      'dfs("JFK"):\n' +
+      '  destinations=["MUC"], pop "MUC" → dfs("MUC")\n' +
+      '    destinations=["LHR"], pop "LHR" → dfs("LHR")\n' +
+      '      destinations=["SFO"], pop "SFO" → dfs("SFO")\n' +
+      '        destinations=["SJC"], pop "SJC" → dfs("SJC")\n' +
+      '          destinations=[] → route.push("SJC")\n' +
+      '        route.push("SFO")\n' +
+      '      route.push("LHR")\n' +
+      '    route.push("MUC")\n' +
+      '  route.push("JFK")\n\n' +
+      'route = ["SJC","SFO","LHR","MUC","JFK"]\n' +
+      'reversed = ["JFK","MUC","LHR","SFO","SJC"]',
     explanation: `- Sort tickets in reverse order so that when we build adjacency lists, destinations are in reverse lexical order. Popping from the end gives the smallest lexical destination.
 - dfs(airport): while there are outgoing flights, pop the next destination and recurse.
 - When no more flights are available from an airport, append it to route (post-order).
@@ -1918,36 +2738,76 @@ Explanation: a/b=2, b/c=3, so a/c=6. b/a=1/2=0.5. "e" is unknown, so a/e=-1.`,
 
         return [bfs(a, b) for a, b in queries]`,
     jsCode: `var calcEquation = function(equations, values, queries) {
+    // Build a weighted directed graph:
+    // a/b = k  →  edge a→b with weight k, and edge b→a with weight 1/k
     const graph = new Map();
+
     for (let i = 0; i < equations.length; i++) {
         const [a, b] = equations[i];
-        const val = values[i];
+        const ratio = values[i];
+
         if (!graph.has(a)) graph.set(a, new Map());
         if (!graph.has(b)) graph.set(b, new Map());
-        graph.get(a).set(b, val);
-        graph.get(b).set(a, 1.0 / val);
+
+        graph.get(a).set(b, ratio);
+        graph.get(b).set(a, 1.0 / ratio);
     }
 
+    // BFS from src to dst, multiplying edge weights along the path
     const bfs = (src, dst) => {
+        // Unknown variable — cannot compute
         if (!graph.has(src) || !graph.has(dst)) return -1.0;
+
+        // Same variable: x/x = 1
         if (src === dst) return 1.0;
+
         const visited = new Set([src]);
-        const queue = [[src, 1.0]];
+        const queue = [[src, 1.0]]; // [currentNode, cumulativeProduct]
+
         while (queue.length > 0) {
-            const [node, product] = queue.shift();
-            for (const [neighbor, weight] of graph.get(node)) {
-                if (neighbor === dst) return product * weight;
+            const [currentNode, cumulativeProduct] = queue.shift();
+
+            // Check each neighbor of the current node
+            for (const [neighbor, edgeWeight] of graph.get(currentNode)) {
+                const newProduct = cumulativeProduct * edgeWeight;
+
+                if (neighbor === dst) {
+                    return newProduct;
+                }
+
                 if (!visited.has(neighbor)) {
                     visited.add(neighbor);
-                    queue.push([neighbor, product * weight]);
+                    queue.push([neighbor, newProduct]);
                 }
             }
         }
+
+        // dst not reachable from src
         return -1.0;
     };
 
     return queries.map(([a, b]) => bfs(a, b));
 };`,
+    jsWalkthrough:
+      'equations=[["a","b"],["b","c"]], values=[2.0,3.0]\n' +
+      'queries=[["a","c"],["b","a"],["a","e"]]\n\n' +
+      'Build graph:\n' +
+      '  a → {b: 2.0}\n' +
+      '  b → {a: 0.5, c: 3.0}\n' +
+      '  c → {b: 0.333}\n\n' +
+      'Query 1: bfs("a","c")\n' +
+      '  visited={"a"}, queue=[["a",1.0]]\n' +
+      '  process "a": neighbors={b:2.0}\n' +
+      '    neighbor="b" ≠ "c" → enqueue ["b", 1.0*2.0=2.0]\n' +
+      '  process "b": neighbors={a:0.5, c:3.0}\n' +
+      '    neighbor="a": visited → skip\n' +
+      '    neighbor="c" === dst → return 2.0*3.0 = 6.0\n\n' +
+      'Query 2: bfs("b","a")\n' +
+      '  process "b": neighbors={a:0.5, c:3.0}\n' +
+      '    neighbor="a" === dst → return 1.0*0.5 = 0.5\n\n' +
+      'Query 3: bfs("a","e")\n' +
+      '  graph.has("e")? No → return -1.0\n\n' +
+      'result = [6.0, 0.5, -1.0]',
     explanation: `- Build a bidirectional weighted graph: a/b = k creates edges a->b (weight k) and b->a (weight 1/k).
 - For each query (src, dst): if either is not in the graph, return -1.0. If src == dst, return 1.0.
 - BFS from src tracking the cumulative product of edge weights.
@@ -1997,10 +2857,16 @@ Explanation: Cities 0 and 1 are connected (one province). City 2 is alone (anoth
     const visited = new Set();
     let provinces = 0;
 
+    // DFS to visit all cities connected to the given starting city
     const dfs = (city) => {
         visited.add(city);
+
+        // Check every other city to see if it is directly connected
         for (let neighbor = 0; neighbor < n; neighbor++) {
-            if (isConnected[city][neighbor] === 1 && !visited.has(neighbor)) {
+            const areConnected = isConnected[city][neighbor] === 1;
+            const notYetVisited = !visited.has(neighbor);
+
+            if (areConnected && notYetVisited) {
                 dfs(neighbor);
             }
         }
@@ -2008,6 +2874,7 @@ Explanation: Cities 0 and 1 are connected (one province). City 2 is alone (anoth
 
     for (let city = 0; city < n; city++) {
         if (!visited.has(city)) {
+            // Found an unvisited city — this starts a new province
             dfs(city);
             provinces++;
         }
@@ -2015,6 +2882,28 @@ Explanation: Cities 0 and 1 are connected (one province). City 2 is alone (anoth
 
     return provinces;
 };`,
+    jsWalkthrough:
+      'isConnected = [[1,1,0],[1,1,0],[0,0,1]]\n' +
+      'n=3, visited={}, provinces=0\n\n' +
+      'city=0: not visited → dfs(0)\n' +
+      '  visited.add(0) → visited={0}\n' +
+      '  neighbor=0: isConnected[0][0]=1 but 0 already visited → skip\n' +
+      '  neighbor=1: isConnected[0][1]=1, not visited → dfs(1)\n' +
+      '    visited.add(1) → visited={0,1}\n' +
+      '    neighbor=0: visited → skip\n' +
+      '    neighbor=1: visited → skip\n' +
+      '    neighbor=2: isConnected[1][2]=0 → skip\n' +
+      '  neighbor=2: isConnected[0][2]=0 → skip\n' +
+      '  dfs(0) done\n' +
+      'provinces++ → provinces=1\n\n' +
+      'city=1: visited → skip\n\n' +
+      'city=2: not visited → dfs(2)\n' +
+      '  visited.add(2) → visited={0,1,2}\n' +
+      '  neighbor=0: isConnected[2][0]=0 → skip\n' +
+      '  neighbor=1: isConnected[2][1]=0 → skip\n' +
+      '  neighbor=2: visited → skip\n' +
+      'provinces++ → provinces=2\n\n' +
+      'return 2',
     explanation: `- This is a connected components problem on an adjacency matrix.
 - visited set tracks which cities have been explored.
 - For each unvisited city, increment provinces and run DFS to mark all reachable cities as visited.
@@ -2073,46 +2962,92 @@ Explanation: The first two John accounts share "john@mail.com" and are merged. T
 
         return [[email_to_name[root]] + sorted(emails) for root, emails in groups.items()]`,
     jsCode: `var accountsMerge = function(accounts) {
+    // Union-Find structures: each email maps to its parent email
     const parent = new Map();
 
+    // Find the root of the set containing email x (with path compression)
     const find = (x) => {
         while (parent.get(x) !== x) {
+            // Path compression: point x directly to its grandparent
             parent.set(x, parent.get(parent.get(x)));
             x = parent.get(x);
         }
         return x;
     };
 
+    // Merge the sets containing x and y
     const union = (x, y) => {
-        parent.set(find(x), find(y));
+        const rootX = find(x);
+        const rootY = find(y);
+        parent.set(rootX, rootY);
     };
 
+    // Map each email to the account name it belongs to
     const emailToName = new Map();
 
     for (const account of accounts) {
         const name = account[0];
+        const firstEmail = account[1];
+
         for (let i = 1; i < account.length; i++) {
             const email = account[i];
-            if (!parent.has(email)) parent.set(email, email);
+
+            // Initialize email in Union-Find if not seen before
+            if (!parent.has(email)) {
+                parent.set(email, email);
+            }
+
             emailToName.set(email, name);
-            union(account[1], email);
+
+            // Union every email in this account with the first email
+            union(firstEmail, email);
         }
     }
 
-    // Group emails by root
+    // Group emails by their root representative
     const groups = new Map();
     for (const email of parent.keys()) {
         const root = find(email);
+
         if (!groups.has(root)) groups.set(root, []);
         groups.get(root).push(email);
     }
 
+    // Build the final output: [name, ...sortedEmails] for each group
     const result = [];
     for (const [root, emails] of groups) {
-        result.push([emailToName.get(root), ...emails.sort()]);
+        const accountName = emailToName.get(root);
+        result.push([accountName, ...emails.sort()]);
     }
     return result;
 };`,
+    jsWalkthrough:
+      'accounts = [\n' +
+      '  ["John","john@mail.com","john_ny@mail.com"],\n' +
+      '  ["John","john@mail.com","john00@mail.com"],\n' +
+      '  ["Mary","mary@cool.com"]\n' +
+      ']\n\n' +
+      'Processing account 0 (John):\n' +
+      '  firstEmail = "john@mail.com"\n' +
+      '  i=1: email="john@mail.com" → parent={j@:j@}, union(j@,j@) → no-op\n' +
+      '  i=2: email="john_ny@mail.com" → parent={j@:j@, jny@:jny@}\n' +
+      '        union(j@, jny@) → parent[find(j@)=j@] = find(jny@)=jny@ → parent[j@]=jny@\n\n' +
+      'Processing account 1 (John):\n' +
+      '  firstEmail = "john@mail.com"\n' +
+      '  i=1: email="john@mail.com" → already in parent\n' +
+      '        union(j@, j@) → no-op\n' +
+      '  i=2: email="john00@mail.com" → parent[j00@]=j00@\n' +
+      '        union(j@, j00@) → find(j@)=jny@ → parent[jny@]=j00@\n\n' +
+      'Processing account 2 (Mary):\n' +
+      '  firstEmail = "mary@cool.com"\n' +
+      '  parent[mary@]=mary@, union(mary@, mary@) → no-op\n\n' +
+      'Grouping by root:\n' +
+      '  find("john@mail.com") → follows chain to "john00@mail.com"\n' +
+      '  find("john_ny@mail.com") → "john00@mail.com"\n' +
+      '  find("john00@mail.com") → "john00@mail.com"\n' +
+      '  Group "john00@mail.com" → all 3 John emails\n' +
+      '  Group "mary@cool.com" → ["mary@cool.com"]\n\n' +
+      'Result: [["John","john00@mail.com","john@mail.com","john_ny@mail.com"],["Mary","mary@cool.com"]]',
     explanation: `- parent maps each email to its parent in the Union-Find structure. email_to_name maps each email to the account name.
 - For each account, initialize all emails in Union-Find and union them with the first email (connecting all emails in the same account).
 - After processing all accounts, find the root of each email and group them.
@@ -2163,19 +3098,30 @@ Explanation: Node 0 connects to 1, 2, 3. If 0 is color A, then 1, 2, 3 must be c
         return True`,
     jsCode: `var isBipartite = function(graph) {
     const n = graph.length;
+
+    // color[i] = -1 (unvisited), 0 (group A), or 1 (group B)
     const color = new Array(n).fill(-1);
 
+    // Handle disconnected graphs by trying every uncolored start node
     for (let start = 0; start < n; start++) {
+        // Skip nodes already colored in a previous BFS pass
         if (color[start] !== -1) continue;
+
+        // Assign this component's starting node to group 0
         color[start] = 0;
         const queue = [start];
+
         while (queue.length > 0) {
-            const node = queue.shift();
-            for (const neighbor of graph[node]) {
+            const currentNode = queue.shift();
+            const currentColor = color[currentNode];
+
+            for (const neighbor of graph[currentNode]) {
                 if (color[neighbor] === -1) {
-                    color[neighbor] = 1 - color[node];
+                    // Assign the opposite color to this neighbor
+                    color[neighbor] = 1 - currentColor;
                     queue.push(neighbor);
-                } else if (color[neighbor] === color[node]) {
+                } else if (color[neighbor] === currentColor) {
+                    // Neighbor has the same color — odd-length cycle found
                     return false;
                 }
             }
@@ -2184,6 +3130,28 @@ Explanation: Node 0 connects to 1, 2, 3. If 0 is color A, then 1, 2, 3 must be c
 
     return true;
 };`,
+    jsWalkthrough:
+      'graph = [[1,3],[0,2],[1,3],[0,2]]\n' +
+      '(node 0 connects to 1 and 3, node 1 to 0 and 2, etc.)\n' +
+      'color = [-1,-1,-1,-1]\n\n' +
+      'start=0: color[0]=0, queue=[0]\n\n' +
+      'Process node 0 (color=0):\n' +
+      '  neighbor 1: color=-1 → assign color=1-0=1, enqueue\n' +
+      '  neighbor 3: color=-1 → assign color=1, enqueue\n' +
+      '  color=[-1 → 0, -1→1, -1, -1→1], queue=[1,3]\n\n' +
+      'Process node 1 (color=1):\n' +
+      '  neighbor 0: color=0 ≠ 1 → ok (different colors)\n' +
+      '  neighbor 2: color=-1 → assign color=1-1=0, enqueue\n' +
+      '  color=[0,1,-1→0,1], queue=[3,2]\n\n' +
+      'Process node 3 (color=1):\n' +
+      '  neighbor 0: color=0 ≠ 1 → ok\n' +
+      '  neighbor 2: color=0 ≠ 1 → ok\n' +
+      '  queue=[2]\n\n' +
+      'Process node 2 (color=0):\n' +
+      '  neighbor 1: color=1 ≠ 0 → ok\n' +
+      '  neighbor 3: color=1 ≠ 0 → ok\n\n' +
+      'No conflict found → return true\n' +
+      'Groups: {0,2} and {1,3}',
     explanation: `- color array: -1 means uncolored, 0 and 1 are the two colors.
 - For each uncolored node, start BFS and assign it color 0.
 - For each neighbor: if uncolored, assign the opposite color (1 - current) and enqueue.
@@ -2237,22 +3205,38 @@ Explanation: The path (0,0) -> (0,1) -> (0,2) -> (1,2) -> (2,2) has length 4.`,
         return -1`,
     jsCode: `var shortestPathBinaryMatrix = function(grid) {
     const n = grid.length;
+
+    // If start or end cell is blocked, no path exists
     if (grid[0][0] !== 0 || grid[n - 1][n - 1] !== 0) return -1;
 
-    const queue = [[0, 0, 1]]; // row, col, path_length
-    grid[0][0] = 1; // mark visited
+    // BFS: each entry is [row, col, pathLength]
+    const queue = [[0, 0, 1]];
+
+    // Mark start as visited immediately to avoid revisiting
+    grid[0][0] = 1;
 
     while (queue.length > 0) {
-        const [r, c, length] = queue.shift();
-        if (r === n - 1 && c === n - 1) return length;
+        const [r, c, pathLength] = queue.shift();
+
+        // Reached the bottom-right corner — BFS guarantees shortest path
+        if (r === n - 1 && c === n - 1) return pathLength;
+
+        // Explore all 8 directions (including diagonals)
         for (let dr = -1; dr <= 1; dr++) {
             for (let dc = -1; dc <= 1; dc++) {
+                // Skip the cell itself (no movement)
                 if (dr === 0 && dc === 0) continue;
-                const nr = r + dr;
-                const nc = c + dc;
-                if (nr >= 0 && nr < n && nc >= 0 && nc < n && grid[nr][nc] === 0) {
-                    grid[nr][nc] = 1; // mark visited
-                    queue.push([nr, nc, length + 1]);
+
+                const neighborRow = r + dr;
+                const neighborCol = c + dc;
+
+                const inBounds = neighborRow >= 0 && neighborRow < n &&
+                                 neighborCol >= 0 && neighborCol < n;
+
+                if (inBounds && grid[neighborRow][neighborCol] === 0) {
+                    // Mark visited before enqueuing to prevent duplicate entries
+                    grid[neighborRow][neighborCol] = 1;
+                    queue.push([neighborRow, neighborCol, pathLength + 1]);
                 }
             }
         }
@@ -2260,6 +3244,33 @@ Explanation: The path (0,0) -> (0,1) -> (0,2) -> (1,2) -> (2,2) has length 4.`,
 
     return -1;
 };`,
+    jsWalkthrough:
+      'grid = [[0,0,0],\n' +
+      '        [1,1,0],\n' +
+      '        [1,1,0]]\n' +
+      'n=3, start=(0,0), end=(2,2)\n\n' +
+      'grid[0][0]=0 and grid[2][2]=0 → proceed\n' +
+      'queue=[[0,0,1]], grid[0][0]=1 (visited)\n\n' +
+      'Step 1: pop [0,0,1]\n' +
+      '  (0,0)≠(2,2) → explore 8 neighbors\n' +
+      '  (0,1): grid=0 → mark 1, push [0,1,2]\n' +
+      '  (1,0): grid=1 → blocked, skip\n' +
+      '  (1,1): grid=1 → blocked, skip\n' +
+      '  queue=[[0,1,2]]\n\n' +
+      'Step 2: pop [0,1,2]\n' +
+      '  explore neighbors of (0,1):\n' +
+      '  (0,0): visited → skip\n' +
+      '  (0,2): grid=0 → mark 1, push [0,2,3]\n' +
+      '  (1,0),(1,1),(1,2): grid[1][2]=0 → push [1,2,3]\n' +
+      '  queue=[[0,2,3],[1,2,3]]\n\n' +
+      'Step 3: pop [0,2,3]\n' +
+      '  (1,2): already enqueued/visited → skip\n' +
+      '  (1,1): blocked\n' +
+      '  queue=[[1,2,3]]\n\n' +
+      'Step 4: pop [1,2,3]\n' +
+      '  (2,2): grid=0 → mark 1, push [2,2,4]\n\n' +
+      'Step 5: pop [2,2,4]\n' +
+      '  r==n-1 and c==n-1 → return 4',
     explanation: `- Check that both the start and end cells are 0 (clear); otherwise return -1 immediately.
 - BFS from (0, 0) with path length 1. Mark visited by setting cell to 1.
 - For each cell, explore all 8 directions (combinations of dr and dc in {-1, 0, 1}, excluding (0, 0)).
@@ -2311,26 +3322,61 @@ Explanation: The minimum spanning tree connects all 5 points with total Manhatta
     jsCode: `var minCostConnectPoints = function(points) {
     const n = points.length;
     const visited = new Set();
-    const heap = [[0, 0]]; // [cost, point_index]
+
+    // Heap entries: [cost, pointIndex] — cost is the Manhattan distance to add this point
+    // Start from point 0 with cost 0
+    const heap = [[0, 0]];
     let totalCost = 0;
 
+    // Keep adding points until all n are in the MST
     while (visited.size < n) {
+        // Always pick the cheapest available connection (greedy)
         heap.sort((a, b) => a[0] - b[0]);
-        const [cost, i] = heap.shift();
-        if (visited.has(i)) continue;
-        visited.add(i);
+        const [cost, pointIndex] = heap.shift();
+
+        // Skip if this point was already added to the MST via a cheaper edge
+        if (visited.has(pointIndex)) continue;
+
+        // Add this point to the MST
+        visited.add(pointIndex);
         totalCost += cost;
-        const [xi, yi] = points[i];
+
+        const [xi, yi] = points[pointIndex];
+
+        // Offer connections to all unvisited points
         for (let j = 0; j < n; j++) {
             if (!visited.has(j)) {
-                const dist = Math.abs(xi - points[j][0]) + Math.abs(yi - points[j][1]);
-                heap.push([dist, j]);
+                const manhattanDist = Math.abs(xi - points[j][0]) + Math.abs(yi - points[j][1]);
+                heap.push([manhattanDist, j]);
             }
         }
     }
 
     return totalCost;
 };`,
+    jsWalkthrough:
+      'points = [[0,0],[2,2],[3,10],[5,2],[7,0]]\n\n' +
+      'heap=[[0,0]], visited={}, totalCost=0\n\n' +
+      'Step 1: pop [0,0] → add point 0 (0,0), cost+=0\n' +
+      '  Push distances to all other points:\n' +
+      '    to point 1 (2,2): |0-2|+|0-2|=4 → [4,1]\n' +
+      '    to point 2 (3,10): 3+10=13 → [13,2]\n' +
+      '    to point 3 (5,2): 5+2=7 → [7,3]\n' +
+      '    to point 4 (7,0): 7+0=7 → [7,4]\n' +
+      '  heap sorted: [[4,1],[7,3],[7,4],[13,2]]\n\n' +
+      'Step 2: pop [4,1] → add point 1 (2,2), cost+=4 → totalCost=4\n' +
+      '  Push distances from point 1:\n' +
+      '    to point 2: |2-3|+|2-10|=9 → [9,2]\n' +
+      '    to point 3: |2-5|+|2-2|=3 → [3,3]\n' +
+      '    to point 4: |2-7|+|2-0|=7 → [7,4]\n' +
+      '  heap: [[3,3],[7,3],[7,4],[7,4],[9,2],[13,2]]\n\n' +
+      'Step 3: pop [3,3] → add point 3 (5,2), cost+=3 → totalCost=7\n' +
+      '  Push from point 3: to point 2: |5-3|+|2-10|=10 → [10,2], to point 4: |5-7|+|2-0|=4 → [4,4]\n\n' +
+      'Step 4: pop [4,4] → add point 4 (7,0), cost+=4 → totalCost=11\n' +
+      '  Push from point 4: to point 2: |7-3|+|0-10|=14 → [14,2]\n\n' +
+      'Step 5: pop [7,3] (stale, already visited) → skip\n' +
+      'Step 6: pop [9,2] → add point 2, cost+=9 → totalCost=20\n\n' +
+      'visited.size=5 === n → return 20',
     explanation: `- Prim's algorithm: grow the MST one node at a time by always adding the cheapest edge to an unvisited node.
 - Start with node 0 at cost 0. Use a min-heap to efficiently find the next cheapest connection.
 - Pop the minimum cost edge. If the node is already visited, skip (stale entry).

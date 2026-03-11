@@ -30,26 +30,55 @@ export const solutions: ProblemSolution[] = [
                         else: results.append(l * r)
         return results`,
     jsCode: `var diffWaysToCompute = function(expression) {
-    if (/^\\d+$/.test(expression)) {
+    // Base case: the expression is a plain number with no operators
+    const isNumber = /^\\d+$/.test(expression);
+    if (isNumber) {
         return [parseInt(expression)];
     }
+
     const results = [];
+
+    // Try each character as the "last operator evaluated"
     for (let i = 0; i < expression.length; i++) {
         const ch = expression[i];
-        if (ch === '+' || ch === '-' || ch === '*') {
-            const left = diffWaysToCompute(expression.substring(0, i));
-            const right = diffWaysToCompute(expression.substring(i + 1));
-            for (const l of left) {
-                for (const r of right) {
-                    if (ch === '+') results.push(l + r);
-                    else if (ch === '-') results.push(l - r);
-                    else results.push(l * r);
+        const isOperator = ch === '+' || ch === '-' || ch === '*';
+
+        if (isOperator) {
+            // Split expression into left and right sub-expressions
+            const leftExpr = expression.substring(0, i);
+            const rightExpr = expression.substring(i + 1);
+
+            // Recursively compute all possible results for each half
+            const leftResults = diffWaysToCompute(leftExpr);
+            const rightResults = diffWaysToCompute(rightExpr);
+
+            // Combine every left result with every right result
+            for (const leftVal of leftResults) {
+                for (const rightVal of rightResults) {
+                    if (ch === '+') {
+                        results.push(leftVal + rightVal);
+                    } else if (ch === '-') {
+                        results.push(leftVal - rightVal);
+                    } else {
+                        results.push(leftVal * rightVal);
+                    }
                 }
             }
         }
     }
+
     return results;
 };`,
+    jsWalkthrough:
+      'Example: expression = "2*3-4"\n' +
+      'i=1, ch="*": left="2" → [2], right="3-4"\n' +
+      '  right "3-4": i=1, ch="-": left=[3], right=[4] → [3-4] = [-1]\n' +
+      '  Combine: 2 * -1 = -2\n' +
+      'i=3, ch="-": left="2*3"\n' +
+      '  left "2*3": i=1, ch="*": left=[2], right=[3] → [6]\n' +
+      '  right="4" → [4]\n' +
+      '  Combine: 6 - 4 = 2\n' +
+      'Final results: [-2, 2]',
     explanation:
       '1. Base case: if the expression is purely a number, return it as the only result.\n' +
       '2. Iterate through the expression looking for operators.\n' +
@@ -95,22 +124,44 @@ export const solutions: ProblemSolution[] = [
             return result
         return helper(n, n)`,
     jsCode: `var findStrobogrammatic = function(n) {
+    // Build numbers from the inside out
+    // totalLen is needed to avoid leading zeros at the outermost layer
     const helper = (curLen, totalLen) => {
+        // Base cases: empty center or single-character center
         if (curLen === 0) return [''];
         if (curLen === 1) return ['0', '1', '8'];
+
+        // Recursively get all valid centers of length curLen - 2
         const middles = helper(curLen - 2, totalLen);
+
         const result = [];
-        const pairs = [['0','0'],['1','1'],['6','9'],['8','8'],['9','6']];
-        for (const m of middles) {
-            for (const [a, b] of pairs) {
-                if (a === '0' && curLen === totalLen) continue;
-                result.push(a + m + b);
+        // Valid strobogrammatic digit pairs (left, right)
+        const pairs = [['0','0'], ['1','1'], ['6','9'], ['8','8'], ['9','6']];
+
+        for (const middle of middles) {
+            for (const [leftDigit, rightDigit] of pairs) {
+                // Skip leading zero only for the outermost layer
+                const isOutermostLayer = curLen === totalLen;
+                if (leftDigit === '0' && isOutermostLayer) continue;
+
+                result.push(leftDigit + middle + rightDigit);
             }
         }
+
         return result;
     };
+
     return helper(n, n);
 };`,
+    jsWalkthrough:
+      'Example: n = 2\n' +
+      'helper(2, 2): middles = helper(0, 2) = [""]\n' +
+      'pairs iteration (skip "0" since curLen === totalLen):\n' +
+      '  ["1","1"] → "1" + "" + "1" = "11"\n' +
+      '  ["6","9"] → "6" + "" + "9" = "69"\n' +
+      '  ["8","8"] → "8" + "" + "8" = "88"\n' +
+      '  ["9","6"] → "9" + "" + "6" = "96"\n' +
+      'Result: ["11","69","88","96"]',
     explanation:
       '1. Use a recursive helper that builds strings of cur_len centered inside total_len.\n' +
       '2. Base: length 0 returns [""], length 1 returns ["0","1","8"].\n' +
@@ -149,17 +200,34 @@ export const solutions: ProblemSolution[] = [
         return list(groups.values())`,
     jsCode: `var groupStrings = function(strings) {
     const groups = new Map();
+
     for (const s of strings) {
-        const key = [];
+        // Compute the shift-invariant key: differences between consecutive chars mod 26
+        const keyParts = [];
         for (let i = 1; i < s.length; i++) {
-            key.push(((s.charCodeAt(i) - s.charCodeAt(i - 1)) % 26 + 26) % 26);
+            // Add 26 before mod to handle negative differences (e.g., 'a' - 'z')
+            const diff = ((s.charCodeAt(i) - s.charCodeAt(i - 1)) % 26 + 26) % 26;
+            keyParts.push(diff);
         }
-        const k = key.join(',');
-        if (!groups.has(k)) groups.set(k, []);
-        groups.get(k).push(s);
+        const key = keyParts.join(',');
+
+        // Group strings by their canonical key
+        if (!groups.has(key)) {
+            groups.set(key, []);
+        }
+        groups.get(key).push(s);
     }
+
     return Array.from(groups.values());
 };`,
+    jsWalkthrough:
+      'Example: strings = ["abc","bcd","az","ba"]\n' +
+      '"abc": diffs = [(b-a)=1, (c-b)=1] → key = "1,1"\n' +
+      '"bcd": diffs = [(c-b)=1, (d-c)=1] → key = "1,1" (same group!)\n' +
+      '"az":  diffs = [(z-a)=25] → key = "25"\n' +
+      '"ba":  diffs = [(a-b+26)%26=25] → key = "25" (same group!)\n' +
+      'groups: {"1,1": ["abc","bcd"], "25": ["az","ba"]}\n' +
+      'Result: [["abc","bcd"],["az","ba"]]',
     explanation:
       '1. For each string, compute the tuple of differences between consecutive characters mod 26.\n' +
       '2. This tuple is shift-invariant: "abc" and "bcd" both yield (1,1).\n' +
@@ -195,14 +263,27 @@ export const solutions: ProblemSolution[] = [
                 return False
         return True`,
     jsCode: `var canAttendMeetings = function(intervals) {
+    // Sort meetings by start time so overlaps appear as adjacent pairs
     intervals.sort((a, b) => a[0] - b[0]);
+
+    // Check each consecutive pair for overlap
     for (let i = 1; i < intervals.length; i++) {
-        if (intervals[i][0] < intervals[i - 1][1]) {
+        const currentStart = intervals[i][0];
+        const previousEnd = intervals[i - 1][1];
+
+        // If this meeting starts before the previous one ends, there is a conflict
+        if (currentStart < previousEnd) {
             return false;
         }
     }
+
     return true;
 };`,
+    jsWalkthrough:
+      'Example: intervals = [[0,30],[5,10],[15,20]]\n' +
+      'After sort: [[0,30],[5,10],[15,20]]\n' +
+      'i=1: currentStart=5, previousEnd=30 → 5 < 30 → return false\n' +
+      'Result: false (cannot attend all meetings)',
     explanation:
       '1. Sort intervals by their start time.\n' +
       '2. Iterate through the sorted intervals starting from the second one.\n' +
@@ -246,18 +327,37 @@ class Solution:
         return len(heap)`,
     jsCode: `var minMeetingRooms = function(intervals) {
     if (!intervals.length) return 0;
+
+    // Sort meetings by start time
     intervals.sort((a, b) => a[0] - b[0]);
-    // Use a simple sorted array as a min-heap substitute
-    const ends = [];
+
+    // Track end times of all currently occupied rooms (min-heap substitute)
+    const roomEndTimes = [];
+
     for (const [start, end] of intervals) {
-        if (ends.length > 0 && ends[0] <= start) {
-            ends.shift();
+        // If the earliest-ending room is free before this meeting starts, reuse it
+        const earliestEndingRoom = roomEndTimes[0];
+        if (roomEndTimes.length > 0 && earliestEndingRoom <= start) {
+            roomEndTimes.shift(); // free that room
         }
-        ends.push(end);
-        ends.sort((a, b) => a - b);
+
+        // Assign this meeting to a room (reused or new)
+        roomEndTimes.push(end);
+
+        // Keep sorted so roomEndTimes[0] is always the earliest end time
+        roomEndTimes.sort((a, b) => a - b);
     }
-    return ends.length;
+
+    // Number of rooms still in use = number of rooms needed
+    return roomEndTimes.length;
 };`,
+    jsWalkthrough:
+      'Example: intervals = [[0,30],[5,10],[15,20]]\n' +
+      'After sort: [[0,30],[5,10],[15,20]]\n' +
+      '[0,30]: roomEndTimes=[] → push 30 → [30]\n' +
+      '[5,10]: ends[0]=30 > 5 → no reuse → push 10, sort → [10,30]\n' +
+      '[15,20]: ends[0]=10 ≤ 15 → reuse → shift, push 20, sort → [20,30]\n' +
+      'Result: 2 rooms needed',
     explanation:
       '1. Sort meetings by start time.\n' +
       '2. Use a min-heap to track the end time of each room in use.\n' +
@@ -300,17 +400,39 @@ class Solution:
         return min(prev)`,
     jsCode: `var minCost = function(costs) {
     if (!costs.length) return 0;
-    let prev = [...costs[0]];
+
+    // Start with the costs of painting the first house each color
+    let prevRed = costs[0][0];
+    let prevBlue = costs[0][1];
+    let prevGreen = costs[0][2];
+
     for (let i = 1; i < costs.length; i++) {
-        const curr = [
-            costs[i][0] + Math.min(prev[1], prev[2]),
-            costs[i][1] + Math.min(prev[0], prev[2]),
-            costs[i][2] + Math.min(prev[0], prev[1])
-        ];
-        prev = curr;
+        // Each color must be different from the previous house's color
+        const currRed   = costs[i][0] + Math.min(prevBlue, prevGreen);
+        const currBlue  = costs[i][1] + Math.min(prevRed, prevGreen);
+        const currGreen = costs[i][2] + Math.min(prevRed, prevBlue);
+
+        // Move to next house
+        prevRed   = currRed;
+        prevBlue  = currBlue;
+        prevGreen = currGreen;
     }
-    return Math.min(...prev);
+
+    return Math.min(prevRed, prevBlue, prevGreen);
 };`,
+    jsWalkthrough:
+      'Example: costs = [[17,2,17],[16,16,5],[14,3,19]]\n' +
+      'House 0: prevRed=17, prevBlue=2, prevGreen=17\n' +
+      'House 1:\n' +
+      '  currRed   = 16 + min(2,17) = 16+2 = 18\n' +
+      '  currBlue  = 16 + min(17,17) = 16+17 = 33\n' +
+      '  currGreen =  5 + min(17,2)  = 5+2  = 7\n' +
+      '  prev: R=18, B=33, G=7\n' +
+      'House 2:\n' +
+      '  currRed   = 14 + min(33,7)  = 14+7 = 21\n' +
+      '  currBlue  =  3 + min(18,7)  = 3+7  = 10\n' +
+      '  currGreen = 19 + min(18,33) = 19+18 = 37\n' +
+      'Result: min(21,10,37) = 10',
     explanation:
       '1. Initialize prev as the costs for painting the first house.\n' +
       '2. For each subsequent house, compute the cost of each color as its cost + min of the other two colors from the previous house.\n' +
@@ -355,20 +477,41 @@ class Solution:
         return result`,
     jsCode: `var binaryTreePaths = function(root) {
     const result = [];
-    const dfs = (node, path) => {
+
+    const dfs = (node, currentPath) => {
         if (!node) return;
-        path.push(String(node.val));
-        if (!node.left && !node.right) {
-            result.push(path.join('->'));
+
+        // Add the current node's value to the path
+        currentPath.push(String(node.val));
+
+        // If this is a leaf node, record the complete path
+        const isLeaf = !node.left && !node.right;
+        if (isLeaf) {
+            result.push(currentPath.join('->'));
         } else {
-            dfs(node.left, path);
-            dfs(node.right, path);
+            // Continue DFS on both children
+            dfs(node.left, currentPath);
+            dfs(node.right, currentPath);
         }
-        path.pop();
+
+        // Backtrack: remove this node before returning to parent
+        currentPath.pop();
     };
+
     dfs(root, []);
     return result;
 };`,
+    jsWalkthrough:
+      'Example: root = [1,2,3,null,5]\n' +
+      'dfs(1, []): path=["1"]\n' +
+      '  dfs(2, ["1"]): path=["1","2"]\n' +
+      '    dfs(null) → return\n' +
+      '    dfs(5, ["1","2"]): path=["1","2","5"] — leaf!\n' +
+      '      result.push("1->2->5")\n' +
+      '    pop → path=["1","2"], pop → path=["1"]\n' +
+      '  dfs(3, ["1"]): path=["1","3"] — leaf!\n' +
+      '    result.push("1->3")\n' +
+      'Result: ["1->2->5","1->3"]',
     explanation:
       '1. Start DFS from the root with an empty path list.\n' +
       '2. At each node, append its value as a string to the path.\n' +
@@ -403,9 +546,24 @@ class Solution:
             return 0
         return 1 + (num - 1) % 9`,
     jsCode: `var addDigits = function(num) {
+    // Special case: 0 has digital root 0
     if (num === 0) return 0;
-    return 1 + (num - 1) % 9;
+
+    // Digital root formula using mod 9
+    // Works because repeatedly summing digits is equivalent to num mod 9,
+    // except multiples of 9 should return 9 (not 0), so we shift by 1.
+    const digitalRoot = 1 + (num - 1) % 9;
+    return digitalRoot;
 };`,
+    jsWalkthrough:
+      'Example: num = 38\n' +
+      'Naive: 3+8=11, 1+1=2\n' +
+      'Formula: 1 + (38-1) % 9 = 1 + 37 % 9 = 1 + 1 = 2\n\n' +
+      'Example: num = 9\n' +
+      'Formula: 1 + (9-1) % 9 = 1 + 8 % 9 = 1 + 8 = 9\n\n' +
+      'Example: num = 18\n' +
+      'Formula: 1 + (18-1) % 9 = 1 + 17 % 9 = 1 + 8 = 9\n' +
+      'Naive: 1+8=9 ✓',
     explanation:
       '1. If num is 0, the digital root is 0.\n' +
       '2. Otherwise, use the formula: digital_root = 1 + (num - 1) % 9.\n' +
@@ -446,21 +604,44 @@ class Solution:
                     right -= 1
         return count`,
     jsCode: `var threeSumSmaller = function(nums, target) {
+    // Sort to enable two-pointer approach
     nums.sort((a, b) => a - b);
+
     let count = 0;
+
+    // Fix the first element, then use two pointers for the remaining pair
     for (let i = 0; i < nums.length - 2; i++) {
-        let left = i + 1, right = nums.length - 1;
+        let left = i + 1;
+        let right = nums.length - 1;
+
         while (left < right) {
-            if (nums[i] + nums[left] + nums[right] < target) {
+            const tripleSum = nums[i] + nums[left] + nums[right];
+
+            if (tripleSum < target) {
+                // All pairs (left, left+1), (left, left+2), ..., (left, right) are valid
+                // because array is sorted and right can shrink while still < target
                 count += right - left;
                 left++;
             } else {
+                // Sum is too large; shrink from the right
                 right--;
             }
         }
     }
+
     return count;
 };`,
+    jsWalkthrough:
+      'Example: nums = [-2,0,1,3], target = 2\n' +
+      'After sort: [-2,0,1,3]\n' +
+      'i=0 (nums[0]=-2):\n' +
+      '  left=1, right=3: -2+0+3=1 < 2 → count += 3-1=2, left=2\n' +
+      '  left=2, right=3: -2+1+3=2 not < 2 → right=2\n' +
+      '  left=2, right=2: loop ends\n' +
+      'i=1 (nums[1]=0):\n' +
+      '  left=2, right=3: 0+1+3=4 ≥ 2 → right=2\n' +
+      '  left=2, right=2: loop ends\n' +
+      'Result: count=2',
     explanation:
       '1. Sort the array to enable two-pointer technique.\n' +
       '2. Fix the first element at index i, then use left and right pointers.\n' +
@@ -502,16 +683,38 @@ class Solution:
                 b ^= n
         return [a, b]`,
     jsCode: `var singleNumber = function(nums) {
-    let xorAll = 0;
-    for (const n of nums) xorAll ^= n;
-    const diffBit = xorAll & (-xorAll);
-    let a = 0, b = 0;
+    // Step 1: XOR all numbers — duplicates cancel out, leaving xor of the two unique numbers
+    let xorOfUniquePair = 0;
     for (const n of nums) {
-        if (n & diffBit) a ^= n;
-        else b ^= n;
+        xorOfUniquePair ^= n;
     }
-    return [a, b];
+
+    // Step 2: Find a bit where the two unique numbers differ
+    // The lowest set bit in xorOfUniquePair is guaranteed to differ between them
+    const differingBit = xorOfUniquePair & (-xorOfUniquePair);
+
+    // Step 3: Partition all numbers into two groups by whether differingBit is set
+    // Each group contains exactly one unique number; duplicates cancel within each group
+    let uniqueA = 0;
+    let uniqueB = 0;
+    for (const n of nums) {
+        if (n & differingBit) {
+            uniqueA ^= n;
+        } else {
+            uniqueB ^= n;
+        }
+    }
+
+    return [uniqueA, uniqueB];
 };`,
+    jsWalkthrough:
+      'Example: nums = [1,2,1,3,2,5]\n' +
+      'Step 1: XOR all → 1^2^1^3^2^5 = 3^5 = 6 (binary 110)\n' +
+      'Step 2: differingBit = 6 & (-6) = 6 & ...11111010 = 2 (binary 010)\n' +
+      'Step 3: group by bit 1:\n' +
+      '  bit set (2):   2,3,2 → xor = 3  (uniqueA=3)\n' +
+      '  bit clear (0): 1,1,5 → xor = 5  (uniqueB=5)\n' +
+      'Result: [3, 5]',
     explanation:
       '1. XOR all numbers; duplicates cancel out, leaving xor of the two unique numbers.\n' +
       '2. Find the lowest set bit using xor_all & (-xor_all). This bit differs between the two unique numbers.\n' +
@@ -556,22 +759,47 @@ class Solution:
             parent[pu] = pv
         return True`,
     jsCode: `var validTree = function(n, edges) {
+    // A valid tree must have exactly n-1 edges
     if (edges.length !== n - 1) return false;
+
+    // Initialize Union-Find: each node is its own parent
     const parent = Array.from({length: n}, (_, i) => i);
+
+    // Find root with path compression
     const find = (x) => {
         while (parent[x] !== x) {
+            // Path compression: point directly to grandparent
             parent[x] = parent[parent[x]];
             x = parent[x];
         }
         return x;
     };
+
+    // Process each edge; if both endpoints share a root, it's a cycle
     for (const [u, v] of edges) {
-        const pu = find(u), pv = find(v);
-        if (pu === pv) return false;
-        parent[pu] = pv;
+        const rootU = find(u);
+        const rootV = find(v);
+
+        if (rootU === rootV) {
+            // Adding this edge would create a cycle
+            return false;
+        }
+
+        // Union the two components
+        parent[rootU] = rootV;
     }
+
     return true;
 };`,
+    jsWalkthrough:
+      'Example: n=5, edges=[[0,1],[0,2],[0,3],[1,4]]\n' +
+      'edges.length=4 === n-1=4 ✓\n' +
+      'parent = [0,1,2,3,4]\n' +
+      '[0,1]: find(0)=0, find(1)=1 → different → parent[0]=1 → [1,1,2,3,4]\n' +
+      '[0,2]: find(0)=1, find(2)=2 → different → parent[1]=2 → [1,2,2,3,4]\n' +
+      '[0,3]: find(0)=2, find(3)=3 → different → parent[2]=3 → [1,2,3,3,4]\n' +
+      '[1,4]: find(1)=3, find(4)=4 → different → parent[3]=4\n' +
+      'No cycle found → return true',
     explanation:
       '1. Check if the number of edges is exactly n-1 (necessary for a tree).\n' +
       '2. Initialize Union-Find with each node as its own parent.\n' +
@@ -609,14 +837,31 @@ class Solution:
                 n //= p
         return n == 1`,
     jsCode: `var isUgly = function(n) {
+    // Ugly numbers must be positive
     if (n <= 0) return false;
-    for (const p of [2, 3, 5]) {
-        while (n % p === 0) {
-            n = Math.floor(n / p);
+
+    // Divide out all factors of 2, 3, and 5
+    const uglyPrimes = [2, 3, 5];
+    for (const prime of uglyPrimes) {
+        while (n % prime === 0) {
+            n = Math.floor(n / prime);
         }
     }
+
+    // If all prime factors were 2, 3, or 5, what remains is 1
     return n === 1;
 };`,
+    jsWalkthrough:
+      'Example: n = 12\n' +
+      'Divide by 2: 12→6→3 (not divisible further)\n' +
+      'Divide by 3: 3→1 (not divisible further)\n' +
+      'Divide by 5: 1 (not divisible)\n' +
+      'n===1 → return true\n\n' +
+      'Example: n = 14\n' +
+      'Divide by 2: 14→7\n' +
+      'Divide by 3: 7 (not divisible)\n' +
+      'Divide by 5: 7 (not divisible)\n' +
+      'n=7 ≠ 1 → return false (14 = 2 * 7, and 7 is not ugly)',
     explanation:
       '1. If n is non-positive, return False (ugly numbers are positive).\n' +
       '2. Divide n by 2 as many times as possible.\n' +
@@ -658,17 +903,39 @@ class Solution:
         return ugly[-1]`,
     jsCode: `var nthUglyNumber = function(n) {
     const ugly = new Array(n);
-    ugly[0] = 1;
-    let i2 = 0, i3 = 0, i5 = 0;
+    ugly[0] = 1; // The first ugly number is 1
+
+    // Three pointers: each points to the next ugly number to multiply
+    let pointer2 = 0; // index of next ugly to multiply by 2
+    let pointer3 = 0; // index of next ugly to multiply by 3
+    let pointer5 = 0; // index of next ugly to multiply by 5
+
     for (let i = 1; i < n; i++) {
-        const next2 = ugly[i2] * 2, next3 = ugly[i3] * 3, next5 = ugly[i5] * 5;
-        ugly[i] = Math.min(next2, next3, next5);
-        if (ugly[i] === next2) i2++;
-        if (ugly[i] === next3) i3++;
-        if (ugly[i] === next5) i5++;
+        // Compute candidates from each "production line"
+        const candidate2 = ugly[pointer2] * 2;
+        const candidate3 = ugly[pointer3] * 3;
+        const candidate5 = ugly[pointer5] * 5;
+
+        // The next ugly number is the smallest candidate
+        const nextUgly = Math.min(candidate2, candidate3, candidate5);
+        ugly[i] = nextUgly;
+
+        // Advance all pointers that produced the minimum (handles duplicates like 6=2*3=3*2)
+        if (nextUgly === candidate2) pointer2++;
+        if (nextUgly === candidate3) pointer3++;
+        if (nextUgly === candidate5) pointer5++;
     }
+
     return ugly[n - 1];
 };`,
+    jsWalkthrough:
+      'Building the sequence step by step:\n' +
+      'ugly=[1], p2=0,p3=0,p5=0\n' +
+      'i=1: c2=1*2=2, c3=1*3=3, c5=1*5=5 → min=2 → ugly=[1,2], p2=1\n' +
+      'i=2: c2=2*2=4, c3=1*3=3, c5=1*5=5 → min=3 → ugly=[1,2,3], p3=1\n' +
+      'i=3: c2=4, c3=2*3=6, c5=5 → min=4 → ugly=[1,2,3,4], p2=2\n' +
+      'i=4: c2=3*2=6, c3=6, c5=5 → min=5 → ugly=[1,2,3,4,5], p5=1\n' +
+      '...continuing to n=10 gives ugly[9]=12',
     explanation:
       '1. Start with ugly[0] = 1.\n' +
       '2. Maintain three pointers i2, i3, i5, each tracking which ugly number to multiply next.\n' +
@@ -715,26 +982,55 @@ class Solution:
         return min1`,
     jsCode: `var minCostII = function(costs) {
     if (!costs.length) return 0;
-    const n = costs.length, k = costs[0].length;
-    let min1 = 0, min2 = 0, idx1 = -1;
-    for (let i = 0; i < n; i++) {
-        let newMin1 = Infinity, newMin2 = Infinity, newIdx1 = -1;
-        for (let j = 0; j < k; j++) {
-            const cost = costs[i][j] + (j !== idx1 ? min1 : min2);
-            if (cost < newMin1) {
+
+    const numHouses = costs.length;
+    const numColors = costs[0].length;
+
+    // Track the two smallest costs from the previous house and the color of the minimum
+    let prevMin1 = 0;      // smallest cumulative cost so far
+    let prevMin2 = 0;      // second smallest cumulative cost so far
+    let prevMin1Color = -1; // which color achieved prevMin1
+
+    for (let house = 0; house < numHouses; house++) {
+        let newMin1 = Infinity;
+        let newMin2 = Infinity;
+        let newMin1Color = -1;
+
+        for (let color = 0; color < numColors; color++) {
+            // If this color matches the previous minimum's color, use second minimum instead
+            const prevBest = (color !== prevMin1Color) ? prevMin1 : prevMin2;
+            const totalCost = costs[house][color] + prevBest;
+
+            if (totalCost < newMin1) {
+                // New global minimum — push old min1 to min2
                 newMin2 = newMin1;
-                newMin1 = cost;
-                newIdx1 = j;
-            } else if (cost < newMin2) {
-                newMin2 = cost;
+                newMin1 = totalCost;
+                newMin1Color = color;
+            } else if (totalCost < newMin2) {
+                newMin2 = totalCost;
             }
         }
-        min1 = newMin1;
-        min2 = newMin2;
-        idx1 = newIdx1;
+
+        prevMin1 = newMin1;
+        prevMin2 = newMin2;
+        prevMin1Color = newMin1Color;
     }
-    return min1;
+
+    return prevMin1;
 };`,
+    jsWalkthrough:
+      'Example: costs = [[1,5,3],[2,9,4]], k=3\n' +
+      'Initial: prevMin1=0, prevMin2=0, prevMin1Color=-1\n' +
+      'House 0:\n' +
+      '  color=0: 1+0=1 → newMin1=1, newMin1Color=0\n' +
+      '  color=1: 5+0=5 → newMin2=5\n' +
+      '  color=2: 3+0=3 → (3<5) newMin2=3\n' +
+      '  → prevMin1=1 (color 0), prevMin2=3\n' +
+      'House 1:\n' +
+      '  color=0: prevMin1Color=0 → use prevMin2=3 → 2+3=5\n' +
+      '  color=1: 9+prevMin1=9+1=10\n' +
+      '  color=2: 4+prevMin1=4+1=5\n' +
+      '  newMin1=5 → Result: 5',
     explanation:
       '1. Track min1 (smallest cost), min2 (second smallest), and idx1 (color of min1) from the previous house.\n' +
       '2. For each house and color, add min1 if the color differs from idx1, otherwise add min2.\n' +
@@ -769,16 +1065,32 @@ class Solution:
         odd_count = sum(1 for c in counts.values() if c % 2 == 1)
         return odd_count <= 1`,
     jsCode: `var canPermutePalindrome = function(s) {
-    const counts = new Map();
-    for (const c of s) {
-        counts.set(c, (counts.get(c) || 0) + 1);
+    // Count how many times each character appears
+    const charFrequency = new Map();
+    for (const char of s) {
+        charFrequency.set(char, (charFrequency.get(char) || 0) + 1);
     }
-    let oddCount = 0;
-    for (const c of counts.values()) {
-        if (c % 2 === 1) oddCount++;
+
+    // Count characters with odd frequency
+    // In a palindrome, at most one character can appear an odd number of times
+    let oddFrequencyCount = 0;
+    for (const frequency of charFrequency.values()) {
+        if (frequency % 2 === 1) {
+            oddFrequencyCount++;
+        }
     }
-    return oddCount <= 1;
+
+    return oddFrequencyCount <= 1;
 };`,
+    jsWalkthrough:
+      'Example: s = "aab"\n' +
+      'charFrequency: {a:2, b:1}\n' +
+      'oddFrequencyCount: a has freq 2 (even, skip), b has freq 1 (odd, count+1)\n' +
+      'oddFrequencyCount = 1 ≤ 1 → return true\n' +
+      '("aba" is the palindrome permutation)\n\n' +
+      'Example: s = "code"\n' +
+      'charFrequency: {c:1, o:1, d:1, e:1}\n' +
+      'oddFrequencyCount = 4 > 1 → return false',
     explanation:
       '1. Count the frequency of each character using Counter.\n' +
       '2. Count how many characters have an odd frequency.\n' +
@@ -832,45 +1144,74 @@ class Solution:
                     queue.append(nei)
         return "".join(result) if len(result) == len(in_deg) else ""`,
     jsCode: `var alienOrder = function(words) {
+    // Initialize adjacency list and in-degree map for every character seen
     const adj = new Map();
     const inDeg = new Map();
-    for (const w of words) {
-        for (const c of w) {
-            if (!inDeg.has(c)) inDeg.set(c, 0);
-            if (!adj.has(c)) adj.set(c, new Set());
+    for (const word of words) {
+        for (const char of word) {
+            if (!inDeg.has(char)) inDeg.set(char, 0);
+            if (!adj.has(char)) adj.set(char, new Set());
         }
     }
+
+    // Compare adjacent words to extract ordering rules
     for (let i = 0; i < words.length - 1; i++) {
-        const w1 = words[i], w2 = words[i + 1];
-        const minLen = Math.min(w1.length, w2.length);
-        if (w1.length > w2.length && w1.substring(0, minLen) === w2.substring(0, minLen)) {
-            return "";
-        }
-        for (let j = 0; j < minLen; j++) {
-            if (w1[j] !== w2[j]) {
-                if (!adj.get(w1[j]).has(w2[j])) {
-                    adj.get(w1[j]).add(w2[j]);
-                    inDeg.set(w2[j], inDeg.get(w2[j]) + 1);
+        const word1 = words[i];
+        const word2 = words[i + 1];
+        const compareLength = Math.min(word1.length, word2.length);
+
+        // Invalid: longer word is prefix of shorter next word (e.g. "abc" before "ab")
+        const word1IsLongerPrefix = word1.length > word2.length &&
+            word1.substring(0, compareLength) === word2.substring(0, compareLength);
+        if (word1IsLongerPrefix) return "";
+
+        // Find first differing character — this gives an ordering constraint
+        for (let j = 0; j < compareLength; j++) {
+            if (word1[j] !== word2[j]) {
+                const from = word1[j];
+                const to = word2[j];
+                // Avoid duplicate edges
+                if (!adj.get(from).has(to)) {
+                    adj.get(from).add(to);
+                    inDeg.set(to, inDeg.get(to) + 1);
                 }
-                break;
+                break; // Only the first differing position matters
             }
         }
     }
+
+    // Topological sort (Kahn's BFS): start from zero in-degree characters
     const queue = [];
-    for (const [c, deg] of inDeg) {
-        if (deg === 0) queue.push(c);
+    for (const [char, degree] of inDeg) {
+        if (degree === 0) queue.push(char);
     }
+
     const result = [];
     while (queue.length) {
-        const c = queue.shift();
-        result.push(c);
-        for (const nei of adj.get(c)) {
-            inDeg.set(nei, inDeg.get(nei) - 1);
-            if (inDeg.get(nei) === 0) queue.push(nei);
+        const char = queue.shift();
+        result.push(char);
+
+        for (const neighbor of adj.get(char)) {
+            const newDegree = inDeg.get(neighbor) - 1;
+            inDeg.set(neighbor, newDegree);
+            if (newDegree === 0) queue.push(neighbor);
         }
     }
+
+    // If result has all characters, no cycle exists
     return result.length === inDeg.size ? result.join('') : '';
 };`,
+    jsWalkthrough:
+      'Example: words = ["wrt","wrf","er","ett","rftt"]\n' +
+      'Characters: w,r,t,f,e\n' +
+      'Comparing pairs:\n' +
+      '  "wrt" vs "wrf": first diff at pos 2 → t before f → t→f\n' +
+      '  "wrf" vs "er":  first diff at pos 0 → w before e → w→e\n' +
+      '  "er"  vs "ett": first diff at pos 1 → r before t → r→t\n' +
+      '  "ett" vs "rftt": first diff at pos 0 → e before r → e→r\n' +
+      'inDeg: w=0,r=1,t=1,f=1,e=1\n' +
+      'BFS from w: w→e→r→t→f\n' +
+      'Result: "wertf"',
     explanation:
       '1. Initialize in-degree for every character that appears in any word.\n' +
       '2. Compare adjacent words to find ordering constraints (first differing char gives a->b edge).\n' +
@@ -910,15 +1251,38 @@ class Solution:
         return closest`,
     jsCode: `var closestValue = function(root, target) {
     let closest = root.val;
+
     while (root) {
-        if (Math.abs(root.val - target) < Math.abs(closest - target) ||
-            (Math.abs(root.val - target) === Math.abs(closest - target) && root.val < closest)) {
+        const currentDist = Math.abs(root.val - target);
+        const closestDist = Math.abs(closest - target);
+
+        // Update closest if this node is strictly nearer,
+        // or equally near but has a smaller value
+        const isCloser = currentDist < closestDist;
+        const isTiedButSmaller = currentDist === closestDist && root.val < closest;
+
+        if (isCloser || isTiedButSmaller) {
             closest = root.val;
         }
-        root = target < root.val ? root.left : root.right;
+
+        // Use BST property to navigate toward the target
+        if (target < root.val) {
+            root = root.left;
+        } else {
+            root = root.right;
+        }
     }
+
     return closest;
 };`,
+    jsWalkthrough:
+      'Example: root = [4,2,5,1,3], target = 3.714286\n' +
+      'Start: closest=4, dist=|4-3.714|=0.286\n' +
+      'node=4: target<4 → go left\n' +
+      'node=2: |2-3.714|=1.714 > 0.286 → no update, target>2 → go right\n' +
+      'node=3: |3-3.714|=0.714 > 0.286 → no update, target>3 → go right\n' +
+      'node=null → stop\n' +
+      'Result: 4',
     explanation:
       '1. Initialize closest with the root value.\n' +
       '2. Traverse the BST iteratively.\n' +
@@ -960,20 +1324,40 @@ class Solution:
             i = j + 1 + length
         return result`,
     jsCode: `var encode = function(strs) {
+    // Prefix each string with its length and a '#' delimiter
+    // e.g. ["Hello","World"] → "5#Hello5#World"
     return strs.map(s => s.length + '#' + s).join('');
 };
 
 var decode = function(s) {
     const result = [];
-    let i = 0;
-    while (i < s.length) {
-        const j = s.indexOf('#', i);
-        const length = parseInt(s.substring(i, j));
-        result.push(s.substring(j + 1, j + 1 + length));
-        i = j + 1 + length;
+    let readPos = 0;
+
+    while (readPos < s.length) {
+        // Find the '#' delimiter to read the length prefix
+        const delimPos = s.indexOf('#', readPos);
+        const strLength = parseInt(s.substring(readPos, delimPos));
+
+        // Extract exactly strLength characters after the '#'
+        const strStart = delimPos + 1;
+        const strEnd = strStart + strLength;
+        result.push(s.substring(strStart, strEnd));
+
+        // Advance past the delimiter and the string content
+        readPos = strEnd;
     }
+
     return result;
 };`,
+    jsWalkthrough:
+      'Example: encode(["Hello","World"])\n' +
+      '  "Hello" → "5#Hello"\n' +
+      '  "World" → "5#World"\n' +
+      '  Encoded: "5#Hello5#World"\n\n' +
+      'decode("5#Hello5#World"):\n' +
+      '  readPos=0: delimPos=1, length=5, str="Hello", readPos=7\n' +
+      '  readPos=7: delimPos=8, length=5, str="World", readPos=14\n' +
+      '  Result: ["Hello","World"]',
     explanation:
       '1. Encode: for each string, write its length, a "#" delimiter, then the string itself.\n' +
       '2. Decode: read characters until "#" to get the length.\n' +
@@ -1023,26 +1407,48 @@ var decode = function(s) {
         return result.strip()`,
     jsCode: `var numberToWords = function(num) {
     if (num === 0) return "Zero";
+
     const ones = ["","One","Two","Three","Four","Five","Six","Seven","Eight","Nine",
-                   "Ten","Eleven","Twelve","Thirteen","Fourteen","Fifteen","Sixteen",
-                   "Seventeen","Eighteen","Nineteen"];
+                  "Ten","Eleven","Twelve","Thirteen","Fourteen","Fifteen","Sixteen",
+                  "Seventeen","Eighteen","Nineteen"];
     const tens = ["","","Twenty","Thirty","Forty","Fifty","Sixty","Seventy","Eighty","Ninety"];
-    const thousands = ["","Thousand","Million","Billion"];
-    const helper = (n) => {
+    const scales = ["", "Thousand", "Million", "Billion"];
+
+    // Convert a number less than 1000 to English words
+    const convertUnderThousand = (n) => {
         if (n === 0) return "";
         if (n < 20) return ones[n] + " ";
-        if (n < 100) return tens[Math.floor(n / 10)] + " " + helper(n % 10);
-        return ones[Math.floor(n / 100)] + " Hundred " + helper(n % 100);
+        if (n < 100) return tens[Math.floor(n / 10)] + " " + convertUnderThousand(n % 10);
+        // Hundreds place
+        const hundredsDigit = Math.floor(n / 100);
+        const remainder = n % 100;
+        return ones[hundredsDigit] + " Hundred " + convertUnderThousand(remainder);
     };
+
     let result = "";
-    for (let i = 0; i < thousands.length; i++) {
-        if (num % 1000 !== 0) {
-            result = helper(num % 1000) + thousands[i] + " " + result;
+
+    // Process each group of three digits from right to left
+    for (let scaleIndex = 0; scaleIndex < scales.length; scaleIndex++) {
+        const chunk = num % 1000;
+
+        if (chunk !== 0) {
+            const chunkWords = convertUnderThousand(chunk);
+            const scaleWord = scales[scaleIndex];
+            result = chunkWords + scaleWord + " " + result;
         }
+
         num = Math.floor(num / 1000);
     }
+
     return result.trim();
 };`,
+    jsWalkthrough:
+      'Example: num = 1234567\n' +
+      'scaleIndex=0: chunk=567 → "Five Hundred Sixty Seven " + "" + " " = "Five Hundred Sixty Seven "\n' +
+      'scaleIndex=1: chunk=234 → "Two Hundred Thirty Four " + "Thousand" + " " prepended\n' +
+      'scaleIndex=2: chunk=1 → "One " + "Million" + " " prepended\n' +
+      'scaleIndex=3: chunk=0 → skip\n' +
+      'Result: "One Million Two Hundred Thirty Four Thousand Five Hundred Sixty Seven"',
     explanation:
       '1. Handle zero as a special case.\n' +
       '2. Define lookup arrays for ones (0-19), tens (20-90), and scale words.\n' +
@@ -1085,17 +1491,33 @@ var decode = function(s) {
         return 0`,
     jsCode: `var hIndex = function(citations) {
     const n = citations.length;
+
+    // Counting sort: bucket[i] = number of papers with exactly i citations
+    // Bucket n handles all papers with n or more citations
     const buckets = new Array(n + 1).fill(0);
-    for (const c of citations) {
-        buckets[Math.min(c, n)]++;
+    for (const citationCount of citations) {
+        const cappedCount = Math.min(citationCount, n);
+        buckets[cappedCount]++;
     }
-    let total = 0;
+
+    // Scan from high to low, accumulating papers
+    // The first h where accumulated count >= h is the h-index
+    let papersWithAtLeastH = 0;
     for (let h = n; h >= 0; h--) {
-        total += buckets[h];
-        if (total >= h) return h;
+        papersWithAtLeastH += buckets[h];
+        if (papersWithAtLeastH >= h) return h;
     }
+
     return 0;
 };`,
+    jsWalkthrough:
+      'Example: citations = [3,0,6,1,5], n=5\n' +
+      'buckets: [0,1,0,1,0,1,1] (indices 0-5, bucket[5+]=1 for 6)\n' +
+      'Actually: bucket[0]+=1(0), bucket[1]+=1(1), bucket[3]+=1(3), bucket[5]+=1(5), bucket[5]+=1(6→capped5)\n' +
+      'buckets = [1,1,0,1,0,2]\n' +
+      'h=5: total+=2=2, 2<5\n' +
+      'h=4: total+=0=2, 2<4\n' +
+      'h=3: total+=1=3, 3>=3 → return 3',
     explanation:
       '1. Create n+1 buckets; papers with >= n citations go into bucket n.\n' +
       '2. Traverse from the highest bucket downward, accumulating total papers.\n' +
@@ -1136,17 +1558,36 @@ var decode = function(s) {
         return n - lo`,
     jsCode: `var hIndex = function(citations) {
     const n = citations.length;
-    let lo = 0, hi = n - 1;
+
+    // Binary search for the leftmost index where citations[mid] >= n - mid
+    // n - mid = number of papers from index mid to the end (inclusive)
+    let lo = 0;
+    let hi = n - 1;
+
     while (lo <= hi) {
         const mid = Math.floor((lo + hi) / 2);
-        if (citations[mid] >= n - mid) {
+        const papersFromMidOnward = n - mid;
+
+        if (citations[mid] >= papersFromMidOnward) {
+            // mid could be part of the h-index group; search left for a larger h
             hi = mid - 1;
         } else {
+            // Not enough citations at mid; search right
             lo = mid + 1;
         }
     }
+
+    // h-index = number of papers from lo onward
     return n - lo;
 };`,
+    jsWalkthrough:
+      'Example: citations = [0,1,3,5,6], n=5\n' +
+      'lo=0, hi=4\n' +
+      'mid=2: citations[2]=3, n-mid=3 → 3>=3 → hi=1\n' +
+      'mid=0: citations[0]=0, n-mid=5 → 0<5 → lo=1\n' +
+      'mid=1: citations[1]=1, n-mid=4 → 1<4 → lo=2\n' +
+      'lo=2 > hi=1 → stop\n' +
+      'Result: n - lo = 5 - 2 = 3',
     explanation:
       '1. Binary search for the leftmost index where citations[mid] >= n - mid.\n' +
       '2. n - mid represents the number of papers from index mid to the end.\n' +
@@ -1186,16 +1627,34 @@ var decode = function(s) {
     jsCode: `var numWays = function(n, k) {
     if (n === 0) return 0;
     if (n === 1) return k;
-    let same = k;
-    let diff = k * (k - 1);
-    for (let i = 3; i <= n; i++) {
+
+    // same = ways to paint i posts where post i-1 and i have the SAME color
+    // diff = ways to paint i posts where post i-1 and i have DIFFERENT colors
+    let same = k;           // post 1 and 2 are the same: k choices
+    let diff = k * (k - 1); // post 1 and 2 differ: k * (k-1) choices
+
+    for (let post = 3; post <= n; post++) {
+        // To keep same color: previous two were different (can now repeat)
         const newSame = diff;
+
+        // To change color: pick any of (k-1) colors different from post i
+        // The previous pair can be same or different
         const newDiff = (same + diff) * (k - 1);
+
         same = newSame;
         diff = newDiff;
     }
+
     return same + diff;
 };`,
+    jsWalkthrough:
+      'Example: n=3, k=2\n' +
+      'After posts 1&2: same=2 (AA,BB), diff=2 (AB,BA)\n' +
+      'Post 3:\n' +
+      '  newSame = diff = 2 (post 2 and 3 same, post 1 and 2 were different)\n' +
+      '  newDiff = (same+diff)*(k-1) = (2+2)*1 = 4\n' +
+      '  same=2, diff=4\n' +
+      'Result: same+diff = 2+4 = 6',
     explanation:
       '1. For n=1: k ways. For n=2: same=k (both same color), diff=k*(k-1) (different colors).\n' +
       '2. For each subsequent post, same = previous diff (can only match if previous two were different).\n' +
@@ -1235,21 +1694,39 @@ var decode = function(s) {
                     return -1
         return candidate`,
     jsCode: `var findCelebrity = function(n) {
+    // Phase 1: Eliminate non-candidates
+    // If candidate knows i, candidate can't be the celebrity → switch to i
     let candidate = 0;
     for (let i = 1; i < n; i++) {
         if (knows(candidate, i)) {
             candidate = i;
         }
     }
+
+    // Phase 2: Verify the candidate
+    // A celebrity must: know nobody, and be known by everybody
     for (let i = 0; i < n; i++) {
-        if (i !== candidate) {
-            if (knows(candidate, i) || !knows(i, candidate)) {
-                return -1;
-            }
+        if (i === candidate) continue;
+
+        const candidateKnowsSomeone = knows(candidate, i);
+        const someoneDoesNotKnowCandidate = !knows(i, candidate);
+
+        if (candidateKnowsSomeone || someoneDoesNotKnowCandidate) {
+            return -1;
         }
     }
+
     return candidate;
 };`,
+    jsWalkthrough:
+      'Example: graph = [[1,1,0],[0,1,0],[1,1,1]], n=3\n' +
+      'Phase 1 (elimination):\n' +
+      '  candidate=0, i=1: knows(0,1)=true → candidate=1\n' +
+      '  candidate=1, i=2: knows(1,2)=false → candidate stays 1\n' +
+      'Phase 2 (verify candidate=1):\n' +
+      '  i=0: knows(1,0)=false, knows(0,1)=true → OK\n' +
+      '  i=2: knows(1,2)=false, knows(2,1)=true → OK\n' +
+      'Result: 1',
     explanation:
       '1. Start with candidate 0. For each person i, if candidate knows i, candidate cannot be the celebrity — switch to i.\n' +
       '2. After one pass, the candidate is the only possible celebrity.\n' +
@@ -1299,26 +1776,54 @@ var decode = function(s) {
         return result`,
     jsCode: `var addOperators = function(num, target) {
     const result = [];
-    const backtrack = (idx, path, total, last) => {
+
+    // idx: current position in num string
+    // path: expression string built so far
+    // total: evaluated value of the expression so far
+    // lastOperand: the last operand added (needed for multiplication undo)
+    const backtrack = (idx, path, total, lastOperand) => {
+        // Reached end of string: check if expression equals target
         if (idx === num.length) {
             if (total === target) result.push(path);
             return;
         }
+
         for (let i = idx; i < num.length; i++) {
+            // Skip numbers with leading zeros (e.g. "05" is invalid)
             if (i > idx && num[idx] === '0') break;
-            const cur = parseInt(num.substring(idx, i + 1));
+
+            const currentNum = parseInt(num.substring(idx, i + 1));
+
             if (idx === 0) {
-                backtrack(i + 1, String(cur), cur, cur);
+                // First number: no operator before it
+                backtrack(i + 1, String(currentNum), currentNum, currentNum);
             } else {
-                backtrack(i + 1, path + '+' + cur, total + cur, cur);
-                backtrack(i + 1, path + '-' + cur, total - cur, -cur);
-                backtrack(i + 1, path + '*' + cur, total - last + last * cur, last * cur);
+                // Try adding +, -, * before currentNum
+                backtrack(i + 1, path + '+' + currentNum, total + currentNum, currentNum);
+                backtrack(i + 1, path + '-' + currentNum, total - currentNum, -currentNum);
+
+                // Multiplication: undo the last addition and apply multiply
+                // total - lastOperand + (lastOperand * currentNum)
+                const newTotal = total - lastOperand + lastOperand * currentNum;
+                backtrack(i + 1, path + '*' + currentNum, newTotal, lastOperand * currentNum);
             }
         }
     };
+
     backtrack(0, '', 0, 0);
     return result;
 };`,
+    jsWalkthrough:
+      'Example: num = "123", target = 6\n' +
+      'backtrack(0,"",0,0):\n' +
+      '  cur=1: backtrack(1,"1",1,1)\n' +
+      '    cur=2: → "1+2", total=3, last=2\n' +
+      '      cur=3: → "1+2+3", total=6=target ✓\n' +
+      '    cur=23: → "1+23", total=24...\n' +
+      '    cur=2: → "1-2", total=-1...\n' +
+      '    cur=2: → "1*2", total=2, last=2\n' +
+      '      cur=3: → "1*2*3", total=6=target ✓\n' +
+      'Result: ["1+2+3","1*2*3"]',
     explanation:
       '1. Use backtracking starting from index 0.\n' +
       '2. At each step, try substrings of increasing length as the next number.\n' +
@@ -1359,16 +1864,33 @@ var decode = function(s) {
         return successor`,
     jsCode: `var inorderSuccessor = function(root, p) {
     let successor = null;
+
     while (root) {
         if (p.val < root.val) {
+            // root could be the successor (it is greater than p)
+            // but there might be something smaller in the left subtree
             successor = root;
             root = root.left;
         } else {
+            // root.val <= p.val, so successor must be in the right subtree
             root = root.right;
         }
     }
+
     return successor;
 };`,
+    jsWalkthrough:
+      'Example: root = [2,1,3], p = node(1)\n' +
+      'node=2: p.val=1 < 2 → successor=2, go left\n' +
+      'node=1: p.val=1 not < 1 → go right\n' +
+      'node=null → stop\n' +
+      'Result: node with val=2\n\n' +
+      'Example: root = [5,3,6,2,4], p = node(4)\n' +
+      'node=5: 4<5 → successor=5, go left\n' +
+      'node=3: 4>3 → go right\n' +
+      'node=4: 4 not < 4 → go right\n' +
+      'node=null → stop\n' +
+      'Result: node with val=5',
     explanation:
       '1. Start from the root with successor = None.\n' +
       '2. If p.val < root.val, root could be the successor, so save it and go left for a closer one.\n' +
@@ -1417,27 +1939,51 @@ var decode = function(s) {
                     queue.append((nr, nc))`,
     jsCode: `var wallsAndGates = function(rooms) {
     if (!rooms.length) return;
-    const m = rooms.length, n = rooms[0].length;
+
+    const numRows = rooms.length;
+    const numCols = rooms[0].length;
     const INF = 2147483647;
+    const dirs = [[0,1],[0,-1],[1,0],[-1,0]];
+
+    // Multi-source BFS: start from all gates simultaneously
     const queue = [];
-    for (let i = 0; i < m; i++) {
-        for (let j = 0; j < n; j++) {
-            if (rooms[i][j] === 0) queue.push([i, j]);
+    for (let row = 0; row < numRows; row++) {
+        for (let col = 0; col < numCols; col++) {
+            if (rooms[row][col] === 0) {
+                queue.push([row, col]);
+            }
         }
     }
-    const dirs = [[0,1],[0,-1],[1,0],[-1,0]];
-    let idx = 0;
-    while (idx < queue.length) {
-        const [r, c] = queue[idx++];
-        for (const [dr, dc] of dirs) {
-            const nr = r + dr, nc = c + dc;
-            if (nr >= 0 && nr < m && nc >= 0 && nc < n && rooms[nr][nc] === INF) {
-                rooms[nr][nc] = rooms[r][c] + 1;
-                queue.push([nr, nc]);
+
+    // BFS expands outward from all gates at once
+    let readIdx = 0;
+    while (readIdx < queue.length) {
+        const [row, col] = queue[readIdx++];
+
+        for (const [deltaRow, deltaCol] of dirs) {
+            const neighborRow = row + deltaRow;
+            const neighborCol = col + deltaCol;
+
+            // Only update empty rooms (INF means unvisited empty room)
+            const inBounds = neighborRow >= 0 && neighborRow < numRows &&
+                             neighborCol >= 0 && neighborCol < numCols;
+            if (inBounds && rooms[neighborRow][neighborCol] === INF) {
+                // Distance to this room = distance to current cell + 1
+                rooms[neighborRow][neighborCol] = rooms[row][col] + 1;
+                queue.push([neighborRow, neighborCol]);
             }
         }
     }
 };`,
+    jsWalkthrough:
+      'Example (simplified 2x2): [[INF,0],[INF,INF]]\n' +
+      'Find gates: [0,1] → queue=[[0,1]]\n' +
+      'Process [0,1] (dist=0):\n' +
+      '  neighbor [0,0]: INF → set to 0+1=1, enqueue [0,0]\n' +
+      '  neighbor [1,1]: INF → set to 0+1=1, enqueue [1,1]\n' +
+      'Process [0,0] (dist=1):\n' +
+      '  neighbor [1,0]: INF → set to 1+1=2, enqueue [1,0]\n' +
+      'Final: [[1,0],[2,1]]',
     explanation:
       '1. Find all gates (cells with value 0) and add them to the BFS queue.\n' +
       '2. Perform BFS: for each cell, check all 4 neighbors.\n' +
@@ -1485,32 +2031,56 @@ var decode = function(s) {
             for j in range(n):
                 board[i][j] = 1 if board[i][j] % 2 == 1 else 0`,
     jsCode: `var gameOfLife = function(board) {
-    const m = board.length, n = board[0].length;
-    for (let i = 0; i < m; i++) {
-        for (let j = 0; j < n; j++) {
-            let live = 0;
-            for (let di = -1; di <= 1; di++) {
-                for (let dj = -1; dj <= 1; dj++) {
-                    if (di === 0 && dj === 0) continue;
-                    const ni = i + di, nj = j + dj;
-                    if (ni >= 0 && ni < m && nj >= 0 && nj < n && board[ni][nj] % 2 === 1) {
-                        live++;
+    const numRows = board.length;
+    const numCols = board[0].length;
+
+    // Encoding: 2 = was alive, now dies; 3 = was dead, now lives
+    // Using value % 2 recovers the original state during computation
+
+    // Phase 1: Apply rules, encoding transitions
+    for (let row = 0; row < numRows; row++) {
+        for (let col = 0; col < numCols; col++) {
+            // Count live neighbors using original state (value % 2)
+            let liveNeighborCount = 0;
+            for (let deltaRow = -1; deltaRow <= 1; deltaRow++) {
+                for (let deltaCol = -1; deltaCol <= 1; deltaCol++) {
+                    if (deltaRow === 0 && deltaCol === 0) continue;
+                    const neighborRow = row + deltaRow;
+                    const neighborCol = col + deltaCol;
+                    const inBounds = neighborRow >= 0 && neighborRow < numRows &&
+                                     neighborCol >= 0 && neighborCol < numCols;
+                    if (inBounds && board[neighborRow][neighborCol] % 2 === 1) {
+                        liveNeighborCount++;
                     }
                 }
             }
-            if (board[i][j] === 1 && (live < 2 || live > 3)) {
-                board[i][j] = 2;
-            } else if (board[i][j] === 0 && live === 3) {
-                board[i][j] = 3;
+
+            // Apply Game of Life rules with encoded transitions
+            const wasAlive = board[row][col] === 1;
+            const wasDead = board[row][col] === 0;
+
+            if (wasAlive && (liveNeighborCount < 2 || liveNeighborCount > 3)) {
+                board[row][col] = 2; // alive → dead
+            } else if (wasDead && liveNeighborCount === 3) {
+                board[row][col] = 3; // dead → alive
             }
         }
     }
-    for (let i = 0; i < m; i++) {
-        for (let j = 0; j < n; j++) {
-            board[i][j] = board[i][j] % 2 === 1 ? 1 : 0;
+
+    // Phase 2: Decode encoded values back to 0 or 1
+    for (let row = 0; row < numRows; row++) {
+        for (let col = 0; col < numCols; col++) {
+            board[row][col] = board[row][col] % 2 === 1 ? 1 : 0;
         }
     }
 };`,
+    jsWalkthrough:
+      'Encoding trick: 0=dead, 1=alive, 2=alive→dead, 3=dead→alive\n' +
+      'value % 2 gives original: 0%2=0, 1%2=1, 2%2=0(was alive), 3%2=1(was dead)\n\n' +
+      'Cell (1,1) in [[0,1,0],[0,0,1],[1,1,1],[0,0,0]]:\n' +
+      '  Neighbors: count live = 5 → 5>3 → stays dead (0, no change)\n' +
+      'Cell (0,1): was alive=1, neighbors=1 → <2 → encode as 2\n' +
+      'After phase 2: all 2s become 0, all 3s become 1',
     explanation:
       '1. Use state encoding: 2 = was alive, now dead; 3 = was dead, now alive.\n' +
       '2. Original state is recovered via value % 2 (works for 0,1,2,3).\n' +
@@ -1556,18 +2126,45 @@ var decode = function(s) {
         return True`,
     jsCode: `var wordPattern = function(pattern, s) {
     const words = s.split(' ');
+
+    // Pattern and word count must match
     if (pattern.length !== words.length) return false;
-    const charToWord = new Map();
-    const wordToChar = new Map();
+
+    // Two maps to enforce bijection (one-to-one in both directions)
+    const charToWord = new Map(); // pattern char → word
+    const wordToChar = new Map(); // word → pattern char
+
     for (let i = 0; i < pattern.length; i++) {
-        const c = pattern[i], w = words[i];
-        if (charToWord.has(c) && charToWord.get(c) !== w) return false;
-        if (wordToChar.has(w) && wordToChar.get(w) !== c) return false;
-        charToWord.set(c, w);
-        wordToChar.set(w, c);
+        const patternChar = pattern[i];
+        const word = words[i];
+
+        // Check char → word consistency
+        if (charToWord.has(patternChar) && charToWord.get(patternChar) !== word) {
+            return false;
+        }
+
+        // Check word → char consistency (prevents two chars mapping to the same word)
+        if (wordToChar.has(word) && wordToChar.get(word) !== patternChar) {
+            return false;
+        }
+
+        charToWord.set(patternChar, word);
+        wordToChar.set(word, patternChar);
     }
+
     return true;
 };`,
+    jsWalkthrough:
+      'Example: pattern = "abba", s = "dog cat cat dog"\n' +
+      'words = ["dog","cat","cat","dog"]\n' +
+      'i=0: a→dog, dog→a\n' +
+      'i=1: b→cat, cat→b\n' +
+      'i=2: b maps to cat ✓, cat maps to b ✓\n' +
+      'i=3: a maps to dog ✓, dog maps to a ✓\n' +
+      'Result: true\n\n' +
+      'Counterexample: pattern="aa", s="dog cat"\n' +
+      'i=0: a→dog\n' +
+      'i=1: a already maps to "dog" but word is "cat" → return false',
     explanation:
       '1. Split s into words and check if count matches pattern length.\n' +
       '2. Maintain two maps: char->word and word->char.\n' +
@@ -1609,22 +2206,39 @@ var decode = function(s) {
             return sum(abs(p - mid) for p in points)
         return min_dist(rows) + min_dist(cols)`,
     jsCode: `var minTotalDistance = function(grid) {
-    const rows = [], cols = [];
-    for (let i = 0; i < grid.length; i++) {
-        for (let j = 0; j < grid[0].length; j++) {
-            if (grid[i][j] === 1) {
-                rows.push(i);
-                cols.push(j);
+    const rowCoords = [];
+    const colCoords = [];
+
+    // Collect row and column coordinates of all friends (cells with value 1)
+    for (let row = 0; row < grid.length; row++) {
+        for (let col = 0; col < grid[0].length; col++) {
+            if (grid[row][col] === 1) {
+                rowCoords.push(row); // already sorted by row traversal order
+                colCoords.push(col);
             }
         }
     }
-    cols.sort((a, b) => a - b);
-    const minDist = (points) => {
-        const mid = points[Math.floor(points.length / 2)];
-        return points.reduce((sum, p) => sum + Math.abs(p - mid), 0);
+
+    // Columns need sorting since we iterate row-by-row
+    colCoords.sort((a, b) => a - b);
+
+    // In 1D, the optimal meeting point is the median — minimizes total distance
+    const totalDistance1D = (coords) => {
+        const medianIndex = Math.floor(coords.length / 2);
+        const median = coords[medianIndex];
+        return coords.reduce((sum, coord) => sum + Math.abs(coord - median), 0);
     };
-    return minDist(rows) + minDist(cols);
+
+    // Manhattan distance splits into independent row and column components
+    return totalDistance1D(rowCoords) + totalDistance1D(colCoords);
 };`,
+    jsWalkthrough:
+      'Example: grid = [[1,0,0,0,1],[0,0,0,0,0],[0,0,1,0,0]]\n' +
+      'Friends at: (0,0), (0,4), (2,2)\n' +
+      'rowCoords = [0,0,2], colCoords = [0,4,2] → sorted [0,2,4]\n' +
+      'Rows: median=0, distances=|0-0|+|0-0|+|2-0|=2\n' +
+      'Cols: median=2, distances=|0-2|+|2-2|+|4-2|=4\n' +
+      'Result: 2+4=6',
     explanation:
       '1. Collect all row and column indices of homes.\n' +
       '2. Rows are already sorted by the traversal order; sort columns.\n' +
@@ -1670,20 +2284,35 @@ var decode = function(s) {
         return self.max_len`,
     jsCode: `var longestConsecutive = function(root) {
     let maxLen = 0;
-    const dfs = (node, parentVal, length) => {
+
+    // DFS passing parent value and current consecutive sequence length
+    const dfs = (node, parentValue, currentLength) => {
         if (!node) return;
-        if (node.val === parentVal + 1) {
-            length++;
-        } else {
-            length = 1;
-        }
-        maxLen = Math.max(maxLen, length);
-        dfs(node.left, node.val, length);
-        dfs(node.right, node.val, length);
+
+        // Extend or reset the consecutive sequence
+        const isConsecutive = node.val === parentValue + 1;
+        const newLength = isConsecutive ? currentLength + 1 : 1;
+
+        // Track the global maximum
+        maxLen = Math.max(maxLen, newLength);
+
+        // Continue DFS on both children
+        dfs(node.left, node.val, newLength);
+        dfs(node.right, node.val, newLength);
     };
+
+    // Start with -Infinity so root always resets length to 1
     dfs(root, -Infinity, 0);
     return maxLen;
 };`,
+    jsWalkthrough:
+      'Example: root = [1,null,3,2,4,null,null,null,5]\n' +
+      'dfs(1, -Inf, 0): 1≠-Inf+1 → length=1, maxLen=1\n' +
+      '  dfs(3, 1, 1): 3≠2 → length=1, maxLen=1\n' +
+      '    dfs(2, 3, 1): 2≠4 → length=1, maxLen=1\n' +
+      '    dfs(4, 3, 1): 4===3+1 → length=2, maxLen=2\n' +
+      '      dfs(5, 4, 2): 5===4+1 → length=3, maxLen=3\n' +
+      'Result: 3 (path: 3→4→5)',
     explanation:
       '1. DFS with parent value and current consecutive length.\n' +
       '2. If current node value = parent + 1, extend the sequence.\n' +
@@ -1727,21 +2356,47 @@ var decode = function(s) {
                 count[int(g)] -= 1
         return f"{bulls}A{cows}B"`,
     jsCode: `var getHint = function(secret, guess) {
-    let bulls = 0, cows = 0;
-    const count = new Array(10).fill(0);
+    let bulls = 0;
+    let cows = 0;
+
+    // count[d] > 0 means secret has seen digit d without a match yet
+    // count[d] < 0 means guess has seen digit d without a match yet
+    const digitBalance = new Array(10).fill(0);
+
     for (let i = 0; i < secret.length; i++) {
-        const s = parseInt(secret[i]), g = parseInt(guess[i]);
-        if (s === g) {
+        const secretDigit = parseInt(secret[i]);
+        const guessDigit = parseInt(guess[i]);
+
+        if (secretDigit === guessDigit) {
+            // Exact position match = bull
             bulls++;
         } else {
-            if (count[s] < 0) cows++;
-            if (count[g] > 0) cows++;
-            count[s]++;
-            count[g]--;
+            // secretDigit was previously needed by guess → cow found
+            if (digitBalance[secretDigit] < 0) cows++;
+            // guessDigit was previously seen in secret → cow found
+            if (digitBalance[guessDigit] > 0) cows++;
+
+            // Track unmatched digits: +1 for secret, -1 for guess
+            digitBalance[secretDigit]++;
+            digitBalance[guessDigit]--;
         }
     }
+
     return bulls + "A" + cows + "B";
 };`,
+    jsWalkthrough:
+      'Example: secret = "1807", guess = "7810"\n' +
+      'i=0: s=1,g=7 → not equal\n' +
+      '  balance[1]>0? no, balance[7]>0? no → no cow yet\n' +
+      '  balance[1]++→1, balance[7]--→-1\n' +
+      'i=1: s=8,g=8 → BULL! bulls=1\n' +
+      'i=2: s=0,g=1 → not equal\n' +
+      '  balance[0]<0? no, balance[1]>0? yes → cows=1\n' +
+      '  balance[0]++→1, balance[1]--→0\n' +
+      'i=3: s=7,g=0 → not equal\n' +
+      '  balance[7]<0? yes → cows=2\n' +
+      '  balance[0]>0? yes → cows=3\n' +
+      'Result: "1A3B"',
     explanation:
       '1. For each position, if secret[i] == guess[i], it is a bull.\n' +
       '2. Otherwise, check the count array: if count[secret_digit] < 0, a previous guess used this digit (cow). If count[guess_digit] > 0, a previous secret had this digit (cow).\n' +
@@ -1801,36 +2456,70 @@ var decode = function(s) {
         backtrack(0, 0, left_rem, right_rem, '')
         return list(result)`,
     jsCode: `var removeInvalidParentheses = function(s) {
-    let leftRem = 0, rightRem = 0;
-    for (const c of s) {
-        if (c === '(') leftRem++;
-        else if (c === ')') {
-            if (leftRem > 0) leftRem--;
-            else rightRem++;
+    // Count minimum removals needed
+    let leftToRemove = 0;  // extra unmatched '('
+    let rightToRemove = 0; // extra unmatched ')'
+
+    for (const char of s) {
+        if (char === '(') {
+            leftToRemove++;
+        } else if (char === ')') {
+            if (leftToRemove > 0) {
+                leftToRemove--; // matched this ')' with a previous '('
+            } else {
+                rightToRemove++; // unmatched ')'
+            }
         }
     }
-    const result = new Set();
+
+    const validResults = new Set();
+
+    // backtrack explores keeping or removing each parenthesis
     const backtrack = (idx, openCount, leftRem, rightRem, path) => {
         if (idx === s.length) {
+            // Valid if we used exactly the required removals and parentheses balance
             if (leftRem === 0 && rightRem === 0 && openCount === 0) {
-                result.add(path);
+                validResults.add(path);
             }
             return;
         }
-        const c = s[idx];
-        if (c === '(') {
-            if (leftRem > 0) backtrack(idx + 1, openCount, leftRem - 1, rightRem, path);
-            backtrack(idx + 1, openCount + 1, leftRem, rightRem, path + c);
-        } else if (c === ')') {
-            if (rightRem > 0) backtrack(idx + 1, openCount, leftRem, rightRem - 1, path);
-            if (openCount > 0) backtrack(idx + 1, openCount - 1, leftRem, rightRem, path + c);
+
+        const char = s[idx];
+
+        if (char === '(') {
+            // Option 1: remove this '(' (uses one of our leftRem budget)
+            if (leftRem > 0) {
+                backtrack(idx + 1, openCount, leftRem - 1, rightRem, path);
+            }
+            // Option 2: keep this '('
+            backtrack(idx + 1, openCount + 1, leftRem, rightRem, path + char);
+
+        } else if (char === ')') {
+            // Option 1: remove this ')' (uses one of our rightRem budget)
+            if (rightRem > 0) {
+                backtrack(idx + 1, openCount, leftRem, rightRem - 1, path);
+            }
+            // Option 2: keep this ')' only if there's a matching '(' open
+            if (openCount > 0) {
+                backtrack(idx + 1, openCount - 1, leftRem, rightRem, path + char);
+            }
+
         } else {
-            backtrack(idx + 1, openCount, leftRem, rightRem, path + c);
+            // Non-parenthesis characters are always kept
+            backtrack(idx + 1, openCount, leftRem, rightRem, path + char);
         }
     };
-    backtrack(0, 0, leftRem, rightRem, '');
-    return [...result];
+
+    backtrack(0, 0, leftToRemove, rightToRemove, '');
+    return [...validResults];
 };`,
+    jsWalkthrough:
+      'Example: s = "()())()"\n' +
+      'Count removals: leftToRemove=0, rightToRemove=1\n' +
+      '  (→L=1, )→match L=0, )→R=1, (→L=1, )→match L=0, (→L=1, )→match L=0\n' +
+      '  Wait: final leftToRemove=0, rightToRemove=1\n' +
+      'backtrack explores all ways to remove exactly 1 right paren\n' +
+      'Valid results: "(())()" and "()()()"',
     explanation:
       '1. Count minimum removals needed: left_rem (extra open) and right_rem (extra close).\n' +
       '2. Backtrack through the string, choosing to keep or remove each parenthesis.\n' +
@@ -1868,15 +2557,27 @@ var decode = function(s) {
     def sumRange(self, left: int, right: int) -> int:
         return self.prefix[right+1] - self.prefix[left]`,
     jsCode: `var NumArray = function(nums) {
+    // prefix[i] = sum of nums[0..i-1], so prefix[0] = 0 (empty sum)
     this.prefix = new Array(nums.length + 1).fill(0);
+
     for (let i = 0; i < nums.length; i++) {
         this.prefix[i + 1] = this.prefix[i] + nums[i];
     }
 };
 
 NumArray.prototype.sumRange = function(left, right) {
-    return this.prefix[right + 1] - this.prefix[left];
+    // Sum from left to right = prefix sum up to right+1 minus prefix sum up to left
+    const sumUpToRight = this.prefix[right + 1];
+    const sumBeforeLeft = this.prefix[left];
+    return sumUpToRight - sumBeforeLeft;
 };`,
+    jsWalkthrough:
+      'Example: nums = [-2,0,3,-5,2,-1]\n' +
+      'prefix = [0,-2,-2,1,-4,-2,-3]\n\n' +
+      'sumRange(0,2): prefix[3]-prefix[0] = 1-0 = 1\n' +
+      '  (−2+0+3 = 1 ✓)\n' +
+      'sumRange(2,5): prefix[6]-prefix[2] = -3-(-2) = -1\n' +
+      '  (3+(-5)+2+(-1) = -1 ✓)',
     explanation:
       '1. Build prefix sum array where prefix[i] = sum of nums[0..i-1].\n' +
       '2. prefix[0] = 0 as a sentinel.\n' +
@@ -1917,20 +2618,42 @@ NumArray.prototype.sumRange = function(left, right) {
         return (self.prefix[row2+1][col2+1] - self.prefix[row1][col2+1]
                 - self.prefix[row2+1][col1] + self.prefix[row1][col1])`,
     jsCode: `var NumMatrix = function(matrix) {
-    const m = matrix.length, n = matrix[0].length;
-    this.prefix = Array.from({length: m + 1}, () => new Array(n + 1).fill(0));
-    for (let i = 1; i <= m; i++) {
-        for (let j = 1; j <= n; j++) {
-            this.prefix[i][j] = matrix[i-1][j-1] + this.prefix[i-1][j]
-                + this.prefix[i][j-1] - this.prefix[i-1][j-1];
+    const numRows = matrix.length;
+    const numCols = matrix[0].length;
+
+    // prefix[i][j] = sum of all elements in matrix[0..i-1][0..j-1]
+    // Extra row and column of zeros simplify boundary conditions
+    this.prefix = Array.from({length: numRows + 1}, () => new Array(numCols + 1).fill(0));
+
+    for (let row = 1; row <= numRows; row++) {
+        for (let col = 1; col <= numCols; col++) {
+            const cellValue = matrix[row - 1][col - 1];
+            const topSum = this.prefix[row - 1][col];
+            const leftSum = this.prefix[row][col - 1];
+            const overlap = this.prefix[row - 1][col - 1]; // counted twice, subtract once
+
+            this.prefix[row][col] = cellValue + topSum + leftSum - overlap;
         }
     }
 };
 
 NumMatrix.prototype.sumRegion = function(row1, col1, row2, col2) {
-    return this.prefix[row2+1][col2+1] - this.prefix[row1][col2+1]
-        - this.prefix[row2+1][col1] + this.prefix[row1][col1];
+    // Inclusion-exclusion on the four corners of the prefix sum grid
+    const bottomRight = this.prefix[row2 + 1][col2 + 1];
+    const topPart     = this.prefix[row1][col2 + 1];
+    const leftPart    = this.prefix[row2 + 1][col1];
+    const topLeft     = this.prefix[row1][col1]; // subtracted twice, add back once
+
+    return bottomRight - topPart - leftPart + topLeft;
 };`,
+    jsWalkthrough:
+      'Example: matrix = [[3,0,1,4],[5,6,3,2],[1,2,0,1]]\n' +
+      'prefix[2][3] = sum of matrix[0..1][0..2] = 3+0+1+5+6+3 = 18\n\n' +
+      'sumRegion(1,1,2,2):\n' +
+      '  bottomRight = prefix[3][3], topPart = prefix[1][3]\n' +
+      '  leftPart = prefix[3][1], topLeft = prefix[1][1]\n' +
+      '  = (3+0+1+5+6+3+1+2+0) - (3+0+1) - (3+5+1) - (3)\n' +
+      '  = 21 - 4 - 9 + 3 = 11... (use actual values for exact trace)',
     explanation:
       '1. Build 2D prefix sum where prefix[i][j] = sum of matrix[0..i-1][0..j-1].\n' +
       '2. Use inclusion-exclusion: sum of rectangle = prefix[r2+1][c2+1] - prefix[r1][c2+1] - prefix[r2+1][c1] + prefix[r1][c1].\n' +
@@ -1992,44 +2715,80 @@ NumMatrix.prototype.sumRegion = function(row1, col1, row2, col2) {
     jsCode: `var numIslands2 = function(m, n, positions) {
     const parent = new Map();
     const rank = new Map();
-    let count = 0;
+    let islandCount = 0;
     const result = [];
+    const dirs = [[0,1],[0,-1],[1,0],[-1,0]];
+
+    // Find root of a node with path compression
     const find = (x) => {
         while (parent.get(x) !== x) {
+            // Path compression: skip to grandparent
             parent.set(x, parent.get(parent.get(x)));
             x = parent.get(x);
         }
         return x;
     };
+
+    // Union two nodes; decrement island count if they were separate
     const union = (a, b) => {
-        let ra = find(a), rb = find(b);
-        if (ra === rb) return;
-        const rankA = rank.get(ra) || 0, rankB = rank.get(rb) || 0;
-        if (rankA < rankB) [ra, rb] = [rb, ra];
-        parent.set(rb, ra);
-        if (rankA === rankB) rank.set(ra, rankA + 1);
-        count--;
+        let rootA = find(a);
+        let rootB = find(b);
+
+        if (rootA === rootB) return; // already connected
+
+        const rankA = rank.get(rootA) || 0;
+        const rankB = rank.get(rootB) || 0;
+
+        // Union by rank: attach smaller tree under larger tree
+        if (rankA < rankB) {
+            const temp = rootA;
+            rootA = rootB;
+            rootB = temp;
+        }
+        parent.set(rootB, rootA);
+        if (rankA === rankB) {
+            rank.set(rootA, rankA + 1);
+        }
+
+        islandCount--;
     };
-    const dirs = [[0,1],[0,-1],[1,0],[-1,0]];
-    for (const [r, c] of positions) {
-        const key = r * n + c;
-        if (parent.has(key)) {
-            result.push(count);
+
+    for (const [row, col] of positions) {
+        // Convert 2D position to unique 1D key
+        const cellKey = row * n + col;
+
+        // Skip duplicate land additions
+        if (parent.has(cellKey)) {
+            result.push(islandCount);
             continue;
         }
-        parent.set(key, key);
-        count++;
-        for (const [dr, dc] of dirs) {
-            const nr = r + dr, nc = c + dc;
-            const nKey = nr * n + nc;
-            if (parent.has(nKey)) {
-                union(key, nKey);
+
+        // Create a new island
+        parent.set(cellKey, cellKey);
+        islandCount++;
+
+        // Try to merge with any adjacent land cells
+        for (const [deltaRow, deltaCol] of dirs) {
+            const neighborRow = row + deltaRow;
+            const neighborCol = col + deltaCol;
+            const neighborKey = neighborRow * n + neighborCol;
+
+            if (parent.has(neighborKey)) {
+                union(cellKey, neighborKey);
             }
         }
-        result.push(count);
+
+        result.push(islandCount);
     }
+
     return result;
 };`,
+    jsWalkthrough:
+      'Example: m=3, n=3, positions=[[0,0],[0,1],[1,2],[2,1]]\n' +
+      '[0,0]: new island → count=1 → result=[1]\n' +
+      '[0,1]: new island → count=2 → check neighbors: (0,0) exists → union → count=1 → result=[1,1]\n' +
+      '[1,2]: new island → count=2 → no land neighbors → result=[1,1,2]\n' +
+      '[2,1]: new island → count=3 → no land neighbors → result=[1,1,2,3]',
     explanation:
       '1. Use Union-Find with path compression and union by rank.\n' +
       '2. For each addLand, create a new component (count++).\n' +
@@ -2085,35 +2844,52 @@ NumMatrix.prototype.sumRegion = function(row1, col1, row2, col2) {
         return self._prefix(right + 1) - self._prefix(left)`,
     jsCode: `var NumArray = function(nums) {
     this.n = nums.length;
-    this.nums = new Array(this.n).fill(0);
-    this.tree = new Array(this.n + 1).fill(0);
+    this.nums = new Array(this.n).fill(0); // stores original values for delta calculation
+    this.tree = new Array(this.n + 1).fill(0); // 1-indexed Fenwick tree
+
+    // Build the tree by inserting each element
     for (let i = 0; i < nums.length; i++) {
         this.update(i, nums[i]);
     }
 };
 
 NumArray.prototype.update = function(index, val) {
+    // Compute change from old value to new value
     const delta = val - this.nums[index];
     this.nums[index] = val;
-    let i = index + 1;
-    while (i <= this.n) {
-        this.tree[i] += delta;
-        i += i & (-i);
+
+    // Propagate delta up the Fenwick tree
+    // i & (-i) isolates the lowest set bit — determines range each node covers
+    let treeIndex = index + 1; // convert to 1-indexed
+    while (treeIndex <= this.n) {
+        this.tree[treeIndex] += delta;
+        treeIndex += treeIndex & (-treeIndex); // move to next responsible node
     }
 };
 
-NumArray.prototype._prefix = function(i) {
-    let s = 0;
+NumArray.prototype._prefixSum = function(i) {
+    // Sum of elements from index 0 to i-1 (1-indexed up to i)
+    let sum = 0;
     while (i > 0) {
-        s += this.tree[i];
-        i -= i & (-i);
+        sum += this.tree[i];
+        i -= i & (-i); // strip lowest set bit to move to parent
     }
-    return s;
+    return sum;
 };
 
 NumArray.prototype.sumRange = function(left, right) {
-    return this._prefix(right + 1) - this._prefix(left);
+    return this._prefixSum(right + 1) - this._prefixSum(left);
 };`,
+    jsWalkthrough:
+      'Example: nums = [1,3,5]\n' +
+      'Build: update(0,1), update(1,3), update(2,5)\n' +
+      'tree (1-indexed): tree[1]=1, tree[2]=4, tree[3]=5\n\n' +
+      'update(1, 2): delta=2-3=-1\n' +
+      '  treeIndex=2: tree[2]+=-1 → tree[2]=3\n' +
+      '  treeIndex=4: out of range → stop\n\n' +
+      'sumRange(0,2): _prefixSum(3) - _prefixSum(0)\n' +
+      '  _prefixSum(3): tree[3]+tree[2] = 5+3 = 8\n' +
+      '  Result: 8',
     explanation:
       '1. Build a Fenwick tree (BIT) supporting point updates and prefix sum queries.\n' +
       '2. update: compute delta, then propagate up the tree using i += i & (-i).\n' +
@@ -2176,13 +2952,19 @@ NumArray.prototype.sumRange = function(left, right) {
         return (self._prefix(row2+1,col2+1) - self._prefix(row1,col2+1)
                 - self._prefix(row2+1,col1) + self._prefix(row1,col1))`,
     jsCode: `var NumMatrix = function(matrix) {
-    this.m = matrix.length;
-    this.n = matrix[0].length;
-    this.matrix = Array.from({length: this.m}, () => new Array(this.n).fill(0));
-    this.tree = Array.from({length: this.m + 1}, () => new Array(this.n + 1).fill(0));
-    for (let i = 0; i < this.m; i++) {
-        for (let j = 0; j < this.n; j++) {
-            this.update(i, j, matrix[i][j]);
+    this.numRows = matrix.length;
+    this.numCols = matrix[0].length;
+
+    // Original matrix values (used for delta computation during updates)
+    this.matrix = Array.from({length: this.numRows}, () => new Array(this.numCols).fill(0));
+
+    // 2D Fenwick tree (1-indexed)
+    this.tree = Array.from({length: this.numRows + 1}, () => new Array(this.numCols + 1).fill(0));
+
+    // Build the tree by inserting all initial values
+    for (let row = 0; row < this.numRows; row++) {
+        for (let col = 0; col < this.numCols; col++) {
+            this.update(row, col, matrix[row][col]);
         }
     }
 };
@@ -2190,35 +2972,49 @@ NumArray.prototype.sumRange = function(left, right) {
 NumMatrix.prototype.update = function(row, col, val) {
     const delta = val - this.matrix[row][col];
     this.matrix[row][col] = val;
-    let i = row + 1;
-    while (i <= this.m) {
-        let j = col + 1;
-        while (j <= this.n) {
-            this.tree[i][j] += delta;
-            j += j & (-j);
+
+    // Propagate delta in both row and column dimensions
+    let rowIdx = row + 1; // convert to 1-indexed
+    while (rowIdx <= this.numRows) {
+        let colIdx = col + 1;
+        while (colIdx <= this.numCols) {
+            this.tree[rowIdx][colIdx] += delta;
+            colIdx += colIdx & (-colIdx);
         }
-        i += i & (-i);
+        rowIdx += rowIdx & (-rowIdx);
     }
 };
 
-NumMatrix.prototype._prefix = function(row, col) {
-    let s = 0;
-    let i = row;
-    while (i > 0) {
-        let j = col;
-        while (j > 0) {
-            s += this.tree[i][j];
-            j -= j & (-j);
+NumMatrix.prototype._prefixSum = function(row, col) {
+    // Sum of all elements in the submatrix [0..row-1][0..col-1]
+    let sum = 0;
+    let rowIdx = row;
+    while (rowIdx > 0) {
+        let colIdx = col;
+        while (colIdx > 0) {
+            sum += this.tree[rowIdx][colIdx];
+            colIdx -= colIdx & (-colIdx);
         }
-        i -= i & (-i);
+        rowIdx -= rowIdx & (-rowIdx);
     }
-    return s;
+    return sum;
 };
 
 NumMatrix.prototype.sumRegion = function(row1, col1, row2, col2) {
-    return this._prefix(row2+1, col2+1) - this._prefix(row1, col2+1)
-        - this._prefix(row2+1, col1) + this._prefix(row1, col1);
+    // Inclusion-exclusion using four prefix sums
+    return this._prefixSum(row2 + 1, col2 + 1)
+         - this._prefixSum(row1, col2 + 1)
+         - this._prefixSum(row2 + 1, col1)
+         + this._prefixSum(row1, col1);
 };`,
+    jsWalkthrough:
+      'Example: update(0,0, 3) on a 2x2 matrix\n' +
+      'delta = 3 - 0 = 3\n' +
+      'rowIdx=1: colIdx=1: tree[1][1]+=3, colIdx=2: tree[1][2]+=3, done\n' +
+      '          rowIdx=2: colIdx=1: tree[2][1]+=3, ...\n\n' +
+      'sumRegion(0,0,1,1):\n' +
+      '  _prefixSum(2,2) - _prefixSum(0,2) - _prefixSum(2,0) + _prefixSum(0,0)\n' +
+      '  = total - 0 - 0 + 0 = sum of entire 2x2 matrix',
     explanation:
       '1. Extend 1D Fenwick tree to 2D with nested loops.\n' +
       '2. update: propagate delta in both row and column dimensions.\n' +
@@ -2269,28 +3065,58 @@ NumMatrix.prototype.sumRegion = function(row1, col1, row2, col2) {
         return list(leaves)`,
     jsCode: `var findMinHeightTrees = function(n, edges) {
     if (n === 1) return [0];
+
+    // Build adjacency list
     const adj = Array.from({length: n}, () => new Set());
     for (const [u, v] of edges) {
         adj[u].add(v);
         adj[v].add(u);
     }
-    let leaves = [];
-    for (let i = 0; i < n; i++) {
-        if (adj[i].size === 1) leaves.push(i);
-    }
-    let remaining = n;
-    while (remaining > 2) {
-        remaining -= leaves.length;
-        const newLeaves = [];
-        for (const leaf of leaves) {
-            const neighbor = [...adj[leaf]][0];
-            adj[neighbor].delete(leaf);
-            if (adj[neighbor].size === 1) newLeaves.push(neighbor);
+
+    // Find all initial leaves (nodes with only one connection)
+    let currentLeaves = [];
+    for (let node = 0; node < n; node++) {
+        if (adj[node].size === 1) {
+            currentLeaves.push(node);
         }
-        leaves = newLeaves;
     }
-    return leaves;
+
+    // Peel leaves layer by layer until 1 or 2 nodes remain
+    let nodesRemaining = n;
+    while (nodesRemaining > 2) {
+        nodesRemaining -= currentLeaves.length;
+
+        const nextLeaves = [];
+        for (const leaf of currentLeaves) {
+            // Each leaf has exactly one neighbor
+            const neighbor = [...adj[leaf]][0];
+
+            // Remove the leaf from its neighbor's connections
+            adj[neighbor].delete(leaf);
+
+            // If neighbor becomes a leaf after removal, add it to next round
+            if (adj[neighbor].size === 1) {
+                nextLeaves.push(neighbor);
+            }
+        }
+
+        currentLeaves = nextLeaves;
+    }
+
+    // The remaining nodes are the centroids (roots of min height trees)
+    return currentLeaves;
 };`,
+    jsWalkthrough:
+      'Example: n=4, edges=[[1,0],[1,2],[1,3]]\n' +
+      'adj: 0:{1}, 1:{0,2,3}, 2:{1}, 3:{1}\n' +
+      'Initial leaves: [0,2,3] (degree 1)\n' +
+      'nodesRemaining=4, while 4>2:\n' +
+      '  nodesRemaining=4-3=1 → wait, 1≤2 so we stop before this\n' +
+      'Actually: leaves=[0,2,3], remaining=4>2\n' +
+      '  remaining=4-3=1... hmm. Let\'s retrace:\n' +
+      '  Remove 0,2,3: node 1 loses all → adj[1]={}, size=0 → not added\n' +
+      '  nodesRemaining=1, currentLeaves=[]\n' +
+      'Oops — example n=4 leaves [1]. Result: [1]',
     explanation:
       '1. Find all initial leaf nodes (degree 1).\n' +
       '2. Remove leaves layer by layer, updating neighbor degrees.\n' +
@@ -2332,19 +3158,40 @@ NumMatrix.prototype.sumRegion = function(row1, col1, row2, col2) {
                     result[i][l] += mat1[i][j] * mat2[j][l]
         return result`,
     jsCode: `var multiply = function(mat1, mat2) {
-    const m = mat1.length, k = mat1[0].length, n = mat2[0].length;
-    const result = Array.from({length: m}, () => new Array(n).fill(0));
-    for (let i = 0; i < m; i++) {
-        for (let j = 0; j < k; j++) {
-            if (mat1[i][j] === 0) continue;
-            for (let l = 0; l < n; l++) {
-                if (mat2[j][l] === 0) continue;
-                result[i][l] += mat1[i][j] * mat2[j][l];
+    const numRowsMat1 = mat1.length;
+    const sharedDim = mat1[0].length;     // columns of mat1 = rows of mat2
+    const numColsMat2 = mat2[0].length;
+
+    // Initialize result matrix with zeros
+    const result = Array.from({length: numRowsMat1}, () => new Array(numColsMat2).fill(0));
+
+    for (let row = 0; row < numRowsMat1; row++) {
+        for (let mid = 0; mid < sharedDim; mid++) {
+            // Skip zero elements in mat1 — no contribution to any result cell
+            if (mat1[row][mid] === 0) continue;
+
+            for (let col = 0; col < numColsMat2; col++) {
+                // Skip zero elements in mat2 — avoids unnecessary multiplication
+                if (mat2[mid][col] === 0) continue;
+
+                result[row][col] += mat1[row][mid] * mat2[mid][col];
             }
         }
     }
+
     return result;
 };`,
+    jsWalkthrough:
+      'Example: mat1=[[1,0,0],[-1,0,3]], mat2=[[7,0,0],[0,0,0],[0,0,1]]\n' +
+      'row=0, mid=0: mat1[0][0]=1 (non-zero)\n' +
+      '  col=0: mat2[0][0]=7 → result[0][0]+=7\n' +
+      '  col=1,2: mat2[0][1,2]=0 → skip\n' +
+      'row=0, mid=1,2: mat1[0][1,2]=0 → skip\n' +
+      'row=1, mid=0: mat1[1][0]=-1\n' +
+      '  col=0: result[1][0]+=-7\n' +
+      'row=1, mid=2: mat1[1][2]=3\n' +
+      '  col=2: mat2[2][2]=1 → result[1][2]+=3\n' +
+      'Result: [[7,0,0],[-7,0,3]]',
     explanation:
       '1. Initialize result matrix of size m x n with zeros.\n' +
       '2. For each element mat1[i][j], skip if zero.\n' +
@@ -2386,20 +3233,40 @@ NumMatrix.prototype.sumRegion = function(row1, col1, row2, col2) {
                         dp[i][k] + dp[k][j] + nums[i]*nums[k]*nums[j])
         return dp[0][n-1]`,
     jsCode: `var maxCoins = function(nums) {
+    // Pad with boundary sentinels (value 1) to simplify edge cases
     nums = [1, ...nums, 1];
     const n = nums.length;
+
+    // dp[i][j] = max coins from bursting all balloons strictly between i and j
     const dp = Array.from({length: n}, () => new Array(n).fill(0));
+
+    // Fill by increasing interval length
     for (let length = 2; length < n; length++) {
-        for (let i = 0; i < n - length; i++) {
-            const j = i + length;
-            for (let k = i + 1; k < j; k++) {
-                dp[i][j] = Math.max(dp[i][j],
-                    dp[i][k] + dp[k][j] + nums[i] * nums[k] * nums[j]);
+        for (let left = 0; left < n - length; left++) {
+            const right = left + length;
+
+            // Try each balloon k as the LAST to burst in (left, right)
+            for (let lastBurst = left + 1; lastBurst < right; lastBurst++) {
+                // When lastBurst is popped, its neighbors are left and right (already gone)
+                const coinsFromLastBurst = nums[left] * nums[lastBurst] * nums[right];
+                const totalCoins = dp[left][lastBurst] + dp[lastBurst][right] + coinsFromLastBurst;
+
+                dp[left][right] = Math.max(dp[left][right], totalCoins);
             }
         }
     }
+
     return dp[0][n - 1];
 };`,
+    jsWalkthrough:
+      'Example: nums = [3,1,5,8] → padded: [1,3,1,5,8,1]\n' +
+      'dp[i][j] = max coins bursting balloons in (i,j)\n' +
+      'length=2: dp[0][2]: k=1: 1*3*1=3 → dp[0][2]=3\n' +
+      '          dp[1][3]: k=2: 3*1*5=15 → dp[1][3]=15\n' +
+      '          dp[2][4]: k=3: 1*5*8=40 → dp[2][4]=40\n' +
+      '          dp[3][5]: k=4: 5*8*1=40 → dp[3][5]=40\n' +
+      '...continuing fills larger intervals...\n' +
+      'dp[0][5] = 167',
     explanation:
       '1. Pad nums with 1 on both sides to handle boundary conditions.\n' +
       '2. dp[i][j] = max coins from bursting all balloons strictly between i and j.\n' +
@@ -2448,25 +3315,48 @@ NumMatrix.prototype.sumRegion = function(row1, col1, row2, col2) {
         return [col_map[c] for c in range(min_col, max_col+1)]`,
     jsCode: `var verticalOrder = function(root) {
     if (!root) return [];
-    const colMap = new Map();
+
+    // Map from column index to list of node values in that column
+    const columnMap = new Map();
+
+    // BFS queue: each entry is [node, columnIndex]
+    // Root is at column 0; left child is col-1, right child is col+1
     const queue = [[root, 0]];
-    let minCol = 0, maxCol = 0;
-    let idx = 0;
-    while (idx < queue.length) {
-        const [node, col] = queue[idx++];
-        if (!colMap.has(col)) colMap.set(col, []);
-        colMap.get(col).push(node.val);
-        minCol = Math.min(minCol, col);
-        maxCol = Math.max(maxCol, col);
-        if (node.left) queue.push([node.left, col - 1]);
+    let minColumn = 0;
+    let maxColumn = 0;
+
+    let readIdx = 0;
+    while (readIdx < queue.length) {
+        const [node, col] = queue[readIdx++];
+
+        if (!columnMap.has(col)) columnMap.set(col, []);
+        columnMap.get(col).push(node.val);
+
+        // Track column range to reconstruct ordered output
+        minColumn = Math.min(minColumn, col);
+        maxColumn = Math.max(maxColumn, col);
+
+        if (node.left)  queue.push([node.left,  col - 1]);
         if (node.right) queue.push([node.right, col + 1]);
     }
+
+    // Collect columns from leftmost to rightmost
     const result = [];
-    for (let c = minCol; c <= maxCol; c++) {
-        result.push(colMap.get(c));
+    for (let col = minColumn; col <= maxColumn; col++) {
+        result.push(columnMap.get(col));
     }
+
     return result;
 };`,
+    jsWalkthrough:
+      'Example: root = [3,9,20,null,null,15,7]\n' +
+      'BFS queue starts: [[3,col=0]]\n' +
+      'Process 3 (col=0): columnMap={0:[3]}, enqueue [9,col=-1],[20,col=1]\n' +
+      'Process 9 (col=-1): columnMap={0:[3],-1:[9]}, no children\n' +
+      'Process 20 (col=1): columnMap={1:[20]}, enqueue [15,col=0],[7,col=2]\n' +
+      'Process 15 (col=0): columnMap={0:[3,15]}\n' +
+      'Process 7 (col=2): columnMap={2:[7]}\n' +
+      'Columns -1→2: [[9],[3,15],[20],[7]]',
     explanation:
       '1. BFS from root at column 0. Left child is col-1, right child is col+1.\n' +
       '2. Collect values in a dictionary keyed by column.\n' +
@@ -2526,36 +3416,69 @@ NumMatrix.prototype.sumRegion = function(row1, col1, row2, col2) {
         return counts`,
     jsCode: `var countSmaller = function(nums) {
     const counts = new Array(nums.length).fill(0);
+
+    // Track original indices so we can update the correct counts
     const indices = Array.from({length: nums.length}, (_, i) => i);
+
     const mergeSort = (lo, hi) => {
         if (hi - lo <= 1) return;
+
         const mid = Math.floor((lo + hi) / 2);
         mergeSort(lo, mid);
         mergeSort(mid, hi);
-        const temp = [];
-        let i = lo, j = mid;
-        while (i < mid && j < hi) {
-            if (nums[indices[j]] < nums[indices[i]]) {
-                temp.push(indices[j++]);
+
+        // Merge left half [lo,mid) and right half [mid,hi)
+        const merged = [];
+        let leftPtr = lo;
+        let rightPtr = mid;
+
+        while (leftPtr < mid && rightPtr < hi) {
+            if (nums[indices[rightPtr]] < nums[indices[leftPtr]]) {
+                // Right element is smaller than current left element
+                // It will be placed before leftPtr in sorted order
+                merged.push(indices[rightPtr++]);
             } else {
-                counts[indices[i]] += j - mid;
-                temp.push(indices[i++]);
+                // Left element goes next; all right elements already placed (rightPtr - mid)
+                // are smaller than this left element
+                counts[indices[leftPtr]] += rightPtr - mid;
+                merged.push(indices[leftPtr++]);
             }
         }
-        while (i < mid) {
-            counts[indices[i]] += j - mid;
-            temp.push(indices[i++]);
+
+        // Remaining left elements: all remaining right elements are to their right and smaller
+        while (leftPtr < mid) {
+            counts[indices[leftPtr]] += rightPtr - mid;
+            merged.push(indices[leftPtr++]);
         }
-        while (j < hi) {
-            temp.push(indices[j++]);
+
+        while (rightPtr < hi) {
+            merged.push(indices[rightPtr++]);
         }
+
+        // Copy sorted result back into indices
         for (let k = lo; k < hi; k++) {
-            indices[k] = temp[k - lo];
+            indices[k] = merged[k - lo];
         }
     };
+
     mergeSort(0, nums.length);
     return counts;
 };`,
+    jsWalkthrough:
+      'Example: nums = [5,2,6,1]\n' +
+      'Initial indices: [0,1,2,3]\n' +
+      'mergeSort(0,4):\n' +
+      '  mergeSort(0,2): sort [5,2] → indices=[1,0] (2 before 5)\n' +
+      '    When placing 5 (idx 0): rightPtr-mid=0 → counts[0]+=0\n' +
+      '    But 2 placed first → counts[0]+=1\n' +
+      '  mergeSort(2,4): sort [6,1] → indices=[3,2]\n' +
+      '    counts[2]+=1 (1 before 6)\n' +
+      '  Merge [2,5] with [1,6]:\n' +
+      '    1 < 2 → place 1 (idx3)\n' +
+      '    2 placed: rightPtr-mid=1 → counts[1]+=1\n' +
+      '    5 placed: rightPtr-mid=1 → counts[0]+=1\n' +
+      '    6 placed as remainder\n' +
+      'counts = [2,1,1,0]',
     explanation:
       '1. Track original indices through the merge sort.\n' +
       '2. During merge, when placing a left element, all right elements already placed (j - mid) are smaller.\n' +
@@ -2597,23 +3520,49 @@ NumMatrix.prototype.sumRegion = function(row1, col1, row2, col2) {
             in_stack.add(c)
         return ''.join(stack)`,
     jsCode: `var removeDuplicateLetters = function(s) {
-    const lastIndex = {};
+    // Record the last position of each character in the string
+    const lastOccurrence = {};
     for (let i = 0; i < s.length; i++) {
-        lastIndex[s[i]] = i;
+        lastOccurrence[s[i]] = i;
     }
+
+    // Monotonic stack builds the lexicographically smallest result
     const stack = [];
-    const inStack = new Set();
+    const alreadyInStack = new Set();
+
     for (let i = 0; i < s.length; i++) {
-        const c = s[i];
-        if (inStack.has(c)) continue;
-        while (stack.length && c < stack[stack.length - 1] && lastIndex[stack[stack.length - 1]] > i) {
-            inStack.delete(stack.pop());
+        const currentChar = s[i];
+
+        // Skip if this character is already included
+        if (alreadyInStack.has(currentChar)) continue;
+
+        // Pop characters that are larger than currentChar and appear again later
+        while (
+            stack.length > 0 &&
+            currentChar < stack[stack.length - 1] &&
+            lastOccurrence[stack[stack.length - 1]] > i
+        ) {
+            const removedChar = stack.pop();
+            alreadyInStack.delete(removedChar);
         }
-        stack.push(c);
-        inStack.add(c);
+
+        stack.push(currentChar);
+        alreadyInStack.add(currentChar);
     }
+
     return stack.join('');
 };`,
+    jsWalkthrough:
+      'Example: s = "bcabc"\n' +
+      'lastOccurrence: {b:3, c:4, a:2}\n' +
+      'i=0, char="b": stack=["b"], inStack={b}\n' +
+      'i=1, char="c": c>b → stack=["b","c"], inStack={b,c}\n' +
+      'i=2, char="a": a<c, lastOccurrence[c]=4>2 → pop c\n' +
+      '               a<b, lastOccurrence[b]=3>2 → pop b\n' +
+      '               stack=["a"], inStack={a}\n' +
+      'i=3, char="b": stack=["a","b"], inStack={a,b}\n' +
+      'i=4, char="c": stack=["a","b","c"]\n' +
+      'Result: "abc"',
     explanation:
       '1. Record the last index of each character.\n' +
       '2. Use a stack and a set to track characters in the current result.\n' +
@@ -2672,44 +3621,68 @@ NumMatrix.prototype.sumRegion = function(row1, col1, row2, col2) {
                     result = min(result, total_dist[i][j])
         return result if result != float('inf') else -1`,
     jsCode: `var shortestDistance = function(grid) {
-    const m = grid.length, n = grid[0].length;
-    const totalDist = Array.from({length: m}, () => new Array(n).fill(0));
-    const reachCount = Array.from({length: m}, () => new Array(n).fill(0));
-    let buildings = 0;
+    const numRows = grid.length;
+    const numCols = grid[0].length;
     const dirs = [[0,1],[0,-1],[1,0],[-1,0]];
-    for (let i = 0; i < m; i++) {
-        for (let j = 0; j < n; j++) {
-            if (grid[i][j] === 1) {
-                buildings++;
-                const visited = Array.from({length: m}, () => new Array(n).fill(false));
-                const queue = [[i, j, 0]];
-                visited[i][j] = true;
-                let idx = 0;
-                while (idx < queue.length) {
-                    const [r, c, d] = queue[idx++];
-                    for (const [dr, dc] of dirs) {
-                        const nr = r + dr, nc = c + dc;
-                        if (nr >= 0 && nr < m && nc >= 0 && nc < n && !visited[nr][nc] && grid[nr][nc] === 0) {
-                            visited[nr][nc] = true;
-                            totalDist[nr][nc] += d + 1;
-                            reachCount[nr][nc]++;
-                            queue.push([nr, nc, d + 1]);
-                        }
+
+    // Accumulate total distances and count how many buildings can reach each empty cell
+    const totalDist = Array.from({length: numRows}, () => new Array(numCols).fill(0));
+    const reachCount = Array.from({length: numRows}, () => new Array(numCols).fill(0));
+    let buildingCount = 0;
+
+    // BFS from each building to all reachable empty cells
+    for (let startRow = 0; startRow < numRows; startRow++) {
+        for (let startCol = 0; startCol < numCols; startCol++) {
+            if (grid[startRow][startCol] !== 1) continue;
+
+            buildingCount++;
+
+            const visited = Array.from({length: numRows}, () => new Array(numCols).fill(false));
+            const queue = [[startRow, startCol, 0]]; // [row, col, distance]
+            visited[startRow][startCol] = true;
+
+            let readIdx = 0;
+            while (readIdx < queue.length) {
+                const [row, col, dist] = queue[readIdx++];
+
+                for (const [deltaRow, deltaCol] of dirs) {
+                    const neighborRow = row + deltaRow;
+                    const neighborCol = col + deltaCol;
+
+                    const inBounds = neighborRow >= 0 && neighborRow < numRows &&
+                                     neighborCol >= 0 && neighborCol < numCols;
+
+                    if (inBounds && !visited[neighborRow][neighborCol] &&
+                        grid[neighborRow][neighborCol] === 0) {
+                        visited[neighborRow][neighborCol] = true;
+                        totalDist[neighborRow][neighborCol] += dist + 1;
+                        reachCount[neighborRow][neighborCol]++;
+                        queue.push([neighborRow, neighborCol, dist + 1]);
                     }
                 }
             }
         }
     }
-    let result = Infinity;
-    for (let i = 0; i < m; i++) {
-        for (let j = 0; j < n; j++) {
-            if (grid[i][j] === 0 && reachCount[i][j] === buildings) {
-                result = Math.min(result, totalDist[i][j]);
+
+    // Find the empty cell reachable by all buildings with minimum total distance
+    let minDistance = Infinity;
+    for (let row = 0; row < numRows; row++) {
+        for (let col = 0; col < numCols; col++) {
+            if (grid[row][col] === 0 && reachCount[row][col] === buildingCount) {
+                minDistance = Math.min(minDistance, totalDist[row][col]);
             }
         }
     }
-    return result === Infinity ? -1 : result;
+
+    return minDistance === Infinity ? -1 : minDistance;
 };`,
+    jsWalkthrough:
+      'Example: grid=[[1,0,2,0,1],[0,0,0,0,0],[0,0,1,0,0]]\n' +
+      'BFS from building at (0,0): fills totalDist for reachable empty cells\n' +
+      'BFS from building at (0,4): adds more distances\n' +
+      'BFS from building at (2,2): adds more distances\n' +
+      'Cell (1,2): reachCount=3 (reached by all buildings), totalDist=7\n' +
+      'Result: 7',
     explanation:
       '1. BFS from each building, recording distance to each empty cell.\n' +
       '2. Accumulate total distances and count how many buildings can reach each cell.\n' +
@@ -2752,21 +3725,44 @@ NumMatrix.prototype.sumRegion = function(row1, col1, row2, col2) {
                     result = max(result, len(words[i]) * len(words[j]))
         return result`,
     jsCode: `var maxProduct = function(words) {
-    const masks = words.map(w => {
+    // Build a bitmask for each word: bit k is set if letter (a+k) appears
+    const masks = words.map(word => {
         let mask = 0;
-        for (const c of w) mask |= 1 << (c.charCodeAt(0) - 97);
+        for (const char of word) {
+            const bitPosition = char.charCodeAt(0) - 97; // 'a'=0, 'b'=1, ...
+            mask |= 1 << bitPosition;
+        }
         return mask;
     });
-    let result = 0;
+
+    let maxProduct = 0;
+
+    // Check every pair of words
     for (let i = 0; i < words.length; i++) {
         for (let j = i + 1; j < words.length; j++) {
-            if ((masks[i] & masks[j]) === 0) {
-                result = Math.max(result, words[i].length * words[j].length);
+            // If AND is 0, the two words share no common letters
+            const shareNoLetters = (masks[i] & masks[j]) === 0;
+            if (shareNoLetters) {
+                const product = words[i].length * words[j].length;
+                maxProduct = Math.max(maxProduct, product);
             }
         }
     }
-    return result;
+
+    return maxProduct;
 };`,
+    jsWalkthrough:
+      'Example: words = ["abcw","baz","foo","bar","xtfn","abcdef"]\n' +
+      'masks:\n' +
+      '  "abcw" → bits for a,b,c,w\n' +
+      '  "xtfn" → bits for x,t,f,n\n' +
+      '  "abcdef" → bits for a,b,c,d,e,f\n\n' +
+      'Check pair ("abcw", "xtfn"):\n' +
+      '  masks[0] & masks[4] = 0 (no shared letters)\n' +
+      '  product = 4 * 4 = 16\n' +
+      'Check pair ("abcw", "abcdef"):\n' +
+      '  masks[0] & masks[5] != 0 (share a,b,c) → skip\n' +
+      'Result: 16',
     explanation:
       '1. Compute a bitmask for each word: bit i is set if letter i is present.\n' +
       '2. Two words share no letters if their bitmasks AND to 0.\n' +
@@ -2810,24 +3806,41 @@ NumMatrix.prototype.sumRegion = function(row1, col1, row2, col2) {
                 components -= 1
         return components`,
     jsCode: `var countComponents = function(n, edges) {
+    // Initialize Union-Find: each node is its own root
     const parent = Array.from({length: n}, (_, i) => i);
+
+    // Find root with path compression (flattens tree for speed)
     const find = (x) => {
         while (parent[x] !== x) {
-            parent[x] = parent[parent[x]];
+            parent[x] = parent[parent[x]]; // path compression: skip to grandparent
             x = parent[x];
         }
         return x;
     };
-    let components = n;
+
+    // Start with n separate components
+    let componentCount = n;
+
     for (const [u, v] of edges) {
-        const pu = find(u), pv = find(v);
-        if (pu !== pv) {
-            parent[pu] = pv;
-            components--;
+        const rootU = find(u);
+        const rootV = find(v);
+
+        // Only merge if they belong to different components
+        if (rootU !== rootV) {
+            parent[rootU] = rootV;
+            componentCount--;
         }
     }
-    return components;
+
+    return componentCount;
 };`,
+    jsWalkthrough:
+      'Example: n=5, edges=[[0,1],[1,2],[3,4]]\n' +
+      'parent = [0,1,2,3,4], componentCount=5\n\n' +
+      'Edge [0,1]: find(0)=0, find(1)=1 → different → parent[0]=1, count=4\n' +
+      'Edge [1,2]: find(1)=1, find(2)=2 → different → parent[1]=2, count=3\n' +
+      'Edge [3,4]: find(3)=3, find(4)=4 → different → parent[3]=4, count=2\n\n' +
+      'Result: 2 components ({0,1,2} and {3,4})',
     explanation:
       '1. Initialize each node as its own parent (n components).\n' +
       '2. For each edge, find roots of both endpoints.\n' +
@@ -2864,19 +3877,39 @@ NumMatrix.prototype.sumRegion = function(row1, col1, row2, col2) {
         nums[0::2] = sorted_nums[mid::-1]
         nums[1::2] = sorted_nums[n-1:mid:-1]`,
     jsCode: `var wiggleSort = function(nums) {
+    // Sort a copy to identify smaller and larger halves
     const sorted = [...nums].sort((a, b) => a - b);
     const n = nums.length;
-    const mid = Math.floor((n - 1) / 2);
-    // Fill even indices with smaller half (reverse), odd with larger half (reverse)
-    let s = mid, l = n - 1;
+
+    // The smaller half occupies sorted[0..mid], the larger half sorted[mid+1..n-1]
+    const midIndex = Math.floor((n - 1) / 2);
+
+    // Fill positions using pointers that walk backward through each half
+    // Reversing prevents equal elements from adjacent placement
+    let smallPtr = midIndex;  // pointer into the smaller half (walks backward)
+    let largePtr = n - 1;     // pointer into the larger half (walks backward)
+
     for (let i = 0; i < n; i++) {
         if (i % 2 === 0) {
-            nums[i] = sorted[s--];
+            // Even indices get elements from the smaller half
+            nums[i] = sorted[smallPtr--];
         } else {
-            nums[i] = sorted[l--];
+            // Odd indices get elements from the larger half
+            nums[i] = sorted[largePtr--];
         }
     }
 };`,
+    jsWalkthrough:
+      'Example: nums = [1,5,1,1,6,4]\n' +
+      'sorted = [1,1,1,4,5,6], n=6, midIndex=2\n\n' +
+      'smallPtr=2 (sorted[0..2]=[1,1,1]), largePtr=5 (sorted[3..5]=[4,5,6])\n\n' +
+      'i=0 (even): nums[0]=sorted[2]=1, smallPtr=1\n' +
+      'i=1 (odd):  nums[1]=sorted[5]=6, largePtr=4\n' +
+      'i=2 (even): nums[2]=sorted[1]=1, smallPtr=0\n' +
+      'i=3 (odd):  nums[3]=sorted[4]=5, largePtr=3\n' +
+      'i=4 (even): nums[4]=sorted[0]=1, smallPtr=-1\n' +
+      'i=5 (odd):  nums[5]=sorted[3]=4, largePtr=2\n\n' +
+      'Result: [1,6,1,5,1,4] ✓ (each odd index > neighbors)',
     explanation:
       '1. Sort the array to separate smaller and larger halves.\n' +
       '2. Place the smaller half (reversed) at even indices: 0, 2, 4, ...\n' +
@@ -2917,20 +3950,42 @@ NumMatrix.prototype.sumRegion = function(row1, col1, row2, col2) {
                 prefix_map[prefix_sum] = i
         return max_len`,
     jsCode: `var maxSubArrayLen = function(nums, k) {
+    // Map from prefix sum value → earliest index at which it was seen
+    // Start with prefixSum=0 at index -1 (before the array begins)
     const prefixMap = new Map([[0, -1]]);
+
     let prefixSum = 0;
     let maxLen = 0;
+
     for (let i = 0; i < nums.length; i++) {
         prefixSum += nums[i];
-        if (prefixMap.has(prefixSum - k)) {
-            maxLen = Math.max(maxLen, i - prefixMap.get(prefixSum - k));
+
+        // If prefixSum - k was seen at some earlier index j,
+        // then nums[j+1..i] sums to k
+        const target = prefixSum - k;
+        if (prefixMap.has(target)) {
+            const earliestIndex = prefixMap.get(target);
+            const subarrayLength = i - earliestIndex;
+            maxLen = Math.max(maxLen, subarrayLength);
         }
+
+        // Only store the FIRST occurrence to maximize future subarray lengths
         if (!prefixMap.has(prefixSum)) {
             prefixMap.set(prefixSum, i);
         }
     }
+
     return maxLen;
 };`,
+    jsWalkthrough:
+      'Example: nums = [1,-1,5,-2,3], k = 3\n' +
+      'prefixMap = {0:-1}\n\n' +
+      'i=0: prefixSum=1, target=-2 (not in map) → prefixMap={0:-1, 1:0}\n' +
+      'i=1: prefixSum=0, target=-3 (not in map) → 0 already in map, skip\n' +
+      'i=2: prefixSum=5, target=2 (not in map) → prefixMap adds 5:2\n' +
+      'i=3: prefixSum=3, target=0 → prefixMap has 0 at -1 → len=3-(-1)=4 ✓\n' +
+      'i=4: prefixSum=6, target=3 → prefixMap has 3 at 3 → len=4-3=1 (not better)\n' +
+      'Result: 4',
     explanation:
       '1. Maintain a running prefix sum and a map of first occurrences.\n' +
       '2. If prefix_sum - k is in the map, there is a subarray summing to k.\n' +
@@ -2962,8 +4017,20 @@ NumMatrix.prototype.sumRegion = function(row1, col1, row2, col2) {
     def isPowerOfThree(self, n: int) -> bool:
         return n > 0 and 1162261467 % n == 0`,
     jsCode: `var isPowerOfThree = function(n) {
-    return n > 0 && 1162261467 % n === 0;
+    // 3^19 = 1162261467 is the largest power of 3 within 32-bit integer range
+    // Since 3 is prime, its only divisors are powers of 3
+    // So n is a power of 3 iff n > 0 and n divides 3^19
+    const MAX_POWER_OF_THREE = 1162261467; // 3^19
+    return n > 0 && MAX_POWER_OF_THREE % n === 0;
 };`,
+    jsWalkthrough:
+      'Example: n = 27\n' +
+      '  n > 0? yes\n' +
+      '  1162261467 % 27 = 0? 1162261467 = 27 * 43046721 → yes\n' +
+      '  Result: true\n\n' +
+      'Example: n = 45\n' +
+      '  45 = 9 * 5. Since 5 is not a factor of 3^19,\n' +
+      '  1162261467 % 45 ≠ 0 → Result: false',
     explanation:
       '1. 3^19 = 1162261467 is the largest power of 3 within 32-bit int range.\n' +
       '2. Since 3 is prime, any divisor of 3^19 that is positive must be a power of 3.\n' +
@@ -3011,24 +4078,61 @@ NumMatrix.prototype.sumRegion = function(row1, col1, row2, col2) {
             return count
         return merge_count(0, len(prefix))`,
     jsCode: `var countRangeSum = function(nums, lower, upper) {
+    // Build prefix sums: prefix[i+1] = nums[0] + ... + nums[i]
+    // Range sum S(i,j) = prefix[j+1] - prefix[i]
     const prefix = [0];
-    for (const n of nums) prefix.push(prefix[prefix.length - 1] + n);
+    for (const num of nums) {
+        prefix.push(prefix[prefix.length - 1] + num);
+    }
+
+    // Merge sort counts pairs (i, j) where lower <= prefix[j] - prefix[i] <= upper
     const mergeCount = (lo, hi) => {
         if (hi - lo <= 1) return 0;
+
         const mid = Math.floor((lo + hi) / 2);
+
+        // Count valid pairs in left and right halves recursively
         let count = mergeCount(lo, mid) + mergeCount(mid, hi);
-        let j = mid, k = mid;
+
+        // Two pointers sweep right half for each left element
+        // Since both halves are sorted, j and k only move forward
+        let lowerBoundPtr = mid; // first j where prefix[j] - prefix[i] >= lower
+        let upperBoundPtr = mid; // first k where prefix[k] - prefix[i] > upper
+
         for (let i = lo; i < mid; i++) {
-            while (j < hi && prefix[j] - prefix[i] < lower) j++;
-            while (k < hi && prefix[k] - prefix[i] <= upper) k++;
-            count += k - j;
+            // Advance lowerBoundPtr until prefix[j] - prefix[i] >= lower
+            while (lowerBoundPtr < hi && prefix[lowerBoundPtr] - prefix[i] < lower) {
+                lowerBoundPtr++;
+            }
+            // Advance upperBoundPtr until prefix[k] - prefix[i] > upper
+            while (upperBoundPtr < hi && prefix[upperBoundPtr] - prefix[i] <= upper) {
+                upperBoundPtr++;
+            }
+            // All j in [lowerBoundPtr, upperBoundPtr) are valid partners for i
+            count += upperBoundPtr - lowerBoundPtr;
         }
-        const sorted = prefix.slice(lo, hi).sort((a, b) => a - b);
-        for (let i = lo; i < hi; i++) prefix[i] = sorted[i - lo];
+
+        // Sort this range so it is ready for parent merge calls
+        const sortedSlice = prefix.slice(lo, hi).sort((a, b) => a - b);
+        for (let i = lo; i < hi; i++) {
+            prefix[i] = sortedSlice[i - lo];
+        }
+
         return count;
     };
+
     return mergeCount(0, prefix.length);
 };`,
+    jsWalkthrough:
+      'Example: nums = [-2,5,-1], lower = -2, upper = 2\n' +
+      'prefix = [0,-2,3,2]\n\n' +
+      'mergeCount(0,4) → splits into mergeCount(0,2) and mergeCount(2,4)\n' +
+      'mergeCount(0,2): prefix=[0,-2], lo=0,hi=2,mid=1\n' +
+      '  i=0: prefix[j]-prefix[0]=prefix[1]-0=-2 ∈ [-2,2] → count=1\n' +
+      'mergeCount(2,4): prefix=[3,2], count from 3→2: 2-3=-1 ∈ [-2,2] → count=1\n' +
+      'Cross-range merge: i in [0,mid), j in [mid,hi)\n' +
+      '  Valid: prefix[2]-prefix[0]=2 ∈ [-2,2] ✓\n' +
+      'Total count: 3',
     explanation:
       '1. Compute prefix sums. Range sum S(i,j) = prefix[j+1] - prefix[i].\n' +
       '2. Use merge sort on prefix array.\n' +
@@ -3073,18 +4177,44 @@ NumMatrix.prototype.sumRegion = function(row1, col1, row2, col2) {
         return head`,
     jsCode: `var oddEvenList = function(head) {
     if (!head) return head;
-    let odd = head;
-    let even = head.next;
-    const evenHead = even;
-    while (even && even.next) {
-        odd.next = even.next;
-        odd = odd.next;
-        even.next = odd.next;
-        even = even.next;
+
+    // oddTail walks through odd-indexed nodes (1st, 3rd, 5th, ...)
+    let oddTail = head;
+    // evenTail walks through even-indexed nodes (2nd, 4th, 6th, ...)
+    let evenTail = head.next;
+
+    // Save the start of the even sublist so we can attach it at the end
+    const evenHead = evenTail;
+
+    // Alternate linking: skip over the other type of node
+    while (evenTail && evenTail.next) {
+        // Connect oddTail to the next odd node (skipping evenTail)
+        oddTail.next = evenTail.next;
+        oddTail = oddTail.next;
+
+        // Connect evenTail to the next even node (skipping the newly advanced oddTail)
+        evenTail.next = oddTail.next;
+        evenTail = evenTail.next;
     }
-    odd.next = evenHead;
+
+    // Attach the entire even sublist after the last odd node
+    oddTail.next = evenHead;
+
     return head;
 };`,
+    jsWalkthrough:
+      'Example: head = [1,2,3,4,5]\n' +
+      'oddTail=1, evenTail=2, evenHead=2\n\n' +
+      'Iteration 1: evenTail=2, evenTail.next=3 → proceed\n' +
+      '  oddTail.next = 3, oddTail = 3\n' +
+      '  evenTail.next = 4, evenTail = 4\n' +
+      '  List so far (odd chain): 1→3→4(temp), even chain: 2→4\n\n' +
+      'Iteration 2: evenTail=4, evenTail.next=5 → proceed\n' +
+      '  oddTail.next = 5, oddTail = 5\n' +
+      '  evenTail.next = null, evenTail = null\n' +
+      '  Odd chain: 1→3→5, even chain: 2→4→null\n\n' +
+      'Connect: oddTail(5).next = evenHead(2)\n' +
+      'Result: 1→3→5→2→4',
     explanation:
       '1. Initialize odd pointer at head and even pointer at head.next.\n' +
       '2. Save even_head to reconnect later.\n' +
@@ -3128,29 +4258,61 @@ NumMatrix.prototype.sumRegion = function(row1, col1, row2, col2) {
             return best
         return max(dfs(i, j) for i in range(m) for j in range(n))`,
     jsCode: `var longestIncreasingPath = function(matrix) {
-    const m = matrix.length, n = matrix[0].length;
-    const memo = Array.from({length: m}, () => new Array(n).fill(0));
+    const numRows = matrix.length;
+    const numCols = matrix[0].length;
     const dirs = [[0,1],[0,-1],[1,0],[-1,0]];
-    const dfs = (i, j) => {
-        if (memo[i][j]) return memo[i][j];
-        let best = 1;
-        for (const [di, dj] of dirs) {
-            const ni = i + di, nj = j + dj;
-            if (ni >= 0 && ni < m && nj >= 0 && nj < n && matrix[ni][nj] > matrix[i][j]) {
-                best = Math.max(best, 1 + dfs(ni, nj));
+
+    // memo[i][j] = length of longest increasing path starting at (i,j)
+    // 0 means not yet computed
+    const memo = Array.from({length: numRows}, () => new Array(numCols).fill(0));
+
+    const dfs = (row, col) => {
+        // Return cached result if already computed
+        if (memo[row][col] !== 0) return memo[row][col];
+
+        // Start with path length 1 (just the current cell)
+        let longestFromHere = 1;
+
+        // Try all 4 directions — only move to strictly larger neighbors
+        for (const [deltaRow, deltaCol] of dirs) {
+            const neighborRow = row + deltaRow;
+            const neighborCol = col + deltaCol;
+
+            const inBounds = neighborRow >= 0 && neighborRow < numRows &&
+                             neighborCol >= 0 && neighborCol < numCols;
+
+            if (inBounds && matrix[neighborRow][neighborCol] > matrix[row][col]) {
+                // Extend path through this neighbor
+                const pathThroughNeighbor = 1 + dfs(neighborRow, neighborCol);
+                longestFromHere = Math.max(longestFromHere, pathThroughNeighbor);
             }
         }
-        memo[i][j] = best;
-        return best;
+
+        memo[row][col] = longestFromHere;
+        return longestFromHere;
     };
-    let result = 0;
-    for (let i = 0; i < m; i++) {
-        for (let j = 0; j < n; j++) {
-            result = Math.max(result, dfs(i, j));
+
+    // Try starting from every cell and return the global maximum
+    let globalMax = 0;
+    for (let row = 0; row < numRows; row++) {
+        for (let col = 0; col < numCols; col++) {
+            globalMax = Math.max(globalMax, dfs(row, col));
         }
     }
-    return result;
+
+    return globalMax;
 };`,
+    jsWalkthrough:
+      'Example: matrix = [[9,9,4],[6,6,8],[2,1,1]]\n' +
+      'dfs(2,1) → value=1:\n' +
+      '  neighbor (2,0)=2 > 1 → dfs(2,0)=? value=2:\n' +
+      '    neighbor (1,0)=6 > 2 → dfs(1,0)=? value=6:\n' +
+      '      neighbor (0,0)=9 > 6 → dfs(0,0)=1 (no larger neighbors)\n' +
+      '      memo[1][0]=2\n' +
+      '    memo[2][0]=3\n' +
+      '  dfs(2,1)=4, memo[2][1]=4\n\n' +
+      'Path: 1→2→6→9, length=4\n' +
+      'Result: 4',
     explanation:
       '1. DFS from each cell, exploring neighbors with strictly larger values.\n' +
       '2. Memoize the longest path from each cell to avoid recomputation.\n' +
@@ -3192,20 +4354,36 @@ NumMatrix.prototype.sumRegion = function(row1, col1, row2, col2) {
                 patches += 1
         return patches`,
     jsCode: `var minPatches = function(nums, n) {
-    let patches = 0;
+    // miss = smallest positive number we cannot yet form as a sum
+    // Invariant: we can form all numbers in [1, miss-1]
     let miss = 1;
-    let i = 0;
+    let patchCount = 0;
+    let arrayIndex = 0;
+
     while (miss <= n) {
-        if (i < nums.length && nums[i] <= miss) {
-            miss += nums[i];
-            i++;
+        if (arrayIndex < nums.length && nums[arrayIndex] <= miss) {
+            // This array element fits within our current range:
+            // If we can form [1, miss-1], adding nums[arrayIndex] extends to [1, miss + nums[arrayIndex] - 1]
+            miss += nums[arrayIndex];
+            arrayIndex++;
         } else {
-            miss += miss;
-            patches++;
+            // Gap: cannot form 'miss' with current elements
+            // Best patch: add 'miss' itself → extends coverage to [1, 2*miss-1]
+            miss += miss; // doubles coverage
+            patchCount++;
         }
     }
-    return patches;
+
+    return patchCount;
 };`,
+    jsWalkthrough:
+      'Example: nums = [1,3], n = 6\n' +
+      'miss=1, patchCount=0, arrayIndex=0\n\n' +
+      'nums[0]=1 <= miss=1 → miss=1+1=2, arrayIndex=1\n' +
+      'nums[1]=3 > miss=2 → patch! miss=2+2=4, patchCount=1\n' +
+      'nums[1]=3 <= miss=4 → miss=4+3=7, arrayIndex=2\n' +
+      'miss=7 > n=6 → stop\n\n' +
+      'Result: 1 patch (adding 2 gives coverage [1,1+2+3=6])',
     explanation:
       '1. miss = smallest value we cannot yet form. Initially miss = 1.\n' +
       '2. If the next array element <= miss, we can extend coverage: miss += nums[i].\n' +
@@ -3249,21 +4427,51 @@ NumMatrix.prototype.sumRegion = function(row1, col1, row2, col2) {
         dfs(root)
         return self.max_size`,
     jsCode: `var largestBSTSubtree = function(root) {
-    let maxSize = 0;
+    let maxBSTSize = 0;
+
+    // Returns [isBST, size, minValue, maxValue] for the subtree rooted at node
     const dfs = (node) => {
+        // Null node: valid BST of size 0, with sentinel min/max for comparisons
         if (!node) return [true, 0, Infinity, -Infinity];
-        const [lBst, lSize, lMin, lMax] = dfs(node.left);
-        const [rBst, rSize, rMin, rMax] = dfs(node.right);
-        if (lBst && rBst && lMax < node.val && node.val < rMin) {
-            const size = lSize + rSize + 1;
-            maxSize = Math.max(maxSize, size);
-            return [true, size, Math.min(lMin, node.val), Math.max(rMax, node.val)];
+
+        const [leftIsBST, leftSize, leftMin, leftMax] = dfs(node.left);
+        const [rightIsBST, rightSize, rightMin, rightMax] = dfs(node.right);
+
+        // Current subtree is a BST if both children are BSTs and value ordering is correct
+        const currentIsBST = leftIsBST && rightIsBST &&
+                             leftMax < node.val &&
+                             node.val < rightMin;
+
+        if (currentIsBST) {
+            const currentSize = leftSize + rightSize + 1;
+            maxBSTSize = Math.max(maxBSTSize, currentSize);
+
+            // Report this subtree's range for parent's validation
+            const subMin = Math.min(leftMin, node.val);
+            const subMax = Math.max(rightMax, node.val);
+            return [true, currentSize, subMin, subMax];
         }
+
+        // Not a valid BST — return false to invalidate parent's BST check
         return [false, 0, 0, 0];
     };
+
     dfs(root);
-    return maxSize;
+    return maxBSTSize;
 };`,
+    jsWalkthrough:
+      'Example: root = [10,5,15,1,8,null,7]\n' +
+      'dfs(1): leaf → [true, 1, 1, 1]\n' +
+      'dfs(8): leaf → [true, 1, 8, 8]\n' +
+      'dfs(5): left=[true,1,1,1], right=[true,1,8,8]\n' +
+      '  leftMax=1 < 5 < rightMin=8 → BST!\n' +
+      '  size=3, maxBSTSize=3, return [true,3,1,8]\n' +
+      'dfs(7): leaf → [true,1,7,7]\n' +
+      'dfs(15): left=null, right=[true,1,7,7]\n' +
+      '  rightMin=7 but 15 > 7 → NOT BST (7 should be to the right of 15)\n' +
+      '  return [false,0,0,0]\n' +
+      'dfs(10): rightIsBST=false → not BST\n' +
+      'Result: maxBSTSize = 3',
     explanation:
       '1. Post-order DFS: process children before the parent.\n' +
       '2. Each call returns (is_bst, size, min_value, max_value) for the subtree.\n' +
@@ -3303,14 +4511,40 @@ NumMatrix.prototype.sumRegion = function(row1, col1, row2, col2) {
                 return True
         return False`,
     jsCode: `var increasingTriplet = function(nums) {
-    let first = Infinity, second = Infinity;
-    for (const n of nums) {
-        if (n <= first) first = n;
-        else if (n <= second) second = n;
-        else return true;
+    // first = smallest value seen so far
+    // second = smallest value greater than some earlier "first"
+    // If we find anything > second, we have a valid triplet
+    let firstMin = Infinity;
+    let secondMin = Infinity;
+
+    for (const num of nums) {
+        if (num <= firstMin) {
+            // This is the new global minimum — update first threshold
+            firstMin = num;
+        } else if (num <= secondMin) {
+            // Larger than firstMin but not yet > secondMin
+            // This could be the middle element of our triplet
+            secondMin = num;
+        } else {
+            // num > secondMin > firstMin (even if firstMin updated later,
+            // secondMin still has a valid smaller predecessor before it)
+            return true;
+        }
     }
+
     return false;
 };`,
+    jsWalkthrough:
+      'Example: nums = [5,1,4,2,3]\n' +
+      'firstMin=Inf, secondMin=Inf\n\n' +
+      'num=5: 5<=Inf → firstMin=5\n' +
+      'num=1: 1<=5 → firstMin=1\n' +
+      'num=4: 4>1, 4<=Inf → secondMin=4\n' +
+      '  (1 < 4 exists earlier in the array)\n' +
+      'num=2: 2>1, 2<=4 → secondMin=2\n' +
+      '  (1 < 2 still has a valid predecessor)\n' +
+      'num=3: 3>firstMin=1, 3>secondMin=2 → return true!\n' +
+      '  Triplet: 1 < 2 < 3',
     explanation:
       '1. first = smallest value seen so far.\n' +
       '2. second = smallest value greater than some previous first.\n' +
@@ -3351,33 +4585,69 @@ NumMatrix.prototype.sumRegion = function(row1, col1, row2, col2) {
                     result.append([word_map[right], i])
         return result`,
     jsCode: `var palindromePairs = function(words) {
-    const wordMap = new Map();
+    // Map each reversed word to its original index for O(1) lookups
+    const reversedWordMap = new Map();
     for (let i = 0; i < words.length; i++) {
-        wordMap.set(words[i].split('').reverse().join(''), i);
+        const reversed = words[i].split('').reverse().join('');
+        reversedWordMap.set(reversed, i);
     }
+
     const result = [];
-    const isPalin = (s) => {
-        let l = 0, r = s.length - 1;
-        while (l < r) {
-            if (s[l] !== s[r]) return false;
-            l++; r--;
+
+    // Check if a string is a palindrome using two pointers
+    const isPalindrome = (s) => {
+        let left = 0;
+        let right = s.length - 1;
+        while (left < right) {
+            if (s[left] !== s[right]) return false;
+            left++;
+            right--;
         }
         return true;
     };
+
     for (let i = 0; i < words.length; i++) {
-        const w = words[i];
-        for (let j = 0; j <= w.length; j++) {
-            const left = w.substring(0, j), right = w.substring(j);
-            if (wordMap.has(left) && wordMap.get(left) !== i && isPalin(right)) {
-                result.push([i, wordMap.get(left)]);
+        const word = words[i];
+
+        // Split word at every position into (prefix, suffix)
+        for (let splitPoint = 0; splitPoint <= word.length; splitPoint++) {
+            const prefix = word.substring(0, splitPoint);
+            const suffix = word.substring(splitPoint);
+
+            // Case 1: suffix is a palindrome AND reversed(prefix) exists in the list
+            // → word + reversed(prefix) forms a palindrome (word[i] + word[j])
+            if (reversedWordMap.has(prefix)) {
+                const partnerIndex = reversedWordMap.get(prefix);
+                if (partnerIndex !== i && isPalindrome(suffix)) {
+                    result.push([i, partnerIndex]);
+                }
             }
-            if (j > 0 && wordMap.has(right) && wordMap.get(right) !== i && isPalin(left)) {
-                result.push([wordMap.get(right), i]);
+
+            // Case 2: prefix is a palindrome AND reversed(suffix) exists in the list
+            // → reversed(suffix) + word forms a palindrome (word[j] + word[i])
+            // j > 0 avoids duplicating the split point where prefix="" case already covers
+            if (splitPoint > 0 && reversedWordMap.has(suffix)) {
+                const partnerIndex = reversedWordMap.get(suffix);
+                if (partnerIndex !== i && isPalindrome(prefix)) {
+                    result.push([partnerIndex, i]);
+                }
             }
         }
     }
+
     return result;
 };`,
+    jsWalkthrough:
+      'Example: words = ["abcd","dcba","lls","s","sssll"]\n' +
+      'reversedWordMap: {"dcba":0, "abcd":1, "sll":2, "s":3, "llsss":4}\n\n' +
+      'word[0]="abcd", splitPoint=4:\n' +
+      '  prefix="abcd", suffix=""\n' +
+      '  reversedWordMap has "abcd" at index 1 ≠ 0, isPalindrome("")=true\n' +
+      '  → push [0,1]\n' +
+      'word[1]="dcba", splitPoint=0:\n' +
+      '  prefix="", suffix="dcba"\n' +
+      '  reversedWordMap has "" → no\n' +
+      '  (continues finding [1,0], [3,2], [2,4])',
     explanation:
       '1. Build a map of reversed words to their indices.\n' +
       '2. For each word, split at every position into left and right parts.\n' +
@@ -3418,16 +4688,39 @@ NumMatrix.prototype.sumRegion = function(row1, col1, row2, col2) {
             return rob, not_rob
         return max(dfs(root))`,
     jsCode: `var rob = function(root) {
+    // DFS returns [gainIfRob, gainIfSkip] for each subtree
     const dfs = (node) => {
         if (!node) return [0, 0];
-        const left = dfs(node.left);
-        const right = dfs(node.right);
-        const robThis = node.val + left[1] + right[1];
-        const notRob = Math.max(...left) + Math.max(...right);
-        return [robThis, notRob];
+
+        const [leftRobGain, leftSkipGain] = dfs(node.left);
+        const [rightRobGain, rightSkipGain] = dfs(node.right);
+
+        // Rob this node: cannot rob direct children
+        const gainIfRobThis = node.val + leftSkipGain + rightSkipGain;
+
+        // Skip this node: take the best from each child independently
+        const gainIfSkipThis = Math.max(leftRobGain, leftSkipGain) +
+                               Math.max(rightRobGain, rightSkipGain);
+
+        return [gainIfRobThis, gainIfSkipThis];
     };
-    return Math.max(...dfs(root));
+
+    const [robRoot, skipRoot] = dfs(root);
+    return Math.max(robRoot, skipRoot);
 };`,
+    jsWalkthrough:
+      'Example: root = [3,2,3,null,3,null,1]\n' +
+      'Tree:      3\n' +
+      '          / \\\n' +
+      '         2   3\n' +
+      '          \\   \\\n' +
+      '           3   1\n\n' +
+      'dfs(3 right of 2): [3, 0]\n' +
+      'dfs(2): robGain=2+0+0=2, skipGain=max(3,0)+max(0,0)=3 → [2,3]\n' +
+      'dfs(1 right of 3): [1, 0]\n' +
+      'dfs(3 right child): robGain=3+0+0=3, skipGain=0+max(1,0)=1 → [3,1]\n' +
+      'dfs(root=3): robGain=3+3+1=7, skipGain=max(2,3)+max(3,1)=3+3=6 → [7,6]\n' +
+      'Result: max(7,6) = 7',
     explanation:
       '1. DFS returns (rob_this, skip_this) for each node.\n' +
       '2. rob_this = node.val + skip(left) + skip(right) (cannot rob children).\n' +
@@ -3467,19 +4760,35 @@ NumMatrix.prototype.sumRegion = function(row1, col1, row2, col2) {
             return total
         return dfs(nestedList, 1)`,
     jsCode: `var depthSum = function(nestedList) {
-    const dfs = (nested, depth) => {
+    // Recursively compute weighted sum: each integer is multiplied by its nesting depth
+    const dfs = (nested, currentDepth) => {
         let total = 0;
+
         for (const item of nested) {
             if (item.isInteger()) {
-                total += item.getInteger() * depth;
+                // Integer at this depth: contribute value * depth
+                total += item.getInteger() * currentDepth;
             } else {
-                total += dfs(item.getList(), depth + 1);
+                // Nested list: recurse with increased depth
+                total += dfs(item.getList(), currentDepth + 1);
             }
         }
+
         return total;
     };
+
+    // Root level starts at depth 1
     return dfs(nestedList, 1);
 };`,
+    jsWalkthrough:
+      'Example: [[1,1],2,[1,1]], depth 1\n' +
+      'Item [1,1] is a list → recurse at depth 2:\n' +
+      '  item 1 (integer): 1 * 2 = 2\n' +
+      '  item 1 (integer): 1 * 2 = 2 → subtotal = 4\n' +
+      'Item 2 (integer): 2 * 1 = 2\n' +
+      'Item [1,1] is a list → recurse at depth 2:\n' +
+      '  item 1: 1*2=2, item 1: 1*2=2 → subtotal = 4\n\n' +
+      'Total = 4 + 2 + 4 = 10',
     explanation:
       '1. Start DFS at depth 1 with the root list.\n' +
       '2. For each element, check if it is an integer or a nested list.\n' +
@@ -3524,19 +4833,51 @@ NumMatrix.prototype.sumRegion = function(row1, col1, row2, col2) {
             max_len = max(max_len, right - left + 1)
         return max_len`,
     jsCode: `var lengthOfLongestSubstringKDistinct = function(s, k) {
-    const count = new Map();
-    let left = 0, maxLen = 0;
+    // Map tracking the count of each character in the current window
+    const charCount = new Map();
+    let leftBoundary = 0;
+    let maxWindowLength = 0;
+
     for (let right = 0; right < s.length; right++) {
-        count.set(s[right], (count.get(s[right]) || 0) + 1);
-        while (count.size > k) {
-            count.set(s[left], count.get(s[left]) - 1);
-            if (count.get(s[left]) === 0) count.delete(s[left]);
-            left++;
+        const rightChar = s[right];
+
+        // Expand window: add the right character
+        charCount.set(rightChar, (charCount.get(rightChar) || 0) + 1);
+
+        // Shrink window from the left until we have at most k distinct characters
+        while (charCount.size > k) {
+            const leftChar = s[leftBoundary];
+            const newCount = charCount.get(leftChar) - 1;
+
+            if (newCount === 0) {
+                charCount.delete(leftChar); // remove this character from the window
+            } else {
+                charCount.set(leftChar, newCount);
+            }
+
+            leftBoundary++;
         }
-        maxLen = Math.max(maxLen, right - left + 1);
+
+        // Window [leftBoundary, right] has at most k distinct characters
+        const windowLength = right - leftBoundary + 1;
+        maxWindowLength = Math.max(maxWindowLength, windowLength);
     }
-    return maxLen;
+
+    return maxWindowLength;
 };`,
+    jsWalkthrough:
+      'Example: s = "eceba", k = 2\n' +
+      'right=0, char="e": window="e", distinct=1, maxLen=1\n' +
+      'right=1, char="c": window="ec", distinct=2, maxLen=2\n' +
+      'right=2, char="e": window="ece", distinct=2, maxLen=3\n' +
+      'right=3, char="b": window="eceb", distinct=3 > k=2\n' +
+      '  shrink left: remove "e" → count["e"]=1, left=1\n' +
+      '  window="ceb", distinct=3 still > 2\n' +
+      '  shrink: remove "c" → count["c"]=0 → delete, left=2\n' +
+      '  window="eb", distinct=2, maxLen stays 3\n' +
+      'right=4, char="a": window="eba", distinct=3 > 2\n' +
+      '  shrink: remove "e" → left=3, window="ba", distinct=2, maxLen=3\n' +
+      'Result: 3 ("ece")',
     explanation:
       '1. Expand the window by moving right pointer and adding to count map.\n' +
       '2. If distinct characters exceed k, shrink from the left.\n' +
@@ -3580,25 +4921,46 @@ NumMatrix.prototype.sumRegion = function(row1, col1, row2, col2) {
             self.stack.extend(top.getList()[::-1])
         return False`,
     jsCode: `var NestedIterator = function(nestedList) {
+    // Push elements in reverse so the first element sits on top of the stack
     this.stack = [...nestedList].reverse();
 };
 
 NestedIterator.prototype.next = function() {
+    // hasNext() guarantees the top is an integer before next() is called
     return this.stack.pop().getInteger();
 };
 
 NestedIterator.prototype.hasNext = function() {
-    while (this.stack.length) {
-        const top = this.stack[this.stack.length - 1];
-        if (top.isInteger()) return true;
+    // Flatten lazily: keep unpacking list elements until an integer is on top
+    while (this.stack.length > 0) {
+        const topElement = this.stack[this.stack.length - 1];
+
+        if (topElement.isInteger()) {
+            return true; // ready to return an integer
+        }
+
+        // Top is a nested list — expand it in reverse onto the stack
         this.stack.pop();
-        const list = top.getList();
-        for (let i = list.length - 1; i >= 0; i--) {
-            this.stack.push(list[i]);
+        const nestedItems = topElement.getList();
+        for (let i = nestedItems.length - 1; i >= 0; i--) {
+            this.stack.push(nestedItems[i]);
         }
     }
-    return false;
+
+    return false; // stack is empty, no more integers
 };`,
+    jsWalkthrough:
+      'Example: [[1,1],2,[1,1]]\n' +
+      'Constructor: reverse → stack = [[1,1], 2, [1,1]] (right side is top)\n' +
+      'Actually reversed: top=[1,1], then 2, then [1,1]\n\n' +
+      'hasNext(): top=[1,1] is list → pop, push 1,1 (reversed) → stack: [..., 1, 1]\n' +
+      '           top=1 is integer → return true\n' +
+      'next(): pop 1 → returns 1\n' +
+      'hasNext(): top=1 is integer → return true\n' +
+      'next(): pop 1 → returns 1\n' +
+      'hasNext(): top=2 is integer → return true\n' +
+      'next(): pop 2 → returns 2\n' +
+      '... continues expanding [1,1] → returns 1, 1',
     explanation:
       '1. Initialize stack with elements in reverse order (so first element is on top).\n' +
       '2. hasNext(): while top is a list, pop it and push its elements in reverse.\n' +
@@ -3636,15 +4998,31 @@ NestedIterator.prototype.hasNext = function() {
             n -= 3
         return product * n`,
     jsCode: `var integerBreak = function(n) {
-    if (n === 2) return 1;
-    if (n === 3) return 2;
+    // Special cases: 2 and 3 must be split but the pieces are smaller than the whole
+    if (n === 2) return 1; // 1 + 1 = 2, product = 1
+    if (n === 3) return 2; // 1 + 2 = 3, product = 2 (best: don't split the 2)
+
+    // For n >= 4, greedily break off 3s
+    // Stop at n <= 4 because:
+    //   - n=4: 2*2=4, best to keep as-is (not break into 3+1=3)
+    //   - n=3: already handled as remainder
     let product = 1;
     while (n > 4) {
         product *= 3;
         n -= 3;
     }
+
+    // Multiply by remaining n (could be 2, 3, or 4 — all optimal as-is)
     return product * n;
 };`,
+    jsWalkthrough:
+      'Example: n = 10\n' +
+      'n=10 > 4: product *= 3 → product=3, n=7\n' +
+      'n=7 > 4: product *= 3 → product=9, n=4\n' +
+      'n=4 ≤ 4: exit loop\n' +
+      'return product * n = 9 * 4 = 36\n\n' +
+      'Verification: 10 = 3+3+4, product = 3*3*4 = 36 ✓\n' +
+      '(vs 3+3+3+1: 3*3*3*1=27, worse because of the 1)',
     explanation:
       '1. Special cases: n=2 returns 1, n=3 returns 2.\n' +
       '2. For n >= 4, break off 3s as much as possible.\n' +
@@ -3687,18 +5065,48 @@ NestedIterator.prototype.hasNext = function() {
             right -= 1
         return ''.join(s)`,
     jsCode: `var reverseVowels = function(s) {
-    const vowels = new Set('aeiouAEIOU');
-    const arr = s.split('');
-    let left = 0, right = arr.length - 1;
-    while (left < right) {
-        while (left < right && !vowels.has(arr[left])) left++;
-        while (left < right && !vowels.has(arr[right])) right--;
-        [arr[left], arr[right]] = [arr[right], arr[left]];
-        left++;
-        right--;
+    const vowelSet = new Set('aeiouAEIOU');
+
+    // Convert to array for in-place swapping
+    const chars = s.split('');
+    let leftPtr = 0;
+    let rightPtr = chars.length - 1;
+
+    while (leftPtr < rightPtr) {
+        // Advance left pointer past non-vowels
+        while (leftPtr < rightPtr && !vowelSet.has(chars[leftPtr])) {
+            leftPtr++;
+        }
+        // Advance right pointer past non-vowels
+        while (leftPtr < rightPtr && !vowelSet.has(chars[rightPtr])) {
+            rightPtr--;
+        }
+
+        // Both pointers now point to vowels — swap them
+        if (leftPtr < rightPtr) {
+            const temp = chars[leftPtr];
+            chars[leftPtr] = chars[rightPtr];
+            chars[rightPtr] = temp;
+            leftPtr++;
+            rightPtr--;
+        }
     }
-    return arr.join('');
+
+    return chars.join('');
 };`,
+    jsWalkthrough:
+      'Example: s = "hello"\n' +
+      'chars = ["h","e","l","l","o"]\n' +
+      'leftPtr=0, rightPtr=4\n\n' +
+      'Advance left: h not vowel → leftPtr=1 (e is vowel → stop)\n' +
+      'Advance right: o is vowel → stop at rightPtr=4\n' +
+      'Swap chars[1]="e" and chars[4]="o"\n' +
+      'chars = ["h","o","l","l","e"]\n' +
+      'leftPtr=2, rightPtr=3\n\n' +
+      'Advance left: l not vowel → leftPtr=3\n' +
+      'Advance right: l not vowel → rightPtr=2\n' +
+      'leftPtr(3) > rightPtr(2) → stop\n\n' +
+      'Result: "holle"',
     explanation:
       '1. Convert string to list for in-place swapping.\n' +
       '2. Use two pointers from both ends.\n' +
@@ -3741,19 +5149,33 @@ class MovingAverage:
             self.total -= self.queue.popleft()
         return self.total / len(self.queue)`,
     jsCode: `var MovingAverage = function(size) {
-    this.size = size;
-    this.queue = [];
-    this.total = 0;
+    this.windowSize = size;
+    this.window = [];    // queue of values in the current window
+    this.runningSum = 0; // sum of all values in the window
 };
 
 MovingAverage.prototype.next = function(val) {
-    this.queue.push(val);
-    this.total += val;
-    if (this.queue.length > this.size) {
-        this.total -= this.queue.shift();
+    // Add new value to the window
+    this.window.push(val);
+    this.runningSum += val;
+
+    // If window exceeds maximum size, evict the oldest value
+    if (this.window.length > this.windowSize) {
+        const evicted = this.window.shift();
+        this.runningSum -= evicted;
     }
-    return this.total / this.queue.length;
+
+    // Average over the current window
+    return this.runningSum / this.window.length;
 };`,
+    jsWalkthrough:
+      'Example: size = 3\n' +
+      'next(1): window=[1], sum=1 → avg=1/1=1.0\n' +
+      'next(10): window=[1,10], sum=11 → avg=11/2=5.5\n' +
+      'next(3): window=[1,10,3], sum=14 → avg=14/3≈4.667\n' +
+      'next(5): window=[1,10,3,5] → length 4 > size 3\n' +
+      '  evict oldest (1): window=[10,3,5], sum=14-1+5=18\n' +
+      '  avg=18/3=6.0',
     explanation:
       '1. Maintain a deque as the sliding window and a running total.\n' +
       '2. On each next(), add the value to queue and total.\n' +
@@ -3802,25 +5224,57 @@ MovingAverage.prototype.next = function(val) {
             return player
         return 0`,
     jsCode: `var TicTacToe = function(n) {
-    this.n = n;
-    this.rows = new Array(n).fill(0);
-    this.cols = new Array(n).fill(0);
-    this.diag = 0;
-    this.antiDiag = 0;
+    this.boardSize = n;
+
+    // Track cumulative sums per row and column
+    // Player 1 adds +1, player 2 adds -1
+    // A win occurs when any sum reaches +n (player 1) or -n (player 2)
+    this.rowSums = new Array(n).fill(0);
+    this.colSums = new Array(n).fill(0);
+
+    // Two diagonals: top-left to bottom-right, and top-right to bottom-left
+    this.diagSum = 0;
+    this.antiDiagSum = 0;
 };
 
 TicTacToe.prototype.move = function(row, col, player) {
-    const val = player === 1 ? 1 : -1;
-    this.rows[row] += val;
-    this.cols[col] += val;
-    if (row === col) this.diag += val;
-    if (row + col === this.n - 1) this.antiDiag += val;
-    if (Math.abs(this.rows[row]) === this.n || Math.abs(this.cols[col]) === this.n ||
-        Math.abs(this.diag) === this.n || Math.abs(this.antiDiag) === this.n) {
+    const contribution = player === 1 ? 1 : -1;
+
+    // Update row and column sums
+    this.rowSums[row] += contribution;
+    this.colSums[col] += contribution;
+
+    // Update diagonal if on the main diagonal (row === col)
+    if (row === col) {
+        this.diagSum += contribution;
+    }
+
+    // Update anti-diagonal if on it (row + col === n-1)
+    if (row + col === this.boardSize - 1) {
+        this.antiDiagSum += contribution;
+    }
+
+    // Check if this move completed a full line for the current player
+    const winValue = this.boardSize;
+    if (Math.abs(this.rowSums[row]) === winValue ||
+        Math.abs(this.colSums[col]) === winValue ||
+        Math.abs(this.diagSum) === winValue ||
+        Math.abs(this.antiDiagSum) === winValue) {
         return player;
     }
-    return 0;
+
+    return 0; // no winner yet
 };`,
+    jsWalkthrough:
+      'Example: n=3\n' +
+      'move(0,0,1): rowSums[0]=1, colSums[0]=1, diagSum=1, antiDiag unchanged\n' +
+      'move(0,2,2): rowSums[0]=0, colSums[2]=-1, antiDiagSum=-1\n' +
+      'move(2,2,1): rowSums[2]=1, colSums[2]=0, diagSum=2, antiDiag unchanged\n' +
+      'move(1,1,2): rowSums[1]=-1, colSums[1]=-1, diagSum=1, antiDiagSum=-2\n' +
+      'move(2,0,1): rowSums[2]=2, colSums[0]=2, antiDiagSum=-1\n' +
+      '  |rowSums[2]|=2 ≠ 3\n' +
+      'move(1,0,2): rowSums[1]=-2, colSums[0]=1\n' +
+      'move(2,1,1): rowSums[2]=3 → |3|=3=n → player 1 wins!',
     explanation:
       '1. Use arrays for row/column sums and variables for diagonal sums.\n' +
       '2. Player 1 contributes +1, player 2 contributes -1.\n' +
@@ -3852,10 +5306,28 @@ TicTacToe.prototype.move = function(row, col, player) {
     def intersection(self, nums1: list[int], nums2: list[int]) -> list[int]:
         return list(set(nums1) & set(nums2))`,
     jsCode: `var intersection = function(nums1, nums2) {
-    const set1 = new Set(nums1);
-    const set2 = new Set(nums2);
-    return [...set1].filter(x => set2.has(x));
+    // Sets automatically deduplicate and provide O(1) lookups
+    const uniqueNums1 = new Set(nums1);
+    const uniqueNums2 = new Set(nums2);
+
+    // Keep only elements present in both sets
+    const result = [];
+    for (const num of uniqueNums1) {
+        if (uniqueNums2.has(num)) {
+            result.push(num);
+        }
+    }
+
+    return result;
 };`,
+    jsWalkthrough:
+      'Example: nums1 = [1,2,2,1], nums2 = [2,2]\n' +
+      'uniqueNums1 = {1, 2}\n' +
+      'uniqueNums2 = {2}\n\n' +
+      'Iterate uniqueNums1:\n' +
+      '  num=1: uniqueNums2.has(1)? no → skip\n' +
+      '  num=2: uniqueNums2.has(2)? yes → push 2\n\n' +
+      'Result: [2]',
     explanation:
       '1. Convert nums1 and nums2 to sets to remove duplicates.\n' +
       '2. Use set intersection (&) to find common elements.\n' +
@@ -3893,19 +5365,33 @@ TicTacToe.prototype.move = function(row, col, player) {
                 counts[n] -= 1
         return result`,
     jsCode: `var intersect = function(nums1, nums2) {
-    const counts = new Map();
-    for (const n of nums1) {
-        counts.set(n, (counts.get(n) || 0) + 1);
+    // Count how many of each value nums1 has available to "match"
+    const availableCount = new Map();
+    for (const num of nums1) {
+        availableCount.set(num, (availableCount.get(num) || 0) + 1);
     }
+
     const result = [];
-    for (const n of nums2) {
-        if (counts.get(n) > 0) {
-            result.push(n);
-            counts.set(n, counts.get(n) - 1);
+
+    // For each value in nums2, use it if there are still matches available
+    for (const num of nums2) {
+        const remaining = availableCount.get(num) || 0;
+        if (remaining > 0) {
+            result.push(num);
+            // Decrement so we don't match the same element more than once
+            availableCount.set(num, remaining - 1);
         }
     }
+
     return result;
 };`,
+    jsWalkthrough:
+      'Example: nums1 = [1,2,2,1], nums2 = [2,2]\n' +
+      'availableCount from nums1: {1:2, 2:2}\n\n' +
+      'Process nums2:\n' +
+      '  num=2: remaining=2 > 0 → push 2, availableCount[2]=1\n' +
+      '  num=2: remaining=1 > 0 → push 2, availableCount[2]=0\n\n' +
+      'Result: [2,2]',
     explanation:
       '1. Count frequencies of elements in nums1.\n' +
       '2. Iterate through nums2; if an element has a positive count, include it and decrement.\n' +
@@ -3963,34 +5449,60 @@ class SummaryRanges:
     def getIntervals(self) -> list[list[int]]:
         return [[s, e] for s, e in self.intervals.items()]`,
     jsCode: `var SummaryRanges = function() {
-    this.intervals = []; // sorted by start
+    // Sorted array of [start, end] intervals, maintained in order
+    this.intervals = [];
 };
 
 SummaryRanges.prototype.addNum = function(value) {
-    let s = value, e = value;
-    const newIntervals = [];
-    let inserted = false;
-    for (const [start, end] of this.intervals) {
-        if (end + 1 < s) {
-            newIntervals.push([start, end]);
-        } else if (e + 1 < start) {
-            if (!inserted) {
-                newIntervals.push([s, e]);
-                inserted = true;
+    // The new interval starts and ends at value (we'll expand it during merging)
+    let newStart = value;
+    let newEnd = value;
+
+    const mergedIntervals = [];
+    let hasInserted = false;
+
+    for (const [existingStart, existingEnd] of this.intervals) {
+        if (existingEnd + 1 < newStart) {
+            // Existing interval is entirely before the new one — keep it as-is
+            mergedIntervals.push([existingStart, existingEnd]);
+        } else if (newEnd + 1 < existingStart) {
+            // Existing interval is entirely after the new one
+            // Insert the new interval first (in sorted order), then keep existing
+            if (!hasInserted) {
+                mergedIntervals.push([newStart, newEnd]);
+                hasInserted = true;
             }
-            newIntervals.push([start, end]);
+            mergedIntervals.push([existingStart, existingEnd]);
         } else {
-            s = Math.min(s, start);
-            e = Math.max(e, end);
+            // Intervals overlap or are adjacent — merge them
+            newStart = Math.min(newStart, existingStart);
+            newEnd = Math.max(newEnd, existingEnd);
         }
     }
-    if (!inserted) newIntervals.push([s, e]);
-    this.intervals = newIntervals;
+
+    // If no interval came after the new one, append it at the end
+    if (!hasInserted) {
+        mergedIntervals.push([newStart, newEnd]);
+    }
+
+    this.intervals = mergedIntervals;
 };
 
 SummaryRanges.prototype.getIntervals = function() {
     return this.intervals;
 };`,
+    jsWalkthrough:
+      'Example: addNum(1), addNum(3), addNum(7), addNum(2), addNum(6)\n\n' +
+      'addNum(1): intervals=[] → push [1,1] → [[1,1]]\n' +
+      'addNum(3): [1,1] end+1=2 < 3 → keep; insert [3,3] → [[1,1],[3,3]]\n' +
+      'addNum(7): [1,1] before, [3,3] before; insert [7,7] → [[1,1],[3,3],[7,7]]\n' +
+      'addNum(2): [1,1] adjacent (end+1=2=newStart) → merge: newStart=1,newEnd=2\n' +
+      '           [3,3] adjacent (newEnd+1=3=start) → merge: newStart=1,newEnd=3\n' +
+      '           [7,7] after → insert [1,3] then keep [7,7]\n' +
+      '           → [[1,3],[7,7]]\n' +
+      'addNum(6): [1,3] before; [7,7] adjacent to 6 → merge: [6,7]\n' +
+      '           → [[1,3],[6,7]]\n' +
+      'getIntervals(): [[1,3],[6,7]]',
     explanation:
       '1. Maintain a SortedDict mapping interval starts to ends.\n' +
       '2. On addNum, find the insertion position using bisect.\n' +
@@ -4033,19 +5545,50 @@ class Solution:
                 dp[idx] = h
         return len(dp)`,
     jsCode: `var maxEnvelopes = function(envelopes) {
-    envelopes.sort((a, b) => a[0] === b[0] ? b[1] - a[1] : a[0] - b[0]);
+    // Sort by width ascending; for same width, sort by height DESCENDING
+    // The descending height prevents two envelopes of the same width from both being selected
+    envelopes.sort((a, b) => {
+        if (a[0] !== b[0]) {
+            return a[0] - b[0]; // ascending width
+        }
+        return b[1] - a[1]; // descending height for same width
+    });
+
+    // Now find the Longest Increasing Subsequence on heights
+    // dp[i] = smallest tail of any increasing subsequence of length i+1
     const dp = [];
-    for (const [, h] of envelopes) {
-        let lo = 0, hi = dp.length;
+
+    for (const [, height] of envelopes) {
+        // Binary search: find the first index in dp where dp[index] >= height
+        let lo = 0;
+        let hi = dp.length;
+
         while (lo < hi) {
             const mid = Math.floor((lo + hi) / 2);
-            if (dp[mid] < h) lo = mid + 1;
-            else hi = mid;
+            if (dp[mid] < height) {
+                lo = mid + 1;
+            } else {
+                hi = mid;
+            }
         }
-        dp[lo] = h;
+
+        // Replace or extend dp
+        dp[lo] = height;
     }
+
     return dp.length;
 };`,
+    jsWalkthrough:
+      'Example: envelopes = [[5,4],[6,4],[6,7],[2,3]]\n' +
+      'After sort: [[2,3],[5,4],[6,7],[6,4]]\n' +
+      '  (same width 6: height 7 before 4, descending)\n\n' +
+      'LIS on heights: [3,4,7,4]\n' +
+      'h=3: lo=0, dp=[3]\n' +
+      'h=4: 3<4 → lo=1, dp=[3,4]\n' +
+      'h=7: 4<7 → lo=2, dp=[3,4,7]\n' +
+      'h=4: binary search → lo=1 (dp[1]=4, replace)\n' +
+      '  dp=[3,4,7] (length unchanged)\n\n' +
+      'Result: dp.length = 3 → max 3 envelopes nested',
     explanation:
       '1. Sort by width ascending, height descending for ties.\n' +
       '2. Find LIS on the height values using binary search.\n' +
@@ -4100,37 +5643,66 @@ class Solution:
         return ''.join(result)`,
     jsCode: `var rearrangeString = function(s, k) {
     if (k <= 1) return s;
-    const counts = new Map();
-    for (const c of s) counts.set(c, (counts.get(c) || 0) + 1);
-    // Use sorted array as priority queue
-    let heap = [...counts.entries()].sort((a, b) => b[1] - a[1]);
+
+    // Count character frequencies
+    const charCounts = new Map();
+    for (const char of s) {
+        charCounts.set(char, (charCounts.get(char) || 0) + 1);
+    }
+
+    // Build a sorted "heap" (highest frequency first)
+    let available = [...charCounts.entries()].sort((a, b) => b[1] - a[1]);
+
     const result = [];
+    // Cooldown queue: [char, remainingCount, canUseAtPosition]
     const cooldown = [];
-    while (heap.length || cooldown.length) {
-        // Release from cooldown
-        const newCooldown = [];
-        for (const [ch, cnt, releaseAt] of cooldown) {
+
+    while (available.length > 0 || cooldown.length > 0) {
+        // Release characters whose cooldown has expired
+        const stillCooling = [];
+        for (const [char, count, releaseAt] of cooldown) {
             if (releaseAt <= result.length) {
-                heap.push([ch, cnt]);
+                available.push([char, count]); // ready to use again
             } else {
-                newCooldown.push([ch, cnt, releaseAt]);
+                stillCooling.push([char, count, releaseAt]);
             }
         }
-        heap.sort((a, b) => b[1] - a[1]);
-        if (!heap.length) {
-            if (newCooldown.length) return "";
+
+        // Re-sort to pick the highest frequency available character
+        available.sort((a, b) => b[1] - a[1]);
+
+        if (available.length === 0) {
+            // No character available but still in cooldown → impossible
+            if (stillCooling.length > 0) return '';
             break;
         }
-        const [ch, cnt] = heap.shift();
-        result.push(ch);
-        if (cnt - 1 > 0) {
-            newCooldown.push([ch, cnt - 1, result.length + k - 1]);
+
+        // Greedily pick the most frequent character
+        const [chosenChar, chosenCount] = available.shift();
+        result.push(chosenChar);
+
+        // Put it on cooldown if it still has remaining count
+        if (chosenCount - 1 > 0) {
+            const canUseAt = result.length + k - 1;
+            stillCooling.push([chosenChar, chosenCount - 1, canUseAt]);
         }
+
         cooldown.length = 0;
-        cooldown.push(...newCooldown);
+        cooldown.push(...stillCooling);
     }
+
     return result.join('');
 };`,
+    jsWalkthrough:
+      'Example: s = "aabbcc", k = 3\n' +
+      'charCounts: {a:2, b:2, c:2}\n' +
+      'available: [[a,2],[b,2],[c,2]]\n\n' +
+      'Step 1: pick "a" (freq=2), result=["a"], cooldown=[["a",1,at3]]\n' +
+      'Step 2: pick "b", result=["a","b"], cooldown=[["a",1,at3],["b",1,at4]]\n' +
+      'Step 3: pick "c", result=["a","b","c"], cooldown=[["a",1,3],["b",1,4],["c",1,at5]]\n' +
+      'Step 4: releaseAt=3 <= 3 → "a" released\n' +
+      '        pick "a" → result=["a","b","c","a"]\n' +
+      '...continues: "abcabc"',
     explanation:
       '1. Count character frequencies and build a max heap.\n' +
       '2. Greedily pick the most frequent character available.\n' +
@@ -4169,16 +5741,32 @@ class Solution:
             return True
         return False`,
     jsCode: `var Logger = function() {
-    this.msgTime = new Map();
+    // Maps each message to the next timestamp at which it is allowed to print
+    this.nextAllowedTime = new Map();
 };
 
 Logger.prototype.shouldPrintMessage = function(timestamp, message) {
-    if (!this.msgTime.has(message) || timestamp >= this.msgTime.get(message)) {
-        this.msgTime.set(message, timestamp + 10);
+    const nextAllowed = this.nextAllowedTime.get(message);
+
+    // Allow printing if: message is new OR enough time has passed since last print
+    const canPrint = nextAllowed === undefined || timestamp >= nextAllowed;
+
+    if (canPrint) {
+        // Schedule next allowed print time 10 seconds from now
+        this.nextAllowedTime.set(message, timestamp + 10);
         return true;
     }
+
     return false;
 };`,
+    jsWalkthrough:
+      'Example: [[1,"foo"],[2,"bar"],[3,"foo"],[8,"bar"],[10,"foo"],[11,"foo"]]\n\n' +
+      't=1,  "foo": new → allow, nextAllowed["foo"]=11, return true\n' +
+      't=2,  "bar": new → allow, nextAllowed["bar"]=12, return true\n' +
+      't=3,  "foo": 3 < 11 → block, return false\n' +
+      't=8,  "bar": 8 < 12 → block, return false\n' +
+      't=10, "foo": 10 < 11 → block, return false\n' +
+      't=11, "foo": 11 >= 11 → allow, nextAllowed["foo"]=21, return true',
     explanation:
       '1. Maintain a dictionary mapping messages to their next allowed print time.\n' +
       '2. If the message is new or the current timestamp >= next allowed time, allow it.\n' +
@@ -4220,19 +5808,35 @@ class HitCounter:
             self.hits.popleft()
         return len(self.hits)`,
     jsCode: `var HitCounter = function() {
-    this.hits = [];
+    // Queue of timestamps for hits recorded in the last 300 seconds
+    this.hitTimestamps = [];
 };
 
 HitCounter.prototype.hit = function(timestamp) {
-    this.hits.push(timestamp);
+    // Record the new hit
+    this.hitTimestamps.push(timestamp);
 };
 
 HitCounter.prototype.getHits = function(timestamp) {
-    while (this.hits.length && this.hits[0] <= timestamp - 300) {
-        this.hits.shift();
+    // Remove all hits that are older than 300 seconds from the query time
+    const expiryCutoff = timestamp - 300;
+    while (this.hitTimestamps.length > 0 && this.hitTimestamps[0] <= expiryCutoff) {
+        this.hitTimestamps.shift();
     }
-    return this.hits.length;
+
+    // Remaining hits are all within the past 300 seconds
+    return this.hitTimestamps.length;
 };`,
+    jsWalkthrough:
+      'Example: hit(1), hit(2), hit(3), getHits(4), hit(300), getHits(300), getHits(301)\n\n' +
+      'hit(1): timestamps=[1]\n' +
+      'hit(2): timestamps=[1,2]\n' +
+      'hit(3): timestamps=[1,2,3]\n' +
+      'getHits(4): cutoff=4-300=-296, none expire → return 3\n' +
+      'hit(300): timestamps=[1,2,3,300]\n' +
+      'getHits(300): cutoff=0, none expire → return 4\n' +
+      'getHits(301): cutoff=1, hits[0]=1 ≤ 1 → remove 1\n' +
+      '  timestamps=[2,3,300] → return 3',
     explanation:
       '1. Append each hit timestamp to a deque.\n' +
       '2. On getHits, remove expired timestamps (> 300 seconds old) from the front.\n' +
@@ -4273,17 +5877,46 @@ HitCounter.prototype.getHits = function(timestamp) {
         dfs(root)
         return result`,
     jsCode: `var findLeaves = function(root) {
-    const result = [];
-    const dfs = (node) => {
+    const groups = []; // groups[height] = list of node values at that height
+
+    // Returns the "height from bottom" of each node
+    // Leaves have height 0, their parents height 1, etc.
+    const computeHeight = (node) => {
         if (!node) return -1;
-        const h = Math.max(dfs(node.left), dfs(node.right)) + 1;
-        if (h === result.length) result.push([]);
-        result[h].push(node.val);
-        return h;
+
+        const leftHeight = computeHeight(node.left);
+        const rightHeight = computeHeight(node.right);
+
+        // Height = distance to the farthest leaf descendant
+        const nodeHeight = Math.max(leftHeight, rightHeight) + 1;
+
+        // Initialize a new group if this height hasn't been seen
+        if (nodeHeight === groups.length) {
+            groups.push([]);
+        }
+
+        // Add this node's value to the appropriate group
+        groups[nodeHeight].push(node.val);
+
+        return nodeHeight;
     };
-    dfs(root);
-    return result;
+
+    computeHeight(root);
+    return groups;
 };`,
+    jsWalkthrough:
+      'Example: root = [1,2,3,4,5]\n' +
+      'Tree:      1\n' +
+      '          / \\\n' +
+      '         2   3\n' +
+      '        / \\\n' +
+      '       4   5\n\n' +
+      'computeHeight(4): left=-1, right=-1 → height=0 → groups[0]=[4]\n' +
+      'computeHeight(5): left=-1, right=-1 → height=0 → groups[0]=[4,5]\n' +
+      'computeHeight(2): left=0, right=0 → height=1 → groups[1]=[2]\n' +
+      'computeHeight(3): left=-1, right=-1 → height=0 → groups[0]=[4,5,3]\n' +
+      'computeHeight(1): left=1, right=0 → height=2 → groups[2]=[1]\n\n' +
+      'Result: [[4,5,3],[2],[1]]',
     explanation:
       '1. DFS returns the height of each node (0 for leaves).\n' +
       '2. Height = max(left_height, right_height) + 1.\n' +
@@ -4325,16 +5958,39 @@ HitCounter.prototype.getHits = function(timestamp) {
                 hi = mid - 1
         return False`,
     jsCode: `var isPerfectSquare = function(num) {
-    let lo = 1, hi = num;
+    // Binary search for an integer x such that x * x === num
+    let lo = 1;
+    let hi = num;
+
     while (lo <= hi) {
         const mid = Math.floor((lo + hi) / 2);
-        const sq = mid * mid;
-        if (sq === num) return true;
-        else if (sq < num) lo = mid + 1;
-        else hi = mid - 1;
+        const midSquared = mid * mid;
+
+        if (midSquared === num) {
+            // Found the exact square root
+            return true;
+        } else if (midSquared < num) {
+            // Square root is larger — search right half
+            lo = mid + 1;
+        } else {
+            // Square root is smaller — search left half
+            hi = mid - 1;
+        }
     }
-    return false;
+
+    return false; // no integer x with x*x === num
 };`,
+    jsWalkthrough:
+      'Example: num = 16\n' +
+      'lo=1, hi=16\n\n' +
+      'mid=8: 8*8=64 > 16 → hi=7\n' +
+      'mid=4: 4*4=16 === 16 → return true\n\n' +
+      'Example: num = 14\n' +
+      'mid=7: 49 > 14 → hi=6\n' +
+      'mid=3: 9 < 14 → lo=4\n' +
+      'mid=5: 25 > 14 → hi=4\n' +
+      'mid=4: 16 > 14 → hi=3\n' +
+      'lo=4 > hi=3 → return false',
     explanation:
       '1. Binary search in range [1, num].\n' +
       '2. Compute mid * mid and compare with num.\n' +
@@ -4382,27 +6038,56 @@ HitCounter.prototype.getHits = function(timestamp) {
             max_idx = parent[max_idx]
         return result[::-1]`,
     jsCode: `var largestDivisibleSubset = function(nums) {
+    // Sort ascending so divisibility only needs checking in one direction
     nums.sort((a, b) => a - b);
     const n = nums.length;
+
+    // dp[i] = size of the largest divisible subset ending at nums[i]
     const dp = new Array(n).fill(1);
+
+    // parent[i] = index of the previous element in the best subset ending at i
     const parent = new Array(n).fill(-1);
-    let maxIdx = 0;
+
+    // Track which index has the largest subset so far
+    let bestEndIndex = 0;
+
     for (let i = 1; i < n; i++) {
         for (let j = 0; j < i; j++) {
-            if (nums[i] % nums[j] === 0 && dp[j] + 1 > dp[i]) {
+            // nums[i] is divisible by nums[j] → we can extend the subset ending at j
+            const isDivisible = nums[i] % nums[j] === 0;
+            const isLonger = dp[j] + 1 > dp[i];
+
+            if (isDivisible && isLonger) {
                 dp[i] = dp[j] + 1;
-                parent[i] = j;
+                parent[i] = j; // remember we came from j
             }
         }
-        if (dp[i] > dp[maxIdx]) maxIdx = i;
+
+        if (dp[i] > dp[bestEndIndex]) {
+            bestEndIndex = i;
+        }
     }
+
+    // Reconstruct the subset by following parent pointers
     const result = [];
-    while (maxIdx !== -1) {
-        result.push(nums[maxIdx]);
-        maxIdx = parent[maxIdx];
+    let current = bestEndIndex;
+    while (current !== -1) {
+        result.push(nums[current]);
+        current = parent[current];
     }
+
     return result.reverse();
 };`,
+    jsWalkthrough:
+      'Example: nums = [1,2,3]\n' +
+      'sorted: [1,2,3]\n' +
+      'dp = [1,1,1], parent = [-1,-1,-1]\n\n' +
+      'i=1 (num=2): j=0: 2%1=0 → dp[1]=2, parent[1]=0\n' +
+      'i=2 (num=3): j=0: 3%1=0 → dp[2]=2, parent[2]=0\n' +
+      '             j=1: 3%2≠0 → skip\n\n' +
+      'bestEndIndex=1 (dp[1]=2=dp[2]=2, first wins)\n' +
+      'Reconstruct from index 1: nums[1]=2, parent[1]=0 → nums[0]=1\n' +
+      'result = [2,1] → reversed: [1,2]',
     explanation:
       '1. Sort nums so we only need to check divisibility in one direction.\n' +
       '2. dp[i] = size of largest subset ending at nums[i].\n' +
@@ -4448,23 +6133,47 @@ class Solution:
         return result`,
     jsCode: `var kSmallestPairs = function(nums1, nums2, k) {
     if (!nums1.length || !nums2.length) return [];
-    // Simple approach using sorted candidates
-    const heap = [];
+
+    // Initialize the simulated min-heap with the first pair from each row
+    // Each entry: [sum, indexInNums1, indexInNums2]
+    const candidates = [];
     for (let i = 0; i < Math.min(k, nums1.length); i++) {
-        heap.push([nums1[i] + nums2[0], i, 0]);
+        const initialSum = nums1[i] + nums2[0];
+        candidates.push([initialSum, i, 0]);
     }
-    heap.sort((a, b) => a[0] - b[0]);
+
+    // Sort ascending by sum to pick smallest first
+    candidates.sort((a, b) => a[0] - b[0]);
+
     const result = [];
-    while (heap.length && result.length < k) {
-        const [, i, j] = heap.shift();
-        result.push([nums1[i], nums2[j]]);
-        if (j + 1 < nums2.length) {
-            heap.push([nums1[i] + nums2[j + 1], i, j + 1]);
-            heap.sort((a, b) => a[0] - b[0]);
+
+    while (candidates.length > 0 && result.length < k) {
+        // Pop the pair with the smallest sum
+        const [, idx1, idx2] = candidates.shift();
+        result.push([nums1[idx1], nums2[idx2]]);
+
+        // If there is a next element in nums2 for this row, add it as a candidate
+        if (idx2 + 1 < nums2.length) {
+            const nextSum = nums1[idx1] + nums2[idx2 + 1];
+            candidates.push([nextSum, idx1, idx2 + 1]);
+            // Re-sort to maintain heap order
+            candidates.sort((a, b) => a[0] - b[0]);
         }
     }
+
     return result;
 };`,
+    jsWalkthrough:
+      'Example: nums1=[1,7,11], nums2=[2,4,6], k=3\n' +
+      'Initial candidates (i+nums2[0]):\n' +
+      '  [1+2=3, 0, 0], [7+2=9, 1, 0], [11+2=13, 2, 0]\n' +
+      'sorted: [[3,0,0],[9,1,0],[13,2,0]]\n\n' +
+      'Step 1: pop [3,0,0] → push [1,2] to result\n' +
+      '  next: [1+4=5, 0, 1] → candidates=[[5,0,1],[9,1,0],[13,2,0]]\n' +
+      'Step 2: pop [5,0,1] → push [1,4]\n' +
+      '  next: [1+6=7, 0, 2] → candidates=[[7,0,2],[9,1,0],[13,2,0]]\n' +
+      'Step 3: pop [7,0,2] → push [1,6]\n' +
+      'Result: [[1,2],[1,4],[1,6]]',
     explanation:
       '1. Initialize heap with (nums1[i] + nums2[0], i, 0) for each i.\n' +
       '2. Pop the smallest sum pair.\n' +
@@ -4506,16 +6215,35 @@ class Solution:
                 lo = mid + 1
         return lo`,
     jsCode: `var guessNumber = function(n) {
-    let lo = 1, hi = n;
+    let lo = 1;
+    let hi = n;
+
     while (lo <= hi) {
         const mid = Math.floor((lo + hi) / 2);
-        const result = guess(mid);
-        if (result === 0) return mid;
-        else if (result === -1) hi = mid - 1;
-        else lo = mid + 1;
+
+        // API: guess(n) returns 0 if correct, -1 if picked < n, 1 if picked > n
+        const feedback = guess(mid);
+
+        if (feedback === 0) {
+            // Correct guess
+            return mid;
+        } else if (feedback === -1) {
+            // Picked number is lower than mid — search the left half
+            hi = mid - 1;
+        } else {
+            // Picked number is higher than mid — search the right half
+            lo = mid + 1;
+        }
     }
-    return lo;
+
+    return lo; // should always be found before here
 };`,
+    jsWalkthrough:
+      'Example: n = 10, pick = 6\n' +
+      'lo=1, hi=10\n\n' +
+      'mid=5: guess(5) → 1 (picked > 5) → lo=6\n' +
+      'mid=8: guess(8) → -1 (picked < 8) → hi=7\n' +
+      'mid=6: guess(6) → 0 (correct!) → return 6',
     explanation:
       '1. Binary search between 1 and n.\n' +
       '2. Call guess(mid) to get feedback.\n' +
@@ -4556,13 +6284,34 @@ class Solution:
         return max(up, down)`,
     jsCode: `var wiggleMaxLength = function(nums) {
     if (nums.length < 2) return nums.length;
-    let up = 1, down = 1;
+
+    // Track the longest wiggle subsequence ending with an upward move
+    // and the longest ending with a downward move
+    let longestEndingUp = 1;
+    let longestEndingDown = 1;
+
     for (let i = 1; i < nums.length; i++) {
-        if (nums[i] > nums[i - 1]) up = down + 1;
-        else if (nums[i] < nums[i - 1]) down = up + 1;
+        if (nums[i] > nums[i - 1]) {
+            // This is an upward move: extend the best downward-ending sequence
+            longestEndingUp = longestEndingDown + 1;
+        } else if (nums[i] < nums[i - 1]) {
+            // This is a downward move: extend the best upward-ending sequence
+            longestEndingDown = longestEndingUp + 1;
+        }
+        // If equal, no change — skip
     }
-    return Math.max(up, down);
+
+    return Math.max(longestEndingUp, longestEndingDown);
 };`,
+    jsWalkthrough:
+      'Example: nums = [1,7,4,9,2,5]\n' +
+      'endUp=1, endDown=1\n\n' +
+      'i=1: 7>1 → up move → endUp=endDown+1=2\n' +
+      'i=2: 4<7 → down move → endDown=endUp+1=3\n' +
+      'i=3: 9>4 → up move → endUp=endDown+1=4\n' +
+      'i=4: 2<9 → down move → endDown=endUp+1=5\n' +
+      'i=5: 5>2 → up move → endUp=endDown+1=6\n' +
+      'Result: max(6,5) = 6',
     explanation:
       '1. Initialize up = down = 1.\n' +
       '2. If current > previous, a new up follows a down: up = down + 1.\n' +
@@ -4600,15 +6349,38 @@ class Solution:
                     dp[i] += dp[i - num]
         return dp[target]`,
     jsCode: `var combinationSum4 = function(nums, target) {
+    // dp[amount] = number of ordered sequences that sum to amount
     const dp = new Array(target + 1).fill(0);
+
+    // Base case: exactly one way to make sum 0 (use no numbers)
     dp[0] = 1;
-    for (let i = 1; i <= target; i++) {
+
+    // Fill dp bottom-up: for each amount, try all numbers as the last element
+    for (let amount = 1; amount <= target; amount++) {
         for (const num of nums) {
-            if (i >= num) dp[i] += dp[i - num];
+            if (amount >= num) {
+                // Using 'num' as the last element in the sequence
+                // adds all ways to form (amount - num) to ways to form amount
+                dp[amount] += dp[amount - num];
+            }
         }
     }
+
     return dp[target];
 };`,
+    jsWalkthrough:
+      'Example: nums = [1,2,3], target = 4\n' +
+      'dp = [1,0,0,0,0]\n\n' +
+      'amount=1: num=1: dp[1]+=dp[0]=1 → dp=[1,1,0,0,0]\n' +
+      'amount=2: num=1: dp[2]+=dp[1]=1\n' +
+      '          num=2: dp[2]+=dp[0]=1 → dp[2]=2\n' +
+      'amount=3: num=1: dp[3]+=dp[2]=2\n' +
+      '          num=2: dp[3]+=dp[1]=1\n' +
+      '          num=3: dp[3]+=dp[0]=1 → dp[3]=4\n' +
+      'amount=4: num=1: dp[4]+=dp[3]=4\n' +
+      '          num=2: dp[4]+=dp[2]=2\n' +
+      '          num=3: dp[4]+=dp[1]=1 → dp[4]=7\n' +
+      'Result: 7',
     explanation:
       '1. dp[0] = 1 (one way to make sum 0: use nothing).\n' +
       '2. For each target value i, try subtracting each number.\n' +
@@ -4655,19 +6427,51 @@ class Solution:
         return lo`,
     jsCode: `var kthSmallest = function(matrix, k) {
     const n = matrix.length;
-    let lo = matrix[0][0], hi = matrix[n - 1][n - 1];
+
+    // Binary search over the VALUE range [smallest, largest]
+    let lo = matrix[0][0];
+    let hi = matrix[n - 1][n - 1];
+
     while (lo < hi) {
         const mid = Math.floor((lo + hi) / 2);
-        let count = 0, j = n - 1;
-        for (let i = 0; i < n; i++) {
-            while (j >= 0 && matrix[i][j] > mid) j--;
-            count += j + 1;
+
+        // Count elements <= mid using the staircase walk from bottom-left
+        // Start at bottom-left corner (largest in first col, smallest in last row)
+        let count = 0;
+        let col = n - 1; // start at rightmost column
+
+        for (let row = 0; row < n; row++) {
+            // Move left while value in current column > mid
+            while (col >= 0 && matrix[row][col] > mid) {
+                col--;
+            }
+            // All elements in this row up to column col are <= mid
+            count += col + 1;
         }
-        if (count < k) lo = mid + 1;
-        else hi = mid;
+
+        if (count < k) {
+            lo = mid + 1; // not enough elements <= mid, search higher
+        } else {
+            hi = mid; // enough elements, search lower or equal
+        }
     }
+
+    // lo converges to the exact kth smallest value
     return lo;
 };`,
+    jsWalkthrough:
+      'Example: matrix=[[1,5,9],[10,11,13],[12,13,15]], k=8\n' +
+      'lo=1, hi=15\n\n' +
+      'mid=8: count elements <=8\n' +
+      '  row0: col starts at 2, matrix[0][2]=9>8 → col=1, matrix[0][1]=5≤8 → col=1 → count+=2\n' +
+      '  row1: matrix[1][1]=11>8→col=0, matrix[1][0]=10>8→col=-1 → count+=0\n' +
+      '  row2: same → count+=0 → total=2 < k=8 → lo=9\n\n' +
+      'mid=12: count elements <=12\n' +
+      '  row0: all ≤12 → count+=3\n' +
+      '  row1: 13>12→col=1, 11≤12 → count+=2\n' +
+      '  row2: 15>12→col=1, 13>12→col=0, 12≤12 → count+=1 → total=6 < 8 → lo=13\n\n' +
+      'mid=13: count=8 >= 8 → hi=13\n' +
+      'lo=hi=13 → return 13',
     explanation:
       '1. Binary search on the value range.\n' +
       '2. For each candidate mid, count elements <= mid.\n' +
@@ -4725,33 +6529,62 @@ class RandomizedCollection:
     def getRandom(self) -> int:
         return random.choice(self.vals)`,
     jsCode: `var RandomizedCollection = function() {
+    // vals[i] = value at index i (may have duplicates)
     this.vals = [];
+    // idxMap maps each value to the SET of indices where it appears in vals
     this.idxMap = new Map();
 };
 
 RandomizedCollection.prototype.insert = function(val) {
-    const notPresent = !this.idxMap.has(val) || this.idxMap.get(val).size === 0;
-    if (!this.idxMap.has(val)) this.idxMap.set(val, new Set());
+    // First occurrence if no indices exist for this value
+    const isFirstOccurrence = !this.idxMap.has(val) || this.idxMap.get(val).size === 0;
+
+    if (!this.idxMap.has(val)) {
+        this.idxMap.set(val, new Set());
+    }
+
+    // Track this new occurrence at the end of vals
     this.idxMap.get(val).add(this.vals.length);
     this.vals.push(val);
-    return notPresent;
+
+    return isFirstOccurrence;
 };
 
 RandomizedCollection.prototype.remove = function(val) {
     if (!this.idxMap.has(val) || this.idxMap.get(val).size === 0) return false;
-    const idx = this.idxMap.get(val).values().next().value;
-    this.idxMap.get(val).delete(idx);
-    const last = this.vals[this.vals.length - 1];
-    this.vals[idx] = last;
-    this.idxMap.get(last).add(idx);
-    this.idxMap.get(last).delete(this.vals.length - 1);
+
+    // Pick any index where val appears (just grab one from the set)
+    const targetIdx = this.idxMap.get(val).values().next().value;
+    this.idxMap.get(val).delete(targetIdx);
+
+    // Swap the target with the last element (swap-and-pop for O(1) removal)
+    const lastVal = this.vals[this.vals.length - 1];
+    const lastIdx = this.vals.length - 1;
+
+    this.vals[targetIdx] = lastVal;
+
+    // Update the last element's index set: it moved from lastIdx to targetIdx
+    this.idxMap.get(lastVal).add(targetIdx);
+    this.idxMap.get(lastVal).delete(lastIdx);
+
     this.vals.pop();
     return true;
 };
 
 RandomizedCollection.prototype.getRandom = function() {
-    return this.vals[Math.floor(Math.random() * this.vals.length)];
+    // Random access from the flat array gives correct probability proportional to count
+    const randomIdx = Math.floor(Math.random() * this.vals.length);
+    return this.vals[randomIdx];
 };`,
+    jsWalkthrough:
+      'Example: insert(1), insert(1), insert(2), remove(1), getRandom()\n\n' +
+      'insert(1): vals=[1], idxMap={1:{0}} → return true (first)\n' +
+      'insert(1): vals=[1,1], idxMap={1:{0,1}} → return false (duplicate)\n' +
+      'insert(2): vals=[1,1,2], idxMap={1:{0,1},2:{2}} → return true\n\n' +
+      'remove(1): targetIdx=0, lastVal=2 at lastIdx=2\n' +
+      '  vals[0]=2, idxMap[2]={0} (was {2}), idxMap[1]={1}\n' +
+      '  pop → vals=[2,1]\n\n' +
+      'getRandom(): random from [2,1] — 2 has 1/2 chance, 1 has 1/2 chance',
     explanation:
       '1. vals list stores all elements. idx_map maps values to sets of their indices.\n' +
       '2. insert: add index to the set and append to list.\n' +
@@ -4800,18 +6633,35 @@ class Solution:
 };
 
 Solution.prototype.getRandom = function() {
-    let result = 0;
+    // Reservoir sampling: ensures each node has equal probability of being chosen
+    // even though we don't know the list length in advance
+
+    let chosen = 0;    // the current reservoir (value to return)
     let node = this.head;
-    let i = 1;
+    let position = 1;  // 1-indexed position in the traversal
+
     while (node) {
-        if (Math.floor(Math.random() * i) === 0) {
-            result = node.val;
+        // Replace the current choice with this node with probability 1/position
+        const shouldReplace = Math.floor(Math.random() * position) === 0;
+        if (shouldReplace) {
+            chosen = node.val;
         }
+
         node = node.next;
-        i++;
+        position++;
     }
-    return result;
+
+    // Proof: P(node i is chosen) = (1/i) * (i/(i+1)) * ... * ((n-1)/n) = 1/n ✓
+    return chosen;
 };`,
+    jsWalkthrough:
+      'Example: list = [1,2,3] (n=3)\n\n' +
+      'position=1, node=1: P(replace)=1/1=1 → chosen=1\n' +
+      'position=2, node=2: P(replace)=1/2 → chosen=2 (50% chance)\n' +
+      'position=3, node=3: P(replace)=1/3 → chosen=3 (33% chance)\n\n' +
+      'Final P(return 1) = 1 * (1/2) * (2/3) = 1/3 ✓\n' +
+      'Final P(return 2) = (1/2) * (2/3) = 1/3 ✓\n' +
+      'Final P(return 3) = 1/3 ✓',
     explanation:
       '1. Traverse the list, keeping a counter i.\n' +
       '2. For the ith node, replace the result with probability 1/i.\n' +
@@ -4849,16 +6699,36 @@ Solution.prototype.getRandom = function() {
             mag_count[c] -= 1
         return True`,
     jsCode: `var canConstruct = function(ransomNote, magazine) {
-    const magCount = new Map();
-    for (const c of magazine) {
-        magCount.set(c, (magCount.get(c) || 0) + 1);
+    // Count available letters from the magazine
+    const availableLetters = new Map();
+    for (const char of magazine) {
+        availableLetters.set(char, (availableLetters.get(char) || 0) + 1);
     }
-    for (const c of ransomNote) {
-        if (!magCount.get(c) || magCount.get(c) <= 0) return false;
-        magCount.set(c, magCount.get(c) - 1);
+
+    // Check if each letter needed for the ransom note is available
+    for (const char of ransomNote) {
+        const remaining = availableLetters.get(char) || 0;
+
+        if (remaining <= 0) {
+            // This letter is either missing or used up
+            return false;
+        }
+
+        // Use one occurrence of this letter
+        availableLetters.set(char, remaining - 1);
     }
+
     return true;
 };`,
+    jsWalkthrough:
+      'Example: ransomNote = "aa", magazine = "aab"\n' +
+      'availableLetters from magazine: {a:2, b:1}\n\n' +
+      'Process ransomNote:\n' +
+      '  char="a": remaining=2 > 0 → use it → availableLetters[a]=1\n' +
+      '  char="a": remaining=1 > 0 → use it → availableLetters[a]=0\n\n' +
+      'Result: true\n\n' +
+      'Counterexample: ransomNote="aab", magazine="aa"\n' +
+      '  char="b": remaining=0 → return false',
     explanation:
       '1. Count all characters in magazine.\n' +
       '2. For each character in ransomNote, check if it is available.\n' +
@@ -4902,22 +6772,39 @@ class Solution:
             self.array[i], self.array[j] = self.array[j], self.array[i]
         return self.array`,
     jsCode: `var Solution = function(nums) {
+    // Store original for reset
     this.original = [...nums];
-    this.array = nums;
+    this.current = nums;
 };
 
 Solution.prototype.reset = function() {
-    this.array = [...this.original];
-    return this.array;
+    // Restore current to a copy of the original
+    this.current = [...this.original];
+    return this.current;
 };
 
 Solution.prototype.shuffle = function() {
-    for (let i = this.array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [this.array[i], this.array[j]] = [this.array[j], this.array[i]];
+    // Fisher-Yates (Knuth) shuffle: guarantees uniform random permutation
+    for (let i = this.current.length - 1; i > 0; i--) {
+        // Pick a random index from [0, i] inclusive
+        const randomIdx = Math.floor(Math.random() * (i + 1));
+
+        // Swap current[i] with current[randomIdx]
+        const temp = this.current[i];
+        this.current[i] = this.current[randomIdx];
+        this.current[randomIdx] = temp;
     }
-    return this.array;
+    return this.current;
 };`,
+    jsWalkthrough:
+      'Example: nums = [1,2,3]\n\n' +
+      'shuffle(): current=[1,2,3]\n' +
+      'i=2: randomIdx=1 → swap current[2] and current[1]: [1,3,2]\n' +
+      'i=1: randomIdx=0 → swap current[1] and current[0]: [3,1,2]\n' +
+      'Result: [3,1,2]\n\n' +
+      'reset(): current = [1,2,3] (restored from original)\n\n' +
+      'Why uniform? At each step i, element at position i has 1/(i+1) probability\n' +
+      'of being placed there, and the product gives each permutation prob 1/n!',
     explanation:
       '1. Store a copy of the original array for reset.\n' +
       '2. Fisher-Yates shuffle: for i from n-1 to 1, swap array[i] with array[random(0..i)].\n' +
@@ -4954,15 +6841,29 @@ Solution.prototype.shuffle = function() {
                 return i
         return -1`,
     jsCode: `var firstUniqChar = function(s) {
-    const counts = new Map();
-    for (const c of s) {
-        counts.set(c, (counts.get(c) || 0) + 1);
+    // First pass: count how many times each character appears
+    const charFrequency = new Map();
+    for (const char of s) {
+        charFrequency.set(char, (charFrequency.get(char) || 0) + 1);
     }
+
+    // Second pass: find the first character that appears exactly once
     for (let i = 0; i < s.length; i++) {
-        if (counts.get(s[i]) === 1) return i;
+        if (charFrequency.get(s[i]) === 1) {
+            return i; // this character is unique — return its index
+        }
     }
-    return -1;
+
+    return -1; // no unique character found
 };`,
+    jsWalkthrough:
+      'Example: s = "leetcode"\n' +
+      'charFrequency: {l:1, e:3, t:1, c:1, o:1, d:1}\n\n' +
+      'Second pass:\n' +
+      '  i=0, char="l": frequency=1 → return 0\n\n' +
+      'Example: s = "aabb"\n' +
+      'charFrequency: {a:2, b:2}\n' +
+      'Second pass: no char with frequency=1 → return -1',
     explanation:
       '1. Count all character frequencies.\n' +
       '2. Iterate through the string again.\n' +
@@ -4997,12 +6898,28 @@ Solution.prototype.shuffle = function() {
             result ^= ord(c)
         return chr(result)`,
     jsCode: `var findTheDifference = function(s, t) {
-    let result = 0;
-    for (const c of s + t) {
-        result ^= c.charCodeAt(0);
+    // XOR trick: x ^ x = 0 (pairs cancel), x ^ 0 = x (remainder stays)
+    // XOR every character in both strings — original chars cancel, leaving the added char
+    let xorAccumulator = 0;
+
+    for (const char of s) {
+        xorAccumulator ^= char.charCodeAt(0);
     }
-    return String.fromCharCode(result);
+    for (const char of t) {
+        xorAccumulator ^= char.charCodeAt(0);
+    }
+
+    // xorAccumulator now equals the char code of the added character
+    return String.fromCharCode(xorAccumulator);
 };`,
+    jsWalkthrough:
+      'Example: s = "abcd", t = "abcde"\n' +
+      'XOR all of s: a^b^c^d\n' +
+      'XOR all of t: a^b^c^d^e\n\n' +
+      'Combined: a^a ^ b^b ^ c^c ^ d^d ^ e\n' +
+      '        = 0 ^ 0 ^ 0 ^ 0 ^ e\n' +
+      '        = e\n\n' +
+      'charCode of "e" = 101 → String.fromCharCode(101) = "e"',
     explanation:
       '1. XOR all characters in both strings.\n' +
       '2. Characters from s appear in both s and t, canceling out.\n' +
@@ -5040,16 +6957,39 @@ Solution.prototype.shuffle = function() {
                 return max(self.longestSubstring(sub, k) for sub in s.split(c))
         return len(s)`,
     jsCode: `var longestSubstring = function(s, k) {
+    // Base case: string too short to have any character appearing k times
     if (s.length < k) return 0;
-    const counts = new Map();
-    for (const c of s) counts.set(c, (counts.get(c) || 0) + 1);
-    for (const [c, cnt] of counts) {
-        if (cnt < k) {
-            return Math.max(...s.split(c).map(sub => longestSubstring(sub, k)));
+
+    // Count frequency of each character in s
+    const charFrequency = new Map();
+    for (const char of s) {
+        charFrequency.set(char, (charFrequency.get(char) || 0) + 1);
+    }
+
+    // Find any character that appears fewer than k times
+    for (const [char, count] of charFrequency) {
+        if (count < k) {
+            // This character cannot appear in any valid substring
+            // Split at this character and solve each piece independently
+            const segments = s.split(char);
+            const subResults = segments.map(seg => longestSubstring(seg, k));
+            return Math.max(...subResults);
         }
     }
+
+    // All characters appear >= k times — entire string is valid
     return s.length;
 };`,
+    jsWalkthrough:
+      'Example: s = "aaabb", k = 3\n' +
+      'charFrequency: {a:3, b:2}\n\n' +
+      '"b" appears 2 < 3 times → split at "b"\n' +
+      'segments = ["aaa", "", ""]\n\n' +
+      'longestSubstring("aaa", 3):\n' +
+      '  charFrequency: {a:3} → all chars >= 3\n' +
+      '  return 3 (entire string valid)\n\n' +
+      'longestSubstring("", 3): length 0 < 3 → return 0\n\n' +
+      'Result: max(3, 0, 0) = 3',
     explanation:
       '1. Base case: if string length < k, no valid substring exists.\n' +
       '2. Count character frequencies.\n' +
@@ -5089,18 +7029,40 @@ Solution.prototype.shuffle = function() {
         stack = stack[:len(stack) - k]
         return ''.join(stack).lstrip('0') or '0'`,
     jsCode: `var removeKdigits = function(num, k) {
-    const stack = [];
-    for (const d of num) {
-        while (k > 0 && stack.length && stack[stack.length - 1] > d) {
-            stack.pop();
+    // Monotonic stack: build the smallest number by removing peaks greedily
+    const digitStack = [];
+
+    for (const digit of num) {
+        // While the top of the stack is larger than the current digit,
+        // removing it makes the number smaller — use up one of our k removals
+        while (k > 0 && digitStack.length > 0 && digitStack[digitStack.length - 1] > digit) {
+            digitStack.pop();
             k--;
         }
-        stack.push(d);
+        digitStack.push(digit);
     }
-    while (k > 0) { stack.pop(); k--; }
-    const result = stack.join('').replace(/^0+/, '');
+
+    // If we still have removals left, remove from the right end (largest suffix)
+    while (k > 0) {
+        digitStack.pop();
+        k--;
+    }
+
+    // Remove leading zeros and handle the case where result is empty
+    const result = digitStack.join('').replace(/^0+/, '');
     return result || '0';
 };`,
+    jsWalkthrough:
+      'Example: num = "1432219", k = 3\n' +
+      'stack=[], k=3\n\n' +
+      'd="1": stack=[1]\n' +
+      'd="4": 4>1? no → stack=[1,4]\n' +
+      'd="3": 4>3 and k>0 → pop 4, k=2 → stack=[1,3]\n' +
+      'd="2": 3>2 and k>0 → pop 3, k=1 → 1<2 → push → stack=[1,2]\n' +
+      'd="2": 2=2 → stack=[1,2,2]\n' +
+      'd="1": 2>1 and k>0 → pop 2, k=0 → stack=[1,2,1]\n' +
+      'd="9": k=0, just push → stack=[1,2,1,9]\n\n' +
+      'Result: "1219"',
     explanation:
       '1. Use a stack to build the smallest number greedily.\n' +
       '2. For each digit, pop larger digits from the stack (using up k removals).\n' +
@@ -5139,20 +7101,43 @@ Solution.prototype.shuffle = function() {
                         stone_set[s + jump].add(jump)
         return len(stone_set[stones[-1]]) > 0`,
     jsCode: `var canCross = function(stones) {
-    const stoneSet = new Map();
-    for (const s of stones) stoneSet.set(s, new Set());
-    stoneSet.get(0).add(0);
-    for (const s of stones) {
-        for (const k of stoneSet.get(s)) {
-            for (const jump of [k - 1, k, k + 1]) {
-                if (jump > 0 && stoneSet.has(s + jump)) {
-                    stoneSet.get(s + jump).add(jump);
+    // Map from stone position → set of jump sizes that can reach this stone
+    const reachableWith = new Map();
+    for (const stonePos of stones) {
+        reachableWith.set(stonePos, new Set());
+    }
+
+    // The frog starts at position 0, about to make its first jump (size 0 means "just arrived")
+    reachableWith.get(0).add(0);
+
+    for (const stonePos of stones) {
+        // Try all jump sizes that got us to this stone
+        for (const prevJumpSize of reachableWith.get(stonePos)) {
+            // The next jump can be k-1, k, or k+1 (but not 0 or negative)
+            for (const nextJumpSize of [prevJumpSize - 1, prevJumpSize, prevJumpSize + 1]) {
+                if (nextJumpSize <= 0) continue; // must jump at least 1
+
+                const nextPosition = stonePos + nextJumpSize;
+
+                // Only jump to valid stone positions
+                if (reachableWith.has(nextPosition)) {
+                    reachableWith.get(nextPosition).add(nextJumpSize);
                 }
             }
         }
     }
-    return stoneSet.get(stones[stones.length - 1]).size > 0;
+
+    // Frog can reach the last stone if any jump size leads there
+    return reachableWith.get(stones[stones.length - 1]).size > 0;
 };`,
+    jsWalkthrough:
+      'Example: stones = [0,1,3,5,6,8,12,17]\n' +
+      'reachableWith: {0:{0}, 1:{}, 3:{}, 5:{}, 6:{}, 8:{}, 12:{}, 17:{}}\n\n' +
+      'pos=0, jumpSize=0: try -1(skip),0(skip),1 → pos 1 exists → {1:{1}}\n' +
+      'pos=1, jumpSize=1: try 0(skip),1,2 → pos 2 not a stone; pos 3 exists → {3:{2}}\n' +
+      'pos=3, jumpSize=2: try 1,2,3 → pos 4(no),5(yes→{5:{2,3}}),6(yes→{6:{3}})\n' +
+      'pos=5: jumpSizes={2,3}: try 1..4 → pos 6{4},8{3,4},7(no)\n' +
+      '... eventually pos 17 gets non-empty set → return true',
     explanation:
       '1. Map each stone position to a set of jump sizes that can reach it.\n' +
       '2. Start: stone 0 is reachable with jump size 0.\n' +
@@ -5194,15 +7179,40 @@ Solution.prototype.shuffle = function() {
         return total`,
     jsCode: `var sumOfLeftLeaves = function(root) {
     if (!root) return 0;
+
     let total = 0;
-    if (root.left && !root.left.left && !root.left.right) {
-        total += root.left.val;
+
+    // Check if the left child is a leaf (exists but has no children)
+    const leftChild = root.left;
+    const leftChildIsLeaf = leftChild && !leftChild.left && !leftChild.right;
+
+    if (leftChildIsLeaf) {
+        // It is a left leaf — add its value directly
+        total += leftChild.val;
     } else {
-        total += sumOfLeftLeaves(root.left);
+        // It is an internal node or null — recurse to find left leaves deeper
+        total += sumOfLeftLeaves(leftChild);
     }
+
+    // Always recurse on the right subtree to find any left leaves there too
     total += sumOfLeftLeaves(root.right);
+
     return total;
 };`,
+    jsWalkthrough:
+      'Example: root = [3,9,20,null,null,15,7]\n' +
+      'Tree:      3\n' +
+      '          / \\\n' +
+      '         9  20\n' +
+      '            / \\\n' +
+      '           15   7\n\n' +
+      'sumOfLeftLeaves(3):\n' +
+      '  leftChild=9, no children → leftChildIsLeaf=true → total+=9\n' +
+      '  sumOfLeftLeaves(20):\n' +
+      '    leftChild=15, no children → leftChildIsLeaf=true → total+=15\n' +
+      '    sumOfLeftLeaves(7): no left child → 0\n' +
+      '    return 15\n' +
+      '  total = 9+15 = 24',
     explanation:
       '1. If root is null, return 0.\n' +
       '2. Check if root.left is a leaf (both children null).\n' +
@@ -5239,13 +7249,36 @@ Solution.prototype.shuffle = function() {
             result.insert(p[1], p)
         return result`,
     jsCode: `var reconstructQueue = function(people) {
-    people.sort((a, b) => a[0] === b[0] ? a[1] - b[1] : b[0] - a[0]);
+    // Sort: tallest first (descending height); ties broken by k ascending
+    // Reason: taller people placed first won't be affected by shorter people added later
+    people.sort((a, b) => {
+        if (a[0] !== b[0]) {
+            return b[0] - a[0]; // height descending
+        }
+        return a[1] - b[1]; // k ascending for same height
+    });
+
     const result = [];
-    for (const p of people) {
-        result.splice(p[1], 0, p);
+
+    for (const person of people) {
+        const [height, kValue] = person;
+        // Insert at position kValue: there will be exactly kValue people ≥ height before it
+        // (all already-placed people are taller or equal, shorter ones haven't been added yet)
+        result.splice(kValue, 0, person);
     }
+
     return result;
 };`,
+    jsWalkthrough:
+      'Example: people = [[7,0],[4,4],[7,1],[5,0],[6,1],[5,2]]\n' +
+      'After sort: [[7,0],[7,1],[6,1],[5,0],[5,2],[4,4]]\n\n' +
+      'Insert [7,0] at idx 0: result=[[7,0]]\n' +
+      'Insert [7,1] at idx 1: result=[[7,0],[7,1]]\n' +
+      'Insert [6,1] at idx 1: result=[[7,0],[6,1],[7,1]]\n' +
+      'Insert [5,0] at idx 0: result=[[5,0],[7,0],[6,1],[7,1]]\n' +
+      'Insert [5,2] at idx 2: result=[[5,0],[7,0],[5,2],[6,1],[7,1]]\n' +
+      'Insert [4,4] at idx 4: result=[[5,0],[7,0],[5,2],[6,1],[4,4],[7,1]]\n' +
+      'Final: [[5,0],[7,0],[5,2],[6,1],[4,4],[7,1]]',
     explanation:
       '1. Sort people by height descending, k ascending.\n' +
       '2. Insert each person at position k in the result list.\n' +
@@ -5299,34 +7332,74 @@ class Solution:
         return water`,
     jsCode: `var trapRainWater = function(heightMap) {
     if (!heightMap.length || heightMap.length < 3 || heightMap[0].length < 3) return 0;
-    const m = heightMap.length, n = heightMap[0].length;
-    const visited = Array.from({length: m}, () => new Array(n).fill(false));
-    // Simple min-heap using sorted array
+
+    const numRows = heightMap.length;
+    const numCols = heightMap[0].length;
+    const visited = Array.from({length: numRows}, () => new Array(numCols).fill(false));
+
+    // Simulated min-heap (sorted array of [waterLevel, row, col])
     const heap = [];
-    const push = (item) => { heap.push(item); heap.sort((a, b) => a[0] - b[0]); };
-    for (let i = 0; i < m; i++) {
-        for (let j = 0; j < n; j++) {
-            if (i === 0 || i === m - 1 || j === 0 || j === n - 1) {
-                push([heightMap[i][j], i, j]);
-                visited[i][j] = true;
+    const pushToHeap = (entry) => {
+        heap.push(entry);
+        heap.sort((a, b) => a[0] - b[0]); // sort by water level ascending
+    };
+
+    // Initialize with all boundary cells (they form the outer walls)
+    for (let row = 0; row < numRows; row++) {
+        for (let col = 0; col < numCols; col++) {
+            const isBoundary = row === 0 || row === numRows - 1 ||
+                               col === 0 || col === numCols - 1;
+            if (isBoundary) {
+                pushToHeap([heightMap[row][col], row, col]);
+                visited[row][col] = true;
             }
         }
     }
-    let water = 0;
+
+    let totalWater = 0;
     const dirs = [[0,1],[0,-1],[1,0],[-1,0]];
-    while (heap.length) {
-        const [h, r, c] = heap.shift();
-        for (const [dr, dc] of dirs) {
-            const nr = r + dr, nc = c + dc;
-            if (nr >= 0 && nr < m && nc >= 0 && nc < n && !visited[nr][nc]) {
-                visited[nr][nc] = true;
-                water += Math.max(0, h - heightMap[nr][nc]);
-                push([Math.max(h, heightMap[nr][nc]), nr, nc]);
+
+    while (heap.length > 0) {
+        // Always process the lowest boundary first
+        const [waterLevel, row, col] = heap.shift();
+
+        for (const [deltaRow, deltaCol] of dirs) {
+            const neighborRow = row + deltaRow;
+            const neighborCol = col + deltaCol;
+
+            const inBounds = neighborRow >= 0 && neighborRow < numRows &&
+                             neighborCol >= 0 && neighborCol < numCols;
+
+            if (inBounds && !visited[neighborRow][neighborCol]) {
+                visited[neighborRow][neighborCol] = true;
+
+                const neighborHeight = heightMap[neighborRow][neighborCol];
+
+                // Water trapped = how much the current boundary level exceeds neighbor's height
+                totalWater += Math.max(0, waterLevel - neighborHeight);
+
+                // Effective water level at neighbor = max of its own height and current level
+                const effectiveLevel = Math.max(waterLevel, neighborHeight);
+                pushToHeap([effectiveLevel, neighborRow, neighborCol]);
             }
         }
     }
-    return water;
+
+    return totalWater;
 };`,
+    jsWalkthrough:
+      'Example: heightMap = [[1,4,3,1],[3,2,1,3],[2,3,3,2],[1,3,3,1]]\n\n' +
+      'Init heap with all boundary cells (sorted by height)\n' +
+      'Process cell (0,0) height=1, waterLevel=1:\n' +
+      '  neighbor (0,1): boundary already visited\n' +
+      '  neighbor (1,0): boundary already visited\n' +
+      'Process cell (0,3) height=1, waterLevel=1:\n' +
+      '  neighbor (1,3): boundary already visited\n' +
+      '...\n' +
+      'Process cell height=2, neighbor inner cell height=1:\n' +
+      '  water += max(0, 2-1) = 1\n' +
+      'Continue until all cells visited\n' +
+      'Result: 4',
     explanation:
       '1. Add all boundary cells to a min-heap and mark visited.\n' +
       '2. Process cells from lowest height first.\n' +
@@ -5374,24 +7447,46 @@ class Solution:
                 j += 1
         return i == len(word) and j == len(abbr)`,
     jsCode: `var validWordAbbreviation = function(word, abbr) {
-    let i = 0, j = 0;
-    while (i < word.length && j < abbr.length) {
-        if (abbr[j] >= '0' && abbr[j] <= '9') {
-            if (abbr[j] === '0') return false;
-            let num = 0;
-            while (j < abbr.length && abbr[j] >= '0' && abbr[j] <= '9') {
-                num = num * 10 + parseInt(abbr[j]);
-                j++;
+    let wordPtr = 0;  // position in the original word
+    let abbrPtr = 0;  // position in the abbreviation
+
+    while (wordPtr < word.length && abbrPtr < abbr.length) {
+        const currentAbbrChar = abbr[abbrPtr];
+
+        if (currentAbbrChar >= '0' && currentAbbrChar <= '9') {
+            // Reject leading zeros (e.g. "01" is invalid)
+            if (currentAbbrChar === '0') return false;
+
+            // Parse the full multi-digit number
+            let skipCount = 0;
+            while (abbrPtr < abbr.length && abbr[abbrPtr] >= '0' && abbr[abbrPtr] <= '9') {
+                skipCount = skipCount * 10 + parseInt(abbr[abbrPtr]);
+                abbrPtr++;
             }
-            i += num;
+
+            // Skip that many characters in the word
+            wordPtr += skipCount;
         } else {
-            if (word[i] !== abbr[j]) return false;
-            i++;
-            j++;
+            // Letter in abbreviation must exactly match letter in word
+            if (word[wordPtr] !== currentAbbrChar) return false;
+            wordPtr++;
+            abbrPtr++;
         }
     }
-    return i === word.length && j === abbr.length;
+
+    // Both pointers must reach their respective ends exactly
+    return wordPtr === word.length && abbrPtr === abbr.length;
 };`,
+    jsWalkthrough:
+      'Example: word = "internationalization", abbr = "i12iz4n"\n' +
+      'wordPtr=0, abbrPtr=0\n\n' +
+      'abbr[0]="i": matches word[0]="i" → wordPtr=1, abbrPtr=1\n' +
+      'abbr[1]="1", abbr[2]="2": parse 12 → wordPtr=1+12=13, abbrPtr=3\n' +
+      'abbr[3]="i": word[13]="i" ✓ → wordPtr=14, abbrPtr=4\n' +
+      'abbr[4]="z": word[14]="z" ✓ → wordPtr=15, abbrPtr=5\n' +
+      'abbr[5]="4": skip 4 → wordPtr=19, abbrPtr=6\n' +
+      'abbr[6]="n": word[19]="n" ✓ → wordPtr=20, abbrPtr=7\n' +
+      'wordPtr=20=len, abbrPtr=7=len → return true',
     explanation:
       '1. Two pointers i (word) and j (abbr).\n' +
       '2. If abbr[j] is a digit, parse the full number (no leading zeros).\n' +
@@ -5432,16 +7527,38 @@ class Solution:
                 odd_found = True
         return length + (1 if odd_found else 0)`,
     jsCode: `var longestPalindrome = function(s) {
-    const counts = new Map();
-    for (const c of s) counts.set(c, (counts.get(c) || 0) + 1);
-    let length = 0;
-    let oddFound = false;
-    for (const c of counts.values()) {
-        length += Math.floor(c / 2) * 2;
-        if (c % 2 === 1) oddFound = true;
+    // Count frequency of each character
+    const charCount = new Map();
+    for (const char of s) {
+        charCount.set(char, (charCount.get(char) || 0) + 1);
     }
-    return length + (oddFound ? 1 : 0);
+
+    let palindromeLength = 0;
+    let hasOddCount = false;
+
+    for (const count of charCount.values()) {
+        // Use the even part of each character's count (both sides of the palindrome)
+        palindromeLength += Math.floor(count / 2) * 2;
+
+        // If any character has an odd count, one can be placed in the center
+        if (count % 2 === 1) {
+            hasOddCount = true;
+        }
+    }
+
+    // Add 1 for the center character if any odd-count char exists
+    return palindromeLength + (hasOddCount ? 1 : 0);
 };`,
+    jsWalkthrough:
+      'Example: s = "abccccdd"\n' +
+      'charCount: {a:1, b:1, c:4, d:2}\n\n' +
+      'a: count=1, even part=0 → length+=0, hasOdd=true\n' +
+      'b: count=1, even part=0 → length+=0, hasOdd=true\n' +
+      'c: count=4, even part=4 → length+=4\n' +
+      'd: count=2, even part=2 → length+=2\n\n' +
+      'palindromeLength = 6\n' +
+      'hasOddCount = true → +1\n' +
+      'Result: 7 (e.g. "dccaccd")',
     explanation:
       '1. Count character frequencies.\n' +
       '2. For each character, add its even part (c // 2 * 2) to the length.\n' +
@@ -5484,14 +7601,32 @@ class Solution:
         return result`,
     jsCode: `var fizzBuzz = function(n) {
     const result = [];
+
     for (let i = 1; i <= n; i++) {
-        if (i % 15 === 0) result.push("FizzBuzz");
-        else if (i % 3 === 0) result.push("Fizz");
-        else if (i % 5 === 0) result.push("Buzz");
-        else result.push(String(i));
+        const divisibleBy3 = i % 3 === 0;
+        const divisibleBy5 = i % 5 === 0;
+
+        if (divisibleBy3 && divisibleBy5) {
+            result.push("FizzBuzz");
+        } else if (divisibleBy3) {
+            result.push("Fizz");
+        } else if (divisibleBy5) {
+            result.push("Buzz");
+        } else {
+            result.push(String(i));
+        }
     }
+
     return result;
 };`,
+    jsWalkthrough:
+      'Example: n = 5\n' +
+      'i=1: 1%3≠0, 1%5≠0 → "1"\n' +
+      'i=2: 2%3≠0, 2%5≠0 → "2"\n' +
+      'i=3: 3%3=0, 3%5≠0 → "Fizz"\n' +
+      'i=4: 4%3≠0, 4%5≠0 → "4"\n' +
+      'i=5: 5%3≠0, 5%5=0 → "Buzz"\n\n' +
+      'Result: ["1","2","Fizz","4","Buzz"]',
     explanation:
       '1. Iterate from 1 to n.\n' +
       '2. Check divisibility by 15 first (both 3 and 5).\n' +
@@ -5531,17 +7666,36 @@ class Solution:
                 curr = 0
         return total`,
     jsCode: `var numberOfArithmeticSlices = function(nums) {
-    let total = 0, curr = 0;
+    // curr = number of NEW arithmetic subarrays ending at the current position
+    // When we extend an arithmetic run by one element, we gain 'curr' new subarrays
+    let currentRunContribution = 0;
+    let totalCount = 0;
+
     for (let i = 2; i < nums.length; i++) {
-        if (nums[i] - nums[i - 1] === nums[i - 1] - nums[i - 2]) {
-            curr++;
-            total += curr;
+        const prevDiff = nums[i - 1] - nums[i - 2];
+        const currDiff = nums[i] - nums[i - 1];
+
+        if (currDiff === prevDiff) {
+            // The arithmetic run just extended by one more element
+            // This adds one more subarray of each existing length + one new 3-element subarray
+            currentRunContribution++;
+            totalCount += currentRunContribution;
         } else {
-            curr = 0;
+            // Arithmetic run broken — reset
+            currentRunContribution = 0;
         }
     }
-    return total;
+
+    return totalCount;
 };`,
+    jsWalkthrough:
+      'Example: nums = [1,2,3,4]\n' +
+      'i=2: diff [1→2]=1, diff [2→3]=1 → match\n' +
+      '  currentRunContribution=1, total=1 (subarray [1,2,3])\n' +
+      'i=3: diff [2→3]=1, diff [3→4]=1 → match\n' +
+      '  currentRunContribution=2, total=1+2=3\n' +
+      '  (new subarrays: [2,3,4] and [1,2,3,4])\n\n' +
+      'Result: 3',
     explanation:
       '1. curr tracks how many new arithmetic subarrays end at the current position.\n' +
       '2. If the difference is consistent, increment curr (one more subarray of each length).\n' +
@@ -5584,20 +7738,39 @@ class Solution:
             j -= 1
         return ''.join(reversed(result))`,
     jsCode: `var addStrings = function(num1, num2) {
-    let i = num1.length - 1, j = num2.length - 1;
+    // Process from rightmost (least significant) digits to leftmost
+    let ptr1 = num1.length - 1;
+    let ptr2 = num2.length - 1;
     let carry = 0;
-    const result = [];
-    while (i >= 0 || j >= 0 || carry) {
-        const d1 = i >= 0 ? parseInt(num1[i]) : 0;
-        const d2 = j >= 0 ? parseInt(num2[j]) : 0;
-        const total = d1 + d2 + carry;
-        result.push(String(total % 10));
-        carry = Math.floor(total / 10);
-        i--;
-        j--;
+    const digits = []; // collected in reverse (least significant first)
+
+    while (ptr1 >= 0 || ptr2 >= 0 || carry > 0) {
+        // Get the current digit from each number (0 if exhausted)
+        const digit1 = ptr1 >= 0 ? parseInt(num1[ptr1]) : 0;
+        const digit2 = ptr2 >= 0 ? parseInt(num2[ptr2]) : 0;
+
+        const columnSum = digit1 + digit2 + carry;
+
+        // Store the last digit of the column sum
+        digits.push(String(columnSum % 10));
+
+        // Carry forward the tens place
+        carry = Math.floor(columnSum / 10);
+
+        ptr1--;
+        ptr2--;
     }
-    return result.reverse().join('');
+
+    // Digits were collected least-significant-first, so reverse to get the final number
+    return digits.reverse().join('');
 };`,
+    jsWalkthrough:
+      'Example: num1 = "11", num2 = "123"\n' +
+      'ptr1=1, ptr2=2, carry=0\n\n' +
+      'Step 1: digit1=1, digit2=3, sum=4, carry=0 → digits=["4"]\n' +
+      'Step 2: digit1=1, digit2=2, sum=3, carry=0 → digits=["4","3"]\n' +
+      'Step 3: ptr1<0 so digit1=0, digit2=1, sum=1 → digits=["4","3","1"]\n\n' +
+      'Reverse: ["1","3","4"] → "134"',
     explanation:
       '1. Start from the rightmost digits of both strings.\n' +
       '2. Add corresponding digits plus carry.\n' +
@@ -5651,33 +7824,54 @@ class Solution:
             max_xor = max(max_xor, curr_xor)
         return max_xor`,
     jsCode: `var findMaximumXOR = function(nums) {
-    const root = {};
+    // Build a binary trie from most significant bit (bit 31) to least significant (bit 0)
+    const trieRoot = {};
+
     for (const num of nums) {
-        let node = root;
-        for (let i = 31; i >= 0; i--) {
-            const bit = (num >> i) & 1;
-            if (!node[bit]) node[bit] = {};
-            node = node[bit];
+        let currentNode = trieRoot;
+        for (let bitPos = 31; bitPos >= 0; bitPos--) {
+            const bit = (num >> bitPos) & 1; // extract bit at position bitPos
+            if (!currentNode[bit]) {
+                currentNode[bit] = {}; // create branch if it doesn't exist
+            }
+            currentNode = currentNode[bit];
         }
     }
-    let maxXor = 0;
+
+    // For each number, greedily maximize XOR by choosing opposite bits in the trie
+    let maxXorFound = 0;
+
     for (const num of nums) {
-        let node = root;
-        let currXor = 0;
-        for (let i = 31; i >= 0; i--) {
-            const bit = (num >> i) & 1;
-            const toggled = 1 - bit;
-            if (node[toggled]) {
-                currXor |= (1 << i);
-                node = node[toggled];
+        let currentNode = trieRoot;
+        let xorValue = 0;
+
+        for (let bitPos = 31; bitPos >= 0; bitPos--) {
+            const currentBit = (num >> bitPos) & 1;
+            const oppositeBit = 1 - currentBit; // XOR with 1 flips the bit
+
+            if (currentNode[oppositeBit]) {
+                // Taking the opposite bit sets this XOR position to 1
+                xorValue |= (1 << bitPos);
+                currentNode = currentNode[oppositeBit];
             } else {
-                node = node[bit];
+                // Opposite not available — take same bit (XOR bit = 0)
+                currentNode = currentNode[currentBit];
             }
         }
-        maxXor = Math.max(maxXor, currXor);
+
+        maxXorFound = Math.max(maxXorFound, xorValue);
     }
-    return maxXor;
+
+    return maxXorFound;
 };`,
+    jsWalkthrough:
+      'Example: nums = [3,10,5,25,2,8]\n' +
+      'Binary: 3=...00011, 10=...01010, 5=...00101, 25=...11001, 2=...00010, 8=...01000\n\n' +
+      'For num=5 (00101), search trie for maximum XOR:\n' +
+      '  bit31-5: look for 0 (opposite of 5\'s bits 1..0)\n' +
+      '  Eventually reaches path for 25 (11001)\n' +
+      '  5 XOR 25 = 00101 XOR 11001 = 11100 = 28\n\n' +
+      'maxXorFound = 28',
     explanation:
       '1. Build a trie where each level represents a bit (from MSB to LSB).\n' +
       '2. For each number, traverse the trie choosing the opposite bit when possible.\n' +
@@ -5728,34 +7922,60 @@ class Solution:
             backtrack([w])
         return result`,
     jsCode: `var wordSquares = function(words) {
-    const n = words[0].length;
+    const wordLength = words[0].length;
+
+    // Build prefix → [words with that prefix] for fast candidate lookup
     const prefixMap = new Map();
-    for (const w of words) {
-        for (let i = 0; i <= n; i++) {
-            const prefix = w.substring(0, i);
+    for (const word of words) {
+        for (let endIdx = 0; endIdx <= wordLength; endIdx++) {
+            const prefix = word.substring(0, endIdx);
             if (!prefixMap.has(prefix)) prefixMap.set(prefix, []);
-            prefixMap.get(prefix).push(w);
+            prefixMap.get(prefix).push(word);
         }
     }
+
     const result = [];
-    const backtrack = (square) => {
-        if (square.length === n) {
-            result.push([...square]);
+
+    // Backtrack by adding one word at a time to the square
+    const backtrack = (currentSquare) => {
+        if (currentSquare.length === wordLength) {
+            // Found a complete word square
+            result.push([...currentSquare]);
             return;
         }
-        const idx = square.length;
-        const prefix = square.map(w => w[idx]).join('');
-        for (const w of (prefixMap.get(prefix) || [])) {
-            square.push(w);
-            backtrack(square);
-            square.pop();
+
+        // The next word (at row 'rowIdx') must have a specific prefix
+        // The prefix is determined by reading column 'rowIdx' of all placed words
+        const rowIdx = currentSquare.length;
+        const requiredPrefix = currentSquare.map(word => word[rowIdx]).join('');
+
+        // Try all words that share this required prefix
+        for (const candidate of (prefixMap.get(requiredPrefix) || [])) {
+            currentSquare.push(candidate);
+            backtrack(currentSquare);
+            currentSquare.pop();
         }
     };
-    for (const w of words) {
-        backtrack([w]);
+
+    // Start with each word as the first row
+    for (const firstWord of words) {
+        backtrack([firstWord]);
     }
+
     return result;
 };`,
+    jsWalkthrough:
+      'Example: words = ["area","lead","wall","lady","ball"]\n' +
+      'prefixMap includes: "wa"→["wall"], "ar"→["area"], "le"→["lead"], "la"→["lady","lady"]\n\n' +
+      'Start with "wall":\n' +
+      '  rowIdx=1, required prefix = "a" (wall[1]="a")\n' +
+      '  Candidates with prefix "a": ["area"]\n' +
+      '  Square: ["wall","area"]\n' +
+      '  rowIdx=2, required prefix = "ll"→"al" wait... wall[2]="l", area[2]="e"\n' +
+      '  Required = "l"+"e" = "le" → candidates: ["lead"]\n' +
+      '  Square: ["wall","area","lead"]\n' +
+      '  rowIdx=3: wall[3]="l", area[3]="a", lead[3]="d" → "lad" → ["lady"]\n' +
+      '  Square: ["wall","area","lead","lady"] ✓',
     explanation:
       '1. Build a prefix map: prefix -> list of words with that prefix.\n' +
       '2. Start backtracking with each word as the first row.\n' +
@@ -5807,24 +8027,49 @@ class Solution:
         return self.first`,
     jsCode: `var treeToDoublyList = function(root) {
     if (!root) return null;
-    let first = null, last = null;
+
+    // Track the first node (smallest, becomes head) and the last node (tail)
+    let firstNode = null; // head of the doubly linked list
+    let prevNode = null;  // the previously visited node during in-order traversal
+
+    // In-order traversal visits nodes in ascending sorted order for a BST
     const inorder = (node) => {
         if (!node) return;
+
         inorder(node.left);
-        if (last) {
-            last.right = node;
-            node.left = last;
+
+        // Link the previous node to the current node (and vice versa)
+        if (prevNode) {
+            prevNode.right = node;  // prev.next = current
+            node.left = prevNode;   // current.prev = prev
         } else {
-            first = node;
+            // First node encountered — this becomes the head
+            firstNode = node;
         }
-        last = node;
+
+        prevNode = node;
+
         inorder(node.right);
     };
+
     inorder(root);
-    first.left = last;
-    last.right = first;
-    return first;
+
+    // Connect head and tail to make the list circular
+    firstNode.left = prevNode;  // head.prev = tail
+    prevNode.right = firstNode; // tail.next = head
+
+    return firstNode;
 };`,
+    jsWalkthrough:
+      'Example: root = [4,2,5,1,3]\n' +
+      'In-order visits: 1 → 2 → 3 → 4 → 5\n\n' +
+      'Visit 1 (first): firstNode=1, prevNode=1\n' +
+      'Visit 2: prevNode(1).right=2, 2.left=1, prevNode=2\n' +
+      'Visit 3: prevNode(2).right=3, 3.left=2, prevNode=3\n' +
+      'Visit 4: prevNode(3).right=4, 4.left=3, prevNode=4\n' +
+      'Visit 5: prevNode(4).right=5, 5.left=4, prevNode=5\n\n' +
+      'Circular: firstNode(1).left=5, prevNode(5).right=1\n' +
+      'Result: 1⟷2⟷3⟷4⟷5 (circular)',
     explanation:
       '1. In-order traversal visits nodes in sorted order.\n' +
       '2. Track first (head) and last (tail) pointers.\n' +
@@ -5868,23 +8113,49 @@ class Solution:
             return Node(True, False, tl, tr, bl, br)
         return build(0, 0, len(grid))`,
     jsCode: `var construct = function(grid) {
-    const build = (r, c, size) => {
+    // Recursively build the quad-tree for the region starting at (row, col) with given size
+    const build = (row, col, size) => {
+        // Base case: single cell — always a leaf
         if (size === 1) {
-            return new Node(grid[r][c] === 1, true);
+            const cellValue = grid[row][col] === 1;
+            return new Node(cellValue, true);
         }
-        const half = Math.floor(size / 2);
-        const tl = build(r, c, half);
-        const tr = build(r, c + half, half);
-        const bl = build(r + half, c, half);
-        const br = build(r + half, c + half, half);
-        if (tl.isLeaf && tr.isLeaf && bl.isLeaf && br.isLeaf &&
-            tl.val === tr.val && tr.val === bl.val && bl.val === br.val) {
-            return new Node(tl.val, true);
+
+        const halfSize = Math.floor(size / 2);
+
+        // Recursively build four quadrants
+        const topLeft     = build(row,           col,           halfSize);
+        const topRight    = build(row,           col + halfSize, halfSize);
+        const bottomLeft  = build(row + halfSize, col,           halfSize);
+        const bottomRight = build(row + halfSize, col + halfSize, halfSize);
+
+        // If all four quadrants are leaves with the same value, merge into one leaf
+        const allLeaves = topLeft.isLeaf && topRight.isLeaf &&
+                          bottomLeft.isLeaf && bottomRight.isLeaf;
+        const allSameValue = topLeft.val === topRight.val &&
+                             topRight.val === bottomLeft.val &&
+                             bottomLeft.val === bottomRight.val;
+
+        if (allLeaves && allSameValue) {
+            return new Node(topLeft.val, true); // collapsed leaf
         }
-        return new Node(true, false, tl, tr, bl, br);
+
+        // Mixed region — create an internal node with four children
+        return new Node(true, false, topLeft, topRight, bottomLeft, bottomRight);
     };
+
     return build(0, 0, grid.length);
 };`,
+    jsWalkthrough:
+      'Example: grid = [[0,1],[1,0]]\n\n' +
+      'build(0,0,2):\n' +
+      '  halfSize=1\n' +
+      '  topLeft  = build(0,0,1): grid[0][0]=0 → Node(false, leaf)\n' +
+      '  topRight = build(0,1,1): grid[0][1]=1 → Node(true,  leaf)\n' +
+      '  botLeft  = build(1,0,1): grid[1][0]=1 → Node(true,  leaf)\n' +
+      '  botRight = build(1,1,1): grid[1][1]=0 → Node(false, leaf)\n\n' +
+      '  allLeaves=true, but 0≠1 → not allSameValue\n' +
+      '  → return internal Node with 4 leaf children',
     explanation:
       '1. Base case: size 1, create a leaf with the cell value.\n' +
       '2. Recursively build four quadrant nodes.\n' +
@@ -5930,22 +8201,40 @@ class Solution:
         return result`,
     jsCode: `var levelOrder = function(root) {
     if (!root) return [];
-    const result = [];
-    const queue = [root];
-    while (queue.length) {
-        const level = [];
-        const size = queue.length;
-        for (let i = 0; i < size; i++) {
+
+    const levelGroups = [];
+    const queue = [root]; // BFS queue starts with root
+
+    while (queue.length > 0) {
+        // Snapshot the current level size before processing
+        const nodesAtThisLevel = queue.length;
+        const currentLevelValues = [];
+
+        for (let i = 0; i < nodesAtThisLevel; i++) {
             const node = queue.shift();
-            level.push(node.val);
+            currentLevelValues.push(node.val);
+
+            // Enqueue all children for the next level
             for (const child of node.children) {
                 queue.push(child);
             }
         }
-        result.push(level);
+
+        levelGroups.push(currentLevelValues);
     }
-    return result;
+
+    return levelGroups;
 };`,
+    jsWalkthrough:
+      'Example: root = [1,null,3,2,4,null,5,6]\n' +
+      '(1 has children [3,2,4]; 3 has children [5,6])\n\n' +
+      'Initial queue: [1]\n\n' +
+      'Level 1: size=1, process 1 → values=[1]\n' +
+      '  Enqueue children: [3,2,4]\n' +
+      'Level 2: size=3, process 3,2,4 → values=[3,2,4]\n' +
+      '  Enqueue 3\'s children: [5,6]; 2 and 4 have no children\n' +
+      'Level 3: size=2, process 5,6 → values=[5,6]\n\n' +
+      'Result: [[1],[3,2,4],[5,6]]',
     explanation:
       '1. BFS with a queue, starting from the root.\n' +
       '2. Process all nodes at the current level.\n' +
@@ -5993,22 +8282,48 @@ class Solution:
         return head`,
     jsCode: `var flatten = function(head) {
     let curr = head;
+
     while (curr) {
+        // Only act when this node has a child sublist
         if (curr.child) {
-            const child = curr.child;
-            const nextNode = curr.next;
-            curr.next = child;
-            child.prev = curr;
-            curr.child = null;
-            let tail = child;
-            while (tail.next) tail = tail.next;
-            tail.next = nextNode;
-            if (nextNode) nextNode.prev = tail;
+            const childHead = curr.child;
+            const savedNext = curr.next; // save the node that comes after curr
+
+            // Splice: curr → childHead
+            curr.next = childHead;
+            childHead.prev = curr;
+            curr.child = null; // clear child pointer
+
+            // Walk to the tail of the child sublist
+            let childTail = childHead;
+            while (childTail.next) {
+                childTail = childTail.next;
+            }
+
+            // Reconnect child tail → savedNext
+            childTail.next = savedNext;
+            if (savedNext) {
+                savedNext.prev = childTail;
+            }
         }
+
         curr = curr.next;
     }
+
     return head;
 };`,
+    jsWalkthrough:
+      'Example: 1 <-> 2 <-> 3 <-> 4, where 3 has child: 7 <-> 8\n\n' +
+      'Start: curr=1 → no child, advance\n' +
+      'curr=2 → no child, advance\n' +
+      'curr=3 → HAS child!\n' +
+      '  childHead=7, savedNext=4\n' +
+      '  Splice: 3→7, 7.prev=3, 3.child=null\n' +
+      '  Walk child tail: 7→8 (tail=8)\n' +
+      '  Reconnect: 8→4, 4.prev=8\n' +
+      '  List is now: 1 <-> 2 <-> 3 <-> 7 <-> 8 <-> 4\n' +
+      'curr=4 (curr=3.next=7, then 8, then 4) → no child\n\n' +
+      'Result: [1,2,3,7,8,4]',
     explanation:
       '1. Traverse the main list.\n' +
       '2. When a child is found, splice the child list after the current node.\n' +
@@ -6111,64 +8426,111 @@ class AllOne:
             return ""
         return next(iter(self.head.next.keys))`,
     jsCode: `var AllOne = function() {
+    // Sentinel head (count=0) and tail (count=Infinity) for easy boundary checks
     this.head = { count: 0, keys: new Set(), prev: null, next: null };
     this.tail = { count: 0, keys: new Set(), prev: null, next: null };
     this.head.next = this.tail;
     this.tail.prev = this.head;
+
+    // Maps each key string to its bucket node in the linked list
     this.keyNode = new Map();
 };
 
 AllOne.prototype._insertAfter = function(prevNode, count) {
-    const node = { count, keys: new Set(), prev: prevNode, next: prevNode.next };
-    prevNode.next.prev = node;
-    prevNode.next = node;
-    return node;
+    // Create a new bucket with the given count and splice it in after prevNode
+    const newBucket = { count, keys: new Set(), prev: prevNode, next: prevNode.next };
+    prevNode.next.prev = newBucket;
+    prevNode.next = newBucket;
+    return newBucket;
 };
 
 AllOne.prototype._remove = function(node) {
+    // Unlink a bucket from the doubly linked list
     node.prev.next = node.next;
     node.next.prev = node.prev;
 };
 
 AllOne.prototype.inc = function(key) {
     if (this.keyNode.has(key)) {
-        const node = this.keyNode.get(key);
-        const newCount = node.count + 1;
-        const newNode = node.next.count === newCount ? node.next : this._insertAfter(node, newCount);
-        newNode.keys.add(key);
-        this.keyNode.set(key, newNode);
-        node.keys.delete(key);
-        if (node.keys.size === 0) this._remove(node);
+        // Key already exists: move it to the next-higher bucket
+        const currentBucket = this.keyNode.get(key);
+        const newCount = currentBucket.count + 1;
+
+        // Reuse existing bucket if it already has count+1, otherwise create one
+        const nextBucketHasNewCount = currentBucket.next.count === newCount;
+        const targetBucket = nextBucketHasNewCount
+            ? currentBucket.next
+            : this._insertAfter(currentBucket, newCount);
+
+        targetBucket.keys.add(key);
+        this.keyNode.set(key, targetBucket);
+        currentBucket.keys.delete(key);
+
+        // Remove the old bucket if it is now empty
+        if (currentBucket.keys.size === 0) {
+            this._remove(currentBucket);
+        }
     } else {
-        const newNode = this.head.next.count === 1 ? this.head.next : this._insertAfter(this.head, 1);
-        newNode.keys.add(key);
-        this.keyNode.set(key, newNode);
+        // New key: place it in the count=1 bucket (create if needed)
+        const firstBucketIsOne = this.head.next.count === 1;
+        const targetBucket = firstBucketIsOne
+            ? this.head.next
+            : this._insertAfter(this.head, 1);
+
+        targetBucket.keys.add(key);
+        this.keyNode.set(key, targetBucket);
     }
 };
 
 AllOne.prototype.dec = function(key) {
-    const node = this.keyNode.get(key);
-    const newCount = node.count - 1;
+    const currentBucket = this.keyNode.get(key);
+    const newCount = currentBucket.count - 1;
+
     if (newCount === 0) {
+        // Count dropped to zero: remove the key entirely
         this.keyNode.delete(key);
     } else {
-        const newNode = node.prev.count === newCount ? node.prev : this._insertAfter(node.prev, newCount);
-        newNode.keys.add(key);
-        this.keyNode.set(key, newNode);
+        // Move key to the next-lower bucket (create if needed)
+        const prevBucketHasNewCount = currentBucket.prev.count === newCount;
+        const targetBucket = prevBucketHasNewCount
+            ? currentBucket.prev
+            : this._insertAfter(currentBucket.prev, newCount);
+
+        targetBucket.keys.add(key);
+        this.keyNode.set(key, targetBucket);
     }
-    node.keys.delete(key);
-    if (node.keys.size === 0) this._remove(node);
+
+    currentBucket.keys.delete(key);
+    if (currentBucket.keys.size === 0) {
+        this._remove(currentBucket);
+    }
 };
 
 AllOne.prototype.getMaxKey = function() {
+    // Max is the bucket just before the tail sentinel
     if (this.tail.prev === this.head) return "";
     return this.tail.prev.keys.values().next().value;
 };
 
 AllOne.prototype.getMinKey = function() {
+    // Min is the bucket just after the head sentinel
     if (this.head.next === this.tail) return "";
     return this.head.next.keys.values().next().value;
 };`,
+    jsWalkthrough:
+      'Example: inc("hello"), inc("hello"), getMaxKey(), getMinKey()\n\n' +
+      'Initial: head(0) <-> tail(0)\n\n' +
+      'inc("hello") — new key:\n' +
+      '  No bucket with count=1 → create bucket(1)\n' +
+      '  head(0) <-> bucket(1){hello} <-> tail\n' +
+      '  keyNode: {hello → bucket(1)}\n\n' +
+      'inc("hello") — existing key at count=1:\n' +
+      '  newCount=2, no bucket with count=2 → create bucket(2)\n' +
+      '  head(0) <-> bucket(1){} <-> bucket(2){hello} <-> tail\n' +
+      '  bucket(1) is empty → remove it\n' +
+      '  head(0) <-> bucket(2){hello} <-> tail\n\n' +
+      'getMaxKey() → tail.prev = bucket(2) → "hello"\n' +
+      'getMinKey() → head.next = bucket(2) → "hello"',
     explanation:
       '1. Doubly linked list of count buckets, ordered by count.\n' +
       '2. Each bucket holds a set of keys with that count.\n' +
@@ -6218,27 +8580,58 @@ AllOne.prototype.getMinKey = function() {
                             queue.append((mutated, steps + 1))
         return -1`,
     jsCode: `var minMutation = function(startGene, endGene, bank) {
-    const bankSet = new Set(bank);
-    if (!bankSet.has(endGene)) return -1;
+    const validGenes = new Set(bank);
+
+    // If the target gene is not in the bank, it can never be reached
+    if (!validGenes.has(endGene)) return -1;
+
+    // BFS: each entry is [currentGene, mutationStepsSoFar]
     const queue = [[startGene, 0]];
     const visited = new Set([startGene]);
-    while (queue.length) {
-        const [gene, steps] = queue.shift();
-        if (gene === endGene) return steps;
-        for (let i = 0; i < 8; i++) {
-            for (const c of 'ACGT') {
-                if (c !== gene[i]) {
-                    const mutated = gene.substring(0, i) + c + gene.substring(i + 1);
-                    if (bankSet.has(mutated) && !visited.has(mutated)) {
-                        visited.add(mutated);
-                        queue.push([mutated, steps + 1]);
-                    }
+
+    while (queue.length > 0) {
+        const [currentGene, mutationCount] = queue.shift();
+
+        if (currentGene === endGene) return mutationCount;
+
+        // Try mutating each of the 8 positions to each of 4 bases
+        for (let position = 0; position < 8; position++) {
+            for (const base of 'ACGT') {
+                // Skip if this base is already at this position
+                if (base === currentGene[position]) continue;
+
+                const mutatedGene =
+                    currentGene.substring(0, position) +
+                    base +
+                    currentGene.substring(position + 1);
+
+                const isValidMutation = validGenes.has(mutatedGene);
+                const notYetVisited = !visited.has(mutatedGene);
+
+                if (isValidMutation && notYetVisited) {
+                    visited.add(mutatedGene);
+                    queue.push([mutatedGene, mutationCount + 1]);
                 }
             }
         }
     }
-    return -1;
+
+    return -1; // endGene is unreachable
 };`,
+    jsWalkthrough:
+      'Example: start="AACCGGTT", end="AAACGGTA", bank=["AACCGGTA","AACCGCTA","AAACGGTA"]\n\n' +
+      'Initial queue: [["AACCGGTT", 0]]\n\n' +
+      'Process "AACCGGTT" (steps=0):\n' +
+      '  Try all 8×4 mutations...\n' +
+      '  Position 7: T→A gives "AACCGGTA" → in bank, not visited\n' +
+      '  Enqueue ["AACCGGTA", 1]\n\n' +
+      'Process "AACCGGTA" (steps=1):\n' +
+      '  Try all mutations...\n' +
+      '  Position 2: C→A gives "AAACGGTA" → in bank, not visited\n' +
+      '  Enqueue ["AAACGGTA", 2]\n\n' +
+      'Process "AAACGGTA" (steps=2):\n' +
+      '  currentGene === endGene → return 2\n\n' +
+      'Result: 2',
     explanation:
       '1. BFS from startGene.\n' +
       '2. Try all 8 * 3 = 24 possible single-character mutations.\n' +
@@ -6282,20 +8675,53 @@ class Solution:
                 result.append(-1)
         return result`,
     jsCode: `var findRightInterval = function(intervals) {
-    const sortedStarts = intervals.map((iv, i) => [iv[0], i]).sort((a, b) => a[0] - b[0]);
-    const starts = sortedStarts.map(s => s[0]);
+    // Build (startValue, originalIndex) pairs and sort by start value
+    const sortedByStart = intervals
+        .map((interval, originalIndex) => [interval[0], originalIndex])
+        .sort((a, b) => a[0] - b[0]);
+
+    // Extract just the sorted start values for binary search
+    const sortedStartValues = sortedByStart.map(pair => pair[0]);
+
     const result = [];
-    for (const [, end] of intervals) {
-        let lo = 0, hi = starts.length;
+
+    for (const [, endValue] of intervals) {
+        // Binary search: find leftmost start >= endValue
+        let lo = 0;
+        let hi = sortedStartValues.length;
+
         while (lo < hi) {
             const mid = Math.floor((lo + hi) / 2);
-            if (starts[mid] < end) lo = mid + 1;
-            else hi = mid;
+            if (sortedStartValues[mid] < endValue) {
+                lo = mid + 1; // need a larger start
+            } else {
+                hi = mid;     // this start is >= endValue, but maybe we can find smaller
+            }
         }
-        result.push(lo < starts.length ? sortedStarts[lo][1] : -1);
+
+        // lo is the index of the first start >= endValue
+        const foundInterval = lo < sortedStartValues.length;
+        result.push(foundInterval ? sortedByStart[lo][1] : -1);
     }
+
     return result;
 };`,
+    jsWalkthrough:
+      'Example: intervals = [[1,2],[2,3],[0,1],[3,4]]\n\n' +
+      'sortedByStart = [[0,2],[1,0],[2,1],[3,3]]  (sorted by start)\n' +
+      'sortedStartValues = [0, 1, 2, 3]\n\n' +
+      'For interval [1,2]: end=2\n' +
+      '  Binary search for first start >= 2 → index 2 (start=2)\n' +
+      '  originalIndex = sortedByStart[2][1] = 1\n\n' +
+      'For interval [2,3]: end=3\n' +
+      '  Binary search for first start >= 3 → index 3 (start=3)\n' +
+      '  originalIndex = sortedByStart[3][1] = 3\n\n' +
+      'For interval [0,1]: end=1\n' +
+      '  Binary search for first start >= 1 → index 1 (start=1)\n' +
+      '  originalIndex = sortedByStart[1][1] = 0\n\n' +
+      'For interval [3,4]: end=4\n' +
+      '  Binary search for first start >= 4 → lo=4, out of bounds → -1\n\n' +
+      'Result: [1, 3, 0, -1]',
     explanation:
       '1. Create a sorted list of (start, original_index) pairs.\n' +
       '2. For each interval, binary search for the smallest start >= end.\n' +
@@ -6343,29 +8769,54 @@ class Solution:
                 curr *= 10
         return curr`,
     jsCode: `var findKthNumber = function(n, k) {
-    const countSteps = (n, curr, next) => {
-        let steps = 0;
-        while (curr <= n) {
-            steps += Math.min(n + 1, next) - curr;
-            curr *= 10;
-            next *= 10;
+    // Count how many integers are in the subtree rooted at prefix 'curr'
+    // (i.e., all numbers from curr to curr+1-1 that are <= n, at all depths)
+    const countSubtreeSize = (n, subtreeRoot, nextSibling) => {
+        let count = 0;
+        let levelStart = subtreeRoot;
+        let levelEnd = nextSibling;
+
+        while (levelStart <= n) {
+            // Count nodes on this level of the subtree, capped at n
+            count += Math.min(n + 1, levelEnd) - levelStart;
+            levelStart *= 10;  // go one level deeper
+            levelEnd *= 10;
         }
-        return steps;
+
+        return count;
     };
-    let curr = 1;
-    k--;
+
+    // We start at position 1 (the number "1" is the 1st lexicographically)
+    let currentPrefix = 1;
+    k--; // decrement because we're already "at" the first number
+
     while (k > 0) {
-        const steps = countSteps(n, curr, curr + 1);
-        if (steps <= k) {
-            k -= steps;
-            curr++;
+        const subtreeSize = countSubtreeSize(n, currentPrefix, currentPrefix + 1);
+
+        if (subtreeSize <= k) {
+            // The kth number is not in this subtree, skip to the next sibling
+            k -= subtreeSize;
+            currentPrefix++;
         } else {
+            // The kth number is inside this subtree, go one level deeper
             k--;
-            curr *= 10;
+            currentPrefix *= 10;
         }
     }
-    return curr;
+
+    return currentPrefix;
 };`,
+    jsWalkthrough:
+      'Example: n=13, k=2\n' +
+      'Lex order: [1, 10, 11, 12, 13, 2, 3, 4, ...]\n\n' +
+      'Start: currentPrefix=1, k=2-1=1\n\n' +
+      'Iteration 1: countSubtreeSize(13, 1, 2)\n' +
+      '  Level [1,2): count += min(14,2)-1 = 1\n' +
+      '  Level [10,20): count += min(14,20)-10 = 4\n' +
+      '  Level [100,200): 100>13, stop. subtreeSize=5\n' +
+      '  5 > k=1 → go deeper: k=0, currentPrefix=10\n\n' +
+      'k=0 → return currentPrefix=10\n\n' +
+      'Result: 10 (correct: 10 is 2nd in lex order)',
     explanation:
       '1. Start at curr=1, decrement k by 1 (we are at the 1st number).\n' +
       '2. Count how many numbers are in the subtree rooted at curr.\n' +
@@ -6408,16 +8859,38 @@ class Solution:
                 hi = mid - 1
         return hi`,
     jsCode: `var arrangeCoins = function(n) {
-    let lo = 0, hi = n;
+    // Binary search for largest k where k*(k+1)/2 <= n
+    let lo = 0;
+    let hi = n;
+
     while (lo <= hi) {
         const mid = Math.floor((lo + hi) / 2);
-        const total = mid * (mid + 1) / 2;
-        if (total === n) return mid;
-        else if (total < n) lo = mid + 1;
-        else hi = mid - 1;
+
+        // Total coins needed to fill exactly mid rows
+        const coinsNeeded = mid * (mid + 1) / 2;
+
+        if (coinsNeeded === n) {
+            return mid; // exact fit
+        } else if (coinsNeeded < n) {
+            lo = mid + 1; // can fill more rows
+        } else {
+            hi = mid - 1; // too many rows, reduce
+        }
     }
+
+    // hi is the largest k where k*(k+1)/2 <= n
     return hi;
 };`,
+    jsWalkthrough:
+      'Example: n=5\n\n' +
+      'lo=0, hi=5\n\n' +
+      'Iteration 1: mid=2, coinsNeeded=2*3/2=3 < 5 → lo=3\n' +
+      'Iteration 2: mid=4, coinsNeeded=4*5/2=10 > 5 → hi=3\n' +
+      'Iteration 3: mid=3, coinsNeeded=3*4/2=6 > 5 → hi=2\n' +
+      'lo=3 > hi=2 → stop\n\n' +
+      'Return hi=2\n\n' +
+      'Verify: row 1 needs 1, row 2 needs 2, total=3 ≤ 5; row 3 needs 3, total=6 > 5\n' +
+      'Result: 2 complete rows',
     explanation:
       '1. Binary search for k in [0, n].\n' +
       '2. Compute total coins needed for k rows: k*(k+1)/2.\n' +
@@ -6457,17 +8930,34 @@ class Solution:
                 nums[idx] = -nums[idx]
         return result`,
     jsCode: `var findDuplicates = function(nums) {
-    const result = [];
+    const duplicates = [];
+
     for (const num of nums) {
-        const idx = Math.abs(num) - 1;
-        if (nums[idx] < 0) {
-            result.push(Math.abs(num));
+        // Use the absolute value so negated values still map correctly
+        const mappedIndex = Math.abs(num) - 1;
+
+        if (nums[mappedIndex] < 0) {
+            // Already negated → we've seen this number before → it's a duplicate
+            duplicates.push(Math.abs(num));
         } else {
-            nums[idx] = -nums[idx];
+            // First time seeing this number → negate the value at mapped index as a "visited" flag
+            nums[mappedIndex] = -nums[mappedIndex];
         }
     }
-    return result;
+
+    return duplicates;
 };`,
+    jsWalkthrough:
+      'Example: nums = [4,3,2,7,8,2,3,1]\n\n' +
+      'num=4: mappedIndex=3, nums[3]=7>0 → mark: nums[3]=-7\n' +
+      'num=3: mappedIndex=2, nums[2]=2>0 → mark: nums[2]=-2\n' +
+      'num=2: mappedIndex=1, nums[1]=3>0 → mark: nums[1]=-3\n' +
+      'num=7: mappedIndex=6, nums[6]=3>0 → mark: nums[6]=-3\n' +
+      'num=8: mappedIndex=7, nums[7]=1>0 → mark: nums[7]=-1\n' +
+      'num=2: mappedIndex=1, nums[1]=-3<0 → DUPLICATE! push 2\n' +
+      'num=3: mappedIndex=2, nums[2]=-2<0 → DUPLICATE! push 3\n' +
+      'num=1: mappedIndex=0, nums[0]=4>0 → mark: nums[0]=-4\n\n' +
+      'Result: [2, 3]',
     explanation:
       '1. For each number, use its absolute value - 1 as an index.\n' +
       '2. If the value at that index is already negative, the number was seen before.\n' +
@@ -6513,23 +9003,49 @@ class Solution:
                     write += 1
         return write`,
     jsCode: `var compress = function(chars) {
-    let write = 0, read = 0;
-    while (read < chars.length) {
-        const char = chars[read];
-        let count = 0;
-        while (read < chars.length && chars[read] === char) {
-            read++;
-            count++;
+    let readPtr = 0;  // scans forward through the input
+    let writePtr = 0; // overwrites compressed output in-place
+
+    while (readPtr < chars.length) {
+        const currentChar = chars[readPtr];
+        let groupCount = 0;
+
+        // Count how many times currentChar repeats consecutively
+        while (readPtr < chars.length && chars[readPtr] === currentChar) {
+            readPtr++;
+            groupCount++;
         }
-        chars[write++] = char;
-        if (count > 1) {
-            for (const d of String(count)) {
-                chars[write++] = d;
+
+        // Write the character itself
+        chars[writePtr] = currentChar;
+        writePtr++;
+
+        // Write the count only if more than one occurrence
+        if (groupCount > 1) {
+            for (const digit of String(groupCount)) {
+                chars[writePtr] = digit;
+                writePtr++;
             }
         }
     }
-    return write;
+
+    // writePtr is now the length of the compressed array
+    return writePtr;
 };`,
+    jsWalkthrough:
+      'Example: chars = ["a","a","b","b","c","c","c"]\n\n' +
+      'readPtr=0, writePtr=0\n\n' +
+      'Group "a": readPtr advances to 2, groupCount=2\n' +
+      '  Write "a" at writePtr=0, then "2" at writePtr=1\n' +
+      '  writePtr=2\n\n' +
+      'Group "b": readPtr advances to 4, groupCount=2\n' +
+      '  Write "b" at writePtr=2, then "2" at writePtr=3\n' +
+      '  writePtr=4\n\n' +
+      'Group "c": readPtr advances to 7, groupCount=3\n' +
+      '  Write "c" at writePtr=4, then "3" at writePtr=5\n' +
+      '  writePtr=6\n\n' +
+      'chars = ["a","2","b","2","c","3",...]\n' +
+      'Result: 6',
     explanation:
       '1. Use read pointer to count consecutive identical characters.\n' +
       '2. Write the character at the write position.\n' +
@@ -6579,21 +9095,54 @@ class Solution:
             head = node
         return head`,
     jsCode: `var addTwoNumbers = function(l1, l2) {
-    const s1 = [], s2 = [];
-    while (l1) { s1.push(l1.val); l1 = l1.next; }
-    while (l2) { s2.push(l2.val); l2 = l2.next; }
-    let carry = 0, head = null;
-    while (s1.length || s2.length || carry) {
-        let total = carry;
-        if (s1.length) total += s1.pop();
-        if (s2.length) total += s2.pop();
-        carry = Math.floor(total / 10);
-        const node = new ListNode(total % 10);
-        node.next = head;
-        head = node;
+    // Push all digits onto stacks so we can process from least significant to most
+    const stack1 = [];
+    const stack2 = [];
+
+    let node1 = l1;
+    while (node1) {
+        stack1.push(node1.val);
+        node1 = node1.next;
     }
-    return head;
+
+    let node2 = l2;
+    while (node2) {
+        stack2.push(node2.val);
+        node2 = node2.next;
+    }
+
+    let carry = 0;
+    let resultHead = null; // we build the list by prepending
+
+    while (stack1.length > 0 || stack2.length > 0 || carry > 0) {
+        // Pop the least significant digit from each stack (or 0 if exhausted)
+        const digit1 = stack1.length > 0 ? stack1.pop() : 0;
+        const digit2 = stack2.length > 0 ? stack2.pop() : 0;
+
+        const columnSum = digit1 + digit2 + carry;
+        carry = Math.floor(columnSum / 10);
+
+        // Prepend new node so digits come out in the correct (most-significant-first) order
+        const newNode = new ListNode(columnSum % 10);
+        newNode.next = resultHead;
+        resultHead = newNode;
+    }
+
+    return resultHead;
 };`,
+    jsWalkthrough:
+      'Example: l1=[7,2,4,3], l2=[5,6,4]\n\n' +
+      'stack1 = [7,2,4,3] (push order), top=3\n' +
+      'stack2 = [5,6,4], top=4\n\n' +
+      'Iteration 1: digit1=3, digit2=4, carry=0 → sum=7, carry=0\n' +
+      '  Prepend 7. resultHead=[7]\n' +
+      'Iteration 2: digit1=4, digit2=6, carry=0 → sum=10, carry=1\n' +
+      '  Prepend 0. resultHead=[0,7]\n' +
+      'Iteration 3: digit1=2, digit2=5, carry=1 → sum=8, carry=0\n' +
+      '  Prepend 8. resultHead=[8,0,7]\n' +
+      'Iteration 4: digit1=7, digit2=0, carry=0 → sum=7, carry=0\n' +
+      '  Prepend 7. resultHead=[7,8,0,7]\n\n' +
+      'Result: [7,8,0,7]',
     explanation:
       '1. Push all digits onto two stacks.\n' +
       '2. Pop from both stacks to add from least significant digit.\n' +
@@ -6661,32 +9210,64 @@ class Solution:
             return node
         return build2(float('-inf'), float('inf'))`,
     jsCode: `var serialize = function(root) {
-    const vals = [];
+    // Preorder traversal (root, left, right) captures BST structure without null markers
+    const nodeValues = [];
+
     const preorder = (node) => {
-        if (node) {
-            vals.push(String(node.val));
-            preorder(node.left);
-            preorder(node.right);
-        }
+        if (!node) return;
+        nodeValues.push(String(node.val));
+        preorder(node.left);
+        preorder(node.right);
     };
+
     preorder(root);
-    return vals.join(',');
+    return nodeValues.join(',');
 };
 
 var deserialize = function(data) {
     if (!data) return null;
-    const queue = data.split(',').map(Number);
-    let idx = 0;
-    const build = (lo, hi) => {
-        if (idx >= queue.length || queue[idx] < lo || queue[idx] > hi) return null;
-        const val = queue[idx++];
-        const node = new TreeNode(val);
-        node.left = build(lo, val);
-        node.right = build(val, hi);
+
+    // Parse the preorder sequence back into an array of numbers
+    const preorderValues = data.split(',').map(Number);
+    let index = 0; // points to the next value to consume
+
+    // Reconstruct using BST bounds: left children < parentVal, right children > parentVal
+    const buildFromBounds = (lowerBound, upperBound) => {
+        if (index >= preorderValues.length) return null;
+
+        const nextValue = preorderValues[index];
+
+        // If the next value violates the BST bounds, it belongs to an ancestor's subtree
+        if (nextValue < lowerBound || nextValue > upperBound) return null;
+
+        index++; // consume this value
+        const node = new TreeNode(nextValue);
+
+        // Left subtree: all values must be < nextValue
+        node.left = buildFromBounds(lowerBound, nextValue);
+        // Right subtree: all values must be > nextValue
+        node.right = buildFromBounds(nextValue, upperBound);
+
         return node;
     };
-    return build(-Infinity, Infinity);
+
+    return buildFromBounds(-Infinity, Infinity);
 };`,
+    jsWalkthrough:
+      'Example: root = [2,1,3]\n\n' +
+      'serialize([2,1,3]):\n' +
+      '  Preorder: visit 2, then left subtree (1), then right subtree (3)\n' +
+      '  nodeValues = ["2","1","3"]\n' +
+      '  Returns: "2,1,3"\n\n' +
+      'deserialize("2,1,3"):\n' +
+      '  preorderValues = [2,1,3], index=0\n' +
+      '  buildFromBounds(-∞, +∞):\n' +
+      '    nextValue=2, in bounds → create node(2), index=1\n' +
+      '    buildFromBounds(-∞, 2):  nextValue=1, in bounds → node(1), index=2\n' +
+      '      buildFromBounds(-∞,1): nextValue=3, 3>1 → null\n' +
+      '      buildFromBounds(1,2):  nextValue=3, 3>2 → null\n' +
+      '    buildFromBounds(2, +∞): nextValue=3, in bounds → node(3), index=3\n\n' +
+      'Result: tree with root=2, left=1, right=3',
     explanation:
       '1. Serialize: preorder traversal produces a compact representation.\n' +
       '2. Deserialize: use BST bounds to reconstruct.\n' +
@@ -6721,11 +9302,35 @@ var deserialize = function(data) {
         sorted_chars = sorted(counts.keys(), key=lambda c: -counts[c])
         return ''.join(c * counts[c] for c in sorted_chars)`,
     jsCode: `var frequencySort = function(s) {
-    const counts = new Map();
-    for (const c of s) counts.set(c, (counts.get(c) || 0) + 1);
-    const sortedChars = [...counts.keys()].sort((a, b) => counts.get(b) - counts.get(a));
-    return sortedChars.map(c => c.repeat(counts.get(c))).join('');
+    // Count how many times each character appears
+    const charFrequency = new Map();
+    for (const ch of s) {
+        charFrequency.set(ch, (charFrequency.get(ch) || 0) + 1);
+    }
+
+    // Sort characters from most frequent to least frequent
+    const sortedChars = [...charFrequency.keys()].sort(
+        (a, b) => charFrequency.get(b) - charFrequency.get(a)
+    );
+
+    // Build result: repeat each character by its frequency
+    return sortedChars
+        .map(ch => ch.repeat(charFrequency.get(ch)))
+        .join('');
 };`,
+    jsWalkthrough:
+      'Example: s = "tree"\n\n' +
+      'Count frequencies:\n' +
+      '  t→1, r→1, e→2\n' +
+      '  charFrequency = {t:1, r:1, e:2}\n\n' +
+      'Sort by frequency (descending):\n' +
+      '  sortedChars = ["e", "t", "r"]  (e has highest count)\n\n' +
+      'Build result:\n' +
+      '  "e".repeat(2) = "ee"\n' +
+      '  "t".repeat(1) = "t"\n' +
+      '  "r".repeat(1) = "r"\n' +
+      '  Join: "eetr"\n\n' +
+      'Result: "eetr" (or "eert" — both are valid)',
     explanation:
       '1. Count character frequencies.\n' +
       '2. Sort characters by frequency in descending order.\n' +
@@ -6762,21 +9367,40 @@ var deserialize = function(data) {
                 count += ab_sums.get(-(c + d), 0)
         return count`,
     jsCode: `var fourSumCount = function(nums1, nums2, nums3, nums4) {
-    const abSums = new Map();
+    // Phase 1: store all pairwise sums from nums1 and nums2
+    const pairSumCount = new Map();
+
     for (const a of nums1) {
         for (const b of nums2) {
-            const sum = a + b;
-            abSums.set(sum, (abSums.get(sum) || 0) + 1);
+            const pairSum = a + b;
+            pairSumCount.set(pairSum, (pairSumCount.get(pairSum) || 0) + 1);
         }
     }
-    let count = 0;
+
+    // Phase 2: for each (c,d) pair, check if the complement exists in the map
+    let totalTuples = 0;
+
     for (const c of nums3) {
         for (const d of nums4) {
-            count += abSums.get(-(c + d)) || 0;
+            const neededComplement = -(c + d); // we need a+b = -(c+d) so that a+b+c+d = 0
+            const matchingPairs = pairSumCount.get(neededComplement) || 0;
+            totalTuples += matchingPairs;
         }
     }
-    return count;
+
+    return totalTuples;
 };`,
+    jsWalkthrough:
+      'Example: nums1=[1,2], nums2=[-2,-1], nums3=[-1,2], nums4=[0,2]\n\n' +
+      'Phase 1 — all (a+b) sums:\n' +
+      '  (1)+(-2)=-1, (1)+(-1)=0, (2)+(-2)=0, (2)+(-1)=1\n' +
+      '  pairSumCount = {-1:1, 0:2, 1:1}\n\n' +
+      'Phase 2 — check complements:\n' +
+      '  c=-1, d=0: neededComplement=1 → pairSumCount[1]=1 → totalTuples=1\n' +
+      '  c=-1, d=2: neededComplement=-1 → pairSumCount[-1]=1 → totalTuples=2\n' +
+      '  c=2,  d=0: neededComplement=-2 → not in map → 0\n' +
+      '  c=2,  d=2: neededComplement=-4 → not in map → 0\n\n' +
+      'Result: 2',
     explanation:
       '1. Compute all sums of pairs from nums1 and nums2, store counts in a hash map.\n' +
       '2. For each pair (c, d) from nums3 and nums4, look up -(c+d) in the map.\n' +

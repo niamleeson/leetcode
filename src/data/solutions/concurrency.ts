@@ -36,27 +36,60 @@ class Foo:
     jsCode: `// JavaScript doesn't have native threads but we can model
 // the synchronization with Promises (used in LeetCode's JS env)
 var Foo = function() {
-    this.p1 = new Promise(resolve => { this.r1 = resolve; });
-    this.p2 = new Promise(resolve => { this.r2 = resolve; });
+    // Create two promise gates — one between first→second, one between second→third
+    // We capture the resolve function so other methods can "open the gate"
+    this.firstDoneResolve = null;
+    this.secondDoneResolve = null;
+
+    this.firstDonePromise = new Promise(resolve => {
+        this.firstDoneResolve = resolve;
+    });
+
+    this.secondDonePromise = new Promise(resolve => {
+        this.secondDoneResolve = resolve;
+    });
 };
 
 Foo.prototype.first = function(printFirst) {
+    // first() runs immediately — no waiting required
     printFirst();
-    this.r1();   // signal: first is done
+
+    // Signal that first is done so second() can proceed
+    this.firstDoneResolve();
 };
 
 Foo.prototype.second = function(printSecond) {
-    this.p1.then(() => {
+    // Wait until first() has signaled it's done
+    this.firstDonePromise.then(() => {
         printSecond();
-        this.r2();   // signal: second is done
+
+        // Signal that second is done so third() can proceed
+        this.secondDoneResolve();
     });
 };
 
 Foo.prototype.third = function(printThird) {
-    this.p2.then(() => {
+    // Wait until second() has signaled it's done
+    this.secondDonePromise.then(() => {
         printThird();
     });
 };`,
+    jsWalkthrough:
+      'Thread order: [1, 3, 2]  (third() called before second())\n\n' +
+      'Initialization:\n' +
+      '  firstDonePromise = new Promise(...)   ← unresolved (gate closed)\n' +
+      '  secondDonePromise = new Promise(...)  ← unresolved (gate closed)\n\n' +
+      'Thread 1 calls first():\n' +
+      '  printFirst() runs → output: "first"\n' +
+      '  firstDoneResolve() → firstDonePromise is now resolved (gate opens)\n\n' +
+      'Thread 3 calls third():\n' +
+      '  secondDonePromise.then(...) → registers callback, but promise still unresolved\n' +
+      '  third() returns immediately without printing\n\n' +
+      'Thread 2 calls second():\n' +
+      '  firstDonePromise is already resolved → .then() fires immediately\n' +
+      '  printSecond() runs → output: "firstsecond"\n' +
+      '  secondDoneResolve() → secondDonePromise resolves → third\'s callback fires\n' +
+      '  printThird() runs → output: "firstsecondthird"  ✓',
     explanation:
       '1. We create two Event objects: done1 and done2, both initially unset (blocking).\n' +
       '2. first() prints immediately, then signals done1.\n' +
@@ -105,34 +138,72 @@ class FooBar:
             self.sem_bar.acquire()
             printBar()
             self.sem_foo.release()`,
-    jsCode: `// Model with promises that reset each iteration
+    jsCode: `// Model the alternating pattern with Promises that reset each iteration.
+// foo starts ready (fooReady resolves immediately).
+// After foo prints, it creates a new "barReady" promise for bar to await,
+// then creates a new "fooReady" promise and waits on it for the next round.
 var FooBar = function(n) {
     this.n = n;
-    this.fooReady = Promise.resolve(); // foo starts ready
+
+    // foo starts ready; bar must wait for foo to signal it
+    this.fooReady = Promise.resolve();
+
+    // These resolver functions are set fresh each iteration
     this.barResolver = null;
     this.fooResolver = null;
 };
 
 FooBar.prototype.foo = async function(printFoo) {
     for (let i = 0; i < this.n; i++) {
+        // Wait for the signal that it's foo's turn
         await this.fooReady;
+
         printFoo();
-        // create a new promise for bar to wait on in next iteration
-        this.barReady = new Promise(r => { this.barResolver = r; });
-        if (this.fooResolver) this.fooResolver();
-        // wait for bar to finish before next foo
-        this.fooReady = new Promise(r => { this.fooResolver = r; });
+
+        // Signal bar that it can now print
+        this.barReady = new Promise(resolve => {
+            this.barResolver = resolve;
+        });
+
+        // Prepare the gate for the NEXT foo turn (bar will resolve this)
+        this.fooReady = new Promise(resolve => {
+            this.fooResolver = resolve;
+        });
+
+        // Open the bar gate now that barReady and fooReady are both set up
         this.barResolver();
     }
 };
 
 FooBar.prototype.bar = async function(printBar) {
     for (let i = 0; i < this.n; i++) {
+        // Wait for foo to signal that bar's turn has arrived
         await this.barReady;
+
         printBar();
+
+        // Signal foo that it can proceed to the next iteration
         this.fooResolver();
     }
 };`,
+    jsWalkthrough:
+      'n = 2\n\n' +
+      'Initial state: fooReady = resolved Promise\n\n' +
+      '--- Iteration i=0 ---\n' +
+      'foo: await fooReady → already resolved, continue immediately\n' +
+      '  printFoo() → output: "foo"\n' +
+      '  barReady = new Promise(...)   ← unresolved\n' +
+      '  fooReady = new Promise(...)   ← unresolved (for next round)\n' +
+      '  barResolver() → barReady resolves\n\n' +
+      'bar: await barReady → now resolved, continue\n' +
+      '  printBar() → output: "foobar"\n' +
+      '  fooResolver() → fooReady resolves\n\n' +
+      '--- Iteration i=1 ---\n' +
+      'foo: await fooReady → resolved, continue\n' +
+      '  printFoo() → output: "foobarfoo"\n' +
+      '  barResolver() → barReady resolves\n\n' +
+      'bar: await barReady → resolved\n' +
+      '  printBar() → output: "foobarfoobar"  ✓',
     explanation:
       '1. sem_foo starts at 1 (foo can proceed immediately), sem_bar starts at 0 (bar must wait).\n' +
       '2. In each loop iteration, foo acquires sem_foo (decrements from 1 to 0), prints "foo", then releases sem_bar (increments from 0 to 1).\n' +
@@ -190,35 +261,73 @@ class ZeroEvenOdd:
             self.sem_even.acquire()
             printNumber(i)
             self.sem_zero.release()`,
-    jsCode: `var ZeroEvenOdd = function(n) {
+    jsCode: `// Model with a shared "turn" variable and cooperative yielding.
+// turn=0 means zero's turn, turn=1 means odd's turn, turn=2 means even's turn.
+// Each method busy-waits (via setTimeout(0) to yield the event loop) until it's their turn.
+var ZeroEvenOdd = function(n) {
     this.n = n;
-    this.turn = 0; // 0 = zero's turn
-    this.num = 1;
+
+    // 0 = zero's turn to print a 0
+    // 1 = odd thread's turn to print
+    // 2 = even thread's turn to print
+    this.turn = 0;
 };
 
 ZeroEvenOdd.prototype.zero = async function(printNumber) {
     for (let i = 1; i <= this.n; i++) {
-        while (this.turn !== 0) await new Promise(r => setTimeout(r, 0));
+        // Spin-wait until it's zero's turn
+        while (this.turn !== 0) {
+            await new Promise(resolve => setTimeout(resolve, 0));
+        }
+
         printNumber(0);
-        this.turn = (i % 2 === 1) ? 1 : 2; // 1=odd, 2=even
+
+        // Decide who goes next based on whether i is odd or even
+        if (i % 2 === 1) {
+            this.turn = 1;  // odd thread's turn
+        } else {
+            this.turn = 2;  // even thread's turn
+        }
     }
 };
 
 ZeroEvenOdd.prototype.odd = async function(printNumber) {
     for (let i = 1; i <= this.n; i += 2) {
-        while (this.turn !== 1) await new Promise(r => setTimeout(r, 0));
+        // Spin-wait until zero has set turn=1 (odd's turn)
+        while (this.turn !== 1) {
+            await new Promise(resolve => setTimeout(resolve, 0));
+        }
+
         printNumber(i);
+
+        // Hand control back to zero
         this.turn = 0;
     }
 };
 
 ZeroEvenOdd.prototype.even = async function(printNumber) {
     for (let i = 2; i <= this.n; i += 2) {
-        while (this.turn !== 2) await new Promise(r => setTimeout(r, 0));
+        // Spin-wait until zero has set turn=2 (even's turn)
+        while (this.turn !== 2) {
+            await new Promise(resolve => setTimeout(resolve, 0));
+        }
+
         printNumber(i);
+
+        // Hand control back to zero
         this.turn = 0;
     }
 };`,
+    jsWalkthrough:
+      'n = 3  (expected output: "010203")\n\n' +
+      'Initial: turn = 0\n\n' +
+      'zero i=1: turn==0 ✓ → print(0) → i%2==1 → turn=1    output:"0"\n' +
+      'odd  i=1: turn==1 ✓ → print(1) → turn=0              output:"01"\n' +
+      'zero i=2: turn==0 ✓ → print(0) → i%2==0 → turn=2    output:"010"\n' +
+      'even i=2: turn==2 ✓ → print(2) → turn=0              output:"0102"\n' +
+      'zero i=3: turn==0 ✓ → print(0) → i%2==1 → turn=1    output:"01020"\n' +
+      'odd  i=3: turn==1 ✓ → print(3) → turn=0              output:"010203"\n\n' +
+      'All loops complete → done  ✓',
     explanation:
       '1. sem_zero starts at 1 (zero goes first), sem_odd and sem_even start at 0.\n' +
       '2. zero() acquires sem_zero, prints 0, then decides: if the next number i is odd, release sem_odd; if even, release sem_even.\n' +
@@ -266,33 +375,56 @@ class H2O:
         self.barrier.wait()
         releaseOxygen()
         self.sem_o.release()`,
-    jsCode: `// Simplified JS model using counters and a flush mechanism
+    jsCode: `// JS model: queue incoming H and O atoms, then flush complete water molecules.
+// When we have at least 2 H atoms and 1 O atom queued,
+// we can release exactly one water molecule worth of callbacks.
 var H2O = function() {
-    this.hCount = 0;
-    this.oCount = 0;
-    this.hQueue = [];
-    this.oQueue = [];
+    // Queues hold the release callbacks for waiting atoms
+    this.hydrogenQueue = [];
+    this.oxygenQueue = [];
 };
 
 H2O.prototype.hydrogen = function(releaseHydrogen) {
-    this.hCount++;
-    this.hQueue.push(releaseHydrogen);
-    this._tryFlush();
+    // Register this hydrogen atom's callback and check if a molecule is ready
+    this.hydrogenQueue.push(releaseHydrogen);
+    this._tryReleaseMolecule();
 };
 
 H2O.prototype.oxygen = function(releaseOxygen) {
-    this.oCount++;
-    this.oQueue.push(releaseOxygen);
-    this._tryFlush();
+    // Register this oxygen atom's callback and check if a molecule is ready
+    this.oxygenQueue.push(releaseOxygen);
+    this._tryReleaseMolecule();
 };
 
-H2O.prototype._tryFlush = function() {
-    while (this.hQueue.length >= 2 && this.oQueue.length >= 1) {
-        this.hQueue.shift()();
-        this.hQueue.shift()();
-        this.oQueue.shift()();
+H2O.prototype._tryReleaseMolecule = function() {
+    // A complete water molecule needs exactly 2 H and 1 O
+    while (this.hydrogenQueue.length >= 2 && this.oxygenQueue.length >= 1) {
+        // Dequeue and release the first hydrogen atom
+        const releaseH1 = this.hydrogenQueue.shift();
+        releaseH1();
+
+        // Dequeue and release the second hydrogen atom
+        const releaseH2 = this.hydrogenQueue.shift();
+        releaseH2();
+
+        // Dequeue and release the oxygen atom
+        const releaseO = this.oxygenQueue.shift();
+        releaseO();
     }
 };`,
+    jsWalkthrough:
+      'Input: "OOHHHH"  (2 oxygen, 4 hydrogen → 2 water molecules)\n\n' +
+      'oxygen(o1):   oxygenQueue=[o1]   hydrogenQueue=[]     → need 2H, skip\n' +
+      'oxygen(o2):   oxygenQueue=[o1,o2] hydrogenQueue=[]    → need 2H, skip\n' +
+      'hydrogen(h1): hydrogenQueue=[h1] oxygenQueue=[o1,o2] → need 1 more H, skip\n' +
+      'hydrogen(h2): hydrogenQueue=[h1,h2] oxygenQueue=[o1,o2]\n' +
+      '  _tryReleaseMolecule: h1(), h2(), o1() → first H2O molecule released!\n' +
+      '  hydrogenQueue=[] oxygenQueue=[o2]\n' +
+      'hydrogen(h3): hydrogenQueue=[h3] → need 1 more H, skip\n' +
+      'hydrogen(h4): hydrogenQueue=[h3,h4] oxygenQueue=[o2]\n' +
+      '  _tryReleaseMolecule: h3(), h4(), o2() → second H2O molecule released!\n' +
+      '  hydrogenQueue=[] oxygenQueue=[]\n\n' +
+      'Total output: 2 complete water molecules  ✓',
     explanation:
       '1. sem_h(2) allows at most 2 hydrogen threads to reach the barrier.\n' +
       '2. sem_o(1) allows at most 1 oxygen thread to reach the barrier.\n' +
@@ -348,38 +480,71 @@ class BoundedBlockingQueue:
     def size(self):
         with self.lock:
             return len(self.queue)`,
-    jsCode: `// JS model using async/await
+    jsCode: `// JS model using async/await with waiting queues.
+// Producers (enqueue) wait when the buffer is full.
+// Consumers (dequeue) wait when the buffer is empty.
+// When space or an item becomes available, the waiting side is notified.
 class BoundedBlockingQueue {
     constructor(capacity) {
         this.capacity = capacity;
         this.queue = [];
-        this.waitingEnqueue = [];
-        this.waitingDequeue = [];
+
+        // Lists of resolve functions for blocked callers
+        this.waitingProducers = [];  // enqueue callers blocked due to full queue
+        this.waitingConsumers = [];  // dequeue callers blocked due to empty queue
     }
 
     async enqueue(element) {
+        // If the queue is full, block until a consumer frees up space
         while (this.queue.length >= this.capacity) {
-            await new Promise(r => this.waitingEnqueue.push(r));
+            await new Promise(resolve => this.waitingProducers.push(resolve));
         }
+
+        // Add the element to the back of the queue
         this.queue.push(element);
-        if (this.waitingDequeue.length > 0) {
-            this.waitingDequeue.shift()();
+
+        // Notify one waiting consumer (if any) that an item is now available
+        if (this.waitingConsumers.length > 0) {
+            const notifyConsumer = this.waitingConsumers.shift();
+            notifyConsumer();
         }
     }
 
     async dequeue() {
+        // If the queue is empty, block until a producer adds an item
         while (this.queue.length === 0) {
-            await new Promise(r => this.waitingDequeue.push(r));
+            await new Promise(resolve => this.waitingConsumers.push(resolve));
         }
+
+        // Remove and return the front element
         const element = this.queue.shift();
-        if (this.waitingEnqueue.length > 0) {
-            this.waitingEnqueue.shift()();
+
+        // Notify one waiting producer (if any) that space is now available
+        if (this.waitingProducers.length > 0) {
+            const notifyProducer = this.waitingProducers.shift();
+            notifyProducer();
         }
+
         return element;
     }
 
-    size() { return this.queue.length; }
+    size() {
+        return this.queue.length;
+    }
 }`,
+    jsWalkthrough:
+      'capacity = 2\n\n' +
+      'enqueue(1): queue.length=0 < 2 → push(1) → queue=[1]\n' +
+      '  no waiting consumers → done\n\n' +
+      'enqueue(2): queue.length=1 < 2 → push(2) → queue=[1,2]\n' +
+      '  no waiting consumers → done\n\n' +
+      'enqueue(3): queue.length=2 >= 2 → BLOCK\n' +
+      '  waitingProducers=[resolve3]\n\n' +
+      'dequeue(): queue.length=2 > 0 → shift() → element=1, queue=[2]\n' +
+      '  waitingProducers has resolve3 → call resolve3()\n' +
+      '  enqueue(3) unblocks → push(3) → queue=[2,3]\n' +
+      '  return 1  ✓\n\n' +
+      'size(): return queue.length = 2',
     explanation:
       '1. empty_slots semaphore starts at capacity (all slots are empty).\n' +
       '2. full_slots semaphore starts at 0 (no items yet).\n' +
@@ -468,50 +633,80 @@ class FizzBuzz:
         self.sem_fizz.release()
         self.sem_buzz.release()
         self.sem_fizzbuzz.release()`,
-    jsCode: `var FizzBuzz = function(n) {
+    jsCode: `// JS model: all four methods spin-wait by yielding the event loop with setTimeout(0).
+// Only the thread whose condition is satisfied for the current value proceeds.
+// this.current acts as the shared "what number are we on?" state.
+var FizzBuzz = function(n) {
     this.n = n;
-    this.current = 1;
+    this.current = 1;  // shared counter; whoever can handle it advances it
 };
 
 FizzBuzz.prototype.fizz = async function(printFizz) {
     while (this.current <= this.n) {
-        if (this.current % 3 === 0 && this.current % 5 !== 0) {
+        const isFizzOnly = this.current % 3 === 0 && this.current % 5 !== 0;
+
+        if (isFizzOnly) {
             printFizz();
             this.current++;
         }
-        await new Promise(r => setTimeout(r, 0));
+
+        // Yield to let other async methods check their conditions
+        await new Promise(resolve => setTimeout(resolve, 0));
     }
 };
 
 FizzBuzz.prototype.buzz = async function(printBuzz) {
     while (this.current <= this.n) {
-        if (this.current % 5 === 0 && this.current % 3 !== 0) {
+        const isBuzzOnly = this.current % 5 === 0 && this.current % 3 !== 0;
+
+        if (isBuzzOnly) {
             printBuzz();
             this.current++;
         }
-        await new Promise(r => setTimeout(r, 0));
+
+        await new Promise(resolve => setTimeout(resolve, 0));
     }
 };
 
 FizzBuzz.prototype.fizzbuzz = async function(printFizzBuzz) {
     while (this.current <= this.n) {
-        if (this.current % 15 === 0) {
+        const isFizzBuzz = this.current % 15 === 0;
+
+        if (isFizzBuzz) {
             printFizzBuzz();
             this.current++;
         }
-        await new Promise(r => setTimeout(r, 0));
+
+        await new Promise(resolve => setTimeout(resolve, 0));
     }
 };
 
 FizzBuzz.prototype.number = async function(printNumber) {
     while (this.current <= this.n) {
-        if (this.current % 3 !== 0 && this.current % 5 !== 0) {
+        const isPlainNumber = this.current % 3 !== 0 && this.current % 5 !== 0;
+
+        if (isPlainNumber) {
             printNumber(this.current);
             this.current++;
         }
-        await new Promise(r => setTimeout(r, 0));
+
+        await new Promise(resolve => setTimeout(resolve, 0));
     }
 };`,
+    jsWalkthrough:
+      'n = 5  (expected: 1, 2, fizz, 4, buzz)\n\n' +
+      'current=1: number checks: 1%3≠0 and 1%5≠0 → isPlainNumber=true\n' +
+      '  printNumber(1), current=2\n\n' +
+      'current=2: number checks: 2%3≠0 and 2%5≠0 → isPlainNumber=true\n' +
+      '  printNumber(2), current=3\n\n' +
+      'current=3: fizz checks: 3%3==0 and 3%5≠0 → isFizzOnly=true\n' +
+      '  printFizz(), current=4\n\n' +
+      'current=4: number checks: 4%3≠0 and 4%5≠0 → isPlainNumber=true\n' +
+      '  printNumber(4), current=5\n\n' +
+      'current=5: buzz checks: 5%5==0 and 5%3≠0 → isBuzzOnly=true\n' +
+      '  printBuzz(), current=6\n\n' +
+      'current=6 > n=5 → all loops exit\n' +
+      'Output: "1, 2, fizz, 4, buzz"  ✓',
     explanation:
       '1. Four worker threads each loop forever, waiting on their respective semaphore.\n' +
       '2. The number() thread is the dispatcher: for each i, it checks divisibility and releases the correct semaphore.\n' +
@@ -569,43 +764,82 @@ class DiningPhilosophers:
         self.forks[right].release()
 
         self.limit.release()           # let another philosopher try`,
-    jsCode: `// JS model using async locks
+    jsCode: `// JS model using async mutex locks for each fork.
+// Each fork is represented as an object with a locked flag and a queue of waiters.
+// acquireFork() blocks until the fork is free; releaseFork() hands it to the next waiter.
 class DiningPhilosophers {
     constructor() {
-        this.forks = Array.from({length: 5}, () => ({locked: false, queue: []}));
-        this.seats = 4; // limit concurrency
+        // 5 forks, each modeled as a simple async mutex
+        this.forks = Array.from({ length: 5 }, () => ({
+            locked: false,
+            waiters: [],   // resolvers of Promises waiting to acquire this fork
+        }));
     }
 
-    async acquireFork(i) {
-        while (this.forks[i].locked) {
-            await new Promise(r => this.forks[i].queue.push(r));
+    // Acquire a fork — waits until the fork is not locked
+    async acquireFork(forkIndex) {
+        const fork = this.forks[forkIndex];
+
+        while (fork.locked) {
+            // Fork is busy: register ourselves and suspend until notified
+            await new Promise(resolve => fork.waiters.push(resolve));
         }
-        this.forks[i].locked = true;
+
+        fork.locked = true;
     }
 
-    releaseFork(i) {
-        this.forks[i].locked = false;
-        if (this.forks[i].queue.length > 0) {
-            this.forks[i].queue.shift()();
+    // Release a fork — wakes the next waiter if any
+    releaseFork(forkIndex) {
+        const fork = this.forks[forkIndex];
+        fork.locked = false;
+
+        if (fork.waiters.length > 0) {
+            // Wake up the longest-waiting philosopher for this fork
+            const nextWaiter = fork.waiters.shift();
+            nextWaiter();
         }
     }
 
     async wantsToEat(philosopher, pickLeftFork, pickRightFork,
                      eat, putLeftFork, putRightFork) {
-        const left = philosopher;
-        const right = (philosopher + 1) % 5;
+        const leftForkIndex = philosopher;
+        const rightForkIndex = (philosopher + 1) % 5;
 
-        await this.acquireFork(left);
+        // Acquire left fork, then right fork
+        await this.acquireFork(leftForkIndex);
         pickLeftFork();
-        await this.acquireFork(right);
+
+        await this.acquireFork(rightForkIndex);
         pickRightFork();
+
+        // Both forks acquired — eat!
         eat();
+
+        // Release both forks when done
         putLeftFork();
-        this.releaseFork(left);
+        this.releaseFork(leftForkIndex);
+
         putRightFork();
-        this.releaseFork(right);
+        this.releaseFork(rightForkIndex);
     }
 }`,
+    jsWalkthrough:
+      'Philosophers 0-4 sit at a round table. Philosopher i uses forks i and (i+1)%5.\n\n' +
+      'Philosopher 0 wants to eat:\n' +
+      '  acquireFork(0): fork[0].locked=false → lock it\n' +
+      '  pickLeftFork()\n' +
+      '  acquireFork(1): fork[1].locked=false → lock it\n' +
+      '  pickRightFork()\n' +
+      '  eat()\n' +
+      '  putLeftFork(), releaseFork(0): fork[0].locked=false, no waiters\n' +
+      '  putRightFork(), releaseFork(1): fork[1].locked=false, no waiters\n\n' +
+      'Philosopher 1 wants to eat (while 0 is eating):\n' +
+      '  acquireFork(1): fork[1].locked=true → push resolver, SUSPEND\n' +
+      '  (when 0 calls releaseFork(1)) → waiter woken → fork[1].locked=true again\n' +
+      '  acquireFork(2): fork[2].locked=false → lock it\n' +
+      '  eat() ... release both forks\n\n' +
+      'No deadlock possible: even if all philosophers acquire their left fork,\n' +
+      'at most 4 can be blocked on right — one will always get both.  ✓',
     explanation:
       '1. Each fork is a Lock (mutex) - only one philosopher can hold it at a time.\n' +
       '2. The Semaphore(4) is the key deadlock prevention: with 5 forks and at most 4 hungry philosophers, pigeonhole principle guarantees at least one can get both forks.\n' +

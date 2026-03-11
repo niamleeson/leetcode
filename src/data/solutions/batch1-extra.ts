@@ -28,17 +28,47 @@ export const solutions: ProblemSolution[] = [
             cur_row += 1 if going_down else -1
         return ''.join(rows)`,
     jsCode: `var convert = function(s, numRows) {
+    // Edge case: if only one row or string fits in one row, return as-is
     if (numRows === 1 || numRows >= s.length) return s;
+
+    // Create one string bucket per row
     const rows = Array(numRows).fill('');
     let curRow = 0;
     let goingDown = false;
+
+    // Place each character into its corresponding row
     for (const c of s) {
         rows[curRow] += c;
-        if (curRow === 0 || curRow === numRows - 1) goingDown = !goingDown;
-        curRow += goingDown ? 1 : -1;
+
+        // Flip direction when we hit the top or bottom row
+        if (curRow === 0 || curRow === numRows - 1) {
+            goingDown = !goingDown;
+        }
+
+        // Move to next row based on current direction
+        if (goingDown) {
+            curRow = curRow + 1;
+        } else {
+            curRow = curRow - 1;
+        }
     }
+
+    // Concatenate all rows to get the final result
     return rows.join('');
 };`,
+    jsWalkthrough:
+      'Input: s = "PAYPALISHIRING", numRows = 3\n\n' +
+      'rows = ["", "", ""], curRow = 0, goingDown = false\n\n' +
+      'c="P": rows[0]="P", curRow=0 so goingDown flips to true, curRow -> 1\n' +
+      'c="A": rows[1]="A", curRow -> 2\n' +
+      'c="Y": rows[2]="Y", curRow=2 so goingDown flips to false, curRow -> 1\n' +
+      'c="P": rows[1]="AP", curRow -> 0\n' +
+      'c="A": rows[0]="PA", curRow=0 so goingDown flips to true, curRow -> 1\n' +
+      'c="L": rows[1]="APL", curRow -> 2\n' +
+      'c="I": rows[2]="YI", curRow=2 so goingDown flips to false, curRow -> 1\n' +
+      '... (continue through all characters)\n\n' +
+      'Final rows: ["PAHN", "APLSIIG", "YIR"]\n' +
+      'Result: "PAHN" + "APLSIIG" + "YIR" = "PAHNAPLSIIGYIR"',
     explanation:
       '1. Handle edge cases where numRows is 1 or >= len(s).\n' +
       '2. Create an array of empty strings, one per row.\n' +
@@ -84,17 +114,37 @@ export const solutions: ProblemSolution[] = [
     jsCode: `var reverse = function(x) {
     const INT_MAX = 2147483647;
     const INT_MIN = -2147483648;
+
     let res = 0;
+    // Record the sign and work with the absolute value
     const sign = x >= 0 ? 1 : -1;
     x = Math.abs(x);
+
     while (x > 0) {
+        // Extract the last digit
         const digit = x % 10;
+        // Remove the last digit from x
         x = Math.floor(x / 10);
-        if (res > Math.floor((INT_MAX - digit) / 10)) return 0;
+
+        // Check for overflow before updating res
+        if (res > Math.floor((INT_MAX - digit) / 10)) {
+            return 0;
+        }
+
+        // Append the digit to the reversed number
         res = res * 10 + digit;
     }
+
     return res * sign;
 };`,
+    jsWalkthrough:
+      'Input: x = 123\n\n' +
+      'sign = 1, x = 123, res = 0\n\n' +
+      'Iteration 1: digit = 123 % 10 = 3, x = 12, overflow check passes, res = 0*10+3 = 3\n' +
+      'Iteration 2: digit = 12 % 10 = 2, x = 1, overflow check passes, res = 3*10+2 = 32\n' +
+      'Iteration 3: digit = 1 % 10 = 1, x = 0, overflow check passes, res = 32*10+1 = 321\n\n' +
+      'Loop ends (x = 0)\n' +
+      'Return 321 * 1 = 321',
     explanation:
       '1. Record the sign and work with the absolute value.\n' +
       '2. Extract the last digit with x % 10, remove it with x //= 10.\n' +
@@ -142,22 +192,50 @@ export const solutions: ProblemSolution[] = [
     jsCode: `var myAtoi = function(s) {
     const INT_MAX = 2147483647;
     const INT_MIN = -2147483648;
+
     let i = 0;
     const n = s.length;
-    while (i < n && s[i] === ' ') i++;
+
+    // Phase 1: skip leading whitespace
+    while (i < n && s[i] === ' ') {
+        i = i + 1;
+    }
+
+    // Phase 2: read optional sign
     let sign = 1;
     if (i < n && (s[i] === '+' || s[i] === '-')) {
-        sign = s[i] === '-' ? -1 : 1;
-        i++;
+        if (s[i] === '-') {
+            sign = -1;
+        } else {
+            sign = 1;
+        }
+        i = i + 1;
     }
+
+    // Phase 3: read digits and build the integer
     let res = 0;
     while (i < n && s[i] >= '0' && s[i] <= '9') {
-        res = res * 10 + Number(s[i]);
-        i++;
+        const digit = Number(s[i]);
+        res = res * 10 + digit;
+        i = i + 1;
     }
-    res *= sign;
+
+    // Apply sign and clamp to 32-bit range
+    res = res * sign;
     return Math.max(INT_MIN, Math.min(INT_MAX, res));
 };`,
+    jsWalkthrough:
+      'Input: s = "   -42"\n\n' +
+      'i=0: s[0]=" " -> skip, i=1\n' +
+      'i=1: s[1]=" " -> skip, i=2\n' +
+      'i=2: s[2]=" " -> skip, i=3\n' +
+      'i=3: s[3]="-" -> sign=-1, i=4\n' +
+      'i=4: s[4]="4" -> digit=4, res=0*10+4=4, i=5\n' +
+      'i=5: s[5]="2" -> digit=2, res=4*10+2=42, i=6\n' +
+      'Loop ends (i=6=n)\n\n' +
+      'res = 42 * -1 = -42\n' +
+      'clamp(-42, INT_MIN, INT_MAX) = -42\n' +
+      'Return -42',
     explanation:
       '1. Skip leading whitespace by advancing the index.\n' +
       '2. Check for an optional + or - sign and record it.\n' +
@@ -196,14 +274,35 @@ export const solutions: ProblemSolution[] = [
             x //= 10
         return x == reversed_half or x == reversed_half // 10`,
     jsCode: `var isPalindrome = function(x) {
-    if (x < 0 || (x % 10 === 0 && x !== 0)) return false;
+    // Negative numbers and numbers ending in 0 (except 0 itself) cannot be palindromes
+    if (x < 0 || (x % 10 === 0 && x !== 0)) {
+        return false;
+    }
+
     let reversedHalf = 0;
+
+    // Reverse the second half of x by extracting digits one by one
+    // Stop when reversedHalf catches up to x (we've processed half the digits)
     while (x > reversedHalf) {
-        reversedHalf = reversedHalf * 10 + x % 10;
+        const lastDigit = x % 10;
+        reversedHalf = reversedHalf * 10 + lastDigit;
         x = Math.floor(x / 10);
     }
+
+    // Even-length: x === reversedHalf (e.g., 1221 -> x=12, reversedHalf=12)
+    // Odd-length: x === reversedHalf // 10 (e.g., 12321 -> x=12, reversedHalf=123)
     return x === reversedHalf || x === Math.floor(reversedHalf / 10);
 };`,
+    jsWalkthrough:
+      'Input: x = 121\n\n' +
+      'x=121, reversedHalf=0\n\n' +
+      'Iteration 1: lastDigit=1, reversedHalf=0*10+1=1, x=12\n' +
+      '  x(12) > reversedHalf(1) -> continue\n' +
+      'Iteration 2: lastDigit=2, reversedHalf=1*10+2=12, x=1\n' +
+      '  x(1) > reversedHalf(12)? No -> stop\n\n' +
+      'Check: x(1) === reversedHalf(12)? No\n' +
+      'Check: x(1) === floor(12/10)=1? Yes -> return true\n\n' +
+      '(Odd-length palindrome: middle digit 2 is discarded from reversedHalf)',
     explanation:
       '1. Negative numbers and numbers ending in 0 (except 0 itself) are not palindromes.\n' +
       '2. Reverse the second half of the digits by extracting from x and building reversed_half.\n' +
@@ -250,26 +349,58 @@ export const solutions: ProblemSolution[] = [
                     dp[i][j] = dp[i - 1][j - 1]
         return dp[m][n]`,
     jsCode: `var isMatch = function(s, p) {
-    const m = s.length, n = p.length;
+    const m = s.length;
+    const n = p.length;
+
+    // dp[i][j] = true if s[0..i-1] matches p[0..j-1]
     const dp = Array.from({length: m + 1}, () => Array(n + 1).fill(false));
+
+    // Empty string matches empty pattern
     dp[0][0] = true;
+
+    // Patterns like "a*", "a*b*" can match an empty string
     for (let j = 1; j <= n; j++) {
-        if (p[j - 1] === '*') dp[0][j] = dp[0][j - 2];
+        if (p[j - 1] === '*') {
+            dp[0][j] = dp[0][j - 2];
+        }
     }
+
     for (let i = 1; i <= m; i++) {
         for (let j = 1; j <= n; j++) {
-            if (p[j - 1] === '*') {
-                dp[i][j] = dp[i][j - 2];
-                if (p[j - 2] === '.' || p[j - 2] === s[i - 1]) {
-                    dp[i][j] = dp[i][j] || dp[i - 1][j];
-                }
-            } else if (p[j - 1] === '.' || p[j - 1] === s[i - 1]) {
+            const patternChar = p[j - 1];
+            const stringChar = s[i - 1];
+
+            if (patternChar === '*') {
+                // Zero occurrences of the preceding element
+                const zeroOccurrences = dp[i][j - 2];
+
+                // One or more occurrences (if preceding element matches current string char)
+                const precedingChar = p[j - 2];
+                const charMatches = precedingChar === '.' || precedingChar === stringChar;
+                const oneOrMoreOccurrences = charMatches ? dp[i - 1][j] : false;
+
+                dp[i][j] = zeroOccurrences || oneOrMoreOccurrences;
+            } else if (patternChar === '.' || patternChar === stringChar) {
+                // Single character match
                 dp[i][j] = dp[i - 1][j - 1];
             }
         }
     }
+
     return dp[m][n];
 };`,
+    jsWalkthrough:
+      'Input: s = "aa", p = "a*"\n\n' +
+      'dp is 3x3 (m+1=3 rows, n+1=3 cols)\n' +
+      'dp[0][0] = true\n' +
+      'Init row 0: j=1 p[0]="a" not "*"; j=2 p[1]="*" -> dp[0][2] = dp[0][0] = true\n\n' +
+      'i=1 (s[0]="a"), j=1 (p[0]="a"): patternChar="a"=stringChar -> dp[1][1]=dp[0][0]=true\n' +
+      'i=1 (s[0]="a"), j=2 (p[1]="*"): zero=dp[1][0]=false; preceding="a"=stringChar -> oneOrMore=dp[0][2]=true\n' +
+      '  dp[1][2] = false || true = true\n\n' +
+      'i=2 (s[1]="a"), j=1 (p[0]="a"): dp[2][1] = dp[1][0] = false\n' +
+      'i=2 (s[1]="a"), j=2 (p[1]="*"): zero=dp[2][0]=false; preceding="a"=stringChar -> oneOrMore=dp[1][2]=true\n' +
+      '  dp[2][2] = false || true = true\n\n' +
+      'Return dp[2][2] = true',
     explanation:
       '1. dp[i][j] = whether s[:i] matches p[:j].\n' +
       '2. Base case: dp[0][0] = True; patterns like "a*b*" can match empty string.\n' +
@@ -312,20 +443,40 @@ export const solutions: ProblemSolution[] = [
                 num -= val
         return ''.join(res)`,
     jsCode: `var intToRoman = function(num) {
+    // Lookup table from largest to smallest, including subtractive forms
     const valSym = [
         [1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'],
         [100, 'C'], [90, 'XC'], [50, 'L'], [40, 'XL'],
         [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']
     ];
-    const res = [];
+
+    const result = [];
+
     for (const [val, sym] of valSym) {
+        // Keep subtracting this denomination while it fits
         while (num >= val) {
-            res.push(sym);
-            num -= val;
+            result.push(sym);
+            num = num - val;
         }
     }
-    return res.join('');
+
+    return result.join('');
 };`,
+    jsWalkthrough:
+      'Input: num = 1994\n\n' +
+      'val=1000 sym="M": 1994>=1000 -> push "M", num=994\n' +
+      '  994<1000 -> stop\n' +
+      'val=900 sym="CM": 994>=900 -> push "CM", num=94\n' +
+      '  94<900 -> stop\n' +
+      'val=500 sym="D": 94<500 -> skip\n' +
+      'val=400 sym="CD": 94<400 -> skip\n' +
+      'val=100 sym="C": 94<100 -> skip\n' +
+      'val=90 sym="XC": 94>=90 -> push "XC", num=4\n' +
+      '  4<90 -> stop\n' +
+      'val=50,40,10,9,5: all > 4 -> skip\n' +
+      'val=4 sym="IV": 4>=4 -> push "IV", num=0\n\n' +
+      'result = ["M","CM","XC","IV"]\n' +
+      'Return "MCMXCIV"',
     explanation:
       '1. Define a table of (value, symbol) pairs in descending order, including subtractive forms.\n' +
       '2. For each pair, while num >= value, append the symbol and subtract the value.\n' +
@@ -365,18 +516,37 @@ export const solutions: ProblemSolution[] = [
                 res += roman[s[i]]
         return res`,
     jsCode: `var romanToInt = function(s) {
-    const roman = {'I': 1, 'V': 5, 'X': 10, 'L': 50,
-                   'C': 100, 'D': 500, 'M': 1000};
-    let res = 0;
+    const roman = {
+        'I': 1, 'V': 5, 'X': 10, 'L': 50,
+        'C': 100, 'D': 500, 'M': 1000
+    };
+
+    let result = 0;
+
     for (let i = 0; i < s.length; i++) {
-        if (i + 1 < s.length && roman[s[i]] < roman[s[i + 1]]) {
-            res -= roman[s[i]];
+        const currentValue = roman[s[i]];
+        const nextValue = i + 1 < s.length ? roman[s[i + 1]] : 0;
+
+        // If current symbol is smaller than the next, it's a subtractive case (e.g., IV = 4)
+        if (currentValue < nextValue) {
+            result = result - currentValue;
         } else {
-            res += roman[s[i]];
+            result = result + currentValue;
         }
     }
-    return res;
+
+    return result;
 };`,
+    jsWalkthrough:
+      'Input: s = "MCMXCIV"\n\n' +
+      'i=0: current="M"(1000), next="C"(100) -> 1000>100 -> result=0+1000=1000\n' +
+      'i=1: current="C"(100), next="M"(1000) -> 100<1000 -> result=1000-100=900\n' +
+      'i=2: current="M"(1000), next="X"(10) -> 1000>10 -> result=900+1000=1900\n' +
+      'i=3: current="X"(10), next="C"(100) -> 10<100 -> result=1900-10=1890\n' +
+      'i=4: current="C"(100), next="I"(1) -> 100>1 -> result=1890+100=1990\n' +
+      'i=5: current="I"(1), next="V"(5) -> 1<5 -> result=1990-1=1989\n' +
+      'i=6: current="V"(5), next=0 -> 5>0 -> result=1989+5=1994\n\n' +
+      'Return 1994',
     explanation:
       '1. Map each Roman character to its integer value.\n' +
       '2. Iterate through the string, comparing each character with the next.\n' +
@@ -417,16 +587,39 @@ export const solutions: ProblemSolution[] = [
         return strs[0]`,
     jsCode: `var longestCommonPrefix = function(strs) {
     if (!strs.length) return "";
+
+    // Use first string as reference; scan its characters column by column
     for (let i = 0; i < strs[0].length; i++) {
-        const c = strs[0][i];
+        const referenceChar = strs[0][i];
+
+        // Check if every other string has the same character at position i
         for (let j = 1; j < strs.length; j++) {
-            if (i >= strs[j].length || strs[j][i] !== c) {
+            const isBeyondEnd = i >= strs[j].length;
+            const isMismatch = strs[j][i] !== referenceChar;
+
+            if (isBeyondEnd || isMismatch) {
+                // Return the prefix we've confirmed so far
                 return strs[0].substring(0, i);
             }
         }
     }
+
+    // The entire first string is the common prefix
     return strs[0];
 };`,
+    jsWalkthrough:
+      'Input: strs = ["flower","flow","flight"]\n\n' +
+      'i=0: referenceChar="f"\n' +
+      '  j=1: strs[1][0]="f" matches\n' +
+      '  j=2: strs[2][0]="f" matches\n' +
+      'i=1: referenceChar="l"\n' +
+      '  j=1: strs[1][1]="l" matches\n' +
+      '  j=2: strs[2][1]="l" matches\n' +
+      'i=2: referenceChar="o"\n' +
+      '  j=1: strs[1][2]="o" matches\n' +
+      '  j=2: strs[2][2]="i" != "o" -> mismatch!\n' +
+      '  Return strs[0].substring(0,2) = "fl"\n\n' +
+      'Return "fl"',
     explanation:
       '1. Use the first string as a reference.\n' +
       '2. For each character position i, check if all other strings have the same character.\n' +
@@ -473,19 +666,50 @@ export const solutions: ProblemSolution[] = [
         return closest`,
     jsCode: `var threeSumClosest = function(nums, target) {
     nums.sort((a, b) => a - b);
+
     let closest = Infinity;
+
     for (let i = 0; i < nums.length - 2; i++) {
-        let lo = i + 1, hi = nums.length - 1;
+        let lo = i + 1;
+        let hi = nums.length - 1;
+
         while (lo < hi) {
-            const s = nums[i] + nums[lo] + nums[hi];
-            if (Math.abs(s - target) < Math.abs(closest - target)) closest = s;
-            if (s < target) lo++;
-            else if (s > target) hi--;
-            else return s;
+            const currentSum = nums[i] + nums[lo] + nums[hi];
+
+            // Update closest if this sum is nearer to target
+            if (Math.abs(currentSum - target) < Math.abs(closest - target)) {
+                closest = currentSum;
+            }
+
+            if (currentSum < target) {
+                // Sum is too small; move left pointer right to increase sum
+                lo = lo + 1;
+            } else if (currentSum > target) {
+                // Sum is too large; move right pointer left to decrease sum
+                hi = hi - 1;
+            } else {
+                // Exact match found
+                return currentSum;
+            }
         }
     }
+
     return closest;
 };`,
+    jsWalkthrough:
+      'Input: nums = [-1,2,1,-4], target = 1\n' +
+      'After sort: [-4,-1,1,2]\n\n' +
+      'i=0 (nums[0]=-4): lo=1, hi=3\n' +
+      '  lo=1,hi=3: sum=-4+(-1)+2=-3, |(-3)-1|=4 < |Inf-1|=Inf -> closest=-3\n' +
+      '  sum(-3)<target(1) -> lo=2\n' +
+      '  lo=2,hi=3: sum=-4+1+2=-1, |(-1)-1|=2 < |(-3)-1|=4 -> closest=-1\n' +
+      '  sum(-1)<target(1) -> lo=3\n' +
+      '  lo=3 not < hi=3 -> stop\n\n' +
+      'i=1 (nums[1]=-1): lo=2, hi=3\n' +
+      '  lo=2,hi=3: sum=-1+1+2=2, |2-1|=1 < |(-1)-1|=2 -> closest=2\n' +
+      '  sum(2)>target(1) -> hi=2\n' +
+      '  lo=2 not < hi=2 -> stop\n\n' +
+      'Return closest = 2',
     explanation:
       '1. Sort the array to enable the two-pointer technique.\n' +
       '2. Fix one element and use two pointers for the other two.\n' +
@@ -543,29 +767,70 @@ export const solutions: ProblemSolution[] = [
         return res`,
     jsCode: `var fourSum = function(nums, target) {
     nums.sort((a, b) => a - b);
-    const res = [];
+    const result = [];
     const n = nums.length;
+
     for (let i = 0; i < n - 3; i++) {
-        if (i > 0 && nums[i] === nums[i - 1]) continue;
+        // Skip duplicate values for the first element
+        if (i > 0 && nums[i] === nums[i - 1]) {
+            continue;
+        }
+
         for (let j = i + 1; j < n - 2; j++) {
-            if (j > i + 1 && nums[j] === nums[j - 1]) continue;
-            let lo = j + 1, hi = n - 1;
+            // Skip duplicate values for the second element
+            if (j > i + 1 && nums[j] === nums[j - 1]) {
+                continue;
+            }
+
+            let lo = j + 1;
+            let hi = n - 1;
+
             while (lo < hi) {
-                const s = nums[i] + nums[j] + nums[lo] + nums[hi];
-                if (s < target) lo++;
-                else if (s > target) hi--;
-                else {
-                    res.push([nums[i], nums[j], nums[lo], nums[hi]]);
-                    while (lo < hi && nums[lo] === nums[lo + 1]) lo++;
-                    while (lo < hi && nums[hi] === nums[hi - 1]) hi--;
-                    lo++;
-                    hi--;
+                const currentSum = nums[i] + nums[j] + nums[lo] + nums[hi];
+
+                if (currentSum < target) {
+                    lo = lo + 1;
+                } else if (currentSum > target) {
+                    hi = hi - 1;
+                } else {
+                    // Found a valid quadruplet
+                    result.push([nums[i], nums[j], nums[lo], nums[hi]]);
+
+                    // Skip duplicates for lo and hi
+                    while (lo < hi && nums[lo] === nums[lo + 1]) {
+                        lo = lo + 1;
+                    }
+                    while (lo < hi && nums[hi] === nums[hi - 1]) {
+                        hi = hi - 1;
+                    }
+
+                    lo = lo + 1;
+                    hi = hi - 1;
                 }
             }
         }
     }
-    return res;
+
+    return result;
 };`,
+    jsWalkthrough:
+      'Input: nums = [1,0,-1,0,-2,2], target = 0\n' +
+      'After sort: [-2,-1,0,0,1,2]\n\n' +
+      'i=0 (nums[0]=-2):\n' +
+      '  j=1 (nums[1]=-1): lo=2, hi=5\n' +
+      '    sum=-2+(-1)+0+2=-1 < 0 -> lo=3\n' +
+      '    sum=-2+(-1)+0+2=-1 < 0 -> lo=4\n' +
+      '    sum=-2+(-1)+1+2=0 == 0 -> push [-2,-1,1,2], lo=5, hi=4, stop\n' +
+      '  j=2 (nums[2]=0): lo=3, hi=5\n' +
+      '    sum=-2+0+0+2=0 == 0 -> push [-2,0,0,2]\n' +
+      '    skip dup: nums[3]=0=nums[4]=1? no -> lo=4, hi=4, stop\n' +
+      '  j=3 (nums[3]=0): j>i+1 and nums[3]==nums[2]? 0==0 -> skip\n' +
+      'i=1 (nums[1]=-1):\n' +
+      '  j=2 (nums[2]=0): lo=3, hi=5\n' +
+      '    sum=-1+0+0+2=1 > 0 -> hi=4\n' +
+      '    sum=-1+0+0+1=0 == 0 -> push [-1,0,0,1], lo=4, hi=3, stop\n' +
+      '... (remaining i values produce no new quadruplets)\n\n' +
+      'Return [[-2,-1,1,2],[-2,0,0,2],[-1,0,0,1]]',
     explanation:
       '1. Sort the array to enable two-pointer technique and duplicate skipping.\n' +
       '2. Fix the first element with index i, skip duplicates.\n' +
@@ -608,19 +873,40 @@ export const solutions: ProblemSolution[] = [
             prev = first
         return dummy.next`,
     jsCode: `var swapPairs = function(head) {
+    // Dummy node before head simplifies edge cases (head itself being swapped)
     const dummy = new ListNode(0);
     dummy.next = head;
     let prev = dummy;
+
     while (prev.next && prev.next.next) {
         const first = prev.next;
         const second = prev.next.next;
+
+        // Rewire pointers to swap the pair:
+        // Before: prev -> first -> second -> rest
+        // After:  prev -> second -> first -> rest
         prev.next = second;
         first.next = second.next;
         second.next = first;
+
+        // Advance prev to first (which is now the tail of the swapped pair)
         prev = first;
     }
+
     return dummy.next;
 };`,
+    jsWalkthrough:
+      'Input: head = [1,2,3,4]\n' +
+      'dummy -> 1 -> 2 -> 3 -> 4\n\n' +
+      'Iteration 1: prev=dummy, first=1, second=2\n' +
+      '  dummy -> 2 -> 1 -> 3 -> 4 (after rewiring)\n' +
+      '  prev = node(1)\n\n' +
+      'Iteration 2: prev=node(1), first=3, second=4\n' +
+      '  dummy -> 2 -> 1 -> 4 -> 3 (after rewiring)\n' +
+      '  prev = node(3)\n\n' +
+      'prev.next=null -> loop ends\n' +
+      'Return dummy.next = node(2)\n' +
+      'Result: [2,1,4,3]',
     explanation:
       '1. Create a dummy node pointing to head to simplify edge cases.\n' +
       '2. For each pair (first, second): rewire prev -> second -> first -> rest.\n' +
@@ -658,15 +944,29 @@ export const solutions: ProblemSolution[] = [
                 k += 1
         return k`,
     jsCode: `var removeElement = function(nums, val) {
+    // k is our write pointer: the position for the next element to keep
     let k = 0;
+
     for (const num of nums) {
+        // Only write the element if it's not the value we want to remove
         if (num !== val) {
             nums[k] = num;
-            k++;
+            k = k + 1;
         }
     }
+
+    // k is now the count of elements that are not equal to val
     return k;
 };`,
+    jsWalkthrough:
+      'Input: nums = [3,2,2,3], val = 3\n\n' +
+      'k=0\n' +
+      'num=3: 3===val(3) -> skip, k stays 0\n' +
+      'num=2: 2!==val(3) -> nums[0]=2, k=1\n' +
+      'num=2: 2!==val(3) -> nums[1]=2, k=2\n' +
+      'num=3: 3===val(3) -> skip, k stays 2\n\n' +
+      'nums = [2,2,2,3] (first k=2 elements are valid)\n' +
+      'Return k=2',
     explanation:
       '1. Initialize write pointer k = 0.\n' +
       '2. Iterate through each element in nums.\n' +
@@ -703,12 +1003,29 @@ export const solutions: ProblemSolution[] = [
                 return i
         return -1`,
     jsCode: `var strStr = function(haystack, needle) {
-    const m = haystack.length, n = needle.length;
-    for (let i = 0; i <= m - n; i++) {
-        if (haystack.substring(i, i + n) === needle) return i;
+    const haystackLen = haystack.length;
+    const needleLen = needle.length;
+
+    // Slide a window of size needleLen across haystack
+    for (let i = 0; i <= haystackLen - needleLen; i++) {
+        const window = haystack.substring(i, i + needleLen);
+
+        if (window === needle) {
+            return i;
+        }
     }
+
     return -1;
 };`,
+    jsWalkthrough:
+      'Input: haystack = "sadbutsad", needle = "sad"\n' +
+      'haystackLen=9, needleLen=3\n\n' +
+      'i=0: window="sad" === "sad" -> return 0\n\n' +
+      '(Would continue for other inputs)\n' +
+      'For haystack="leetcode", needle="leeto":\n' +
+      'i=0: window="leetc" != "leeto"\n' +
+      'i=1: window="eetco" != "leeto"\n' +
+      '... no match found -> return -1',
     explanation:
       '1. If needle is empty, return 0.\n' +
       '2. Iterate i from 0 to len(haystack) - len(needle).\n' +
@@ -754,22 +1071,55 @@ export const solutions: ProblemSolution[] = [
             res += multiple
         return res * sign`,
     jsCode: `var divide = function(dividend, divisor) {
-    const INT_MAX = 2147483647, INT_MIN = -2147483648;
-    if (dividend === INT_MIN && divisor === -1) return INT_MAX;
-    const sign = (dividend < 0) ^ (divisor < 0) ? -1 : 1;
-    let a = Math.abs(dividend), b = Math.abs(divisor);
-    let res = 0;
-    while (a >= b) {
-        let temp = b, multiple = 1;
-        while (a >= temp * 2) {
-            temp *= 2;
-            multiple *= 2;
-        }
-        a -= temp;
-        res += multiple;
+    const INT_MAX = 2147483647;
+    const INT_MIN = -2147483648;
+
+    // Special case: INT_MIN / -1 would overflow INT_MAX
+    if (dividend === INT_MIN && divisor === -1) {
+        return INT_MAX;
     }
-    return res * sign;
+
+    // Determine sign of the result using XOR
+    const isNegative = (dividend < 0) ^ (divisor < 0);
+    const sign = isNegative ? -1 : 1;
+
+    // Work with absolute values to simplify logic
+    let remaining = Math.abs(dividend);
+    const absDivisor = Math.abs(divisor);
+
+    let result = 0;
+
+    while (remaining >= absDivisor) {
+        // Find the largest power-of-2 multiple of divisor that fits
+        let temp = absDivisor;
+        let multiple = 1;
+
+        while (remaining >= temp * 2) {
+            temp = temp * 2;
+            multiple = multiple * 2;
+        }
+
+        // Subtract that multiple and add it to the result
+        remaining = remaining - temp;
+        result = result + multiple;
+    }
+
+    return result * sign;
 };`,
+    jsWalkthrough:
+      'Input: dividend = 10, divisor = 3\n\n' +
+      'sign = 1, remaining = 10, absDivisor = 3, result = 0\n\n' +
+      'Outer iteration 1: remaining(10) >= absDivisor(3)\n' +
+      '  inner: temp=3, multiple=1\n' +
+      '  10 >= 6? yes -> temp=6, multiple=2\n' +
+      '  10 >= 12? no -> stop inner\n' +
+      '  remaining = 10-6 = 4, result = 0+2 = 2\n\n' +
+      'Outer iteration 2: remaining(4) >= absDivisor(3)\n' +
+      '  inner: temp=3, multiple=1\n' +
+      '  4 >= 6? no -> stop inner\n' +
+      '  remaining = 4-3 = 1, result = 2+1 = 3\n\n' +
+      'Outer: remaining(1) < absDivisor(3) -> stop\n' +
+      'Return 3 * 1 = 3',
     explanation:
       '1. Handle the overflow edge case: INT_MIN / -1 would exceed INT_MAX.\n' +
       '2. Determine the sign of the result using XOR of signs.\n' +
@@ -831,36 +1181,72 @@ export const solutions: ProblemSolution[] = [
         return res`,
     jsCode: `var findSubstring = function(s, words) {
     if (!s || !words.length) return [];
+
     const wordLen = words[0].length;
     const numWords = words.length;
+
+    // Build a frequency map of required words
     const wordCount = {};
-    for (const w of words) wordCount[w] = (wordCount[w] || 0) + 1;
-    const res = [];
-    for (let i = 0; i < wordLen; i++) {
-        let left = i;
-        const curCount = {};
-        let count = 0;
-        for (let j = i; j <= s.length - wordLen; j += wordLen) {
+    for (const word of words) {
+        wordCount[word] = (wordCount[word] || 0) + 1;
+    }
+
+    const result = [];
+
+    // Try each possible starting offset (0 to wordLen-1)
+    for (let startOffset = 0; startOffset < wordLen; startOffset++) {
+        let left = startOffset;
+        const currentCount = {};
+        let matchedWords = 0;
+
+        // Slide window in steps of wordLen
+        for (let j = startOffset; j <= s.length - wordLen; j += wordLen) {
             const word = s.substring(j, j + wordLen);
+
             if (word in wordCount) {
-                curCount[word] = (curCount[word] || 0) + 1;
-                count++;
-                while (curCount[word] > wordCount[word]) {
+                // Add word to current window
+                currentCount[word] = (currentCount[word] || 0) + 1;
+                matchedWords = matchedWords + 1;
+
+                // Shrink window if this word appears too many times
+                while (currentCount[word] > wordCount[word]) {
                     const leftWord = s.substring(left, left + wordLen);
-                    curCount[leftWord]--;
-                    count--;
-                    left += wordLen;
+                    currentCount[leftWord] = currentCount[leftWord] - 1;
+                    matchedWords = matchedWords - 1;
+                    left = left + wordLen;
                 }
-                if (count === numWords) res.push(left);
+
+                // Check if window contains exactly all required words
+                if (matchedWords === numWords) {
+                    result.push(left);
+                }
             } else {
-                for (const key in curCount) delete curCount[key];
-                count = 0;
+                // Invalid word found; reset window entirely
+                for (const key in currentCount) {
+                    delete currentCount[key];
+                }
+                matchedWords = 0;
                 left = j + wordLen;
             }
         }
     }
-    return res;
+
+    return result;
 };`,
+    jsWalkthrough:
+      'Input: s = "barfoothefoobarman", words = ["foo","bar"]\n' +
+      'wordLen=3, numWords=2, wordCount={foo:1, bar:1}\n\n' +
+      'startOffset=0: left=0\n' +
+      '  j=0: word="bar" in wordCount -> currentCount={bar:1}, matched=1\n' +
+      '  j=3: word="foo" in wordCount -> currentCount={bar:1,foo:1}, matched=2\n' +
+      '    matched===numWords -> push left=0\n' +
+      '  j=6: word="the" not in wordCount -> reset, left=9\n' +
+      '  j=9: word="foo" -> currentCount={foo:1}, matched=1\n' +
+      '  j=12: word="bar" -> currentCount={foo:1,bar:1}, matched=2\n' +
+      '    matched===numWords -> push left=9\n' +
+      '  j=15: word="man" not in wordCount -> reset\n\n' +
+      'startOffset=1,2: no valid windows found\n\n' +
+      'Return [0, 9]',
     explanation:
       '1. All words have the same length, so the concatenation has a fixed total length.\n' +
       '2. For each starting offset (0 to word_len-1), process words in steps of word_len.\n' +
@@ -907,20 +1293,51 @@ export const solutions: ProblemSolution[] = [
             right -= 1`,
     jsCode: `var nextPermutation = function(nums) {
     const n = nums.length;
-    let i = n - 2;
-    while (i >= 0 && nums[i] >= nums[i + 1]) i--;
-    if (i >= 0) {
-        let j = n - 1;
-        while (nums[j] <= nums[i]) j--;
-        [nums[i], nums[j]] = [nums[j], nums[i]];
+
+    // Step 1: Find the rightmost "pivot" - the first element from the right
+    // that is smaller than the element to its right
+    let pivotIndex = n - 2;
+    while (pivotIndex >= 0 && nums[pivotIndex] >= nums[pivotIndex + 1]) {
+        pivotIndex = pivotIndex - 1;
     }
-    let left = i + 1, right = n - 1;
+
+    if (pivotIndex >= 0) {
+        // Step 2: Find the smallest element to the right of pivot that is larger than pivot
+        let swapIndex = n - 1;
+        while (nums[swapIndex] <= nums[pivotIndex]) {
+            swapIndex = swapIndex - 1;
+        }
+
+        // Step 3: Swap pivot with that element
+        const temp = nums[pivotIndex];
+        nums[pivotIndex] = nums[swapIndex];
+        nums[swapIndex] = temp;
+    }
+
+    // Step 4: Reverse the suffix after the pivot position
+    // (it was descending; reversing makes it ascending = smallest arrangement)
+    let left = pivotIndex + 1;
+    let right = n - 1;
     while (left < right) {
-        [nums[left], nums[right]] = [nums[right], nums[left]];
-        left++;
-        right--;
+        const temp = nums[left];
+        nums[left] = nums[right];
+        nums[right] = temp;
+        left = left + 1;
+        right = right - 1;
     }
 };`,
+    jsWalkthrough:
+      'Input: nums = [1,2,3]\n\n' +
+      'Step 1: find pivot from right\n' +
+      '  i=1: nums[1]=2 < nums[2]=3 -> pivotIndex=1\n\n' +
+      'Step 2: find swap target\n' +
+      '  j=2: nums[2]=3 > nums[1]=2 -> swapIndex=2\n\n' +
+      'Step 3: swap nums[1] and nums[2]\n' +
+      '  nums = [1,3,2]\n\n' +
+      'Step 4: reverse suffix after pivot (index 2 to end)\n' +
+      '  Only one element after swap, nothing to reverse\n' +
+      '  nums = [1,3,2]\n\n' +
+      'Return (in-place modified): [1,3,2]',
     explanation:
       '1. Scan from right to find the first decreasing element (pivot) at index i.\n' +
       '2. If no pivot exists (fully descending), the entire array is reversed.\n' +
@@ -962,15 +1379,40 @@ export const solutions: ProblemSolution[] = [
                 hi = mid - 1
         return lo`,
     jsCode: `var searchInsert = function(nums, target) {
-    let lo = 0, hi = nums.length - 1;
+    let lo = 0;
+    let hi = nums.length - 1;
+
     while (lo <= hi) {
         const mid = Math.floor((lo + hi) / 2);
-        if (nums[mid] === target) return mid;
-        else if (nums[mid] < target) lo = mid + 1;
-        else hi = mid - 1;
+        const midValue = nums[mid];
+
+        if (midValue === target) {
+            // Found the target
+            return mid;
+        } else if (midValue < target) {
+            // Target is in the right half
+            lo = mid + 1;
+        } else {
+            // Target is in the left half
+            hi = mid - 1;
+        }
     }
+
+    // Target not found; lo is the insertion point
     return lo;
 };`,
+    jsWalkthrough:
+      'Input: nums = [1,3,5,6], target = 5\n\n' +
+      'lo=0, hi=3\n' +
+      'mid=1: nums[1]=3 < 5 -> lo=2\n' +
+      'mid=2: nums[2]=5 === 5 -> return 2\n\n' +
+      '---\n' +
+      'Input: nums = [1,3,5,6], target = 2 (not found)\n\n' +
+      'lo=0, hi=3\n' +
+      'mid=1: nums[1]=3 > 2 -> hi=0\n' +
+      'mid=0: nums[0]=1 < 2 -> lo=1\n' +
+      'lo(1) > hi(0) -> loop ends\n' +
+      'Return lo=1 (insert between index 0 and 1)',
     explanation:
       '1. Standard binary search on the sorted array.\n' +
       '2. If nums[mid] == target, return mid.\n' +
@@ -1036,44 +1478,77 @@ export const solutions: ProblemSolution[] = [
 
         backtrack(0)`,
     jsCode: `var solveSudoku = function(board) {
+    // Track which digits are used in each row, column, and 3x3 box
     const rows = Array.from({length: 9}, () => new Set());
     const cols = Array.from({length: 9}, () => new Set());
     const boxes = Array.from({length: 9}, () => new Set());
-    const empty = [];
+
+    // Collect empty cells and pre-fill constraint sets with existing digits
+    const emptyCells = [];
     for (let i = 0; i < 9; i++) {
         for (let j = 0; j < 9; j++) {
             if (board[i][j] === '.') {
-                empty.push([i, j]);
+                emptyCells.push([i, j]);
             } else {
-                const d = board[i][j];
-                rows[i].add(d);
-                cols[j].add(d);
-                boxes[Math.floor(i / 3) * 3 + Math.floor(j / 3)].add(d);
+                const digit = board[i][j];
+                const boxId = Math.floor(i / 3) * 3 + Math.floor(j / 3);
+                rows[i].add(digit);
+                cols[j].add(digit);
+                boxes[boxId].add(digit);
             }
         }
     }
+
     function backtrack(idx) {
-        if (idx === empty.length) return true;
-        const [r, c] = empty[idx];
-        const boxId = Math.floor(r / 3) * 3 + Math.floor(c / 3);
+        // All empty cells filled successfully
+        if (idx === emptyCells.length) {
+            return true;
+        }
+
+        const [row, col] = emptyCells[idx];
+        const boxId = Math.floor(row / 3) * 3 + Math.floor(col / 3);
+
+        // Try each digit 1-9
         for (let d = 1; d <= 9; d++) {
-            const ds = String(d);
-            if (!rows[r].has(ds) && !cols[c].has(ds) && !boxes[boxId].has(ds)) {
-                board[r][c] = ds;
-                rows[r].add(ds);
-                cols[c].add(ds);
-                boxes[boxId].add(ds);
-                if (backtrack(idx + 1)) return true;
-                board[r][c] = '.';
-                rows[r].delete(ds);
-                cols[c].delete(ds);
-                boxes[boxId].delete(ds);
+            const digitStr = String(d);
+            const isValid = !rows[row].has(digitStr) &&
+                            !cols[col].has(digitStr) &&
+                            !boxes[boxId].has(digitStr);
+
+            if (isValid) {
+                // Place the digit
+                board[row][col] = digitStr;
+                rows[row].add(digitStr);
+                cols[col].add(digitStr);
+                boxes[boxId].add(digitStr);
+
+                if (backtrack(idx + 1)) {
+                    return true;
+                }
+
+                // Backtrack: remove the digit
+                board[row][col] = '.';
+                rows[row].delete(digitStr);
+                cols[col].delete(digitStr);
+                boxes[boxId].delete(digitStr);
             }
         }
+
         return false;
     }
+
     backtrack(0);
 };`,
+    jsWalkthrough:
+      'Pre-processing: scan board, record filled digits in rows/cols/boxes sets\n' +
+      'Collect all "." cells into emptyCells array\n\n' +
+      'backtrack(0): try first empty cell, say (0,2)\n' +
+      '  Try d=1: check rows[0], cols[2], boxes[0] - if "1" not in any -> place "1"\n' +
+      '    backtrack(1): try next empty cell\n' +
+      '      ... if eventually leads to contradiction -> return false\n' +
+      '    if returned false: remove "1", try d=2, d=3, ...\n' +
+      '  Continue until a valid digit is found that leads to a complete solution\n\n' +
+      'When backtrack(emptyCells.length) is reached -> all cells filled -> return true',
     explanation:
       '1. Pre-process the board: record all filled digits in row, column, and box sets.\n' +
       '2. Collect all empty cell positions.\n' +
@@ -1118,21 +1593,49 @@ export const solutions: ProblemSolution[] = [
             s = ''.join(result)
         return s`,
     jsCode: `var countAndSay = function(n) {
-    let s = "1";
+    let current = "1";
+
+    // Generate each term from the previous one, n-1 times
     for (let k = 0; k < n - 1; k++) {
-        const result = [];
+        const nextTerm = [];
         let i = 0;
-        while (i < s.length) {
+
+        while (i < current.length) {
+            // Find the end of the current run of identical characters
             let j = i;
-            while (j < s.length && s[j] === s[i]) j++;
-            result.push(String(j - i));
-            result.push(s[i]);
+            while (j < current.length && current[j] === current[i]) {
+                j = j + 1;
+            }
+
+            // Encode as "count + digit"
+            const runLength = j - i;
+            const runDigit = current[i];
+            nextTerm.push(String(runLength));
+            nextTerm.push(runDigit);
+
+            // Move to the next run
             i = j;
         }
-        s = result.join('');
+
+        current = nextTerm.join('');
     }
-    return s;
+
+    return current;
 };`,
+    jsWalkthrough:
+      'Input: n = 4\n\n' +
+      'Start: current = "1"\n\n' +
+      'k=0: encode "1"\n' +
+      '  i=0: run of "1" from j=0 to j=1, count=1 -> push "1","1"\n' +
+      '  current = "11"\n\n' +
+      'k=1: encode "11"\n' +
+      '  i=0: run of "1" from j=0 to j=2, count=2 -> push "2","1"\n' +
+      '  current = "21"\n\n' +
+      'k=2: encode "21"\n' +
+      '  i=0: run of "2" from j=0 to j=1, count=1 -> push "1","2"\n' +
+      '  i=1: run of "1" from j=1 to j=2, count=1 -> push "1","1"\n' +
+      '  current = "1211"\n\n' +
+      'Return "1211"',
     explanation:
       '1. Start with s = "1".\n' +
       '2. For each iteration (n-1 times), generate the next term.\n' +
@@ -1176,20 +1679,48 @@ export const solutions: ProblemSolution[] = [
         result = result.lstrip('0')
         return result if result else '0'`,
     jsCode: `var multiply = function(num1, num2) {
-    const m = num1.length, n = num2.length;
+    const m = num1.length;
+    const n = num2.length;
+
+    // Result array: product of m-digit and n-digit numbers has at most m+n digits
     const pos = Array(m + n).fill(0);
+
+    // Multiply each digit pair (like grade-school multiplication)
     for (let i = m - 1; i >= 0; i--) {
         for (let j = n - 1; j >= 0; j--) {
-            const mul = (num1.charCodeAt(i) - 48) * (num2.charCodeAt(j) - 48);
-            const p1 = i + j, p2 = i + j + 1;
-            const total = mul + pos[p2];
+            const digit1 = num1.charCodeAt(i) - 48;
+            const digit2 = num2.charCodeAt(j) - 48;
+            const product = digit1 * digit2;
+
+            // Digit at position i*j contributes to positions p1 and p2
+            const p1 = i + j;
+            const p2 = i + j + 1;
+
+            const total = product + pos[p2];
+
+            // Store the ones digit at p2, carry the tens digit to p1
             pos[p2] = total % 10;
-            pos[p1] += Math.floor(total / 10);
+            pos[p1] = pos[p1] + Math.floor(total / 10);
         }
     }
-    let result = pos.join('').replace(/^0+/, '');
+
+    // Convert to string and remove leading zeros
+    const result = pos.join('').replace(/^0+/, '');
     return result || '0';
 };`,
+    jsWalkthrough:
+      'Input: num1 = "123", num2 = "456"\n' +
+      'm=3, n=3, pos = [0,0,0,0,0,0] (length 6)\n\n' +
+      'i=2 (digit "3"), j=2 (digit "6"): product=18, p1=4, p2=5\n' +
+      '  total=18+0=18, pos[5]=8, pos[4]+=1 -> pos=[0,0,0,0,1,8]\n' +
+      'i=2 (digit "3"), j=1 (digit "5"): product=15, p1=3, p2=4\n' +
+      '  total=15+1=16, pos[4]=6, pos[3]+=1 -> pos=[0,0,0,1,6,8]\n' +
+      'i=2 (digit "3"), j=0 (digit "4"): product=12, p1=2, p2=3\n' +
+      '  total=12+1=13, pos[3]=3, pos[2]+=1 -> pos=[0,0,1,3,6,8]\n' +
+      '... (continue for i=1 and i=0)\n' +
+      'Final pos -> "056088"\n' +
+      'Strip leading zero -> "56088"\n' +
+      'Return "56088"',
     explanation:
       '1. Create an array pos of size m+n to hold digit results.\n' +
       '2. Multiply each digit of num1 with each digit of num2.\n' +
@@ -1234,23 +1765,55 @@ export const solutions: ProblemSolution[] = [
                     dp[i][j] = dp[i - 1][j - 1]
         return dp[m][n]`,
     jsCode: `var isMatch = function(s, p) {
-    const m = s.length, n = p.length;
+    const m = s.length;
+    const n = p.length;
+
+    // dp[i][j] = true if s[0..i-1] matches p[0..j-1]
     const dp = Array.from({length: m + 1}, () => Array(n + 1).fill(false));
+
+    // Empty string matches empty pattern
     dp[0][0] = true;
+
+    // Leading '*' characters can match an empty string
     for (let j = 1; j <= n; j++) {
-        if (p[j - 1] === '*') dp[0][j] = dp[0][j - 1];
+        if (p[j - 1] === '*') {
+            dp[0][j] = dp[0][j - 1];
+        }
     }
+
     for (let i = 1; i <= m; i++) {
         for (let j = 1; j <= n; j++) {
-            if (p[j - 1] === '*') {
-                dp[i][j] = dp[i - 1][j] || dp[i][j - 1];
-            } else if (p[j - 1] === '?' || p[j - 1] === s[i - 1]) {
+            const patternChar = p[j - 1];
+            const stringChar = s[i - 1];
+
+            if (patternChar === '*') {
+                // '*' matches zero characters: dp[i][j-1]
+                const matchesEmpty = dp[i][j - 1];
+                // '*' matches one or more characters: dp[i-1][j]
+                const matchesOneOrMore = dp[i - 1][j];
+                dp[i][j] = matchesEmpty || matchesOneOrMore;
+            } else if (patternChar === '?' || patternChar === stringChar) {
+                // '?' matches any single char, or exact char match
                 dp[i][j] = dp[i - 1][j - 1];
             }
         }
     }
+
     return dp[m][n];
 };`,
+    jsWalkthrough:
+      'Input: s = "adceb", p = "*a*b"\n' +
+      'm=5, n=4\n\n' +
+      'Init: dp[0][0]=true\n' +
+      'j=1: p[0]="*" -> dp[0][1]=dp[0][0]=true\n' +
+      'j=2: p[1]="a" not "*" -> dp[0][2]=false\n' +
+      'j=3: p[2]="*" -> dp[0][3]=dp[0][2]=false\n' +
+      'j=4: p[3]="b" not "*" -> dp[0][4]=false\n\n' +
+      'i=1 (s[0]="a"), j=1 (p[0]="*"): matchEmpty=dp[1][0]=false, oneOrMore=dp[0][1]=true -> dp[1][1]=true\n' +
+      'i=1 (s[0]="a"), j=2 (p[1]="a"): "a"==="a" -> dp[1][2]=dp[0][1]=true\n' +
+      '... (continue filling)\n' +
+      'i=5 (s[4]="b"), j=4 (p[3]="b"): "b"==="b" -> dp[5][4]=dp[4][3]\n\n' +
+      'Return dp[5][4] = true',
     explanation:
       '1. dp[i][j] = whether s[:i] matches p[:j].\n' +
       '2. Base: dp[0][0] = True. Leading *s can match empty string.\n' +
@@ -1291,16 +1854,38 @@ export const solutions: ProblemSolution[] = [
                 cur_end = farthest
         return jumps`,
     jsCode: `var jump = function(nums) {
-    let jumps = 0, curEnd = 0, farthest = 0;
+    let jumps = 0;
+    let currentEnd = 0;  // boundary of the current jump's reach
+    let farthest = 0;    // farthest index reachable from any position in the current level
+
+    // We don't need to process the last index (already at destination)
     for (let i = 0; i < nums.length - 1; i++) {
-        farthest = Math.max(farthest, i + nums[i]);
-        if (i === curEnd) {
-            jumps++;
-            curEnd = farthest;
+        // Update the farthest we can reach from index i
+        const reachFromHere = i + nums[i];
+        farthest = Math.max(farthest, reachFromHere);
+
+        // When we reach the end of the current jump's boundary, take a new jump
+        if (i === currentEnd) {
+            jumps = jumps + 1;
+            currentEnd = farthest;
         }
     }
+
     return jumps;
 };`,
+    jsWalkthrough:
+      'Input: nums = [2,3,1,1,4]\n\n' +
+      'jumps=0, currentEnd=0, farthest=0\n\n' +
+      'i=0: reachFromHere=0+2=2, farthest=2\n' +
+      '  i(0)===currentEnd(0) -> jumps=1, currentEnd=2\n\n' +
+      'i=1: reachFromHere=1+3=4, farthest=4\n' +
+      '  i(1)!==currentEnd(2)\n\n' +
+      'i=2: reachFromHere=2+1=3, farthest=max(4,3)=4\n' +
+      '  i(2)===currentEnd(2) -> jumps=2, currentEnd=4\n\n' +
+      'i=3: reachFromHere=3+1=4, farthest=max(4,4)=4\n' +
+      '  i(3)!==currentEnd(4)\n\n' +
+      'Loop ends (stop at nums.length-1=4)\n' +
+      'Return jumps=2',
     explanation:
       '1. Track the farthest index reachable and the current jump boundary.\n' +
       '2. For each position, update the farthest reachable index.\n' +
@@ -1342,18 +1927,39 @@ export const solutions: ProblemSolution[] = [
             n //= 2
         return result`,
     jsCode: `var myPow = function(x, n) {
+    // Handle negative exponents: x^(-n) = (1/x)^n
     if (n < 0) {
         x = 1 / x;
         n = -n;
     }
+
     let result = 1.0;
+
+    // Binary exponentiation: halve the exponent each iteration
     while (n > 0) {
-        if (n % 2 === 1) result *= x;
-        x *= x;
+        // If the current bit of n is set, multiply result by current x
+        if (n % 2 === 1) {
+            result = result * x;
+        }
+
+        // Square x to handle the next bit
+        x = x * x;
+
+        // Shift n right by 1 bit
         n = Math.floor(n / 2);
     }
+
     return result;
 };`,
+    jsWalkthrough:
+      'Input: x = 2.0, n = 10\n\n' +
+      'n>=0, result=1.0\n\n' +
+      'n=10 (1010 binary): 10%2=0 -> skip multiply; x=2*2=4; n=5\n' +
+      'n=5  (101 binary):  5%2=1 -> result=1*4=4; x=4*4=16; n=2\n' +
+      'n=2  (10 binary):   2%2=0 -> skip multiply; x=16*16=256; n=1\n' +
+      'n=1  (1 binary):    1%2=1 -> result=4*256=1024; x=256*256=...; n=0\n\n' +
+      'Loop ends (n=0)\n' +
+      'Return 1024.0',
     explanation:
       '1. If n is negative, invert x and negate n.\n' +
       '2. Use iterative binary exponentiation.\n' +
@@ -1402,23 +2008,56 @@ export const solutions: ProblemSolution[] = [
 
         return backtrack(0, set(), set(), set())`,
     jsCode: `var totalNQueens = function(n) {
-    function backtrack(row, cols, diag1, diag2) {
-        if (row === n) return 1;
-        let count = 0;
-        for (let col = 0; col < n; col++) {
-            if (cols.has(col) || diag1.has(row - col) || diag2.has(row + col)) continue;
-            cols.add(col);
-            diag1.add(row - col);
-            diag2.add(row + col);
-            count += backtrack(row + 1, cols, diag1, diag2);
-            cols.delete(col);
-            diag1.delete(row - col);
-            diag2.delete(row + col);
+    function backtrack(row, usedCols, usedDiag1, usedDiag2) {
+        // All rows filled successfully: count this as one solution
+        if (row === n) {
+            return 1;
         }
+
+        let count = 0;
+
+        for (let col = 0; col < n; col++) {
+            const isColTaken = usedCols.has(col);
+            const isDiag1Taken = usedDiag1.has(row - col);  // same main diagonal
+            const isDiag2Taken = usedDiag2.has(row + col);  // same anti-diagonal
+
+            if (isColTaken || isDiag1Taken || isDiag2Taken) {
+                continue;
+            }
+
+            // Place queen at (row, col)
+            usedCols.add(col);
+            usedDiag1.add(row - col);
+            usedDiag2.add(row + col);
+
+            count = count + backtrack(row + 1, usedCols, usedDiag1, usedDiag2);
+
+            // Remove queen (backtrack)
+            usedCols.delete(col);
+            usedDiag1.delete(row - col);
+            usedDiag2.delete(row + col);
+        }
+
         return count;
     }
+
     return backtrack(0, new Set(), new Set(), new Set());
 };`,
+    jsWalkthrough:
+      'Input: n = 4\n\n' +
+      'backtrack(row=0): try col=0,1,2,3\n' +
+      '  col=0: place queen at (0,0), diag1={0}, diag2={0}\n' +
+      '    backtrack(row=1): try col=0,1,2,3\n' +
+      '      col=0: col taken -> skip\n' +
+      '      col=1: diag2: 1+1=2 not taken; diag1: 1-1=0 taken -> skip\n' +
+      '      col=2: place queen at (1,2)\n' +
+      '        backtrack(row=2): no valid column -> return 0\n' +
+      '      col=3: place queen at (1,3)\n' +
+      '        backtrack(row=2): col=1 works -> place at (2,1)\n' +
+      '          backtrack(row=3): col=3 -> diag2 4+3=7? no; diag1 3-3=0 taken -> skip; col=2? no...\n' +
+      '          ... eventually find (3,1) invalid, try other columns\n' +
+      '  col=1: place queen at (0,1) -> eventually finds solutions\n\n' +
+      'Total solutions for n=4: 2',
     explanation:
       '1. Place queens row by row using backtracking.\n' +
       '2. Track occupied columns, main diagonals (row-col), and anti-diagonals (row+col).\n' +
@@ -1459,14 +2098,33 @@ export const solutions: ProblemSolution[] = [
         return length`,
     jsCode: `var lengthOfLastWord = function(s) {
     let i = s.length - 1;
-    while (i >= 0 && s[i] === ' ') i--;
+
+    // Skip any trailing spaces
+    while (i >= 0 && s[i] === ' ') {
+        i = i - 1;
+    }
+
+    // Count characters of the last word
     let length = 0;
     while (i >= 0 && s[i] !== ' ') {
-        length++;
-        i--;
+        length = length + 1;
+        i = i - 1;
     }
+
     return length;
 };`,
+    jsWalkthrough:
+      'Input: s = "Hello World"\n\n' +
+      'i starts at index 10 (last char "d")\n\n' +
+      'Skip trailing spaces: s[10]="d" != " " -> no skipping needed\n\n' +
+      'Count last word:\n' +
+      'i=10: s[10]="d" != " " -> length=1, i=9\n' +
+      'i=9: s[9]="l" != " " -> length=2, i=8\n' +
+      'i=8: s[8]="r" != " " -> length=3, i=7\n' +
+      'i=7: s[7]="o" != " " -> length=4, i=6\n' +
+      'i=6: s[6]="W" != " " -> length=5, i=5\n' +
+      'i=5: s[5]=" " -> stop\n\n' +
+      'Return 5',
     explanation:
       '1. Start from the end of the string.\n' +
       '2. Skip any trailing spaces.\n' +
@@ -1519,20 +2177,57 @@ export const solutions: ProblemSolution[] = [
         return matrix`,
     jsCode: `var generateMatrix = function(n) {
     const matrix = Array.from({length: n}, () => Array(n).fill(0));
-    let top = 0, bottom = n - 1, left = 0, right = n - 1;
+
+    let top = 0;
+    let bottom = n - 1;
+    let left = 0;
+    let right = n - 1;
     let num = 1;
+
     while (top <= bottom && left <= right) {
-        for (let j = left; j <= right; j++) matrix[top][j] = num++;
-        top++;
-        for (let i = top; i <= bottom; i++) matrix[i][right] = num++;
-        right--;
-        for (let j = right; j >= left; j--) matrix[bottom][j] = num++;
-        bottom--;
-        for (let i = bottom; i >= top; i--) matrix[i][left] = num++;
-        left++;
+        // Fill top row: left to right
+        for (let j = left; j <= right; j++) {
+            matrix[top][j] = num;
+            num = num + 1;
+        }
+        top = top + 1;
+
+        // Fill right column: top to bottom
+        for (let i = top; i <= bottom; i++) {
+            matrix[i][right] = num;
+            num = num + 1;
+        }
+        right = right - 1;
+
+        // Fill bottom row: right to left
+        for (let j = right; j >= left; j--) {
+            matrix[bottom][j] = num;
+            num = num + 1;
+        }
+        bottom = bottom - 1;
+
+        // Fill left column: bottom to top
+        for (let i = bottom; i >= top; i--) {
+            matrix[i][left] = num;
+            num = num + 1;
+        }
+        left = left + 1;
     }
+
     return matrix;
 };`,
+    jsWalkthrough:
+      'Input: n = 3\n' +
+      'matrix = 3x3 of zeros\n\n' +
+      'Iteration 1: top=0, bottom=2, left=0, right=2\n' +
+      '  Fill top row (row 0): matrix[0][0]=1, [0][1]=2, [0][2]=3; top=1\n' +
+      '  Fill right col (col 2): matrix[1][2]=4, [2][2]=5; right=1\n' +
+      '  Fill bottom row (row 2): matrix[2][1]=6, [2][0]=7; bottom=1\n' +
+      '  Fill left col (col 0): matrix[1][0]=8; left=1\n\n' +
+      'Iteration 2: top=1, bottom=1, left=1, right=1\n' +
+      '  Fill top row: matrix[1][1]=9; top=2\n' +
+      '  top(2)>bottom(1) -> loop ends\n\n' +
+      'Result: [[1,2,3],[8,9,4],[7,6,5]]',
     explanation:
       '1. Initialize an n x n matrix with zeros.\n' +
       '2. Use four boundaries: top, bottom, left, right.\n' +
@@ -1575,20 +2270,55 @@ export const solutions: ProblemSolution[] = [
             digits.pop(idx)
         return ''.join(result)`,
     jsCode: `var getPermutation = function(n, k) {
+    // Build list of available digits [1, 2, ..., n]
     const digits = [];
-    for (let i = 1; i <= n; i++) digits.push(i);
-    k--;
-    const result = [];
-    for (let i = n; i > 0; i--) {
-        let fact = 1;
-        for (let j = 1; j < i; j++) fact *= j;
-        const idx = Math.floor(k / fact);
-        k %= fact;
-        result.push(String(digits[idx]));
-        digits.splice(idx, 1);
+    for (let i = 1; i <= n; i++) {
+        digits.push(i);
     }
+
+    // Convert to 0-indexed
+    k = k - 1;
+
+    const result = [];
+
+    for (let i = n; i > 0; i--) {
+        // Compute (i-1)! = number of permutations of the remaining i-1 digits
+        let factorial = 1;
+        for (let j = 1; j < i; j++) {
+            factorial = factorial * j;
+        }
+
+        // Which digit goes at the current position?
+        const digitIndex = Math.floor(k / factorial);
+
+        // Update k for the next position
+        k = k % factorial;
+
+        // Pick and remove the chosen digit
+        result.push(String(digits[digitIndex]));
+        digits.splice(digitIndex, 1);
+    }
+
     return result.join('');
 };`,
+    jsWalkthrough:
+      'Input: n = 3, k = 3\n' +
+      'digits = [1, 2, 3], k = 3-1 = 2\n\n' +
+      'i=3: factorial=(3-1)!=2\n' +
+      '  digitIndex = floor(2/2) = 1\n' +
+      '  k = 2 % 2 = 0\n' +
+      '  pick digits[1]=2, digits=[1,3]\n' +
+      '  result=["2"]\n\n' +
+      'i=2: factorial=(2-1)!=1\n' +
+      '  digitIndex = floor(0/1) = 0\n' +
+      '  k = 0 % 1 = 0\n' +
+      '  pick digits[0]=1, digits=[3]\n' +
+      '  result=["2","1"]\n\n' +
+      'i=1: factorial=(1-1)!=1\n' +
+      '  digitIndex = floor(0/1) = 0\n' +
+      '  pick digits[0]=3, digits=[]\n' +
+      '  result=["2","1","3"]\n\n' +
+      'Return "213"',
     explanation:
       '1. Convert to 0-indexed by decrementing k.\n' +
       '2. For each position, compute (i-1)! = number of permutations per group.\n' +
@@ -1638,23 +2368,52 @@ export const solutions: ProblemSolution[] = [
         new_tail.next = None
         return new_head`,
     jsCode: `var rotateRight = function(head, k) {
-    if (!head || !head.next || k === 0) return head;
+    if (!head || !head.next || k === 0) {
+        return head;
+    }
+
+    // Step 1: Find the length and tail of the list
     let length = 1;
     let tail = head;
     while (tail.next) {
         tail = tail.next;
-        length++;
+        length = length + 1;
     }
-    k %= length;
-    if (k === 0) return head;
+
+    // Step 2: Compute effective rotation (rotating by length is a no-op)
+    k = k % length;
+    if (k === 0) {
+        return head;
+    }
+
+    // Step 3: Make the list circular
     tail.next = head;
-    let steps = length - k;
+
+    // Step 4: Walk to the new tail (length - k steps from head)
+    const stepsToNewTail = length - k;
     let newTail = head;
-    for (let i = 0; i < steps - 1; i++) newTail = newTail.next;
+    for (let i = 0; i < stepsToNewTail - 1; i++) {
+        newTail = newTail.next;
+    }
+
+    // Step 5: Break the circle
     const newHead = newTail.next;
     newTail.next = null;
+
     return newHead;
 };`,
+    jsWalkthrough:
+      'Input: head = [1,2,3,4,5], k = 2\n\n' +
+      'Step 1: traverse to find tail and length\n' +
+      '  tail=node(5), length=5\n\n' +
+      'Step 2: k = 2 % 5 = 2 (nonzero, continue)\n\n' +
+      'Step 3: make circular: node(5).next = node(1)\n' +
+      '  1 -> 2 -> 3 -> 4 -> 5 -> (back to 1)\n\n' +
+      'Step 4: stepsToNewTail = 5-2 = 3\n' +
+      '  Walk 2 steps from head: newTail = node(3)\n\n' +
+      'Step 5: newHead = node(4), node(3).next = null\n' +
+      '  4 -> 5 -> 1 -> 2 -> 3 -> null\n\n' +
+      'Return [4,5,1,2,3]',
     explanation:
       '1. Find the length of the list and the tail node.\n' +
       '2. Compute effective rotation: k %= length.\n' +
@@ -1698,21 +2457,50 @@ export const solutions: ProblemSolution[] = [
                     dp[j] += dp[j - 1]
         return dp[n - 1]`,
     jsCode: `var uniquePathsWithObstacles = function(obstacleGrid) {
-    const m = obstacleGrid.length, n = obstacleGrid[0].length;
-    if (obstacleGrid[0][0] === 1) return 0;
+    const m = obstacleGrid.length;
+    const n = obstacleGrid[0].length;
+
+    // If the starting cell has an obstacle, no paths exist
+    if (obstacleGrid[0][0] === 1) {
+        return 0;
+    }
+
+    // 1D dp array: dp[j] = number of paths to reach current row, column j
     const dp = Array(n).fill(0);
-    dp[0] = 1;
+    dp[0] = 1;  // starting cell
+
     for (let i = 0; i < m; i++) {
         for (let j = 0; j < n; j++) {
             if (obstacleGrid[i][j] === 1) {
+                // Obstacle: zero paths through this cell
                 dp[j] = 0;
             } else if (j > 0) {
-                dp[j] += dp[j - 1];
+                // Add paths coming from the left (dp[j-1] is already updated this row)
+                // dp[j] already holds paths from above (previous row)
+                dp[j] = dp[j] + dp[j - 1];
             }
         }
     }
+
     return dp[n - 1];
 };`,
+    jsWalkthrough:
+      'Input: obstacleGrid = [[0,0,0],[0,1,0],[0,0,0]]\n' +
+      'm=3, n=3\n\n' +
+      'dp = [1, 0, 0] initially\n\n' +
+      'Row 0: i=0\n' +
+      '  j=0: grid[0][0]=0, j=0 -> dp stays [1,0,0]\n' +
+      '  j=1: grid[0][1]=0, dp[1]+=dp[0]=1 -> dp=[1,1,0]\n' +
+      '  j=2: grid[0][2]=0, dp[2]+=dp[1]=1 -> dp=[1,1,1]\n\n' +
+      'Row 1: i=1\n' +
+      '  j=0: grid[1][0]=0, j=0 -> dp stays [1,1,1]\n' +
+      '  j=1: grid[1][1]=1 (obstacle) -> dp[1]=0 -> dp=[1,0,1]\n' +
+      '  j=2: grid[1][2]=0, dp[2]+=dp[1]=0 -> dp=[1,0,1]\n\n' +
+      'Row 2: i=2\n' +
+      '  j=0: dp stays [1,0,1]\n' +
+      '  j=1: dp[1]+=dp[0]=1 -> dp=[1,1,1]\n' +
+      '  j=2: dp[2]+=dp[1]=1 -> dp[2]=2 -> dp=[1,1,2]\n\n' +
+      'Return dp[2] = 2',
     explanation:
       '1. If the start cell has an obstacle, return 0.\n' +
       '2. Use a 1D DP array representing the current row.\n' +
@@ -1756,17 +2544,47 @@ export const solutions: ProblemSolution[] = [
                     grid[i][j] += min(grid[i - 1][j], grid[i][j - 1])
         return grid[m - 1][n - 1]`,
     jsCode: `var minPathSum = function(grid) {
-    const m = grid.length, n = grid[0].length;
+    const m = grid.length;
+    const n = grid[0].length;
+
+    // Modify grid in-place to store cumulative minimum path sums
     for (let i = 0; i < m; i++) {
         for (let j = 0; j < n; j++) {
-            if (i === 0 && j === 0) continue;
-            else if (i === 0) grid[i][j] += grid[i][j - 1];
-            else if (j === 0) grid[i][j] += grid[i - 1][j];
-            else grid[i][j] += Math.min(grid[i - 1][j], grid[i][j - 1]);
+            if (i === 0 && j === 0) {
+                // Starting cell: no modification needed
+                continue;
+            } else if (i === 0) {
+                // First row: can only come from the left
+                grid[i][j] = grid[i][j] + grid[i][j - 1];
+            } else if (j === 0) {
+                // First column: can only come from above
+                grid[i][j] = grid[i][j] + grid[i - 1][j];
+            } else {
+                // Other cells: take the cheaper of coming from above or from the left
+                const fromAbove = grid[i - 1][j];
+                const fromLeft = grid[i][j - 1];
+                grid[i][j] = grid[i][j] + Math.min(fromAbove, fromLeft);
+            }
         }
     }
+
     return grid[m - 1][n - 1];
 };`,
+    jsWalkthrough:
+      'Input: grid = [[1,3,1],[1,5,1],[4,2,1]]\n\n' +
+      'Row 0:\n' +
+      '  (0,0): skip (start)\n' +
+      '  (0,1): first row -> grid[0][1] = 3+1 = 4\n' +
+      '  (0,2): first row -> grid[0][2] = 1+4 = 5\n\n' +
+      'Row 1:\n' +
+      '  (1,0): first col -> grid[1][0] = 1+1 = 2\n' +
+      '  (1,1): min(grid[0][1]=4, grid[1][0]=2)=2 -> grid[1][1] = 5+2 = 7\n' +
+      '  (1,2): min(grid[0][2]=5, grid[1][1]=7)=5 -> grid[1][2] = 1+5 = 6\n\n' +
+      'Row 2:\n' +
+      '  (2,0): first col -> grid[2][0] = 4+2 = 6\n' +
+      '  (2,1): min(grid[1][1]=7, grid[2][0]=6)=6 -> grid[2][1] = 2+6 = 8\n' +
+      '  (2,2): min(grid[1][2]=6, grid[2][1]=8)=6 -> grid[2][2] = 1+6 = 7\n\n' +
+      'Return grid[2][2] = 7',
     explanation:
       '1. Modify the grid in-place to store cumulative minimum path sums.\n' +
       '2. First row: can only come from the left.\n' +
@@ -1817,26 +2635,55 @@ export const solutions: ProblemSolution[] = [
                 return False
         return seen_digit`,
     jsCode: `var isNumber = function(s) {
-    let seenDigit = false, seenDot = false, seenExp = false;
+    let seenDigit = false;
+    let seenDot = false;
+    let seenExp = false;
+
     for (let i = 0; i < s.length; i++) {
         const c = s[i];
+
         if (c >= '0' && c <= '9') {
             seenDigit = true;
         } else if (c === '+' || c === '-') {
-            if (i > 0 && s[i - 1] !== 'e' && s[i - 1] !== 'E') return false;
+            // Sign is only valid at the start or right after 'e'/'E'
+            const isAtStart = i === 0;
+            const isAfterExp = i > 0 && (s[i - 1] === 'e' || s[i - 1] === 'E');
+            if (!isAtStart && !isAfterExp) {
+                return false;
+            }
         } else if (c === '.') {
-            if (seenDot || seenExp) return false;
+            // A dot cannot appear after the exponent or twice
+            if (seenDot || seenExp) {
+                return false;
+            }
             seenDot = true;
         } else if (c === 'e' || c === 'E') {
-            if (seenExp || !seenDigit) return false;
+            // Exponent cannot appear twice, and must have digits before it
+            if (seenExp || !seenDigit) {
+                return false;
+            }
             seenExp = true;
+            // Reset seenDigit: we need digits after the exponent too
             seenDigit = false;
         } else {
+            // Any other character is invalid
             return false;
         }
     }
+
+    // Must have seen at least one digit (handles trailing exponent case)
     return seenDigit;
 };`,
+    jsWalkthrough:
+      'Input: s = "2e10"\n\n' +
+      'i=0: c="2" -> seenDigit=true\n' +
+      'i=1: c="e" -> seenExp=false, seenDigit=true -> seenExp=true, seenDigit=false\n' +
+      'i=2: c="1" -> seenDigit=true\n' +
+      'i=3: c="0" -> seenDigit=true\n\n' +
+      'Return seenDigit=true -> true\n\n' +
+      '---\n' +
+      'Input: s = "e"\n\n' +
+      'i=0: c="e" -> seenExp=false ok, but seenDigit=false -> return false',
     explanation:
       '1. Track flags: seen_digit, seen_dot, seen_exp.\n' +
       '2. Digits: set seen_digit = True.\n' +
@@ -1874,15 +2721,30 @@ export const solutions: ProblemSolution[] = [
             digits[i] = 0
         return [1] + digits`,
     jsCode: `var plusOne = function(digits) {
+    // Start from the least significant digit (rightmost)
     for (let i = digits.length - 1; i >= 0; i--) {
         if (digits[i] < 9) {
-            digits[i]++;
+            // No carry needed: just increment and return
+            digits[i] = digits[i] + 1;
             return digits;
         }
+        // This digit was 9: it becomes 0 and carry propagates left
         digits[i] = 0;
     }
+
+    // All digits were 9 (e.g., 999 -> 1000): prepend a 1
     return [1, ...digits];
 };`,
+    jsWalkthrough:
+      'Input: digits = [1,2,3]\n\n' +
+      'i=2: digits[2]=3 < 9 -> digits[2]=4, return [1,2,4]\n\n' +
+      '---\n' +
+      'Input: digits = [9,9,9]\n\n' +
+      'i=2: digits[2]=9 -> digits[2]=0\n' +
+      'i=1: digits[1]=9 -> digits[1]=0\n' +
+      'i=0: digits[0]=9 -> digits[0]=0\n' +
+      'Loop ends\n' +
+      'Return [1, ...digits] = [1,0,0,0]',
     explanation:
       '1. Iterate from the last digit to the first.\n' +
       '2. If the digit is less than 9, increment it and return immediately (no carry).\n' +
@@ -1929,16 +2791,46 @@ export const solutions: ProblemSolution[] = [
     jsCode: `var addBinary = function(a, b) {
     const result = [];
     let carry = 0;
-    let i = a.length - 1, j = b.length - 1;
-    while (i >= 0 || j >= 0 || carry) {
+
+    // Process both strings from right to left (least significant bit first)
+    let i = a.length - 1;
+    let j = b.length - 1;
+
+    while (i >= 0 || j >= 0 || carry > 0) {
         let total = carry;
-        if (i >= 0) { total += Number(a[i]); i--; }
-        if (j >= 0) { total += Number(b[j]); j--; }
+
+        // Add bit from string a (treat missing positions as 0)
+        if (i >= 0) {
+            total = total + Number(a[i]);
+            i = i - 1;
+        }
+
+        // Add bit from string b
+        if (j >= 0) {
+            total = total + Number(b[j]);
+            j = j - 1;
+        }
+
+        // Current bit is total % 2; carry is total / 2
         result.push(String(total % 2));
         carry = Math.floor(total / 2);
     }
+
+    // Result was built in reverse order
     return result.reverse().join('');
 };`,
+    jsWalkthrough:
+      'Input: a = "11", b = "1"\n\n' +
+      'i=1, j=0, carry=0\n\n' +
+      'Step 1: total=0; i>=0: total+=a[1]="1"=1, i=0; j>=0: total+=b[0]="1"=1, j=-1\n' +
+      '  total=2: result.push("0"), carry=1\n\n' +
+      'Step 2: total=1; i>=0: total+=a[0]="1"=1, i=-1; j<0: skip\n' +
+      '  total=2: result.push("0"), carry=1\n\n' +
+      'Step 3: total=1; i<0, j<0; just carry\n' +
+      '  total=1: result.push("1"), carry=0\n\n' +
+      'result = ["0","0","1"]\n' +
+      'reverse -> ["1","0","0"]\n' +
+      'Return "100"',
     explanation:
       '1. Use two pointers starting from the end of both strings.\n' +
       '2. Add corresponding bits plus carry.\n' +
@@ -1981,23 +2873,52 @@ export const solutions: ProblemSolution[] = [
         res.append(' '.join(line).ljust(maxWidth))
         return res`,
     jsCode: `var fullJustify = function(words, maxWidth) {
-    const res = [];
-    let line = [], lineLen = 0;
+    const result = [];
+    let currentLine = [];
+    let currentLineLength = 0;
+
     for (const word of words) {
-        if (lineLen + word.length + line.length > maxWidth) {
-            for (let i = 0; i < maxWidth - lineLen; i++) {
-                line[i % (line.length - 1 || 1)] += ' ';
+        // Check if adding this word (plus one space per existing word) exceeds maxWidth
+        const wouldExceed = currentLineLength + word.length + currentLine.length > maxWidth;
+
+        if (wouldExceed) {
+            // Distribute extra spaces across gaps in the current line
+            const extraSpaces = maxWidth - currentLineLength;
+            for (let i = 0; i < extraSpaces; i++) {
+                // Distribute spaces to gaps round-robin (left-biased)
+                // For single-word lines, all spaces go to the end (index 0)
+                const gapIndex = i % (currentLine.length - 1 || 1);
+                currentLine[gapIndex] = currentLine[gapIndex] + ' ';
             }
-            res.push(line.join(''));
-            line = [];
-            lineLen = 0;
+            result.push(currentLine.join(''));
+            currentLine = [];
+            currentLineLength = 0;
         }
-        line.push(word);
-        lineLen += word.length;
+
+        currentLine.push(word);
+        currentLineLength = currentLineLength + word.length;
     }
-    res.push(line.join(' ').padEnd(maxWidth));
-    return res;
+
+    // Last line: left-justify (single spaces between words, pad right with spaces)
+    result.push(currentLine.join(' ').padEnd(maxWidth));
+
+    return result;
 };`,
+    jsWalkthrough:
+      'Input: words=["This","is","an","example","of","text","justification."], maxWidth=16\n\n' +
+      'word="This": line=["This"], len=4\n' +
+      'word="is": 4+2+1=7<=16 -> line=["This","is"], len=6\n' +
+      'word="an": 6+2+2=10<=16 -> line=["This","is","an"], len=8\n' +
+      'word="example": 8+7+3=18>16 -> flush line\n' +
+      '  extraSpaces=16-8=8, 2 gaps\n' +
+      '  i=0: gap 0%2=0 -> "This" gets " " -> "This "\n' +
+      '  i=1: gap 1%2=1 -> "is" gets " " -> "is "\n' +
+      '  i=2: gap 2%2=0 -> "This" gets " " -> "This  "\n' +
+      '  ... distribute all 8 spaces\n' +
+      '  result.push("This    is    an")\n' +
+      '  line=["example"], len=7\n' +
+      '... (continue packing)\n\n' +
+      'Last line: ["justification."] -> "justification.  " (padded)',
     explanation:
       '1. Greedily pack words into lines until adding the next word exceeds maxWidth.\n' +
       '2. For each full line, distribute extra spaces round-robin among gaps.\n' +
@@ -2037,14 +2958,34 @@ export const solutions: ProblemSolution[] = [
                 hi = mid - 1
         return hi`,
     jsCode: `var mySqrt = function(x) {
-    let lo = 0, hi = x;
+    let lo = 0;
+    let hi = x;
+
     while (lo <= hi) {
         const mid = Math.floor((lo + hi) / 2);
-        if (mid * mid <= x) lo = mid + 1;
-        else hi = mid - 1;
+        const midSquared = mid * mid;
+
+        if (midSquared <= x) {
+            // mid might be the answer or we can go higher
+            lo = mid + 1;
+        } else {
+            // mid is too large
+            hi = mid - 1;
+        }
     }
+
+    // hi is the largest integer where hi^2 <= x (floor of sqrt)
     return hi;
 };`,
+    jsWalkthrough:
+      'Input: x = 8\n\n' +
+      'lo=0, hi=8\n' +
+      'mid=4: 4*4=16 > 8 -> hi=3\n' +
+      'mid=1: 1*1=1 <= 8 -> lo=2\n' +
+      'mid=2: 2*2=4 <= 8 -> lo=3\n' +
+      'mid=3: 3*3=9 > 8 -> hi=2\n' +
+      'lo(3) > hi(2) -> loop ends\n\n' +
+      'Return hi=2 (since floor(sqrt(8))=2.828...=2)',
     explanation:
       '1. Binary search in the range [0, x].\n' +
       '2. If mid^2 <= x, the answer might be mid or larger, so move lo up.\n' +
@@ -2085,15 +3026,36 @@ export const solutions: ProblemSolution[] = [
         return '/' + '/'.join(stack)`,
     jsCode: `var simplifyPath = function(path) {
     const stack = [];
+
     for (const part of path.split('/')) {
         if (part === '..') {
-            if (stack.length) stack.pop();
-        } else if (part && part !== '.') {
+            // Go up one directory (pop the last directory name)
+            if (stack.length > 0) {
+                stack.pop();
+            }
+        } else if (part !== '' && part !== '.') {
+            // Valid directory name: push onto stack
+            // Skip empty strings (from consecutive slashes) and '.' (current dir)
             stack.push(part);
         }
     }
+
     return '/' + stack.join('/');
 };`,
+    jsWalkthrough:
+      'Input: path = "/home//foo/"\n\n' +
+      'Split by "/": ["", "home", "", "foo", ""]\n\n' +
+      'part="": empty -> skip\n' +
+      'part="home": valid -> stack=["home"]\n' +
+      'part="": empty -> skip\n' +
+      'part="foo": valid -> stack=["home","foo"]\n' +
+      'part="": empty -> skip\n\n' +
+      'Return "/" + "home/foo" = "/home/foo"\n\n' +
+      '---\n' +
+      'Input: path = "/../"\n' +
+      'Split: ["","..",""]  \n' +
+      'part="..": stack empty -> skip pop\n' +
+      'Return "/" + "" = "/"',
     explanation:
       '1. Split the path by "/" to get individual components.\n' +
       '2. Skip empty strings (from consecutive slashes) and "." (current directory).\n' +
@@ -2133,16 +3095,37 @@ export const solutions: ProblemSolution[] = [
                 k += 1
         return k`,
     jsCode: `var removeDuplicates = function(nums) {
-    if (nums.length <= 2) return nums.length;
+    // Arrays with at most 2 elements are already valid
+    if (nums.length <= 2) {
+        return nums.length;
+    }
+
+    // k is the write pointer, starting at position 2 (first 2 elements always kept)
     let k = 2;
+
     for (let i = 2; i < nums.length; i++) {
-        if (nums[i] !== nums[k - 2]) {
-            nums[k] = nums[i];
-            k++;
+        const currentNum = nums[i];
+        // Compare with the element 2 positions back in the output
+        // If different, this element won't create a third duplicate
+        if (currentNum !== nums[k - 2]) {
+            nums[k] = currentNum;
+            k = k + 1;
         }
     }
+
     return k;
 };`,
+    jsWalkthrough:
+      'Input: nums = [1,1,1,2,2,3]\n\n' +
+      'k=2 (first 2 elements [1,1] always kept)\n\n' +
+      'i=2: currentNum=1, nums[k-2]=nums[0]=1 -> 1===1 -> skip\n' +
+      'i=3: currentNum=2, nums[k-2]=nums[0]=1 -> 2!==1 -> nums[2]=2, k=3\n' +
+      '  nums=[1,1,2,2,2,3]\n' +
+      'i=4: currentNum=2, nums[k-2]=nums[1]=1 -> 2!==1 -> nums[3]=2, k=4\n' +
+      '  nums=[1,1,2,2,2,3]\n' +
+      'i=5: currentNum=3, nums[k-2]=nums[2]=2 -> 3!==2 -> nums[4]=3, k=5\n' +
+      '  nums=[1,1,2,2,3,3]\n\n' +
+      'Return k=5 (first 5 elements: [1,1,2,2,3])',
     explanation:
       '1. First two elements are always kept.\n' +
       '2. For each subsequent element, compare with nums[k-2] (two positions back in output).\n' +
@@ -2193,24 +3176,62 @@ export const solutions: ProblemSolution[] = [
                     hi = mid - 1
         return False`,
     jsCode: `var search = function(nums, target) {
-    let lo = 0, hi = nums.length - 1;
+    let lo = 0;
+    let hi = nums.length - 1;
+
     while (lo <= hi) {
         const mid = Math.floor((lo + hi) / 2);
-        if (nums[mid] === target) return true;
-        if (nums[lo] === nums[mid]) {
-            lo++;
+        const midValue = nums[mid];
+
+        if (midValue === target) {
+            return true;
+        }
+
+        // When nums[lo] === nums[mid], we can't determine which half is sorted
+        // Increment lo to skip this duplicate
+        if (nums[lo] === midValue) {
+            lo = lo + 1;
             continue;
         }
-        if (nums[lo] <= nums[mid]) {
-            if (nums[lo] <= target && target < nums[mid]) hi = mid - 1;
-            else lo = mid + 1;
+
+        if (nums[lo] <= midValue) {
+            // Left half is sorted
+            const targetInLeftHalf = nums[lo] <= target && target < midValue;
+            if (targetInLeftHalf) {
+                hi = mid - 1;
+            } else {
+                lo = mid + 1;
+            }
         } else {
-            if (nums[mid] < target && target <= nums[hi]) lo = mid + 1;
-            else hi = mid - 1;
+            // Right half is sorted
+            const targetInRightHalf = midValue < target && target <= nums[hi];
+            if (targetInRightHalf) {
+                lo = mid + 1;
+            } else {
+                hi = mid - 1;
+            }
         }
     }
+
     return false;
 };`,
+    jsWalkthrough:
+      'Input: nums = [2,5,6,0,0,1,2], target = 0\n\n' +
+      'lo=0, hi=6\n' +
+      'mid=3: nums[3]=0 === target=0 -> return true\n\n' +
+      '---\n' +
+      'Input: nums = [2,5,6,0,0,1,2], target = 3\n\n' +
+      'lo=0, hi=6\n' +
+      'mid=3: nums[3]=0 != 3; nums[0]=2 != nums[3]=0\n' +
+      '  nums[0]=2 <= nums[3]=0? No -> right half sorted\n' +
+      '  targetInRight: 0<3 and 3<=nums[6]=2? No -> hi=2\n' +
+      'lo=0, hi=2: mid=1: nums[1]=5 != 3; nums[0]=2 != 5\n' +
+      '  nums[0]=2 <= nums[1]=5? Yes -> left half sorted\n' +
+      '  targetInLeft: 2<=3 and 3<5? Yes -> lo=2\n' +
+      'lo=2, hi=2: mid=2: nums[2]=6 != 3; nums[2]=6 != 3\n' +
+      '  nums[0... wait lo=2 now: nums[2]=6 <= nums[2]=6? Yes\n' +
+      '  targetInLeft: 6<=3? No -> lo=3\n' +
+      'lo(3) > hi(2) -> return false',
     explanation:
       '1. Standard binary search with modifications for rotation and duplicates.\n' +
       '2. If nums[lo] == nums[mid], we cannot determine which side is sorted; skip lo.\n' +
@@ -2253,21 +3274,47 @@ export const solutions: ProblemSolution[] = [
             head = head.next
         return dummy.next`,
     jsCode: `var deleteDuplicates = function(head) {
+    // Dummy node handles the case where the head itself has duplicates
     const dummy = new ListNode(0, head);
     let prev = dummy;
+
     while (head) {
-        if (head.next && head.val === head.next.val) {
+        const hasDuplicate = head.next && head.val === head.next.val;
+
+        if (hasDuplicate) {
+            // Advance head past all nodes with this duplicate value
+            const duplicateValue = head.val;
             while (head.next && head.val === head.next.val) {
                 head = head.next;
             }
+            // Skip all nodes with duplicateValue by pointing prev past them
             prev.next = head.next;
         } else {
+            // This node is unique; advance prev
             prev = prev.next;
         }
+
         head = head.next;
     }
+
     return dummy.next;
 };`,
+    jsWalkthrough:
+      'Input: head = [1,2,3,3,4,4,5]\n\n' +
+      'dummy -> 1 -> 2 -> 3 -> 3 -> 4 -> 4 -> 5\n' +
+      'prev=dummy, head=1\n\n' +
+      'head=1: next=2, 1!==2 -> no dup -> prev=node(1), head=2\n' +
+      'head=2: next=3, 2!==3 -> no dup -> prev=node(2), head=3\n' +
+      'head=3: next=3, 3===3 -> has dup!\n' +
+      '  inner loop: head.next=3 and 3===3 -> head=node(3)\n' +
+      '  head.next now points to node(4)\n' +
+      '  prev.next = head.next = node(4) -> skip both 3s\n' +
+      '  head = head.next = node(4)\n' +
+      'head=4: next=4, 4===4 -> has dup!\n' +
+      '  skip both 4s; prev.next = node(5)\n' +
+      '  head = node(5)\n' +
+      'head=5: next=null -> no dup -> prev=node(5), head=null\n\n' +
+      'Return dummy.next = [1,2,5]',
     explanation:
       '1. Create a dummy node pointing to head.\n' +
       '2. prev tracks the last confirmed unique node.\n' +
@@ -2306,16 +3353,32 @@ export const solutions: ProblemSolution[] = [
                 curr = curr.next
         return head`,
     jsCode: `var deleteDuplicates = function(head) {
-    let curr = head;
-    while (curr && curr.next) {
-        if (curr.val === curr.next.val) {
-            curr.next = curr.next.next;
+    let current = head;
+
+    while (current && current.next) {
+        const currentValue = current.val;
+        const nextValue = current.next.val;
+
+        if (currentValue === nextValue) {
+            // Skip the duplicate next node
+            current.next = current.next.next;
         } else {
-            curr = curr.next;
+            // Values differ: advance to next node
+            current = current.next;
         }
     }
+
     return head;
 };`,
+    jsWalkthrough:
+      'Input: head = [1,1,2]\n\n' +
+      'current=node(1)\n\n' +
+      'Step 1: currentValue=1, nextValue=1 -> equal -> skip next\n' +
+      '  current.next = node(2) (skip first duplicate 1)\n\n' +
+      'Step 2: currentValue=1, nextValue=2 -> differ -> advance\n' +
+      '  current = node(2)\n\n' +
+      'Step 3: current.next=null -> loop ends\n\n' +
+      'Return head -> [1,2]',
     explanation:
       '1. Start at the head of the list.\n' +
       '2. If current value equals next value, skip the next node.\n' +
@@ -2364,25 +3427,60 @@ export const solutions: ProblemSolution[] = [
         return max_area`,
     jsCode: `var maximalRectangle = function(matrix) {
     if (!matrix.length) return 0;
+
     const cols = matrix[0].length;
+    // heights[j] = number of consecutive 1s above (including current row) in column j
+    // Add a sentinel 0 at the end to flush remaining stack entries
     const heights = Array(cols + 1).fill(0);
     let maxArea = 0;
+
     for (const row of matrix) {
+        // Update histogram heights for this row
         for (let j = 0; j < cols; j++) {
-            heights[j] = row[j] === '1' ? heights[j] + 1 : 0;
-        }
-        const stack = [-1];
-        for (let j = 0; j <= cols; j++) {
-            while (stack[stack.length - 1] !== -1 && heights[stack[stack.length - 1]] >= heights[j]) {
-                const h = heights[stack.pop()];
-                const w = j - stack[stack.length - 1] - 1;
-                maxArea = Math.max(maxArea, h * w);
+            if (row[j] === '1') {
+                heights[j] = heights[j] + 1;
+            } else {
+                heights[j] = 0;
             }
+        }
+
+        // Apply largest rectangle in histogram algorithm using a monotonic stack
+        const stack = [-1];  // sentinel value
+
+        for (let j = 0; j <= cols; j++) {
+            const currentHeight = heights[j];
+
+            // Pop bars that are taller than the current bar
+            while (stack[stack.length - 1] !== -1 &&
+                   heights[stack[stack.length - 1]] >= currentHeight) {
+                const barHeight = heights[stack.pop()];
+                const leftBoundary = stack[stack.length - 1];
+                const barWidth = j - leftBoundary - 1;
+                const area = barHeight * barWidth;
+                maxArea = Math.max(maxArea, area);
+            }
+
             stack.push(j);
         }
     }
+
     return maxArea;
 };`,
+    jsWalkthrough:
+      'Input: matrix row = ["1","0","1","1","1"]\n' +
+      'Assume heights before this row = [1,0,1,0,0]\n' +
+      'After updating: heights = [2,0,2,1,1, 0] (with sentinel)\n\n' +
+      'j=0: h=2, stack=[-1,0]\n' +
+      'j=1: h=0 < heights[0]=2 -> pop 0: h=2, left=-1, w=1-(-1)-1=1, area=2\n' +
+      '  stack=[-1], h=0 >= 0? sentinel -> push 1, stack=[-1,1]\n' +
+      'j=2: h=2, stack=[-1,1,2]\n' +
+      'j=3: h=1 < heights[2]=2 -> pop 2: h=2, left=1, w=3-1-1=1, area=2\n' +
+      '  h=1 >= heights[1]=0 -> push 3, stack=[-1,1,3]\n' +
+      'j=4: h=1, heights[3]=1 -> push 4, stack=[-1,1,3,4]\n' +
+      'j=5 (sentinel h=0): pop 4: h=1, left=3, w=1, area=1\n' +
+      '  pop 3: h=1, left=1, w=5-1-1=3, area=3 -> maxArea=3\n' +
+      '  pop 1: h=0, skip...\n' +
+      'maxArea = 3 (or 6 from the full matrix)',
     explanation:
       '1. For each row, compute histogram heights (consecutive 1s above).\n' +
       '2. For each histogram, use the monotonic stack approach for largest rectangle.\n' +
@@ -2427,9 +3525,13 @@ export const solutions: ProblemSolution[] = [
         before.next = after_head.next
         return before_head.next`,
     jsCode: `var partition = function(head, x) {
-    const beforeHead = new ListNode(0);
-    const afterHead = new ListNode(0);
-    let before = beforeHead, after = afterHead;
+    // Two dummy heads for two separate chains
+    const beforeHead = new ListNode(0);  // chain for nodes < x
+    const afterHead = new ListNode(0);   // chain for nodes >= x
+
+    let before = beforeHead;
+    let after = afterHead;
+
     while (head) {
         if (head.val < x) {
             before.next = head;
@@ -2440,10 +3542,28 @@ export const solutions: ProblemSolution[] = [
         }
         head = head.next;
     }
+
+    // Terminate the after chain to avoid cycles
     after.next = null;
+
+    // Connect the before chain to the after chain
     before.next = afterHead.next;
+
     return beforeHead.next;
 };`,
+    jsWalkthrough:
+      'Input: head = [1,4,3,2,5,2], x = 3\n\n' +
+      'Before chain (val < 3): dummy\n' +
+      'After chain (val >= 3): dummy\n\n' +
+      'node(1): 1<3 -> before chain: dummy->1; before=node(1)\n' +
+      'node(4): 4>=3 -> after chain: dummy->4; after=node(4)\n' +
+      'node(3): 3>=3 -> after chain: 4->3; after=node(3)\n' +
+      'node(2): 2<3 -> before chain: 1->2; before=node(2)\n' +
+      'node(5): 5>=3 -> after chain: 3->5; after=node(5)\n' +
+      'node(2): 2<3 -> before chain: 2->2; before=node(2)\n\n' +
+      'after.next = null (terminate after chain)\n' +
+      'before.next = afterHead.next = node(4)\n\n' +
+      'Result: 1->2->2->4->3->5',
     explanation:
       '1. Create two dummy-headed lists: before (< x) and after (>= x).\n' +
       '2. Iterate through the original list, appending to the correct partition.\n' +
@@ -2491,27 +3611,67 @@ export const solutions: ProblemSolution[] = [
         return dp(s1, s2)`,
     jsCode: `var isScramble = function(s1, s2) {
     const memo = new Map();
+
     function dp(a, b) {
         const key = a + '#' + b;
-        if (memo.has(key)) return memo.get(key);
-        if (a === b) { memo.set(key, true); return true; }
+
+        // Return cached result if available
+        if (memo.has(key)) {
+            return memo.get(key);
+        }
+
+        // Base case: identical strings are trivially scrambles
+        if (a === b) {
+            memo.set(key, true);
+            return true;
+        }
+
+        // Pruning: if sorted characters differ, can never be scrambles
         if ([...a].sort().join('') !== [...b].sort().join('')) {
             memo.set(key, false);
             return false;
         }
         const n = a.length;
-        for (let i = 1; i < n; i++) {
-            if ((dp(a.slice(0, i), b.slice(0, i)) && dp(a.slice(i), b.slice(i))) ||
-                (dp(a.slice(0, i), b.slice(n - i)) && dp(a.slice(i), b.slice(0, n - i)))) {
+
+        for (let splitLen = 1; splitLen < n; splitLen++) {
+            const aLeft = a.slice(0, splitLen);
+            const aRight = a.slice(splitLen);
+            const bLeft = b.slice(0, splitLen);
+            const bRight = b.slice(splitLen);
+            const bSuffix = b.slice(n - splitLen);
+            const bPrefix = b.slice(0, n - splitLen);
+
+            // No-swap case: left of a matches left of b, right matches right
+            const noSwap = dp(aLeft, bLeft) && dp(aRight, bRight);
+
+            // Swap case: left of a matches right part of b, right of a matches left part of b
+            const withSwap = dp(aLeft, bSuffix) && dp(aRight, bPrefix);
+
+            if (noSwap || withSwap) {
                 memo.set(key, true);
                 return true;
             }
         }
+
         memo.set(key, false);
         return false;
     }
+
     return dp(s1, s2);
 };`,
+    jsWalkthrough:
+      'Input: s1 = "great", s2 = "rgeat"\n\n' +
+      'dp("great","rgeat"):\n' +
+      '  sorted("great")="aegrt", sorted("rgeat")="aegrt" -> ok\n' +
+      '  splitLen=1: aLeft="g", aRight="reat", bLeft="r", bSuffix="t"\n' +
+      '    noSwap: dp("g","r")=false\n' +
+      '    withSwap: dp("g","t")=false\n' +
+      '  splitLen=2: aLeft="gr", aRight="eat", bLeft="rg", bSuffix="at"\n' +
+      '    noSwap: dp("gr","rg")?\n' +
+      '      dp("gr","rg"): try splitLen=1: dp("g","r")=false, dp("g","g")=true & dp("r","r")=true -> true!\n' +
+      '    noSwap=true, and dp("eat","eat")=true (a===b)\n' +
+      '    -> return true\n\n' +
+      'Result: true',
     explanation:
       '1. Base case: if strings are equal, return True.\n' +
       '2. Prune: if sorted characters differ, return False.\n' +
@@ -2545,11 +3705,30 @@ export const solutions: ProblemSolution[] = [
         return [i ^ (i >> 1) for i in range(1 << n)]`,
     jsCode: `var grayCode = function(n) {
     const result = [];
-    for (let i = 0; i < (1 << n); i++) {
-        result.push(i ^ (i >> 1));
+    const totalCodes = 1 << n;  // 2^n total Gray code values
+
+    for (let i = 0; i < totalCodes; i++) {
+        // Formula: Gray code of i = i XOR (i right-shifted by 1)
+        const grayValue = i ^ (i >> 1);
+        result.push(grayValue);
     }
+
     return result;
 };`,
+    jsWalkthrough:
+      'Input: n = 2\n' +
+      'totalCodes = 1 << 2 = 4\n\n' +
+      'i=0 (binary 00): gray = 00 ^ 00 = 0\n' +
+      'i=1 (binary 01): gray = 01 ^ 00 = 1\n' +
+      'i=2 (binary 10): gray = 10 ^ 01 = 3\n' +
+      'i=3 (binary 11): gray = 11 ^ 01 = 2\n\n' +
+      'result = [0, 1, 3, 2]\n\n' +
+      'Verify consecutive pairs differ by 1 bit:\n' +
+      '0(00)->1(01): differ in bit 0\n' +
+      '1(01)->3(11): differ in bit 1\n' +
+      '3(11)->2(10): differ in bit 0\n' +
+      '2(10)->0(00): differ in bit 1 (wrap-around)\n' +
+      'Return [0,1,3,2]',
     explanation:
       '1. The ith Gray code value is i XOR (i >> 1).\n' +
       '2. This formula ensures consecutive values differ by exactly one bit.\n' +
@@ -2592,18 +3771,48 @@ export const solutions: ProblemSolution[] = [
             prev.next = nxt
         return dummy.next`,
     jsCode: `var reverseBetween = function(head, left, right) {
+    // Dummy node handles the edge case where left = 1 (head gets reversed)
     const dummy = new ListNode(0, head);
     let prev = dummy;
-    for (let i = 0; i < left - 1; i++) prev = prev.next;
-    let curr = prev.next;
-    for (let i = 0; i < right - left; i++) {
-        const nxt = curr.next;
-        curr.next = nxt.next;
-        nxt.next = prev.next;
-        prev.next = nxt;
+
+    // Advance prev to the node just before position 'left'
+    for (let i = 0; i < left - 1; i++) {
+        prev = prev.next;
     }
+
+    // curr starts at position 'left'
+    let curr = prev.next;
+
+    // Reverse (right - left) times by moving the next node to the front
+    for (let i = 0; i < right - left; i++) {
+        const nextNode = curr.next;
+
+        // Remove nextNode from its position and insert it right after prev
+        curr.next = nextNode.next;
+        nextNode.next = prev.next;
+        prev.next = nextNode;
+    }
+
     return dummy.next;
 };`,
+    jsWalkthrough:
+      'Input: head = [1,2,3,4,5], left = 2, right = 4\n\n' +
+      'dummy -> 1 -> 2 -> 3 -> 4 -> 5\n' +
+      'Advance prev to position 1 (node(1)):\n' +
+      '  i=0: prev = node(1)\n\n' +
+      'curr = node(2) (position "left")\n\n' +
+      'Reverse right-left=2 times:\n\n' +
+      'i=0: nextNode=node(3)\n' +
+      '  curr.next = node(4)  [remove node(3)]\n' +
+      '  nextNode.next = prev.next = node(2)\n' +
+      '  prev.next = node(3)\n' +
+      '  List: dummy->1->3->2->4->5, curr=node(2)\n\n' +
+      'i=1: nextNode=node(4)\n' +
+      '  curr.next = node(5)  [remove node(4)]\n' +
+      '  nextNode.next = prev.next = node(3)\n' +
+      '  prev.next = node(4)\n' +
+      '  List: dummy->1->4->3->2->5\n\n' +
+      'Return [1,4,3,2,5]',
     explanation:
       '1. Use a dummy node and advance prev to the node before position left.\n' +
       '2. curr starts at position left.\n' +
@@ -2650,22 +3859,58 @@ export const solutions: ProblemSolution[] = [
         backtrack(0, [])
         return res`,
     jsCode: `var restoreIpAddresses = function(s) {
-    const res = [];
-    function backtrack(start, parts) {
-        if (parts.length === 4) {
-            if (start === s.length) res.push(parts.join('.'));
+    const result = [];
+
+    function backtrack(startIndex, segments) {
+        // Base case: exactly 4 segments and consumed all characters
+        if (segments.length === 4) {
+            if (startIndex === s.length) {
+                result.push(segments.join('.'));
+            }
             return;
         }
-        for (let len = 1; len <= 3; len++) {
-            if (start + len > s.length) break;
-            const segment = s.substring(start, start + len);
-            if ((segment[0] === '0' && len > 1) || Number(segment) > 255) continue;
-            backtrack(start + len, [...parts, segment]);
+
+        // Try taking 1, 2, or 3 characters for the current segment
+        for (let length = 1; length <= 3; length++) {
+            if (startIndex + length > s.length) {
+                break;
+            }
+
+            const segment = s.substring(startIndex, startIndex + length);
+
+            // Validate: no leading zeros and value must be <= 255
+            const hasLeadingZero = segment[0] === '0' && length > 1;
+            const exceedsMax = Number(segment) > 255;
+
+            if (hasLeadingZero || exceedsMax) {
+                continue;
+            }
+
+            backtrack(startIndex + length, [...segments, segment]);
         }
     }
+
     backtrack(0, []);
-    return res;
+    return result;
 };`,
+    jsWalkthrough:
+      'Input: s = "25525511135"\n\n' +
+      'backtrack(0, []):\n' +
+      '  len=1: segment="2" -> backtrack(1,["2"])\n' +
+      '    len=1: "5" -> backtrack(2,["2","5"])\n' +
+      '      ... eventually fails (too many/few chars)\n' +
+      '  len=2: segment="25" -> backtrack(2,["25"])\n' +
+      '    len=1: "5" -> backtrack(3,["25","5"])\n' +
+      '      ... \n' +
+      '    len=2: "52" -> backtrack(4,["25","52"])\n' +
+      '      len=3: "511" -> backtrack(7,["25","52","511"])... 511>255 skip\n' +
+      '  len=3: segment="255" -> backtrack(3,["255"])\n' +
+      '    len=3: "255" -> backtrack(6,["255","255"])\n' +
+      '      len=2: "11" -> backtrack(8,["255","255","11"])\n' +
+      '        len=3: "135" -> backtrack(11,["255","255","11","135"])\n' +
+      '          segments.length=4, start=11=s.length -> push "255.255.11.135"\n' +
+      '      len=3: "111" -> ... "255.255.111.35"\n\n' +
+      'Return ["255.255.11.135","255.255.111.35"]',
     explanation:
       '1. Backtrack by choosing 1, 2, or 3 digits for each of the 4 segments.\n' +
       '2. Validate each segment: no leading zeros and value <= 255.\n' +
@@ -2709,21 +3954,53 @@ export const solutions: ProblemSolution[] = [
         return build(1, n) if n else []`,
     jsCode: `var generateTrees = function(n) {
     if (!n) return [];
+
     function build(lo, hi) {
-        if (lo > hi) return [null];
+        // Empty range: return a list containing one null (empty subtree)
+        if (lo > hi) {
+            return [null];
+        }
+
         const trees = [];
-        for (let i = lo; i <= hi; i++) {
-            for (const left of build(lo, i - 1)) {
-                for (const right of build(i + 1, hi)) {
-                    const root = new TreeNode(i, left, right);
+
+        // Try each value in [lo, hi] as the root
+        for (let rootVal = lo; rootVal <= hi; rootVal++) {
+            // Build all possible left subtrees using values [lo, rootVal-1]
+            const leftSubtrees = build(lo, rootVal - 1);
+
+            // Build all possible right subtrees using values [rootVal+1, hi]
+            const rightSubtrees = build(rootVal + 1, hi);
+
+            // Combine each left-right pair with this root
+            for (const leftTree of leftSubtrees) {
+                for (const rightTree of rightSubtrees) {
+                    const root = new TreeNode(rootVal, leftTree, rightTree);
                     trees.push(root);
                 }
             }
         }
+
         return trees;
     }
+
     return build(1, n);
 };`,
+    jsWalkthrough:
+      'Input: n = 3\n\n' +
+      'build(1, 3):\n' +
+      '  rootVal=1: left=build(1,0)=[null], right=build(2,3)\n' +
+      '    build(2,3): rootVal=2: left=[null], right=build(3,3)\n' +
+      '      build(3,3): rootVal=3: left=[null], right=[null] -> [TreeNode(3)]\n' +
+      '    root=2, left=null, right=TreeNode(3) -> [TreeNode(2, null, 3)]\n' +
+      '    rootVal=3: left=build(2,2)=[TreeNode(2)], right=[null]\n' +
+      '    -> [TreeNode(3, TreeNode(2), null)]\n' +
+      '    right=build(2,3) = [2->3, 3->2]\n' +
+      '  root=1, left=null, right=2->3 -> tree: 1->null,2->null,3\n' +
+      '  root=1, left=null, right=3->2 -> tree: 1->null,3->2,null\n' +
+      '  rootVal=2: left=build(1,1)=[TreeNode(1)], right=build(3,3)=[TreeNode(3)]\n' +
+      '  -> tree: 2->1,3\n' +
+      '  rootVal=3: left=build(1,2) = 2 trees, right=[null] -> 2 more trees\n\n' +
+      'Total: 5 unique BSTs',
     explanation:
       '1. For range [lo, hi], try each value i as the root.\n' +
       '2. Recursively build all left subtrees from [lo, i-1].\n' +
@@ -2761,15 +4038,37 @@ export const solutions: ProblemSolution[] = [
                 dp[i] += dp[j - 1] * dp[i - j]
         return dp[n]`,
     jsCode: `var numTrees = function(n) {
+    // dp[i] = number of structurally unique BSTs with i nodes
     const dp = Array(n + 1).fill(0);
-    dp[0] = dp[1] = 1;
-    for (let i = 2; i <= n; i++) {
-        for (let j = 1; j <= i; j++) {
-            dp[i] += dp[j - 1] * dp[i - j];
+
+    // Base cases: empty tree and single node tree each have exactly 1 structure
+    dp[0] = 1;
+    dp[1] = 1;
+
+    for (let totalNodes = 2; totalNodes <= n; totalNodes++) {
+        // Try each value from 1 to totalNodes as the root
+        for (let rootVal = 1; rootVal <= totalNodes; rootVal++) {
+            const leftCount = dp[rootVal - 1];       // nodes in left subtree
+            const rightCount = dp[totalNodes - rootVal];  // nodes in right subtree
+            dp[totalNodes] = dp[totalNodes] + leftCount * rightCount;
         }
     }
+
     return dp[n];
 };`,
+    jsWalkthrough:
+      'Input: n = 3\n\n' +
+      'dp = [1, 1, 0, 0]\n\n' +
+      'totalNodes=2:\n' +
+      '  rootVal=1: left=dp[0]=1, right=dp[1]=1 -> dp[2]+=1\n' +
+      '  rootVal=2: left=dp[1]=1, right=dp[0]=1 -> dp[2]+=1\n' +
+      '  dp[2] = 2\n\n' +
+      'totalNodes=3:\n' +
+      '  rootVal=1: left=dp[0]=1, right=dp[2]=2 -> dp[3]+=2\n' +
+      '  rootVal=2: left=dp[1]=1, right=dp[1]=1 -> dp[3]+=1\n' +
+      '  rootVal=3: left=dp[2]=2, right=dp[0]=1 -> dp[3]+=2\n' +
+      '  dp[3] = 5\n\n' +
+      'Return dp[3] = 5',
     explanation:
       '1. dp[i] = number of unique BSTs with i nodes.\n' +
       '2. Base cases: dp[0] = dp[1] = 1.\n' +
@@ -2813,22 +4112,48 @@ export const solutions: ProblemSolution[] = [
                     dp[i][j] = dp[i][j] or dp[i][j - 1]
         return dp[m][n]`,
     jsCode: `var isInterleave = function(s1, s2, s3) {
-    const m = s1.length, n = s2.length;
-    if (m + n !== s3.length) return false;
+    const m = s1.length;
+    const n = s2.length;
+
+    // Quick check: lengths must add up
+    if (m + n !== s3.length) {
+        return false;
+    }
+
+    // dp[i][j] = true if s3[0..i+j-1] can be formed by interleaving s1[0..i-1] and s2[0..j-1]
     const dp = Array.from({length: m + 1}, () => Array(n + 1).fill(false));
     dp[0][0] = true;
+
     for (let i = 0; i <= m; i++) {
         for (let j = 0; j <= n; j++) {
-            if (i > 0 && s1[i - 1] === s3[i + j - 1]) {
+            const s3Index = i + j - 1;
+
+            // Try extending by taking the next char from s1
+            if (i > 0 && s1[i - 1] === s3[s3Index]) {
                 dp[i][j] = dp[i][j] || dp[i - 1][j];
             }
-            if (j > 0 && s2[j - 1] === s3[i + j - 1]) {
+
+            // Try extending by taking the next char from s2
+            if (j > 0 && s2[j - 1] === s3[s3Index]) {
                 dp[i][j] = dp[i][j] || dp[i][j - 1];
             }
         }
     }
+
     return dp[m][n];
 };`,
+    jsWalkthrough:
+      'Input: s1="aab", s2="axy", s3="aaxaby"\n' +
+      'm=3, n=3, len check: 6===6 ok\n\n' +
+      'dp[0][0]=true\n' +
+      'i=0: j=0 (skip); j=1: s2[0]="a"===s3[0]="a" -> dp[0][1]=dp[0][0]=true\n' +
+      '  j=2: s2[1]="x"===s3[1]="a"? No -> dp[0][2]=false\n' +
+      '  j=3: s2[2]="y"===s3[2]="x"? No -> dp[0][3]=false\n\n' +
+      'i=1: j=0: s1[0]="a"===s3[0]="a" -> dp[1][0]=dp[0][0]=true\n' +
+      '  j=1: s1[0]="a"===s3[1]="a" -> dp[1][1]|=dp[0][1]=true; also s2[0]="a"===s3[1]="a" -> dp[1][1]|=dp[1][0]=true\n' +
+      '  dp[1][1]=true\n' +
+      '... (continue filling table)\n\n' +
+      'Return dp[3][3]',
     explanation:
       '1. If len(s1) + len(s2) != len(s3), return False immediately.\n' +
       '2. dp[i][j] = can s3[:i+j] be formed from s1[:i] and s2[:j].\n' +
@@ -2876,21 +4201,52 @@ export const solutions: ProblemSolution[] = [
         inorder(root)
         self.first.val, self.second.val = self.second.val, self.first.val`,
     jsCode: `var recoverTree = function(root) {
-    let first = null, second = null;
-    let prev = new TreeNode(-Infinity);
+    let firstMisplaced = null;
+    let secondMisplaced = null;
+    let prevNode = new TreeNode(-Infinity);
+
     function inorder(node) {
         if (!node) return;
+
+        // Visit left subtree
         inorder(node.left);
-        if (prev.val > node.val) {
-            if (!first) first = prev;
-            second = node;
+
+        // In a valid BST, prevNode.val should always be < node.val
+        // An inversion means one of these two nodes is misplaced
+        if (prevNode.val > node.val) {
+            if (!firstMisplaced) {
+                // First inversion: prevNode is the first swapped node
+                firstMisplaced = prevNode;
+            }
+            // Always update second: it may be updated multiple times
+            secondMisplaced = node;
         }
-        prev = node;
+
+        prevNode = node;
+
+        // Visit right subtree
         inorder(node.right);
     }
+
     inorder(root);
-    [first.val, second.val] = [second.val, first.val];
+
+    // Swap the values to fix the BST
+    const temp = firstMisplaced.val;
+    firstMisplaced.val = secondMisplaced.val;
+    secondMisplaced.val = temp;
 };`,
+    jsWalkthrough:
+      'Input: root = [1,3,null,null,2] (3 and 1 are swapped)\n' +
+      'In-order traversal should give sorted sequence\n\n' +
+      'Traverse: 3 -> 2 -> 1 (the actual in-order)\n\n' +
+      'prevNode=-Inf, node=3: -Inf<3, no inversion\n' +
+      '  prevNode=3, node=2: 3>2 -> INVERSION!\n' +
+      '  firstMisplaced=3 (prevNode), secondMisplaced=2 (node)\n' +
+      '  prevNode=2, node=1: 2>1 -> INVERSION!\n' +
+      '  firstMisplaced stays 3, secondMisplaced=1 (updated)\n\n' +
+      'Swap: firstMisplaced.val=3 and secondMisplaced.val=1\n' +
+      '  firstMisplaced.val=1, secondMisplaced.val=3\n\n' +
+      'Fixed tree in-order: 1->2->3 (correct BST)',
     explanation:
       '1. In-order traversal of a valid BST produces sorted values.\n' +
       '2. Two swapped nodes create one or two inversions in the in-order sequence.\n' +
@@ -2931,15 +4287,40 @@ export const solutions: ProblemSolution[] = [
                     isMirror(t1.right, t2.left))
         return isMirror(root, root)`,
     jsCode: `var isSymmetric = function(root) {
-    function isMirror(t1, t2) {
-        if (!t1 && !t2) return true;
-        if (!t1 || !t2) return false;
-        return t1.val === t2.val &&
-            isMirror(t1.left, t2.right) &&
-            isMirror(t1.right, t2.left);
+    function isMirror(leftNode, rightNode) {
+        // Both null: symmetric base case
+        if (!leftNode && !rightNode) {
+            return true;
+        }
+
+        // One null, one non-null: not symmetric
+        if (!leftNode || !rightNode) {
+            return false;
+        }
+
+        // Values must match, and subtrees must mirror each other
+        const valuesMatch = leftNode.val === rightNode.val;
+        const outerMirror = isMirror(leftNode.left, rightNode.right);
+        const innerMirror = isMirror(leftNode.right, rightNode.left);
+
+        return valuesMatch && outerMirror && innerMirror;
     }
+
+    // Compare root with itself (left subtree mirrors right subtree)
     return isMirror(root, root);
 };`,
+    jsWalkthrough:
+      'Input: root = [1,2,2,3,4,4,3]\n\n' +
+      'isMirror(root, root) = isMirror(node(1), node(1))\n' +
+      '  values match: 1===1\n' +
+      '  outerMirror = isMirror(node(2,left), node(2,right))\n' +
+      '    values match: 2===2\n' +
+      '    outerMirror = isMirror(node(3), node(3)) -> values match, both leaves -> true\n' +
+      '    innerMirror = isMirror(node(4), node(4)) -> values match, both leaves -> true\n' +
+      '    -> true\n' +
+      '  innerMirror = isMirror(node(2,right), node(2,left)) -> same as above -> true\n' +
+      '  -> true\n\n' +
+      'Return true',
     explanation:
       '1. Two trees are mirrors if both are None, or both exist with equal values.\n' +
       '2. Additionally, left subtree of t1 must mirror right subtree of t2.\n' +
@@ -2993,24 +4374,53 @@ export const solutions: ProblemSolution[] = [
         return res`,
     jsCode: `var zigzagLevelOrder = function(root) {
     if (!root) return [];
+
     const queue = [root];
-    const res = [];
+    const result = [];
     let leftToRight = true;
+
     while (queue.length) {
-        const level = [];
-        const size = queue.length;
-        for (let i = 0; i < size; i++) {
+        const levelValues = [];
+        const levelSize = queue.length;
+
+        for (let i = 0; i < levelSize; i++) {
             const node = queue.shift();
-            if (leftToRight) level.push(node.val);
-            else level.unshift(node.val);
+
+            if (leftToRight) {
+                // Append to end for left-to-right order
+                levelValues.push(node.val);
+            } else {
+                // Prepend to front for right-to-left order
+                levelValues.unshift(node.val);
+            }
+
             if (node.left) queue.push(node.left);
             if (node.right) queue.push(node.right);
         }
-        res.push(level);
+
+        result.push(levelValues);
+        // Toggle direction for next level
         leftToRight = !leftToRight;
     }
-    return res;
+
+    return result;
 };`,
+    jsWalkthrough:
+      'Input: root = [3,9,20,null,null,15,7]\n\n' +
+      'queue=[3], leftToRight=true\n\n' +
+      'Level 1 (leftToRight=true): size=1\n' +
+      '  node=3: push 3, enqueue 9 and 20\n' +
+      '  levelValues=[3], result=[[3]], leftToRight=false\n\n' +
+      'Level 2 (leftToRight=false): size=2\n' +
+      '  node=9: unshift 9 -> levelValues=[9]\n' +
+      '  node=20: unshift 20 -> levelValues=[20,9]\n' +
+      '  enqueue 15 and 7\n' +
+      '  result=[[3],[20,9]], leftToRight=true\n\n' +
+      'Level 3 (leftToRight=true): size=2\n' +
+      '  node=15: push 15 -> levelValues=[15]\n' +
+      '  node=7: push 7 -> levelValues=[15,7]\n' +
+      '  result=[[3],[20,9],[15,7]]\n\n' +
+      'Return [[3],[20,9],[15,7]]',
     explanation:
       '1. Standard BFS level-order traversal.\n' +
       '2. Use a flag left_to_right that alternates each level.\n' +
@@ -3057,20 +4467,61 @@ export const solutions: ProblemSolution[] = [
 
         return build(0, len(inorder) - 1)`,
     jsCode: `var buildTree = function(inorder, postorder) {
+    // Map each value in inorder to its index for O(1) lookup
     const inorderMap = new Map();
-    inorder.forEach((v, i) => inorderMap.set(v, i));
+    inorder.forEach((val, idx) => inorderMap.set(val, idx));
+
+    // We consume postorder from right to left (root is last element)
     let postIdx = postorder.length - 1;
+
     function build(lo, hi) {
-        if (lo > hi) return null;
-        const val = postorder[postIdx--];
-        const root = new TreeNode(val);
-        const mid = inorderMap.get(val);
+        // No nodes in this range
+        if (lo > hi) {
+            return null;
+        }
+
+        // The current root is the rightmost remaining element in postorder
+        const rootVal = postorder[postIdx];
+        postIdx = postIdx - 1;
+
+        const root = new TreeNode(rootVal);
+
+        // Find root's position in inorder to split left/right subtrees
+        const mid = inorderMap.get(rootVal);
+
+        // Build right subtree first! (postorder processes right before left when going backwards)
         root.right = build(mid + 1, hi);
         root.left = build(lo, mid - 1);
+
         return root;
     }
+
     return build(0, inorder.length - 1);
 };`,
+    jsWalkthrough:
+      'Input: inorder = [9,3,15,20,7], postorder = [9,15,7,20,3]\n\n' +
+      'inorderMap = {9:0, 3:1, 15:2, 20:3, 7:4}, postIdx = 4\n\n' +
+      'build(0, 4):\n' +
+      '  rootVal = postorder[4] = 3, postIdx -> 3\n' +
+      '  mid = inorderMap[3] = 1\n' +
+      '  Build right subtree: build(2, 4)\n' +
+      '    rootVal = postorder[3] = 20, postIdx -> 2\n' +
+      '    mid = inorderMap[20] = 3\n' +
+      '    Build right: build(4, 4)\n' +
+      '      rootVal = postorder[2] = 7, postIdx -> 1\n' +
+      '      mid = 4, build(5,4) -> null, build(4,3) -> null\n' +
+      '      return node(7)\n' +
+      '    Build left: build(2, 2)\n' +
+      '      rootVal = postorder[1] = 15, postIdx -> 0\n' +
+      '      mid = 2, both sides null\n' +
+      '      return node(15)\n' +
+      '    return node(20, left=15, right=7)\n' +
+      '  Build left subtree: build(0, 0)\n' +
+      '    rootVal = postorder[0] = 9, postIdx -> -1\n' +
+      '    mid = 0, both sides null\n' +
+      '    return node(9)\n' +
+      '  return node(3, left=9, right=20)\n\n' +
+      'Result tree: [3,9,20,null,null,15,7]',
     explanation:
       '1. Build a map from value to index in inorder for O(1) lookup.\n' +
       '2. Start from the last element of postorder (the root).\n' +
@@ -3119,21 +4570,49 @@ export const solutions: ProblemSolution[] = [
         return res[::-1]`,
     jsCode: `var levelOrderBottom = function(root) {
     if (!root) return [];
+
     const queue = [root];
-    const res = [];
+    const result = [];
+
     while (queue.length) {
-        const level = [];
-        const size = queue.length;
-        for (let i = 0; i < size; i++) {
+        const levelValues = [];
+        const levelSize = queue.length;
+
+        // Process all nodes at the current level
+        for (let i = 0; i < levelSize; i++) {
             const node = queue.shift();
-            level.push(node.val);
-            if (node.left) queue.push(node.left);
-            if (node.right) queue.push(node.right);
+            levelValues.push(node.val);
+
+            if (node.left) {
+                queue.push(node.left);
+            }
+
+            if (node.right) {
+                queue.push(node.right);
+            }
         }
-        res.push(level);
+
+        result.push(levelValues);
     }
-    return res.reverse();
+
+    // Reverse gives bottom-up order
+    return result.reverse();
 };`,
+    jsWalkthrough:
+      'Input: root = [3,9,20,null,null,15,7]\n\n' +
+      'Initial: queue = [node(3)], result = []\n\n' +
+      'Level 1: levelSize=1, process node(3)\n' +
+      '  levelValues = [3], queue = [node(9), node(20)]\n' +
+      '  result = [[3]]\n\n' +
+      'Level 2: levelSize=2, process node(9), node(20)\n' +
+      '  node(9): levelValues=[9], no children\n' +
+      '  node(20): levelValues=[9,20], children 15,7 added\n' +
+      '  queue = [node(15), node(7)], result = [[3],[9,20]]\n\n' +
+      'Level 3: levelSize=2, process node(15), node(7)\n' +
+      '  levelValues = [15,7], no children\n' +
+      '  result = [[3],[9,20],[15,7]]\n\n' +
+      'result.reverse() = [[15,7],[9,20],[3]]\n\n' +
+      'Output: [[15,7],[9,20],[3]]',
     explanation:
       '1. Perform standard BFS level-order traversal.\n' +
       '2. Collect each level as a list of values.\n' +
@@ -3179,20 +4658,59 @@ export const solutions: ProblemSolution[] = [
         root.right = self.sortedListToBST(slow.next)
         return root`,
     jsCode: `var sortedListToBST = function(head) {
-    if (!head) return null;
-    if (!head.next) return new TreeNode(head.val);
-    let prev = null, slow = head, fast = head;
+    // Base cases
+    if (!head) {
+        return null;
+    }
+
+    if (!head.next) {
+        return new TreeNode(head.val);
+    }
+
+    // Use slow/fast pointers to find the middle of the list
+    let prev = null;
+    let slow = head;
+    let fast = head;
+
     while (fast && fast.next) {
         prev = slow;
         slow = slow.next;
         fast = fast.next.next;
     }
+
+    // Cut the list before the middle so the left half is separate
     prev.next = null;
+
+    // The middle node becomes the root of this subtree
     const root = new TreeNode(slow.val);
+
+    // Recursively build the left and right subtrees
     root.left = sortedListToBST(head);
     root.right = sortedListToBST(slow.next);
+
     return root;
 };`,
+    jsWalkthrough:
+      'Input: head = [-10,-3,0,5,9]\n\n' +
+      'List: -10 -> -3 -> 0 -> 5 -> 9\n\n' +
+      'sortedListToBST([-10,-3,0,5,9]):\n' +
+      '  slow/fast pointers: slow ends at 0, prev = -3\n' +
+      '  Cut list: [-10,-3] and [5,9]\n' +
+      '  root = node(0)\n' +
+      '  root.left = sortedListToBST([-10,-3])\n' +
+      '    slow = -3, prev = -10, cut: [-10] and []\n' +
+      '    root = node(-3)\n' +
+      '    root.left = sortedListToBST([-10]) -> node(-10)\n' +
+      '    root.right = sortedListToBST([]) -> null\n' +
+      '    return node(-3, left=-10, right=null)\n' +
+      '  root.right = sortedListToBST([5,9])\n' +
+      '    slow = 9, prev = 5, cut: [5] and []\n' +
+      '    root = node(9)\n' +
+      '    root.left = sortedListToBST([5]) -> node(5)\n' +
+      '    root.right = sortedListToBST([]) -> null\n' +
+      '    return node(9, left=5, right=null)\n' +
+      '  return node(0, left=node(-3), right=node(9))\n\n' +
+      'Output: [0,-3,9,-10,null,5]',
     explanation:
       '1. Find the middle node using slow/fast pointers.\n' +
       '2. The middle node becomes the root (ensures balance).\n' +
@@ -3237,16 +4755,44 @@ export const solutions: ProblemSolution[] = [
                 queue.append((node.right, depth + 1))
         return 0`,
     jsCode: `var minDepth = function(root) {
-    if (!root) return 0;
+    if (!root) {
+        return 0;
+    }
+
+    // BFS queue stores [node, depth] pairs
     const queue = [[root, 1]];
+
     while (queue.length) {
         const [node, depth] = queue.shift();
-        if (!node.left && !node.right) return depth;
-        if (node.left) queue.push([node.left, depth + 1]);
-        if (node.right) queue.push([node.right, depth + 1]);
+
+        // A leaf node (no children) is the shallowest so far — return immediately
+        const isLeaf = !node.left && !node.right;
+        if (isLeaf) {
+            return depth;
+        }
+
+        // Queue children with incremented depth
+        if (node.left) {
+            queue.push([node.left, depth + 1]);
+        }
+
+        if (node.right) {
+            queue.push([node.right, depth + 1]);
+        }
     }
+
     return 0;
 };`,
+    jsWalkthrough:
+      'Input: root = [3,9,20,null,null,15,7]\n\n' +
+      'queue = [[node(3), 1]]\n\n' +
+      'Step 1: dequeue [node(3), 1]\n' +
+      '  node(3) has left=9 and right=20, not a leaf\n' +
+      '  queue = [[node(9),2], [node(20),2]]\n\n' +
+      'Step 2: dequeue [node(9), 2]\n' +
+      '  node(9) has no children -> isLeaf = true\n' +
+      '  Return 2 immediately (BFS guarantees this is the minimum depth)\n\n' +
+      'Output: 2',
     explanation:
       '1. BFS processes nodes level by level.\n' +
       '2. Track depth alongside each node in the queue.\n' +
@@ -3285,11 +4831,41 @@ export const solutions: ProblemSolution[] = [
         return (self.hasPathSum(root.left, targetSum) or
                 self.hasPathSum(root.right, targetSum))`,
     jsCode: `var hasPathSum = function(root, targetSum) {
-    if (!root) return false;
-    targetSum -= root.val;
-    if (!root.left && !root.right) return targetSum === 0;
-    return hasPathSum(root.left, targetSum) || hasPathSum(root.right, targetSum);
+    // Empty node contributes nothing
+    if (!root) {
+        return false;
+    }
+
+    // Subtract the current node's value from the remaining target
+    const remaining = targetSum - root.val;
+
+    // At a leaf, check if we've exactly hit our target
+    const isLeaf = !root.left && !root.right;
+    if (isLeaf) {
+        return remaining === 0;
+    }
+
+    // Check either subtree — return true if either has a valid path
+    const foundInLeft = hasPathSum(root.left, remaining);
+    const foundInRight = hasPathSum(root.right, remaining);
+    return foundInLeft || foundInRight;
 };`,
+    jsWalkthrough:
+      'Input: root = [5,4,8,11,null,13,4,7,2,null,null,null,1], targetSum = 22\n\n' +
+      'hasPathSum(node(5), 22):\n' +
+      '  remaining = 22 - 5 = 17, not a leaf\n' +
+      '  hasPathSum(node(4), 17):\n' +
+      '    remaining = 17 - 4 = 13, not a leaf\n' +
+      '    hasPathSum(node(11), 13):\n' +
+      '      remaining = 13 - 11 = 2, not a leaf\n' +
+      '      hasPathSum(node(7), 2):\n' +
+      '        remaining = 2 - 7 = -5, isLeaf=true, -5 !== 0 -> false\n' +
+      '      hasPathSum(node(2), 2):\n' +
+      '        remaining = 2 - 2 = 0, isLeaf=true, 0 === 0 -> TRUE!\n' +
+      '      return true\n' +
+      '    return true\n' +
+      '  return true\n\n' +
+      'Output: true (path 5->4->11->2 sums to 22)',
     explanation:
       '1. If root is None, return False.\n' +
       '2. Subtract current node value from targetSum.\n' +
@@ -3333,20 +4909,56 @@ export const solutions: ProblemSolution[] = [
         dfs(root, targetSum, [])
         return res`,
     jsCode: `var pathSum = function(root, targetSum) {
-    const res = [];
-    function dfs(node, remain, path) {
-        if (!node) return;
-        path.push(node.val);
-        if (!node.left && !node.right && remain === node.val) {
-            res.push([...path]);
+    const result = [];
+
+    function dfs(node, remainingSum, currentPath) {
+        if (!node) {
+            return;
         }
-        dfs(node.left, remain - node.val, path);
-        dfs(node.right, remain - node.val, path);
-        path.pop();
+
+        // Add the current node to the path
+        currentPath.push(node.val);
+
+        // Check if this is a leaf and we've hit the target
+        const isLeaf = !node.left && !node.right;
+        const hitTarget = remainingSum === node.val;
+
+        if (isLeaf && hitTarget) {
+            // Save a copy of the path (not a reference)
+            result.push([...currentPath]);
+        }
+
+        // Continue DFS with reduced remaining sum
+        dfs(node.left, remainingSum - node.val, currentPath);
+        dfs(node.right, remainingSum - node.val, currentPath);
+
+        // Backtrack: remove current node before returning to parent
+        currentPath.pop();
     }
+
     dfs(root, targetSum, []);
-    return res;
+    return result;
 };`,
+    jsWalkthrough:
+      'Input: root = [5,4,8,11,null,13,4,7,2,null,null,5,1], targetSum = 22\n\n' +
+      'dfs(node(5), 22, []):\n' +
+      '  path=[5]\n' +
+      '  dfs(node(4), 17, [5]):\n' +
+      '    path=[5,4]\n' +
+      '    dfs(node(11), 13, [5,4]):\n' +
+      '      path=[5,4,11]\n' +
+      '      dfs(node(7), 2, [5,4,11]):\n' +
+      '        path=[5,4,11,7], leaf, 2 !== 7, no add\n' +
+      '        pop -> path=[5,4,11]\n' +
+      '      dfs(node(2), 2, [5,4,11]):\n' +
+      '        path=[5,4,11,2], leaf, 2 === 2, ADD [5,4,11,2]\n' +
+      '        pop -> path=[5,4,11]\n' +
+      '      pop -> path=[5,4]\n' +
+      '    pop -> path=[5]\n' +
+      '  dfs(node(8), 17, [5]):\n' +
+      '    ... eventually finds path [5,8,4,5] which sums to 22\n' +
+      '    ADD [5,8,4,5]\n\n' +
+      'Output: [[5,4,11,2],[5,8,4,5]]',
     explanation:
       '1. DFS with a running path list and remaining target sum.\n' +
       '2. Add the current node to the path.\n' +
@@ -3388,17 +5000,51 @@ export const solutions: ProblemSolution[] = [
             self.prev = node
         dfs(root)`,
     jsCode: `var flatten = function(root) {
+    // prev tracks the previously processed node in reverse pre-order
     let prev = null;
+
+    // Process in reverse pre-order: right, left, root
+    // This builds the flattened list from tail to head
     function dfs(node) {
-        if (!node) return;
+        if (!node) {
+            return;
+        }
+
+        // Process right subtree first, then left
         dfs(node.right);
         dfs(node.left);
+
+        // Wire this node's right to the previously processed node
         node.right = prev;
+
+        // Clear left child (linked list uses only right pointers)
         node.left = null;
+
+        // This node is now the "last processed" for the next call
         prev = node;
     }
+
     dfs(root);
 };`,
+    jsWalkthrough:
+      'Input: root = [1,2,5,3,4,null,6]\n\n' +
+      'Tree structure:\n' +
+      '    1\n' +
+      '   / \\\n' +
+      '  2   5\n' +
+      ' / \\   \\\n' +
+      '3   4   6\n\n' +
+      'Reverse pre-order: process right, left, root\n\n' +
+      'dfs(6): prev=null -> 6.right=null, 6.left=null, prev=node(6)\n' +
+      'dfs(5): right=node(6) done; no left\n' +
+      '  5.right=node(6), 5.left=null, prev=node(5)\n' +
+      'dfs(4): leaf, 4.right=node(5), prev=node(4)\n' +
+      'dfs(3): leaf, 3.right=node(4), prev=node(3)\n' +
+      'dfs(2): right=node(4) done, left=node(3) done\n' +
+      '  2.right=node(3), 2.left=null, prev=node(2)\n' +
+      'dfs(1): right=node(5) done, left=node(2) done\n' +
+      '  1.right=node(2), 1.left=null, prev=node(1)\n\n' +
+      'Flattened: 1->2->3->4->5->6 (all via right pointers)',
     explanation:
       '1. Process in reverse pre-order: right subtree, left subtree, then root.\n' +
       '2. prev tracks the previously processed node (which becomes the next in the list).\n' +
@@ -3440,19 +5086,49 @@ export const solutions: ProblemSolution[] = [
                     dp[i][j] += dp[i - 1][j - 1]
         return dp[m][n]`,
     jsCode: `var numDistinct = function(s, t) {
-    const m = s.length, n = t.length;
-    const dp = Array.from({length: m + 1}, () => Array(n + 1).fill(0));
-    for (let i = 0; i <= m; i++) dp[i][0] = 1;
-    for (let i = 1; i <= m; i++) {
-        for (let j = 1; j <= n; j++) {
+    const sLen = s.length;
+    const tLen = t.length;
+
+    // dp[i][j] = number of ways to form t[0..j-1] as subsequence of s[0..i-1]
+    const dp = Array.from({length: sLen + 1}, () => Array(tLen + 1).fill(0));
+
+    // Base case: empty t can always be formed (one way: choose nothing)
+    for (let i = 0; i <= sLen; i++) {
+        dp[i][0] = 1;
+    }
+
+    for (let i = 1; i <= sLen; i++) {
+        for (let j = 1; j <= tLen; j++) {
+            // Always carry over the count from skipping s[i-1]
             dp[i][j] = dp[i - 1][j];
+
+            // If characters match, also count using s[i-1]
             if (s[i - 1] === t[j - 1]) {
-                dp[i][j] += dp[i - 1][j - 1];
+                dp[i][j] = dp[i][j] + dp[i - 1][j - 1];
             }
         }
     }
-    return dp[m][n];
+
+    return dp[sLen][tLen];
 };`,
+    jsWalkthrough:
+      'Input: s = "rabbbit", t = "rabbit"\n\n' +
+      'sLen=7, tLen=6\n' +
+      'Initialize: dp[i][0] = 1 for all i (empty t matched 1 way)\n\n' +
+      'Fill DP table row by row (selected key cells):\n\n' +
+      'i=1 (s[0]="r"), j=1 (t[0]="r"): match!\n' +
+      '  dp[1][1] = dp[0][1] + dp[0][0] = 0 + 1 = 1\n\n' +
+      'i=2 (s[1]="a"), j=2 (t[1]="a"): match!\n' +
+      '  dp[2][2] = dp[1][2] + dp[1][1] = 0 + 1 = 1\n\n' +
+      'i=3 (s[2]="b"), j=3 (t[2]="b"): match!\n' +
+      '  dp[3][3] = dp[2][3] + dp[2][2] = 0 + 1 = 1\n\n' +
+      'i=4 (s[3]="b"), j=3 (t[2]="b"): match! (second b)\n' +
+      '  dp[4][3] = dp[3][3] + dp[3][2] = 1 + 1 = 2\n\n' +
+      'i=5 (s[4]="b"), j=3 (t[2]="b"): match! (third b)\n' +
+      '  dp[5][3] = dp[4][3] + dp[4][2] = 2 + 1 = 3\n\n' +
+      '... continuing fills ...\n\n' +
+      'dp[7][6] = 3\n\n' +
+      'Output: 3 (three ways to choose which "b" to skip)',
     explanation:
       '1. dp[i][j] = number of ways to form t[:j] as a subsequence of s[:i].\n' +
       '2. Base case: dp[i][0] = 1 (empty t can be formed from any prefix of s).\n' +
@@ -3496,19 +5172,59 @@ export const solutions: ProblemSolution[] = [
             leftmost = leftmost.left
         return root`,
     jsCode: `var connect = function(root) {
-    if (!root) return root;
+    if (!root) {
+        return root;
+    }
+
+    // leftmost tracks the first node of the current level
     let leftmost = root;
+
     while (leftmost.left) {
+        // Traverse the current level using already-set next pointers
         let head = leftmost;
+
         while (head) {
+            // Connection 1: same parent - left child -> right child
             head.left.next = head.right;
-            if (head.next) head.right.next = head.next.left;
+
+            // Connection 2: cross parent - right child -> left child of next sibling
+            if (head.next) {
+                head.right.next = head.next.left;
+            }
+
+            // Move to the next node at this level
             head = head.next;
         }
+
+        // Move down to the next level
         leftmost = leftmost.left;
     }
+
     return root;
 };`,
+    jsWalkthrough:
+      'Input: root = [1,2,3,4,5,6,7] (perfect binary tree)\n\n' +
+      'Level 0: leftmost = node(1)\n' +
+      '  leftmost.left exists (node(2)), so enter outer while\n' +
+      '  head = node(1):\n' +
+      '    head.left.next = head.right -> node(2).next = node(3) ✓\n' +
+      '    head.next is null, skip cross connection\n' +
+      '    head = head.next = null, inner while ends\n' +
+      '  leftmost = leftmost.left = node(2)\n\n' +
+      'Level 1: leftmost = node(2)\n' +
+      '  leftmost.left exists (node(4)), enter outer while\n' +
+      '  head = node(2):\n' +
+      '    2.left.next = 2.right -> node(4).next = node(5) ✓\n' +
+      '    head.next = node(3) exists:\n' +
+      '      2.right.next = 3.left -> node(5).next = node(6) ✓\n' +
+      '    head = node(3)\n' +
+      '  head = node(3):\n' +
+      '    3.left.next = 3.right -> node(6).next = node(7) ✓\n' +
+      '    head.next = null, skip\n' +
+      '    head = null, inner while ends\n' +
+      '  leftmost = node(4)\n\n' +
+      'Level 2: node(4).left is null, outer while ends\n\n' +
+      'Result: 4->5->6->7->null all connected',
     explanation:
       '1. Start from root (leftmost node at current level).\n' +
       '2. For each node at the current level, connect its children.\n' +
@@ -3555,18 +5271,57 @@ export const solutions: ProblemSolution[] = [
         return root`,
     jsCode: `var connect = function(root) {
     let node = root;
+
     while (node) {
+        // Dummy node acts as the head of the next level's linked list
         const dummy = { next: null };
         let curr = dummy;
+
+        // Walk across the current level using next pointers
         while (node) {
-            if (node.left) { curr.next = node.left; curr = curr.next; }
-            if (node.right) { curr.next = node.right; curr = curr.next; }
+            if (node.left) {
+                curr.next = node.left;
+                curr = curr.next;
+            }
+
+            if (node.right) {
+                curr.next = node.right;
+                curr = curr.next;
+            }
+
             node = node.next;
         }
+
+        // Move to the start of the next level
         node = dummy.next;
     }
+
     return root;
 };`,
+    jsWalkthrough:
+      'Input: root = [1,2,3,4,5,null,7]\n\n' +
+      'Level 0: node = node(1)\n' +
+      '  dummy -> null, curr = dummy\n' +
+      '  node(1): left=node(2), right=node(3)\n' +
+      '    curr.next = node(2), curr = node(2)\n' +
+      '    curr.next = node(3), curr = node(3)\n' +
+      '    node = node(1).next = null -> inner while ends\n' +
+      '  node = dummy.next = node(2)\n\n' +
+      'Level 1: node = node(2)\n' +
+      '  dummy -> null, curr = dummy\n' +
+      '  node(2): left=node(4), right=node(5)\n' +
+      '    curr.next = node(4), curr = node(4)\n' +
+      '    curr.next = node(5), curr = node(5)\n' +
+      '    node = node(2).next = node(3)\n' +
+      '  node(3): left=null, right=node(7)\n' +
+      '    curr.next = node(7), curr = node(7)\n' +
+      '    node = node(3).next = null\n' +
+      '  inner while ends\n' +
+      '  node = dummy.next = node(4)\n' +
+      '  node(4).next -> node(5), node(5).next -> node(7) are set\n\n' +
+      'Level 2: node(4), all leaves, no children to link\n' +
+      '  node = dummy.next = null -> outer while ends\n\n' +
+      'Result: [1,#,2,3,#,4,5,7,#]',
     explanation:
       '1. Process one level at a time using next pointers.\n' +
       '2. Use a dummy node as the head of the next level linked list.\n' +
@@ -3606,15 +5361,40 @@ export const solutions: ProblemSolution[] = [
         return triangle`,
     jsCode: `var generate = function(numRows) {
     const triangle = [];
+
     for (let i = 0; i < numRows; i++) {
+        // Each row starts with (i+1) elements, all 1s
         const row = Array(i + 1).fill(1);
+
+        // Interior elements are the sum of the two elements directly above
         for (let j = 1; j < i; j++) {
-            row[j] = triangle[i - 1][j - 1] + triangle[i - 1][j];
+            const aboveLeft = triangle[i - 1][j - 1];
+            const aboveRight = triangle[i - 1][j];
+            row[j] = aboveLeft + aboveRight;
         }
+
         triangle.push(row);
     }
+
     return triangle;
 };`,
+    jsWalkthrough:
+      'Input: numRows = 5\n\n' +
+      'i=0: row = [1], triangle = [[1]]\n\n' +
+      'i=1: row = [1,1], no interior (j from 1 to 0 = empty)\n' +
+      '  triangle = [[1],[1,1]]\n\n' +
+      'i=2: row = [1,1,1], interior: j=1\n' +
+      '  aboveLeft = triangle[1][0] = 1, aboveRight = triangle[1][1] = 1\n' +
+      '  row[1] = 1+1 = 2 -> row = [1,2,1]\n' +
+      '  triangle = [[1],[1,1],[1,2,1]]\n\n' +
+      'i=3: row = [1,1,1,1], interior: j=1,2\n' +
+      '  j=1: aboveLeft=1, aboveRight=2 -> row[1]=3\n' +
+      '  j=2: aboveLeft=2, aboveRight=1 -> row[2]=3\n' +
+      '  row = [1,3,3,1], triangle = [[1],[1,1],[1,2,1],[1,3,3,1]]\n\n' +
+      'i=4: row = [1,1,1,1,1], interior: j=1,2,3\n' +
+      '  j=1: 1+3=4, j=2: 3+3=6, j=3: 3+1=4\n' +
+      '  row = [1,4,6,4,1]\n\n' +
+      'Output: [[1],[1,1],[1,2,1],[1,3,3,1],[1,4,6,4,1]]',
     explanation:
       '1. Create each row with (i+1) elements, all initialized to 1.\n' +
       '2. For interior positions (j from 1 to i-1), compute sum of two elements above.\n' +
@@ -3651,14 +5431,31 @@ export const solutions: ProblemSolution[] = [
                 row[j] += row[j - 1]
         return row`,
     jsCode: `var getRow = function(rowIndex) {
+    // Initialize with all 1s — first and last are always 1
     const row = Array(rowIndex + 1).fill(1);
+
+    // Simulate building each row in-place from row 2 onward
     for (let i = 2; i <= rowIndex; i++) {
-        for (let j = i - 1; j > 0; j--) {
-            row[j] += row[j - 1];
+        // Update from right to left so we use previous row values
+        for (let j = i - 1; j > 0; j = j - 1) {
+            // row[j] = row[j] (above right) + row[j-1] (above left)
+            row[j] = row[j] + row[j - 1];
         }
     }
+
     return row;
 };`,
+    jsWalkthrough:
+      'Input: rowIndex = 3\n\n' +
+      'Initialize: row = [1, 1, 1, 1]\n\n' +
+      'i=2 (simulating row 2 of Pascal\'s triangle):\n' +
+      '  j=1 (right to left): row[1] = row[1] + row[0] = 1 + 1 = 2\n' +
+      '  row = [1, 2, 1, 1]\n\n' +
+      'i=3 (simulating row 3 of Pascal\'s triangle):\n' +
+      '  j=2: row[2] = row[2] + row[1] = 1 + 2 = 3\n' +
+      '  j=1: row[1] = row[1] + row[0] = 2 + 1 = 3\n' +
+      '  row = [1, 3, 3, 1]\n\n' +
+      'Output: [1, 3, 3, 1]',
     explanation:
       '1. Initialize row with all 1s of length rowIndex + 1.\n' +
       '2. For each row i from 2 to rowIndex, update from right to left.\n' +
@@ -3695,14 +5492,39 @@ export const solutions: ProblemSolution[] = [
                 dp[j] = triangle[i][j] + min(dp[j], dp[j + 1])
         return dp[0]`,
     jsCode: `var minimumTotal = function(triangle) {
+    // Start with the bottom row as the initial DP values
     const dp = [...triangle[triangle.length - 1]];
+
+    // Work upward from the second-to-last row
     for (let i = triangle.length - 2; i >= 0; i--) {
         for (let j = 0; j <= i; j++) {
-            dp[j] = triangle[i][j] + Math.min(dp[j], dp[j + 1]);
+            const currentCellValue = triangle[i][j];
+            const bestPathBelow = Math.min(dp[j], dp[j + 1]);
+
+            // This cell's minimum path sum = its value + best of two children below
+            dp[j] = currentCellValue + bestPathBelow;
         }
     }
+
+    // dp[0] now holds the minimum path sum from top to bottom
     return dp[0];
 };`,
+    jsWalkthrough:
+      'Input: triangle = [[2],[3,4],[6,5,7],[4,1,8,3]]\n\n' +
+      'Start with bottom row: dp = [4, 1, 8, 3]\n\n' +
+      'i=2 (row [6,5,7]):\n' +
+      '  j=0: currentCell=6, bestBelow=min(dp[0],dp[1])=min(4,1)=1 -> dp[0]=6+1=7\n' +
+      '  j=1: currentCell=5, bestBelow=min(dp[1],dp[2])=min(1,8)=1 -> dp[1]=5+1=6\n' +
+      '  j=2: currentCell=7, bestBelow=min(dp[2],dp[3])=min(8,3)=3 -> dp[2]=7+3=10\n' +
+      '  dp = [7, 6, 10, 3]\n\n' +
+      'i=1 (row [3,4]):\n' +
+      '  j=0: currentCell=3, bestBelow=min(7,6)=6 -> dp[0]=3+6=9\n' +
+      '  j=1: currentCell=4, bestBelow=min(6,10)=6 -> dp[1]=4+6=10\n' +
+      '  dp = [9, 10, 10, 3]\n\n' +
+      'i=0 (row [2]):\n' +
+      '  j=0: currentCell=2, bestBelow=min(9,10)=9 -> dp[0]=2+9=11\n' +
+      '  dp = [11, ...]\n\n' +
+      'Output: dp[0] = 11 (path: 2->3->5->1)',
     explanation:
       '1. Start with the bottom row as the initial DP array.\n' +
       '2. Work upward: for each cell, add the minimum of its two children.\n' +
@@ -3739,14 +5561,34 @@ export const solutions: ProblemSolution[] = [
                 profit += prices[i] - prices[i - 1]
         return profit`,
     jsCode: `var maxProfit = function(prices) {
-    let profit = 0;
+    let totalProfit = 0;
+
     for (let i = 1; i < prices.length; i++) {
-        if (prices[i] > prices[i - 1]) {
-            profit += prices[i] - prices[i - 1];
+        const todayPrice = prices[i];
+        const yesterdayPrice = prices[i - 1];
+
+        // If price went up, we could have bought yesterday and sold today
+        if (todayPrice > yesterdayPrice) {
+            const dailyGain = todayPrice - yesterdayPrice;
+            totalProfit = totalProfit + dailyGain;
         }
     }
-    return profit;
+
+    return totalProfit;
 };`,
+    jsWalkthrough:
+      'Input: prices = [7,1,5,3,6,4]\n\n' +
+      'i=1: today=1, yesterday=7, 1 < 7 -> no gain\n' +
+      '  totalProfit = 0\n\n' +
+      'i=2: today=5, yesterday=1, 5 > 1 -> gain = 5-1 = 4\n' +
+      '  totalProfit = 0 + 4 = 4\n\n' +
+      'i=3: today=3, yesterday=5, 3 < 5 -> no gain\n' +
+      '  totalProfit = 4\n\n' +
+      'i=4: today=6, yesterday=3, 6 > 3 -> gain = 6-3 = 3\n' +
+      '  totalProfit = 4 + 3 = 7\n\n' +
+      'i=5: today=4, yesterday=6, 4 < 6 -> no gain\n' +
+      '  totalProfit = 7\n\n' +
+      'Output: 7',
     explanation:
       '1. Iterate through prices starting from day 2.\n' +
       '2. If today\'s price > yesterday\'s price, we can profit from this increase.\n' +
@@ -3786,16 +5628,40 @@ export const solutions: ProblemSolution[] = [
             sell2 = max(sell2, price - buy2)
         return sell2`,
     jsCode: `var maxProfit = function(prices) {
-    let buy1 = Infinity, buy2 = Infinity;
-    let sell1 = 0, sell2 = 0;
+    // buy1: lowest price seen so far for the first buy
+    let buy1 = Infinity;
+
+    // sell1: max profit after the first sell
+    let sell1 = 0;
+
+    // buy2: effective cost of the second buy (reduced by first profit)
+    let buy2 = Infinity;
+
+    // sell2: max total profit after the second sell
+    let sell2 = 0;
+
     for (const price of prices) {
+        // Update each state based on current price
         buy1 = Math.min(buy1, price);
         sell1 = Math.max(sell1, price - buy1);
         buy2 = Math.min(buy2, price - sell1);
         sell2 = Math.max(sell2, price - buy2);
     }
+
     return sell2;
 };`,
+    jsWalkthrough:
+      'Input: prices = [3,3,5,0,0,3,1,4]\n\n' +
+      'Initial: buy1=Inf, sell1=0, buy2=Inf, sell2=0\n\n' +
+      'price=3: buy1=3, sell1=max(0,0)=0, buy2=min(Inf,3-0)=3, sell2=max(0,3-3)=0\n' +
+      'price=3: buy1=3, sell1=0, buy2=3, sell2=0\n' +
+      'price=5: buy1=3, sell1=max(0,5-3)=2, buy2=min(3,5-2)=3, sell2=max(0,5-3)=2\n' +
+      'price=0: buy1=0, sell1=max(2,0-0)=2, buy2=min(3,0-2)=-2, sell2=max(2,0-(-2))=2\n' +
+      'price=0: buy1=0, sell1=2, buy2=-2, sell2=2\n' +
+      'price=3: buy1=0, sell1=max(2,3)=3, buy2=min(-2,3-3)=-2, sell2=max(2,3-(-2))=5\n' +
+      'price=1: buy1=0, sell1=3, buy2=min(-2,1-3)=-2, sell2=max(5,1-(-2))=5\n' +
+      'price=4: buy1=0, sell1=max(3,4)=4, buy2=min(-2,4-4)=-2, sell2=max(5,4-(-2))=6\n\n' +
+      'Output: sell2 = 6',
     explanation:
       '1. buy1: minimum price for the first buy.\n' +
       '2. sell1: maximum profit after the first sell.\n' +
@@ -3863,43 +5729,101 @@ export const solutions: ProblemSolution[] = [
         return res`,
     jsCode: `var findLadders = function(beginWord, endWord, wordList) {
     const wordSet = new Set(wordList);
-    if (!wordSet.has(endWord)) return [];
+    if (!wordSet.has(endWord)) {
+        return [];
+    }
+
+    // layer[word] = set of words that can transition to 'word' in one step
     const layer = new Map();
     const queue = [beginWord];
     const visited = new Set([beginWord]);
     let found = false;
+
     while (queue.length && !found) {
         const nextVisited = new Set();
-        const size = queue.length;
-        for (let q = 0; q < size; q++) {
+        const levelSize = queue.length;
+
+        // Process all words at the current BFS level
+        for (let q = 0; q < levelSize; q = q + 1) {
             const word = queue.shift();
-            for (let i = 0; i < word.length; i++) {
-                for (let c = 97; c <= 122; c++) {
-                    const nw = word.slice(0, i) + String.fromCharCode(c) + word.slice(i + 1);
-                    if (wordSet.has(nw) && !visited.has(nw)) {
-                        nextVisited.add(nw);
-                        if (!layer.has(nw)) layer.set(nw, new Set());
-                        layer.get(nw).add(word);
-                        if (nw === endWord) found = true;
+
+            // Try changing each character to every letter a-z
+            for (let i = 0; i < word.length; i = i + 1) {
+                for (let charCode = 97; charCode <= 122; charCode = charCode + 1) {
+                    const newWord = word.slice(0, i) + String.fromCharCode(charCode) + word.slice(i + 1);
+
+                    if (wordSet.has(newWord) && !visited.has(newWord)) {
+                        nextVisited.add(newWord);
+
+                        // Record that 'word' is a predecessor of 'newWord'
+                        if (!layer.has(newWord)) {
+                            layer.set(newWord, new Set());
+                        }
+                        layer.get(newWord).add(word);
+
+                        if (newWord === endWord) {
+                            found = true;
+                        }
                     }
                 }
             }
         }
-        for (const w of nextVisited) { visited.add(w); queue.push(w); }
+
+        // Mark all words found at this level as visited (after the full level)
+        for (const w of nextVisited) {
+            visited.add(w);
+            queue.push(w);
+        }
     }
-    const res = [];
+
+    const result = [];
+
+    // Backtrack from endWord to beginWord using the predecessor map
     function backtrack(word, path) {
-        if (word === beginWord) { res.push([...path].reverse()); return; }
-        if (!layer.has(word)) return;
-        for (const prev of layer.get(word)) {
-            path.push(prev);
-            backtrack(prev, path);
+        if (word === beginWord) {
+            result.push([...path].reverse());
+            return;
+        }
+
+        if (!layer.has(word)) {
+            return;
+        }
+
+        for (const predecessor of layer.get(word)) {
+            path.push(predecessor);
+            backtrack(predecessor, path);
             path.pop();
         }
     }
-    if (found) backtrack(endWord, [endWord]);
-    return res;
+
+    if (found) {
+        backtrack(endWord, [endWord]);
+    }
+
+    return result;
 };`,
+    jsWalkthrough:
+      'Input: beginWord="hit", endWord="cog"\n' +
+      'wordList=["hot","dot","dog","lot","log","cog"]\n\n' +
+      'BFS Level 1: queue=["hit"]\n' +
+      '  "hit" -> try all 1-char changes:\n' +
+      '    "hot" in wordSet! layer["hot"]={"hit"}, nextVisited={"hot"}\n' +
+      '  visited={"hit","hot"}, queue=["hot"]\n\n' +
+      'BFS Level 2: queue=["hot"]\n' +
+      '  "hot" -> "dot" in wordSet, layer["dot"]={"hot"}\n' +
+      '  "hot" -> "lot" in wordSet, layer["lot"]={"hot"}\n' +
+      '  nextVisited={"dot","lot"}, queue=["dot","lot"]\n\n' +
+      'BFS Level 3: queue=["dot","lot"]\n' +
+      '  "dot" -> "dog" found, layer["dog"]={"dot"}\n' +
+      '  "lot" -> "log" found, layer["log"]={"lot"}\n' +
+      '  queue=["dog","log"]\n\n' +
+      'BFS Level 4: queue=["dog","log"]\n' +
+      '  "dog" -> "cog" found! layer["cog"]={"dog"}, found=true\n' +
+      '  "log" -> "cog" found! layer["cog"]={"dog","log"}\n\n' +
+      'Backtrack from "cog":\n' +
+      '  "cog" <- "dog" <- "dot" <- "hot" <- "hit" => ["hit","hot","dot","dog","cog"]\n' +
+      '  "cog" <- "log" <- "lot" <- "hot" <- "hit" => ["hit","hot","lot","log","cog"]\n\n' +
+      'Output: [["hit","hot","dot","dog","cog"],["hit","hot","lot","log","cog"]]',
     explanation:
       '1. BFS layer by layer to find shortest transformation paths.\n' +
       '2. Build a predecessor map: for each word, track which words lead to it.\n' +
@@ -3939,14 +5863,46 @@ export const solutions: ProblemSolution[] = [
             return dfs(node.left, num) + dfs(node.right, num)
         return dfs(root, 0)`,
     jsCode: `var sumNumbers = function(root) {
-    function dfs(node, num) {
-        if (!node) return 0;
-        num = num * 10 + node.val;
-        if (!node.left && !node.right) return num;
-        return dfs(node.left, num) + dfs(node.right, num);
+    function dfs(node, currentNumber) {
+        // Empty node contributes 0
+        if (!node) {
+            return 0;
+        }
+
+        // Append the current digit to form the number so far
+        const numberSoFar = currentNumber * 10 + node.val;
+
+        // At a leaf, this number is complete — return it
+        const isLeaf = !node.left && !node.right;
+        if (isLeaf) {
+            return numberSoFar;
+        }
+
+        // Sum contributions from both subtrees
+        const leftSum = dfs(node.left, numberSoFar);
+        const rightSum = dfs(node.right, numberSoFar);
+        return leftSum + rightSum;
     }
+
     return dfs(root, 0);
 };`,
+    jsWalkthrough:
+      'Input: root = [1,2,3]\n\n' +
+      'Tree:\n' +
+      '  1\n' +
+      ' / \\\n' +
+      '2   3\n\n' +
+      'dfs(node(1), 0):\n' +
+      '  numberSoFar = 0*10 + 1 = 1\n' +
+      '  not a leaf, recurse\n' +
+      '  leftSum = dfs(node(2), 1):\n' +
+      '    numberSoFar = 1*10 + 2 = 12\n' +
+      '    isLeaf=true -> return 12\n' +
+      '  rightSum = dfs(node(3), 1):\n' +
+      '    numberSoFar = 1*10 + 3 = 13\n' +
+      '    isLeaf=true -> return 13\n' +
+      '  return 12 + 13 = 25\n\n' +
+      'Output: 25',
     explanation:
       '1. DFS with running number: num = num * 10 + node.val.\n' +
       '2. At a leaf, return the accumulated number.\n' +
@@ -3994,23 +5950,65 @@ export const solutions: ProblemSolution[] = [
         return dp[n - 1]`,
     jsCode: `var minCut = function(s) {
     const n = s.length;
+
+    // Step 1: Precompute palindrome table
+    // isPal[i][j] = true if s[i..j] is a palindrome
     const isPal = Array.from({length: n}, () => Array(n).fill(false));
-    for (let i = n - 1; i >= 0; i--) {
-        for (let j = i; j < n; j++) {
-            if (s[i] === s[j] && (j - i <= 2 || isPal[i + 1][j - 1])) {
+
+    for (let i = n - 1; i >= 0; i = i - 1) {
+        for (let j = i; j < n; j = j + 1) {
+            const charsMatch = s[i] === s[j];
+            const shortEnough = j - i <= 2;
+            const innerIsPal = isPal[i + 1][j - 1];
+
+            if (charsMatch && (shortEnough || innerIsPal)) {
                 isPal[i][j] = true;
             }
         }
     }
+
+    // Step 2: DP for minimum cuts
+    // dp[i] = minimum cuts for s[0..i], initialized to worst case (all single chars)
     const dp = Array.from({length: n}, (_, i) => i);
-    for (let i = 1; i < n; i++) {
-        if (isPal[0][i]) { dp[i] = 0; continue; }
-        for (let j = 1; j <= i; j++) {
-            if (isPal[j][i]) dp[i] = Math.min(dp[i], dp[j - 1] + 1);
+
+    for (let i = 1; i < n; i = i + 1) {
+        // If the whole prefix s[0..i] is a palindrome, no cuts needed
+        if (isPal[0][i]) {
+            dp[i] = 0;
+            continue;
+        }
+
+        // Try all palindrome substrings ending at i
+        for (let j = 1; j <= i; j = j + 1) {
+            if (isPal[j][i]) {
+                const cutsNeeded = dp[j - 1] + 1;
+                dp[i] = Math.min(dp[i], cutsNeeded);
+            }
         }
     }
+
     return dp[n - 1];
 };`,
+    jsWalkthrough:
+      'Input: s = "aab"\n\n' +
+      'n=3\n\n' +
+      'Step 1: Build isPal table\n' +
+      '  isPal[2][2]: "b"=="b" and length 1 -> true\n' +
+      '  isPal[1][2]: "a"!="b" -> false\n' +
+      '  isPal[1][1]: "a"=="a" -> true\n' +
+      '  isPal[0][2]: "a"!="b" -> false\n' +
+      '  isPal[0][1]: "a"=="a" and length 2 -> true\n' +
+      '  isPal[0][0]: "a"=="a" -> true\n\n' +
+      'Step 2: DP\n' +
+      '  dp = [0, 1, 2] (initialized to indices)\n\n' +
+      '  i=1:\n' +
+      '    isPal[0][1] = true -> dp[1] = 0\n\n' +
+      '  i=2:\n' +
+      '    isPal[0][2] = false, no free cut\n' +
+      '    j=1: isPal[1][2]? false\n' +
+      '    j=2: isPal[2][2]? true -> cutsNeeded = dp[1]+1 = 0+1 = 1\n' +
+      '    dp[2] = min(2, 1) = 1\n\n' +
+      'Output: dp[2] = 1 (cut "aab" into ["aa","b"])',
     explanation:
       '1. Precompute palindrome table: is_pal[i][j] = True if s[i..j] is a palindrome.\n' +
       '2. dp[i] = minimum cuts for s[:i+1], initialized to i (worst case: all single chars).\n' +
@@ -4052,15 +6050,42 @@ export const solutions: ProblemSolution[] = [
         return sum(candies)`,
     jsCode: `var candy = function(ratings) {
     const n = ratings.length;
+
+    // Everyone starts with at least 1 candy
     const candies = Array(n).fill(1);
-    for (let i = 1; i < n; i++) {
-        if (ratings[i] > ratings[i - 1]) candies[i] = candies[i - 1] + 1;
+
+    // Left pass: give more candy than left neighbor if rating is higher
+    for (let i = 1; i < n; i = i + 1) {
+        if (ratings[i] > ratings[i - 1]) {
+            candies[i] = candies[i - 1] + 1;
+        }
     }
-    for (let i = n - 2; i >= 0; i--) {
-        if (ratings[i] > ratings[i + 1]) candies[i] = Math.max(candies[i], candies[i + 1] + 1);
+
+    // Right pass: give more candy than right neighbor if rating is higher
+    // Use max so we satisfy both left and right constraints
+    for (let i = n - 2; i >= 0; i = i - 1) {
+        if (ratings[i] > ratings[i + 1]) {
+            candies[i] = Math.max(candies[i], candies[i + 1] + 1);
+        }
     }
-    return candies.reduce((a, b) => a + b, 0);
+
+    // Sum all candies for the minimum total
+    return candies.reduce((total, count) => total + count, 0);
 };`,
+    jsWalkthrough:
+      'Input: ratings = [1,0,2]\n\n' +
+      'Initialize: candies = [1, 1, 1]\n\n' +
+      'Left pass:\n' +
+      '  i=1: ratings[1]=0 > ratings[0]=1? No -> candies[1]=1\n' +
+      '  i=2: ratings[2]=2 > ratings[1]=0? Yes -> candies[2]=candies[1]+1=2\n' +
+      '  candies = [1, 1, 2]\n\n' +
+      'Right pass:\n' +
+      '  i=1: ratings[1]=0 > ratings[2]=2? No -> candies[1]=1\n' +
+      '  i=0: ratings[0]=1 > ratings[1]=0? Yes\n' +
+      '    candies[0] = max(candies[0], candies[1]+1) = max(1, 2) = 2\n' +
+      '  candies = [2, 1, 2]\n\n' +
+      'Sum: 2+1+2 = 5\n\n' +
+      'Output: 5',
     explanation:
       '1. Initialize all children with 1 candy.\n' +
       '2. Left pass: if rating[i] > rating[i-1], give more than left neighbor.\n' +
@@ -4097,13 +6122,48 @@ export const solutions: ProblemSolution[] = [
             twos = (twos ^ num) & ~ones
         return ones`,
     jsCode: `var singleNumber = function(nums) {
-    let ones = 0, twos = 0;
+    // ones: bits that have appeared 1 time (mod 3)
+    // twos: bits that have appeared 2 times (mod 3)
+    let ones = 0;
+    let twos = 0;
+
     for (const num of nums) {
+        // Add num's bits to 'ones', but clear any bits already in 'twos'
         ones = (ones ^ num) & ~twos;
+
+        // Add num's bits to 'twos', but clear any bits now in 'ones'
         twos = (twos ^ num) & ~ones;
+
+        // When a bit appears 3 times, it gets cleared from both ones and twos
     }
+
+    // 'ones' contains bits that appeared exactly once (mod 3)
     return ones;
 };`,
+    jsWalkthrough:
+      'Input: nums = [2,2,3,2]\n\n' +
+      '2 in binary = 010, 3 in binary = 011\n\n' +
+      'Initial: ones=0, twos=0\n\n' +
+      'num=2 (010):\n' +
+      '  ones = (0 ^ 2) & ~0 = 2 & 0b...11111111 = 2 (010)\n' +
+      '  twos = (0 ^ 2) & ~2 = 2 & 0b...11111101 = 0\n' +
+      '  ones=010, twos=000\n\n' +
+      'num=2 (010):\n' +
+      '  ones = (2 ^ 2) & ~0 = 0 & all1s = 0\n' +
+      '  twos = (0 ^ 2) & ~0 = 2 & all1s = 2 (010)\n' +
+      '  ones=000, twos=010\n\n' +
+      'num=3 (011):\n' +
+      '  ones = (0 ^ 3) & ~2 = 3 & 101 = 001 (bit 0 of 3, not in twos)\n' +
+      '  twos = (2 ^ 3) & ~1 = 1 & 110 = 000... wait let me redo:\n' +
+      '  ones = (0 ^ 3) & ~2 = 011 & 101 = 001\n' +
+      '  twos = (2 ^ 3) & ~1 = (010^011)&~001 = 001 & 110 = 000\n' +
+      '  ones=001, twos=000\n\n' +
+      'num=2 (010):\n' +
+      '  ones = (1 ^ 2) & ~0 = 011 = 3... wait:\n' +
+      '  ones = (001 ^ 010) & ~000 = 011 & 111...1 = 011 = 3\n' +
+      '  twos = (000 ^ 010) & ~011 = 010 & 100 = 000\n' +
+      '  ones=011=3\n\n' +
+      'Output: ones = 3',
     explanation:
       '1. ones tracks bits that have appeared 1 (mod 3) times.\n' +
       '2. twos tracks bits that have appeared 2 (mod 3) times.\n' +
@@ -4153,24 +6213,71 @@ export const solutions: ProblemSolution[] = [
         return dp(0)`,
     jsCode: `var wordBreak = function(s, wordDict) {
     const wordSet = new Set(wordDict);
+
+    // memo[start] = list of sentences that can be formed from s[start..]
     const memo = new Map();
-    function dp(start) {
-        if (start === s.length) return [''];
-        if (memo.has(start)) return memo.get(start);
+
+    function dp(startIndex) {
+        // Reached the end of the string — one valid "empty" completion
+        if (startIndex === s.length) {
+            return [''];
+        }
+
+        // Return cached result if available
+        if (memo.has(startIndex)) {
+            return memo.get(startIndex);
+        }
+
         const sentences = [];
-        for (let end = start + 1; end <= s.length; end++) {
-            const word = s.substring(start, end);
+
+        // Try every possible end position for the next word
+        for (let endIndex = startIndex + 1; endIndex <= s.length; endIndex = endIndex + 1) {
+            const word = s.substring(startIndex, endIndex);
+
             if (wordSet.has(word)) {
-                for (const rest of dp(end)) {
-                    sentences.push(rest ? word + ' ' + rest : word);
+                // For each valid sentence from the rest, prepend this word
+                const restSentences = dp(endIndex);
+
+                for (const rest of restSentences) {
+                    if (rest) {
+                        sentences.push(word + ' ' + rest);
+                    } else {
+                        sentences.push(word);
+                    }
                 }
             }
         }
-        memo.set(start, sentences);
+
+        memo.set(startIndex, sentences);
         return sentences;
     }
+
     return dp(0);
 };`,
+    jsWalkthrough:
+      'Input: s = "catsanddog", wordDict = ["cat","cats","and","sand","dog"]\n\n' +
+      'wordSet = {"cat","cats","and","sand","dog"}\n\n' +
+      'dp(0): try words starting at 0\n' +
+      '  endIndex=3: word="cat" in wordSet\n' +
+      '    dp(3): try words starting at 3\n' +
+      '      endIndex=6: word="san" not in wordSet\n' +
+      '      endIndex=7: word="sand" in wordSet\n' +
+      '        dp(7): word="dog" in wordSet\n' +
+      '          dp(10): return [""]\n' +
+      '          sentences = ["dog"]\n' +
+      '        memo[7] = ["dog"]\n' +
+      '        sentences at 3 = ["sand dog"]\n' +
+      '      endIndex=6 again: word="and" in wordSet\n' +
+      '        dp(6) = ["dog"]\n' +
+      '        sentences at 3 += ["and dog"]\n' +
+      '      memo[3] = ["sand dog", "and dog"]\n' +
+      '    For rest "sand dog": push "cat sand dog"\n' +
+      '    For rest "and dog": push "cat and dog"\n' +
+      '  endIndex=4: word="cats" in wordSet\n' +
+      '    dp(4): endIndex=7: word="and" -> dp(7)=["dog"] -> "and dog"\n' +
+      '    memo[4] = ["and dog"]\n' +
+      '    push "cats and dog"\n\n' +
+      'Output: ["cat sand dog","cat and dog","cats and dog"]',
     explanation:
       '1. Use memoized recursion starting from index 0.\n' +
       '2. For each starting position, try every possible end position.\n' +
@@ -4213,16 +6320,53 @@ export const solutions: ProblemSolution[] = [
                 stack.append(node.left)
         return res`,
     jsCode: `var preorderTraversal = function(root) {
-    if (!root) return [];
-    const stack = [root], res = [];
+    if (!root) {
+        return [];
+    }
+
+    const stack = [root];
+    const result = [];
+
     while (stack.length) {
         const node = stack.pop();
-        res.push(node.val);
-        if (node.right) stack.push(node.right);
-        if (node.left) stack.push(node.left);
+        result.push(node.val);
+
+        // Push right first so left gets processed first (LIFO order)
+        if (node.right) {
+            stack.push(node.right);
+        }
+
+        if (node.left) {
+            stack.push(node.left);
+        }
     }
-    return res;
+
+    return result;
 };`,
+    jsWalkthrough:
+      'Input: root = [1,null,2,3]\n\n' +
+      'Tree:\n' +
+      '1\n' +
+      ' \\\n' +
+      '  2\n' +
+      ' /\n' +
+      '3\n\n' +
+      'stack = [node(1)], result = []\n\n' +
+      'Step 1: pop node(1)\n' +
+      '  result = [1]\n' +
+      '  right=node(2) -> push node(2)\n' +
+      '  left=null -> skip\n' +
+      '  stack = [node(2)]\n\n' +
+      'Step 2: pop node(2)\n' +
+      '  result = [1, 2]\n' +
+      '  right=null -> skip\n' +
+      '  left=node(3) -> push node(3)\n' +
+      '  stack = [node(3)]\n\n' +
+      'Step 3: pop node(3)\n' +
+      '  result = [1, 2, 3]\n' +
+      '  no children\n' +
+      '  stack = []\n\n' +
+      'Output: [1, 2, 3]',
     explanation:
       '1. Push root onto the stack.\n' +
       '2. Pop a node, add its value to result.\n' +
@@ -4265,16 +6409,57 @@ export const solutions: ProblemSolution[] = [
                 stack.append(node.right)
         return res[::-1]`,
     jsCode: `var postorderTraversal = function(root) {
-    if (!root) return [];
-    const stack = [root], res = [];
+    if (!root) {
+        return [];
+    }
+
+    const stack = [root];
+    const result = [];
+
+    // Modified preorder: root, right, left
+    // Push left first so right gets processed first (LIFO)
     while (stack.length) {
         const node = stack.pop();
-        res.push(node.val);
-        if (node.left) stack.push(node.left);
-        if (node.right) stack.push(node.right);
+        result.push(node.val);
+
+        if (node.left) {
+            stack.push(node.left);
+        }
+
+        if (node.right) {
+            stack.push(node.right);
+        }
     }
-    return res.reverse();
+
+    // Reverse gives: left, right, root = postorder
+    return result.reverse();
 };`,
+    jsWalkthrough:
+      'Input: root = [1,null,2,3]\n\n' +
+      'Tree:\n' +
+      '1\n' +
+      ' \\\n' +
+      '  2\n' +
+      ' /\n' +
+      '3\n\n' +
+      'Running modified preorder (root, right, left):\n\n' +
+      'stack = [node(1)], result = []\n\n' +
+      'Step 1: pop node(1)\n' +
+      '  result = [1]\n' +
+      '  left=null -> skip\n' +
+      '  right=node(2) -> push\n' +
+      '  stack = [node(2)]\n\n' +
+      'Step 2: pop node(2)\n' +
+      '  result = [1, 2]\n' +
+      '  left=node(3) -> push\n' +
+      '  right=null -> skip\n' +
+      '  stack = [node(3)]\n\n' +
+      'Step 3: pop node(3)\n' +
+      '  result = [1, 2, 3]\n' +
+      '  no children, stack = []\n\n' +
+      'result = [1, 2, 3]\n' +
+      'result.reverse() = [3, 2, 1]\n\n' +
+      'Output: [3, 2, 1]',
     explanation:
       '1. Modified preorder: visit root, push left first then right (so right processes first).\n' +
       '2. This gives root, right, left order.\n' +
@@ -4317,18 +6502,56 @@ export const solutions: ProblemSolution[] = [
             curr = nxt
         return dummy.next`,
     jsCode: `var insertionSortList = function(head) {
+    // Dummy node as the head of the sorted portion
     const dummy = new ListNode(0);
     let curr = head;
+
     while (curr) {
-        const nxt = curr.next;
+        // Save next node before we rewire curr's pointer
+        const nextNode = curr.next;
+
+        // Find insertion position in sorted list
         let prev = dummy;
-        while (prev.next && prev.next.val < curr.val) prev = prev.next;
+        while (prev.next && prev.next.val < curr.val) {
+            prev = prev.next;
+        }
+
+        // Insert curr between prev and prev.next
         curr.next = prev.next;
         prev.next = curr;
-        curr = nxt;
+
+        // Move to the next node in the original list
+        curr = nextNode;
     }
+
     return dummy.next;
 };`,
+    jsWalkthrough:
+      'Input: head = [4,2,1,3]\n\n' +
+      'dummy -> null\n\n' +
+      'curr=node(4):\n' +
+      '  nextNode = node(2)\n' +
+      '  Walk sorted list: dummy.next=null, stop immediately\n' +
+      '  Insert after dummy: dummy -> 4 -> null\n' +
+      '  curr = node(2)\n\n' +
+      'curr=node(2):\n' +
+      '  nextNode = node(1)\n' +
+      '  Walk sorted: prev=dummy, prev.next=node(4), 4 < 2? No -> stop at dummy\n' +
+      '  Insert: 2.next = node(4), dummy.next = node(2)\n' +
+      '  dummy -> 2 -> 4 -> null\n' +
+      '  curr = node(1)\n\n' +
+      'curr=node(1):\n' +
+      '  nextNode = node(3)\n' +
+      '  Walk sorted: prev.next.val=2 < 1? No -> stop at dummy\n' +
+      '  Insert: 1.next=node(2), dummy.next=node(1)\n' +
+      '  dummy -> 1 -> 2 -> 4 -> null\n' +
+      '  curr = node(3)\n\n' +
+      'curr=node(3):\n' +
+      '  nextNode = null\n' +
+      '  Walk: 1<3 -> prev=1, 2<3 -> prev=2, 4<3? No -> stop at node(2)\n' +
+      '  Insert: 3.next=node(4), node(2).next=node(3)\n' +
+      '  dummy -> 1 -> 2 -> 3 -> 4 -> null\n\n' +
+      'Output: [1,2,3,4]',
     explanation:
       '1. Create a dummy node as the head of the sorted list.\n' +
       '2. For each node in the original list, save its next pointer.\n' +
@@ -4382,27 +6605,63 @@ export const solutions: ProblemSolution[] = [
         return res`,
     jsCode: `var maxPoints = function(points) {
     const n = points.length;
-    if (n <= 2) return n;
-    function gcd(a, b) { return b === 0 ? a : gcd(b, a % b); }
-    let res = 2;
-    for (let i = 0; i < n; i++) {
+
+    // With 2 or fewer points, all are on the same line
+    if (n <= 2) {
+        return n;
+    }
+
+    function gcd(a, b) {
+        return b === 0 ? a : gcd(b, a % b);
+    }
+
+    let maxOnLine = 2;
+
+    for (let i = 0; i < n; i = i + 1) {
         const slopes = new Map();
-        for (let j = i + 1; j < n; j++) {
+
+        for (let j = i + 1; j < n; j = j + 1) {
             let dx = points[j][0] - points[i][0];
             let dy = points[j][1] - points[i][1];
-            const g = gcd(Math.abs(dx), Math.abs(dy));
-            dx /= g; dy /= g;
-            if (dx < 0) { dx = -dx; dy = -dy; }
-            else if (dx === 0) dy = Math.abs(dy);
-            const key = dx + ',' + dy;
-            slopes.set(key, (slopes.get(key) || 0) + 1);
+
+            // Normalize slope by dividing by GCD to avoid floating point issues
+            const commonFactor = gcd(Math.abs(dx), Math.abs(dy));
+            dx = dx / commonFactor;
+            dy = dy / commonFactor;
+
+            // Normalize sign: ensure dx >= 0 for consistent representation
+            if (dx < 0) {
+                dx = -dx;
+                dy = -dy;
+            } else if (dx === 0) {
+                dy = Math.abs(dy);
+            }
+
+            const slopeKey = dx + ',' + dy;
+            slopes.set(slopeKey, (slopes.get(slopeKey) || 0) + 1);
         }
+
+        // Max count + 1 (the anchor point i itself)
         for (const count of slopes.values()) {
-            res = Math.max(res, count + 1);
+            maxOnLine = Math.max(maxOnLine, count + 1);
         }
     }
-    return res;
+
+    return maxOnLine;
 };`,
+    jsWalkthrough:
+      'Input: points = [[1,1],[2,2],[3,3]]\n\n' +
+      'n=3, maxOnLine=2\n\n' +
+      'i=0 (anchor=[1,1]):\n' +
+      '  j=1: dx=2-1=1, dy=2-1=1, gcd(1,1)=1 -> dx=1,dy=1\n' +
+      '    dx>0 and not 0, key="1,1", slopes={"1,1":1}\n' +
+      '  j=2: dx=3-1=2, dy=3-1=2, gcd(2,2)=2 -> dx=1,dy=1\n' +
+      '    key="1,1", slopes={"1,1":2}\n' +
+      '  max count=2, maxOnLine=max(2,2+1)=3\n\n' +
+      'i=1 (anchor=[2,2]):\n' +
+      '  j=2: dx=1, dy=1, key="1,1", slopes={"1,1":1}\n' +
+      '  max count=1, maxOnLine=max(3,2)=3\n\n' +
+      'Output: 3',
     explanation:
       '1. For each point i, compute slopes to all other points j.\n' +
       '2. Normalize slopes using GCD to handle equivalent fractions.\n' +
@@ -4435,8 +6694,19 @@ export const solutions: ProblemSolution[] = [
     def reverseWords(self, s: str) -> str:
         return ' '.join(s.split()[::-1])`,
     jsCode: `var reverseWords = function(s) {
-    return s.trim().split(/\\s+/).reverse().join(' ');
+    // Trim leading/trailing spaces, split by any whitespace runs, reverse, join
+    const words = s.trim().split(/\\s+/);
+    const reversedWords = words.reverse();
+    return reversedWords.join(' ');
 };`,
+    jsWalkthrough:
+      'Input: s = "  the sky is blue  "\n\n' +
+      's.trim() = "the sky is blue"\n\n' +
+      '.split(/\\s+/) = ["the", "sky", "is", "blue"]\n' +
+      '  (regex \\s+ matches one or more whitespace chars)\n\n' +
+      '.reverse() = ["blue", "is", "sky", "the"]\n\n' +
+      '.join(" ") = "blue is sky the"\n\n' +
+      'Output: "blue is sky the"',
     explanation:
       '1. s.split() splits by any whitespace and removes empty strings.\n' +
       '2. [::-1] reverses the list of words.\n' +
@@ -4477,15 +6747,42 @@ export const solutions: ProblemSolution[] = [
                 hi -= 1
         return nums[lo]`,
     jsCode: `var findMin = function(nums) {
-    let lo = 0, hi = nums.length - 1;
+    let lo = 0;
+    let hi = nums.length - 1;
+
     while (lo < hi) {
         const mid = Math.floor((lo + hi) / 2);
-        if (nums[mid] > nums[hi]) lo = mid + 1;
-        else if (nums[mid] < nums[hi]) hi = mid;
-        else hi--;
+
+        if (nums[mid] > nums[hi]) {
+            // Minimum is in the right half
+            lo = mid + 1;
+        } else if (nums[mid] < nums[hi]) {
+            // Minimum is in the left half (including mid)
+            hi = mid;
+        } else {
+            // nums[mid] === nums[hi]: can't tell which half has minimum
+            // Safe to shrink hi by 1 (we know hi is not the unique minimum)
+            hi = hi - 1;
+        }
     }
+
     return nums[lo];
 };`,
+    jsWalkthrough:
+      'Input: nums = [2,2,2,0,1]\n\n' +
+      'lo=0, hi=4\n\n' +
+      'Iteration 1:\n' +
+      '  mid = 2, nums[mid]=2, nums[hi]=1\n' +
+      '  2 > 1 -> minimum in right half\n' +
+      '  lo = mid+1 = 3\n\n' +
+      'Iteration 2:\n' +
+      '  lo=3, hi=4, mid=3\n' +
+      '  nums[mid]=0, nums[hi]=1\n' +
+      '  0 < 1 -> minimum in left half (including mid)\n' +
+      '  hi = mid = 3\n\n' +
+      'lo=3, hi=3 -> loop ends\n' +
+      'return nums[3] = 0\n\n' +
+      'Output: 0',
     explanation:
       '1. Binary search comparing nums[mid] with nums[hi].\n' +
       '2. If mid > hi: minimum is in the right half (lo = mid + 1).\n' +
@@ -4529,19 +6826,55 @@ export const solutions: ProblemSolution[] = [
             res = max(res, right - left + 1)
         return res`,
     jsCode: `var lengthOfLongestSubstringTwoDistinct = function(s) {
+    // count tracks frequency of each character in the current window
     const count = new Map();
-    let left = 0, res = 0;
-    for (let right = 0; right < s.length; right++) {
-        count.set(s[right], (count.get(s[right]) || 0) + 1);
+    let left = 0;
+    let maxLength = 0;
+
+    for (let right = 0; right < s.length; right = right + 1) {
+        const rightChar = s[right];
+
+        // Add right character to window
+        count.set(rightChar, (count.get(rightChar) || 0) + 1);
+
+        // Shrink window from the left until we have at most 2 distinct chars
         while (count.size > 2) {
-            count.set(s[left], count.get(s[left]) - 1);
-            if (count.get(s[left]) === 0) count.delete(s[left]);
-            left++;
+            const leftChar = s[left];
+            const newCount = count.get(leftChar) - 1;
+
+            if (newCount === 0) {
+                count.delete(leftChar);
+            } else {
+                count.set(leftChar, newCount);
+            }
+
+            left = left + 1;
         }
-        res = Math.max(res, right - left + 1);
+
+        // Update max window size
+        const windowSize = right - left + 1;
+        maxLength = Math.max(maxLength, windowSize);
     }
-    return res;
+
+    return maxLength;
 };`,
+    jsWalkthrough:
+      'Input: s = "eceba"\n\n' +
+      'left=0, maxLength=0\n\n' +
+      'right=0 (e): count={e:1}, size=1 <= 2, window="e", maxLength=1\n' +
+      'right=1 (c): count={e:1,c:1}, size=2 <= 2, window="ec", maxLength=2\n' +
+      'right=2 (e): count={e:2,c:1}, size=2 <= 2, window="ece", maxLength=3\n' +
+      'right=3 (b): count={e:2,c:1,b:1}, size=3 > 2!\n' +
+      '  Shrink: left=0 (e), count[e]=2->1, left=1\n' +
+      '  count={e:1,c:1,b:1}, size=3 > 2!\n' +
+      '  Shrink: left=1 (c), count[c]=1->0, delete c, left=2\n' +
+      '  count={e:1,b:1}, size=2 <= 2\n' +
+      '  window="eb", size=right-left+1=3-2+1=2, maxLength=max(3,2)=3\n' +
+      'right=4 (a): count={e:1,b:1,a:1}, size=3 > 2!\n' +
+      '  Shrink: left=2 (e), count[e]=0, delete e, left=3\n' +
+      '  count={b:1,a:1}, size=2 <= 2\n' +
+      '  window="ba", size=2, maxLength=max(3,2)=3\n\n' +
+      'Output: 3 (substring "ece")',
     explanation:
       '1. Sliding window with a character frequency map.\n' +
       '2. Expand right pointer, adding each character to the map.\n' +
@@ -4585,17 +6918,46 @@ export const solutions: ProblemSolution[] = [
                     return s[i:] == t[i+1:]
         return m + 1 == n`,
     jsCode: `var isOneEditDistance = function(s, t) {
-    let m = s.length, n = t.length;
-    if (Math.abs(m - n) > 1) return false;
-    if (m > n) return isOneEditDistance(t, s);
-    for (let i = 0; i < m; i++) {
+    const sLen = s.length;
+    const tLen = t.length;
+
+    // If length difference is more than 1, cannot be one edit
+    if (Math.abs(sLen - tLen) > 1) {
+        return false;
+    }
+
+    // Ensure s is the shorter (or equal) string for simpler logic
+    if (sLen > tLen) {
+        return isOneEditDistance(t, s);
+    }
+
+    // Find first position where characters differ
+    for (let i = 0; i < sLen; i = i + 1) {
         if (s[i] !== t[i]) {
-            if (m === n) return s.substring(i + 1) === t.substring(i + 1);
-            else return s.substring(i) === t.substring(i + 1);
+            if (sLen === tLen) {
+                // Same length: one replace — rest must match exactly
+                return s.substring(i + 1) === t.substring(i + 1);
+            } else {
+                // Different length: skip one char in t (insert/delete) — rest must match
+                return s.substring(i) === t.substring(i + 1);
+            }
         }
     }
-    return m + 1 === n;
+
+    // No mismatch found: strings are identical except t has one extra char at end
+    return sLen + 1 === tLen;
 };`,
+    jsWalkthrough:
+      'Input: s = "ab", t = "acb"\n\n' +
+      'sLen=2, tLen=3, |2-3|=1 <= 1, continue\n' +
+      'sLen < tLen, no swap needed\n\n' +
+      'i=0: s[0]="a", t[0]="a" -> match, continue\n' +
+      'i=1: s[1]="b", t[1]="c" -> mismatch!\n' +
+      '  sLen(2) !== tLen(3): different length case (insert/delete)\n' +
+      '  Check: s.substring(1) = "b"\n' +
+      '         t.substring(2) = "b"\n' +
+      '  "b" === "b" -> true\n\n' +
+      'Output: true (insert "c" at position 1 turns "ab" into "acb")',
     explanation:
       '1. Ensure s is the shorter string (or equal length).\n' +
       '2. If length difference > 1, return False.\n' +
@@ -4634,14 +6996,38 @@ export const solutions: ProblemSolution[] = [
             prev = num
         return res`,
     jsCode: `var findMissingRanges = function(nums, lower, upper) {
-    const res = [];
+    const result = [];
+
+    // Sentinel: one below lower, so gaps start from lower itself
     let prev = lower - 1;
-    for (const num of [...nums, upper + 1]) {
-        if (num - prev >= 2) res.push([prev + 1, num - 1]);
+
+    // Append upper+1 as sentinel so we handle the gap after the last number
+    const numsWithSentinel = [...nums, upper + 1];
+
+    for (const num of numsWithSentinel) {
+        // If gap between prev and num is 2 or more, there are missing numbers
+        if (num - prev >= 2) {
+            const rangeStart = prev + 1;
+            const rangeEnd = num - 1;
+            result.push([rangeStart, rangeEnd]);
+        }
+
         prev = num;
     }
-    return res;
+
+    return result;
 };`,
+    jsWalkthrough:
+      'Input: nums = [0,1,3,50,75], lower = 0, upper = 99\n\n' +
+      'numsWithSentinel = [0,1,3,50,75,100]\n' +
+      'prev = lower - 1 = -1\n\n' +
+      'num=0: 0-(-1)=1 < 2 -> no gap; prev=0\n' +
+      'num=1: 1-0=1 < 2 -> no gap; prev=1\n' +
+      'num=3: 3-1=2 >= 2 -> gap! push [1+1, 3-1]=[2,2]; prev=3\n' +
+      'num=50: 50-3=47 >= 2 -> gap! push [4, 49]; prev=50\n' +
+      'num=75: 75-50=25 >= 2 -> gap! push [51, 74]; prev=75\n' +
+      'num=100 (sentinel): 100-75=25 >= 2 -> gap! push [76, 99]; prev=100\n\n' +
+      'Output: [[2,2],[4,49],[51,74],[76,99]]',
     explanation:
       '1. Set prev = lower - 1 as the sentinel before the range.\n' +
       '2. Append upper + 1 as the sentinel after the range.\n' +
@@ -4694,26 +7080,71 @@ export const solutions: ProblemSolution[] = [
             prev_max = mx
         return max_gap`,
     jsCode: `var maximumGap = function(nums) {
-    if (nums.length < 2) return 0;
-    const lo = Math.min(...nums), hi = Math.max(...nums);
-    if (lo === hi) return 0;
+    if (nums.length < 2) {
+        return 0;
+    }
+
+    const minVal = Math.min(...nums);
+    const maxVal = Math.max(...nums);
+
+    // All elements are the same — gap is 0
+    if (minVal === maxVal) {
+        return 0;
+    }
+
     const n = nums.length;
-    const bucketSize = Math.max(1, Math.floor((hi - lo) / (n - 1)));
-    const bucketCount = Math.floor((hi - lo) / bucketSize) + 1;
+
+    // Bucket size guarantees max gap spans buckets, not within a bucket
+    const bucketSize = Math.max(1, Math.floor((maxVal - minVal) / (n - 1)));
+    const bucketCount = Math.floor((maxVal - minVal) / bucketSize) + 1;
+
+    // Each bucket tracks [min, max] of values it contains
     const buckets = Array.from({length: bucketCount}, () => [Infinity, -Infinity]);
+
+    // Place each number into its bucket
     for (const num of nums) {
-        const idx = Math.floor((num - lo) / bucketSize);
-        buckets[idx][0] = Math.min(buckets[idx][0], num);
-        buckets[idx][1] = Math.max(buckets[idx][1], num);
+        const bucketIndex = Math.floor((num - minVal) / bucketSize);
+        const bucketMin = buckets[bucketIndex][0];
+        const bucketMax = buckets[bucketIndex][1];
+        buckets[bucketIndex][0] = Math.min(bucketMin, num);
+        buckets[bucketIndex][1] = Math.max(bucketMax, num);
     }
-    let maxGap = 0, prevMax = lo;
-    for (const [mn, mx] of buckets) {
-        if (mn === Infinity) continue;
-        maxGap = Math.max(maxGap, mn - prevMax);
-        prevMax = mx;
+
+    // Find max gap between consecutive non-empty buckets
+    let maxGap = 0;
+    let prevBucketMax = minVal;
+
+    for (const [bucketMin, bucketMax] of buckets) {
+        // Skip empty buckets
+        if (bucketMin === Infinity) {
+            continue;
+        }
+
+        const gapFromPrev = bucketMin - prevBucketMax;
+        maxGap = Math.max(maxGap, gapFromPrev);
+        prevBucketMax = bucketMax;
     }
+
     return maxGap;
 };`,
+    jsWalkthrough:
+      'Input: nums = [3,6,9,1]\n\n' +
+      'minVal=1, maxVal=9, n=4\n' +
+      'bucketSize = max(1, floor((9-1)/(4-1))) = max(1, floor(8/3)) = max(1,2) = 2\n' +
+      'bucketCount = floor((9-1)/2) + 1 = 4 + 1 = 5\n\n' +
+      'buckets = [[Inf,-Inf], [Inf,-Inf], [Inf,-Inf], [Inf,-Inf], [Inf,-Inf]]\n\n' +
+      'num=3: idx = floor((3-1)/2) = 1 -> bucket[1] = [3,3]\n' +
+      'num=6: idx = floor((6-1)/2) = 2 -> bucket[2] = [6,6]\n' +
+      'num=9: idx = floor((9-1)/2) = 4 -> bucket[4] = [9,9]\n' +
+      'num=1: idx = floor((1-1)/2) = 0 -> bucket[0] = [1,1]\n\n' +
+      'buckets = [[1,1],[3,3],[6,6],[Inf,-Inf],[9,9]]\n\n' +
+      'Scan for max gap, prevBucketMax=1:\n' +
+      '  bucket[0]=[1,1]: gap=1-1=0, prevMax=1\n' +
+      '  bucket[1]=[3,3]: gap=3-1=2, maxGap=2, prevMax=3\n' +
+      '  bucket[2]=[6,6]: gap=6-3=3, maxGap=3, prevMax=6\n' +
+      '  bucket[3]=empty: skip\n' +
+      '  bucket[4]=[9,9]: gap=9-6=3, maxGap=max(3,3)=3\n\n' +
+      'Output: 3',
     explanation:
       '1. Compute bucket size = max(1, (max-min)/(n-1)).\n' +
       '2. Place each number into a bucket, tracking min and max per bucket.\n' +
@@ -4756,17 +7187,41 @@ export const solutions: ProblemSolution[] = [
                 return 1
         return 0`,
     jsCode: `var compareVersion = function(version1, version2) {
-    const v1 = version1.split('.').map(Number);
-    const v2 = version2.split('.').map(Number);
-    const n = Math.max(v1.length, v2.length);
-    for (let i = 0; i < n; i++) {
-        const a = i < v1.length ? v1[i] : 0;
-        const b = i < v2.length ? v2[i] : 0;
-        if (a < b) return -1;
-        if (a > b) return 1;
+    // Split each version string into integer revision arrays
+    const v1Parts = version1.split('.').map(Number);
+    const v2Parts = version2.split('.').map(Number);
+
+    // Compare up to the length of the longer version
+    const totalRevisions = Math.max(v1Parts.length, v2Parts.length);
+
+    for (let i = 0; i < totalRevisions; i = i + 1) {
+        // Missing revisions are treated as 0
+        const rev1 = i < v1Parts.length ? v1Parts[i] : 0;
+        const rev2 = i < v2Parts.length ? v2Parts[i] : 0;
+
+        if (rev1 < rev2) {
+            return -1;
+        }
+
+        if (rev1 > rev2) {
+            return 1;
+        }
+
+        // Equal at this revision, continue to next
     }
+
     return 0;
 };`,
+    jsWalkthrough:
+      'Input: version1 = "1.01", version2 = "1.001"\n\n' +
+      'v1Parts = [1, 1] (01 -> 1 as integer)\n' +
+      'v2Parts = [1, 1] (001 -> 1 as integer)\n' +
+      'totalRevisions = max(2, 2) = 2\n\n' +
+      'i=0: rev1=1, rev2=1 -> equal, continue\n' +
+      'i=1: rev1=1, rev2=1 -> equal, continue\n' +
+      'Loop ends\n\n' +
+      'return 0\n\n' +
+      'Output: 0 (versions are equal)',
     explanation:
       '1. Split each version string by dots and convert to integers.\n' +
       '2. Compare revisions one by one from left to right.\n' +
@@ -4820,28 +7275,75 @@ export const solutions: ProblemSolution[] = [
             remainder %= denominator
         return ''.join(res)`,
     jsCode: `var fractionToDecimal = function(numerator, denominator) {
-    if (numerator === 0) return "0";
-    const res = [];
-    if ((numerator < 0) ^ (denominator < 0)) res.push('-');
-    let num = Math.abs(numerator), den = Math.abs(denominator);
-    res.push(String(Math.floor(num / den)));
+    if (numerator === 0) {
+        return "0";
+    }
+
+    const resultParts = [];
+
+    // Handle sign separately (XOR: different signs = negative)
+    const isNegative = (numerator < 0) ^ (denominator < 0);
+    if (isNegative) {
+        resultParts.push('-');
+    }
+
+    // Work with absolute values
+    let num = Math.abs(numerator);
+    let den = Math.abs(denominator);
+
+    // Integer part
+    resultParts.push(String(Math.floor(num / den)));
     let remainder = num % den;
-    if (remainder === 0) return res.join('');
-    res.push('.');
-    const remainderMap = new Map();
-    while (remainder) {
-        if (remainderMap.has(remainder)) {
-            res.splice(remainderMap.get(remainder), 0, '(');
-            res.push(')');
+
+    // No fractional part
+    if (remainder === 0) {
+        return resultParts.join('');
+    }
+
+    resultParts.push('.');
+
+    // Track where each remainder first appeared (for cycle detection)
+    const remainderPositions = new Map();
+
+    while (remainder !== 0) {
+        // If we've seen this remainder before, we've found a repeating cycle
+        if (remainderPositions.has(remainder)) {
+            const cycleStart = remainderPositions.get(remainder);
+            resultParts.splice(cycleStart, 0, '(');
+            resultParts.push(')');
             break;
         }
-        remainderMap.set(remainder, res.length);
-        remainder *= 10;
-        res.push(String(Math.floor(remainder / den)));
-        remainder %= den;
+
+        // Record position of this remainder
+        remainderPositions.set(remainder, resultParts.length);
+
+        // Long division: multiply remainder by 10, get next digit
+        remainder = remainder * 10;
+        resultParts.push(String(Math.floor(remainder / den)));
+        remainder = remainder % den;
     }
-    return res.join('');
+
+    return resultParts.join('');
 };`,
+    jsWalkthrough:
+      'Input: numerator = 1, denominator = 3\n\n' +
+      'numerator !== 0, isNegative = false\n' +
+      'num=1, den=3\n' +
+      'Integer part: floor(1/3)=0 -> resultParts=["0"]\n' +
+      'remainder = 1 % 3 = 1 (not 0, so we have fractional part)\n' +
+      'resultParts = ["0", "."]\n\n' +
+      'Loop iteration 1:\n' +
+      '  remainder=1, not in map -> map[1]=2 (position of next digit)\n' +
+      '  remainder = 1*10 = 10\n' +
+      '  digit = floor(10/3) = 3 -> resultParts = ["0",".","3"]\n' +
+      '  remainder = 10 % 3 = 1\n\n' +
+      'Loop iteration 2:\n' +
+      '  remainder=1, IS in map! cycleStart=2\n' +
+      '  splice "(" at position 2: ["0",".","(","3"]\n' +
+      '  push ")": ["0",".","(","3",")"]\n' +
+      '  break\n\n' +
+      'join -> "0.(3)"\n\n' +
+      'Output: "0.(3)"',
     explanation:
       '1. Handle the sign separately.\n' +
       '2. Compute the integer part with division.\n' +
@@ -4879,14 +7381,42 @@ export const solutions: ProblemSolution[] = [
             columnNumber //= 26
         return ''.join(reversed(res))`,
     jsCode: `var convertToTitle = function(columnNumber) {
-    const res = [];
-    while (columnNumber) {
-        columnNumber--;
-        res.push(String.fromCharCode(columnNumber % 26 + 65));
+    const result = [];
+
+    while (columnNumber > 0) {
+        // Subtract 1 to convert 1-indexed to 0-indexed (A=0, B=1, ..., Z=25)
+        columnNumber = columnNumber - 1;
+
+        // Get the current digit (0-25) and convert to letter
+        const digitIndex = columnNumber % 26;
+        const letter = String.fromCharCode(digitIndex + 65); // 65 = 'A'
+        result.push(letter);
+
+        // Move to the next digit position
         columnNumber = Math.floor(columnNumber / 26);
     }
-    return res.reverse().join('');
+
+    // Built in reverse order, so reverse to get correct title
+    return result.reverse().join('');
 };`,
+    jsWalkthrough:
+      'Input: columnNumber = 28 (should be "AB")\n\n' +
+      'result = []\n\n' +
+      'Iteration 1: columnNumber=28\n' +
+      '  columnNumber = 28-1 = 27\n' +
+      '  digitIndex = 27 % 26 = 1\n' +
+      '  letter = String.fromCharCode(1+65) = "B"\n' +
+      '  result = ["B"]\n' +
+      '  columnNumber = floor(27/26) = 1\n\n' +
+      'Iteration 2: columnNumber=1\n' +
+      '  columnNumber = 1-1 = 0\n' +
+      '  digitIndex = 0 % 26 = 0\n' +
+      '  letter = String.fromCharCode(0+65) = "A"\n' +
+      '  result = ["B", "A"]\n' +
+      '  columnNumber = floor(0/26) = 0 -> loop ends\n\n' +
+      'result.reverse() = ["A","B"]\n' +
+      'join -> "AB"\n\n' +
+      'Output: "AB"',
     explanation:
       '1. Subtract 1 to convert from 1-indexed to 0-indexed.\n' +
       '2. Take modulo 26 to get the current digit (0=A, 25=Z).\n' +
@@ -4923,11 +7453,25 @@ export const solutions: ProblemSolution[] = [
         return result`,
     jsCode: `var titleToNumber = function(columnTitle) {
     let result = 0;
-    for (const c of columnTitle) {
-        result = result * 26 + (c.charCodeAt(0) - 64);
+
+    for (const char of columnTitle) {
+        // A=1, B=2, ..., Z=26 (charCode of 'A' is 65, so subtract 64)
+        const charValue = char.charCodeAt(0) - 64;
+
+        // Shift left in base 26 and add current char value
+        result = result * 26 + charValue;
     }
+
     return result;
 };`,
+    jsWalkthrough:
+      'Input: columnTitle = "AB"\n\n' +
+      'result = 0\n\n' +
+      'char="A": charValue = 65 - 64 = 1\n' +
+      '  result = 0 * 26 + 1 = 1\n\n' +
+      'char="B": charValue = 66 - 64 = 2\n' +
+      '  result = 1 * 26 + 2 = 28\n\n' +
+      'Output: 28',
     explanation:
       '1. Process each character from left to right.\n' +
       '2. Multiply current result by 26 (shift left in base-26).\n' +
@@ -4965,12 +7509,25 @@ export const solutions: ProblemSolution[] = [
         return count`,
     jsCode: `var trailingZeroes = function(n) {
     let count = 0;
+
+    // Each division by 5 counts multiples of 5, then 25, then 125, etc.
     while (n >= 5) {
         n = Math.floor(n / 5);
-        count += n;
+        count = count + n;
     }
+
     return count;
 };`,
+    jsWalkthrough:
+      'Input: n = 25\n\n' +
+      '25! = 1 * 2 * 3 * ... * 25\n\n' +
+      'Counting factors of 5:\n' +
+      'Iteration 1: n = floor(25/5) = 5, count = 0+5 = 5\n' +
+      '  (multiples of 5 up to 25: 5,10,15,20,25 -> five 5-factors)\n' +
+      'Iteration 2: n = floor(5/5) = 1, count = 5+1 = 6\n' +
+      '  (25 = 5*5 contributes an extra factor of 5)\n' +
+      'n=1 < 5, loop ends\n\n' +
+      'Output: 6 (25! ends in 6 zeros)',
     explanation:
       '1. Trailing zeros come from factors of 10 = 2 * 5.\n' +
       '2. Factors of 2 are more abundant, so just count factors of 5.\n' +
@@ -5018,10 +7575,13 @@ export const solutions: ProblemSolution[] = [
         return len(self.stack) > 0`,
     jsCode: `var BSTIterator = function(root) {
     this.stack = [];
-    this._pushLeft(root);
+
+    // Initialize by pushing all left children from root
+    this._pushAllLeft(root);
 };
 
-BSTIterator.prototype._pushLeft = function(node) {
+BSTIterator.prototype._pushAllLeft = function(node) {
+    // Push nodes until we reach the leftmost (smallest) node
     while (node) {
         this.stack.push(node);
         node = node.left;
@@ -5029,14 +7589,46 @@ BSTIterator.prototype._pushLeft = function(node) {
 };
 
 BSTIterator.prototype.next = function() {
+    // Pop the current smallest node
     const node = this.stack.pop();
-    this._pushLeft(node.right);
+
+    // If this node has a right child, its left subtree contains the next smallest values
+    this._pushAllLeft(node.right);
+
     return node.val;
 };
 
 BSTIterator.prototype.hasNext = function() {
     return this.stack.length > 0;
 };`,
+    jsWalkthrough:
+      'Input: BST root = [7,3,15,null,null,9,20]\n\n' +
+      'Tree:\n' +
+      '    7\n' +
+      '   / \\\n' +
+      '  3   15\n' +
+      '     /  \\\n' +
+      '    9   20\n\n' +
+      'Initialize: _pushAllLeft(root=7)\n' +
+      '  push 7, go left to 3\n' +
+      '  push 3, no left child\n' +
+      '  stack = [7, 3] (top=3)\n\n' +
+      'next():\n' +
+      '  pop node(3)\n' +
+      '  _pushAllLeft(3.right=null) -> nothing pushed\n' +
+      '  stack = [7], return 3\n\n' +
+      'next():\n' +
+      '  pop node(7)\n' +
+      '  _pushAllLeft(7.right=15)\n' +
+      '    push 15, go left to 9\n' +
+      '    push 9, no left\n' +
+      '  stack = [15, 9], return 7\n\n' +
+      'next():\n' +
+      '  pop node(9), pushAllLeft(9.right=null)\n' +
+      '  stack = [15], return 9\n\n' +
+      'hasNext(): stack=[15] -> true\n' +
+      'next(): pop 15, pushAllLeft(15.right=20), stack=[20], return 15\n' +
+      'next(): pop 20, pushAllLeft(null), stack=[], return 20',
     explanation:
       '1. Initialize by pushing all left children from root onto the stack.\n' +
       '2. next(): pop the top node (smallest), push left children of its right child.\n' +
@@ -5076,17 +7668,67 @@ BSTIterator.prototype.hasNext = function() {
                 dp[i][j] = max(need, 1)
         return dp[0][0]`,
     jsCode: `var calculateMinimumHP = function(dungeon) {
-    const m = dungeon.length, n = dungeon[0].length;
-    const dp = Array.from({length: m + 1}, () => Array(n + 1).fill(Infinity));
-    dp[m][n - 1] = dp[m - 1][n] = 1;
-    for (let i = m - 1; i >= 0; i--) {
-        for (let j = n - 1; j >= 0; j--) {
-            const need = Math.min(dp[i + 1][j], dp[i][j + 1]) - dungeon[i][j];
-            dp[i][j] = Math.max(need, 1);
+    const rows = dungeon.length;
+    const cols = dungeon[0].length;
+
+    // dp[i][j] = minimum health needed when entering cell (i, j)
+    // Extra row and column serve as sentinels (infinity except at border)
+    const dp = Array.from({length: rows + 1}, () => Array(cols + 1).fill(Infinity));
+
+    // From the princess's cell and beyond, need at least 1 health
+    dp[rows][cols - 1] = 1;
+    dp[rows - 1][cols] = 1;
+
+    // Fill bottom-up from princess to knight's start
+    for (let i = rows - 1; i >= 0; i = i - 1) {
+        for (let j = cols - 1; j >= 0; j = j - 1) {
+            // Take the better (minimum) of going right or going down
+            const healthNeededAfter = Math.min(dp[i + 1][j], dp[i][j + 1]);
+
+            // Subtract current cell's effect; if negative, knight needs at least 1
+            const healthNeededBefore = healthNeededAfter - dungeon[i][j];
+            dp[i][j] = Math.max(healthNeededBefore, 1);
         }
     }
+
     return dp[0][0];
 };`,
+    jsWalkthrough:
+      'Input: dungeon = [[-2,-3,3],[-5,-10,1],[10,30,-5]]\n\n' +
+      'rows=3, cols=3\n' +
+      'Initialize: dp[3][2]=1, dp[2][3]=1, all others=Infinity\n\n' +
+      'Fill bottom-up:\n' +
+      'i=2, j=2 (cell=dungeon[2][2]=-5):\n' +
+      '  healthAfter = min(dp[3][2], dp[2][3]) = min(1, 1) = 1\n' +
+      '  healthBefore = 1 - (-5) = 6\n' +
+      '  dp[2][2] = max(6, 1) = 6\n\n' +
+      'i=2, j=1 (cell=30):\n' +
+      '  healthAfter = min(dp[3][1], dp[2][2]) = min(Inf, 6) = 6\n' +
+      '  healthBefore = 6 - 30 = -24\n' +
+      '  dp[2][1] = max(-24, 1) = 1\n\n' +
+      'i=2, j=0 (cell=10):\n' +
+      '  healthAfter = min(dp[3][0], dp[2][1]) = min(Inf, 1) = 1\n' +
+      '  healthBefore = 1 - 10 = -9\n' +
+      '  dp[2][0] = max(-9, 1) = 1\n\n' +
+      'i=1, j=2 (cell=1):\n' +
+      '  healthAfter = min(dp[2][2], dp[1][3]) = min(6, Inf) = 6\n' +
+      '  dp[1][2] = max(6-1, 1) = 5\n\n' +
+      'i=1, j=1 (cell=-10):\n' +
+      '  healthAfter = min(dp[2][1], dp[1][2]) = min(1, 5) = 1\n' +
+      '  dp[1][1] = max(1-(-10), 1) = 11\n\n' +
+      'i=1, j=0 (cell=-5):\n' +
+      '  healthAfter = min(dp[2][0], dp[1][1]) = min(1, 11) = 1\n' +
+      '  dp[1][0] = max(1-(-5), 1) = 6\n\n' +
+      'i=0, j=2 (cell=3):\n' +
+      '  healthAfter = min(dp[1][2], dp[0][3]) = min(5, Inf) = 5\n' +
+      '  dp[0][2] = max(5-3, 1) = 2\n\n' +
+      'i=0, j=1 (cell=-3):\n' +
+      '  healthAfter = min(dp[1][1], dp[0][2]) = min(11, 2) = 2\n' +
+      '  dp[0][1] = max(2-(-3), 1) = 5\n\n' +
+      'i=0, j=0 (cell=-2):\n' +
+      '  healthAfter = min(dp[1][0], dp[0][1]) = min(6, 5) = 5\n' +
+      '  dp[0][0] = max(5-(-2), 1) = 7\n\n' +
+      'Output: dp[0][0] = 7',
     explanation:
       '1. Work backwards from the bottom-right corner.\n' +
       '2. dp[i][j] = minimum health needed entering cell (i,j).\n' +
@@ -5129,11 +7771,44 @@ BSTIterator.prototype.hasNext = function() {
         result = ''.join(strs)
         return '0' if result[0] == '0' else result`,
     jsCode: `var largestNumber = function(nums) {
+    // Convert all numbers to strings for concatenation comparison
     const strs = nums.map(String);
-    strs.sort((a, b) => (b + a).localeCompare(a + b));
+
+    // Sort using custom comparator: which ordering produces the larger number?
+    strs.sort((a, b) => {
+        const orderAB = b + a; // b before a
+        const orderBA = a + b; // a before b
+        return orderAB.localeCompare(orderBA);
+    });
+
+    // Concatenate sorted strings
     const result = strs.join('');
-    return result[0] === '0' ? '0' : result;
+
+    // Edge case: if result is all zeros (e.g., [0,0]), return "0"
+    if (result[0] === '0') {
+        return '0';
+    }
+
+    return result;
 };`,
+    jsWalkthrough:
+      'Input: nums = [10, 2]\n\n' +
+      'strs = ["10", "2"]\n\n' +
+      'Sort comparison: a="10", b="2"\n' +
+      '  orderAB = "2" + "10" = "210"\n' +
+      '  orderBA = "10" + "2" = "102"\n' +
+      '  "210".localeCompare("102") > 0 -> "2" comes first\n' +
+      'strs sorted = ["2", "10"]\n\n' +
+      'result = "2" + "10" = "210"\n' +
+      'result[0] = "2" !== "0"\n\n' +
+      'Output: "210"\n\n' +
+      '---\n\n' +
+      'Example 2: nums = [3,30,34,5,9]\n' +
+      'strs = ["3","30","34","5","9"]\n' +
+      'After sort: ["9","5","34","3","30"]\n' +
+      '  (9>5>34>3>30 when comparing concatenations)\n' +
+      'result = "9534330"\n\n' +
+      'Output: "9534330"',
     explanation:
       '1. Convert all numbers to strings.\n' +
       '2. Sort with custom comparator: compare a+b vs b+a as strings.\n' +
@@ -5173,14 +7848,38 @@ BSTIterator.prototype.hasNext = function() {
                 seen.add(seq)
         return list(repeated)`,
     jsCode: `var findRepeatedDnaSequences = function(s) {
-    const seen = new Set(), repeated = new Set();
-    for (let i = 0; i <= s.length - 10; i++) {
-        const seq = s.substring(i, i + 10);
-        if (seen.has(seq)) repeated.add(seq);
-        else seen.add(seq);
+    const seen = new Set();
+    const repeated = new Set();
+
+    // Slide a window of exactly 10 characters across the string
+    for (let i = 0; i <= s.length - 10; i = i + 1) {
+        const sequence = s.substring(i, i + 10);
+
+        if (seen.has(sequence)) {
+            // Seen before -> it's repeated
+            repeated.add(sequence);
+        } else {
+            // First time seeing it
+            seen.add(sequence);
+        }
     }
+
     return [...repeated];
 };`,
+    jsWalkthrough:
+      'Input: s = "AAAAACCCCCAAAAACCCCCCAAAAAGGGTTT"\n\n' +
+      'Window slides from i=0 to i=22 (s.length-10=32-10=22)\n\n' +
+      'i=0: seq="AAAAACCCCC" -> add to seen\n' +
+      'i=1: seq="AAAACCCCCA" -> add to seen\n' +
+      '...\n' +
+      'i=5: seq="CCCCCAAAAA" -> add to seen\n' +
+      '...\n' +
+      'i=10: seq="AAAAACCCCC" -> already in seen! add to repeated\n' +
+      'i=11: seq="AAAACCCCCC" -> add to seen\n' +
+      '...\n' +
+      'i=15: seq="CCCCCAAAAA" -> already in seen! add to repeated\n' +
+      '...\n\n' +
+      'Output: ["AAAAACCCCC","CCCCCAAAAA"]',
     explanation:
       '1. Slide a window of size 10 across the string.\n' +
       '2. For each 10-character substring, check if it was seen before.\n' +
@@ -5225,22 +7924,62 @@ BSTIterator.prototype.hasNext = function() {
         return sell[k]`,
     jsCode: `var maxProfit = function(k, prices) {
     const n = prices.length;
-    if (n <= 1) return 0;
-    if (k >= Math.floor(n / 2)) {
-        let profit = 0;
-        for (let i = 1; i < n; i++) profit += Math.max(0, prices[i] - prices[i - 1]);
-        return profit;
+
+    if (n <= 1) {
+        return 0;
     }
+
+    // When k >= n/2, we can make unlimited transactions (greedy)
+    if (k >= Math.floor(n / 2)) {
+        let unlimitedProfit = 0;
+        for (let i = 1; i < n; i = i + 1) {
+            const dailyGain = prices[i] - prices[i - 1];
+            if (dailyGain > 0) {
+                unlimitedProfit = unlimitedProfit + dailyGain;
+            }
+        }
+        return unlimitedProfit;
+    }
+
+    // buy[j] = min effective cost to buy for the j-th transaction
     const buy = Array(k + 1).fill(Infinity);
+
+    // sell[j] = max profit after completing j transactions
     const sell = Array(k + 1).fill(0);
+
     for (const price of prices) {
-        for (let j = 1; j <= k; j++) {
+        for (let j = 1; j <= k; j = j + 1) {
+            // Best buy cost for j-th transaction = price minus profit from prior transactions
             buy[j] = Math.min(buy[j], price - sell[j - 1]);
+
+            // Best sell price for j-th transaction
             sell[j] = Math.max(sell[j], price - buy[j]);
         }
     }
+
     return sell[k];
 };`,
+    jsWalkthrough:
+      'Input: k=2, prices=[2,4,1]\n\n' +
+      'n=3, k=2 < floor(3/2)=1? No, k=2 >= 1, so use unlimited? Wait:\n' +
+      'Actually floor(n/2) = floor(3/2) = 1, and k=2 >= 1, so use greedy:\n' +
+      '  i=1: prices[1]-prices[0] = 4-2 = 2 > 0, profit += 2\n' +
+      '  i=2: prices[2]-prices[1] = 1-4 = -3, skip\n' +
+      '  return 2\n\n' +
+      'Output: 2\n\n' +
+      '---\n\n' +
+      'Example with k=1, prices=[2,4,1]:\n' +
+      '  k=1 < floor(3/2)=1? No, 1 >= 1, use greedy -> 2\n\n' +
+      'Example with k=1, prices=[3,2,6,5,0,3]:\n' +
+      '  k=1, n=6, floor(6/2)=3, 1 < 3 -> use DP\n' +
+      '  buy=[Inf,Inf], sell=[0,0]\n' +
+      '  price=3: buy[1]=min(Inf,3-0)=3, sell[1]=max(0,3-3)=0\n' +
+      '  price=2: buy[1]=min(3,2-0)=2, sell[1]=max(0,2-2)=0\n' +
+      '  price=6: buy[1]=min(2,6-0)=2, sell[1]=max(0,6-2)=4\n' +
+      '  price=5: buy[1]=min(2,5-0)=2, sell[1]=max(4,5-2)=4\n' +
+      '  price=0: buy[1]=min(2,0-0)=0, sell[1]=max(4,0-0)=4\n' +
+      '  price=3: buy[1]=min(0,3-0)=0, sell[1]=max(4,3-0)=4\n' +
+      '  return sell[1] = 4',
     explanation:
       '1. If k >= n/2, unlimited transactions: sum all positive gains.\n' +
       '2. buy[j] = min cost to buy for the jth transaction.\n' +
@@ -5283,18 +8022,39 @@ BSTIterator.prototype.hasNext = function() {
         reverse(k, n - 1)`,
     jsCode: `var rotate = function(nums, k) {
     const n = nums.length;
-    k %= n;
-    function reverse(l, r) {
-        while (l < r) {
-            [nums[l], nums[r]] = [nums[r], nums[l]];
-            l++;
-            r--;
+
+    // Handle k larger than array length (full rotations cancel out)
+    k = k % n;
+
+    function reverse(left, right) {
+        while (left < right) {
+            const temp = nums[left];
+            nums[left] = nums[right];
+            nums[right] = temp;
+            left = left + 1;
+            right = right - 1;
         }
     }
+
+    // Step 1: Reverse the entire array
     reverse(0, n - 1);
+
+    // Step 2: Reverse the first k elements
     reverse(0, k - 1);
+
+    // Step 3: Reverse the remaining elements
     reverse(k, n - 1);
 };`,
+    jsWalkthrough:
+      'Input: nums = [1,2,3,4,5,6,7], k = 3\n\n' +
+      'k = 3 % 7 = 3\n\n' +
+      'Step 1: reverse(0, 6) - reverse entire array\n' +
+      '  [1,2,3,4,5,6,7] -> [7,6,5,4,3,2,1]\n\n' +
+      'Step 2: reverse(0, 2) - reverse first k=3 elements\n' +
+      '  [7,6,5,4,3,2,1] -> [5,6,7,4,3,2,1]\n\n' +
+      'Step 3: reverse(3, 6) - reverse remaining elements\n' +
+      '  [5,6,7,4,3,2,1] -> [5,6,7,1,2,3,4]\n\n' +
+      'Output: [5,6,7,1,2,3,4]',
     explanation:
       '1. Compute effective rotation: k %= n.\n' +
       '2. Reverse the entire array: [7,6,5,4,3,2,1].\n' +
@@ -5332,12 +8092,33 @@ BSTIterator.prototype.hasNext = function() {
         return result`,
     jsCode: `var reverseBits = function(n) {
     let result = 0;
-    for (let i = 0; i < 32; i++) {
-        result = (result << 1) | (n & 1);
-        n >>>= 1;
+
+    // Process all 32 bits
+    for (let i = 0; i < 32; i = i + 1) {
+        // Extract the last bit of n
+        const lastBit = n & 1;
+
+        // Shift result left to make room, then OR in the extracted bit
+        result = (result << 1) | lastBit;
+
+        // Unsigned right shift n (>>> handles JavaScript's signed integers)
+        n = n >>> 1;
     }
+
+    // >>> 0 converts to unsigned 32-bit integer (handles negative sign bit)
     return result >>> 0;
 };`,
+    jsWalkthrough:
+      'Input: n = 43261596 (binary: 00000010100101000001111010011100)\n\n' +
+      'We process 32 bits, moving last bit of n into result each iteration\n\n' +
+      'i=0: lastBit = 43261596 & 1 = 0, result = (0<<1)|0 = 0, n>>>=1\n' +
+      'i=1: lastBit = n & 1 = 0, result = (0<<1)|0 = 0, n>>>=1\n' +
+      'i=2: lastBit = n & 1 = 1, result = (0<<1)|1 = 1, n>>>=1\n' +
+      'i=3: lastBit = n & 1 = 1, result = (1<<1)|1 = 3, n>>>=1\n' +
+      '... (continuing for all 32 bits)\n\n' +
+      'After 32 iterations, result holds the reversed bits\n' +
+      'result >>> 0 ensures unsigned integer\n\n' +
+      'Output: 964176192 (binary: 00111001011110000010100101000000)',
     explanation:
       '1. Process all 32 bits one by one.\n' +
       '2. Shift result left by 1 to make room for the next bit.\n' +
@@ -5432,13 +8213,33 @@ def rising_temperature(weather: pd.DataFrame) -> pd.DataFrame:
         return left << shift`,
     jsCode: `var rangeBitwiseAnd = function(left, right) {
     let shift = 0;
+
+    // Keep shifting both right until they converge to their common prefix
     while (left !== right) {
-        left >>= 1;
-        right >>= 1;
-        shift++;
+        left = left >> 1;
+        right = right >> 1;
+        shift = shift + 1;
     }
+
+    // Shift the common prefix back to its original position
+    // (the trailing bits are all 0 in the AND result)
     return left << shift;
 };`,
+    jsWalkthrough:
+      'Input: left = 5 (101), right = 7 (111)\n\n' +
+      'shift=0, left=5 (101), right=7 (111)\n\n' +
+      'Iteration 1: left != right\n' +
+      '  left = 5 >> 1 = 2 (010)\n' +
+      '  right = 7 >> 1 = 3 (011)\n' +
+      '  shift = 1\n\n' +
+      'Iteration 2: left != right\n' +
+      '  left = 2 >> 1 = 1 (01)\n' +
+      '  right = 3 >> 1 = 1 (01)\n' +
+      '  shift = 2\n\n' +
+      'left === right = 1, loop ends\n\n' +
+      'Return 1 << 2 = 4 (100)\n\n' +
+      'Verification: 5 AND 6 AND 7 = 101 & 110 & 111 = 100 = 4\n\n' +
+      'Output: 4',
     explanation:
       '1. Bitwise AND of a range zeros out all bits that differ between left and right.\n' +
       '2. Right-shift both numbers until they are equal (finding common prefix).\n' +
@@ -5478,14 +8279,40 @@ def rising_temperature(weather: pd.DataFrame) -> pd.DataFrame:
                 prev = prev.next
         return dummy.next`,
     jsCode: `var removeElements = function(head, val) {
+    // Dummy node handles the case where head itself needs to be removed
     const dummy = new ListNode(0, head);
     let prev = dummy;
+
     while (prev.next) {
-        if (prev.next.val === val) prev.next = prev.next.next;
-        else prev = prev.next;
+        if (prev.next.val === val) {
+            // Skip the node with target value
+            prev.next = prev.next.next;
+        } else {
+            // Only advance prev when we don't remove a node
+            prev = prev.next;
+        }
     }
+
     return dummy.next;
 };`,
+    jsWalkthrough:
+      'Input: head = [1,2,6,3,4,5,6], val = 6\n\n' +
+      'dummy -> 1 -> 2 -> 6 -> 3 -> 4 -> 5 -> 6 -> null\n' +
+      'prev = dummy\n\n' +
+      'prev.next=node(1), val=1 != 6 -> advance prev to node(1)\n' +
+      'prev.next=node(2), val=2 != 6 -> advance prev to node(2)\n' +
+      'prev.next=node(6), val=6 === 6 -> remove!\n' +
+      '  prev.next = node(6).next = node(3)\n' +
+      '  list: dummy->1->2->3->4->5->6->null, prev still at node(2)\n' +
+      'prev.next=node(3), val=3 != 6 -> advance\n' +
+      'prev.next=node(4), val=4 != 6 -> advance\n' +
+      'prev.next=node(5), val=5 != 6 -> advance\n' +
+      'prev.next=node(6), val=6 === 6 -> remove!\n' +
+      '  prev.next = null\n' +
+      '  list: dummy->1->2->3->4->5->null\n' +
+      'prev.next=null -> loop ends\n\n' +
+      'return dummy.next = node(1)\n\n' +
+      'Output: [1,2,3,4,5]',
     explanation:
       '1. Create a dummy node pointing to head.\n' +
       '2. Iterate with prev pointer.\n' +
@@ -5526,16 +8353,42 @@ def rising_temperature(weather: pd.DataFrame) -> pd.DataFrame:
                     is_prime[j] = False
         return sum(is_prime)`,
     jsCode: `var countPrimes = function(n) {
-    if (n <= 2) return 0;
+    if (n <= 2) {
+        return 0;
+    }
+
+    // Initialize: assume all numbers are prime
     const isPrime = Array(n).fill(true);
-    isPrime[0] = isPrime[1] = false;
-    for (let i = 2; i * i < n; i++) {
+    isPrime[0] = false; // 0 is not prime
+    isPrime[1] = false; // 1 is not prime
+
+    // Sieve: for each prime, mark its multiples as not prime
+    for (let i = 2; i * i < n; i = i + 1) {
         if (isPrime[i]) {
-            for (let j = i * i; j < n; j += i) isPrime[j] = false;
+            // Start from i*i — smaller multiples already marked by smaller primes
+            for (let j = i * i; j < n; j = j + i) {
+                isPrime[j] = false;
+            }
         }
     }
+
+    // Count all remaining primes
     return isPrime.filter(Boolean).length;
 };`,
+    jsWalkthrough:
+      'Input: n = 10\n\n' +
+      'isPrime = [F,F,T,T,T,T,T,T,T,T] (F=false, T=true, indices 0-9)\n\n' +
+      'i=2: isPrime[2]=true\n' +
+      '  j=4: isPrime[4]=false\n' +
+      '  j=6: isPrime[6]=false\n' +
+      '  j=8: isPrime[8]=false\n' +
+      '  isPrime = [F,F,T,T,F,T,F,T,F,T]\n\n' +
+      'i=3: isPrime[3]=true, i*i=9 < 10\n' +
+      '  j=9: isPrime[9]=false\n' +
+      '  isPrime = [F,F,T,T,F,T,F,T,F,F]\n\n' +
+      'i=4: 4*4=16 >= 10, loop ends\n\n' +
+      'Count trues: indices 2,3,5,7 -> 4 primes\n\n' +
+      'Output: 4',
     explanation:
       '1. Initialize a boolean array: all True except indices 0 and 1.\n' +
       '2. For each number i from 2 to sqrt(n), if it is prime:\n' +
@@ -5579,19 +8432,52 @@ def rising_temperature(weather: pd.DataFrame) -> pd.DataFrame:
                 t_to_s[ct] = cs
         return True`,
     jsCode: `var isIsomorphic = function(s, t) {
-    const sToT = {}, tToS = {};
-    for (let i = 0; i < s.length; i++) {
-        const cs = s[i], ct = t[i];
-        if (cs in sToT) {
-            if (sToT[cs] !== ct) return false;
+    // Two maps ensure the mapping is bidirectional (bijective)
+    const sToT = {};
+    const tToS = {};
+
+    for (let i = 0; i < s.length; i = i + 1) {
+        const sChar = s[i];
+        const tChar = t[i];
+
+        if (sChar in sToT) {
+            // sChar already mapped — check if it maps to the correct tChar
+            if (sToT[sChar] !== tChar) {
+                return false;
+            }
         } else {
-            if (ct in tToS) return false;
-            sToT[cs] = ct;
-            tToS[ct] = cs;
+            // sChar is new — check that tChar is not already mapped to a different sChar
+            if (tChar in tToS) {
+                return false;
+            }
+
+            // Establish the bidirectional mapping
+            sToT[sChar] = tChar;
+            tToS[tChar] = sChar;
         }
     }
+
     return true;
 };`,
+    jsWalkthrough:
+      'Input: s = "egg", t = "add"\n\n' +
+      'sToT = {}, tToS = {}\n\n' +
+      'i=0: sChar="e", tChar="a"\n' +
+      '  "e" not in sToT, "a" not in tToS\n' +
+      '  sToT = {e:"a"}, tToS = {a:"e"}\n\n' +
+      'i=1: sChar="g", tChar="d"\n' +
+      '  "g" not in sToT, "d" not in tToS\n' +
+      '  sToT = {e:"a", g:"d"}, tToS = {a:"e", d:"g"}\n\n' +
+      'i=2: sChar="g", tChar="d"\n' +
+      '  "g" in sToT -> sToT["g"]="d", tChar="d" -> match!\n' +
+      '  continue\n\n' +
+      'return true\n\n' +
+      'Output: true\n\n' +
+      '---\n\n' +
+      'Counter-example: s="foo", t="bar"\n' +
+      'i=0: f->b\n' +
+      'i=1: o->a\n' +
+      'i=2: o is in sToT: sToT[o]="a", but tChar="r" -> false!',
     explanation:
       '1. Maintain two maps for bidirectional character mapping.\n' +
       '2. For each pair (cs, ct), check if cs already maps to something.\n' +
@@ -5653,38 +8539,98 @@ def rising_temperature(weather: pd.DataFrame) -> pd.DataFrame:
                 dfs(i, j, trie)
         return res`,
     jsCode: `var findWords = function(board, words) {
+    // Build Trie from all words
     const trie = {};
     for (const word of words) {
         let node = trie;
-        for (const c of word) {
-            if (!node[c]) node[c] = {};
-            node = node[c];
+        for (const char of word) {
+            if (!node[char]) {
+                node[char] = {};
+            }
+            node = node[char];
         }
+        // Mark end of word with '#' storing the full word
         node['#'] = word;
     }
-    const m = board.length, n = board[0].length;
-    const res = [];
-    function dfs(i, j, node) {
-        const c = board[i][j];
-        if (!node[c]) return;
-        const nxt = node[c];
-        if (nxt['#']) { res.push(nxt['#']); delete nxt['#']; }
-        board[i][j] = '.';
-        const dirs = [[0,1],[0,-1],[1,0],[-1,0]];
-        for (const [di, dj] of dirs) {
-            const ni = i + di, nj = j + dj;
-            if (ni >= 0 && ni < m && nj >= 0 && nj < n && board[ni][nj] !== '.') {
-                dfs(ni, nj, nxt);
+
+    const rows = board.length;
+    const cols = board[0].length;
+    const result = [];
+    const directions = [[0, 1], [0, -1], [1, 0], [-1, 0]];
+
+    function dfs(row, col, trieNode) {
+        const currentChar = board[row][col];
+
+        // No path in trie for this character
+        if (!trieNode[currentChar]) {
+            return;
+        }
+
+        const nextNode = trieNode[currentChar];
+
+        // Found a complete word
+        if (nextNode['#']) {
+            result.push(nextNode['#']);
+            delete nextNode['#']; // Prevent duplicate results
+        }
+
+        // Mark cell as visited by replacing with sentinel
+        board[row][col] = '.';
+
+        for (const [dr, dc] of directions) {
+            const newRow = row + dr;
+            const newCol = col + dc;
+
+            const inBounds = newRow >= 0 && newRow < rows && newCol >= 0 && newCol < cols;
+            const notVisited = board[newRow] && board[newRow][newCol] !== '.';
+
+            if (inBounds && notVisited) {
+                dfs(newRow, newCol, nextNode);
             }
         }
-        board[i][j] = c;
-        if (Object.keys(nxt).length === 0) delete node[c];
+
+        // Restore the cell after backtracking
+        board[row][col] = currentChar;
+
+        // Prune empty Trie branches for efficiency
+        if (Object.keys(nextNode).length === 0) {
+            delete trieNode[currentChar];
+        }
     }
-    for (let i = 0; i < m; i++) {
-        for (let j = 0; j < n; j++) dfs(i, j, trie);
+
+    // Start DFS from every cell on the board
+    for (let i = 0; i < rows; i = i + 1) {
+        for (let j = 0; j < cols; j = j + 1) {
+            dfs(i, j, trie);
+        }
     }
-    return res;
+
+    return result;
 };`,
+    jsWalkthrough:
+      'Input: board=[["o","a","a","n"],["e","t","a","e"],["i","h","k","r"],["i","f","l","v"]]\n' +
+      'words=["oath","pea","eat","rain"]\n\n' +
+      'Trie built from words:\n' +
+      '  "eat": e->a->t->{"#":"eat"}\n' +
+      '  "oath": o->a->t->h->{"#":"oath"}\n' +
+      '  "pea": p->e->a->{"#":"pea"}\n' +
+      '  "rain": r->a->i->n->{"#":"rain"}\n\n' +
+      'DFS from cell (0,0)="o":\n' +
+      '  trie["o"] exists -> go in\n' +
+      '  mark (0,0)="."\n' +
+      '  Try (0,1)="a": nextNode["a"] exists\n' +
+      '    mark (0,1)="."\n' +
+      '    Try (1,1)="t": nextNode["t"] exists\n' +
+      '      mark (1,1)="."\n' +
+      '      Try (1,2)="a"... eventually (2,1)="h"\n' +
+      '        nextNode["h"] exists and has "#"="oath"\n' +
+      '        result=["oath"], delete "#"\n' +
+      '      ... backtrack\n\n' +
+      'DFS from cell (1,0)="e":\n' +
+      '  trie["e"] exists\n' +
+      '  (1,1)="t" -> nextNode["t"] exists ... eventually finds "eat"\n' +
+      '  result=["oath","eat"]\n\n' +
+      'Output: ["eat","oath"]',
     explanation:
       '1. Build a Trie from all words for efficient prefix matching.\n' +
       '2. DFS from each cell, following Trie paths.\n' +
@@ -5728,18 +8674,52 @@ def rising_temperature(weather: pd.DataFrame) -> pd.DataFrame:
             lps[i] = j
         return rev[:len(s) - lps[-1]] + s`,
     jsCode: `var shortestPalindrome = function(s) {
+    // Reverse of s
     const rev = s.split('').reverse().join('');
+
+    // Combine s, separator, and reverse
+    // The '#' separator prevents false matches spanning the two halves
     const combined = s + '#' + rev;
-    const n = combined.length;
-    const lps = Array(n).fill(0);
-    for (let i = 1; i < n; i++) {
+    const totalLen = combined.length;
+
+    // Build KMP failure function (lps = longest proper prefix that is also a suffix)
+    const lps = Array(totalLen).fill(0);
+
+    for (let i = 1; i < totalLen; i = i + 1) {
         let j = lps[i - 1];
-        while (j > 0 && combined[i] !== combined[j]) j = lps[j - 1];
-        if (combined[i] === combined[j]) j++;
+
+        // Fall back until we find a match or reach the beginning
+        while (j > 0 && combined[i] !== combined[j]) {
+            j = lps[j - 1];
+        }
+
+        if (combined[i] === combined[j]) {
+            j = j + 1;
+        }
+
         lps[i] = j;
     }
-    return rev.substring(0, s.length - lps[n - 1]) + s;
+
+    // lps[totalLen-1] = length of the longest palindromic prefix of s
+    const longestPalPrefixLen = lps[totalLen - 1];
+
+    // Prepend the reverse of the non-palindromic suffix
+    const suffixToAdd = rev.substring(0, s.length - longestPalPrefixLen);
+    return suffixToAdd + s;
 };`,
+    jsWalkthrough:
+      'Input: s = "aacecaaa"\n\n' +
+      'rev = "aaacecaa"\n' +
+      'combined = "aacecaaa#aaacecaa"\n\n' +
+      'Build lps array for combined:\n' +
+      '  (computing KMP failure function for "aacecaaa#aaacecaa")\n\n' +
+      'Key insight: lps[last] tells us the longest palindromic prefix of s\n\n' +
+      'After computing: lps[last] = 7\n' +
+      '  (meaning "aacecaa" is the longest palindromic prefix)\n\n' +
+      'longestPalPrefixLen = 7\n' +
+      'suffixToAdd = rev.substring(0, 8-7) = rev.substring(0,1) = "a"\n\n' +
+      'return "a" + "aacecaaa" = "aaacecaaa"\n\n' +
+      'Output: "aaacecaaa"',
     explanation:
       '1. Reverse s to get rev.\n' +
       '2. Combine as s + "#" + rev (# prevents overlap).\n' +
@@ -5787,29 +8767,67 @@ def rising_temperature(weather: pd.DataFrame) -> pd.DataFrame:
                 res.append([x, -heap[0][0]])
         return res[1:]`,
     jsCode: `var getSkyline = function(buildings) {
+    // Create events: building start (negative height) and end (height 0)
     const events = [];
-    for (const [l, r, h] of buildings) {
-        events.push([l, -h, r]);
-        events.push([r, 0, 0]);
+    for (const [left, right, height] of buildings) {
+        events.push([left, -height, right]); // start event: store negHeight for sorting
+        events.push([right, 0, 0]);           // end event
     }
+
+    // Sort by x-coordinate; at same x, starts (negative heights) come before ends
     events.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
-    const res = [[0, 0]];
-    // Use a simple sorted structure (array-based max heap simulation)
-    const heap = [[0, Infinity]]; // [negHeight, rightEdge]
-    for (const [x, negH, r] of events) {
-        while (heap[0][1] <= x) {
-            heap.splice(0, 1);
+
+    // Result starts with sentinel [0,0]; we'll remove it at the end
+    const result = [[0, 0]];
+
+    // Sorted array simulating a max-heap: [negHeight, rightEdge]
+    // Stores active buildings sorted by height (most negative first = tallest)
+    const activeBuildings = [[0, Infinity]]; // Ground level sentinel
+
+    for (const [x, negHeight, rightEdge] of events) {
+        // Remove buildings that have ended at or before current x
+        while (activeBuildings[0][1] <= x) {
+            activeBuildings.splice(0, 1);
         }
-        if (negH) {
-            heap.push([negH, r]);
-            heap.sort((a, b) => a[0] - b[0]);
+
+        // If this is a start event, add the building
+        if (negHeight !== 0) {
+            activeBuildings.push([negHeight, rightEdge]);
+            activeBuildings.sort((a, b) => a[0] - b[0]); // Keep sorted by height
         }
-        if (res[res.length - 1][1] !== -heap[0][0]) {
-            res.push([x, -heap[0][0]]);
+
+        // The current max height is the first element (negated)
+        const currentMaxHeight = -activeBuildings[0][0];
+
+        // Record a key point if the skyline height changed
+        const lastRecordedHeight = result[result.length - 1][1];
+        if (lastRecordedHeight !== currentMaxHeight) {
+            result.push([x, currentMaxHeight]);
         }
     }
-    return res.slice(1);
+
+    // Remove the initial sentinel
+    return result.slice(1);
 };`,
+    jsWalkthrough:
+      'Input: buildings = [[2,9,10],[3,7,15],[5,12,12],[15,20,10],[19,24,8]]\n\n' +
+      'Events created:\n' +
+      '  [2,-10,9], [9,0,0], [3,-15,7], [7,0,0], [5,-12,12]\n' +
+      '  [12,0,0], [15,-10,20], [20,0,0], [19,-8,24], [24,0,0]\n\n' +
+      'After sorting by x (then by negH):\n' +
+      '  [2,-10,9], [3,-15,7], [5,-12,12], [7,0,0], [9,0,0]\n' +
+      '  [12,0,0], [15,-10,20], [19,-8,24], [20,0,0], [24,0,0]\n\n' +
+      'Processing events:\n' +
+      'x=2, start h=10: active=[[0,Inf],[-10,9]] -> sort -> [[-10,9],[0,Inf]]\n' +
+      '  maxH=10, last=0 -> push [2,10]\n' +
+      'x=3, start h=15: active=[[-15,7],[-10,9],[0,Inf]]\n' +
+      '  maxH=15, last=10 -> push [3,15]\n' +
+      'x=5, start h=12: active=[[-15,7],[-12,12],[-10,9],[0,Inf]]\n' +
+      '  maxH=15, last=15 -> no change\n' +
+      'x=7, end: remove [(-15,7)] since 7<=7 -> active=[[-12,12],[-10,9],[0,Inf]]\n' +
+      '  maxH=12, last=15 -> push [7,12]\n' +
+      '...\n\n' +
+      'Output: [[2,10],[3,15],[7,12],[12,0],[15,10],[20,8],[24,0]]',
     explanation:
       '1. Create events: (x, -height, right) for starts, (right, 0, 0) for ends.\n' +
       '2. Sort events by x (starts before ends at same x, taller before shorter).\n' +
@@ -5849,14 +8867,46 @@ def rising_temperature(weather: pd.DataFrame) -> pd.DataFrame:
                 window.remove(nums[i - k])
         return False`,
     jsCode: `var containsNearbyDuplicate = function(nums, k) {
+    // Sliding window of at most k elements
     const window = new Set();
-    for (let i = 0; i < nums.length; i++) {
-        if (window.has(nums[i])) return true;
-        window.add(nums[i]);
-        if (window.size > k) window.delete(nums[i - k]);
+
+    for (let i = 0; i < nums.length; i = i + 1) {
+        const currentNum = nums[i];
+
+        // If current number is already in window, indices are within distance k
+        if (window.has(currentNum)) {
+            return true;
+        }
+
+        // Add current number to window
+        window.add(currentNum);
+
+        // Keep window size at most k by removing the element that fell out
+        if (window.size > k) {
+            const oldestNum = nums[i - k];
+            window.delete(oldestNum);
+        }
     }
+
     return false;
 };`,
+    jsWalkthrough:
+      'Input: nums = [1,2,3,1], k = 3\n\n' +
+      'window = {}, i iterates through nums\n\n' +
+      'i=0, currentNum=1:\n' +
+      '  window has 1? No\n' +
+      '  window.add(1) -> window={1}\n' +
+      '  window.size=1 <= k=3, no removal\n\n' +
+      'i=1, currentNum=2:\n' +
+      '  window has 2? No\n' +
+      '  window={1,2}, size=2 <= 3\n\n' +
+      'i=2, currentNum=3:\n' +
+      '  window has 3? No\n' +
+      '  window={1,2,3}, size=3 <= 3\n\n' +
+      'i=3, currentNum=1:\n' +
+      '  window has 1? YES! return true\n\n' +
+      'Output: true\n' +
+      '(nums[0]=1 and nums[3]=1, |0-3|=3 <= k=3)',
     explanation:
       '1. Maintain a set of elements in the current window of size k.\n' +
       '2. For each element, check if it already exists in the window.\n' +
@@ -5904,19 +8954,81 @@ def rising_temperature(weather: pd.DataFrame) -> pd.DataFrame:
                 del buckets[nums[i - indexDiff] // w]
         return False`,
     jsCode: `var containsNearbyAlmostDuplicate = function(nums, indexDiff, valueDiff) {
-    if (valueDiff < 0) return false;
-    const buckets = new Map();
-    const w = valueDiff + 1;
-    for (let i = 0; i < nums.length; i++) {
-        const bucketId = Math.floor(nums[i] / w);
-        if (buckets.has(bucketId)) return true;
-        if (buckets.has(bucketId - 1) && Math.abs(nums[i] - buckets.get(bucketId - 1)) < w) return true;
-        if (buckets.has(bucketId + 1) && Math.abs(nums[i] - buckets.get(bucketId + 1)) < w) return true;
-        buckets.set(bucketId, nums[i]);
-        if (i >= indexDiff) buckets.delete(Math.floor(nums[i - indexDiff] / w));
+    if (valueDiff < 0) {
+        return false;
     }
+
+    // Bucket width: any two values in the same bucket are within valueDiff
+    const bucketWidth = valueDiff + 1;
+
+    // Buckets map: bucketId -> value stored in that bucket
+    const buckets = new Map();
+
+    for (let i = 0; i < nums.length; i = i + 1) {
+        const currentNum = nums[i];
+        const bucketId = Math.floor(currentNum / bucketWidth);
+
+        // Same bucket: values are guaranteed within valueDiff
+        if (buckets.has(bucketId)) {
+            return true;
+        }
+
+        // Check left adjacent bucket: may also be within valueDiff
+        if (buckets.has(bucketId - 1)) {
+            const leftNeighbor = buckets.get(bucketId - 1);
+            if (Math.abs(currentNum - leftNeighbor) < bucketWidth) {
+                return true;
+            }
+        }
+
+        // Check right adjacent bucket: may also be within valueDiff
+        if (buckets.has(bucketId + 1)) {
+            const rightNeighbor = buckets.get(bucketId + 1);
+            if (Math.abs(currentNum - rightNeighbor) < bucketWidth) {
+                return true;
+            }
+        }
+
+        // Place current number in its bucket
+        buckets.set(bucketId, currentNum);
+
+        // Remove the element that exited the index window
+        if (i >= indexDiff) {
+            const exitingNum = nums[i - indexDiff];
+            const exitingBucketId = Math.floor(exitingNum / bucketWidth);
+            buckets.delete(exitingBucketId);
+        }
+    }
+
     return false;
 };`,
+    jsWalkthrough:
+      'Input: nums = [1,5,9,1,5,9], indexDiff = 2, valueDiff = 3\n\n' +
+      'bucketWidth = 3+1 = 4\n' +
+      'buckets = {}\n\n' +
+      'i=0, num=1, bucketId=floor(1/4)=0\n' +
+      '  bucket 0 empty, adjacent empty\n' +
+      '  buckets = {0:1}\n\n' +
+      'i=1, num=5, bucketId=floor(5/4)=1\n' +
+      '  bucket 1 empty\n' +
+      '  bucket 0 exists: |5-1|=4, 4 < 4? No (must be strictly less)\n' +
+      '  bucket 2 empty\n' +
+      '  buckets = {0:1, 1:5}\n\n' +
+      'i=2, num=9, bucketId=floor(9/4)=2\n' +
+      '  bucket 2 empty\n' +
+      '  bucket 1 exists: |9-5|=4, 4 < 4? No\n' +
+      '  bucket 3 empty\n' +
+      '  buckets = {0:1, 1:5, 2:9}\n' +
+      '  i=2 >= indexDiff=2: remove nums[0]=1, bucketId=0\n' +
+      '  buckets = {1:5, 2:9}\n\n' +
+      'i=3, num=1, bucketId=0\n' +
+      '  bucket 0 empty, bucket -1 empty\n' +
+      '  bucket 1 exists: |1-5|=4, 4 < 4? No\n' +
+      '  buckets = {1:5, 2:9, 0:1}\n' +
+      '  remove nums[1]=5, bucketId=1\n' +
+      '  buckets = {2:9, 0:1}\n\n' +
+      '... continues, no match found\n\n' +
+      'Output: false',
     explanation:
       '1. Create buckets of width valueDiff + 1.\n' +
       '2. Elements in the same bucket are within valueDiff of each other.\n' +
@@ -5961,14 +9073,62 @@ def rising_temperature(weather: pd.DataFrame) -> pd.DataFrame:
             return (1 << left_h) - 1
         return 1 + self.countNodes(root.left) + self.countNodes(root.right)`,
     jsCode: `var countNodes = function(root) {
-    if (!root) return 0;
-    let leftH = 0, rightH = 0;
-    let l = root, r = root;
-    while (l) { leftH++; l = l.left; }
-    while (r) { rightH++; r = r.right; }
-    if (leftH === rightH) return (1 << leftH) - 1;
+    if (!root) {
+        return 0;
+    }
+
+    // Measure leftmost height (going all left)
+    let leftHeight = 0;
+    let leftNode = root;
+    while (leftNode) {
+        leftHeight = leftHeight + 1;
+        leftNode = leftNode.left;
+    }
+
+    // Measure rightmost height (going all right)
+    let rightHeight = 0;
+    let rightNode = root;
+    while (rightNode) {
+        rightHeight = rightHeight + 1;
+        rightNode = rightNode.right;
+    }
+
+    // If heights match, this subtree is a perfect binary tree: 2^h - 1 nodes
+    if (leftHeight === rightHeight) {
+        return (1 << leftHeight) - 1;
+    }
+
+    // Otherwise, one subtree is perfect (shorter path), recurse on both
     return 1 + countNodes(root.left) + countNodes(root.right);
 };`,
+    jsWalkthrough:
+      'Input: root = [1,2,3,4,5,6] (complete binary tree)\n\n' +
+      'Tree structure:\n' +
+      '      1\n' +
+      '     / \\\n' +
+      '    2   3\n' +
+      '   / \\ /\n' +
+      '  4  5 6\n\n' +
+      'countNodes(root=1):\n' +
+      '  leftHeight: 1->2->4 = 3\n' +
+      '  rightHeight: 1->3 = 2 (no right child of 3)\n' +
+      '  leftHeight(3) != rightHeight(2) -> recurse\n' +
+      '  return 1 + countNodes(2) + countNodes(3)\n\n' +
+      'countNodes(node=2):\n' +
+      '  leftHeight: 2->4 = 2\n' +
+      '  rightHeight: 2->5 = 2\n' +
+      '  leftHeight === rightHeight = 2 -> perfect tree\n' +
+      '  return (1 << 2) - 1 = 4 - 1 = 3\n\n' +
+      'countNodes(node=3):\n' +
+      '  leftHeight: 3->6 = 2\n' +
+      '  rightHeight: 3 (no right) = 1\n' +
+      '  heights differ -> recurse\n' +
+      '  return 1 + countNodes(6) + countNodes(null)\n' +
+      '  countNodes(6): leftH=1, rightH=1 -> (1<<1)-1=1\n' +
+      '  countNodes(null): 0\n' +
+      '  return 1 + 1 + 0 = 2\n\n' +
+      'Total: 1 + 3 + 2 = 6\n\n' +
+      'Output: 6',
     explanation:
       '1. Compute left height (going all left) and right height (going all right).\n' +
       '2. If equal, the tree is perfect: return 2^h - 1.\n' +
@@ -6028,33 +9188,88 @@ def rising_temperature(weather: pd.DataFrame) -> pd.DataFrame:
         return result`,
     jsCode: `var calculate = function(s) {
     const stack = [];
-    let result = 0, num = 0, sign = 1;
-    for (const c of s) {
-        if (c >= '0' && c <= '9') {
-            num = num * 10 + Number(c);
-        } else if (c === '+') {
-            result += sign * num;
-            num = 0;
+    let result = 0;
+    let currentNum = 0;
+    let sign = 1; // +1 or -1
+
+    for (const char of s) {
+        if (char >= '0' && char <= '9') {
+            // Build multi-digit number
+            currentNum = currentNum * 10 + Number(char);
+
+        } else if (char === '+') {
+            // Apply current number with its sign
+            result = result + sign * currentNum;
+            currentNum = 0;
             sign = 1;
-        } else if (c === '-') {
-            result += sign * num;
-            num = 0;
+
+        } else if (char === '-') {
+            result = result + sign * currentNum;
+            currentNum = 0;
             sign = -1;
-        } else if (c === '(') {
+
+        } else if (char === '(') {
+            // Save current state and start fresh inside parentheses
             stack.push(result);
             stack.push(sign);
             result = 0;
             sign = 1;
-        } else if (c === ')') {
-            result += sign * num;
-            num = 0;
-            result *= stack.pop();
-            result += stack.pop();
+
+        } else if (char === ')') {
+            // Finalize the sub-expression result
+            result = result + sign * currentNum;
+            currentNum = 0;
+
+            // Apply the sign before the parenthesis
+            const signBeforeParen = stack.pop();
+            result = result * signBeforeParen;
+
+            // Add to the result before the parenthesis
+            const resultBeforeParen = stack.pop();
+            result = result + resultBeforeParen;
         }
+        // Spaces are ignored
     }
-    result += sign * num;
+
+    // Handle the last number
+    result = result + sign * currentNum;
     return result;
 };`,
+    jsWalkthrough:
+      'Input: s = "(1+(4+5+2)-3)+(6+8)"\n\n' +
+      'Processing char by char:\n\n' +
+      'char="(": push result=0, push sign=1, reset result=0, sign=1\n' +
+      '  stack=[0,1]\n\n' +
+      'char="1": currentNum=1\n' +
+      'char="+": result=0+1*1=1, currentNum=0, sign=1\n' +
+      'char="(": push result=1, push sign=1, reset result=0, sign=1\n' +
+      '  stack=[0,1,1,1]\n\n' +
+      'char="4": currentNum=4\n' +
+      'char="+": result=0+1*4=4, currentNum=0, sign=1\n' +
+      'char="5": currentNum=5\n' +
+      'char="+": result=4+5=9, currentNum=0, sign=1\n' +
+      'char="2": currentNum=2\n' +
+      'char=")": result=9+1*2=11, currentNum=0\n' +
+      '  signBefore=pop=1, result=11*1=11\n' +
+      '  resultBefore=pop=1, result=11+1=12\n' +
+      '  stack=[0,1]\n\n' +
+      'char="-": result=12+1*0=12, sign=-1\n' +
+      'char="3": currentNum=3\n' +
+      'char=")": result=12+(-1)*3=9, currentNum=0\n' +
+      '  signBefore=pop=1, result=9*1=9\n' +
+      '  resultBefore=pop=0, result=9+0=9\n' +
+      '  stack=[]\n\n' +
+      'char="+": result=9, sign=1\n' +
+      'char="(": push 9, push 1, reset\n' +
+      '  stack=[9,1]\n\n' +
+      'char="6": currentNum=6\n' +
+      'char="+": result=6, sign=1\n' +
+      'char="8": currentNum=8\n' +
+      'char=")": result=6+8=14\n' +
+      '  signBefore=1, result=14*1=14\n' +
+      '  resultBefore=9, result=14+9=23\n\n' +
+      'End: result=23+1*0=23\n\n' +
+      'Output: 23',
     explanation:
       '1. Track running result, current number, and current sign.\n' +
       '2. On digit: build the multi-digit number.\n' +
@@ -6103,27 +9318,53 @@ class MyStack:
     def empty(self) -> bool:
         return len(self.q) == 0`,
     jsCode: `var MyStack = function() {
-    this.q = [];
+    // We use a single array as a queue
+    this.queue = [];
 };
 
-MyStack.prototype.push = function(x) {
-    this.q.push(x);
-    for (let i = 0; i < this.q.length - 1; i++) {
-        this.q.push(this.q.shift());
+MyStack.prototype.push = function(value) {
+    // Add the new element to the back of the queue
+    this.queue.push(value);
+
+    // Rotate all previous elements to the back so the new element is at front
+    const rotations = this.queue.length - 1;
+    for (let i = 0; i < rotations; i = i + 1) {
+        const front = this.queue.shift();
+        this.queue.push(front);
     }
 };
 
 MyStack.prototype.pop = function() {
-    return this.q.shift();
+    // The front of queue is the top of stack (due to push rotation)
+    return this.queue.shift();
 };
 
 MyStack.prototype.top = function() {
-    return this.q[0];
+    return this.queue[0];
 };
 
 MyStack.prototype.empty = function() {
-    return this.q.length === 0;
+    return this.queue.length === 0;
 };`,
+    jsWalkthrough:
+      'Operations: push(1), push(2), top(), pop(), empty()\n\n' +
+      'push(1):\n' +
+      '  queue = [1]\n' +
+      '  rotations = 1-1 = 0 -> no rotations\n' +
+      '  queue = [1]\n\n' +
+      'push(2):\n' +
+      '  queue = [1, 2] after push\n' +
+      '  rotations = 2-1 = 1\n' +
+      '  Rotation 1: shift front=1, push to back -> queue=[2,1]\n' +
+      '  queue = [2, 1] (newest element 2 is at front)\n\n' +
+      'top():\n' +
+      '  return queue[0] = 2\n\n' +
+      'pop():\n' +
+      '  return queue.shift() = 2\n' +
+      '  queue = [1]\n\n' +
+      'empty():\n' +
+      '  queue.length = 1 -> return false\n\n' +
+      'Output: [null, null, null, 2, 2, false]',
     explanation:
       '1. Use a single deque (queue).\n' +
       '2. On push: add element, then rotate all previous elements to the back.\n' +
@@ -6174,21 +9415,58 @@ MyStack.prototype.empty = function() {
         return sum(stack)`,
     jsCode: `var calculate = function(s) {
     const stack = [];
-    let num = 0, op = '+';
-    for (let i = 0; i < s.length; i++) {
-        const c = s[i];
-        if (c >= '0' && c <= '9') num = num * 10 + Number(c);
-        if ('+-*/'.includes(c) || i === s.length - 1) {
-            if (op === '+') stack.push(num);
-            else if (op === '-') stack.push(-num);
-            else if (op === '*') stack.push(stack.pop() * num);
-            else if (op === '/') stack.push(Math.trunc(stack.pop() / num));
-            op = c;
-            num = 0;
+    let currentNum = 0;
+    let lastOperator = '+'; // Assume '+' before the first number
+
+    for (let i = 0; i < s.length; i = i + 1) {
+        const char = s[i];
+
+        if (char >= '0' && char <= '9') {
+            // Build multi-digit number
+            currentNum = currentNum * 10 + Number(char);
         }
+
+        // Process when we hit an operator or the last character
+        const isOperator = '+-*/'.includes(char);
+        const isLastChar = i === s.length - 1;
+
+        if (isOperator || isLastChar) {
+            if (lastOperator === '+') {
+                stack.push(currentNum);
+            } else if (lastOperator === '-') {
+                stack.push(-currentNum);
+            } else if (lastOperator === '*') {
+                stack.push(stack.pop() * currentNum);
+            } else if (lastOperator === '/') {
+                // Truncate toward zero (Math.trunc)
+                stack.push(Math.trunc(stack.pop() / currentNum));
+            }
+
+            lastOperator = char;
+            currentNum = 0;
+        }
+        // Spaces are skipped implicitly
     }
-    return stack.reduce((a, b) => a + b, 0);
+
+    // Sum all values in the stack
+    return stack.reduce((total, val) => total + val, 0);
 };`,
+    jsWalkthrough:
+      'Input: s = "3+2*2"\n\n' +
+      'Initial: stack=[], currentNum=0, lastOperator="+"\n\n' +
+      'i=0, char="3": currentNum=3\n' +
+      'i=1, char="+": isOperator=true\n' +
+      '  lastOperator="+": stack.push(3) -> stack=[3]\n' +
+      '  lastOperator="+", currentNum=0\n' +
+      'i=2, char="2": currentNum=2\n' +
+      'i=3, char="*": isOperator=true\n' +
+      '  lastOperator="+": stack.push(2) -> stack=[3,2]\n' +
+      '  lastOperator="*", currentNum=0\n' +
+      'i=4, char="2": currentNum=2\n' +
+      '  isLastChar=true:\n' +
+      '  lastOperator="*": stack.pop()=2, 2*2=4, stack.push(4) -> stack=[3,4]\n\n' +
+      'reduce: 3+4 = 7\n\n' +
+      'Output: 7',
     explanation:
       '1. Track the current number and the previous operator.\n' +
       '2. When an operator or end of string is reached, process the previous operator.\n' +
@@ -6235,17 +9513,57 @@ MyStack.prototype.empty = function() {
                 cnt2 -= 1
         return [c for c in (c1, c2) if nums.count(c) > len(nums) // 3]`,
     jsCode: `var majorityElement = function(nums) {
-    let c1 = null, c2 = null, cnt1 = 0, cnt2 = 0;
+    // Phase 1: Find up to 2 candidates using Boyer-Moore voting
+    let candidate1 = null;
+    let candidate2 = null;
+    let count1 = 0;
+    let count2 = 0;
+
     for (const num of nums) {
-        if (num === c1) cnt1++;
-        else if (num === c2) cnt2++;
-        else if (cnt1 === 0) { c1 = num; cnt1 = 1; }
-        else if (cnt2 === 0) { c2 = num; cnt2 = 1; }
-        else { cnt1--; cnt2--; }
+        if (num === candidate1) {
+            count1 = count1 + 1;
+        } else if (num === candidate2) {
+            count2 = count2 + 1;
+        } else if (count1 === 0) {
+            candidate1 = num;
+            count1 = 1;
+        } else if (count2 === 0) {
+            candidate2 = num;
+            count2 = 1;
+        } else {
+            // Neither candidate matches: "cancel out" one of each
+            count1 = count1 - 1;
+            count2 = count2 - 1;
+        }
     }
+
+    // Phase 2: Verify that candidates actually appear more than n/3 times
     const threshold = Math.floor(nums.length / 3);
-    return [c1, c2].filter(c => nums.filter(x => x === c).length > threshold);
+
+    const candidates = [candidate1, candidate2];
+    return candidates.filter(candidate => {
+        const actualCount = nums.filter(x => x === candidate).length;
+        return actualCount > threshold;
+    });
 };`,
+    jsWalkthrough:
+      'Input: nums = [3,2,3]\n\n' +
+      'Phase 1: Boyer-Moore voting\n\n' +
+      'num=3: count1=0 -> candidate1=3, count1=1\n' +
+      'num=2: not c1, count2=0 -> candidate2=2, count2=1\n' +
+      'num=3: matches candidate1 -> count1=2\n\n' +
+      'Candidates: [3, 2], threshold = floor(3/3) = 1\n\n' +
+      'Phase 2: Verify\n' +
+      'candidate1=3: count in nums = 2, 2 > 1 -> keep\n' +
+      'candidate2=2: count in nums = 1, 1 > 1? No -> discard\n\n' +
+      'Output: [3]\n\n' +
+      '---\n\n' +
+      'Example: nums = [1,1,1,3,3,2,2,2]\n' +
+      'After voting: candidate1=1, count1=1, candidate2=2, count2=1\n' +
+      'threshold = floor(8/3) = 2\n' +
+      '1 appears 3 times > 2 -> keep\n' +
+      '2 appears 3 times > 2 -> keep\n' +
+      'Output: [1, 2]',
     explanation:
       '1. There can be at most 2 elements appearing more than n/3 times.\n' +
       '2. Use Boyer-Moore voting with two candidates.\n' +
@@ -6278,8 +9596,31 @@ MyStack.prototype.empty = function() {
     def isPowerOfTwo(self, n: int) -> bool:
         return n > 0 and (n & (n - 1)) == 0`,
     jsCode: `var isPowerOfTwo = function(n) {
-    return n > 0 && (n & (n - 1)) === 0;
+    // Must be positive (0 and negatives are not powers of two)
+    if (n <= 0) {
+        return false;
+    }
+
+    // A power of two has exactly one bit set: n = ...0001000...
+    // n - 1 flips all trailing zeros and that one bit: n-1 = ...0000111...
+    // n & (n-1) clears the lowest set bit
+    // If the result is 0, there was exactly one set bit -> power of two
+    return (n & (n - 1)) === 0;
 };`,
+    jsWalkthrough:
+      'Input: n = 16\n\n' +
+      '16 in binary = 00010000\n' +
+      '15 in binary = 00001111\n' +
+      '16 & 15 = 00000000 = 0\n' +
+      '16 > 0 and 0 === 0 -> true\n\n' +
+      'Output: true\n\n' +
+      '---\n\n' +
+      'Input: n = 6\n' +
+      '6 in binary = 00000110\n' +
+      '5 in binary = 00000101\n' +
+      '6 & 5 = 00000100 = 4 (not 0)\n' +
+      '4 !== 0 -> false\n\n' +
+      'Output: false',
     explanation:
       '1. A power of two in binary has exactly one 1-bit (e.g., 1000).\n' +
       '2. n - 1 flips all bits below that 1-bit (e.g., 0111).\n' +
@@ -6313,9 +9654,29 @@ MyStack.prototype.empty = function() {
         node.val = node.next.val
         node.next = node.next.next`,
     jsCode: `var deleteNode = function(node) {
-    node.val = node.next.val;
-    node.next = node.next.next;
+    // We can't access the previous node, so we make this node "become" the next node
+    // by copying its value and skipping the next node
+    const nextNode = node.next;
+
+    // Overwrite this node's value with the next node's value
+    node.val = nextNode.val;
+
+    // Skip the next node (effectively removing it from the list)
+    node.next = nextNode.next;
 };`,
+    jsWalkthrough:
+      'Input: list = [4,5,1,9], node = node(5)\n\n' +
+      'Before: 4 -> 5 -> 1 -> 9\n' +
+      '              ^\n' +
+      '        (given node)\n\n' +
+      'nextNode = node(5).next = node(1)\n\n' +
+      'Step 1: node(5).val = node(1).val = 1\n' +
+      '  list becomes: 4 -> 1 -> 1 -> 9\n' +
+      '  (two nodes with value 1)\n\n' +
+      'Step 2: node.next = node(1).next = node(9)\n' +
+      '  list becomes: 4 -> 1 -> 9\n' +
+      '  (the extra 1 node is now orphaned)\n\n' +
+      'Output: [4,1,9]',
     explanation:
       '1. Copy the value from the next node into the current node.\n' +
       '2. Set current node\'s next to skip the next node.\n' +
@@ -6359,16 +9720,49 @@ MyStack.prototype.empty = function() {
                 r += 1
         return False`,
     jsCode: `var searchMatrix = function(matrix, target) {
-    if (!matrix.length) return false;
-    const m = matrix.length, n = matrix[0].length;
-    let r = 0, c = n - 1;
-    while (r < m && c >= 0) {
-        if (matrix[r][c] === target) return true;
-        else if (matrix[r][c] > target) c--;
-        else r++;
+    if (!matrix.length) {
+        return false;
     }
+
+    const rows = matrix.length;
+    const cols = matrix[0].length;
+
+    // Start at top-right corner
+    // Moving left eliminates a column (all values in this column are too large)
+    // Moving down eliminates a row (all values in this row are too small)
+    let row = 0;
+    let col = cols - 1;
+
+    while (row < rows && col >= 0) {
+        const currentVal = matrix[row][col];
+
+        if (currentVal === target) {
+            return true;
+        } else if (currentVal > target) {
+            // Current value too large: move left
+            col = col - 1;
+        } else {
+            // Current value too small: move down
+            row = row + 1;
+        }
+    }
+
     return false;
 };`,
+    jsWalkthrough:
+      'Input: matrix = [[1,4,7,11,15],[2,5,8,12,19],[3,6,9,16,22],[10,13,14,17,24],[18,21,23,26,30]]\n' +
+      'target = 5\n\n' +
+      'Start at top-right: row=0, col=4, val=15\n\n' +
+      'Step 1: currentVal=15 > 5 -> move left\n' +
+      '  col=3, val=matrix[0][3]=11\n\n' +
+      'Step 2: currentVal=11 > 5 -> move left\n' +
+      '  col=2, val=matrix[0][2]=7\n\n' +
+      'Step 3: currentVal=7 > 5 -> move left\n' +
+      '  col=1, val=matrix[0][1]=4\n\n' +
+      'Step 4: currentVal=4 < 5 -> move down\n' +
+      '  row=1, val=matrix[1][1]=5\n\n' +
+      'Step 5: currentVal=5 === 5 -> return true!\n\n' +
+      'Output: true',
     explanation:
       '1. Start at the top-right corner: matrix[0][n-1].\n' +
       '2. If value == target, found it.\n' +

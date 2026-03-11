@@ -35,21 +35,45 @@ Output: false`,
         return len(stack) == 0`,
     jsCode: `var isValid = function(s) {
     const stack = [];
-    const mapping = {')': '(', '}': '{', ']': '['};
+
+    // Maps each closing bracket to its expected opening bracket
+    const mapping = {
+        ')': '(',
+        '}': '{',
+        ']': '['
+    };
 
     for (const char of s) {
-        if (char in mapping) {
-            if (!stack.length || stack[stack.length - 1] !== mapping[char]) {
+        const isClosingBracket = char in mapping;
+
+        if (isClosingBracket) {
+            // The top of the stack must be the matching opening bracket
+            const topOfStack = stack[stack.length - 1];
+            const expectedOpen = mapping[char];
+
+            if (!stack.length || topOfStack !== expectedOpen) {
                 return false;
             }
+
             stack.pop();
         } else {
+            // It's an opening bracket — push it for later matching
             stack.push(char);
         }
     }
 
+    // Valid only if every opening bracket was matched
     return stack.length === 0;
 };`,
+    jsWalkthrough:
+      's = "([{}])"\n\n' +
+      'char="(": opening bracket → stack: ["("]\n' +
+      'char="[": opening bracket → stack: ["(", "["]\n' +
+      'char="{": opening bracket → stack: ["(", "[", "{"]\n' +
+      'char="}": closing, expected="{", top="{" ✓ → pop → stack: ["(", "["]\n' +
+      'char="]": closing, expected="[", top="[" ✓ → pop → stack: ["("]\n' +
+      'char=")": closing, expected="(", top="(" ✓ → pop → stack: []\n\n' +
+      'stack is empty → return true',
     explanation: `- Create a mapping from each closing bracket to its corresponding opening bracket.
 - Iterate through each character in the string.
 - If the character is a closing bracket, check if the stack is non-empty and the top matches the expected opening bracket. If not, return False; otherwise pop the top.
@@ -92,16 +116,24 @@ Output: ["((()))","(()())","(())()","()(())","()()()"]`,
         return result`,
     jsCode: `var generateParenthesis = function(n) {
     const result = [];
+    const targetLength = 2 * n;
 
     const backtrack = (current, openCount, closeCount) => {
-        if (current.length === 2 * n) {
+        // Base case: string is complete
+        if (current.length === targetLength) {
             result.push(current);
             return;
         }
-        if (openCount < n) {
+
+        // We can add '(' if we haven't used all n opening brackets
+        const canAddOpen = openCount < n;
+        if (canAddOpen) {
             backtrack(current + '(', openCount + 1, closeCount);
         }
-        if (closeCount < openCount) {
+
+        // We can add ')' only if there are unmatched '(' to close
+        const canAddClose = closeCount < openCount;
+        if (canAddClose) {
             backtrack(current + ')', openCount, closeCount + 1);
         }
     };
@@ -109,6 +141,17 @@ Output: ["((()))","(()())","(())()","()(())","()()()"]`,
     backtrack('', 0, 0);
     return result;
 };`,
+    jsWalkthrough:
+      'n = 2, targetLength = 4\n\n' +
+      'backtrack("", 0, 0)\n' +
+      '  canAddOpen (0<2) → backtrack("(", 1, 0)\n' +
+      '    canAddOpen (1<2) → backtrack("((", 2, 0)\n' +
+      '      canAddClose (0<2) → backtrack("(()", 2, 1)\n' +
+      '        canAddClose (1<2) → backtrack("(())", 2, 2) → length=4 → push "(())"\n' +
+      '    canAddClose (0<1) → backtrack("()", 1, 1)\n' +
+      '      canAddOpen (1<2) → backtrack("()(", 2, 1)\n' +
+      '        canAddClose (1<2) → backtrack("()()", 2, 2) → length=4 → push "()()"\n\n' +
+      'result = ["(())", "()()"]',
     explanation: `- Start with an empty string and counts of 0 for both open and close parentheses.
 - Base case: when the string length reaches 2*n, it is a complete valid combination; add it to results.
 - Recursive case 1: if open_count < n, we can still add an opening parenthesis.
@@ -151,22 +194,48 @@ Explanation: The largest rectangle has area = 5 * 2 = 10 (bars at indices 2 and 
 
         return max_area`,
     jsCode: `var largestRectangleArea = function(heights) {
-    const stack = [];
+    const stack = []; // stores indices of bars in increasing height order
     let maxArea = 0;
     const n = heights.length;
 
+    // We go one past the end (sentinel height 0) to flush remaining bars
     for (let i = 0; i <= n; i++) {
-        const h = i < n ? heights[i] : 0;
-        while (stack.length && heights[stack[stack.length - 1]] > h) {
-            const height = heights[stack.pop()];
-            const width = stack.length === 0 ? i : i - stack[stack.length - 1] - 1;
-            maxArea = Math.max(maxArea, height * width);
+        const currentHeight = i < n ? heights[i] : 0;
+
+        // Pop bars that are taller than the current bar — they've found their right boundary
+        while (stack.length && heights[stack[stack.length - 1]] > currentHeight) {
+            const poppedIndex = stack.pop();
+            const barHeight = heights[poppedIndex];
+
+            // Width extends from current i back to just after the new stack top
+            const leftBoundary = stack.length === 0 ? 0 : stack[stack.length - 1] + 1;
+            const barWidth = i - leftBoundary;
+
+            const area = barHeight * barWidth;
+            maxArea = Math.max(maxArea, area);
         }
+
         stack.push(i);
     }
 
     return maxArea;
 };`,
+    jsWalkthrough:
+      'heights = [2,1,5,6,2,3]\n\n' +
+      'i=0 h=2: stack empty → push 0         stack: [0]\n' +
+      'i=1 h=1: heights[0]=2 > 1 → pop 0\n' +
+      '         barHeight=2, leftBoundary=0, width=1, area=2 → maxArea=2\n' +
+      '         push 1                        stack: [1]\n' +
+      'i=2 h=5: 5 > heights[1]=1? No → push 2  stack: [1,2]\n' +
+      'i=3 h=6: 6 > heights[2]=5? No → push 3  stack: [1,2,3]\n' +
+      'i=4 h=2: heights[3]=6 > 2 → pop 3\n' +
+      '         barHeight=6, left=3, width=1, area=6 → maxArea=6\n' +
+      '         heights[2]=5 > 2 → pop 2\n' +
+      '         barHeight=5, left=2, width=2, area=10 → maxArea=10\n' +
+      '         push 4                        stack: [1,4]\n' +
+      'i=5 h=3: 3 > heights[4]=2? No → push 5  stack: [1,4,5]\n' +
+      'i=6 h=0 (sentinel): pop 5 → area=3*1=3, pop 4 → area=2*3=6, pop 1 → area=1*6=6\n\n' +
+      'maxArea = 10',
     explanation: `- Iterate through all bars plus one extra (height 0) to flush remaining bars from the stack.
 - Maintain a stack of indices in increasing order of heights.
 - When the current bar is shorter than the bar at stack top, pop the top index.
@@ -216,22 +285,50 @@ Explanation: ((2 + 1) * 3) = 9`,
         return stack[0]`,
     jsCode: `var evalRPN = function(tokens) {
     const stack = [];
+    const operators = new Set(['+', '-', '*', '/']);
 
     for (const token of tokens) {
-        if (['+', '-', '*', '/'].includes(token)) {
-            const b = stack.pop();
-            const a = stack.pop();
-            if (token === '+') stack.push(a + b);
-            else if (token === '-') stack.push(a - b);
-            else if (token === '*') stack.push(a * b);
-            else if (token === '/') stack.push(Math.trunc(a / b));
+        const isOperator = operators.has(token);
+
+        if (isOperator) {
+            // Pop in reverse order: b is the right operand, a is the left
+            const rightOperand = stack.pop();
+            const leftOperand = stack.pop();
+
+            let result;
+            if (token === '+') {
+                result = leftOperand + rightOperand;
+            } else if (token === '-') {
+                result = leftOperand - rightOperand;
+            } else if (token === '*') {
+                result = leftOperand * rightOperand;
+            } else if (token === '/') {
+                // Truncate toward zero (not floor)
+                result = Math.trunc(leftOperand / rightOperand);
+            }
+
+            stack.push(result);
         } else {
+            // It's a number — push it onto the stack
             stack.push(parseInt(token));
         }
     }
 
+    // The final remaining value is the answer
     return stack[0];
 };`,
+    jsWalkthrough:
+      'tokens = ["2","1","+","3","*"]\n\n' +
+      'token="2": number → stack: [2]\n' +
+      'token="1": number → stack: [2, 1]\n' +
+      'token="+": operator\n' +
+      '           rightOperand=1, leftOperand=2\n' +
+      '           result = 2 + 1 = 3 → stack: [3]\n' +
+      'token="3": number → stack: [3, 3]\n' +
+      'token="*": operator\n' +
+      '           rightOperand=3, leftOperand=3\n' +
+      '           result = 3 * 3 = 9 → stack: [9]\n\n' +
+      'return stack[0] = 9',
     explanation: `- Iterate through each token in the input array.
 - If the token is a number (including negative numbers), convert it to int and push onto the stack.
 - If the token is an operator, pop two values: b (top) and a (second from top).
@@ -279,17 +376,26 @@ Output: [null,null,null,null,-3,null,0,-2]`,
     def getMin(self) -> int:
         return self.min_stack[-1]`,
     jsCode: `var MinStack = function() {
+    // Main stack holds the actual values
     this.stack = [];
+    // Parallel stack where each entry is the running minimum at that level
     this.minStack = [];
 };
 
 MinStack.prototype.push = function(val) {
     this.stack.push(val);
-    const minVal = this.minStack.length === 0 ? val : Math.min(val, this.minStack[this.minStack.length - 1]);
-    this.minStack.push(minVal);
+
+    // The new minimum is the smaller of val and the current minimum
+    const currentMin = this.minStack.length === 0
+        ? val
+        : this.minStack[this.minStack.length - 1];
+    const newMin = Math.min(val, currentMin);
+
+    this.minStack.push(newMin);
 };
 
 MinStack.prototype.pop = function() {
+    // Keep both stacks in sync by popping from each
     this.stack.pop();
     this.minStack.pop();
 };
@@ -299,8 +405,18 @@ MinStack.prototype.top = function() {
 };
 
 MinStack.prototype.getMin = function() {
+    // The top of minStack always holds the current minimum
     return this.minStack[this.minStack.length - 1];
 };`,
+    jsWalkthrough:
+      'Operations: push(-2), push(0), push(-3), getMin(), pop(), top(), getMin()\n\n' +
+      'push(-2): stack: [-2]      minStack: [-2]\n' +
+      'push(0):  stack: [-2, 0]   minStack: [-2, -2]  (min stays -2)\n' +
+      'push(-3): stack: [-2,0,-3] minStack: [-2,-2,-3] (new min is -3)\n' +
+      'getMin(): return minStack top = -3\n' +
+      'pop():    stack: [-2, 0]   minStack: [-2, -2]\n' +
+      'top():    return stack top = 0\n' +
+      'getMin(): return minStack top = -2',
     explanation: `- Maintain two stacks: stack for values and min_stack where each entry is the minimum value at that level.
 - push: Append the value to stack. For min_stack, append the smaller of the new value and the current minimum (top of min_stack).
 - pop: Pop from both stacks. This keeps them in sync.
@@ -352,30 +468,53 @@ Explanation: 2[c] -> "cc", a + "cc" -> "acc", 3["acc"] -> "accaccacc"`,
 
         return current_string`,
     jsCode: `var decodeString = function(s) {
-    const countStack = [];
-    const stringStack = [];
+    const countStack = [];  // saves repeat counts at each nesting level
+    const stringStack = []; // saves the string built before each '['
     let currentString = '';
     let currentNum = 0;
 
     for (const char of s) {
-        if (char >= '0' && char <= '9') {
+        const isDigit = char >= '0' && char <= '9';
+
+        if (isDigit) {
+            // Build up multi-digit numbers (e.g., "12[" reads 1 then 2)
             currentNum = currentNum * 10 + parseInt(char);
+
         } else if (char === '[') {
+            // Save current context and reset for the inner expression
             countStack.push(currentNum);
             stringStack.push(currentString);
             currentNum = 0;
             currentString = '';
+
         } else if (char === ']') {
-            const num = countStack.pop();
-            const prevString = stringStack.pop();
-            currentString = prevString + currentString.repeat(num);
+            // Restore context and append the repeated inner string
+            const repeatCount = countStack.pop();
+            const previousString = stringStack.pop();
+            currentString = previousString + currentString.repeat(repeatCount);
+
         } else {
+            // Regular letter — just append it
             currentString += char;
         }
     }
 
     return currentString;
 };`,
+    jsWalkthrough:
+      's = "3[a2[c]]"\n\n' +
+      'char="3": digit → currentNum=3\n' +
+      'char="[": push count 3, push "" → countStack:[3] stringStack:[""] currentNum=0 currentString=""\n' +
+      'char="a": letter → currentString="a"\n' +
+      'char="2": digit → currentNum=2\n' +
+      'char="[": push count 2, push "a" → countStack:[3,2] stringStack:["","a"] currentNum=0 currentString=""\n' +
+      'char="c": letter → currentString="c"\n' +
+      'char="]": repeatCount=2, previousString="a"\n' +
+      '          currentString = "a" + "c".repeat(2) = "acc"\n' +
+      '          countStack:[3] stringStack:[""]\n' +
+      'char="]": repeatCount=3, previousString=""\n' +
+      '          currentString = "" + "acc".repeat(3) = "accaccacc"\n\n' +
+      'return "accaccacc"',
     explanation: `- Maintain current_string (string being built) and current_num (number being parsed).
 - Digit: Build up the multi-digit number (current_num = current_num * 10 + digit).
 - '[': Save the current context (push current_num and current_string onto their stacks), then reset both for the inner expression.
@@ -417,19 +556,49 @@ Output: [1,1,4,2,1,1,0,0]`,
         return answer`,
     jsCode: `var dailyTemperatures = function(temperatures) {
     const n = temperatures.length;
+
+    // Default answer is 0 (no warmer day found)
     const answer = new Array(n).fill(0);
+
+    // Stack holds indices of days still waiting for a warmer day
     const stack = [];
 
     for (let i = 0; i < n; i++) {
-        while (stack.length && temperatures[i] > temperatures[stack[stack.length - 1]]) {
-            const prevIndex = stack.pop();
-            answer[prevIndex] = i - prevIndex;
+        const todayTemp = temperatures[i];
+
+        // Resolve all previous days that are cooler than today
+        while (stack.length > 0) {
+            const prevIndex = stack[stack.length - 1];
+            const prevTemp = temperatures[prevIndex];
+
+            if (todayTemp > prevTemp) {
+                stack.pop();
+                // Days waited = today's index minus that day's index
+                answer[prevIndex] = i - prevIndex;
+            } else {
+                break;
+            }
         }
+
         stack.push(i);
     }
 
     return answer;
 };`,
+    jsWalkthrough:
+      'temperatures = [73,74,75,71,69,72,76,73]\n\n' +
+      'i=0 (73):  stack empty → push 0          stack: [0]\n' +
+      'i=1 (74):  74>73 → pop 0, answer[0]=1    stack: [1]\n' +
+      'i=2 (75):  75>74 → pop 1, answer[1]=1    stack: [2]\n' +
+      'i=3 (71):  71<75 → push 3                stack: [2,3]\n' +
+      'i=4 (69):  69<71 → push 4                stack: [2,3,4]\n' +
+      'i=5 (72):  72>69 → pop 4, answer[4]=1\n' +
+      '           72>71 → pop 3, answer[3]=2\n' +
+      '           72<75 → push 5                stack: [2,5]\n' +
+      'i=6 (76):  76>72 → pop 5, answer[5]=1\n' +
+      '           76>75 → pop 2, answer[2]=4    stack: [6]\n' +
+      'i=7 (73):  73<76 → push 7                stack: [6,7]\n\n' +
+      'answer = [1,1,4,2,1,1,0,0]',
     explanation: `- Initialize an answer array of zeros (default for days with no warmer future day).
 - Use a stack that stores indices of days whose "next warmer day" hasn't been found yet.
 - For each day i, while the stack is non-empty and today's temperature is warmer than the temperature at the index on top of the stack, pop the index and set answer[popped] = i - popped.
@@ -468,20 +637,40 @@ Explanation: Cars starting at 10 and 8 form a fleet (both arrive at time 1). Car
 
         return len(stack)`,
     jsCode: `var carFleet = function(target, position, speed) {
+    // Pair each car's position with its speed, then sort closest-to-target first
     const cars = position
         .map((pos, i) => [pos, speed[i]])
         .sort((a, b) => b[0] - a[0]);
+
+    // Stack holds arrival times of each distinct fleet
     const stack = [];
 
     for (const [pos, spd] of cars) {
-        const time = (target - pos) / spd;
-        if (!stack.length || time > stack[stack.length - 1]) {
-            stack.push(time);
+        // Time for this car to reach the target on its own
+        const timeToTarget = (target - pos) / spd;
+
+        const stackTop = stack[stack.length - 1];
+        const formsNewFleet = !stack.length || timeToTarget > stackTop;
+
+        if (formsNewFleet) {
+            // This car is slower than the fleet ahead — it leads its own fleet
+            stack.push(timeToTarget);
         }
+        // Otherwise this car catches up to the fleet ahead and merges — do nothing
     }
 
     return stack.length;
 };`,
+    jsWalkthrough:
+      'target=12, position=[10,8,0,5,3], speed=[2,4,1,1,3]\n\n' +
+      'Sort by position descending:\n' +
+      '  cars = [[10,2],[8,4],[5,1],[3,3],[0,1]]\n\n' +
+      '[10,2]: time=(12-10)/2=1.0 → stack empty → push  stack:[1.0]\n' +
+      '[8,4]:  time=(12-8)/4=1.0 → 1.0 > 1.0? No → merges into fleet ahead\n' +
+      '[5,1]:  time=(12-5)/1=7.0 → 7.0 > 1.0? Yes → push  stack:[1.0,7.0]\n' +
+      '[3,3]:  time=(12-3)/3=3.0 → 3.0 > 7.0? No → merges into fleet ahead\n' +
+      '[0,1]:  time=(12-0)/1=12.0 → 12.0 > 7.0? Yes → push  stack:[1.0,7.0,12.0]\n\n' +
+      'return stack.length = 3',
     explanation: `- Pair each car's position with its speed and sort by position descending (process cars closest to target first).
 - For each car, compute the time to reach the target: (target - position) / speed.
 - If the stack is empty or this car's time is greater than the top of the stack, it cannot catch the fleet ahead, so it starts a new fleet (push its time).
@@ -532,35 +721,56 @@ Output: [null,null,null,1,1,false]`,
             while self.input_stack:
                 self.output_stack.append(self.input_stack.pop())`,
     jsCode: `var MyQueue = function() {
+    // New elements always arrive here
     this.inputStack = [];
+    // Elements in FIFO order (oldest on top) for dequeue
     this.outputStack = [];
 };
 
 MyQueue.prototype.push = function(x) {
+    // Always push to input stack — O(1)
     this.inputStack.push(x);
 };
 
 MyQueue.prototype.pop = function() {
+    // Ensure outputStack has elements, then remove the oldest
     this._transfer();
     return this.outputStack.pop();
 };
 
 MyQueue.prototype.peek = function() {
+    // Ensure outputStack has elements, then read the oldest
     this._transfer();
     return this.outputStack[this.outputStack.length - 1];
 };
 
 MyQueue.prototype.empty = function() {
-    return this.inputStack.length === 0 && this.outputStack.length === 0;
+    const inputIsEmpty = this.inputStack.length === 0;
+    const outputIsEmpty = this.outputStack.length === 0;
+    return inputIsEmpty && outputIsEmpty;
 };
 
 MyQueue.prototype._transfer = function() {
+    // Only transfer when outputStack is empty — each element moves at most once
     if (this.outputStack.length === 0) {
-        while (this.inputStack.length) {
-            this.outputStack.push(this.inputStack.pop());
+        while (this.inputStack.length > 0) {
+            const topOfInput = this.inputStack.pop();
+            this.outputStack.push(topOfInput);
         }
     }
 };`,
+    jsWalkthrough:
+      'Operations: push(1), push(2), peek(), pop(), empty()\n\n' +
+      'push(1): inputStack: [1]      outputStack: []\n' +
+      'push(2): inputStack: [1, 2]   outputStack: []\n' +
+      'peek():  _transfer() → outputStack empty, so pour input into output\n' +
+      '         pop 2 → outputStack: [2]  then pop 1 → outputStack: [2, 1]\n' +
+      '         inputStack: []\n' +
+      '         outputStack top = 1 → return 1\n' +
+      'pop():   outputStack not empty, skip transfer\n' +
+      '         pop from outputStack → return 1\n' +
+      '         outputStack: [2]\n' +
+      'empty(): inputStack.length=0, outputStack.length=1 → return false',
     explanation: `- input_stack holds newly pushed elements; output_stack holds elements in FIFO order.
 - push: Always append to input_stack — O(1).
 - pop/peek: If output_stack is empty, transfer all elements from input_stack to output_stack. This reversal puts the oldest element on top. Then pop or peek from output_stack.
@@ -599,18 +809,43 @@ Explanation: For 4, no greater element to the right in nums2. For 1, next greate
 
         return [next_greater.get(num, -1) for num in nums1]`,
     jsCode: `var nextGreaterElement = function(nums1, nums2) {
+    // Precompute next greater element for every value in nums2
     const nextGreater = new Map();
-    const stack = [];
+    const stack = []; // monotonic decreasing stack of values
 
     for (const num of nums2) {
-        while (stack.length && stack[stack.length - 1] < num) {
-            nextGreater.set(stack.pop(), num);
+        // Current num is greater than everything on the stack below it
+        while (stack.length > 0 && stack[stack.length - 1] < num) {
+            const smallerNum = stack.pop();
+            // num is the first greater element for smallerNum
+            nextGreater.set(smallerNum, num);
         }
         stack.push(num);
     }
+    // Anything remaining on stack has no next greater element (defaults to -1)
 
-    return nums1.map(num => nextGreater.get(num) ?? -1);
+    // Look up each nums1 element in the precomputed map
+    return nums1.map(num => {
+        const greater = nextGreater.get(num);
+        return greater !== undefined ? greater : -1;
+    });
 };`,
+    jsWalkthrough:
+      'nums1 = [4,1,2], nums2 = [1,3,4,2]\n\n' +
+      'Processing nums2:\n' +
+      'num=1: stack empty → push 1       stack:[1]\n' +
+      'num=3: 3>1 → pop 1, nextGreater[1]=3\n' +
+      '       stack empty → push 3       stack:[3]\n' +
+      'num=4: 4>3 → pop 3, nextGreater[3]=4\n' +
+      '       stack empty → push 4       stack:[4]\n' +
+      'num=2: 2<4 → push 2               stack:[4,2]\n' +
+      'End: 4 and 2 remain — no next greater\n\n' +
+      'nextGreater: {1→3, 3→4}\n\n' +
+      'Look up nums1:\n' +
+      '  4 → not in map → -1\n' +
+      '  1 → 3\n' +
+      '  2 → not in map → -1\n\n' +
+      'return [-1, 3, -1]',
     explanation: `- Use a monotonic decreasing stack to process nums2 from left to right.
 - For each element in nums2, while the stack is non-empty and the top is smaller than the current element, pop and record current element as the next greater for the popped value.
 - Push the current element onto the stack.
@@ -652,13 +887,25 @@ Explanation: For nums[0]=1, next greater is 2. For nums[1]=2, no greater exists.
         return result`,
     jsCode: `var nextGreaterElements = function(nums) {
     const n = nums.length;
+
+    // Default -1 for elements that never find a greater value
     const result = new Array(n).fill(-1);
+
+    // Stack holds indices of elements still waiting for their next greater
     const stack = [];
 
-    for (let i = 0; i < 2 * n; i++) {
-        while (stack.length && nums[stack[stack.length - 1]] < nums[i % n]) {
-            result[stack.pop()] = nums[i % n];
+    // Loop twice to simulate circular traversal
+    for (let i = 0; i < 2 * n; i = i + 1) {
+        const circularIndex = i % n;
+        const currentValue = nums[circularIndex];
+
+        // Resolve any stacked indices whose next greater is the current value
+        while (stack.length > 0 && nums[stack[stack.length - 1]] < currentValue) {
+            const resolvedIndex = stack.pop();
+            result[resolvedIndex] = currentValue;
         }
+
+        // Only push indices on the first pass to avoid duplicate tracking
         if (i < n) {
             stack.push(i);
         }
@@ -666,6 +913,18 @@ Explanation: For nums[0]=1, next greater is 2. For nums[1]=2, no greater exists.
 
     return result;
 };`,
+    jsWalkthrough:
+      'nums = [1,2,1]\n\n' +
+      'i=0 (idx=0, val=1): stack empty → push 0     stack:[0]\n' +
+      'i=1 (idx=1, val=2): 2>nums[0]=1 → pop 0, result[0]=2\n' +
+      '                    stack empty → push 1     stack:[1]\n' +
+      'i=2 (idx=2, val=1): 1<nums[1]=2 → push 2    stack:[1,2]\n' +
+      '   (second pass starts)\n' +
+      'i=3 (idx=0, val=1): 1<nums[2]=1? No. 1<nums[1]=2? No.\n' +
+      'i=4 (idx=1, val=2): 2>nums[2]=1 → pop 2, result[2]=2\n' +
+      '                    2>nums[1]=2? No. (i>=n so no push)\n' +
+      'i=5 (idx=2, val=1): nothing popped\n\n' +
+      'result = [2, -1, 2]',
     explanation: `- Initialize result array with -1 (default for no next greater element).
 - Iterate 2 * n times to simulate the circular traversal.
 - Use i % n to get the actual index in the array.
@@ -716,16 +975,25 @@ Explanation: 10 and -5 collide, 10 survives. 5 and 10 never collide (same direct
 
     for (const asteroid of asteroids) {
         let alive = true;
-        while (alive && asteroid < 0 && stack.length && stack[stack.length - 1] > 0) {
-            if (stack[stack.length - 1] < -asteroid) {
+
+        // Collision only possible: current goes left (negative) AND stack top goes right (positive)
+        while (alive && asteroid < 0 && stack.length > 0 && stack[stack.length - 1] > 0) {
+            const topAsteroid = stack[stack.length - 1];
+            const incomingSize = -asteroid; // absolute size of the left-moving asteroid
+
+            if (topAsteroid < incomingSize) {
+                // Stack top is smaller — it gets destroyed, keep fighting
                 stack.pop();
-            } else if (stack[stack.length - 1] === -asteroid) {
+            } else if (topAsteroid === incomingSize) {
+                // Equal size — both are destroyed
                 stack.pop();
                 alive = false;
             } else {
+                // Stack top is larger — incoming asteroid is destroyed
                 alive = false;
             }
         }
+
         if (alive) {
             stack.push(asteroid);
         }
@@ -733,6 +1001,16 @@ Explanation: 10 and -5 collide, 10 survives. 5 and 10 never collide (same direct
 
     return stack;
 };`,
+    jsWalkthrough:
+      'asteroids = [5, 10, -5]\n\n' +
+      'asteroid=5:  positive → no collision → push    stack:[5]\n' +
+      'asteroid=10: positive → no collision → push    stack:[5,10]\n' +
+      'asteroid=-5: negative, top=10 (positive) → collision!\n' +
+      '             topAsteroid=10, incomingSize=5\n' +
+      '             10 > 5 → incoming destroyed, alive=false\n' +
+      '             loop exits\n' +
+      '             alive=false → do not push\n\n' +
+      'return [5, 10]',
     explanation: `- Process each asteroid one by one using a stack.
 - If the current asteroid is positive (moving right), push it — no collision with anything on the stack.
 - If the current asteroid is negative (moving left) and the stack top is positive (moving right), a collision occurs.
@@ -777,24 +1055,44 @@ Explanation: The longest valid parentheses substring is "()()" with length 4.`,
 
         return max_len`,
     jsCode: `var longestValidParentheses = function(s) {
+    // Initialize with -1 as a base boundary index
     const stack = [-1];
     let maxLen = 0;
 
-    for (let i = 0; i < s.length; i++) {
-        if (s[i] === '(') {
+    for (let i = 0; i < s.length; i = i + 1) {
+        const char = s[i];
+
+        if (char === '(') {
+            // Push the index of this opening bracket for later matching
             stack.push(i);
         } else {
+            // Pop the matching '(' (or the base boundary)
             stack.pop();
+
             if (stack.length === 0) {
+                // No unmatched '(' left — this ')' becomes the new base boundary
                 stack.push(i);
             } else {
-                maxLen = Math.max(maxLen, i - stack[stack.length - 1]);
+                // Valid substring extends from current index back to the new stack top
+                const lastUnmatchedIndex = stack[stack.length - 1];
+                const currentLen = i - lastUnmatchedIndex;
+                maxLen = Math.max(maxLen, currentLen);
             }
         }
     }
 
     return maxLen;
 };`,
+    jsWalkthrough:
+      's = ")()())"\n\n' +
+      'stack starts: [-1]\n\n' +
+      'i=0 ")": pop -1 → stack:[] → empty → push 0 as new base  stack:[0]\n' +
+      'i=1 "(": push 1                                            stack:[0,1]\n' +
+      'i=2 ")": pop 1 → stack:[0] → len=2-0=2 → maxLen=2\n' +
+      'i=3 "(": push 3                                            stack:[0,3]\n' +
+      'i=4 ")": pop 3 → stack:[0] → len=4-0=4 → maxLen=4\n' +
+      'i=5 ")": pop 0 → stack:[] → empty → push 5 as new base   stack:[5]\n\n' +
+      'return maxLen = 4',
     explanation: `- Initialize the stack with -1. This acts as the base index for calculating lengths.
 - For '(': push its index onto the stack.
 - For ')': pop the top of the stack.
@@ -856,6 +1154,7 @@ Explanation: Merged array = [1,2,3], median is 2.`,
 
         return 0.0`,
     jsCode: `var findMedianSortedArrays = function(nums1, nums2) {
+    // Always binary search on the shorter array
     if (nums1.length > nums2.length) {
         [nums1, nums2] = [nums2, nums1];
     }
@@ -864,31 +1163,54 @@ Explanation: Merged array = [1,2,3], median is 2.`,
     const n = nums2.length;
     let lo = 0;
     let hi = m;
+
+    // Total elements in the left half (ceiling for odd total)
     const half = Math.floor((m + n + 1) / 2);
 
     while (lo <= hi) {
+        // i = how many elements from nums1 are in the left half
         const i = Math.floor((lo + hi) / 2);
+        // j = how many elements from nums2 are in the left half
         const j = half - i;
 
-        const left1 = i > 0 ? nums1[i - 1] : -Infinity;
-        const right1 = i < m ? nums1[i] : Infinity;
-        const left2 = j > 0 ? nums2[j - 1] : -Infinity;
-        const right2 = j < n ? nums2[j] : Infinity;
+        // Boundary values at the partition (use -/+Infinity for edges)
+        const left1  = i > 0 ? nums1[i - 1] : -Infinity;
+        const right1 = i < m ? nums1[i]     :  Infinity;
+        const left2  = j > 0 ? nums2[j - 1] : -Infinity;
+        const right2 = j < n ? nums2[j]     :  Infinity;
 
-        if (left1 <= right2 && left2 <= right1) {
+        const validPartition = left1 <= right2 && left2 <= right1;
+
+        if (validPartition) {
+            // All left elements <= all right elements — correct split found
+            const maxLeft = Math.max(left1, left2);
             if ((m + n) % 2 === 1) {
-                return Math.max(left1, left2);
+                // Odd total: median is the max of the left half
+                return maxLeft;
             }
-            return (Math.max(left1, left2) + Math.min(right1, right2)) / 2;
+            const minRight = Math.min(right1, right2);
+            return (maxLeft + minRight) / 2;
+
         } else if (left1 > right2) {
+            // nums1's left portion is too large — move partition left
             hi = i - 1;
         } else {
+            // nums2's left portion is too large — move partition right
             lo = i + 1;
         }
     }
 
     return 0.0;
 };`,
+    jsWalkthrough:
+      'nums1 = [1,3], nums2 = [2]   (m=2, n=1, half=2)\n\n' +
+      'lo=0, hi=2\n' +
+      'iter 1: i=1, j=1\n' +
+      '        left1=nums1[0]=1, right1=nums1[1]=3\n' +
+      '        left2=nums2[0]=2, right2=Infinity\n' +
+      '        validPartition: 1<=Inf and 2<=3? Yes\n' +
+      '        (m+n)=3 is odd → return max(left1,left2) = max(1,2) = 2\n\n' +
+      'return 2.0',
     explanation: `- Always binary search on the shorter array (swap if needed) for O(log(min(m, n))).
 - Binary search for partition index i in nums1; j = half - i gives the partition in nums2.
 - half = (m + n + 1) // 2 ensures the left half has the correct number of elements.
@@ -943,16 +1265,26 @@ Output: 4`,
 
     while (lo <= hi) {
         const mid = Math.floor((lo + hi) / 2);
-        if (nums[mid] === target) return mid;
+        const midValue = nums[mid];
 
-        if (nums[lo] <= nums[mid]) {
-            if (nums[lo] <= target && target < nums[mid]) {
+        if (midValue === target) {
+            return mid;
+        }
+
+        const leftHalfIsSorted = nums[lo] <= midValue;
+
+        if (leftHalfIsSorted) {
+            // Check if target falls within the sorted left half
+            const targetInLeftHalf = nums[lo] <= target && target < midValue;
+            if (targetInLeftHalf) {
                 hi = mid - 1;
             } else {
                 lo = mid + 1;
             }
         } else {
-            if (nums[mid] < target && target <= nums[hi]) {
+            // Right half must be sorted — check if target falls there
+            const targetInRightHalf = midValue < target && target <= nums[hi];
+            if (targetInRightHalf) {
                 lo = mid + 1;
             } else {
                 hi = mid - 1;
@@ -962,6 +1294,19 @@ Output: 4`,
 
     return -1;
 };`,
+    jsWalkthrough:
+      'nums = [4,5,6,7,0,1,2], target = 0\n\n' +
+      'lo=0, hi=6\n' +
+      'iter 1: mid=3, midValue=7\n' +
+      '        leftHalfIsSorted: nums[0]=4 <= 7? Yes\n' +
+      '        targetInLeftHalf: 4<=0 && 0<7? No (4<=0 is false)\n' +
+      '        → lo = 4\n' +
+      'iter 2: lo=4, hi=6, mid=5, midValue=1\n' +
+      '        leftHalfIsSorted: nums[4]=0 <= 1? Yes\n' +
+      '        targetInLeftHalf: 0<=0 && 0<1? Yes\n' +
+      '        → hi = 4\n' +
+      'iter 3: lo=4, hi=4, mid=4, midValue=0\n' +
+      '        midValue === target → return 4',
     explanation: `- Standard binary search with one additional decision: which half is sorted?
 - If nums[lo] <= nums[mid], the left half [lo..mid] is sorted.
   - If target is in range [nums[lo], nums[mid]), search left (hi = mid - 1).
@@ -1022,42 +1367,67 @@ Output: [3,4]`,
 
         return [find_left(), find_right()]`,
     jsCode: `var searchRange = function(nums, target) {
+    // Find leftmost occurrence: when we find target, record it and keep searching left
     const findLeft = () => {
-        let lo = 0, hi = nums.length - 1;
+        let lo = 0;
+        let hi = nums.length - 1;
         let result = -1;
+
         while (lo <= hi) {
             const mid = Math.floor((lo + hi) / 2);
-            if (nums[mid] === target) {
-                result = mid;
-                hi = mid - 1;
-            } else if (nums[mid] < target) {
+            const midValue = nums[mid];
+
+            if (midValue === target) {
+                result = mid;       // candidate found
+                hi = mid - 1;      // but keep looking left for an earlier one
+            } else if (midValue < target) {
                 lo = mid + 1;
             } else {
                 hi = mid - 1;
             }
         }
+
         return result;
     };
 
+    // Find rightmost occurrence: when we find target, record it and keep searching right
     const findRight = () => {
-        let lo = 0, hi = nums.length - 1;
+        let lo = 0;
+        let hi = nums.length - 1;
         let result = -1;
+
         while (lo <= hi) {
             const mid = Math.floor((lo + hi) / 2);
-            if (nums[mid] === target) {
-                result = mid;
-                lo = mid + 1;
-            } else if (nums[mid] < target) {
+            const midValue = nums[mid];
+
+            if (midValue === target) {
+                result = mid;       // candidate found
+                lo = mid + 1;      // but keep looking right for a later one
+            } else if (midValue < target) {
                 lo = mid + 1;
             } else {
                 hi = mid - 1;
             }
         }
+
         return result;
     };
 
     return [findLeft(), findRight()];
 };`,
+    jsWalkthrough:
+      'nums = [5,7,7,8,8,10], target = 8\n\n' +
+      'findLeft():\n' +
+      '  lo=0, hi=5, mid=2, nums[2]=7 < 8 → lo=3\n' +
+      '  lo=3, hi=5, mid=4, nums[4]=8 = target → result=4, hi=3\n' +
+      '  lo=3, hi=3, mid=3, nums[3]=8 = target → result=3, hi=2\n' +
+      '  lo=3 > hi=2 → stop → return 3\n\n' +
+      'findRight():\n' +
+      '  lo=0, hi=5, mid=2, nums[2]=7 < 8 → lo=3\n' +
+      '  lo=3, hi=5, mid=4, nums[4]=8 = target → result=4, lo=5\n' +
+      '  lo=5, hi=5, mid=5, nums[5]=10 > 8 → hi=4\n' +
+      '  lo=5 > hi=4 → stop → return 4\n\n' +
+      'return [3, 4]',
     explanation: `- find_left: Standard binary search, but when nums[mid] == target, record mid as a candidate and continue searching left (hi = mid - 1) to find an earlier occurrence.
 - find_right: Same approach, but when nums[mid] == target, record mid and continue searching right (lo = mid + 1) to find a later occurrence.
 - Both searches are O(log n), so the total is O(log n).
@@ -1101,19 +1471,42 @@ Output: true`,
     jsCode: `var searchMatrix = function(matrix, target) {
     const rows = matrix.length;
     const cols = matrix[0].length;
+    const totalElements = rows * cols;
+
     let lo = 0;
-    let hi = rows * cols - 1;
+    let hi = totalElements - 1;
 
     while (lo <= hi) {
         const mid = Math.floor((lo + hi) / 2);
-        const value = matrix[Math.floor(mid / cols)][mid % cols];
-        if (value === target) return true;
-        else if (value < target) lo = mid + 1;
-        else hi = mid - 1;
+
+        // Convert flat index to 2D coordinates
+        const row = Math.floor(mid / cols);
+        const col = mid % cols;
+        const value = matrix[row][col];
+
+        if (value === target) {
+            return true;
+        } else if (value < target) {
+            lo = mid + 1;
+        } else {
+            hi = mid - 1;
+        }
     }
 
     return false;
 };`,
+    jsWalkthrough:
+      'matrix = [[1,3,5,7],[10,11,16,20],[23,30,34,60]], target = 3\n' +
+      'rows=3, cols=4, totalElements=12\n\n' +
+      'lo=0, hi=11\n' +
+      'iter 1: mid=5, row=5//4=1, col=5%4=1 → value=matrix[1][1]=11\n' +
+      '        11 > 3 → hi=4\n' +
+      'iter 2: lo=0, hi=4, mid=2, row=0, col=2 → value=matrix[0][2]=5\n' +
+      '        5 > 3 → hi=1\n' +
+      'iter 3: lo=0, hi=1, mid=0, row=0, col=0 → value=matrix[0][0]=1\n' +
+      '        1 < 3 → lo=1\n' +
+      'iter 4: lo=1, hi=1, mid=1, row=0, col=1 → value=matrix[0][1]=3\n' +
+      '        3 === target → return true',
     explanation: `- The matrix is essentially a sorted 1D array split into rows.
 - Total elements = rows * cols. Search range: lo = 0, hi = rows * cols - 1.
 - For any flat index mid: row = mid // cols, col = mid % cols gives the 2D coordinates.
@@ -1158,15 +1551,30 @@ Explanation: The original array was [1,2,3,4,5] rotated 3 times.`,
 
     while (lo < hi) {
         const mid = Math.floor((lo + hi) / 2);
-        if (nums[mid] > nums[hi]) {
+        const midValue = nums[mid];
+        const rightValue = nums[hi];
+
+        if (midValue > rightValue) {
+            // The right half contains the dip — minimum is to the right of mid
             lo = mid + 1;
         } else {
+            // Right half is sorted normally — minimum is at mid or to the left
             hi = mid;
         }
     }
 
+    // lo === hi: converged on the minimum element
     return nums[lo];
 };`,
+    jsWalkthrough:
+      'nums = [3,4,5,1,2]\n\n' +
+      'lo=0, hi=4\n' +
+      'iter 1: mid=2, midValue=5, rightValue=nums[4]=2\n' +
+      '        5 > 2 → minimum is in right half → lo=3\n' +
+      'iter 2: lo=3, hi=4, mid=3, midValue=1, rightValue=nums[4]=2\n' +
+      '        1 < 2 → minimum is at mid or left → hi=3\n' +
+      'lo=3 === hi=3 → stop\n\n' +
+      'return nums[3] = 1',
     explanation: `- Binary search narrows down to the minimum element.
 - If nums[mid] > nums[hi], the array is "broken" between mid and hi, meaning the minimum lies in [mid + 1, hi]. So lo = mid + 1.
 - If nums[mid] <= nums[hi], the right half is sorted, so the minimum is at mid or to the left. So hi = mid.
@@ -1212,13 +1620,29 @@ Output: 4`,
 
     while (lo <= hi) {
         const mid = Math.floor((lo + hi) / 2);
-        if (nums[mid] === target) return mid;
-        else if (nums[mid] < target) lo = mid + 1;
-        else hi = mid - 1;
+        const midValue = nums[mid];
+
+        if (midValue === target) {
+            return mid;
+        } else if (midValue < target) {
+            // Target must be in the right half
+            lo = mid + 1;
+        } else {
+            // Target must be in the left half
+            hi = mid - 1;
+        }
     }
 
+    // Search space exhausted — target not found
     return -1;
 };`,
+    jsWalkthrough:
+      'nums = [-1,0,3,5,9,12], target = 9\n\n' +
+      'lo=0, hi=5\n' +
+      'iter 1: mid=2, midValue=3\n' +
+      '        3 < 9 → lo=3\n' +
+      'iter 2: lo=3, hi=5, mid=4, midValue=9\n' +
+      '        9 === target → return 4',
     explanation: `- Initialize lo = 0 and hi = len(nums) - 1 to cover the full array.
 - Compute mid = (lo + hi) // 2 (integer division, no overflow issue in Python).
 - If nums[mid] == target, we found it — return mid.
@@ -1261,20 +1685,47 @@ Explanation: At speed 4, hours needed = ceil(3/4)+ceil(6/4)+ceil(7/4)+ceil(11/4)
         return lo`,
     jsCode: `var minEatingSpeed = function(piles, h) {
     let lo = 1;
-    let hi = Math.max(...piles);
+    let hi = Math.max(...piles); // fastest we'd ever need is the biggest pile
 
     while (lo < hi) {
-        const mid = Math.floor((lo + hi) / 2);
-        const hours = piles.reduce((sum, p) => sum + Math.ceil(p / mid), 0);
-        if (hours <= h) {
-            hi = mid;
+        const candidateSpeed = Math.floor((lo + hi) / 2);
+
+        // Calculate total hours needed at this speed
+        let totalHours = 0;
+        for (const pile of piles) {
+            totalHours = totalHours + Math.ceil(pile / candidateSpeed);
+        }
+
+        const fastEnough = totalHours <= h;
+
+        if (fastEnough) {
+            // This speed works — try a slower speed to find the minimum
+            hi = candidateSpeed;
         } else {
-            lo = mid + 1;
+            // Too slow — need a faster speed
+            lo = candidateSpeed + 1;
         }
     }
 
+    // lo === hi: the minimum valid speed
     return lo;
 };`,
+    jsWalkthrough:
+      'piles = [3,6,7,11], h = 8\n' +
+      'lo=1, hi=11\n\n' +
+      'iter 1: candidateSpeed=6\n' +
+      '        hours = ceil(3/6)+ceil(6/6)+ceil(7/6)+ceil(11/6) = 1+1+2+2 = 6\n' +
+      '        6 <= 8 → fastEnough → hi=6\n' +
+      'iter 2: lo=1, hi=6, candidateSpeed=3\n' +
+      '        hours = ceil(3/3)+ceil(6/3)+ceil(7/3)+ceil(11/3) = 1+2+3+4 = 10\n' +
+      '        10 > 8 → too slow → lo=4\n' +
+      'iter 3: lo=4, hi=6, candidateSpeed=5\n' +
+      '        hours = ceil(3/5)+ceil(6/5)+ceil(7/5)+ceil(11/5) = 1+2+2+3 = 8\n' +
+      '        8 <= 8 → fastEnough → hi=5\n' +
+      'iter 4: lo=4, hi=5, candidateSpeed=4\n' +
+      '        hours = ceil(3/4)+ceil(6/4)+ceil(7/4)+ceil(11/4) = 1+2+2+3 = 8\n' +
+      '        8 <= 8 → fastEnough → hi=4\n' +
+      'lo=4 === hi=4 → return 4',
     explanation: `- Binary search on the eating speed k, from 1 to max(piles).
 - For each candidate speed mid, calculate total hours: sum of ceil(pile / mid) for each pile. We use (p + mid - 1) // mid for integer ceiling division.
 - If total hours <= h, mid is fast enough. Try a slower speed: hi = mid.
@@ -1319,15 +1770,32 @@ Explanation: nums[2] = 3 is a peak element.`,
 
     while (lo < hi) {
         const mid = Math.floor((lo + hi) / 2);
-        if (nums[mid] < nums[mid + 1]) {
+        const midValue = nums[mid];
+        const rightNeighbor = nums[mid + 1];
+
+        const slopeGoesUp = midValue < rightNeighbor;
+
+        if (slopeGoesUp) {
+            // A peak must exist to the right (array drops to -Inf at the edge)
             lo = mid + 1;
         } else {
+            // Slope goes down or flat — a peak exists at mid or to the left
             hi = mid;
         }
     }
 
+    // lo === hi: converged on a peak
     return lo;
 };`,
+    jsWalkthrough:
+      'nums = [1,2,3,1]\n\n' +
+      'lo=0, hi=3\n' +
+      'iter 1: mid=1, midValue=2, rightNeighbor=3\n' +
+      '        slopeGoesUp: 2 < 3? Yes → lo=2\n' +
+      'iter 2: lo=2, hi=3, mid=2, midValue=3, rightNeighbor=1\n' +
+      '        slopeGoesUp: 3 < 1? No → hi=2\n' +
+      'lo=2 === hi=2 → return 2\n\n' +
+      'nums[2] = 3, which is a peak (greater than both neighbors)',
     explanation: `- Binary search between lo = 0 and hi = len(nums) - 1.
 - If nums[mid] < nums[mid + 1], the slope is going up to the right. Since nums[n] = -infinity, a peak must exist to the right. Set lo = mid + 1.
 - If nums[mid] >= nums[mid + 1], the slope is going down or flat to the right. A peak exists at mid or to the left. Set hi = mid.
@@ -1376,16 +1844,27 @@ class Solution:
 
         while (lo < hi) {
             const mid = Math.floor((lo + hi) / 2);
-            if (isBadVersion(mid)) {
+            const midIsBad = isBadVersion(mid);
+
+            if (midIsBad) {
+                // First bad version is at mid or earlier
                 hi = mid;
             } else {
+                // Mid is good — first bad version is strictly after mid
                 lo = mid + 1;
             }
         }
 
+        // lo === hi: the first bad version
         return lo;
     };
 };`,
+    jsWalkthrough:
+      'n = 5, bad = 4  (isBadVersion returns true for versions >= 4)\n\n' +
+      'lo=1, hi=5\n' +
+      'iter 1: mid=3, isBadVersion(3)=false → lo=4\n' +
+      'iter 2: lo=4, hi=5, mid=4, isBadVersion(4)=true → hi=4\n' +
+      'lo=4 === hi=4 → return 4',
     explanation: `- Binary search between version 1 and version n.
 - If isBadVersion(mid) returns True, the first bad version is at mid or earlier: set hi = mid.
 - If isBadVersion(mid) returns False, the first bad version is after mid: set lo = mid + 1.
@@ -1438,35 +1917,69 @@ Explanation: Split into [7,2,5] and [10,8]. The largest sum is 18 and this is th
 
         return lo`,
     jsCode: `var splitArray = function(nums, k) {
+    // Greedy check: can we split nums into <= k subarrays each with sum <= maxSum?
     const canSplit = (maxSum) => {
-        let subarrays = 1;
+        let subarrayCount = 1;
         let currentSum = 0;
+
         for (const num of nums) {
-            if (currentSum + num > maxSum) {
-                subarrays++;
+            const wouldExceed = currentSum + num > maxSum;
+
+            if (wouldExceed) {
+                // Start a new subarray with this number
+                subarrayCount = subarrayCount + 1;
                 currentSum = num;
-                if (subarrays > k) return false;
+
+                if (subarrayCount > k) {
+                    return false; // need too many splits
+                }
             } else {
-                currentSum += num;
+                currentSum = currentSum + num;
             }
         }
+
         return true;
     };
 
+    // Minimum possible answer: largest single element (every element must fit)
     let lo = Math.max(...nums);
-    let hi = nums.reduce((a, b) => a + b, 0);
+    // Maximum possible answer: put everything in one subarray
+    let hi = nums.reduce((total, num) => total + num, 0);
 
     while (lo < hi) {
-        const mid = Math.floor((lo + hi) / 2);
-        if (canSplit(mid)) {
-            hi = mid;
+        const candidateMax = Math.floor((lo + hi) / 2);
+
+        if (canSplit(candidateMax)) {
+            // Works — try smaller
+            hi = candidateMax;
         } else {
-            lo = mid + 1;
+            // Too small — increase the allowed maximum
+            lo = candidateMax + 1;
         }
     }
 
     return lo;
 };`,
+    jsWalkthrough:
+      'nums = [7,2,5,10,8], k = 2\n' +
+      'lo = max(nums) = 10, hi = sum(nums) = 32\n\n' +
+      'iter 1: candidateMax=21\n' +
+      '        canSplit(21): [7,2,5] sum=14 ok, add 10→24>21 → new subarray\n' +
+      '          subarray 2: [10,8] sum=18 ok → 2 subarrays <= k=2 → true\n' +
+      '        hi=21\n' +
+      'iter 2: lo=10, hi=21, candidateMax=15\n' +
+      '        canSplit(15): [7,2,5] sum=14 ok, add 10→24>15 → new subarray\n' +
+      '          subarray 2: [10,8] sum=18>15 → new subarray → 3 > k=2 → false\n' +
+      '        lo=16\n' +
+      'iter 3: lo=16, hi=21, candidateMax=18\n' +
+      '        canSplit(18): [7,2,5] sum=14, add 10→24>18 → new subarray\n' +
+      '          [10,8] sum=18 ok → 2 subarrays <= 2 → true\n' +
+      '        hi=18\n' +
+      'iter 4: lo=16, hi=18, candidateMax=17\n' +
+      '        canSplit(17): [7,2,5] sum=14, add 10→24>17 → new subarray\n' +
+      '          [10,8] sum=18>17 → new subarray → 3 > 2 → false\n' +
+      '        lo=18\n' +
+      'lo=18 === hi=18 → return 18',
     explanation: `- Binary search on the answer: the maximum allowed subarray sum.
 - lo = max(nums) because each element must fit in some subarray. hi = sum(nums) because one subarray could hold everything.
 - can_split(max_sum): Greedily assign elements to the current subarray. When adding the next element would exceed max_sum, start a new subarray. Return True if we use k or fewer subarrays.
@@ -1516,16 +2029,38 @@ Output: 5`,
 
     while (lo < hi) {
         let mid = Math.floor((lo + hi) / 2);
-        if (mid % 2 === 1) mid--;
-        if (nums[mid] === nums[mid + 1]) {
+
+        // Ensure mid is even so we compare the first of a pair with the second
+        if (mid % 2 === 1) {
+            mid = mid - 1;
+        }
+
+        const firstOfPair = nums[mid];
+        const secondOfPair = nums[mid + 1];
+        const pairIsIntact = firstOfPair === secondOfPair;
+
+        if (pairIsIntact) {
+            // This pair is valid — the single element is somewhere to the right
             lo = mid + 2;
         } else {
+            // Pair is broken — single element is at mid or to the left
             hi = mid;
         }
     }
 
     return nums[lo];
 };`,
+    jsWalkthrough:
+      'nums = [1,1,3,3,5,7,7,8,8]\n' +
+      'Indices:  0 1 2 3 4 5 6 7 8\n\n' +
+      'lo=0, hi=8\n' +
+      'iter 1: mid=4 (even)\n' +
+      '        firstOfPair=nums[4]=5, secondOfPair=nums[5]=7\n' +
+      '        pairIsIntact: 5===7? No → hi=4\n' +
+      'iter 2: lo=0, hi=4, mid=2 (even)\n' +
+      '        firstOfPair=nums[2]=3, secondOfPair=nums[3]=3\n' +
+      '        pairIsIntact: 3===3? Yes → lo=4\n' +
+      'lo=4 === hi=4 → return nums[4] = 5',
     explanation: `- In the array without the single element, pairs start at indices 0, 2, 4, ...
 - Binary search: ensure mid is even (if odd, decrement by 1).
 - If nums[mid] == nums[mid + 1], the pair at mid is intact. The single element must be to the right: lo = mid + 2.
@@ -1578,23 +2113,34 @@ Explanation: Ship with capacity 15: Day 1: [1,2,3,4,5], Day 2: [6,7], Day 3: [8]
 
         return lo`,
     jsCode: `var shipWithinDays = function(weights, days) {
+    // Greedy check: can all packages be shipped within 'days' days at this capacity?
     const canShip = (capacity) => {
         let daysNeeded = 1;
         let currentLoad = 0;
-        for (const w of weights) {
-            if (currentLoad + w > capacity) {
-                daysNeeded++;
-                currentLoad = w;
-                if (daysNeeded > days) return false;
+
+        for (const weight of weights) {
+            const wouldExceedCapacity = currentLoad + weight > capacity;
+
+            if (wouldExceedCapacity) {
+                // Start a new day with this package
+                daysNeeded = daysNeeded + 1;
+                currentLoad = weight;
+
+                if (daysNeeded > days) {
+                    return false; // exceeded allowed days
+                }
             } else {
-                currentLoad += w;
+                currentLoad = currentLoad + weight;
             }
         }
+
         return true;
     };
 
+    // Minimum capacity: must fit the heaviest package
     let lo = Math.max(...weights);
-    let hi = weights.reduce((a, b) => a + b, 0);
+    // Maximum capacity: ship everything in one day
+    let hi = weights.reduce((total, weight) => total + weight, 0);
 
     while (lo < hi) {
         const mid = Math.floor((lo + hi) / 2);
@@ -1607,6 +2153,20 @@ Explanation: Ship with capacity 15: Day 1: [1,2,3,4,5], Day 2: [6,7], Day 3: [8]
 
     return lo;
 };`,
+    jsWalkthrough:
+      'weights = [1,2,3,4,5,6,7,8,9,10], days = 5\n' +
+      'lo = max(weights) = 10, hi = sum(weights) = 55\n\n' +
+      'iter 1: mid=32, canShip(32):\n' +
+      '        Day1: 1+2+3+4+5+6+7=28, +8=36>32 → Day2: 8+9=17, +10=27 ✓\n' +
+      '        daysNeeded=2 <= 5 → true → hi=32\n' +
+      'iter 2: lo=10, hi=32, mid=21, canShip(21):\n' +
+      '        Day1: 1..6=21 ✓, +7=28>21 → Day2: 7+8=15, +9=24>21 → Day3: 9+10=19 ✓\n' +
+      '        daysNeeded=3 <= 5 → true → hi=21\n' +
+      '...binary search continues...\n' +
+      'Eventually lo=hi=15\n\n' +
+      'canShip(15): Day1:[1,2,3,4,5]=15 ✓  Day2:[6,7]=13, +8=21>15  Day3:[8]=8, +9=17>15\n' +
+      '             Day4:[9]=9, +10=19>15   Day5:[10]=10 ✓  daysNeeded=5 ✓\n\n' +
+      'return 15',
     explanation: `- Binary search on the ship capacity between max(weights) and sum(weights).
 - can_ship(capacity): Simulate loading packages in order. When adding the next package would exceed capacity, start a new day. Return True if total days needed <= days.
 - If can_ship(mid) is True, mid works — try a smaller capacity: hi = mid.

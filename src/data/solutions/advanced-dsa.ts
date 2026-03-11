@@ -44,28 +44,72 @@ export const solutions: ProblemSolution[] = [
     return provinces`,
     jsCode: `var findCircleNum = function(isConnected) {
     const n = isConnected.length;
-    const parent = Array.from({length: n}, (_, i) => i);
+
+    // Each city starts as its own parent (its own province)
+    const parent = Array.from({ length: n }, (_, i) => i);
     const rank = new Array(n).fill(0);
 
+    // Find root of x with path compression (halve path each time)
     function find(x) {
-        while (parent[x] !== x) { parent[x] = parent[parent[x]]; x = parent[x]; }
+        while (parent[x] !== x) {
+            // Path compression: skip one level up
+            parent[x] = parent[parent[x]];
+            x = parent[x];
+        }
         return x;
     }
+
+    // Merge two sets by rank; return false if already in same set
     function union(x, y) {
-        let px = find(x), py = find(y);
-        if (px === py) return false;
-        if (rank[px] < rank[py]) [px, py] = [py, px];
-        parent[py] = px;
-        if (rank[px] === rank[py]) rank[px]++;
+        const rootX = find(x);
+        const rootY = find(y);
+
+        if (rootX === rootY) {
+            // Already in the same province
+            return false;
+        }
+
+        // Attach smaller-rank tree under larger-rank tree
+        if (rank[rootX] < rank[rootY]) {
+            parent[rootX] = rootY;
+        } else if (rank[rootX] > rank[rootY]) {
+            parent[rootY] = rootX;
+        } else {
+            // Equal rank: pick rootX as new root, bump its rank
+            parent[rootY] = rootX;
+            rank[rootX]++;
+        }
+
         return true;
     }
 
+    // Start with n provinces (one per city)
     let provinces = n;
-    for (let i = 0; i < n; i++)
-        for (let j = i + 1; j < n; j++)
-            if (isConnected[i][j] === 1 && union(i, j)) provinces--;
+
+    for (let i = 0; i < n; i++) {
+        for (let j = i + 1; j < n; j++) {
+            if (isConnected[i][j] === 1) {
+                // If union merges two separate provinces, total drops by 1
+                if (union(i, j)) {
+                    provinces--;
+                }
+            }
+        }
+    }
+
     return provinces;
 };`,
+    jsWalkthrough:
+      'isConnected = [[1,1,0],[1,1,0],[0,0,1]]  (3 cities)\n\n' +
+      'Initial state:\n' +
+      '  parent = [0, 1, 2]   rank = [0, 0, 0]   provinces = 3\n\n' +
+      'i=0, j=1: isConnected[0][1]=1 → union(0,1)\n' +
+      '  find(0)=0, find(1)=1  (different roots)\n' +
+      '  Equal rank → parent[1]=0, rank[0]=1\n' +
+      '  parent = [0, 0, 2]   rank = [1, 0, 0]   provinces = 2\n\n' +
+      'i=0, j=2: isConnected[0][2]=0 → skip\n\n' +
+      'i=1, j=2: isConnected[1][2]=0 → skip\n\n' +
+      'Return provinces = 2  ✓',
     explanation:
       '1. Each city starts as its own parent (self-loop).\n' +
       '2. find(x) follows parent pointers to the root, with path compression.\n' +
@@ -116,24 +160,64 @@ export const solutions: ProblemSolution[] = [
             return [u, v]`,
     jsCode: `var findRedundantConnection = function(edges) {
     const n = edges.length;
-    const parent = Array.from({length: n + 1}, (_, i) => i);
+
+    // 1-indexed nodes: parent[i] = i means i is its own root
+    const parent = Array.from({ length: n + 1 }, (_, i) => i);
     const rank = new Array(n + 1).fill(0);
+
+    // Follow parent pointers up to the root, compressing the path
     function find(x) {
-        while (parent[x] !== x) { parent[x] = parent[parent[x]]; x = parent[x]; }
+        while (parent[x] !== x) {
+            // Skip one level to flatten the tree over time
+            parent[x] = parent[parent[x]];
+            x = parent[x];
+        }
         return x;
     }
+
+    // Attempt to merge x and y's components
+    // Returns false if they are already in the same component (cycle detected)
     function union(x, y) {
-        let px = find(x), py = find(y);
-        if (px === py) return false;
-        if (rank[px] < rank[py]) [px, py] = [py, px];
-        parent[py] = px;
-        if (rank[px] === rank[py]) rank[px]++;
+        const rootX = find(x);
+        const rootY = find(y);
+
+        if (rootX === rootY) {
+            // Same root means adding this edge would create a cycle
+            return false;
+        }
+
+        // Attach the shallower tree under the deeper tree
+        if (rank[rootX] < rank[rootY]) {
+            parent[rootX] = rootY;
+        } else if (rank[rootX] > rank[rootY]) {
+            parent[rootY] = rootX;
+        } else {
+            parent[rootY] = rootX;
+            rank[rootX]++;
+        }
+
         return true;
     }
+
+    // Process edges in order; the first one that fails union is the redundant edge
     for (const [u, v] of edges) {
-        if (!union(u, v)) return [u, v];
+        const mergeSucceeded = union(u, v);
+        if (!mergeSucceeded) {
+            return [u, v];
+        }
     }
 };`,
+    jsWalkthrough:
+      'edges = [[1,2],[1,3],[2,3]]\n\n' +
+      'Initial: parent = [0,1,2,3]  rank = [0,0,0,0]\n\n' +
+      'Edge [1,2]: find(1)=1, find(2)=2 → different → union\n' +
+      '  parent[2]=1, rank[1]=1\n' +
+      '  parent = [0,1,1,3]\n\n' +
+      'Edge [1,3]: find(1)=1, find(3)=3 → different → union\n' +
+      '  rank[1]=1 > rank[3]=0 → parent[3]=1\n' +
+      '  parent = [0,1,1,1]\n\n' +
+      'Edge [2,3]: find(2)→parent[2]=1→root=1, find(3)→parent[3]=1→root=1\n' +
+      '  Same root! → cycle detected → return [2,3]  ✓',
     explanation:
       '1. Initialize UF with n+1 nodes (1-indexed).\n' +
       '2. Process edges in order. For each (u, v), try union.\n' +
@@ -180,16 +264,53 @@ def maxSlidingWindow(nums, k):
             result.append(nums[dq[0]])
     return result`,
     jsCode: `var maxSlidingWindow = function(nums, k) {
-    const dq = []; // indices, values decreasing
+    // Deque stores indices; the corresponding values are always decreasing
+    // so dq[0] is always the index of the current window's maximum
+    const dq = [];
     const result = [];
+
     for (let i = 0; i < nums.length; i++) {
-        while (dq.length && dq[0] < i - k + 1) dq.shift();
-        while (dq.length && nums[dq[dq.length - 1]] <= nums[i]) dq.pop();
+        // Step 1: Remove the front index if it has slid out of the window
+        const leftBoundary = i - k + 1;
+        if (dq.length > 0 && dq[0] < leftBoundary) {
+            dq.shift();
+        }
+
+        // Step 2: Remove indices from the back whose values are <= nums[i]
+        // Those elements can never be the window max (current is newer AND larger)
+        while (dq.length > 0 && nums[dq[dq.length - 1]] <= nums[i]) {
+            dq.pop();
+        }
+
+        // Step 3: Add current index to the back
         dq.push(i);
-        if (i >= k - 1) result.push(nums[dq[0]]);
+
+        // Step 4: Once the first full window is formed, record the max (front of dq)
+        if (i >= k - 1) {
+            result.push(nums[dq[0]]);
+        }
     }
+
     return result;
 };`,
+    jsWalkthrough:
+      'nums = [1,3,-1,-3,5,3,6,7], k = 3\n\n' +
+      'i=0 (val=1): dq=[] → push 0 → dq=[0]       window not full yet\n' +
+      'i=1 (val=3): back val nums[0]=1 <= 3 → pop; push 1 → dq=[1]  not full\n' +
+      'i=2 (val=-1): back val nums[1]=3 > -1 → keep; push 2 → dq=[1,2]\n' +
+      '  i>=k-1: result=[nums[1]]=[3]\n\n' +
+      'i=3 (val=-3): front dq[0]=1 >= leftBoundary=1 → keep\n' +
+      '  back val nums[2]=-1 > -3 → keep; push 3 → dq=[1,2,3]\n' +
+      '  result=[3, nums[1]]=[3,3]\n\n' +
+      'i=4 (val=5): front dq[0]=1 < leftBoundary=2 → shift; dq=[2,3]\n' +
+      '  nums[3]=-3<=5 → pop; nums[2]=-1<=5 → pop; push 4 → dq=[4]\n' +
+      '  result=[3,3,5]\n\n' +
+      'i=5 (val=3): front 4>=3 → keep; nums[4]=5>3 → keep; push 5 → dq=[4,5]\n' +
+      '  result=[3,3,5,5]\n\n' +
+      'i=6 (val=6): front 4<4? No (4>=4); nums[5]=3<=6→pop; nums[4]=5<=6→pop; push 6 → dq=[6]\n' +
+      '  result=[3,3,5,5,6]\n\n' +
+      'i=7 (val=7): front 6>=5→keep; nums[6]=6<=7→pop; push 7 → dq=[7]\n' +
+      '  result=[3,3,5,5,6,7]  ✓',
     explanation:
       '1. The deque stores indices in decreasing order of their values.\n' +
       '2. Front removal: if dq[0] < i - k + 1, that element left the window.\n' +
@@ -236,22 +357,69 @@ def longestSubarray(nums, limit):
         result = max(result, right - left + 1)
     return result`,
     jsCode: `var longestSubarray = function(nums, limit) {
-    const maxDq = [], minDq = [];
-    let left = 0, result = 0;
+    // maxDq: indices in decreasing value order — front is the window maximum
+    // minDq: indices in increasing value order — front is the window minimum
+    const maxDq = [];
+    const minDq = [];
+    let left = 0;
+    let result = 0;
+
     for (let right = 0; right < nums.length; right++) {
-        while (maxDq.length && nums[maxDq[maxDq.length-1]] <= nums[right]) maxDq.pop();
-        while (minDq.length && nums[minDq[minDq.length-1]] >= nums[right]) minDq.pop();
+        const currentVal = nums[right];
+
+        // Maintain decreasing order for maxDq: remove back elements smaller than current
+        while (maxDq.length > 0 && nums[maxDq[maxDq.length - 1]] <= currentVal) {
+            maxDq.pop();
+        }
+
+        // Maintain increasing order for minDq: remove back elements larger than current
+        while (minDq.length > 0 && nums[minDq[minDq.length - 1]] >= currentVal) {
+            minDq.pop();
+        }
+
         maxDq.push(right);
         minDq.push(right);
+
+        // Shrink window from the left while the constraint is violated
         while (nums[maxDq[0]] - nums[minDq[0]] > limit) {
             left++;
-            if (maxDq[0] < left) maxDq.shift();
-            if (minDq[0] < left) minDq.shift();
+
+            // Remove deque fronts that have fallen outside the window
+            if (maxDq[0] < left) {
+                maxDq.shift();
+            }
+            if (minDq[0] < left) {
+                minDq.shift();
+            }
         }
-        result = Math.max(result, right - left + 1);
+
+        // Record the length of the current valid window
+        const windowSize = right - left + 1;
+        result = Math.max(result, windowSize);
     }
+
     return result;
 };`,
+    jsWalkthrough:
+      'nums = [8,2,4,7], limit = 4\n\n' +
+      'right=0 (val=8): maxDq=[0], minDq=[0]  max=8 min=8  diff=0<=4\n' +
+      '  window [8]  size=1  result=1\n\n' +
+      'right=1 (val=2): maxDq back 8>2→keep → maxDq=[0,1]\n' +
+      '  minDq back 8>=2→pop → minDq=[1]\n' +
+      '  max=nums[0]=8, min=nums[1]=2  diff=6>4 → shrink\n' +
+      '    left=1; maxDq[0]=0<1→shift → maxDq=[1]; minDq[0]=1>=1→keep\n' +
+      '  diff=nums[1]-nums[1]=0<=4  window [2]  size=1  result=1\n\n' +
+      'right=2 (val=4): maxDq back nums[1]=2<=4→pop → maxDq=[2]\n' +
+      '  minDq back nums[1]=2<4→keep → minDq=[1,2]\n' +
+      '  max=nums[2]=4, min=nums[1]=2  diff=2<=4\n' +
+      '  window [2,4]  size=2  result=2\n\n' +
+      'right=3 (val=7): maxDq back nums[2]=4<=7→pop → maxDq=[3]\n' +
+      '  minDq back nums[2]=4<7→keep → minDq=[1,2,3]\n' +
+      '  max=nums[3]=7, min=nums[1]=2  diff=5>4 → shrink\n' +
+      '    left=2; maxDq[0]=3>=2→keep; minDq[0]=1<2→shift → minDq=[2,3]\n' +
+      '  max=nums[3]=7, min=nums[2]=4  diff=3<=4\n' +
+      '  window [4,7]  size=2  result=2\n\n' +
+      'Return 2  ✓',
     explanation:
       '1. Two deques track window max and min simultaneously.\n' +
       '2. For each right, maintain both deques (remove dominated elements from back).\n' +
@@ -307,25 +475,54 @@ def findKthLargest(nums, k):
 
     return quickselect(0, len(nums) - 1)`,
     jsCode: `var findKthLargest = function(nums, k) {
-    const target = nums.length - k;
+    // We want the kth largest, which is the (n-k)th smallest (0-indexed)
+    const targetIndex = nums.length - k;
+
     function quickselect(left, right) {
-        const pivotIdx = left + Math.floor(Math.random() * (right - left + 1));
+        // Pick a random pivot index to avoid worst-case O(n^2)
+        const randomOffset = Math.floor(Math.random() * (right - left + 1));
+        const pivotIdx = left + randomOffset;
+
+        // Move pivot to the end so it's out of the way during partitioning
         [nums[pivotIdx], nums[right]] = [nums[right], nums[pivotIdx]];
-        const pivot = nums[right];
-        let store = left;
+        const pivotValue = nums[right];
+
+        // Partition: move all elements <= pivot to the left of store pointer
+        let storeIdx = left;
         for (let i = left; i < right; i++) {
-            if (nums[i] <= pivot) {
-                [nums[store], nums[i]] = [nums[i], nums[store]];
-                store++;
+            if (nums[i] <= pivotValue) {
+                [nums[storeIdx], nums[i]] = [nums[i], nums[storeIdx]];
+                storeIdx++;
             }
         }
-        [nums[store], nums[right]] = [nums[right], nums[store]];
-        if (store === target) return nums[store];
-        else if (store < target) return quickselect(store + 1, right);
-        else return quickselect(left, store - 1);
+
+        // Place the pivot in its final sorted position
+        [nums[storeIdx], nums[right]] = [nums[right], nums[storeIdx]];
+
+        // Decide which side to recurse into
+        if (storeIdx === targetIndex) {
+            // Pivot landed exactly at the target position
+            return nums[storeIdx];
+        } else if (storeIdx < targetIndex) {
+            // Target is to the right of the pivot
+            return quickselect(storeIdx + 1, right);
+        } else {
+            // Target is to the left of the pivot
+            return quickselect(left, storeIdx - 1);
+        }
     }
+
     return quickselect(0, nums.length - 1);
 };`,
+    jsWalkthrough:
+      'nums = [3,2,1,5,6,4], k = 2\n' +
+      'targetIndex = 6 - 2 = 4  (4th smallest = 2nd largest)\n\n' +
+      'quickselect(0, 5): say pivot lands on index 3 (val=5)\n' +
+      '  Move 5 to end: [3,2,1,4,6,5]\n' +
+      '  Partition around 5: elements <=5 → [3,2,1,4,5,6], storeIdx=4\n' +
+      '  storeIdx=4 === targetIndex=4 → return nums[4] = 5  ✓\n\n' +
+      '(If pivot had been 6 at storeIdx=5: 5<4? No. 5>4? Yes → recurse left)\n' +
+      '(If pivot had been 1 at storeIdx=0: 0<4? Yes → recurse right)',
     explanation:
       '1. Convert "kth largest" to "target = n-k" (0-indexed position in sorted order).\n' +
       '2. Pick a random pivot, partition array: smaller elements left, larger right.\n' +
@@ -372,24 +569,65 @@ def merge(left, right):
     result.extend(right[j:])
     return result`,
     jsCode: `var sortArray = function(nums) {
-    if (nums.length <= 1) return nums;
+    // Base case: a single element or empty array is already sorted
+    if (nums.length <= 1) {
+        return nums;
+    }
+
+    // Split at midpoint into two halves
     const mid = Math.floor(nums.length / 2);
-    const left = sortArray(nums.slice(0, mid));
-    const right = sortArray(nums.slice(mid));
-    return merge(left, right);
+    const leftHalf = sortArray(nums.slice(0, mid));
+    const rightHalf = sortArray(nums.slice(mid));
+
+    // Merge the two sorted halves and return the result
+    return merge(leftHalf, rightHalf);
 };
 
 function merge(left, right) {
     const result = [];
-    let i = 0, j = 0;
-    while (i < left.length && j < right.length) {
-        if (left[i] <= right[j]) result.push(left[i++]);
-        else result.push(right[j++]);
+    let leftPtr = 0;
+    let rightPtr = 0;
+
+    // Compare front elements of each half; take the smaller one
+    while (leftPtr < left.length && rightPtr < right.length) {
+        if (left[leftPtr] <= right[rightPtr]) {
+            result.push(left[leftPtr]);
+            leftPtr++;
+        } else {
+            result.push(right[rightPtr]);
+            rightPtr++;
+        }
     }
-    while (i < left.length) result.push(left[i++]);
-    while (j < right.length) result.push(right[j++]);
+
+    // Drain any remaining elements from left half
+    while (leftPtr < left.length) {
+        result.push(left[leftPtr]);
+        leftPtr++;
+    }
+
+    // Drain any remaining elements from right half
+    while (rightPtr < right.length) {
+        result.push(right[rightPtr]);
+        rightPtr++;
+    }
+
     return result;
 }`,
+    jsWalkthrough:
+      'nums = [5,2,3,1]\n\n' +
+      'sortArray([5,2,3,1]):\n' +
+      '  mid=2 → left=[5,2], right=[3,1]\n\n' +
+      '  sortArray([5,2]):\n' +
+      '    mid=1 → left=[5], right=[2]\n' +
+      '    sortArray([5]) → [5]  (base case)\n' +
+      '    sortArray([2]) → [2]  (base case)\n' +
+      '    merge([5],[2]): 2<5 → [2,5]\n\n' +
+      '  sortArray([3,1]):\n' +
+      '    mid=1 → left=[3], right=[1]\n' +
+      '    merge([3],[1]): 1<3 → [1,3]\n\n' +
+      '  merge([2,5],[1,3]):\n' +
+      '    1<2 → [1]; 2<3 → [1,2]; 3<5 → [1,2,3]; drain [5] → [1,2,3,5]\n\n' +
+      'Return [1,2,3,5]  ✓',
     explanation:
       '1. Split: Divide array at midpoint into two halves.\n' +
       '2. Conquer: Recursively sort each half (base case: length <= 1).\n' +
@@ -461,33 +699,93 @@ function merge(left, right) {
     jsCode: `class NumArray {
     constructor(nums) {
         this.n = nums.length;
+        // Allocate 4x the array size to safely store all tree nodes
         this.tree = new Array(4 * this.n).fill(0);
         this._build(nums, 1, 0, this.n - 1);
     }
+
+    // Recursively build the tree bottom-up
     _build(nums, node, start, end) {
-        if (start === end) { this.tree[node] = nums[start]; return; }
+        if (start === end) {
+            // Leaf node: store the actual array value
+            this.tree[node] = nums[start];
+            return;
+        }
+
         const mid = Math.floor((start + end) / 2);
-        this._build(nums, 2*node, start, mid);
-        this._build(nums, 2*node+1, mid+1, end);
-        this.tree[node] = this.tree[2*node] + this.tree[2*node+1];
+        const leftChild = 2 * node;
+        const rightChild = 2 * node + 1;
+
+        this._build(nums, leftChild, start, mid);
+        this._build(nums, rightChild, mid + 1, end);
+
+        // Internal node stores sum of its two children
+        this.tree[node] = this.tree[leftChild] + this.tree[rightChild];
     }
-    update(index, val) { this._update(1, 0, this.n-1, index, val); }
+
+    update(index, val) {
+        this._update(1, 0, this.n - 1, index, val);
+    }
+
     _update(node, start, end, idx, val) {
-        if (start === end) { this.tree[node] = val; return; }
+        if (start === end) {
+            // Found the leaf — update it directly
+            this.tree[node] = val;
+            return;
+        }
+
         const mid = Math.floor((start + end) / 2);
-        if (idx <= mid) this._update(2*node, start, mid, idx, val);
-        else this._update(2*node+1, mid+1, end, idx, val);
-        this.tree[node] = this.tree[2*node] + this.tree[2*node+1];
+        const leftChild = 2 * node;
+        const rightChild = 2 * node + 1;
+
+        if (idx <= mid) {
+            this._update(leftChild, start, mid, idx, val);
+        } else {
+            this._update(rightChild, mid + 1, end, idx, val);
+        }
+
+        // Recalculate this node's sum after the child was updated
+        this.tree[node] = this.tree[leftChild] + this.tree[rightChild];
     }
-    sumRange(left, right) { return this._query(1, 0, this.n-1, left, right); }
+
+    sumRange(left, right) {
+        return this._query(1, 0, this.n - 1, left, right);
+    }
+
     _query(node, start, end, l, r) {
-        if (r < start || end < l) return 0;
-        if (l <= start && end <= r) return this.tree[node];
+        // No overlap: this segment is completely outside the query range
+        if (r < start || end < l) {
+            return 0;
+        }
+
+        // Full overlap: this segment is completely inside the query range
+        if (l <= start && end <= r) {
+            return this.tree[node];
+        }
+
+        // Partial overlap: split into left and right children
         const mid = Math.floor((start + end) / 2);
-        return this._query(2*node, start, mid, l, r) +
-               this._query(2*node+1, mid+1, end, l, r);
+        const leftSum = this._query(2 * node, start, mid, l, r);
+        const rightSum = this._query(2 * node + 1, mid + 1, end, l, r);
+
+        return leftSum + rightSum;
     }
 }`,
+    jsWalkthrough:
+      'nums = [1, 3, 5], n = 3\n\n' +
+      'Build tree (node 1 covers [0,2]):\n' +
+      '  node 1 [0,2]: split → node2 [0,1] + node3 [2,2]\n' +
+      '  node 2 [0,1]: split → node4 [0,0]=1 + node5 [1,1]=3 → node2=4\n' +
+      '  node 3 [2,2]: leaf → node3=5\n' +
+      '  node 1 = 4+5 = 9\n' +
+      '  tree: [_, 9, 4, 5, 1, 3, ...]  (1-indexed)\n\n' +
+      'sumRange(0, 2): _query(node1, [0,2], query=[0,2])\n' +
+      '  [0,2] fully inside [0,2] → return tree[1] = 9  ✓\n\n' +
+      'update(1, 2): _update to index 1\n' +
+      '  node1→node2→node5 (leaf, [1,1]) → set tree[5]=2\n' +
+      '  back up: tree[2]=tree[4]+tree[5]=1+2=3\n' +
+      '           tree[1]=tree[2]+tree[3]=3+5=8\n\n' +
+      'sumRange(0, 2) → tree[1] = 8  ✓',
     explanation:
       '1. Build: Recursively split array into halves. Leaves store individual elements. Parents store sum of children.\n' +
       '2. Update: Walk from root to leaf, update the leaf, then recalculate sums going back up.\n' +
@@ -550,26 +848,69 @@ function merge(left, right) {
             i += 1
     return -1`,
     jsCode: `var strStr = function(haystack, needle) {
-    if (!needle.length) return 0;
-    // Build LPS
+    if (needle.length === 0) {
+        return 0;
+    }
+
+    // --- Phase 1: Build the LPS (Longest Proper Prefix that is also Suffix) table ---
+    // lps[i] = length of longest prefix of needle[0..i] that equals a suffix of needle[0..i]
     const lps = new Array(needle.length).fill(0);
-    let len = 0, i = 1;
+    let prefixLen = 0;  // length of the previous longest prefix-suffix
+    let i = 1;
+
     while (i < needle.length) {
-        if (needle[i] === needle[len]) { len++; lps[i] = len; i++; }
-        else if (len > 0) { len = lps[len - 1]; }
-        else { lps[i] = 0; i++; }
+        if (needle[i] === needle[prefixLen]) {
+            // Characters match: extend the current prefix-suffix
+            prefixLen++;
+            lps[i] = prefixLen;
+            i++;
+        } else if (prefixLen > 0) {
+            // Mismatch but we have a fallback: try the next shorter prefix
+            prefixLen = lps[prefixLen - 1];
+            // Do NOT increment i — retry with shorter prefix
+        } else {
+            // No prefix matches at all
+            lps[i] = 0;
+            i++;
+        }
     }
-    // KMP search
-    i = 0; let j = 0;
-    while (i < haystack.length) {
-        if (haystack[i] === needle[j]) {
-            i++; j++;
-            if (j === needle.length) return i - j;
-        } else if (j > 0) { j = lps[j - 1]; }
-        else { i++; }
+
+    // --- Phase 2: KMP search using the LPS table ---
+    let haystackPtr = 0;  // current position in haystack
+    let needlePtr = 0;    // how many needle characters matched so far
+
+    while (haystackPtr < haystack.length) {
+        if (haystack[haystackPtr] === needle[needlePtr]) {
+            // Characters match: advance both pointers
+            haystackPtr++;
+            needlePtr++;
+
+            if (needlePtr === needle.length) {
+                // Full match found; start index = haystackPtr - needlePtr
+                return haystackPtr - needlePtr;
+            }
+        } else if (needlePtr > 0) {
+            // Mismatch after some matches: use LPS to skip re-checking
+            needlePtr = lps[needlePtr - 1];
+            // haystackPtr stays — we already know the prefix still matches
+        } else {
+            // Mismatch at position 0 of needle: just advance haystack
+            haystackPtr++;
+        }
     }
+
     return -1;
 };`,
+    jsWalkthrough:
+      'haystack = "sadbutsad", needle = "sad"\n\n' +
+      'Build LPS for "sad":\n' +
+      '  i=1 (a): needle[1]=a vs needle[0]=s → mismatch, prefixLen=0 → lps[1]=0, i=2\n' +
+      '  i=2 (d): needle[2]=d vs needle[0]=s → mismatch, prefixLen=0 → lps[2]=0, i=3\n' +
+      '  lps = [0, 0, 0]\n\n' +
+      'KMP search:\n' +
+      'hPtr=0,nPtr=0: s==s → hPtr=1,nPtr=1\n' +
+      'hPtr=1,nPtr=1: a==a → hPtr=2,nPtr=2\n' +
+      'hPtr=2,nPtr=2: d==d → hPtr=3,nPtr=3 → nPtr==3 → return 3-3=0  ✓',
     explanation:
       '1. LPS array: lps[i] = length of longest proper prefix of needle[0..i] that is also a suffix.\n' +
       '2. Build LPS by comparing needle against itself, tracking matched prefix length.\n' +
@@ -614,19 +955,47 @@ function merge(left, right) {
     # If lps[n-1] > 0 and the remaining part divides n evenly
     return lps[n-1] > 0 and n % (n - lps[n-1]) == 0`,
     jsCode: `var repeatedSubstringPattern = function(s) {
-    // Simple string method
-    return (s + s).slice(1, -1).includes(s);
+    // Trick: if s is a repeated pattern, it will appear in (s+s) after removing
+    // the first and last character (which would only match trivially).
+    //
+    // Example: s = "abab"
+    //   s+s = "abababab"
+    //   slice(1,-1) = "bababab"   → "abab" found at index 1 → true
+    //
+    // Example: s = "abc"
+    //   s+s = "abcabc"
+    //   slice(1,-1) = "bcab"      → "abc" not found → false
 
-    // Or KMP method:
-    // const n = s.length, lps = new Array(n).fill(0);
-    // let len = 0, i = 1;
+    const doubled = s + s;
+    const middle = doubled.slice(1, doubled.length - 1);
+
+    return middle.includes(s);
+
+    // Alternative KMP method (more insight, same O(n) complexity):
+    // const n = s.length;
+    // const lps = new Array(n).fill(0);
+    // let prefixLen = 0, i = 1;
     // while (i < n) {
-    //     if (s[i] === s[len]) { len++; lps[i] = len; i++; }
-    //     else if (len > 0) len = lps[len - 1];
-    //     else i++;
+    //     if (s[i] === s[prefixLen]) { prefixLen++; lps[i] = prefixLen; i++; }
+    //     else if (prefixLen > 0) { prefixLen = lps[prefixLen - 1]; }
+    //     else { i++; }
     // }
-    // return lps[n-1] > 0 && n % (n - lps[n-1]) === 0;
+    // // The repeating unit length is n - lps[n-1]
+    // // If it divides n evenly, the whole string is that unit repeated
+    // return lps[n - 1] > 0 && n % (n - lps[n - 1]) === 0;
 };`,
+    jsWalkthrough:
+      's = "abab"\n\n' +
+      'doubled = "abababab"\n' +
+      'middle  = "bababab"  (remove first and last char)\n\n' +
+      'Does "bababab" include "abab"?\n' +
+      '  Check index 0: "baba" vs "abab" → no\n' +
+      '  Check index 1: "abab" vs "abab" → yes!\n' +
+      'Return true  ✓\n\n' +
+      's = "abc"\n' +
+      'doubled = "abcabc"\n' +
+      'middle  = "bcab"\n' +
+      'Does "bcab" include "abc"? → no → Return false  ✓',
     explanation:
       '1. KMP approach: Build the LPS array for string s.\n' +
       '2. lps[n-1] tells us the longest proper prefix that is also a suffix.\n' +
@@ -695,33 +1064,89 @@ function merge(left, right) {
     return total`,
     jsCode: `var minCostConnectPoints = function(points) {
     const n = points.length;
-    const parent = Array.from({length: n}, (_, i) => i);
+
+    // Union-Find setup: each point starts as its own component
+    const parent = Array.from({ length: n }, (_, i) => i);
     const rank = new Array(n).fill(0);
+
     function find(x) {
-        while (parent[x] !== x) { parent[x] = parent[parent[x]]; x = parent[x]; }
+        while (parent[x] !== x) {
+            // Path compression: skip one generation up
+            parent[x] = parent[parent[x]];
+            x = parent[x];
+        }
         return x;
     }
+
     function union(x, y) {
-        let px = find(x), py = find(y);
-        if (px === py) return false;
-        if (rank[px] < rank[py]) [px, py] = [py, px];
-        parent[py] = px;
-        if (rank[px] === rank[py]) rank[px]++;
+        const rootX = find(x);
+        const rootY = find(y);
+
+        if (rootX === rootY) {
+            // Already connected — adding this edge would create a cycle
+            return false;
+        }
+
+        // Attach smaller tree under larger tree by rank
+        if (rank[rootX] < rank[rootY]) {
+            parent[rootX] = rootY;
+        } else if (rank[rootX] > rank[rootY]) {
+            parent[rootY] = rootX;
+        } else {
+            parent[rootY] = rootX;
+            rank[rootX]++;
+        }
+
         return true;
     }
+
+    // Generate all pairs and compute their Manhattan distances
     const edges = [];
-    for (let i = 0; i < n; i++)
+    for (let i = 0; i < n; i++) {
         for (let j = i + 1; j < n; j++) {
-            const dist = Math.abs(points[i][0]-points[j][0]) + Math.abs(points[i][1]-points[j][1]);
-            edges.push([dist, i, j]);
+            const xDiff = Math.abs(points[i][0] - points[j][0]);
+            const yDiff = Math.abs(points[i][1] - points[j][1]);
+            const distance = xDiff + yDiff;
+            edges.push([distance, i, j]);
         }
-    edges.sort((a, b) => a[0] - b[0]);
-    let total = 0, used = 0;
-    for (const [dist, u, v] of edges) {
-        if (union(u, v)) { total += dist; used++; if (used === n-1) break; }
     }
-    return total;
+
+    // Sort edges by distance ascending (Kruskal's greedy order)
+    edges.sort((a, b) => a[0] - b[0]);
+
+    // Greedily add the cheapest edges that don't form cycles
+    let totalCost = 0;
+    let edgesUsed = 0;
+
+    for (const [distance, u, v] of edges) {
+        const merged = union(u, v);
+
+        if (merged) {
+            totalCost += distance;
+            edgesUsed++;
+
+            // A spanning tree for n nodes needs exactly n-1 edges
+            if (edgesUsed === n - 1) {
+                break;
+            }
+        }
+    }
+
+    return totalCost;
 };`,
+    jsWalkthrough:
+      'points = [[0,0],[2,2],[3,10],[5,2],[7,0]]  (n=5, need 4 edges)\n\n' +
+      'All edges sorted by distance (showing key ones):\n' +
+      '  [4, 0,1] (0,0)↔(2,2)\n' +
+      '  [4, 1,3] (2,2)↔(5,2)\n' +
+      '  [5, 2,3] (3,10)↔(5,2)? No: |3-5|+|10-2|=10. Actually [7,0,3],[5,1,3]...\n' +
+      '  (sorted list varies — illustrating the merge steps)\n\n' +
+      'Edge [4, 0,1]: find(0)=0, find(1)=1 → different → union → cost=4, used=1\n' +
+      'Edge [4, 1,3]: find(1)→0, find(3)=3 → different → union → cost=8, used=2\n' +
+      'Edge [7, 0,4]: find(0)=0, find(4)=4 → different → union → cost=15, used=3\n' +
+      'Edge [5, 2,3]: find(2)=2, find(3)→0 → different → union → cost=20, used=4\n' +
+      'used=4 === n-1=4 → break\n\n' +
+      'Return 20  ✓',
     explanation:
       '1. Generate all n*(n-1)/2 edges with Manhattan distances.\n' +
       '2. Sort edges by distance (cheapest first).\n' +
@@ -765,16 +1190,44 @@ function merge(left, right) {
     jsCode: `var dailyTemperatures = function(temperatures) {
     const n = temperatures.length;
     const result = new Array(n).fill(0);
+
+    // Stack stores indices; temperatures at those indices are in decreasing order
+    // (front to back). Whenever a warmer day arrives, it resolves all cooler days.
     const stack = [];
+
     for (let i = 0; i < n; i++) {
-        while (stack.length && temperatures[i] > temperatures[stack[stack.length - 1]]) {
-            const j = stack.pop();
-            result[j] = i - j;
+        const currentTemp = temperatures[i];
+
+        // Pop all days that are cooler than today — today is their next warmer day
+        while (stack.length > 0 && currentTemp > temperatures[stack[stack.length - 1]]) {
+            const prevDayIndex = stack.pop();
+            const daysWaited = i - prevDayIndex;
+            result[prevDayIndex] = daysWaited;
         }
+
+        // Push today's index; we haven't found its next warmer day yet
         stack.push(i);
     }
+
+    // Any indices still on the stack have no future warmer day → result stays 0
     return result;
 };`,
+    jsWalkthrough:
+      'temperatures = [73,74,75,71,69,72,76,73]\n\n' +
+      'i=0 (73): stack=[] → push 0     stack=[0]\n' +
+      'i=1 (74): 74>temps[0]=73 → pop 0, result[0]=1-0=1; push 1  stack=[1]\n' +
+      'i=2 (75): 75>temps[1]=74 → pop 1, result[1]=2-1=1; push 2  stack=[2]\n' +
+      'i=3 (71): 71<75 → push 3    stack=[2,3]\n' +
+      'i=4 (69): 69<71 → push 4    stack=[2,3,4]\n' +
+      'i=5 (72): 72>temps[4]=69 → pop 4, result[4]=5-4=1\n' +
+      '           72>temps[3]=71 → pop 3, result[3]=5-3=2\n' +
+      '           72<temps[2]=75 → stop; push 5  stack=[2,5]\n' +
+      'i=6 (76): 76>temps[5]=72 → pop 5, result[5]=6-5=1\n' +
+      '           76>temps[2]=75 → pop 2, result[2]=6-2=4\n' +
+      '           push 6   stack=[6]\n' +
+      'i=7 (73): 73<76 → push 7    stack=[6,7]\n\n' +
+      'Remaining stack [6,7] → result[6]=result[7]=0 (already 0)\n' +
+      'result = [1,1,4,2,1,1,0,0]  ✓',
     explanation:
       '1. Stack holds indices in decreasing order of their temperatures.\n' +
       '2. When temperatures[i] > temperatures[stack top], the top found its next warmer day.\n' +
@@ -814,20 +1267,56 @@ function merge(left, right) {
     heights.pop()
     return max_area`,
     jsCode: `var largestRectangleArea = function(heights) {
+    // Stack stores indices in increasing order of their heights
     const stack = [];
     let maxArea = 0;
+
+    // Append a sentinel height of 0 to flush all remaining bars at the end
     heights.push(0);
+
     for (let i = 0; i < heights.length; i++) {
-        while (stack.length && heights[stack[stack.length - 1]] > heights[i]) {
-            const height = heights[stack.pop()];
-            const width = stack.length ? i - stack[stack.length - 1] - 1 : i;
-            maxArea = Math.max(maxArea, height * width);
+        const currentHeight = heights[i];
+
+        // While the current bar is shorter than the stack top,
+        // the top bar can no longer extend rightward — compute its area now
+        while (stack.length > 0 && heights[stack[stack.length - 1]] > currentHeight) {
+            const poppedIndex = stack.pop();
+            const rectangleHeight = heights[poppedIndex];
+
+            // Width: from the new stack top (exclusive) to current index (exclusive)
+            // If stack is now empty, the popped bar was the shortest seen — extends to index 0
+            const leftBoundary = stack.length > 0 ? stack[stack.length - 1] : -1;
+            const rectangleWidth = i - leftBoundary - 1;
+
+            const area = rectangleHeight * rectangleWidth;
+            maxArea = Math.max(maxArea, area);
         }
+
         stack.push(i);
     }
+
+    // Remove the sentinel we added
     heights.pop();
+
     return maxArea;
 };`,
+    jsWalkthrough:
+      'heights = [2,1,5,6,2,3]  → append 0 → [2,1,5,6,2,3,0]\n\n' +
+      'i=0 (h=2): stack=[] → push 0   stack=[0]\n' +
+      'i=1 (h=1): 1<heights[0]=2 → pop 0, rectH=2\n' +
+      '  stack empty → leftBoundary=-1, width=1-(-1)-1=1, area=2*1=2\n' +
+      '  push 1   stack=[1]   maxArea=2\n' +
+      'i=2 (h=5): 5>1 → push 2   stack=[1,2]\n' +
+      'i=3 (h=6): 6>5 → push 3   stack=[1,2,3]\n' +
+      'i=4 (h=2): 2<heights[3]=6 → pop 3, rectH=6, leftBoundary=2, width=4-2-1=1, area=6\n' +
+      '           2<heights[2]=5 → pop 2, rectH=5, leftBoundary=1, width=4-1-1=2, area=10\n' +
+      '           2>heights[1]=1 → stop; push 4   stack=[1,4]   maxArea=10\n' +
+      'i=5 (h=3): 3>2 → push 5   stack=[1,4,5]\n' +
+      'i=6 (sentinel 0): 0<heights[5]=3 → pop 5, rectH=3, leftBoundary=4, width=6-4-1=1, area=3\n' +
+      '           0<heights[4]=2 → pop 4, rectH=2, leftBoundary=1, width=6-1-1=4, area=8\n' +
+      '           0<heights[1]=1 → pop 1, rectH=1, leftBoundary=-1, width=6-(-1)-1=6, area=6\n' +
+      '           stack empty → stop\n\n' +
+      'maxArea = 10  ✓',
     explanation:
       '1. Maintain increasing stack of indices.\n' +
       '2. When heights[i] < stack top, pop. The popped bar\'s height is the rectangle height.\n' +
@@ -878,27 +1367,59 @@ def canFinish(numCourses, prerequisites):
                 queue.append(neighbor)
     return count == numCourses`,
     jsCode: `var canFinish = function(numCourses, prerequisites) {
-    const graph = Array.from({length: numCourses}, () => []);
+    // Build adjacency list: graph[prereq] = list of courses that depend on prereq
+    const graph = Array.from({ length: numCourses }, () => []);
     const inDegree = new Array(numCourses).fill(0);
+
     for (const [course, prereq] of prerequisites) {
         graph[prereq].push(course);
         inDegree[course]++;
     }
+
+    // Start BFS from all courses that have no prerequisites
     const queue = [];
     for (let i = 0; i < numCourses; i++) {
-        if (inDegree[i] === 0) queue.push(i);
-    }
-    let count = 0;
-    while (queue.length) {
-        const node = queue.shift();
-        count++;
-        for (const neighbor of graph[node]) {
-            inDegree[neighbor]--;
-            if (inDegree[neighbor] === 0) queue.push(neighbor);
+        if (inDegree[i] === 0) {
+            queue.push(i);
         }
     }
-    return count === numCourses;
+
+    // Process courses layer by layer (Kahn's algorithm)
+    let processedCount = 0;
+
+    while (queue.length > 0) {
+        const course = queue.shift();
+        processedCount++;
+
+        // "Taking" this course reduces the prerequisite count for dependent courses
+        for (const dependentCourse of graph[course]) {
+            inDegree[dependentCourse]--;
+
+            // If all prerequisites are now satisfied, add to queue
+            if (inDegree[dependentCourse] === 0) {
+                queue.push(dependentCourse);
+            }
+        }
+    }
+
+    // If we processed every course, there was no cycle → can finish
+    return processedCount === numCourses;
 };`,
+    jsWalkthrough:
+      'numCourses=4, prerequisites=[[1,0],[2,0],[3,1],[3,2]]\n\n' +
+      'Build graph:\n' +
+      '  graph[0]=[1,2], graph[1]=[3], graph[2]=[3]\n' +
+      '  inDegree = [0, 1, 1, 2]\n\n' +
+      'Initial queue (inDegree=0): [0]\n\n' +
+      'Process 0: processedCount=1\n' +
+      '  neighbor 1: inDegree[1]=0 → queue=[1]\n' +
+      '  neighbor 2: inDegree[2]=0 → queue=[1,2]\n\n' +
+      'Process 1: processedCount=2\n' +
+      '  neighbor 3: inDegree[3]=1 → not zero yet\n\n' +
+      'Process 2: processedCount=3\n' +
+      '  neighbor 3: inDegree[3]=0 → queue=[3]\n\n' +
+      'Process 3: processedCount=4\n\n' +
+      'processedCount=4 === numCourses=4 → return true  ✓',
     explanation:
       '1. Build adjacency list and count in-degrees.\n' +
       '2. Start with all courses that have no prerequisites (in-degree 0).\n' +
@@ -945,26 +1466,60 @@ def findOrder(numCourses, prerequisites):
                 queue.append(neighbor)
     return order if len(order) == numCourses else []`,
     jsCode: `var findOrder = function(numCourses, prerequisites) {
-    const graph = Array.from({length: numCourses}, () => []);
+    // Build adjacency list: graph[prereq] = list of courses unlocked by taking prereq
+    const graph = Array.from({ length: numCourses }, () => []);
     const inDegree = new Array(numCourses).fill(0);
+
     for (const [course, prereq] of prerequisites) {
         graph[prereq].push(course);
         inDegree[course]++;
     }
+
+    // Seed the queue with all courses that have no prerequisites
     const queue = [];
     for (let i = 0; i < numCourses; i++) {
-        if (inDegree[i] === 0) queue.push(i);
-    }
-    const order = [];
-    while (queue.length) {
-        const node = queue.shift();
-        order.push(node);
-        for (const neighbor of graph[node]) {
-            if (--inDegree[neighbor] === 0) queue.push(neighbor);
+        if (inDegree[i] === 0) {
+            queue.push(i);
         }
     }
-    return order.length === numCourses ? order : [];
+
+    // Process courses in topological order, recording each one taken
+    const order = [];
+
+    while (queue.length > 0) {
+        const course = queue.shift();
+        order.push(course);
+
+        for (const dependentCourse of graph[course]) {
+            inDegree[dependentCourse]--;
+
+            // Unlock this course once all its prerequisites have been taken
+            if (inDegree[dependentCourse] === 0) {
+                queue.push(dependentCourse);
+            }
+        }
+    }
+
+    // If order contains all courses, we found a valid schedule; otherwise there's a cycle
+    if (order.length === numCourses) {
+        return order;
+    } else {
+        return [];
+    }
 };`,
+    jsWalkthrough:
+      'numCourses=4, prerequisites=[[1,0],[2,0],[3,1],[3,2]]\n\n' +
+      'graph[0]=[1,2], graph[1]=[3], graph[2]=[3]\n' +
+      'inDegree = [0, 1, 1, 2]\n\n' +
+      'Initial queue: [0]\n\n' +
+      'Process 0 → order=[0]\n' +
+      '  inDegree[1]→0, inDegree[2]→0  queue=[1,2]\n\n' +
+      'Process 1 → order=[0,1]\n' +
+      '  inDegree[3]→1  queue=[2]\n\n' +
+      'Process 2 → order=[0,1,2]\n' +
+      '  inDegree[3]→0  queue=[3]\n\n' +
+      'Process 3 → order=[0,1,2,3]\n\n' +
+      'order.length=4 === numCourses=4 → return [0,1,2,3]  ✓',
     explanation:
       '1. Identical to Course Schedule but we return the order array instead of a boolean.\n' +
       '2. Kahn\'s algorithm naturally produces a valid topological order.\n' +

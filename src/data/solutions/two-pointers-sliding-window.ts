@@ -28,20 +28,50 @@ export const solutions: ProblemSolution[] = [
                 right -= 1
         return max_water`,
     jsCode: `var maxArea = function(height) {
-    let left = 0, right = height.length - 1;
+    let left = 0;
+    let right = height.length - 1;
     let maxWater = 0;
+
     while (left < right) {
+        const leftHeight = height[left];
+        const rightHeight = height[right];
+
+        // Width is the distance between the two lines
         const width = right - left;
-        const h = Math.min(height[left], height[right]);
-        maxWater = Math.max(maxWater, width * h);
-        if (height[left] < height[right]) {
-            left++;
+
+        // Water level is limited by the shorter line
+        const shorterHeight = Math.min(leftHeight, rightHeight);
+        const currentArea = width * shorterHeight;
+
+        // Update the best area found so far
+        if (currentArea > maxWater) {
+            maxWater = currentArea;
+        }
+
+        // Move the pointer pointing to the shorter line inward
+        // (moving the taller one can only decrease the area)
+        if (leftHeight < rightHeight) {
+            left = left + 1;
         } else {
-            right--;
+            right = right - 1;
         }
     }
+
     return maxWater;
 };`,
+    jsWalkthrough:
+      'height = [1,8,6,2,5,4,8,3,7]\n\n' +
+      'Start: left=0 (height=1), right=8 (height=7)\n\n' +
+      'Step 1: leftHeight=1, rightHeight=7, width=8, area=min(1,7)*8=8\n' +
+      '        maxWater=8, left side shorter → left=1\n\n' +
+      'Step 2: leftHeight=8, rightHeight=7, width=7, area=min(8,7)*7=49\n' +
+      '        maxWater=49, right side shorter → right=7\n\n' +
+      'Step 3: leftHeight=8, rightHeight=3, width=6, area=min(8,3)*6=18\n' +
+      '        maxWater=49, right side shorter → right=6\n\n' +
+      'Step 4: leftHeight=8, rightHeight=8, width=5, area=min(8,8)*5=40\n' +
+      '        maxWater=49, equal → right=5\n\n' +
+      '... (continuing, no area exceeds 49)\n\n' +
+      'return 49',
     explanation:
       "Initialize two pointers at both ends. At each step compute the area as min(height[left], height[right]) * (right - left). Update max_water if the current area is larger. Move the pointer pointing to the shorter line inward because keeping the shorter line can never improve the area -- the width shrinks and the height is still capped by the shorter line.",
     timeComplexity: "O(n)",
@@ -86,28 +116,72 @@ export const solutions: ProblemSolution[] = [
                     right -= 1
         return result`,
     jsCode: `var threeSum = function(nums) {
+    // Sort so duplicates are adjacent and two-pointer works correctly
     nums.sort((a, b) => a - b);
     const result = [];
+
     for (let i = 0; i < nums.length - 2; i++) {
-        if (i > 0 && nums[i] === nums[i - 1]) continue;
-        let left = i + 1, right = nums.length - 1;
+        const fixedNum = nums[i];
+
+        // Skip duplicate values for the fixed number
+        if (i > 0 && fixedNum === nums[i - 1]) {
+            continue;
+        }
+
+        let left = i + 1;
+        let right = nums.length - 1;
+
         while (left < right) {
-            const total = nums[i] + nums[left] + nums[right];
+            const total = fixedNum + nums[left] + nums[right];
+
             if (total < 0) {
-                left++;
+                // Sum too small, move left pointer right to increase it
+                left = left + 1;
             } else if (total > 0) {
-                right--;
+                // Sum too large, move right pointer left to decrease it
+                right = right - 1;
             } else {
-                result.push([nums[i], nums[left], nums[right]]);
-                while (left < right && nums[left] === nums[left + 1]) left++;
-                while (left < right && nums[right] === nums[right - 1]) right--;
-                left++;
-                right--;
+                // Found a valid triplet
+                result.push([fixedNum, nums[left], nums[right]]);
+
+                // Skip duplicates for the left pointer
+                while (left < right && nums[left] === nums[left + 1]) {
+                    left = left + 1;
+                }
+
+                // Skip duplicates for the right pointer
+                while (left < right && nums[right] === nums[right - 1]) {
+                    right = right - 1;
+                }
+
+                left = left + 1;
+                right = right - 1;
             }
         }
     }
+
     return result;
 };`,
+    jsWalkthrough:
+      'nums = [-1,0,1,2,-1,-4]\n\n' +
+      'After sort: [-4,-1,-1,0,1,2]\n\n' +
+      'i=0: fixedNum=-4, left=1, right=5\n' +
+      '     total=-4+(-1)+2=-3 < 0 → left=2\n' +
+      '     total=-4+(-1)+2=-3 < 0 → left=3\n' +
+      '     total=-4+0+2=-2 < 0 → left=4\n' +
+      '     total=-4+1+2=-1 < 0 → left=5\n' +
+      '     left >= right, stop\n\n' +
+      'i=1: fixedNum=-1, left=2, right=5\n' +
+      '     total=-1+(-1)+2=0 → push [-1,-1,2]\n' +
+      '     skip duplicates: left=3, right=4\n' +
+      '     total=-1+0+1=0 → push [-1,0,1]\n' +
+      '     skip duplicates: left=4, right=3\n' +
+      '     left >= right, stop\n\n' +
+      'i=2: fixedNum=-1, same as nums[1]=-1 → skip\n\n' +
+      'i=3: fixedNum=0, left=4, right=5\n' +
+      '     total=0+1+2=3 > 0 → right=4\n' +
+      '     left >= right, stop\n\n' +
+      'return [[-1,-1,2],[-1,0,1]]',
     explanation:
       "Sort the array so duplicates are adjacent. Fix one number nums[i] and use two pointers (left, right) on the rest. If the sum is too small, advance left; if too large, retreat right. On a match, record the triplet and skip duplicate values for both left and right to ensure uniqueness. Also skip duplicate values for i at the outer loop.",
     timeComplexity: "O(n^2)",
@@ -146,23 +220,62 @@ export const solutions: ProblemSolution[] = [
                 water += right_max - height[right]
         return water`,
     jsCode: `var trap = function(height) {
-    if (!height.length) return 0;
-    let left = 0, right = height.length - 1;
-    let leftMax = height[left], rightMax = height[right];
+    if (!height.length) {
+        return 0;
+    }
+
+    let left = 0;
+    let right = height.length - 1;
+
+    // Track the tallest bar seen so far from each side
+    let leftMax = height[left];
+    let rightMax = height[right];
+
     let water = 0;
+
     while (left < right) {
         if (leftMax < rightMax) {
-            left++;
-            leftMax = Math.max(leftMax, height[left]);
-            water += leftMax - height[left];
+            // Process from the left side (it is the bottleneck)
+            left = left + 1;
+            const currentHeight = height[left];
+
+            // Update the left maximum if current bar is taller
+            if (currentHeight > leftMax) {
+                leftMax = currentHeight;
+            }
+
+            // Water trapped here = leftMax minus current bar height
+            water = water + (leftMax - currentHeight);
         } else {
-            right--;
-            rightMax = Math.max(rightMax, height[right]);
-            water += rightMax - height[right];
+            // Process from the right side (it is the bottleneck)
+            right = right - 1;
+            const currentHeight = height[right];
+
+            // Update the right maximum if current bar is taller
+            if (currentHeight > rightMax) {
+                rightMax = currentHeight;
+            }
+
+            // Water trapped here = rightMax minus current bar height
+            water = water + (rightMax - currentHeight);
         }
     }
+
     return water;
 };`,
+    jsWalkthrough:
+      'height = [0,1,0,2,1,0,1,3,2,1,2,1]\n\n' +
+      'Start: left=0, right=11, leftMax=0, rightMax=1, water=0\n\n' +
+      'leftMax(0) < rightMax(1) → process left side\n' +
+      '  left=1, currentHeight=1, leftMax=max(0,1)=1, water+=1-1=0\n\n' +
+      'leftMax(1) >= rightMax(1) → process right side\n' +
+      '  right=10, currentHeight=2, rightMax=max(1,2)=2, water+=2-2=0\n\n' +
+      'leftMax(1) < rightMax(2) → process left side\n' +
+      '  left=2, currentHeight=0, leftMax=max(1,0)=1, water+=1-0=1  [total=1]\n\n' +
+      'leftMax(1) < rightMax(2) → process left side\n' +
+      '  left=3, currentHeight=2, leftMax=max(1,2)=2, water+=2-2=0\n\n' +
+      '... (continuing through all positions)\n\n' +
+      'Final water = 6',
     explanation:
       "Maintain left and right pointers and their respective running maximums. If left_max < right_max, the water level at the left pointer is bounded by left_max (because there is a taller bar on the right), so advance left and add (left_max - height[left]) to water. Otherwise, do the same from the right side. This works because we always process the bottleneck side.",
     timeComplexity: "O(n)",
@@ -197,20 +310,52 @@ export const solutions: ProblemSolution[] = [
             right -= 1
         return True`,
     jsCode: `var isPalindrome = function(s) {
-    let left = 0, right = s.length - 1;
+    let left = 0;
+    let right = s.length - 1;
+
     while (left < right) {
-        while (left < right && !isAlphanumeric(s[left])) left++;
-        while (left < right && !isAlphanumeric(s[right])) right--;
-        if (s[left].toLowerCase() !== s[right].toLowerCase()) return false;
-        left++;
-        right--;
+        // Skip non-alphanumeric characters from the left
+        while (left < right && !isAlphanumeric(s[left])) {
+            left = left + 1;
+        }
+
+        // Skip non-alphanumeric characters from the right
+        while (left < right && !isAlphanumeric(s[right])) {
+            right = right - 1;
+        }
+
+        // Compare characters case-insensitively
+        const leftChar = s[left].toLowerCase();
+        const rightChar = s[right].toLowerCase();
+
+        if (leftChar !== rightChar) {
+            return false;
+        }
+
+        left = left + 1;
+        right = right - 1;
     }
+
     return true;
 };
 
 function isAlphanumeric(c) {
     return /[a-zA-Z0-9]/.test(c);
 }`,
+    jsWalkthrough:
+      's = "A man, a plan, a canal: Panama"\n\n' +
+      'left=0, right=29\n\n' +
+      'Step 1: s[0]="A" (alnum), s[29]="a" (alnum)\n' +
+      '        leftChar="a", rightChar="a" → match\n' +
+      '        left=1, right=28\n\n' +
+      'Step 2: s[1]=" " → skip left, left=2 ("m")\n' +
+      '        s[28]="m" (alnum)\n' +
+      '        leftChar="m", rightChar="m" → match\n' +
+      '        left=3, right=27\n\n' +
+      'Step 3: s[3]="a", s[27]="a" → match\n' +
+      '        left=4, right=26\n\n' +
+      '... (continuing, all characters match)\n\n' +
+      'return true',
     explanation:
       "Two pointers start at opposite ends. Inner while-loops skip non-alphanumeric characters. Compare lowercased characters at both pointers. If they mismatch, return False. Otherwise, move both pointers inward. If the pointers cross without mismatch, the string is a palindrome.",
     timeComplexity: "O(n)",
@@ -244,19 +389,37 @@ function isAlphanumeric(c) {
                 right -= 1
         return []`,
     jsCode: `var twoSum = function(numbers, target) {
-    let left = 0, right = numbers.length - 1;
+    let left = 0;
+    let right = numbers.length - 1;
+
     while (left < right) {
-        const currentSum = numbers[left] + numbers[right];
+        const leftNum = numbers[left];
+        const rightNum = numbers[right];
+        const currentSum = leftNum + rightNum;
+
         if (currentSum === target) {
+            // Return 1-indexed positions
             return [left + 1, right + 1];
         } else if (currentSum < target) {
-            left++;
+            // Sum too small, move left pointer right to increase it
+            left = left + 1;
         } else {
-            right--;
+            // Sum too large, move right pointer left to decrease it
+            right = right - 1;
         }
     }
+
     return [];
 };`,
+    jsWalkthrough:
+      'numbers = [2,7,11,15], target = 9\n\n' +
+      'Start: left=0, right=3\n\n' +
+      'Step 1: leftNum=2, rightNum=15, currentSum=17\n' +
+      '        17 > 9 → right=2\n\n' +
+      'Step 2: leftNum=2, rightNum=11, currentSum=13\n' +
+      '        13 > 9 → right=1\n\n' +
+      'Step 3: leftNum=2, rightNum=7, currentSum=9\n' +
+      '        9 === 9 → return [0+1, 1+1] = [1, 2]',
     explanation:
       "Start with pointers at both ends. Compute their sum. If it matches the target, return 1-indexed positions. If the sum is too small, incrementing left increases it (array is sorted). If the sum is too large, decrementing right decreases it. Exactly one solution is guaranteed.",
     timeComplexity: "O(n)",
@@ -288,16 +451,39 @@ function isAlphanumeric(c) {
                 nums[slow] = nums[fast]
         return slow + 1`,
     jsCode: `var removeDuplicates = function(nums) {
-    if (!nums.length) return 0;
+    if (!nums.length) {
+        return 0;
+    }
+
+    // slow points to the last position that holds a unique element
     let slow = 0;
+
     for (let fast = 1; fast < nums.length; fast++) {
-        if (nums[fast] !== nums[slow]) {
-            slow++;
-            nums[slow] = nums[fast];
+        const currentNum = nums[fast];
+        const lastUniqueNum = nums[slow];
+
+        // When fast finds a new value, write it to the next unique slot
+        if (currentNum !== lastUniqueNum) {
+            slow = slow + 1;
+            nums[slow] = currentNum;
         }
     }
+
+    // slow is 0-indexed, so the count of unique elements is slow + 1
     return slow + 1;
 };`,
+    jsWalkthrough:
+      'nums = [1,1,2,2,3]\n\n' +
+      'Start: slow=0 (nums[0]=1)\n\n' +
+      'fast=1: currentNum=1, lastUniqueNum=1 → same, skip\n\n' +
+      'fast=2: currentNum=2, lastUniqueNum=1 → different!\n' +
+      '        slow=1, nums[1]=2\n' +
+      '        nums: [1,2,2,2,3]\n\n' +
+      'fast=3: currentNum=2, lastUniqueNum=2 → same, skip\n\n' +
+      'fast=4: currentNum=3, lastUniqueNum=2 → different!\n' +
+      '        slow=2, nums[2]=3\n' +
+      '        nums: [1,2,3,2,3]\n\n' +
+      'return slow+1 = 3',
     explanation:
       "slow marks the last position of unique elements. fast scans forward. When nums[fast] differs from nums[slow], we found a new unique value, so increment slow and copy nums[fast] there. After the loop, slow + 1 is the count of unique elements.",
     timeComplexity: "O(n)",
@@ -332,20 +518,53 @@ function isAlphanumeric(c) {
                 nums[mid], nums[high] = nums[high], nums[mid]
                 high -= 1`,
     jsCode: `var sortColors = function(nums) {
-    let low = 0, mid = 0, high = nums.length - 1;
+    // low: boundary of the 0s region (everything before low is 0)
+    // mid: current element being examined
+    // high: boundary of the 2s region (everything after high is 2)
+    let low = 0;
+    let mid = 0;
+    let high = nums.length - 1;
+
     while (mid <= high) {
-        if (nums[mid] === 0) {
-            [nums[low], nums[mid]] = [nums[mid], nums[low]];
-            low++;
-            mid++;
-        } else if (nums[mid] === 1) {
-            mid++;
+        const currentColor = nums[mid];
+
+        if (currentColor === 0) {
+            // Swap current element into the 0s region
+            const temp = nums[low];
+            nums[low] = nums[mid];
+            nums[mid] = temp;
+
+            low = low + 1;
+            mid = mid + 1;
+        } else if (currentColor === 1) {
+            // 1 is already in the correct middle region, just advance
+            mid = mid + 1;
         } else {
-            [nums[mid], nums[high]] = [nums[high], nums[mid]];
-            high--;
+            // Swap current element into the 2s region
+            const temp = nums[mid];
+            nums[mid] = nums[high];
+            nums[high] = temp;
+
+            // Do not advance mid because the swapped-in value needs inspection
+            high = high - 1;
         }
     }
 };`,
+    jsWalkthrough:
+      'nums = [2,0,2,1,1,0]\n' +
+      'low=0, mid=0, high=5\n\n' +
+      'mid=0: currentColor=2 → swap nums[0] and nums[5]\n' +
+      '       nums=[0,0,2,1,1,2], high=4  (mid stays at 0)\n\n' +
+      'mid=0: currentColor=0 → swap nums[0] and nums[0] (no-op)\n' +
+      '       low=1, mid=1\n\n' +
+      'mid=1: currentColor=0 → swap nums[1] and nums[1] (no-op)\n' +
+      '       low=2, mid=2\n\n' +
+      'mid=2: currentColor=2 → swap nums[2] and nums[4]\n' +
+      '       nums=[0,0,1,1,2,2], high=3  (mid stays at 2)\n\n' +
+      'mid=2: currentColor=1 → mid=3\n\n' +
+      'mid=3: currentColor=1 → mid=4\n\n' +
+      'mid=4 > high=3 → stop\n' +
+      'nums = [0,0,1,1,2,2]',
     explanation:
       "Three pointers partition the array: [0..low-1] contains 0s, [low..mid-1] contains 1s, [high+1..end] contains 2s. If nums[mid] is 0, swap it to the low region and advance both. If 1, it is already in the right place, advance mid. If 2, swap it to the high region and shrink high (do not advance mid because the swapped-in value needs inspection).",
     timeComplexity: "O(n)",
@@ -374,14 +593,34 @@ function isAlphanumeric(c) {
                 nums[slow], nums[fast] = nums[fast], nums[slow]
                 slow += 1`,
     jsCode: `var moveZeroes = function(nums) {
+    // slow points to where the next non-zero element should be placed
     let slow = 0;
+
     for (let fast = 0; fast < nums.length; fast++) {
-        if (nums[fast] !== 0) {
-            [nums[slow], nums[fast]] = [nums[fast], nums[slow]];
-            slow++;
+        const currentNum = nums[fast];
+
+        if (currentNum !== 0) {
+            // Swap the non-zero element into the next available slot
+            const temp = nums[slow];
+            nums[slow] = currentNum;
+            nums[fast] = temp;
+
+            slow = slow + 1;
         }
     }
 };`,
+    jsWalkthrough:
+      'nums = [0,1,0,3,12]\n' +
+      'slow=0\n\n' +
+      'fast=0: currentNum=0 → skip\n\n' +
+      'fast=1: currentNum=1 → swap nums[0] and nums[1]\n' +
+      '        nums=[1,0,0,3,12], slow=1\n\n' +
+      'fast=2: currentNum=0 → skip\n\n' +
+      'fast=3: currentNum=3 → swap nums[1] and nums[3]\n' +
+      '        nums=[1,3,0,0,12], slow=2\n\n' +
+      'fast=4: currentNum=12 → swap nums[2] and nums[4]\n' +
+      '        nums=[1,3,12,0,0], slow=3\n\n' +
+      'return (in-place): [1,3,12,0,0]',
     explanation:
       "slow tracks where the next non-zero should go. fast scans the entire array. When nums[fast] is non-zero, swap it into position slow and advance slow. All elements before slow are non-zero in original order. All zeros naturally accumulate after slow.",
     timeComplexity: "O(n)",
@@ -410,13 +649,29 @@ function isAlphanumeric(c) {
             left += 1
             right -= 1`,
     jsCode: `var reverseString = function(s) {
-    let left = 0, right = s.length - 1;
+    let left = 0;
+    let right = s.length - 1;
+
     while (left < right) {
-        [s[left], s[right]] = [s[right], s[left]];
-        left++;
-        right--;
+        // Swap the characters at both ends
+        const temp = s[left];
+        s[left] = s[right];
+        s[right] = temp;
+
+        // Move both pointers toward the center
+        left = left + 1;
+        right = right - 1;
     }
 };`,
+    jsWalkthrough:
+      's = ["h","e","l","l","o"]\n' +
+      'left=0, right=4\n\n' +
+      'Step 1: swap s[0]="h" and s[4]="o"\n' +
+      '        s=["o","e","l","l","h"], left=1, right=3\n\n' +
+      'Step 2: swap s[1]="e" and s[3]="l"\n' +
+      '        s=["o","l","l","e","h"], left=2, right=2\n\n' +
+      'left >= right → stop\n\n' +
+      's = ["o","l","l","e","h"]',
     explanation:
       "Place left at index 0 and right at the last index. Swap s[left] and s[right], then move both pointers inward. Repeat until left >= right. Each element is visited at most once, and the swap is done in constant space.",
     timeComplexity: "O(n)",
@@ -446,15 +701,37 @@ function isAlphanumeric(c) {
             j += 1
         return i == len(s)`,
     jsCode: `var isSubsequence = function(s, t) {
-    let i = 0, j = 0;
-    while (i < s.length && j < t.length) {
-        if (s[i] === t[j]) {
-            i++;
+    // sIndex tracks how much of s we have matched so far
+    let sIndex = 0;
+    // tIndex scans through every character of t
+    let tIndex = 0;
+
+    while (sIndex < s.length && tIndex < t.length) {
+        const sChar = s[sIndex];
+        const tChar = t[tIndex];
+
+        if (sChar === tChar) {
+            // Found the next character of s, advance the s pointer
+            sIndex = sIndex + 1;
         }
-        j++;
+
+        // Always advance through t
+        tIndex = tIndex + 1;
     }
-    return i === s.length;
+
+    // If sIndex reached the end, all characters of s were matched in order
+    return sIndex === s.length;
 };`,
+    jsWalkthrough:
+      's = "abc", t = "ahbgdc"\n\n' +
+      'sIndex=0, tIndex=0\n\n' +
+      'tIndex=0: sChar="a", tChar="a" → match! sIndex=1, tIndex=1\n\n' +
+      'tIndex=1: sChar="b", tChar="h" → no match, tIndex=2\n\n' +
+      'tIndex=2: sChar="b", tChar="b" → match! sIndex=2, tIndex=3\n\n' +
+      'tIndex=3: sChar="c", tChar="g" → no match, tIndex=4\n\n' +
+      'tIndex=4: sChar="c", tChar="d" → no match, tIndex=5\n\n' +
+      'tIndex=5: sChar="c", tChar="c" → match! sIndex=3, tIndex=6\n\n' +
+      'sIndex=3 === s.length=3 → return true',
     explanation:
       "Pointer i scans s, pointer j scans t. When characters match, advance i (we matched one more character of s). Always advance j (move through t). If i reaches len(s), every character of s was matched in order within t.",
     timeComplexity: "O(n) where n = len(t)",
@@ -493,25 +770,43 @@ function isAlphanumeric(c) {
             right -= 1
         return True`,
     jsCode: `var validPalindrome = function(s) {
+    // Helper: check if s[lo..hi] is a strict palindrome (no deletions allowed)
     const isPalindrome = (lo, hi) => {
         while (lo < hi) {
-            if (s[lo] !== s[hi]) return false;
-            lo++;
-            hi--;
+            if (s[lo] !== s[hi]) {
+                return false;
+            }
+            lo = lo + 1;
+            hi = hi - 1;
         }
         return true;
     };
 
-    let left = 0, right = s.length - 1;
+    let left = 0;
+    let right = s.length - 1;
+
     while (left < right) {
         if (s[left] !== s[right]) {
-            return isPalindrome(left + 1, right) || isPalindrome(left, right - 1);
+            // Use our one allowed deletion: try skipping left or skipping right
+            const skipLeft = isPalindrome(left + 1, right);
+            const skipRight = isPalindrome(left, right - 1);
+            return skipLeft || skipRight;
         }
-        left++;
-        right--;
+
+        left = left + 1;
+        right = right - 1;
     }
+
     return true;
 };`,
+    jsWalkthrough:
+      's = "abca"\n' +
+      'left=0, right=3\n\n' +
+      'Step 1: s[0]="a", s[3]="a" → match, left=1, right=2\n\n' +
+      'Step 2: s[1]="b", s[2]="c" → MISMATCH\n' +
+      '        Try skipLeft: isPalindrome(2, 2) → "c" alone → true!\n' +
+      '        return true\n\n' +
+      '(Even if skipLeft were false, skipRight would check isPalindrome(1,1) = "b" → true)',
     explanation:
       "Compare from both ends. If characters match, move inward. On the first mismatch, we use our one allowed deletion: either skip the left character or the right character. Check if the resulting substring is a palindrome. If neither works, return False.",
     timeComplexity: "O(n)",
@@ -544,18 +839,42 @@ function isAlphanumeric(c) {
             boats += 1
         return boats`,
     jsCode: `var numRescueBoats = function(people, limit) {
+    // Sort so we can pair the lightest with the heaviest
     people.sort((a, b) => a - b);
-    let left = 0, right = people.length - 1;
+
+    let left = 0;
+    let right = people.length - 1;
     let boats = 0;
+
     while (left <= right) {
-        if (people[left] + people[right] <= limit) {
-            left++;
+        const lightestWeight = people[left];
+        const heaviestWeight = people[right];
+        const combinedWeight = lightestWeight + heaviestWeight;
+
+        if (combinedWeight <= limit) {
+            // Lightest and heaviest can share a boat
+            left = left + 1;
         }
-        right--;
-        boats++;
+
+        // The heaviest person always takes a boat (alone or shared)
+        right = right - 1;
+        boats = boats + 1;
     }
+
     return boats;
 };`,
+    jsWalkthrough:
+      'people = [3,2,2,1], limit = 3\n\n' +
+      'After sort: [1,2,2,3]\n' +
+      'left=0, right=3, boats=0\n\n' +
+      'Step 1: lightestWeight=1, heaviestWeight=3, combined=4 > 3\n' +
+      '        Heaviest rides alone: right=2, boats=1\n\n' +
+      'Step 2: lightestWeight=1, heaviestWeight=2, combined=3 <= 3\n' +
+      '        They share: left=1, right=1, boats=2\n\n' +
+      'Step 3: left=1 <= right=1, lightestWeight=2, heaviestWeight=2, combined=4 > 3\n' +
+      '        Heaviest rides alone: right=0, boats=3\n\n' +
+      'left=1 > right=0 → stop\n' +
+      'return 3',
     explanation:
       "Sort so the lightest and heaviest are at opposite ends. Try pairing them: if their combined weight fits within the limit, both board (advance left). The heaviest always boards (decrement right). Increment boats each iteration. This greedy pairing minimizes boats because pairing the lightest with the heaviest is optimal.",
     timeComplexity: "O(n log n) due to sorting",
@@ -588,18 +907,47 @@ function isAlphanumeric(c) {
                 p2 -= 1
             p -= 1`,
     jsCode: `var merge = function(nums1, m, nums2, n) {
-    let p1 = m - 1, p2 = n - 1, p = m + n - 1;
+    // Start from the end of valid elements in each array
+    let p1 = m - 1;
+    let p2 = n - 1;
+
+    // Start filling from the very end of nums1 (the merged position)
+    let mergePos = m + n - 1;
+
     while (p2 >= 0) {
-        if (p1 >= 0 && nums1[p1] > nums2[p2]) {
-            nums1[p] = nums1[p1];
-            p1--;
+        const num1 = nums1[p1];
+        const num2 = nums2[p2];
+
+        if (p1 >= 0 && num1 > num2) {
+            // nums1's current element is larger, place it at mergePos
+            nums1[mergePos] = num1;
+            p1 = p1 - 1;
         } else {
-            nums1[p] = nums2[p2];
-            p2--;
+            // nums2's current element is larger (or nums1 is exhausted)
+            nums1[mergePos] = num2;
+            p2 = p2 - 1;
         }
-        p--;
+
+        mergePos = mergePos - 1;
     }
 };`,
+    jsWalkthrough:
+      'nums1 = [1,2,3,0,0,0], m=3, nums2 = [2,5,6], n=3\n' +
+      'p1=2, p2=2, mergePos=5\n\n' +
+      'Step 1: num1=nums1[2]=3, num2=nums2[2]=6\n' +
+      '        3 < 6 → place 6 at mergePos=5\n' +
+      '        nums1=[1,2,3,0,0,6], p2=1, mergePos=4\n\n' +
+      'Step 2: num1=nums1[2]=3, num2=nums2[1]=5\n' +
+      '        3 < 5 → place 5 at mergePos=4\n' +
+      '        nums1=[1,2,3,0,5,6], p2=0, mergePos=3\n\n' +
+      'Step 3: num1=nums1[2]=3, num2=nums2[0]=2\n' +
+      '        3 > 2 → place 3 at mergePos=3\n' +
+      '        nums1=[1,2,3,3,5,6], p1=1, mergePos=2\n\n' +
+      'Step 4: num1=nums1[1]=2, num2=nums2[0]=2\n' +
+      '        2 === 2, else branch → place 2 from nums2 at mergePos=2\n' +
+      '        nums1=[1,2,2,3,5,6], p2=-1, mergePos=1\n\n' +
+      'p2 < 0 → stop\n' +
+      'nums1 = [1,2,2,3,5,6]',
     explanation:
       "Start filling nums1 from the end (index m+n-1). Compare the largest unmerged elements from both arrays. Place the larger one at position p and decrement the corresponding pointer. The loop only needs to run while p2 >= 0 because if nums2 is exhausted, the remaining nums1 elements are already in place.",
     timeComplexity: "O(m + n)",
@@ -637,19 +985,47 @@ function isAlphanumeric(c) {
             max_len = max(max_len, right - left + 1)
         return max_len`,
     jsCode: `var lengthOfLongestSubstring = function(s) {
+    // Set holds all characters currently in the window
     const charSet = new Set();
     let left = 0;
     let maxLen = 0;
+
     for (let right = 0; right < s.length; right++) {
-        while (charSet.has(s[right])) {
-            charSet.delete(s[left]);
-            left++;
+        const newChar = s[right];
+
+        // If the new character is already in the window, shrink from the left
+        // until we remove the duplicate
+        while (charSet.has(newChar)) {
+            const leftChar = s[left];
+            charSet.delete(leftChar);
+            left = left + 1;
         }
-        charSet.add(s[right]);
-        maxLen = Math.max(maxLen, right - left + 1);
+
+        // Now the new character is safe to add
+        charSet.add(newChar);
+
+        // Check if this window is the longest seen so far
+        const currentWindowLen = right - left + 1;
+        if (currentWindowLen > maxLen) {
+            maxLen = currentWindowLen;
+        }
     }
+
     return maxLen;
 };`,
+    jsWalkthrough:
+      's = "abcabcbb"\n\n' +
+      'right=0: newChar="a", set={}, no dup → add "a", set={"a"}, window="a", maxLen=1\n\n' +
+      'right=1: newChar="b", set={"a"}, no dup → add "b", set={"a","b"}, window="ab", maxLen=2\n\n' +
+      'right=2: newChar="c", set={"a","b"}, no dup → add "c", set={"a","b","c"}, window="abc", maxLen=3\n\n' +
+      'right=3: newChar="a", set has "a"!\n' +
+      '         remove s[left=0]="a", set={"b","c"}, left=1\n' +
+      '         "a" gone → add "a", set={"b","c","a"}, window="bca", maxLen=3\n\n' +
+      'right=4: newChar="b", set has "b"!\n' +
+      '         remove s[left=1]="b", set={"c","a"}, left=2\n' +
+      '         "b" gone → add "b", set={"c","a","b"}, window="cab", maxLen=3\n\n' +
+      '... (window never exceeds length 3)\n\n' +
+      'return 3',
     explanation:
       "Maintain a set of characters in the current window [left, right]. For each new character at right, if it already exists in the set, remove characters from the left until the duplicate is gone. Then add the new character and update the max length. Each character is added and removed at most once, giving linear time.",
     timeComplexity: "O(n)",
@@ -706,14 +1082,24 @@ function isAlphanumeric(c) {
 
         return "" if min_len == float("inf") else s[min_left : min_left + min_len]`,
     jsCode: `var minWindow = function(s, t) {
-    if (!t || !s) return "";
+    if (!t || !s) {
+        return "";
+    }
 
+    // Build frequency map for characters required by t
     const tCount = {};
     for (const c of t) {
-        tCount[c] = (tCount[c] || 0) + 1;
+        const currentCount = tCount[c] || 0;
+        tCount[c] = currentCount + 1;
     }
+
+    // required = how many distinct characters we need to satisfy
     const required = Object.keys(tCount).length;
+
+    // formed = how many distinct characters currently meet their required count
     let formed = 0;
+
+    // windowCounts tracks character frequencies in the current window
     const windowCounts = {};
 
     let left = 0;
@@ -722,29 +1108,59 @@ function isAlphanumeric(c) {
 
     for (let right = 0; right < s.length; right++) {
         const char = s[right];
-        windowCounts[char] = (windowCounts[char] || 0) + 1;
 
+        // Add the new character to the window
+        const prevCount = windowCounts[char] || 0;
+        windowCounts[char] = prevCount + 1;
+
+        // Check if this character now fully satisfies its requirement
         if (char in tCount && windowCounts[char] === tCount[char]) {
-            formed++;
+            formed = formed + 1;
         }
 
+        // Try to shrink the window while it is still valid
         while (formed === required) {
-            if (right - left + 1 < minLen) {
-                minLen = right - left + 1;
+            const currentWindowLen = right - left + 1;
+
+            // Update the best (smallest) window found so far
+            if (currentWindowLen < minLen) {
+                minLen = currentWindowLen;
                 minLeft = left;
             }
 
+            // Remove the leftmost character from the window
             const leftChar = s[left];
-            windowCounts[leftChar]--;
+            windowCounts[leftChar] = windowCounts[leftChar] - 1;
+
+            // Check if removing it breaks a requirement
             if (leftChar in tCount && windowCounts[leftChar] < tCount[leftChar]) {
-                formed--;
+                formed = formed - 1;
             }
-            left++;
+
+            left = left + 1;
         }
     }
 
     return minLen === Infinity ? "" : s.substring(minLeft, minLeft + minLen);
 };`,
+    jsWalkthrough:
+      's = "ADOBECODEBANC", t = "ABC"\n' +
+      'tCount = {A:1, B:1, C:1}, required=3\n\n' +
+      'Expand right until we have A, B, and C:\n' +
+      '  right=0 "A": windowCounts={A:1}, formed=1 (A satisfied)\n' +
+      '  right=1 "D": windowCounts={A:1,D:1}, formed=1\n' +
+      '  right=2 "O": formed=1\n' +
+      '  right=3 "B": windowCounts={...,B:1}, formed=2 (B satisfied)\n' +
+      '  right=4 "E": formed=2\n' +
+      '  right=5 "C": windowCounts={...,C:1}, formed=3 (all satisfied!)\n\n' +
+      'Shrink from left:\n' +
+      '  window="ADOBEC" (len=6), minLen=6, minLeft=0\n' +
+      '  remove "A": windowCounts={A:0}, A drops below requirement, formed=2\n' +
+      '  stop shrinking\n\n' +
+      'Continue expanding...\n' +
+      '  right=9 "A": formed=3 again\n' +
+      '  Shrink: window="BANC" (len=4), minLen=4, minLeft=9\n\n' +
+      'return s.substring(9, 13) = "BANC"',
     explanation:
       "Count character frequencies in t. Expand the window rightward, updating window_counts. Track 'formed' -- the number of unique characters whose window count meets the required count. When formed == required, the window is valid: try to shrink from the left while staying valid, updating the minimum window. When shrinking causes a character to drop below its requirement, decrement formed and resume expanding.",
     timeComplexity: "O(|s| + |t|)",
@@ -774,14 +1190,38 @@ function isAlphanumeric(c) {
             max_profit = max(max_profit, price - min_price)
         return max_profit`,
     jsCode: `var maxProfit = function(prices) {
+    // Track the cheapest buy price seen so far
     let minPrice = Infinity;
+
+    // Track the best profit achievable so far
     let maxProfit = 0;
+
     for (const price of prices) {
-        minPrice = Math.min(minPrice, price);
-        maxProfit = Math.max(maxProfit, price - minPrice);
+        // Update the cheapest price we could have bought at
+        if (price < minPrice) {
+            minPrice = price;
+        }
+
+        // If we sold today, what would our profit be?
+        const profitIfSoldToday = price - minPrice;
+
+        // Update best profit if today's potential profit is better
+        if (profitIfSoldToday > maxProfit) {
+            maxProfit = profitIfSoldToday;
+        }
     }
+
     return maxProfit;
 };`,
+    jsWalkthrough:
+      'prices = [7,1,5,3,6,4]\n\n' +
+      'price=7: minPrice=7, profitIfSoldToday=0, maxProfit=0\n\n' +
+      'price=1: minPrice=1, profitIfSoldToday=0, maxProfit=0\n\n' +
+      'price=5: minPrice=1, profitIfSoldToday=5-1=4, maxProfit=4\n\n' +
+      'price=3: minPrice=1, profitIfSoldToday=3-1=2, maxProfit=4\n\n' +
+      'price=6: minPrice=1, profitIfSoldToday=6-1=5, maxProfit=5\n\n' +
+      'price=4: minPrice=1, profitIfSoldToday=4-1=3, maxProfit=5\n\n' +
+      'return 5',
     explanation:
       "Initialize min_price to infinity and max_profit to 0. For each price, update min_price if the current price is lower. Then compute the profit of selling today (price - min_price) and update max_profit if it is higher. This single pass finds the optimal buy/sell pair.",
     timeComplexity: "O(n)",
@@ -817,21 +1257,63 @@ function isAlphanumeric(c) {
             max_len = max(max_len, right - left + 1)
         return max_len`,
     jsCode: `var characterReplacement = function(s, k) {
+    // count tracks how often each character appears in the current window
     const count = {};
     let left = 0;
+
+    // maxFreq is the highest frequency of any single character in the window
+    // We never decrease it -- only a higher maxFreq can beat our current best
     let maxFreq = 0;
     let maxLen = 0;
+
     for (let right = 0; right < s.length; right++) {
-        count[s[right]] = (count[s[right]] || 0) + 1;
-        maxFreq = Math.max(maxFreq, count[s[right]]);
-        if ((right - left + 1) - maxFreq > k) {
-            count[s[left]]--;
-            left++;
+        const rightChar = s[right];
+
+        // Add the new character to the window counts
+        const prevCount = count[rightChar] || 0;
+        count[rightChar] = prevCount + 1;
+
+        // Update the max frequency seen in this window
+        if (count[rightChar] > maxFreq) {
+            maxFreq = count[rightChar];
         }
-        maxLen = Math.max(maxLen, right - left + 1);
+
+        // Replacements needed = window size minus the most frequent character
+        const windowSize = right - left + 1;
+        const replacementsNeeded = windowSize - maxFreq;
+
+        if (replacementsNeeded > k) {
+            // Window is invalid, shrink by one from the left
+            const leftChar = s[left];
+            count[leftChar] = count[leftChar] - 1;
+            left = left + 1;
+        }
+
+        // Window is now valid (or was already valid), record its length
+        const currentLen = right - left + 1;
+        if (currentLen > maxLen) {
+            maxLen = currentLen;
+        }
     }
+
     return maxLen;
 };`,
+    jsWalkthrough:
+      's = "AABABBA", k = 1\n\n' +
+      'right=0 "A": count={A:1}, maxFreq=1, windowSize=1, replacements=0 <= 1 → maxLen=1\n\n' +
+      'right=1 "A": count={A:2}, maxFreq=2, windowSize=2, replacements=0 <= 1 → maxLen=2\n\n' +
+      'right=2 "B": count={A:2,B:1}, maxFreq=2, windowSize=3, replacements=1 <= 1 → maxLen=3\n\n' +
+      'right=3 "A": count={A:3,B:1}, maxFreq=3, windowSize=4, replacements=1 <= 1 → maxLen=4\n\n' +
+      'right=4 "B": count={A:3,B:2}, maxFreq=3, windowSize=5, replacements=2 > 1\n' +
+      '            shrink: remove s[left=0]="A", count={A:2,B:2}, left=1\n' +
+      '            currentLen=4, maxLen=4\n\n' +
+      'right=5 "B": count={A:2,B:3}, maxFreq=3, windowSize=5, replacements=2 > 1\n' +
+      '            shrink: remove s[left=1]="A", count={A:1,B:3}, left=2\n' +
+      '            currentLen=4, maxLen=4\n\n' +
+      'right=6 "A": count={A:2,B:3}, maxFreq=3, windowSize=5, replacements=2 > 1\n' +
+      '            shrink: remove s[left=2]="B", count={A:2,B:2}, left=3\n' +
+      '            currentLen=4, maxLen=4\n\n' +
+      'return 4',
     explanation:
       "Expand the window rightward, updating character counts and max_freq (the highest frequency of any single character in the window). If the number of characters to replace (window_size - max_freq) exceeds k, shrink by one from the left. max_freq is never decremented -- this is safe because we only care about finding a longer valid window, which requires a higher max_freq.",
     timeComplexity: "O(n)",
@@ -888,38 +1370,71 @@ function isAlphanumeric(c) {
 
         return matches == 26`,
     jsCode: `var checkInclusion = function(s1, s2) {
-    if (s1.length > s2.length) return false;
+    if (s1.length > s2.length) {
+        return false;
+    }
 
     const s1Count = new Array(26).fill(0);
     const s2Count = new Array(26).fill(0);
     const aCode = 'a'.charCodeAt(0);
 
+    // Initialize counts for the first window of size s1.length
     for (let i = 0; i < s1.length; i++) {
-        s1Count[s1.charCodeAt(i) - aCode]++;
-        s2Count[s2.charCodeAt(i) - aCode]++;
+        s1Count[s1.charCodeAt(i) - aCode] = s1Count[s1.charCodeAt(i) - aCode] + 1;
+        s2Count[s2.charCodeAt(i) - aCode] = s2Count[s2.charCodeAt(i) - aCode] + 1;
     }
 
+    // Count how many of the 26 characters already have matching frequencies
     let matches = 0;
     for (let i = 0; i < 26; i++) {
-        if (s1Count[i] === s2Count[i]) matches++;
+        if (s1Count[i] === s2Count[i]) {
+            matches = matches + 1;
+        }
     }
 
+    // Slide the window across s2
     for (let i = s1.length; i < s2.length; i++) {
-        if (matches === 26) return true;
+        // All 26 frequencies match -- found a permutation
+        if (matches === 26) {
+            return true;
+        }
 
-        let idx = s2.charCodeAt(i) - aCode;
-        s2Count[idx]++;
-        if (s2Count[idx] === s1Count[idx]) matches++;
-        else if (s2Count[idx] === s1Count[idx] + 1) matches--;
+        // Add the new character entering the window (right side)
+        const addIdx = s2.charCodeAt(i) - aCode;
+        s2Count[addIdx] = s2Count[addIdx] + 1;
+        if (s2Count[addIdx] === s1Count[addIdx]) {
+            // This character just became satisfied
+            matches = matches + 1;
+        } else if (s2Count[addIdx] === s1Count[addIdx] + 1) {
+            // This character just became over-satisfied (broke a match)
+            matches = matches - 1;
+        }
 
-        idx = s2.charCodeAt(i - s1.length) - aCode;
-        s2Count[idx]--;
-        if (s2Count[idx] === s1Count[idx]) matches++;
-        else if (s2Count[idx] === s1Count[idx] - 1) matches--;
+        // Remove the character leaving the window (left side)
+        const removeIdx = s2.charCodeAt(i - s1.length) - aCode;
+        s2Count[removeIdx] = s2Count[removeIdx] - 1;
+        if (s2Count[removeIdx] === s1Count[removeIdx]) {
+            // This character just became satisfied again
+            matches = matches + 1;
+        } else if (s2Count[removeIdx] === s1Count[removeIdx] - 1) {
+            // This character just dropped below requirement
+            matches = matches - 1;
+        }
     }
 
     return matches === 26;
 };`,
+    jsWalkthrough:
+      's1 = "ab", s2 = "eidbaooo"\n\n' +
+      'Initial window "ei": s1Count=[1,1,0,...], s2Count=[0,0,...,1(e),0,...,1(i),...]\n' +
+      'matches: only positions where both are 0 match (24 of them) → matches=24\n\n' +
+      'Slide i=2 (add "d", remove "e"):\n' +
+      '  add "d": s2Count[d] goes 0→1, s1Count[d]=0, so 1≠0, no match change → matches=24\n' +
+      '  remove "e": s2Count[e] goes 1→0, s1Count[e]=0, now equal → matches=25\n\n' +
+      'Slide i=3 (add "b", remove "i"):\n' +
+      '  add "b": s2Count[b] goes 0→1, s1Count[b]=1, now equal → matches=26\n' +
+      '  (we check matches===26 at the top of next iteration)\n\n' +
+      'i=4: matches===26 → return true',
     explanation:
       "Build frequency arrays for s1 and the first window of s2. Count how many of the 26 characters already match. Slide the window: when adding a character, check if it just became a match or just lost a match. Do the same when removing a character from the left. If matches reaches 26, all character frequencies are equal, meaning the window is a permutation of s1.",
     timeComplexity: "O(n) where n = len(s2)",
@@ -958,22 +1473,56 @@ function isAlphanumeric(c) {
                 result.append(nums[dq[0]])
         return result`,
     jsCode: `var maxSlidingWindow = function(nums, k) {
+    // dq stores indices in decreasing order of their nums values
+    // Front of dq is always the index of the window's maximum
     const dq = [];
     const result = [];
+
     for (let i = 0; i < nums.length; i++) {
-        while (dq.length && dq[0] < i - k + 1) {
+        const windowStart = i - k + 1;
+
+        // Remove indices that have fallen outside the window from the front
+        while (dq.length > 0 && dq[0] < windowStart) {
             dq.shift();
         }
-        while (dq.length && nums[dq[dq.length - 1]] < nums[i]) {
+
+        // Remove indices from the back whose values are smaller than nums[i]
+        // Those elements can never be the maximum while nums[i] is in the window
+        while (dq.length > 0 && nums[dq[dq.length - 1]] < nums[i]) {
             dq.pop();
         }
+
+        // Add the current index to the back of the deque
         dq.push(i);
+
+        // Once the first full window is formed, record the maximum (front of dq)
         if (i >= k - 1) {
             result.push(nums[dq[0]]);
         }
     }
+
     return result;
 };`,
+    jsWalkthrough:
+      'nums = [1,3,-1,-3,5,3,6,7], k = 3\n\n' +
+      'i=0: nums[0]=1, dq=[], push 0 → dq=[0]. i<k-1, no output\n\n' +
+      'i=1: nums[1]=3, nums[dq.back=0]=1 < 3 → pop 0, dq=[]\n' +
+      '     push 1 → dq=[1]. i<k-1, no output\n\n' +
+      'i=2: nums[2]=-1, nums[dq.back=1]=3 >= -1 → keep\n' +
+      '     push 2 → dq=[1,2]. i>=k-1, output nums[dq[0]]=nums[1]=3\n\n' +
+      'i=3: nums[3]=-3, dq[0]=1, windowStart=1, 1>=1 → keep\n' +
+      '     nums[dq.back=2]=-1 >= -3 → keep, push 3 → dq=[1,2,3]\n' +
+      '     output nums[dq[0]]=nums[1]=3\n\n' +
+      'i=4: nums[4]=5, dq[0]=1, windowStart=2, 1<2 → remove 1, dq=[2,3]\n' +
+      '     nums[3]=-3 < 5 → pop, nums[2]=-1 < 5 → pop, dq=[]\n' +
+      '     push 4 → dq=[4]. output nums[4]=5\n\n' +
+      'i=5: nums[5]=3, nums[4]=5 >= 3 → keep, push 5 → dq=[4,5]\n' +
+      '     output nums[dq[0]]=nums[4]=5\n\n' +
+      'i=6: nums[6]=6, nums[5]=3 < 6 → pop, nums[4]=5 < 6 → pop, dq=[]\n' +
+      '     push 6 → dq=[6]. output nums[6]=6\n\n' +
+      'i=7: nums[7]=7, nums[6]=6 < 7 → pop, dq=[]\n' +
+      '     push 7 → dq=[7]. output nums[7]=7\n\n' +
+      'result = [3,3,5,5,6,7]',
     explanation:
       "The deque stores indices in decreasing order of their values. For each new index i: (1) remove front elements outside the window [i-k+1, i]; (2) remove back elements smaller than nums[i] since they cannot be the max of any future window; (3) append i. The front of the deque is always the max of the current window. Start recording results once the first full window is formed (i >= k-1).",
     timeComplexity: "O(n) -- each element is pushed and popped at most once",
@@ -1010,16 +1559,52 @@ function isAlphanumeric(c) {
     let left = 0;
     let currentSum = 0;
     let minLen = Infinity;
+
     for (let right = 0; right < nums.length; right++) {
-        currentSum += nums[right];
+        // Expand the window by adding the element at right
+        currentSum = currentSum + nums[right];
+
+        // While the window sum meets the target, try to shrink it
         while (currentSum >= target) {
-            minLen = Math.min(minLen, right - left + 1);
-            currentSum -= nums[left];
-            left++;
+            const currentWindowLen = right - left + 1;
+
+            // Update the minimum length if this window is shorter
+            if (currentWindowLen < minLen) {
+                minLen = currentWindowLen;
+            }
+
+            // Shrink from the left
+            currentSum = currentSum - nums[left];
+            left = left + 1;
         }
     }
+
     return minLen === Infinity ? 0 : minLen;
 };`,
+    jsWalkthrough:
+      'target = 7, nums = [2,3,1,2,4,3]\n\n' +
+      'right=0: currentSum=2, 2<7 → no shrink\n\n' +
+      'right=1: currentSum=5, 5<7 → no shrink\n\n' +
+      'right=2: currentSum=6, 6<7 → no shrink\n\n' +
+      'right=3: currentSum=8, 8>=7 → shrink!\n' +
+      '         windowLen=4, minLen=4\n' +
+      '         remove nums[0]=2, currentSum=6, left=1\n' +
+      '         6<7, stop shrinking\n\n' +
+      'right=4: currentSum=10, 10>=7 → shrink!\n' +
+      '         windowLen=4, minLen=4 (no change)\n' +
+      '         remove nums[1]=3, currentSum=7, left=2\n' +
+      '         7>=7 → shrink again!\n' +
+      '         windowLen=3, minLen=3\n' +
+      '         remove nums[2]=1, currentSum=6, left=3\n' +
+      '         6<7, stop\n\n' +
+      'right=5: currentSum=9, 9>=7 → shrink!\n' +
+      '         windowLen=3, minLen=3 (no change)\n' +
+      '         remove nums[3]=2, currentSum=7, left=4\n' +
+      '         7>=7 → shrink again!\n' +
+      '         windowLen=2, minLen=2\n' +
+      '         remove nums[4]=4, currentSum=3, left=5\n' +
+      '         3<7, stop\n\n' +
+      'return 2',
     explanation:
       "Expand the window by adding nums[right]. Once current_sum >= target, the window is valid: record its length and shrink from the left by subtracting nums[left] and advancing left. Keep shrinking as long as the sum remains valid. This finds the shortest valid window ending at each right position.",
     timeComplexity: "O(n)",
@@ -1079,40 +1664,82 @@ function isAlphanumeric(c) {
 
         return result`,
     jsCode: `var findAnagrams = function(s, p) {
-    if (p.length > s.length) return [];
+    if (p.length > s.length) {
+        return [];
+    }
 
     const pCount = new Array(26).fill(0);
     const sCount = new Array(26).fill(0);
     const aCode = 'a'.charCodeAt(0);
 
+    // Initialize counts for p and the first window in s
     for (let i = 0; i < p.length; i++) {
-        pCount[p.charCodeAt(i) - aCode]++;
-        sCount[s.charCodeAt(i) - aCode]++;
+        pCount[p.charCodeAt(i) - aCode] = pCount[p.charCodeAt(i) - aCode] + 1;
+        sCount[s.charCodeAt(i) - aCode] = sCount[s.charCodeAt(i) - aCode] + 1;
     }
 
+    // Count initial matches across all 26 characters
     let matches = 0;
     for (let i = 0; i < 26; i++) {
-        if (pCount[i] === sCount[i]) matches++;
+        if (pCount[i] === sCount[i]) {
+            matches = matches + 1;
+        }
     }
 
     const result = [];
+
     for (let i = p.length; i < s.length; i++) {
-        if (matches === 26) result.push(i - p.length);
+        // If all 26 characters match, the current window is an anagram
+        if (matches === 26) {
+            result.push(i - p.length);
+        }
 
-        let idx = s.charCodeAt(i) - aCode;
-        sCount[idx]++;
-        if (sCount[idx] === pCount[idx]) matches++;
-        else if (sCount[idx] === pCount[idx] + 1) matches--;
+        // Add the character entering the window (right side)
+        const addIdx = s.charCodeAt(i) - aCode;
+        sCount[addIdx] = sCount[addIdx] + 1;
+        if (sCount[addIdx] === pCount[addIdx]) {
+            // This character just became satisfied
+            matches = matches + 1;
+        } else if (sCount[addIdx] === pCount[addIdx] + 1) {
+            // This character just became over-satisfied (broke a match)
+            matches = matches - 1;
+        }
 
-        idx = s.charCodeAt(i - p.length) - aCode;
-        sCount[idx]--;
-        if (sCount[idx] === pCount[idx]) matches++;
-        else if (sCount[idx] === pCount[idx] - 1) matches--;
+        // Remove the character leaving the window (left side)
+        const removeIdx = s.charCodeAt(i - p.length) - aCode;
+        sCount[removeIdx] = sCount[removeIdx] - 1;
+        if (sCount[removeIdx] === pCount[removeIdx]) {
+            // This character just became satisfied again
+            matches = matches + 1;
+        } else if (sCount[removeIdx] === pCount[removeIdx] - 1) {
+            // This character dropped below requirement
+            matches = matches - 1;
+        }
     }
 
-    if (matches === 26) result.push(s.length - p.length);
+    // Check the last window position
+    if (matches === 26) {
+        result.push(s.length - p.length);
+    }
+
     return result;
 };`,
+    jsWalkthrough:
+      's = "cbaebabacd", p = "abc"\n\n' +
+      'pCount: a=1, b=1, c=1, rest=0\n' +
+      'Initial window "cba": sCount: a=1, b=1, c=1, rest=0\n' +
+      'matches = 26 (all 26 positions match)\n\n' +
+      'i=3 (slide to "bae"):\n' +
+      '  matches===26 → push 3-3=0 into result. result=[0]\n' +
+      '  add "e": sCount[e] 0→1, pCount[e]=0, now 1≠0, matches=25\n' +
+      '  remove "c": sCount[c] 1→0, pCount[c]=1, now 0≠1, matches=24\n\n' +
+      'i=4 (slide to "aeb"): matches=24, no push\n' +
+      '  add "b": sCount[b] 1→2, pCount[b]=1, now 2≠1, matches=23\n' +
+      '  remove "b": sCount[b] 2→1, pCount[b]=1, now equal, matches=24\n\n' +
+      '... (continue sliding)\n\n' +
+      'i=9 (slide to "bac"):\n' +
+      '  matches reaches 26 → push 9-3=6 into result. result=[0,6]\n\n' +
+      'return [0, 6]',
     explanation:
       "Initialize frequency arrays for p and the first window of s. Count initial matches (characters with equal frequency). Slide the window: adding a character may create or break a match; removing a character does the same. Check both transitions. When matches == 26, all frequencies are equal and the window is an anagram. Record its start index.",
     timeComplexity: "O(n) where n = len(s)",
@@ -1148,20 +1775,55 @@ function isAlphanumeric(c) {
             max_len = max(max_len, right - left + 1)
         return max_len`,
     jsCode: `var totalFruit = function(fruits) {
+    // count maps each fruit type to how many times it appears in the window
     const count = new Map();
     let left = 0;
     let maxLen = 0;
+
     for (let right = 0; right < fruits.length; right++) {
-        count.set(fruits[right], (count.get(fruits[right]) || 0) + 1);
+        const fruitType = fruits[right];
+
+        // Add the new fruit to the window
+        const prevCount = count.get(fruitType) || 0;
+        count.set(fruitType, prevCount + 1);
+
+        // If we now have more than 2 distinct types, shrink from the left
         while (count.size > 2) {
-            count.set(fruits[left], count.get(fruits[left]) - 1);
-            if (count.get(fruits[left]) === 0) count.delete(fruits[left]);
-            left++;
+            const leftFruitType = fruits[left];
+            const leftFruitCount = count.get(leftFruitType);
+
+            count.set(leftFruitType, leftFruitCount - 1);
+
+            // Remove the type entirely if its count drops to zero
+            if (count.get(leftFruitType) === 0) {
+                count.delete(leftFruitType);
+            }
+
+            left = left + 1;
         }
-        maxLen = Math.max(maxLen, right - left + 1);
+
+        // Window now has at most 2 distinct types; check if it is the longest
+        const currentWindowLen = right - left + 1;
+        if (currentWindowLen > maxLen) {
+            maxLen = currentWindowLen;
+        }
     }
+
     return maxLen;
 };`,
+    jsWalkthrough:
+      'fruits = [1,2,3,2,2]\n\n' +
+      'right=0: fruitType=1, count={1:1}, size=1 <= 2, maxLen=1\n\n' +
+      'right=1: fruitType=2, count={1:1,2:1}, size=2 <= 2, maxLen=2\n\n' +
+      'right=2: fruitType=3, count={1:1,2:1,3:1}, size=3 > 2!\n' +
+      '         remove fruits[0]=1: count={1:0,2:1,3:1} → delete 1\n' +
+      '         count={2:1,3:1}, size=2, left=1\n' +
+      '         currentWindowLen=2, maxLen=2\n\n' +
+      'right=3: fruitType=2, count={2:2,3:1}, size=2 <= 2\n' +
+      '         currentWindowLen=3, maxLen=3\n\n' +
+      'right=4: fruitType=2, count={2:3,3:1}, size=2 <= 2\n' +
+      '         currentWindowLen=4, maxLen=4\n\n' +
+      'return 4',
     explanation:
       "Expand the window rightward, adding fruit types to the map. If the map has more than 2 keys (fruit types), shrink from the left: decrement the count and remove the key if it reaches zero. After restoring the invariant (at most 2 types), update the maximum window length.",
     timeComplexity: "O(n)",
@@ -1198,18 +1860,56 @@ function isAlphanumeric(c) {
         return max_len`,
     jsCode: `var longestOnes = function(nums, k) {
     let left = 0;
+
+    // zeros tracks how many 0s are currently in the window
     let zeros = 0;
     let maxLen = 0;
+
     for (let right = 0; right < nums.length; right++) {
-        if (nums[right] === 0) zeros++;
-        while (zeros > k) {
-            if (nums[left] === 0) zeros--;
-            left++;
+        const currentNum = nums[right];
+
+        // If we added a 0, increment the zero count
+        if (currentNum === 0) {
+            zeros = zeros + 1;
         }
-        maxLen = Math.max(maxLen, right - left + 1);
+
+        // If we have too many zeros, shrink from the left until we are within budget
+        while (zeros > k) {
+            const leftNum = nums[left];
+            if (leftNum === 0) {
+                zeros = zeros - 1;
+            }
+            left = left + 1;
+        }
+
+        // Window now has at most k zeros, record its length
+        const currentWindowLen = right - left + 1;
+        if (currentWindowLen > maxLen) {
+            maxLen = currentWindowLen;
+        }
     }
+
     return maxLen;
 };`,
+    jsWalkthrough:
+      'nums = [1,1,1,0,0,0,1,1,1,1,0], k = 2\n\n' +
+      'right=0: currentNum=1, zeros=0, window=[1], maxLen=1\n' +
+      'right=1: currentNum=1, zeros=0, window=[1,1], maxLen=2\n' +
+      'right=2: currentNum=1, zeros=0, window=[1,1,1], maxLen=3\n' +
+      'right=3: currentNum=0, zeros=1 <= 2, window=[1,1,1,0], maxLen=4\n' +
+      'right=4: currentNum=0, zeros=2 <= 2, window=[1,1,1,0,0], maxLen=5\n' +
+      'right=5: currentNum=0, zeros=3 > 2 → shrink!\n' +
+      '         nums[left=0]=1 (not 0), left=1\n' +
+      '         nums[left=1]=1 (not 0), left=2\n' +
+      '         nums[left=2]=1 (not 0), left=3\n' +
+      '         nums[left=3]=0 → zeros=2, left=4\n' +
+      '         zeros=2 <= 2, stop. window=[0,0,0], maxLen=5\n\n' +
+      'right=6..9: window grows to length 6 (indices 4..9)\n' +
+      '            maxLen=6\n\n' +
+      'right=10: currentNum=0, zeros=3 > 2 → shrink\n' +
+      '          remove nums[4]=0, zeros=2, left=5\n' +
+      '          window=[0,1,1,1,1,0], maxLen=6\n\n' +
+      'return 6',
     explanation:
       "Maintain a window [left, right] and count the zeros in it. Expanding right may add a zero. If zeros exceed k, shrink from left until zeros <= k. The window always contains at most k zeros, meaning we can flip them all to 1s. Track the maximum window size.",
     timeComplexity: "O(n)",
