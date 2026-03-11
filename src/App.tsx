@@ -91,14 +91,14 @@ export default function App() {
   }, []);
 
   return (
-    <div className="flex min-h-screen bg-gray-950">
+    <div className="min-h-screen bg-gray-950">
       <Sidebar
         dueCount={store.dueProblems.length}
         solvedToday={store.solvedToday}
         dailyGoal={store.dailyGoal}
         getTopicStats={store.getTopicStats}
       />
-      <main className="flex-1 p-6 overflow-y-auto max-w-5xl">
+      <main className="p-6 pt-14 overflow-y-auto max-w-5xl mx-auto">
         <Routes>
           <Route path="/" element={
             <Dashboard
