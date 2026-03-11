@@ -33,17 +33,7 @@ export default function Sidebar({
     <div className="bg-gray-900 border-b border-gray-800">
       {/* Top bar */}
       <div className="flex items-center justify-between px-4 py-3">
-        <Link to="/" className="flex items-center gap-3">
-          <h1 className="text-lg font-bold text-white">LeetCode Trainer</h1>
-        </Link>
         <div className="flex items-center gap-3">
-          <span className="text-xs text-gray-400">{solvedToday}/{dailyGoal} today</span>
-          <div className="w-16 bg-gray-800 rounded-full h-2 overflow-hidden">
-            <div
-              className="h-full bg-emerald-500 rounded-full"
-              style={{ width: `${Math.min(100, (solvedToday / dailyGoal) * 100)}%` }}
-            />
-          </div>
           <button
             onClick={() => setOpen(!open)}
             className="p-1.5 text-gray-300 hover:text-white hover:bg-gray-800 rounded-md transition-colors"
@@ -59,6 +49,18 @@ export default function Sidebar({
               </svg>
             )}
           </button>
+          <Link to="/" className="flex items-center">
+            <h1 className="text-lg font-bold text-white">LeetCode Trainer</h1>
+          </Link>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-gray-400">{solvedToday}/{dailyGoal} today</span>
+          <div className="w-16 bg-gray-800 rounded-full h-2 overflow-hidden">
+            <div
+              className="h-full bg-emerald-500 rounded-full"
+              style={{ width: `${Math.min(100, (solvedToday / dailyGoal) * 100)}%` }}
+            />
+          </div>
         </div>
       </div>
 
