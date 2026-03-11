@@ -4896,9 +4896,10 @@ BUY/SELL STOCK STATE MACHINE:
 TEMPLATE-BY-TEMPLATE MEMORIZATION:
 
 rob — O(n) time, O(1) space
-  What: Find maximum money robbed from non-adjacent houses.
+  Problem: Given an array of non-negative integers representing house values, find the maximum amount you can rob without robbing two adjacent houses.
   Use when: "house robber", "no adjacent elements", "maximum sum no two adjacent"
-  Key insight: At each house, choose max(rob this + two-back, skip and take prev). Only two rolling variables needed.
+  Why it works: At each position, you make one binary choice: rob this house (add its value to dp[i-2]) or skip it (carry dp[i-1]). These two states are the only ones that matter, and you only need the last two dp values — no full array needed.
+  Aha: The recurrence is just "skip or rob" — max(dp[i-1], dp[i-2] + nums[i]). Two variables replace the whole array.
   Steps:
     1. dp[0] = nums[0]; dp[1] = max(nums[0], nums[1])
     2. dp[i] = max(dp[i-1], dp[i-2] + nums[i])
@@ -4906,9 +4907,10 @@ rob — O(n) time, O(1) space
   Mnemonic: "Skip or rob. Take the better of skipping this house or robbing it plus two-back."
 
 longestCommonSubsequence — O(m×n) time
-  What: Find the length of the longest subsequence common to both strings.
+  Problem: Given two strings, return the length of their longest common subsequence.
   Use when: "longest common subsequence", "LCS", "common subsequence of two strings"
-  Key insight: Characters match → extend from diagonal (dp[i-1][j-1] + 1). Mismatch → take max of skipping either character.
+  Why it works: dp[i][j] represents the LCS of text1[0..i-1] and text2[0..j-1]. When characters match, the LCS grows by 1 from the previous state (diagonal). When they don't, the LCS is the best of skipping a character from either string.
+  Aha: Match = diagonal + 1 (both advance). Mismatch = max of skipping one side (only one advances).
   Steps:
     1. dp[i][j] = 0 for all base cases
     2. If text1[i-1] === text2[j-1]: dp[i][j] = dp[i-1][j-1] + 1
@@ -4917,9 +4919,10 @@ longestCommonSubsequence — O(m×n) time
   Mnemonic: "Match? Diagonal + 1. Miss? Best of skipping either character."
 
 coinChange — O(n×amount) time
-  What: Find minimum coins to make the given amount (coins can be reused).
+  Problem: Given coin denominations and a target amount, return the minimum number of coins needed to make the amount, or -1 if impossible.
   Use when: "minimum coins", "fewest coins to make change", "unbounded knapsack"
-  Key insight: dp[i] = min coins to make amount i. For each coin, check if using it gives a better result: dp[i] = min(dp[i], dp[i-coin]+1).
+  Why it works: dp[i] = the fewest coins to make amount i. For each amount, try every coin: if it fits (coin <= i), the answer could be dp[i-coin] + 1. Taking the min over all coins gives the optimal. Coins can be reused, so iterate forward.
+  Aha: Unbounded knapsack = forward iteration. Each dp[i] builds on smaller subproblems already solved.
   Steps:
     1. dp[0] = 0
     2. For each amount i: for each coin: if coin <= i → dp[i] = min(dp[i], dp[i-coin] + 1)
@@ -4927,9 +4930,10 @@ coinChange — O(n×amount) time
   Mnemonic: "Build up from 0. Each amount = cheapest way to reach it using any coin."
 
 canPartition — O(n×sum) time
-  What: Can the array be split into two subsets with equal sum?
+  Problem: Given an integer array, determine if it can be partitioned into two subsets with equal sums.
   Use when: "partition equal subset sum", "split array into two equal halves", "0/1 knapsack"
-  Key insight: 0/1 knapsack — iterate backwards to prevent reusing the same item in one pass.
+  Why it works: This reduces to "can we select a subset that sums to total/2?" — a classic 0/1 knapsack. dp[j] = can we reach sum j? Iterating j backwards prevents using the same element twice in one pass (each item can only be used once).
+  Aha: 0/1 knapsack = backward iteration. If you iterated forward, you'd reuse the same element.
   Steps:
     1. If total is odd → false; target = total / 2
     2. dp[0] = true; for each num: iterate j backwards from target to num
@@ -4938,9 +4942,10 @@ canPartition — O(n×sum) time
   Mnemonic: "0/1 knapsack goes BACKWARD to prevent reuse. Can I reach the target?"
 
 maxSubArray (Kadane's) — O(n) time, O(1) space
-  What: Find the maximum sum of any contiguous subarray.
+  Problem: Given an integer array, find the contiguous subarray with the largest sum and return its sum.
   Use when: "maximum subarray sum", "Kadane's algorithm", "max contiguous sum"
-  Key insight: If running sum goes negative, reset it to 0 (start fresh). Always track the best seen so far.
+  Why it works: A negative running sum is always a liability — starting fresh from the next element is strictly better. So reset whenever currentSum drops below 0. After each step, update the global max. This single-pass approach works because at each position you either extend a positive-sum subarray or start a new one.
+  Aha: A negative prefix only hurts. Cut it and start over — that's Kadane's entire insight.
   Steps:
     1. If currentSum < 0: reset to 0
     2. currentSum += num
@@ -4948,9 +4953,10 @@ maxSubArray (Kadane's) — O(n) time, O(1) space
   Mnemonic: "Negative running sum? Restart. Always track the best seen so far."
 
 minDistance (edit distance) — O(m×n) time
-  What: Find minimum insertions/deletions/replacements to convert word1 to word2.
+  Problem: Given two strings, return the minimum number of operations (insert, delete, replace) to convert word1 to word2.
   Use when: "edit distance", "minimum operations to convert strings", "Levenshtein distance"
-  Key insight: Characters match → free diagonal (dp[i-1][j-1]). Mismatch → 1 + min(insert=dp[i][j-1], delete=dp[i-1][j], replace=dp[i-1][j-1]).
+  Why it works: dp[i][j] = min edits to convert word1[0..i-1] to word2[0..j-1]. If chars match, no edit needed — take dp[i-1][j-1]. If not, take the minimum of: inserting (dp[i][j-1]+1), deleting (dp[i-1][j]+1), or replacing (dp[i-1][j-1]+1). Base cases: converting to/from empty string costs i or j deletions/insertions.
+  Aha: Three operations = three neighboring cells in the DP table. Match = free diagonal. Mismatch = 1 + min of three.
   Steps:
     1. dp[i][0] = i (delete all of word1); dp[0][j] = j (insert all of word2)
     2. If chars match: dp[i][j] = dp[i-1][j-1]
@@ -4959,9 +4965,10 @@ minDistance (edit distance) — O(m×n) time
   Mnemonic: "Match = diagonal free. Mismatch = 1 + min of three neighbors."
 
 lengthOfLIS — O(n log n) time
-  What: Find the length of the longest increasing subsequence.
+  Problem: Given an integer array, return the length of the longest strictly increasing subsequence.
   Use when: "longest increasing subsequence", "LIS", "longest non-decreasing subsequence"
-  Key insight: Maintain a tails array where tails[i] = smallest possible tail for an increasing subsequence of length i+1. Binary search to find where each number belongs.
+  Why it works: The tails array maintains the smallest possible tail for each LIS length. Binary search finds where the current number fits (the first tail >= num). Replacing that tail keeps it optimal — smaller tails give longer future subsequences. The tails array length equals the LIS length.
+  Aha: tails is not the actual LIS — it's a "best possible tail" array. Its length is what counts.
   Steps:
     1. For each num: binary search in tails for first element >= num (lo < hi template)
     2. tails[lo] = num (replace or extend)
@@ -4969,9 +4976,10 @@ lengthOfLIS — O(n log n) time
   Mnemonic: "Patience sort — place on leftmost valid pile, or start a new pile."
 
 maxProfit (state machine with cooldown) — O(n) time, O(1) space
-  What: Find max profit from stock with a one-day cooldown after selling.
+  Problem: Given stock prices with a mandatory 1-day cooldown after selling, find the maximum profit.
   Use when: "stock with cooldown", "state machine DP", "buy sell with rest period"
-  Key insight: Three states (hold, sold, rest), each transitions from specific previous states each day. Update all three simultaneously.
+  Why it works: Three states capture all situations: hold (own stock), sold (just sold today, must rest tomorrow), rest (no stock, no cooldown). Each state transitions from the correct prior state. Updating all three from yesterday's values ensures you don't accidentally use today's updated state.
+  Aha: Update all three states simultaneously from their prev values. The state machine encodes when you can buy/sell/rest.
   Steps:
     1. hold = -Infinity, sold = 0, rest = 0
     2. Each day: newHold = max(hold, rest - price); newSold = hold + price; newRest = max(rest, sold)
@@ -5289,9 +5297,10 @@ Mnemonic: "Greedy = sort + scan + local best choice"
 TEMPLATE-BY-TEMPLATE MEMORIZATION:
 
 canJump — O(n) time, O(1) space
-  What: Can you reach the last index given jump lengths at each position?
+  Problem: Given an array where each element is the max jump length from that position, determine if you can reach the last index.
   Use when: "jump game", "can reach end", "greedy reachability"
-  Key insight: Track the farthest index reachable so far. If you ever reach a position beyond farthest, you're stuck.
+  Why it works: At each position, update the farthest index you can reach. If the current index is ever beyond farthest, you're stuck in an unreachable zone. No backtracking needed — if position i is reachable (i <= farthest), you can always get to every position up to i + nums[i].
+  Aha: You don't need to simulate jumps. Just track the farthest reachable index and check if you ever fall behind it.
   Steps:
     1. farthest = 0
     2. For each i: if i > farthest → return false
@@ -5300,9 +5309,10 @@ canJump — O(n) time, O(1) space
   Mnemonic: "If you can't reach position i, you're stuck. Otherwise keep extending."
 
 eraseOverlapIntervals — O(n log n) time
-  What: Find the minimum number of intervals to remove to eliminate all overlaps.
+  Problem: Given an array of intervals, return the minimum number of intervals to remove to make the rest non-overlapping.
   Use when: "non-overlapping intervals", "minimum removals", "interval scheduling"
-  Key insight: Sort by END time. Greedily keep intervals that end earliest — they leave the most room for others.
+  Why it works: Sort by end time. Greedily keep the interval that ends earliest — it minimizes how far the occupied time extends, leaving maximum room for future intervals. When an overlap is found, remove the new interval (not the kept one) because the kept one ends sooner.
+  Aha: Sort by end time, not start time. The interval ending earliest is always the safest to keep.
   Steps:
     1. Sort intervals by end time
     2. end = -Infinity, count = 0
@@ -5311,9 +5321,10 @@ eraseOverlapIntervals — O(n log n) time
   Mnemonic: "Sort by end. Overlap? Remove. No overlap? Keep and update end."
 
 partitionLabels — O(n) time
-  What: Partition string so each character appears in at most one part.
+  Problem: Given a string, partition it into as many parts as possible so each letter appears in at most one part. Return the sizes of the parts.
   Use when: "partition labels", "split string so each char in one part"
-  Key insight: Build a last-occurrence map. Extend the current partition boundary to include every char's last occurrence. When you reach the boundary, close the partition.
+  Why it works: A partition boundary must extend to cover the last occurrence of every character inside it. As you scan, extend the current boundary whenever a character's last occurrence is beyond it. When you arrive at the boundary itself, you've just finished a valid partition.
+  Aha: The boundary is self-correcting — it grows to encompass every character it encounters, then snaps closed when you catch up to it.
   Steps:
     1. Build last = {char: last occurrence index}
     2. start = 0, end = 0
@@ -5321,9 +5332,10 @@ partitionLabels — O(n) time
   Mnemonic: "Grow partition boundary to include every char's last occurrence. Close when you reach it."
 
 canCompleteCircuit — O(n) time
-  What: Find the starting gas station index to complete the circuit, or -1.
+  Problem: Given gas amounts and travel costs for gas stations in a circle, find the starting station index to complete the circuit, or -1.
   Use when: "gas station", "can complete circuit", "circular route"
-  Key insight: If total gas >= total cost, a solution always exists. Reset start whenever the running tank goes negative.
+  Why it works: If total gas < total cost, it's impossible — return -1. Otherwise, a solution always exists. Any station where the running tank goes negative can't be the start (not enough gas up to that point), so reset start to the next station. The first start that survives to the end is the answer.
+  Aha: If total gas >= total cost, the deficit from a bad segment must be covered by a surplus somewhere else — which is why resetting to the next station always finds the unique valid start.
   Steps:
     1. If sum(gas) < sum(cost) → return -1
     2. start = 0, tank = 0
@@ -5602,9 +5614,10 @@ Mnemonic: "Overlap = start of next <= end of current"
 TEMPLATE-BY-TEMPLATE MEMORIZATION:
 
 merge — O(n log n) time
-  What: Merge all overlapping intervals into a minimal list.
+  Problem: Given an array of intervals, merge all overlapping intervals and return the resulting list.
   Use when: "merge intervals", "combine overlapping intervals"
-  Key insight: Sort by start time so overlapping intervals are adjacent. Always compare the next interval against the last merged interval's end.
+  Why it works: Sorting by start time ensures overlapping intervals are adjacent. Then it's a single linear pass: compare each interval against the last merged one. If they overlap (new start <= last end), extend the end. If not, start a new merged interval. Sorting is the only non-trivial step.
+  Aha: Sort by start, then a single scan is enough. Overlap check: new start <= last merged end.
   Steps:
     1. Sort by start time
     2. merged = [intervals[0]]
@@ -5612,9 +5625,10 @@ merge — O(n log n) time
   Mnemonic: "Sort, seed, then extend or append."
 
 insert — O(n) time
-  What: Insert a new interval into a sorted list and merge any overlaps.
+  Problem: Given a sorted list of non-overlapping intervals and a new interval, insert the new interval and merge any overlaps. Return the result.
   Use when: "insert interval", "add interval and merge"
-  Key insight: Three phases — copy intervals ending before the new one, merge all overlapping intervals, copy remaining intervals after.
+  Why it works: Since the list is already sorted, you can handle it in three phases: (1) intervals that end before the new one starts — just copy; (2) intervals that overlap with the new one — merge by expanding newInterval's boundaries; (3) remaining intervals — just copy. The three-phase structure avoids a sorting step.
+  Aha: Three clear phases: copy-before, merge-overlapping, copy-after. Each is a simple while loop.
   Steps:
     1. Phase 1: copy all intervals ending before newInterval starts
     2. Phase 2: merge all overlapping intervals into newInterval
@@ -5622,9 +5636,10 @@ insert — O(n) time
   Mnemonic: "Before, merge, after — three phases."
 
 minMeetingRooms — O(n log n) time
-  What: Find the minimum number of conference rooms needed.
+  Problem: Given an array of meeting time intervals, find the minimum number of conference rooms required.
   Use when: "meeting rooms", "minimum rooms", "peak concurrent meetings"
-  Key insight: Sort starts and ends separately, then sweep with two pointers. If a new meeting starts before the earliest ongoing meeting ends, a new room is needed.
+  Why it works: Sort starts and ends independently. Sweep through starts: if a meeting starts before the earliest ongoing meeting ends (ends[endPtr]), overlap is unavoidable — add a room. Otherwise, a room just freed up — reuse it (advance endPtr). The room count at any moment reflects the concurrent meetings.
+  Aha: Sorting starts and ends independently lets you simulate room allocation without tracking which room each meeting is in.
   Steps:
     1. Sort starts and ends independently
     2. endPtr = 0, rooms = 0
@@ -5932,18 +5947,20 @@ FAST POWER (x^n in O(log n)):
 TEMPLATE-BY-TEMPLATE MEMORIZATION:
 
 rotate — O(n²) time, O(1) space
-  What: Rotate an n×n matrix 90° clockwise in-place.
+  Problem: Rotate an n×n matrix 90° clockwise in-place without using extra space.
   Use when: "rotate matrix", "rotate image 90 degrees", "in-place matrix rotation"
-  Key insight: Transpose (swap matrix[i][j] with matrix[j][i]) then reverse each row = 90° clockwise. For CCW: reverse columns instead.
+  Why it works: Transposing (swapping matrix[i][j] with matrix[j][i]) rearranges rows into columns. Then reversing each row shifts columns to the correct left-right position for 90° CW. The two operations together achieve rotation using only O(1) extra space.
+  Aha: 90° CW = transpose then reverse rows. Two clean operations, no extra array.
   Steps:
     1. Transpose: swap matrix[i][j] with matrix[j][i] for all j > i
     2. Reverse each row
   Mnemonic: "Transpose then reverse rows = rotate right. (For CCW: reverse columns instead.)"
 
 spiralOrder — O(m×n) time
-  What: Return all matrix elements in spiral (clockwise) order.
+  Problem: Given an m×n matrix, return all elements in spiral order.
   Use when: "spiral order", "matrix in spiral", "clockwise traversal"
-  Key insight: Maintain four boundaries (top/bottom/left/right). Traverse RDLU (right, down, left, up), shrinking each boundary after traversal.
+  Why it works: Four boundaries (top, bottom, left, right) define the unvisited region. Each of the four directions traverses one boundary edge, then shrinks that boundary inward. After each shrink, the unvisited region is smaller. The extra bounds checks before left/up traversals prevent double-counting single remaining rows/columns.
+  Aha: RDLU — traverse one side, shrink it. Repeat until boundaries cross.
   Steps:
     1. While top <= bottom && left <= right:
     2. Right along top row → top++
@@ -5953,9 +5970,10 @@ spiralOrder — O(m×n) time
   Mnemonic: "RDLU + shrink each boundary after traversing it."
 
 myPow — O(log n) time
-  What: Compute x^n in O(log n) using fast exponentiation.
+  Problem: Implement pow(x, n) — compute x raised to the power n, handling negative exponents.
   Use when: "fast power", "x to the power n", "exponentiation"
-  Key insight: Square x each step, multiply into result only when the current bit of n is set (odd). Halves the problem each iteration.
+  Why it works: Express n in binary. For each bit of n (from LSB to MSB): if the bit is set, multiply result by the current x (which represents x^(2^bit)). Then square x for the next bit. This processes all bits in O(log n) steps. Negative n is handled by inverting x and negating n.
+  Aha: Each iteration squares x (doubling its exponent) and halves n. When n is odd, absorb x into result.
   Steps:
     1. If n < 0: x = 1/x, n = -n
     2. result = 1; while n > 0:
@@ -6175,9 +6193,10 @@ Mnemonic: "XOR cancels twins. AND(n, n-1) kills the lowest bit."
 TEMPLATE-BY-TEMPLATE MEMORIZATION:
 
 singleNumber — O(n) time, O(1) space
-  What: Find the one element that appears once; all others appear twice.
+  Problem: Given a non-empty array where every element appears twice except one, find the element that appears only once.
   Use when: "single number", "find unique", "all appear twice except one"
-  Key insight: XOR all numbers — duplicates cancel to 0 (a ^ a = 0), and the unique number remains (a ^ 0 = a).
+  Why it works: XOR has two key properties: a ^ a = 0 (identical values cancel) and a ^ 0 = a (XOR with zero is identity). XOR-ing all elements causes every pair to cancel, leaving only the unique element. Order doesn't matter.
+  Aha: XOR is commutative and self-inverse. All pairs annihilate. Only the singleton survives.
   Steps:
     1. result = 0
     2. For each num: result ^= num
@@ -6185,9 +6204,10 @@ singleNumber — O(n) time, O(1) space
   Mnemonic: "XOR all. Pairs cancel to 0. The lone value survives."
 
 hammingWeight — O(k) time where k = number of set bits
-  What: Count the number of 1-bits in a 32-bit integer.
+  Problem: Given a 32-bit unsigned integer, return the number of 1-bits (Hamming weight / popcount).
   Use when: "number of 1 bits", "hamming weight", "popcount"
-  Key insight: n & (n-1) removes the lowest set bit each time. Count how many times you can do this before n hits 0.
+  Why it works: n & (n-1) clears exactly the lowest set bit of n. This works because subtracting 1 from n flips the lowest set bit and all bits below it — AND-ing with n keeps only the bits above. Repeating this until n = 0 counts exactly the set bits.
+  Aha: n & (n-1) destroys exactly one set bit per iteration. Count iterations = count set bits.
   Steps:
     1. count = 0
     2. While n !== 0: count++; n = n & (n - 1)
@@ -6195,9 +6215,10 @@ hammingWeight — O(k) time where k = number of set bits
   Mnemonic: "n & (n-1) kills the lowest set bit. Count how many kills until zero."
 
 countBits — O(n) time
-  What: Return array where result[i] = number of 1-bits in i, for 0..n.
+  Problem: Given an integer n, return an array of length n+1 where answer[i] is the number of 1-bits in i.
   Use when: "count bits 0 to n", "number of 1s for all values up to n"
-  Key insight: dp[i] = dp[i >> 1] + (i & 1). The bit count of i equals the bit count of i/2, plus 1 if i is odd.
+  Why it works: Right-shifting i by 1 (i >> 1) is the same as i/2 — the result has all the same bits except the last one. So dp[i] = dp[i >> 1] + (i & 1). This builds on previously computed values, making it O(n) total.
+  Aha: i and i>>1 differ by just one bit — the last one. Recycle the already-computed dp[i>>1].
   Steps:
     1. dp[0] = 0
     2. For i from 1 to n: dp[i] = dp[i >> 1] + (i & 1)
@@ -6205,9 +6226,10 @@ countBits — O(n) time
   Mnemonic: "Bit count of i = bit count of i/2 plus the last bit. Shift and add."
 
 reverseBits — O(32) time
-  What: Reverse the 32 bits of an unsigned integer.
+  Problem: Reverse the bits of a 32-bit unsigned integer.
   Use when: "reverse bits", "bit reversal"
-  Key insight: Shift result left to make room, OR in the last bit of n, then shift n right. Repeat 32 times.
+  Why it works: Build the result bit by bit. Each iteration: extract the last bit of n (n & 1), shift result left to make room, OR the bit in. Then shift n right to process the next bit. After 32 iterations, all bits are reversed. The final >>> 0 ensures the result is treated as unsigned.
+  Aha: Peel from the right of n, paste onto the left of result — 32 times exactly.
   Steps:
     1. result = 0
     2. For 32 iterations: lastBit = n & 1; result = (result << 1) | lastBit; n >>>= 1
@@ -6503,9 +6525,10 @@ WHEN TO USE: If you see "connected components" or "are X and Y in the same group
 TEMPLATE-BY-TEMPLATE MEMORIZATION:
 
 UnionFind (constructor) — O(n) initialization
-  What: Initialize n nodes, each as its own component.
+  Problem: Initialize a Union-Find data structure for n nodes to track connected components.
   Use when: Setting up Union-Find for connected components or cycle detection.
-  Key insight: Each node starts as its own root. Path compression and union by rank make future operations O(α(n)) ≈ O(1).
+  Why it works: Each node starts as its own root (parent[i] = i). Path compression and union by rank are the two optimizations that bring repeated find/union operations to O(α(n)) amortized — essentially constant time.
+  Aha: parent[i] = i means "I am my own boss." Union-Find builds its structure lazily through operations.
   Steps:
     1. parent = [0, 1, 2, ..., n-1]
     2. rank = [0, 0, ..., 0]
@@ -6513,18 +6536,20 @@ UnionFind (constructor) — O(n) initialization
   Mnemonic: "Everyone is their own boss at the start."
 
 UnionFind.find — O(α(n)) ≈ O(1)
-  What: Find the root of x with path compression.
+  Problem: Find the root representative of the component containing x.
   Use when: "find representative", "find component root"
-  Key insight: Path compression — point each node directly to its grandparent while walking up. Flattens the tree for faster future lookups.
+  Why it works: Walk up parent pointers until you reach the root (parent[x] === x). Path compression shortens the path by pointing each node to its grandparent during traversal — future finds on the same path are faster. This is a form of halving that amortizes to nearly O(1).
+  Aha: Point to grandparent (not root directly) — one line of code, big speedup, same correctness.
   Steps:
     1. While parent[x] !== x: parent[x] = parent[parent[x]] (skip to grandparent); x = parent[x]
     2. Return x
   Mnemonic: "Walk up, shortcut to grandparent each step. Stop when you're your own boss."
 
 UnionFind.union — O(α(n)) ≈ O(1)
-  What: Merge the components containing x and y.
+  Problem: Merge the components containing x and y into one.
   Use when: "connect two nodes", "merge two components"
-  Key insight: Attach smaller rank tree under larger rank tree to keep the tree flat. Same component → return false (no union needed).
+  Why it works: Find both roots. If they're the same, they're already connected — return false. Otherwise, attach the shorter tree (lower rank) under the taller one. Equal ranks trigger a rank increment. This union by rank keeps trees shallow, complementing path compression.
+  Aha: Union by rank = attach shorter under taller. Prevents the tree from becoming a chain.
   Steps:
     1. px = find(x); py = find(y); if px === py → return false (same component)
     2. Attach shorter tree under taller (union by rank): if rank[px] < rank[py] → swap
@@ -6533,9 +6558,10 @@ UnionFind.union — O(α(n)) ≈ O(1)
   Mnemonic: "Find both roots. Same? Skip. Different? Attach smaller under bigger."
 
 countComponents — O(n + e)
-  What: Count the number of connected components in an undirected graph.
+  Problem: Given n nodes and a list of undirected edges, count the number of connected components.
   Use when: "count connected components", "how many groups"
-  Key insight: Union all edges. The remaining component count equals the answer.
+  Why it works: Each union call merges two components into one, decrementing the component count. After processing all edges, the remaining count is the number of disconnected groups. Union-Find does this in near-linear time.
+  Aha: Start with n components (each node isolated). Every successful union reduces the count by 1.
   Steps:
     1. Create UnionFind(n)
     2. For each edge [u, v]: uf.union(u, v)
@@ -6543,9 +6569,10 @@ countComponents — O(n + e)
   Mnemonic: "Union all edges. Remaining component count = answer."
 
 hasCycle (UF version) — O(n + e)
-  What: Detect a cycle in an undirected graph using Union-Find.
+  Problem: Given n nodes and a list of edges, detect whether the undirected graph contains a cycle.
   Use when: "cycle detection undirected graph", "does adding this edge create a cycle?"
-  Key insight: If find(u) === find(v) before union, then u and v are already connected — adding this edge creates a cycle.
+  Why it works: Before unioning two nodes, check if they're already in the same component. If they are, adding the edge would create a second path between them — a cycle. The union() method returns false in that case.
+  Aha: If find(u) === find(v), they're already connected. A new edge between them = cycle.
   Steps:
     1. For each edge [u, v]: if uf.union(u, v) returns false → cycle detected
     2. Return true if any union fails, else false
@@ -6826,9 +6853,10 @@ WHEN TO USE: "sliding window" + "max/min" in the same sentence → monotonic deq
 TEMPLATE-BY-TEMPLATE MEMORIZATION:
 
 maxSlidingWindow — O(n) time, O(k) space
-  What: Return the maximum value in each sliding window of size k.
+  Problem: Given an integer array and window size k, return the maximum value in each sliding window of size k.
   Use when: "sliding window maximum", "max of every k-length subarray"
-  Key insight: A monotonic decreasing deque keeps the front as the current window max. Expire old elements from front, clean smaller elements from back, then record.
+  Why it works: A monotonic decreasing deque (storing indices) always has the current max at the front. Before each step: expire the front if it's outside the window, then clean all back elements smaller than the new element (they can never be the max while the new element is present). The deque never grows beyond k elements.
+  Aha: Smaller elements behind a larger one are useless — they'll never be the window max while the larger one is present. Evict them immediately.
   Steps:
     1. For each i: expire front if dq[0] < i - k + 1
     2. Pop from back while nums[back] <= nums[i]
@@ -6836,17 +6864,19 @@ maxSlidingWindow — O(n) time, O(k) space
   Mnemonic: "ECA-R: Expire, Clean, Add, Record."
 
 minSlidingWindow — O(n) time, O(k) space
-  What: Return the minimum value in each sliding window of size k.
+  Problem: Given an integer array and window size k, return the minimum value in each sliding window of size k.
   Use when: "sliding window minimum", "min of every k-length subarray"
-  Key insight: Same as maxSlidingWindow but use an increasing deque. Flip comparison: pop back when nums[back] >= nums[i].
+  Why it works: Identical to maxSlidingWindow but with an increasing deque — the front is always the current minimum. The only change is the back-cleanup comparison: remove elements from the back that are greater than or equal to the new element (they can't be the min while the smaller new element exists).
+  Aha: Max deque = remove <= from back. Min deque = remove >= from back. One comparison flip.
   Steps:
     1. Same as maxSlidingWindow but pop back when nums[back] >= nums[i]
   Mnemonic: "Same as max, just flip the comparison: >= instead of <=."
 
 longestSubarray — O(n) time
-  What: Find the longest subarray where max - min <= limit.
+  Problem: Given an integer array and a limit, return the length of the longest subarray where the difference between max and min is at most limit.
   Use when: "longest subarray with bounded range", "max minus min constraint"
-  Key insight: Use TWO deques (one for max, one for min). Shrink the window from the left whenever the constraint max-min > limit is violated.
+  Why it works: Two deques simultaneously track the window's maximum (decreasing deque) and minimum (increasing deque). When max - min > limit, the window is invalid — shrink from the left, expiring deque fronts if they fell outside the new window boundary. This is sliding window with O(1) max/min tracking.
+  Aha: Two deques = O(1) max and min per step. Combine with a sliding window to enforce the constraint.
   Steps:
     1. Maintain both deques as new elements arrive
     2. While nums[maxDq[0]] - nums[minDq[0]] > limit: left++; expire fronts if outside window
@@ -7212,9 +7242,10 @@ Mnemonic: "Split in half, solve each half, stitch together."
 TEMPLATE-BY-TEMPLATE MEMORIZATION:
 
 mergeSort — O(n log n) time
-  What: Sort an array by recursively splitting and merging.
+  Problem: Sort an array in ascending order using merge sort.
   Use when: "sort stably", "count inversions", "divide and conquer sort"
-  Key insight: Split in half, sort each half, merge with two pointers. The merge step is where the actual ordering happens.
+  Why it works: Splitting to size-1 arrays trivially sorts them (any single element is sorted). Then the merge step linearly combines two sorted halves into one sorted array. Recursion depth is log n; each level does O(n) work — total O(n log n).
+  Aha: The work happens in the merge step, not the split. Splitting is free; merging is where sorting actually occurs.
   Steps:
     1. Base: if length <= 1, return as-is
     2. Split at mid; mergeSort(left); mergeSort(right)
@@ -7222,18 +7253,20 @@ mergeSort — O(n log n) time
   Mnemonic: "Split to atoms, sort while merging back up."
 
 merge (helper) — O(n) time
-  What: Merge two sorted arrays into one sorted array.
+  Problem: Given two sorted arrays, merge them into a single sorted array.
   Use when: Internal helper for merge sort and count inversions.
-  Key insight: Two pointers on two sorted arrays — always pick the smaller head. Drain whichever side has elements remaining.
+  Why it works: Both arrays are sorted, so the next smallest element is always at the front of one of them. Two pointers compare heads and advance whichever is smaller. After one side is exhausted, the remaining elements are already in order — just append them.
+  Aha: Two sorted arrays → one linear pass. Always take the smaller head; drain the rest.
   Steps:
     1. i = 0, j = 0; while both have elements: push the smaller, advance that pointer
     2. Drain any remaining elements from left or right
   Mnemonic: "Pick the smaller from each head. Drain the leftovers."
 
 quickSelect — O(n) average time
-  What: Find the kth smallest element in O(n) average.
+  Problem: Given an unsorted array and k (0-indexed), return the kth smallest element.
   Use when: "kth smallest", "kth largest element", "find Nth order statistic"
-  Key insight: Partition into less/equal/greater, then recurse into exactly ONE side based on k. Each step does O(n) work but halves the problem on average.
+  Why it works: Partitioning around a pivot places it in its final sorted position. If k falls in the "less" partition, recurse left; if it equals the pivot's rank, return the pivot; otherwise recurse right with an adjusted k. On average, each call halves the problem — O(n) + O(n/2) + O(n/4) + ... = O(2n) = O(n). Random pivot prevents O(n²) worst case.
+  Aha: Unlike merge sort, recurse into only ONE partition — the one containing rank k.
   Steps:
     1. Random pivot; partition into less / equal / greater
     2. k < less.length → recurse left; k < less + equal → return pivot
@@ -7241,9 +7274,10 @@ quickSelect — O(n) average time
   Mnemonic: "Partition, then recurse into exactly ONE side."
 
 countInversions — O(n log n) time
-  What: Count pairs (i, j) where i < j but nums[i] > nums[j].
+  Problem: Given an array, count the number of inversions — pairs (i, j) where i < j but nums[i] > nums[j].
   Use when: "count inversions", "count out-of-order pairs"
-  Key insight: During merge, when a right element is chosen over a left element, ALL remaining left elements are inversions with this right element. inv += left.length - i.
+  Why it works: Modify merge sort to count inversions during the merge step. When a right element is smaller than the current left element, it forms an inversion with every remaining element in the left half (since all of them are larger, and they all have smaller indices). This bulk-counting makes it O(n log n) instead of O(n²).
+  Aha: When right wins over left during merge, ALL remaining left elements are inversions. Count them in bulk: left.length - i.
   Steps:
     1. Split and recurse as merge sort
     2. During merge: when right element is chosen over left: inv += left.length - i
@@ -7535,9 +7569,10 @@ If only queries (no updates): prefix sum is simpler.
 TEMPLATE-BY-TEMPLATE MEMORIZATION:
 
 SegmentTree (constructor / _build) — O(n) build
-  What: Build the segment tree from an array.
+  Problem: Build a segment tree from an array to support range sum queries and point updates.
   Use when: Setting up segment tree for range queries with point updates.
-  Key insight: Leaves store array values; parents store sum of their children. Array of 4*n is always sufficient.
+  Why it works: Each node stores the sum of a subarray. Leaves hold individual elements; internal nodes aggregate their children. Node i has children at 2i and 2i+1 (1-indexed). Building recursively fills nodes from leaves up to root in O(n) total work. Allocating 4n ensures enough space for any tree shape.
+  Aha: Parent = sum of children. Two children of node i = 2i and 2i+1. Build bottom-up automatically via post-order recursion.
   Steps:
     1. Allocate tree = new Array(4 * n).fill(0)
     2. _build(nums, node=1, start=0, end=n-1)
@@ -7546,9 +7581,10 @@ SegmentTree (constructor / _build) — O(n) build
   Mnemonic: "Leaf stores value. Parent stores sum of children."
 
 SegmentTree.update — O(log n) time
-  What: Update a single index, then recalculate all affected parents.
+  Problem: Update the value at a single index in the array and maintain all range query answers.
   Use when: "point update", "change one element and maintain range queries"
-  Key insight: Walk down to the leaf, set the new value, then recalculate each parent on the way back up.
+  Why it works: Walk down the tree to the leaf corresponding to the index. Set the new value. On the way back up, each ancestor recalculates its sum from its two children — this restores correctness for all queries touching this index. The path length is O(log n).
+  Aha: Update the leaf, then fix every ancestor. Post-order recalculation on the way back up.
   Steps:
     1. Walk down to the leaf matching idx (go left if idx <= mid, else right)
     2. At leaf: set new value
@@ -7556,9 +7592,10 @@ SegmentTree.update — O(log n) time
   Mnemonic: "Find the leaf, set it, bubble the sum back up."
 
 SegmentTree.query — O(log n) time
-  What: Range sum over [l, r] using three-case recursion.
+  Problem: Return the sum of all elements in the range [l, r].
   Use when: "range sum query", "sum over a range with updates"
-  Key insight: Three cases — no overlap (return 0), full overlap (return node value), partial overlap (recurse both children and combine).
+  Why it works: Each recursive call checks if the current node's range is completely outside, completely inside, or partially overlapping the query range. Full overlap returns the stored sum immediately (O(1)). Partial overlap splits into two children. The three-case structure ensures at most O(log n) nodes are visited.
+  Aha: Three cases — none (0), full (return stored), partial (split). At most O(log n) partial overlaps exist.
   Steps:
     1. No overlap (r < start or end < l): return 0
     2. Full overlap (l <= start and end <= r): return tree[node]
@@ -7899,9 +7936,10 @@ Mnemonic: "KMP = never re-check matched characters. LPS tells you where to jump.
 TEMPLATE-BY-TEMPLATE MEMORIZATION:
 
 kmpSearch — O(n+m) time
-  What: Find all occurrences of pattern in text.
+  Problem: Given a text and pattern, find all starting indices in text where pattern occurs.
   Use when: "pattern matching", "find all occurrences of substring", "efficient string search"
-  Key insight: The LPS array tells how far to jump back on mismatch — never re-check already-matched characters.
+  Why it works: The LPS (Longest Proper Prefix which is also Suffix) array encodes how far to jump back on a mismatch without re-checking already-matched characters. Phase 1 builds this table from the pattern alone in O(m). Phase 2 uses it during search — on mismatch, j jumps to lps[j-1] instead of 0, preserving the matched prefix.
+  Aha: The LPS table is the heart of KMP. It says: "this prefix of the pattern also appears as a suffix — start from there instead of zero."
   Steps to memorize (Phase 1 — build LPS):
     1. lps[0] = 0; len = 0, i = 1
     2. If pattern[i] === pattern[len]: len++, lps[i] = len, i++
@@ -7913,9 +7951,10 @@ kmpSearch — O(n+m) time
   Mnemonic: "LPS tells you: 'don't restart from zero, restart from this shorter match.'"
 
 rabinKarp — O(n+m) average time
-  What: Find first occurrence of pattern in text using rolling hash.
+  Problem: Find the first occurrence of pattern in text using a rolling hash.
   Use when: "rolling hash", "multi-pattern search", "hash-based string matching"
-  Key insight: Rolling hash — remove the leftmost character's contribution and add the new rightmost character. Only verify with string comparison when hashes match.
+  Why it works: A rolling hash updates in O(1) per window slide: subtract the leftmost character's contribution (scaled by base^(m-1) = power), then multiply by base and add the new right character. Hash collisions require string verification, but they're rare with a large prime modulus.
+  Aha: Rolling hash = O(1) per slide. Hash match → verify with string comparison (avoids false positives).
   Steps:
     1. Compute pHash and initial tHash over first m chars
     2. For each window: if hashes match AND string matches → return i
@@ -8254,17 +8293,19 @@ WHEN TO USE: "connect all nodes with minimum cost" = MST.
 TEMPLATE-BY-TEMPLATE MEMORIZATION:
 
 UnionFind (for MST — same as Union Find topic) — O(α(n)) per operation
-  What: Reuse the standard UnionFind class for cycle detection in Kruskal's.
+  Problem: Use Union-Find to detect cycles while building a minimum spanning tree with Kruskal's.
   Use when: Building MST with Kruskal's algorithm.
-  Key insight: Already memorized. union() returns false when edge would create a cycle — skip it.
+  Why it works: Kruskal's adds edges one by one (cheapest first). Union-Find tracks which nodes are already connected — if find(u) === find(v), adding edge (u,v) would create a cycle. The union() method returns false in that case, so we skip it cleanly.
+  Aha: Union-Find is the cycle oracle for Kruskal's. union() returning false = skip the edge.
   Steps:
     1. Reuse constructor, find (path compression), union (by rank)
   Mnemonic: "Already memorized. Just copy it here."
 
 kruskal — O(E log E) time
-  What: Build the MST by greedily adding cheapest non-cycle edges.
+  Problem: Given a weighted undirected graph, find the minimum cost to connect all n nodes (minimum spanning tree).
   Use when: "minimum spanning tree", "connect all nodes with minimum cost", "Kruskal's"
-  Key insight: Sort edges by weight. For each edge, union the two endpoints — if they're already connected, skip (would create cycle). Stop at n-1 edges.
+  Why it works: Sort edges by weight so cheaper edges are always considered first. For each edge, attempt to union its endpoints. If they're already connected, skip (adding it would create a cycle). Exactly n-1 successful unions connect all nodes. Sorting is the dominant O(E log E) cost.
+  Aha: Sort edges, greedily add cheapest non-cycle edge. Union-Find detects cycles in O(1).
   Steps:
     1. Sort edges by weight ascending
     2. For each [weight, u, v]: if uf.union(u, v) succeeds → add to MST (mstCost += weight, mstEdges++)
@@ -8273,9 +8314,10 @@ kruskal — O(E log E) time
   Mnemonic: "Sort, union, skip cycles, stop at n-1 edges."
 
 prim — O(E log V) time
-  What: Build the MST by growing from a starting node, always adding the cheapest bridge.
+  Problem: Given a weighted undirected graph, find the minimum cost to connect all n nodes using Prim's algorithm.
   Use when: "minimum spanning tree", "Prim's algorithm", "grow MST from one node"
-  Key insight: Min-heap always gives the cheapest edge to an unvisited node. Skip visited nodes popped from the heap (stale entries).
+  Why it works: Start from any node; maintain a min-heap of edges connecting the visited set to unvisited nodes. Always add the cheapest such edge. Stale heap entries (to already-visited nodes) are skipped. Each node is added exactly once, and at most E edges enter the heap.
+  Aha: Prim's = greedy BFS. Always grab the cheapest bridge from the already-visited frontier.
   Steps:
     1. heap = [[0, startNode]]; visited = new Set()
     2. Pop min [cost, u]; if visited → skip; add to visited, total += cost
@@ -8612,9 +8654,10 @@ QUICK REFERENCE:
 TEMPLATE-BY-TEMPLATE MEMORIZATION:
 
 nextGreater — O(n) time
-  What: For each element, find the next element to its right that is larger.
+  Problem: Given an array, return an array where result[i] is the next element to the right greater than nums[i], or -1 if none.
   Use when: "next greater element", "find next larger value"
-  Key insight: A monotonic decreasing stack holds elements waiting for their next greater. When current > stack top, the top just found its answer.
+  Why it works: A monotonic decreasing stack accumulates indices waiting for a greater element. When nums[i] > nums[stack top], the top has found its next greater element — pop it and record the answer. Any index still in the stack at the end has no greater element to its right (stays -1). Every element is pushed and popped at most once — O(n).
+  Aha: The stack holds "unresolved" indices. A larger incoming element resolves all smaller entries above it.
   Steps:
     1. result filled with -1; stack = []
     2. For each i: while stack not empty AND nums[i] > nums[stack top]: pop j, result[j] = nums[i]
@@ -8622,9 +8665,10 @@ nextGreater — O(n) time
   Mnemonic: "Current is bigger than stack top? That top just found its next greater."
 
 dailyTemperatures — O(n) time
-  What: For each day, number of days until a warmer day (or 0 if none).
+  Problem: Given daily temperatures, return an array where result[i] is the number of days to wait for a warmer day (0 if none).
   Use when: "daily temperatures", "days until next warmer", "next greater with distance"
-  Key insight: Same as nextGreater, but record the distance (i - j) instead of the value.
+  Why it works: Identical mechanism to nextGreater — a decreasing stack holds indices waiting for a warmer day. The only change is what you record when popping: instead of the value, record the distance (i - j). Days that never get a warmer day stay at 0.
+  Aha: Next greater element pattern, but record index gap (i - j) instead of the value.
   Steps:
     1. result filled with 0; stack = []
     2. For each i: while stack not empty AND temps[i] > temps[stack top]: pop j, result[j] = i - j
@@ -8632,9 +8676,10 @@ dailyTemperatures — O(n) time
   Mnemonic: "Identical to nextGreater, but record i - j instead of nums[i]."
 
 largestRectangleArea — O(n) time
-  What: Find the largest rectangle that can be formed in a histogram.
+  Problem: Given an array of bar heights, find the largest rectangle that can be formed within the histogram.
   Use when: "largest rectangle in histogram", "maximal rectangle"
-  Key insight: Pop when a shorter bar is found — the popped bar is the height of its maximal rectangle. Width = distance between new stack top and current i. Append 0 sentinel to flush all remaining bars.
+  Why it works: For each bar, the maximal rectangle using its height extends left until a shorter bar and right until a shorter bar. When a shorter bar appears at index i, every taller bar on the stack has just found its right boundary. The left boundary is the new stack top after popping (or -1 if empty). Width = i - leftBoundary - 1. Appending 0 forces all remaining bars to pop at the end.
+  Aha: A shorter bar arriving = right boundary for all taller bars above it. Pop them and compute their areas.
   Steps:
     1. Append 0 sentinel to heights
     2. For each i: while stack not empty AND heights[stack top] > heights[i]:
@@ -8644,9 +8689,10 @@ largestRectangleArea — O(n) time
   Mnemonic: "Pop shorter bars. Width = gap between new top and current i. Append 0 to flush all."
 
 trap (stack version) — O(n) time
-  What: Calculate trapped rainwater by collecting water in valleys.
+  Problem: Given an array representing an elevation map, compute the total water that can be trapped after rain.
   Use when: "trapping rain water" (stack approach), "water between bars"
-  Key insight: Pop the valley bottom, use the left wall (new stack top) and right wall (current i) to compute water: width × (min(walls) - bottom height).
+  Why it works: The stack holds bars in decreasing height. When a taller bar arrives, it forms the right wall of a valley. The top of the stack is the valley floor, and the new stack top (after popping) is the left wall. Water fills the space between the two walls above the floor level.
+  Aha: Pop the valley floor. Left wall = new stack top. Right wall = current i. Water = (min walls - floor) × width.
   Steps:
     1. For each i: while stack not empty AND height[i] > height[stack top]:
        pop bottom; if stack empty → break (no left wall)
@@ -8952,42 +8998,47 @@ WHEN TO USE: "prefix sum + updates" or "count smaller/larger elements"
 TEMPLATE-BY-TEMPLATE MEMORIZATION:
 
 BIT (constructor) — O(n) initialization
-  What: Initialize a 1-indexed Fenwick tree with n+1 zeros.
+  Problem: Initialize a Binary Indexed Tree (Fenwick Tree) for n elements to support prefix sum queries and point updates.
   Use when: Setting up a BIT for prefix sums with point updates.
-  Key insight: Must be 1-indexed — index 0 is never used. i & (-i) gives the lowest set bit.
+  Why it works: The BIT uses a 1-indexed array where each index i is responsible for a range of elements determined by its lowest set bit (i & -i). Index 0 is intentionally unused — the bit trick only works correctly starting from 1.
+  Aha: Must be 1-indexed. The magic i & (-i) = lowest set bit. That's the entire data structure's engine.
   Steps:
     1. this.n = n; this.tree = new Array(n + 1).fill(0)
   Mnemonic: "1-indexed array. Leave index 0 empty."
 
 BIT.update — O(log n) time
-  What: Add delta to 1-indexed position i and propagate upward.
+  Problem: Add a delta value to the element at 1-indexed position i, maintaining correct prefix sums.
   Use when: "point update on BIT", "add value at index"
-  Key insight: Propagate UP by adding the lowest set bit: i += i & (-i).
+  Why it works: Index i is responsible for a range ending at i. The next responsible index that covers i is found by adding the lowest set bit: i += i & (-i). This propagates the change upward through all covering nodes. At most log n nodes are updated.
+  Aha: i += i & (-i) climbs to the next node responsible for covering index i. Repeat until out of bounds.
   Steps:
     1. While i <= n: tree[i] += delta; i += i & (-i)
   Mnemonic: "Add lowest set bit to climb up the tree."
 
 BIT.query — O(log n) time
-  What: Prefix sum from index 1 to i (inclusive).
+  Problem: Return the prefix sum from index 1 to i (inclusive).
   Use when: "prefix sum query on BIT", "sum from 1 to i"
-  Key insight: Accumulate DOWN by removing the lowest set bit: i -= i & (-i).
+  Why it works: Index i stores the sum of a specific range. Remove the lowest set bit (i -= i & (-i)) to find the previous contributing index. Accumulate their ranges — they tile perfectly from 1 to i without overlap or gaps. At most log n nodes are visited.
+  Aha: i -= i & (-i) descends to the previous contributing node. Each step adds a non-overlapping range chunk.
   Steps:
     1. total = 0; while i > 0: total += tree[i]; i -= i & (-i)
     2. Return total
   Mnemonic: "Remove lowest set bit to descend. Accumulate as you go."
 
 BIT.rangeQuery — O(log n) time
-  What: Sum from index l to r (both 1-indexed, inclusive).
+  Problem: Return the sum of elements from 1-indexed position l to r (inclusive).
   Use when: "range sum query on BIT"
-  Key insight: Same as prefix sum — query(r) - query(l-1) gives the range sum.
+  Why it works: query(r) gives the prefix sum from 1 to r. query(l-1) gives the prefix sum from 1 to l-1. Their difference is exactly the sum of elements in [l, r] — the same prefix subtraction trick used in prefix sum arrays.
+  Aha: Range sum = prefix(r) - prefix(l-1). The BIT makes each prefix query O(log n).
   Steps:
     1. Return query(r) - query(l - 1)
   Mnemonic: "Prefix sum trick: query right minus query just before left."
 
 NumArray — O(n log n) build, O(log n) per query/update
-  What: Range sum query with point updates.
+  Problem: Design a class that supports range sum queries and point updates on a mutable array.
   Use when: "range sum mutable", "point update + range query"
-  Key insight: Store original values separately to compute delta on update. Always pass the delta (diff), not the absolute value. Convert 0-indexed to 1-indexed.
+  Why it works: BIT handles prefix sums efficiently. Store a copy of the original values to compute the delta on update — the BIT needs the change amount, not the absolute value. All external indices are 0-indexed; add 1 when calling BIT methods.
+  Aha: BIT stores deltas, not absolute values. Keep a copy of nums to compute delta = newVal - oldVal.
   Steps:
     1. Build BIT by calling update(i+1, nums[i]) for each element
     2. update(index, val): delta = val - nums[index]; nums[index] = val; bit.update(index+1, delta)
@@ -8995,9 +9046,10 @@ NumArray — O(n log n) build, O(log n) per query/update
   Mnemonic: "Only pass the delta (diff), not the absolute value. Convert 0-indexed to 1-indexed."
 
 countInversions (BIT version) — O(n log n) time
-  What: Count inversions using BIT as a frequency table.
+  Problem: Count the number of inversions in an array — pairs (i, j) where i < j but nums[i] > nums[j].
   Use when: "count inversions with BIT", "count smaller to the right"
-  Key insight: Process right to left. For each element, query how many smaller values have already been seen (to its right). Update BIT to mark this element as seen.
+  Why it works: Coordinate-compress values to ranks 1..k (so BIT indices stay small). Process right to left — for each element, query the BIT for how many elements with a smaller rank have already been seen (they appear to the right of the current element, so they form inversions). Then register the current element in the BIT.
+  Aha: Process right to left. "Smaller rank already seen" = "smaller value to the right" = inversion.
   Steps:
     1. Coordinate compress: assign ranks 1..k to sorted unique values
     2. Process right to left: inversions += bit.query(rank[num] - 1); bit.update(rank[num], 1)
@@ -9343,9 +9395,10 @@ WHEN TO USE:
 TEMPLATE-BY-TEMPLATE MEMORIZATION:
 
 topologicalSortKahn — O(V+E) time
-  What: BFS-based topological sort using in-degree counting.
+  Problem: Given a DAG with n nodes and directed edges, return a valid topological ordering, or empty if a cycle exists.
   Use when: "topological sort", "course order", "dependency ordering"
-  Key insight: Start with all nodes having in-degree 0 (no dependencies). Peel them off layer by layer, reducing neighbors' in-degrees.
+  Why it works: Nodes with in-degree 0 have no unresolved dependencies — they can be processed immediately. Removing them reduces their neighbors' in-degrees, potentially freeing new nodes. If any nodes remain stuck with non-zero in-degree, a cycle prevents them from ever becoming zero.
+  Aha: In-degree 0 = free to process. Processing a node frees its dependents. Stuck nodes = cycle.
   Steps:
     1. Build graph and inDegree from edges
     2. Queue all nodes where inDegree === 0
@@ -9354,18 +9407,20 @@ topologicalSortKahn — O(V+E) time
   Mnemonic: "Peel nodes with no dependencies. Cycle = not all nodes peeled."
 
 canFinish — O(V+E) time
-  What: Can all courses be completed given prerequisites? (cycle detection)
+  Problem: Given n courses and a list of prerequisite pairs, return true if it's possible to finish all courses.
   Use when: "can finish all courses", "is there a cycle in prerequisites", "course schedule"
-  Key insight: Topological sort succeeds only on DAGs. If all nodes appear in the result, no cycle exists.
+  Why it works: Prerequisites form a directed graph. If there's a cycle (A requires B which requires A), it's impossible to complete all courses. Kahn's topological sort processes all nodes only on DAGs. If the result length equals numCourses, all nodes were reachable — no cycle.
+  Aha: canFinish = "is the prerequisite graph a DAG?" = "does topo sort include all nodes?"
   Steps:
     1. Run topologicalSortKahn(numCourses, prerequisites)
     2. Return order.length === numCourses
   Mnemonic: "Topo sort succeeds on DAGs. Cycle means impossible."
 
 topologicalSortDFS — O(V+E) time
-  What: DFS-based topological sort using three-state coloring.
+  Problem: Topologically sort a DAG using DFS with three-state cycle detection.
   Use when: "topological sort via DFS", "cycle detection in directed graph"
-  Key insight: Three states — IN_PROGRESS means a back edge (cycle). Add nodes in POST-ORDER (after all descendants), then reverse for topological order.
+  Why it works: Three states distinguish visited status: UNVISITED (not started), IN_PROGRESS (currently on the DFS stack), DONE (fully processed). A back edge — reaching a node that's IN_PROGRESS — means a cycle. Adding nodes post-order (after all descendants) ensures all dependencies come later. Reversing the post-order list gives a valid topological order.
+  Aha: Post-order means "I finish after all my children." Reversing post-order = topological order.
   Steps:
     1. dfs(node): if IN_PROGRESS → cycle (return false); if DONE → return true
     2. Mark IN_PROGRESS; recurse all neighbors; mark DONE; order.push(node)
@@ -10186,9 +10241,10 @@ DINING PHILOSOPHERS (#1226):
 TEMPLATE-BY-TEMPLATE MEMORIZATION:
 
 Sequential (Print in Order pattern) — O(1) per call
-  What: Enforce execution order step1 → step2 → step3 regardless of thread start order.
+  Problem: Three functions must execute in order (step1 → step2 → step3) even when called concurrently in arbitrary order.
   Use when: "print in order", "enforce ordering across threads", "step1 must precede step2"
-  Key insight: Two promise gates act as one-way doors. Each step opens the next door only after completing its own work.
+  Why it works: Each promise starts unresolved (gate closed). step2 awaits the promise resolved by step1; step3 awaits the promise resolved by step2. Regardless of which order threads start, each step blocks until its gate opens. The gates open in order, forcing sequential execution.
+  Aha: Promises as one-way gates. Each step unlocks the next. Can't proceed until the previous fires.
   Steps:
     1. step1: run action, call r1() (opens gate 1)
     2. step2: await p1, run action, call r2() (opens gate 2)
@@ -10196,9 +10252,10 @@ Sequential (Print in Order pattern) — O(1) per call
   Mnemonic: "Relay race. Pass the baton (resolve the promise) when your leg is done."
 
 PrintInOrder (#1114) — O(1) per call
-  What: Three threads call first(), second(), third() in random order; output must always be first→second→third.
+  Problem: Implement a class where three methods (first, second, third) can be called concurrently in any order but always execute in sequence first → second → third.
   Use when: "#1114", "print in order", "ordered execution across threads"
-  Key insight: Two promise gates (firstDone, secondDone) act as locks. Each method awaits the previous gate and opens the next one.
+  Why it works: Two promise gates are created at construction. first() fires its resolve function after completing, which unblocks second(). second() similarly unblocks third(). Any method called early simply awaits its gate — no busy-wait, just a pending promise.
+  Aha: N-step sequential ordering = N-1 promise gates. Each method resolves the next gate after completing.
   Steps:
     1. Constructor: create firstDone and secondDone promises; store resolve functions
     2. first(): run printFirst(), call resolveFirst()
@@ -10207,27 +10264,30 @@ PrintInOrder (#1114) — O(1) per call
   Mnemonic: "Each method holds a key to unlock the next."
 
 FooBar (#1115) — O(n) total
-  What: Two threads alternate printing "foo" and "bar" n times each.
+  Problem: Two threads must alternate printing "foo" and "bar" exactly n times each, in order: foobarfoobar...
   Use when: "#1115", "alternating threads", "foo bar alternately", "two threads take turns"
-  Key insight: A single boolean flag fooTurn controls whose turn it is. Each thread spin-waits until the flag matches, then flips it after running.
+  Why it works: A boolean fooTurn acts as a hand-off token. Each thread spin-waits (yielding to the event loop via setTimeout(0)) until the flag indicates its turn, then does its work and flips the flag. The yield prevents busy-waiting from blocking the other thread.
+  Aha: Spin-wait with a flag — check, yield if not your turn, do work, flip. Two threads ping-pong the flag.
   Steps:
     1. foo loop: while !fooTurn → spin-wait (yield with setTimeout(r,0)); run printFoo(); fooTurn = false
     2. bar loop: while fooTurn → spin-wait; run printBar(); fooTurn = true
   Mnemonic: "Spin until your flag. Do work. Flip the flag."
 
 AsyncQueue / ProducerConsumer (#1188) — O(1) per operation
-  What: Bounded async queue that blocks producers when full and consumers when empty.
+  Problem: Implement a bounded async queue where producers block when full and consumers block when empty.
   Use when: "#1188", "producer consumer", "bounded buffer", "blocking queue"
-  Key insight: Two waiting lists (waitingProducers, waitingConsumers) act as semaphores. After each enqueue/dequeue, wake the opposite side if anyone is waiting.
+  Why it works: When the queue is full, a producer suspends itself by pushing its resolve function to a waiting list and awaiting a new promise. When a consumer dequeues an item, it wakes the oldest waiting producer by calling its resolve. The same pattern applies symmetrically for consumers when the queue is empty.
+  Aha: waitingProducers and waitingConsumers are arrays of resolve functions — calling one resumes a suspended coroutine.
   Steps:
     1. enqueue: if full → await (push resolve to waitingProducers); push item; wake waiting consumer
     2. dequeue: if empty → await (push resolve to waitingConsumers); shift item; wake waiting producer
   Mnemonic: "Two waiting lists act as semaphores. Wake the opposite side after each operation."
 
 H2O (#1117) — O(1) per call
-  What: Form water molecules by releasing exactly 2 hydrogens and 1 oxygen together.
+  Problem: Implement a class where hydrogen and oxygen threads must be released in groups of exactly 2H + 1O to form water molecules.
   Use when: "#1117", "building H2O", "group atoms into molecules", "release in fixed ratio"
-  Key insight: Queue each atom type. After every arrival, check if the recipe (2H + 1O) is satisfied — if so, flush exactly one molecule.
+  Why it works: Each atom arrival pushes a callback to its queue and triggers tryFormWater(). That method repeatedly checks if at least 2 hydrogens and 1 oxygen are buffered — if so, it calls all three callbacks together (releasing one molecule) and loops to check for more. This correctly handles bursts of arrivals.
+  Aha: Buffer first, then batch-release when the recipe is complete. tryFormWater loops until insufficient atoms.
   Steps:
     1. hydrogen(fn): push fn to hydrogenQueue; tryFormWater()
     2. oxygen(fn): push fn to oxygenQueue; tryFormWater()
@@ -10235,9 +10295,10 @@ H2O (#1117) — O(1) per call
   Mnemonic: "Buffer atoms. Flush when 2H + 1O are ready."
 
 DiningPhilosophers (#1226) — O(1) per eat
-  What: 5 philosophers share 5 forks; each needs both adjacent forks to eat without deadlock.
+  Problem: 5 philosophers sit at a round table with 5 forks. Each needs both adjacent forks to eat. Prevent deadlock.
   Use when: "#1226", "dining philosophers", "deadlock with circular resources"
-  Key insight: Limit seated philosophers to 4 at once. With 5 forks and at most 4 seated, pigeonhole guarantees at least one can always acquire both forks — circular wait is broken.
+  Why it works: The classic deadlock scenario: all 5 pick up their left fork simultaneously, then wait for the right — circular wait. Limiting to 4 seated at once breaks the cycle: with 4 diners and 5 forks, by the pigeonhole principle at least one diner can always get both adjacent forks.
+  Aha: Limit concurrency to n-1 participants. Pigeonhole principle guarantees at least one always succeeds, breaking circular wait.
   Steps:
     1. wantsToEat: spin-wait if seatedCount >= 4; seatedCount++
     2. Acquire left fork, then right fork; eat(); release both forks; seatedCount--
