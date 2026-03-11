@@ -249,6 +249,11 @@ function TopicCard({ lesson, language, setLanguage, codeStyle, setCodeStyle }: {
                     <pre className="text-sky-200/90 whitespace-pre-wrap font-mono text-xs leading-relaxed">{lesson.jsTemplateWalkthrough}</pre>
                   </div>
                 )}
+                {lesson.verification && (
+                  <div className="mt-3">
+                    <VerifySection text={lesson.verification} />
+                  </div>
+                )}
               </div>
             )}
 
