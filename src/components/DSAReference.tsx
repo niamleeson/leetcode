@@ -84,6 +84,24 @@ function LanguageToggle({ language, setLanguage }: {
   );
 }
 
+function VerifySection({ text }: { text: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="border border-emerald-900/30 rounded-lg overflow-hidden">
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between px-4 py-3 bg-emerald-950/20 hover:bg-emerald-950/30 transition-colors cursor-pointer"
+      >
+        <span className="text-xs font-semibold text-emerald-400 uppercase tracking-wider">Verify Your Understanding</span>
+        <span className="text-emerald-600 text-xs">{open ? '▾' : '▸'}</span>
+      </button>
+      {open && (
+        <pre className="p-4 text-xs text-emerald-200/80 leading-relaxed whitespace-pre-wrap font-mono">{text}</pre>
+      )}
+    </div>
+  );
+}
+
 function TopicCard({ lesson, language, setLanguage, codeStyle, setCodeStyle }: {
   lesson: TopicLesson;
   language: 'python' | 'javascript';
@@ -235,11 +253,14 @@ function TopicCard({ lesson, language, setLanguage, codeStyle, setCodeStyle }: {
             )}
 
             {activeTab === 'memorization' && (
-              <div>
+              <div className="space-y-4">
                 {lesson.memorization ? (
                   <GlossaryHighlighter text={lesson.memorization!} className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap font-mono" />
                 ) : (
                   <p className="text-sm text-gray-500 italic">Memorization techniques coming soon for this topic.</p>
+                )}
+                {lesson.verification && (
+                  <VerifySection text={lesson.verification} />
                 )}
               </div>
             )}

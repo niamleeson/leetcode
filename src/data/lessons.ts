@@ -10,6 +10,7 @@ export interface TopicLesson {
   tips: string[];
   memorization?: string;  // Mnemonics and techniques for memorizing templates
   jsTemplateReadable?: string; // Readable version using iteration helpers
+  verification?: string; // Verify-your-understanding exercises for each template
 }
 
 export const lessons: Record<string, TopicLesson> = {
@@ -275,6 +276,51 @@ function productExceptSelf(nums) {
 
     return result;
 }`,
+    verification: `twoSum:
+  Promise: "seen contains every number we have visited so far, mapped to its index"
+  Init: before the loop, seen is empty — trivially true ✓
+  Maintain:
+    What changes? We check for the complement, then add the current number to seen.
+    Could it break the promise? No — we only ever add, never remove.
+    Flip test: what would break it? Adding the current number BEFORE checking the complement.
+      Does the code prevent it? Yes — the check happens first, then we store. ✓
+  Terminate: every element is stored in seen; if any complement pair exists it was found ✓
+
+topKFrequent:
+  Promise: "count maps each number to its exact frequency; buckets[f] holds all numbers with frequency f"
+  Init: count is empty, buckets is all-empty arrays — trivially true ✓
+  Maintain:
+    What changes? We increment count for each num, then place each num into its frequency bucket.
+    Could it break the promise? No — each pass is a full sweep of count entries.
+    Flip test: what would break it? Placing into the wrong bucket index.
+      Does the code prevent it? Yes — we use the value from count directly as the bucket index. ✓
+  Terminate: walking buckets from high to low, we collect the k numbers with the highest frequencies ✓
+
+subarraySum:
+  Promise: "sumFrequency[s] = number of indices j <= i where prefix sum equals s"
+  Init: sumFrequency = {0: 1} — the empty prefix has sum 0, one occurrence ✓
+  Maintain:
+    What changes? We add the current num to runningSumSoFar, look up neededPrefixSum, then store runningSumSoFar.
+    Could it break the promise? No — we record the current prefix sum after counting, keeping counts accurate for future iterations.
+    Flip test: what would break it? Recording runningSumSoFar BEFORE the lookup.
+      Does the code prevent it? Yes — lookup happens first, then we store. ✓
+  Terminate: every prefix sum is counted; count holds the number of (i, j) pairs where prefix[j] - prefix[i] = k ✓
+
+productExceptSelf:
+  Promise after left pass: "result[i] = product of all elements strictly to the left of i"
+  Promise after right pass: "result[i] = product of all elements except nums[i]"
+  Init (left pass): productOfAllToMyLeft = 1 — nothing is to the left of index 0 ✓
+  Maintain (left pass):
+    What changes? result[i] is set to the running left product, then left product is multiplied by nums[i].
+    Could it break the promise? No — we record before updating the running product.
+    Flip test: what would break it? Multiplying first, then storing.
+      Does the code prevent it? Yes — store then multiply. ✓
+  Init (right pass): productOfAllToMyRight = 1 — nothing is to the right of the last index ✓
+  Maintain (right pass):
+    What changes? result[i] is multiplied by the running right product (completing the answer), then right product is multiplied by nums[i].
+    Flip test: multiplying right product by nums[i] before updating result[i].
+      Does the code prevent it? Yes — result[i] updated first, then running product advances. ✓
+  Terminate: each result[i] = (left product) x (right product) = product of all others ✓`,
     jsTemplateWalkthrough:
       '── Two Sum ──\n' +
       'nums = [2, 7, 11, 15], target = 9\n\n' +
@@ -593,19 +639,22 @@ function twoSumSorted(nums, target) {
     let left = 0;
     let right = nums.length - 1;
 
-    repeatWhile(() => left < right, () => {
-        const pairSum = nums[left] + nums[right];
+    repeatWhile(
+        () => left < right,
+        () => {
+            const pairSum = nums[left] + nums[right];
 
-        if (pairSum === target) {
-            return [left, right];
-        } else if (pairSum < target) {
-            // Sum too small — move left pointer right to increase it
-            left++;
-        } else {
-            // Sum too big — move right pointer left to decrease it
-            right--;
+            if (pairSum === target) {
+                return [left, right];
+            } else if (pairSum < target) {
+                // Sum too small — move left pointer right to increase it
+                left++;
+            } else {
+                // Sum too big — move right pointer left to decrease it
+                right--;
+            }
         }
-    });
+    );
 }
 
 // 3Sum pattern - fix one, two-pointer on rest
@@ -623,22 +672,25 @@ function threeSum(nums) {
         let left = i + 1;
         let right = nums.length - 1;
 
-        repeatWhile(() => left < right, () => {
-            const total = nums[i] + nums[left] + nums[right];
+        repeatWhile(
+            () => left < right,
+            () => {
+                const total = nums[i] + nums[left] + nums[right];
 
-            if (total === 0) {
-                result.push([nums[i], nums[left], nums[right]]);
+                if (total === 0) {
+                    result.push([nums[i], nums[left], nums[right]]);
 
-                // Skip duplicate values for left pointer
-                left = advancePast(nums, left, (val) => val === nums[left + 1] && left < right);
-                left++;
-                right--;
-            } else if (total < 0) {
-                left++;
-            } else {
-                right--;
+                    // Skip duplicate values for left pointer
+                    left = advancePast(nums, left, (val) => val === nums[left + 1] && left < right);
+                    left++;
+                    right--;
+                } else if (total < 0) {
+                    left++;
+                } else {
+                    right--;
+                }
             }
-        });
+        );
     });
     return result;
 }
@@ -671,29 +723,71 @@ function trap(height) {
     let rightMax = 0;
     let totalWater = 0;
 
-    repeatWhile(() => left < right, () => {
-        if (height[left] < height[right]) {
-            // Left side is the bottleneck
-            if (height[left] >= leftMax) {
-                leftMax = height[left];
+    repeatWhile(
+        () => left < right,
+        () => {
+            if (height[left] < height[right]) {
+                // Left side is the bottleneck
+                if (height[left] >= leftMax) {
+                    leftMax = height[left];
+                } else {
+                    // Water trapped = leftMax - current height
+                    totalWater = totalWater + (leftMax - height[left]);
+                }
+                left = left + 1;
             } else {
-                // Water trapped = leftMax - current height
-                totalWater = totalWater + (leftMax - height[left]);
+                // Right side is the bottleneck
+                if (height[right] >= rightMax) {
+                    rightMax = height[right];
+                } else {
+                    totalWater = totalWater + (rightMax - height[right]);
+                }
+                right = right - 1;
             }
-            left = left + 1;
-        } else {
-            // Right side is the bottleneck
-            if (height[right] >= rightMax) {
-                rightMax = height[right];
-            } else {
-                totalWater = totalWater + (rightMax - height[right]);
-            }
-            right = right - 1;
         }
-    });
+    );
 
     return totalWater;
 }`,
+    verification: `twoSumSorted:
+  Promise: "the pair that sums to target, if it exists, lies within nums[left..right]"
+  Init: left = 0, right = n-1 — the full array is the search space ✓
+  Maintain:
+    What changes? We compute pairSum and move one pointer inward.
+    Could it break the promise? No — if pairSum < target the answer cannot involve nums[left] (too small to pair with anything smaller), so left++ is safe; symmetrically for right--.
+    Flip test: what would break it? Moving the pointer in the wrong direction.
+      Does the code prevent it? Yes — too small means left must grow; too large means right must shrink. ✓
+  Terminate: left === right (window collapses) means no pair exists; any earlier exit returns the found pair ✓
+
+threeSum:
+  Promise: "for fixed nums[i], the inner two-pointer search covers all pairs in nums[i+1..right] that sum to -nums[i]"
+  Init: same invariant as twoSumSorted applied to the suffix ✓
+  Maintain:
+    What changes? Same shrink logic as twoSumSorted; duplicate skipping keeps results unique.
+    Could it break the promise? No — duplicates are skipped only after recording a match, so no valid triplet is lost.
+    Flip test: what would break it? Skipping the outer loop duplicate without the i > 0 guard.
+      Does the code prevent it? Yes — the guard 'i > 0 && nums[i] === nums[i-1]' preserves the first occurrence. ✓
+  Terminate: outer loop exhausts all anchor positions; inner loop correctly covers each suffix ✓
+
+removeDuplicates:
+  Promise: "nums[0..slow] is the sorted unique prefix of the original array"
+  Init: slow = 0, nums[0] is itself — single-element prefix is trivially unique ✓
+  Maintain:
+    What changes? fast scans ahead; when it finds a value different from nums[slow], slow advances and nums[slow] = nums[fast].
+    Could it break the promise? No — the unique prefix only extends when a genuinely new value is found.
+    Flip test: what would break it? Advancing slow without copying nums[fast].
+      Does the code prevent it? Yes — slow++ and the assignment happen together. ✓
+  Terminate: fast has scanned the whole array; slow + 1 is the count of unique elements ✓
+
+trap:
+  Promise: "totalWater is the exact trapped water for all positions already processed; the remaining water is bounded by min(leftMax, rightMax) for each unprocessed position"
+  Init: all variables are 0, no positions processed — trivially true ✓
+  Maintain:
+    What changes? We process the side with the smaller max (the bottleneck), compute water at that position, and advance that pointer.
+    Could it break the promise? No — the bottleneck side's water level is certain (the other wall is at least as tall, so no overflow).
+    Flip test: what would break it? Processing the taller side first — its water level would be unknown.
+      Does the code prevent it? Yes — we always pick the shorter side. ✓
+  Terminate: left === right, every position processed, totalWater is the answer ✓`,
     jsTemplateWalkthrough:
       '── Two Sum Sorted ──\n' +
       'nums = [1, 3, 5, 7, 9], target = 10\n\n' +
@@ -1032,21 +1126,24 @@ function minWindow(s, t) {
         charDeficit.set(rightChar, (charDeficit.get(rightChar) || 0) - 1);
 
         // When window satisfies all requirements, try to shrink from left
-        repeatWhile(() => charsStillNeeded === 0, () => {
-            const windowLen = right - left + 1;
-            if (windowLen < shortestWindowSoFar) {
-                shortestWindowSoFar = windowLen;
-                bestWindowStart = left;
-            }
+        repeatWhile(
+            () => charsStillNeeded === 0,
+            () => {
+                const windowLen = right - left + 1;
+                if (windowLen < shortestWindowSoFar) {
+                    shortestWindowSoFar = windowLen;
+                    bestWindowStart = left;
+                }
 
-            // Remove leftmost char from window
-            const leftChar = s[left];
-            charDeficit.set(leftChar, (charDeficit.get(leftChar) || 0) + 1);
-            if (charDeficit.get(leftChar) > 0) {
-                charsStillNeeded++; // window is now missing a required char
+                // Remove leftmost char from window
+                const leftChar = s[left];
+                charDeficit.set(leftChar, (charDeficit.get(leftChar) || 0) + 1);
+                if (charDeficit.get(leftChar) > 0) {
+                    charsStillNeeded++; // window is now missing a required char
+                }
+                left++;
             }
-            left++;
-        });
+        );
     });
     return shortestWindowSoFar === Infinity ? '' : s.slice(bestWindowStart, bestWindowStart + shortestWindowSoFar);
 }
@@ -1067,6 +1164,35 @@ function maxSumSubarray(nums, k) {
     });
     return maxSum;
 }`,
+    verification: `lengthOfLongestSubstring:
+  Promise: "s[left..right] contains no repeated characters; result holds the length of the longest valid window seen"
+  Init: left = 0, seen is empty, result = 0 — the empty window is trivially duplicate-free ✓
+  Maintain:
+    What changes? We advance right; if the new char is already inside the window we jump left past its previous occurrence.
+    Could it break the promise? No — jumping left past the old position removes the duplicate before recording it.
+    Flip test: what would break it? Updating seen[char] = right before jumping left.
+      Does the code prevent it? Yes — we jump left first, then update seen. ✓
+  Terminate: right has visited every character; result is the maximum valid window length ✓
+
+minWindow:
+  Promise: "charsStillNeeded === 0 exactly when s[left..right] contains all required characters of t with sufficient counts"
+  Init: charsStillNeeded = t.length, charDeficit mirrors t's frequency — correct before any character is consumed ✓
+  Maintain:
+    What changes? Expanding right decrements charsStillNeeded when a truly needed char is added; shrinking left increments it when a required char falls below quota.
+    Could it break the promise? No — we only change charsStillNeeded when charDeficit crosses the zero boundary.
+    Flip test: what would break it? Decrementing charsStillNeeded for surplus (already covered) characters.
+      Does the code prevent it? Yes — we check 'charDeficit[rightChar] > 0' before decrementing. ✓
+  Terminate: every valid window has been compared to shortestWindowSoFar; the shortest is returned ✓
+
+maxSumSubarray:
+  Promise: "windowSum is the exact sum of the k elements ending at the current index; maxSum is the largest such sum seen"
+  Init: windowSum = sum of first k elements, the window covers indices [0, k-1] ✓
+  Maintain:
+    What changes? We add nums[i] (new right element) and subtract nums[i-k] (oldest element leaving the window).
+    Could it break the promise? No — exactly one element enters and one leaves, keeping window size k.
+    Flip test: what would break it? Subtracting nums[i-k+1] instead of nums[i-k].
+      Does the code prevent it? Yes — nums[i - k] is precisely the element that entered k steps earlier. ✓
+  Terminate: every window of size k is evaluated; maxSum is the answer ✓`,
     jsTemplateWalkthrough:
       '── Longest Substring Without Repeating Chars ──\n' +
       's = "abcab"\n\n' +
@@ -1273,13 +1399,20 @@ function dailyTemperatures(temps) {
     const result = new Array(n).fill(0);
     const stack = []; // stores indices waiting for a warmer day
 
-    for (let i = 0; i < n; i++) {
+    for (let todayIndex = 0; todayIndex < n; todayIndex++) {
+        const todayTemp = temps[todayIndex];
         // Pop all indices whose temperature is less than today's temp
-        while (stack.length && temps[i] > temps[stack[stack.length - 1]]) {
-            const j = stack.pop();
-            result[j] = i - j; // days waited = current index - past index
+        while (stack.length > 0) {
+            const waitingIndex = stack[stack.length - 1];
+            const waitingTemp = temps[waitingIndex];
+            if (todayTemp <= waitingTemp) {
+                break;
+            }
+            stack.pop();
+            const daysWaited = todayIndex - waitingIndex;
+            result[waitingIndex] = daysWaited;
         }
-        stack.push(i);
+        stack.push(todayIndex);
     }
     return result;
 }
@@ -1339,13 +1472,23 @@ function dailyTemperatures(temps) {
     const result = new Array(n).fill(0);
     const stack = []; // stores indices waiting for a warmer day
 
-    forEachBetween(0, n, (i) => {
+    forEachBetween(0, n, (todayIndex) => {
+        const todayTemp = temps[todayIndex];
         // Pop all indices whose temperature is less than today's temp
-        repeatWhile(() => stack.length && temps[i] > temps[stack[stack.length - 1]], () => {
-            const j = stack.pop();
-            result[j] = i - j; // days waited = current index - past index
-        });
-        stack.push(i);
+        repeatWhile(
+            () => {
+                if (stack.length === 0) return false;
+                const waitingIndex = stack[stack.length - 1];
+                const waitingTemp = temps[waitingIndex];
+                return todayTemp > waitingTemp;
+            },
+            () => {
+                const waitingIndex = stack.pop();
+                const daysWaited = todayIndex - waitingIndex;
+                result[waitingIndex] = daysWaited;
+            }
+        );
+        stack.push(todayIndex);
     });
     return result;
 }
@@ -1373,6 +1516,35 @@ function evalRPN(tokens) {
     });
     return stack[0];
 }`,
+    verification: `isValid:
+  Promise: "stack holds the opening brackets opened but not yet matched, in order"
+  Init: stack is empty — no brackets opened yet ✓
+  Maintain:
+    What changes? Opening brackets are pushed; closing brackets pop and check a match.
+    Could it break the promise? No — we return false immediately if the top does not match; otherwise we pop only a valid opener.
+    Flip test: what would break it? Popping without verifying the match.
+      Does the code prevent it? Yes — 'top !== expectedOpen' is checked before the pop. ✓
+  Terminate: stack empty at the end means every opener was matched; any remainder means unmatched openers ✓
+
+dailyTemperatures:
+  Promise: "stack contains indices of past days whose next-warmer-day has not been found yet, maintained in decreasing temperature order"
+  Init: stack is empty — no unresolved days yet ✓
+  Maintain:
+    What changes? While the current day is warmer than the day at the top, we pop that index and set result[j] = i - j; then push i.
+    Could it break the promise? No — we pop only when a warmer day is definitively found.
+    Flip test: what would break it? Pushing i before popping resolved indices.
+      Does the code prevent it? Yes — the while loop clears all resolved indices before the push. ✓
+  Terminate: indices remaining in the stack never found a warmer day; their result stays 0 ✓
+
+evalRPN:
+  Promise: "stack holds the evaluated values of completed sub-expressions, in order"
+  Init: stack is empty — no tokens consumed yet ✓
+  Maintain:
+    What changes? Numbers push onto the stack; operators pop two values (b last, a second-to-last), compute, and push the result.
+    Could it break the promise? No — each operator reduces two operands to one result, maintaining valid RPN semantics.
+    Flip test: what would break it? Popping in the wrong order (a before b).
+      Does the code prevent it? Yes — b = stack.pop() first, then a = stack.pop(), so ops[t](a, b) computes correctly. ✓
+  Terminate: exactly one value remains — the result of the whole expression ✓`,
     jsTemplateWalkthrough:
       '── Valid Parentheses ──\n' +
       's = "({[]})"  (valid)\n\n' +
@@ -1677,37 +1849,43 @@ function binarySearch(nums, target) {
     let left = 0;
     let right = nums.length - 1;
 
-    repeatWhile(() => left <= right, () => {
-        // Avoid integer overflow: use left + floor((right - left) / 2)
-        const mid = left + Math.floor((right - left) / 2);
+    repeatWhile(
+        () => left <= right,
+        () => {
+            // Avoid integer overflow: use left + floor((right - left) / 2)
+            const mid = left + Math.floor((right - left) / 2);
 
-        if (nums[mid] === target) {
-            return mid;
-        } else if (nums[mid] < target) {
-            // Target is in the right half
-            left = mid + 1;
-        } else {
-            // Target is in the left half
-            right = mid - 1;
+            if (nums[mid] === target) {
+                return mid;
+            } else if (nums[mid] < target) {
+                // Target is in the right half
+                left = mid + 1;
+            } else {
+                // Target is in the left half
+                right = mid - 1;
+            }
         }
-    });
+    );
     return -1;
 }
 
 // Find first position where condition is true (left boundary)
 function firstTrue(low, high, condition) {
     // Invariant: answer is in [low, high]
-    repeatWhile(() => low < high, () => {
-        const mid = low + Math.floor((high - low) / 2);
+    repeatWhile(
+        () => low < high,
+        () => {
+            const mid = low + Math.floor((high - low) / 2);
 
-        if (condition(mid)) {
-            // mid could be the answer, don't exclude it
-            high = mid;
-        } else {
-            // mid is definitely not the answer
-            low = mid + 1;
+            if (condition(mid)) {
+                // mid could be the answer, don't exclude it
+                high = mid;
+            } else {
+                // mid is definitely not the answer
+                low = mid + 1;
+            }
         }
-    });
+    );
     return low;
 }
 
@@ -1726,14 +1904,17 @@ function minEatingSpeed(piles, h) {
     let left = 1;
     let right = Math.max(...piles);
 
-    repeatWhile(() => left < right, () => {
-        const mid = left + Math.floor((right - left) / 2);
-        if (canFinish(mid)) {
-            right = mid; // mid works, try slower
-        } else {
-            left = mid + 1; // too slow, must go faster
+    repeatWhile(
+        () => left < right,
+        () => {
+            const mid = left + Math.floor((right - left) / 2);
+            if (canFinish(mid)) {
+                right = mid; // mid works, try slower
+            } else {
+                left = mid + 1; // too slow, must go faster
+            }
         }
-    });
+    );
     return left;
 }
 
@@ -1742,32 +1923,74 @@ function searchRotated(nums, target) {
     let left = 0;
     let right = nums.length - 1;
 
-    repeatWhile(() => left <= right, () => {
-        const mid = Math.floor((left + right) / 2);
+    repeatWhile(
+        () => left <= right,
+        () => {
+            const mid = Math.floor((left + right) / 2);
 
-        if (nums[mid] === target) {
-            return mid;
-        }
+            if (nums[mid] === target) {
+                return mid;
+            }
 
-        // Determine which half is sorted
-        if (nums[left] <= nums[mid]) {
-            // Left half [left..mid] is sorted
-            if (nums[left] <= target && target < nums[mid]) {
-                right = mid - 1; // target is in the sorted left half
+            // Determine which half is sorted
+            if (nums[left] <= nums[mid]) {
+                // Left half [left..mid] is sorted
+                if (nums[left] <= target && target < nums[mid]) {
+                    right = mid - 1; // target is in the sorted left half
+                } else {
+                    left = mid + 1; // target is in the right half
+                }
             } else {
-                left = mid + 1; // target is in the right half
-            }
-        } else {
-            // Right half [mid..right] is sorted
-            if (nums[mid] < target && target <= nums[right]) {
-                left = mid + 1; // target is in the sorted right half
-            } else {
-                right = mid - 1; // target is in the left half
+                // Right half [mid..right] is sorted
+                if (nums[mid] < target && target <= nums[right]) {
+                    left = mid + 1; // target is in the sorted right half
+                } else {
+                    right = mid - 1; // target is in the left half
+                }
             }
         }
-    });
+    );
     return -1;
 }`,
+    verification: `binarySearch:
+  Promise: "if target exists, it lies within nums[left..right]"
+  Init: left = 0, right = n-1 — the entire array is the search space ✓
+  Maintain:
+    What changes? We compute mid and eliminate the half that cannot contain the target.
+    Could it break the promise? No — nums[mid] < target means target is to the right (sorted), so left = mid+1 is safe; symmetrically right = mid-1.
+    Flip test: what would break it? Setting left = mid instead of mid+1 (infinite loop possible).
+      Does the code prevent it? Yes — we use mid+1 and mid-1, strictly shrinking the window each step. ✓
+  Terminate: left > right means the window is empty and target does not exist; any match returns the index immediately ✓
+
+firstTrue:
+  Promise: "the first index where condition is true lies within [low, high]"
+  Init: [low, high] is the full given range ✓
+  Maintain:
+    What changes? condition(mid) true sets high = mid (mid stays a candidate); false sets low = mid+1 (mid cannot be the answer).
+    Could it break the promise? No — we never eliminate a position where the condition holds.
+    Flip test: what would break it? Setting high = mid-1 when condition(mid) is true (would skip the actual first true).
+      Does the code prevent it? Yes — we set high = mid, not mid-1. ✓
+  Terminate: low === high converges to the first true index ✓
+
+minEatingSpeed:
+  Promise: "the minimum valid speed lies within [left, right]"
+  Init: left = 1, right = max(piles) — the answer is guaranteed in this range ✓
+  Maintain:
+    What changes? canFinish(mid) true sets right = mid (keep mid as candidate); false sets left = mid+1 (mid too slow).
+    Could it break the promise? No — same firstTrue pattern applied to a monotonic predicate.
+    Flip test: what would break it? Setting right = mid-1 when canFinish is true (skips the optimal speed).
+      Does the code prevent it? Yes — right = mid preserves the candidate. ✓
+  Terminate: left === right is the minimum speed where canFinish is true ✓
+
+searchRotated:
+  Promise: "if target exists, it lies within nums[left..right]"
+  Init: full array is the search space ✓
+  Maintain:
+    What changes? We identify the sorted half, check if target is inside it, and eliminate the other half.
+    Could it break the promise? No — one half is always sorted; we can safely compare target against its endpoints.
+    Flip test: what would break it? Misidentifying which half is sorted.
+      Does the code prevent it? Yes — 'nums[left] <= nums[mid]' reliably identifies the sorted left half. ✓
+  Terminate: target found and index returned, or window empty and -1 returned ✓`,
     jsTemplateWalkthrough:
       '── Classic Binary Search ──\n' +
       'nums = [1, 3, 5, 7, 9, 11], target = 7\n\n' +
@@ -2082,17 +2305,20 @@ function reverseList(head) {
     let previousNode = null;
     let currentNode = head;
 
-    repeatWhile(() => currentNode !== null, () => {
-        // Save the next node before we overwrite currentNode.next
-        const nextNode = currentNode.next;
+    repeatWhile(
+        () => currentNode !== null,
+        () => {
+            // Save the next node before we overwrite currentNode.next
+            const nextNode = currentNode.next;
 
-        // Reverse the link: point current node back to previousNode
-        currentNode.next = previousNode;
+            // Reverse the link: point current node back to previousNode
+            currentNode.next = previousNode;
 
-        // Advance both pointers forward
-        previousNode = currentNode;
-        currentNode = nextNode;
-    });
+            // Advance both pointers forward
+            previousNode = currentNode;
+            currentNode = nextNode;
+        }
+    );
     // previousNode is now the new head of the reversed list
     return previousNode;
 }
@@ -2104,14 +2330,17 @@ function hasCycle(head) {
 
     // fast moves 2 steps, slow moves 1 step
     // If there's a cycle, they'll eventually meet
-    repeatWhile(() => fast !== null && fast.next !== null, () => {
-        slow = slow.next;
-        fast = fast.next.next;
+    repeatWhile(
+        () => fast !== null && fast.next !== null,
+        () => {
+            slow = slow.next;
+            fast = fast.next.next;
 
-        if (slow === fast) {
-            return true;
+            if (slow === fast) {
+                return true;
+            }
         }
-    });
+    );
     return false;
 }
 
@@ -2121,10 +2350,13 @@ function findMiddle(head) {
     let fast = head;
 
     // When fast reaches the end, slow is at the middle
-    repeatWhile(() => fast !== null && fast.next !== null, () => {
-        slow = slow.next;
-        fast = fast.next.next;
-    });
+    repeatWhile(
+        () => fast !== null && fast.next !== null,
+        () => {
+            slow = slow.next;
+            fast = fast.next.next;
+        }
+    );
     return slow;
 }
 
@@ -2134,16 +2366,19 @@ function mergeTwoLists(l1, l2) {
     const dummy = new ListNode(0);
     let tail = dummy;
 
-    repeatWhile(() => l1 !== null && l2 !== null, () => {
-        if (l1.val <= l2.val) {
-            tail.next = l1;
-            l1 = l1.next;
-        } else {
-            tail.next = l2;
-            l2 = l2.next;
+    repeatWhile(
+        () => l1 !== null && l2 !== null,
+        () => {
+            if (l1.val <= l2.val) {
+                tail.next = l1;
+                l1 = l1.next;
+            } else {
+                tail.next = l2;
+                l2 = l2.next;
+            }
+            tail = tail.next;
         }
-        tail = tail.next;
-    });
+    );
 
     // Attach remaining nodes from whichever list is non-empty
     tail.next = l1 || l2;
@@ -2162,15 +2397,67 @@ function removeNthFromEnd(head, n) {
     });
 
     // Move both until fast reaches the end
-    repeatWhile(() => fast !== null, () => {
-        fast = fast.next;
-        slow = slow.next;
-    });
+    repeatWhile(
+        () => fast !== null,
+        () => {
+            fast = fast.next;
+            slow = slow.next;
+        }
+    );
 
     // slow is now just before the node to remove
     slow.next = slow.next.next;
     return dummy.next;
 }`,
+    verification: `reverseList:
+  Promise: "previousNode heads the already-reversed segment; currentNode heads the not-yet-reversed segment"
+  Init: previousNode = null, currentNode = head — reversed segment is empty, unreversed is the full list ✓
+  Maintain:
+    What changes? We save nextNode, flip currentNode.next to previousNode, then advance both pointers.
+    Could it break the promise? No — saving nextNode before the flip preserves the unreversed tail.
+    Flip test: what would break it? Flipping currentNode.next before saving nextNode (loses the tail).
+      Does the code prevent it? Yes — 'const nextNode = currentNode.next' executes first. ✓
+  Terminate: currentNode is null; previousNode is the new head of the fully reversed list ✓
+
+hasCycle:
+  Promise: "if a cycle exists, slow and fast will eventually meet inside it"
+  Init: both start at head ✓
+  Maintain:
+    What changes? slow advances 1, fast advances 2; fast gains 1 step per iteration relative to slow inside a cycle.
+    Could it break the promise? No — the gap closes by 1 each round; collision is guaranteed within cycle-length rounds.
+    Flip test: what would break it? Moving fast 3 steps (could jump over slow indefinitely).
+      Does the code prevent it? Yes — fast = fast.next.next is exactly 2 steps. ✓
+  Terminate: fast (or fast.next) is null means no cycle; slow === fast means cycle detected ✓
+
+findMiddle:
+  Promise: "slow is at the position floor(fast-steps / 2) from head"
+  Init: both at head, position 0 ✓
+  Maintain:
+    What changes? slow advances 1, fast advances 2 — the 2x ratio is preserved every iteration.
+    Could it break the promise? No — the ratio holds unconditionally each step.
+    Flip test: what would break it? Advancing fast by 3 (slow would be at 1/3, not 1/2).
+      Does the code prevent it? Yes — fast = fast.next.next. ✓
+  Terminate: fast cannot take 2 more steps; slow is at the middle node ✓
+
+mergeTwoLists:
+  Promise: "dummy.next through tail is a sorted merged prefix; l1 and l2 point to unprocessed remaining nodes"
+  Init: tail = dummy, l1 and l2 are untouched — merged prefix is empty ✓
+  Maintain:
+    What changes? We attach the smaller head to tail, advance that list's pointer, advance tail.
+    Could it break the promise? No — always picking the smaller value preserves sorted order.
+    Flip test: what would break it? Forgetting to advance l1/l2 after attaching (infinite loop).
+      Does the code prevent it? Yes — l1 = l1.next (or l2 = l2.next) follows every attachment. ✓
+  Terminate: one list is exhausted; remaining nodes attached in one step; dummy.next is the sorted merged head ✓
+
+removeNthFromEnd:
+  Promise: "fast is exactly n+1 positions ahead of slow"
+  Init: fast advanced n+1 steps from dummy, slow still at dummy ✓
+  Maintain:
+    What changes? Both fast and slow advance one step — the gap remains n+1.
+    Could it break the promise? No — both pointers move together symmetrically.
+    Flip test: what would break it? Advancing only fast in the walk loop.
+      Does the code prevent it? Yes — both pointers advance in every iteration. ✓
+  Terminate: fast is null; slow is n+1 behind, pointing just before the target node; slow.next = slow.next.next removes it ✓`,
     jsTemplateWalkthrough:
       '── Reverse Linked List ──\n' +
       '1 → 2 → 3 → null\n\n' +
@@ -2541,24 +2828,27 @@ function levelOrder(root) {
     const result = [];
     const queue = [root];
 
-    repeatWhile(() => queue.length > 0, () => {
-        const levelSize = queue.length;
-        const level = [];
+    repeatWhile(
+        () => queue.length > 0,
+        () => {
+            const levelSize = queue.length;
+            const level = [];
 
-        // Process all nodes at the current level
-        forEachBetween(0, levelSize, () => {
-            const node = queue.shift();
-            level.push(node.val);
+            // Process all nodes at the current level
+            forEachBetween(0, levelSize, () => {
+                const node = queue.shift();
+                level.push(node.val);
 
-            if (node.left) {
-                queue.push(node.left);
-            }
-            if (node.right) {
-                queue.push(node.right);
-            }
-        });
-        result.push(level);
-    });
+                if (node.left) {
+                    queue.push(node.left);
+                }
+                if (node.right) {
+                    queue.push(node.right);
+                }
+            });
+            result.push(level);
+        }
+    );
     return result;
 }
 
@@ -2617,6 +2907,48 @@ function diameterOfBinaryTree(root) {
     height(root);
     return maxDiameter;
 }`,
+    verification: `maxDepth:
+  Promise: "maxDepth(node) = the height of the subtree rooted at node"
+  Base case: !node returns 0 — an empty subtree has height 0 ✓
+  Inductive step: assume maxDepth(node.left) and maxDepth(node.right) are correct.
+    For the current node: height = 1 + max(leftDepth, rightDepth) — 1 for this level plus the taller child.
+    We take the taller side, so the result is optimal for this subtree ✓
+  Why nothing is missed: both children are always visited before returning ✓
+
+levelOrder:
+  Promise: "queue holds exactly all nodes at the current level; result accumulates one sub-array per completed level"
+  Init: queue = [root] — level 0 is exactly one node ✓
+  Maintain:
+    What changes? We snapshot levelSize, drain exactly that many nodes into a level array, enqueue their children.
+    Could it break the promise? No — snapshotting queue.length before enqueuing children cleanly separates levels.
+    Flip test: what would break it? Reading queue.length after enqueuing children (would mix levels).
+      Does the code prevent it? Yes — levelSize is captured before any children are added to the queue. ✓
+  Terminate: queue is empty; every level is collected in order ✓
+
+isValidBST:
+  Promise: "every node in the subtree rooted at root has a value strictly in (lo, hi)"
+  Base case: !root returns true — empty subtree satisfies any range ✓
+  Inductive step: assume isValidBST(left, lo, root.val) and isValidBST(right, root.val, hi) are correct.
+    For root: check lo < root.val < hi; recurse with tightened bounds on each child.
+    Both checks must pass — necessary and sufficient for the whole subtree ✓
+  Why nothing is missed: every ancestor's constraint is propagated down; a local comparison alone would miss violations like a right-subtree node being less than the root's grandparent ✓
+
+lowestCommonAncestor:
+  Promise: "lowestCommonAncestor(root, p, q) returns the LCA if both p and q are in the subtree, or the found node if only one is"
+  Base case: !root returns null; root === p or root === q returns root ✓
+  Inductive step: assume recursive calls on left and right are correct.
+    Both sides return non-null: p is in one subtree, q in the other — current root is the LCA.
+    One side returns non-null: both targets are in that subtree (or we already surfaced one) — bubble it up.
+    We return the correct value in all cases ✓
+  Why nothing is missed: every subtree is searched; the LCA is the deepest node where the two paths first diverge ✓
+
+diameterOfBinaryTree:
+  Promise: "height(node) = height of the subtree; maxDiameter is updated with the longest path through node"
+  Base case: !node returns 0 — no path through null ✓
+  Inductive step: assume height(left) and height(right) are correct.
+    Path through this node = leftH + rightH; update maxDiameter; return 1 + max(leftH, rightH).
+    The diameter candidate and height are both computed correctly bottom-up ✓
+  Why nothing is missed: every node is considered as a potential path midpoint; the global variable captures the best across all nodes ✓`,
     jsTemplateWalkthrough:
       '── Max Depth (DFS) ──\n' +
       '    3\n' +
@@ -2949,6 +3281,31 @@ class Trie {
         return node; // return the node at the end of the prefix
     }
 }`,
+    verification: `Trie.insert:
+  Promise: "every character of word is reachable from root along the children map; the final node has isEnd = true"
+  Init: node = root, no characters consumed yet — trivially correct ✓
+  Maintain:
+    What changes? For each character we create the child node if missing, then descend into it.
+    Could it break the promise? No — we never skip a character and we always create missing nodes.
+    Flip test: what would break it? Moving to node.children[c] before creating it.
+      Does the code prevent it? Yes — the creation check 'if (!node.children[c])' happens before descending. ✓
+  Terminate: we have consumed every character; node.isEnd = true marks the word boundary ✓
+
+Trie.search:
+  Promise: "_find returns the node at the end of the path, or null if any character is missing; search additionally requires isEnd"
+  Base case: empty string — _find returns root; search returns root.isEnd ✓
+  Inductive step (inside _find): assume _find is correct for prefixes of length k.
+    For length k+1: walk one more character; return null if missing.
+    The result is correct for the full word ✓
+  Why nothing is missed: the distinction between 'prefix exists' and 'word exists' is captured by the isEnd flag ✓
+
+Trie.startsWith:
+  Promise: "_find returns non-null if and only if the prefix path exists in the trie"
+  Same walk as search, but no isEnd check — a reachable node is sufficient ✓
+  Greedy choice: any non-null node returned by _find confirms the prefix.
+    Assume wrong: suppose the prefix exists but _find returns null.
+    But _find returns null only when a character is missing — contradiction.
+    So _find correctly returns a node whenever the prefix was inserted. ✓`,
     jsTemplateWalkthrough:
       '── Trie: Insert and Search ──\n' +
       'Operations: insert("app"), insert("apple"), search("app"), search("apple"), startsWith("ap")\n\n' +
@@ -3254,43 +3611,49 @@ class MinHeap {
     }
 
     _bubbleUp(i) {
-        repeatWhile(() => i > 0, () => {
-            const parent = Math.floor((i - 1) / 2);
+        repeatWhile(
+            () => i > 0,
+            () => {
+                const parent = Math.floor((i - 1) / 2);
 
-            if (this.heap[parent] <= this.heap[i]) {
-                i = 0; // break out of loop
-                return;
+                if (this.heap[parent] <= this.heap[i]) {
+                    i = 0; // break out of loop
+                    return;
+                }
+
+                // Swap child with parent
+                [this.heap[parent], this.heap[i]] = [this.heap[i], this.heap[parent]];
+                i = parent;
             }
-
-            // Swap child with parent
-            [this.heap[parent], this.heap[i]] = [this.heap[i], this.heap[parent]];
-            i = parent;
-        });
+        );
     }
 
     _sinkDown(i) {
         const n = this.heap.length;
 
-        repeatWhile(() => true, () => {
-            let smallest = i;
-            const left = 2 * i + 1;
-            const right = 2 * i + 2;
+        repeatWhile(
+            () => true,
+            () => {
+                let smallest = i;
+                const left = 2 * i + 1;
+                const right = 2 * i + 2;
 
-            if (left < n && this.heap[left] < this.heap[smallest]) {
-                smallest = left;
-            }
-            if (right < n && this.heap[right] < this.heap[smallest]) {
-                smallest = right;
-            }
+                if (left < n && this.heap[left] < this.heap[smallest]) {
+                    smallest = left;
+                }
+                if (right < n && this.heap[right] < this.heap[smallest]) {
+                    smallest = right;
+                }
 
-            if (smallest === i) {
-                i = -1; // break signal
-                return;
-            }
+                if (smallest === i) {
+                    i = -1; // break signal
+                    return;
+                }
 
-            [this.heap[smallest], this.heap[i]] = [this.heap[i], this.heap[smallest]];
-            i = smallest;
-        });
+                [this.heap[smallest], this.heap[i]] = [this.heap[i], this.heap[smallest]];
+                i = smallest;
+            }
+        );
     }
 }
 
@@ -3306,6 +3669,31 @@ function topKFrequent(nums, k) {
     const sortedEntries = [...frequency.entries()].sort((a, b) => b[1] - a[1]);
     return sortedEntries.slice(0, k).map(([num]) => num);
 }`,
+    verification: `MinHeap (_bubbleUp / push):
+  Promise: "heap[0..i-1] satisfies the min-heap property; heap[i] is the newly inserted element being moved up"
+  Init: the new element is appended to the end — the rest of the heap is still valid ✓
+  Maintain:
+    What changes? We compare the element at i with its parent; if the parent is larger we swap and move up.
+    Could it break the promise? No — swapping only restores order between a child and its parent; siblings are unaffected.
+    Flip test: what would break it? Swapping when the parent is already smaller.
+      Does the code prevent it? Yes — we break immediately when 'heap[parent] <= heap[i]'. ✓
+  Terminate: i reaches 0 (root) or the parent is already smaller; the heap property holds everywhere ✓
+
+MinHeap (_sinkDown / pop):
+  Promise: "heap[0..i-1] and heap[i+1..n-1] satisfy the min-heap property; heap[i] is the element being moved down"
+  Init: the last element is placed at index 0 — the rest of the heap is still valid ✓
+  Maintain:
+    What changes? We find the smallest among the node and its two children; if a child is smaller we swap and descend.
+    Could it break the promise? No — swapping with the smallest child restores the local order without violating sibling subtrees.
+    Flip test: what would break it? Swapping with a child that is not the smallest (the other child might still be smaller).
+      Does the code prevent it? Yes — we find 'smallest' by comparing both children before swapping. ✓
+  Terminate: smallest === i means no child is smaller; the heap property holds everywhere ✓
+
+topKFrequent (heap/sort):
+  Promise: "frequency correctly maps each number to its count; sortedEntries is ordered by frequency descending"
+  Init: frequency is empty before the count loop ✓
+  Maintain (count loop): each number's count is incremented atomically; no other entry is touched ✓
+  Terminate: sorting by frequency descending and slicing the first k gives exactly the k most frequent elements ✓`,
     jsTemplateWalkthrough:
       '── MinHeap Push/Pop ──\n' +
       'Push 5, 3, 8, 1 one by one:\n\n' +
@@ -3724,6 +4112,37 @@ function solveNQueens(n) {
     backtrack(0, board);
     return result;
 }`,
+    verification: `subsets:
+  Promise: "result contains exactly all subsets of nums[0..start-1] extended by the current path"
+  Base case: backtrack(0, []) — the only subset of the empty prefix is [], which is pushed immediately ✓
+  Inductive step: assume all subsets for indices 0..start-1 with path already chosen are in result.
+    For each i from start: push nums[i], recurse to record all subsets containing this choice, then pop.
+    We cover every include/exclude decision at each position ✓
+  Why nothing is missed: every subset corresponds to a unique path in the decision tree; i+1 prevents duplicate indices ✓
+
+permute:
+  Promise: "result contains exactly all permutations of nums using elements not yet marked in used[]"
+  Base case: path.length === nums.length — a complete permutation is pushed ✓
+  Inductive step: assume all permutations for path of length k are correct.
+    For length k+1: try every unused element, mark it used, recurse, then unmark.
+    We explore every possible next element ✓
+  Why nothing is missed: used[] ensures each element appears exactly once per permutation; iterating all indices covers all choices ✓
+
+combinationSum:
+  Promise: "result contains all combinations from candidates[start..] that sum to remaining"
+  Base case: remaining === 0 — a valid combination is found and pushed ✓
+  Inductive step: assume the recursive call is correct for smaller remaining.
+    For each candidate from start: add it (reducing remaining), recurse (allowing reuse via same i), pop.
+    We check both using and not using each candidate ✓
+  Why nothing is missed: passing i (not i+1) allows unlimited reuse; pruning remaining < 0 eliminates overshoots ✓
+
+solveNQueens:
+  Promise: "for the current row, all valid column placements are tried; cols/diag1/diag2 track attacked positions exactly"
+  Base case: row === n — all n rows have a queen; the configuration is valid and stored ✓
+  Inductive step: assume previous rows are placed validly.
+    For each column not attacked: place queen (update sets and board), recurse to next row, then remove queen.
+    We try all valid columns and undo every placement ✓
+  Why nothing is missed: the three sets together cover all attack directions; the loop tries every column in each row ✓`,
     jsTemplateWalkthrough:
       '── Subsets ──\n' +
       'nums = [1, 2, 3]\n\n' +
@@ -4171,20 +4590,23 @@ function numIslands(grid) {
                 const queue = [[r, c]];
                 grid[r][c] = '0'; // Mark visited by overwriting
 
-                repeatWhile(() => queue.length > 0, () => {
-                    const [row, col] = queue.shift();
+                repeatWhile(
+                    () => queue.length > 0,
+                    () => {
+                        const [row, col] = queue.shift();
 
-                    forEach(directions, ([dr, dc]) => {
-                        const nr = row + dr;
-                        const nc = col + dc;
+                        forEach(directions, ([dr, dc]) => {
+                            const nr = row + dr;
+                            const nc = col + dc;
 
-                        const inBounds = nr >= 0 && nr < rows && nc >= 0 && nc < cols;
-                        if (inBounds && grid[nr][nc] === '1') {
-                            grid[nr][nc] = '0'; // Mark before enqueuing
-                            queue.push([nr, nc]);
-                        }
-                    });
-                });
+                            const inBounds = nr >= 0 && nr < rows && nc >= 0 && nc < cols;
+                            if (inBounds && grid[nr][nc] === '1') {
+                                grid[nr][nc] = '0'; // Mark before enqueuing
+                                queue.push([nr, nc]);
+                            }
+                        });
+                    }
+                );
             }
         });
     });
@@ -4211,18 +4633,21 @@ function topologicalSort(numCourses, prerequisites) {
     });
 
     const order = [];
-    repeatWhile(() => queue.length > 0, () => {
-        const node = queue.shift();
-        order.push(node);
+    repeatWhile(
+        () => queue.length > 0,
+        () => {
+            const node = queue.shift();
+            order.push(node);
 
-        // Reduce in-degree of neighbors; enqueue if they become free
-        forEach(graph[node], (neighbor) => {
-            inDegree[neighbor]--;
-            if (inDegree[neighbor] === 0) {
-                queue.push(neighbor);
-            }
-        });
-    });
+            // Reduce in-degree of neighbors; enqueue if they become free
+            forEach(graph[node], (neighbor) => {
+                inDegree[neighbor]--;
+                if (inDegree[neighbor] === 0) {
+                    queue.push(neighbor);
+                }
+            });
+        }
+    );
 
     // If we processed all courses, no cycle exists
     return order.length === numCourses ? order : [];
@@ -4245,23 +4670,26 @@ function networkDelay(times, n, k) {
     // (In production, use a proper MinHeap for O(log n) pop)
     const heap = [[0, k]];
 
-    repeatWhile(() => heap.length > 0, () => {
-        heap.sort((a, b) => a[0] - b[0]);
-        const [d, node] = heap.shift();
+    repeatWhile(
+        () => heap.length > 0,
+        () => {
+            heap.sort((a, b) => a[0] - b[0]);
+            const [d, node] = heap.shift();
 
-        // Stale entry — we already found a shorter path
-        if (d > (dist.get(node) ?? Infinity)) {
-            return;
-        }
-
-        forEach(graph.get(node) || [], ([neighbor, weight]) => {
-            const newDist = d + weight;
-            if (newDist < (dist.get(neighbor) ?? Infinity)) {
-                dist.set(neighbor, newDist);
-                heap.push([newDist, neighbor]);
+            // Stale entry — we already found a shorter path
+            if (d > (dist.get(node) ?? Infinity)) {
+                return;
             }
-        });
-    });
+
+            forEach(graph.get(node) || [], ([neighbor, weight]) => {
+                const newDist = d + weight;
+                if (newDist < (dist.get(neighbor) ?? Infinity)) {
+                    dist.set(neighbor, newDist);
+                    heap.push([newDist, neighbor]);
+                }
+            });
+        }
+    );
 
     if (dist.size !== n) {
         return -1; // Not all nodes reachable
@@ -4291,27 +4719,30 @@ function orangesRotting(grid) {
     const directions = [[0, 1], [0, -1], [1, 0], [-1, 0]];
 
     // BFS level by level (each level = 1 minute)
-    repeatWhile(() => queue.length > 0 && freshCount > 0, () => {
-        const levelSize = queue.length;
+    repeatWhile(
+        () => queue.length > 0 && freshCount > 0,
+        () => {
+            const levelSize = queue.length;
 
-        forEachBetween(0, levelSize, () => {
-            const [row, col] = queue.shift();
+            forEachBetween(0, levelSize, () => {
+                const [row, col] = queue.shift();
 
-            forEach(directions, ([dr, dc]) => {
-                const newRow = row + dr;
-                const newCol = col + dc;
-                const inBounds = newRow >= 0 && newRow < rows && newCol >= 0 && newCol < cols;
+                forEach(directions, ([dr, dc]) => {
+                    const newRow = row + dr;
+                    const newCol = col + dc;
+                    const inBounds = newRow >= 0 && newRow < rows && newCol >= 0 && newCol < cols;
 
-                if (inBounds && grid[newRow][newCol] === 1) {
-                    grid[newRow][newCol] = 2;
-                    freshCount = freshCount - 1;
-                    queue.push([newRow, newCol]);
-                }
+                    if (inBounds && grid[newRow][newCol] === 1) {
+                        grid[newRow][newCol] = 2;
+                        freshCount = freshCount - 1;
+                        queue.push([newRow, newCol]);
+                    }
+                });
             });
-        });
 
-        minutes = minutes + 1;
-    });
+            minutes = minutes + 1;
+        }
+    );
 
     return freshCount === 0 ? minutes : -1;
 }
@@ -4346,6 +4777,55 @@ function cloneGraph(node) {
 
     return dfs(node);
 }`,
+    verification: `numIslands:
+  Promise: "every '1' reachable from any previously found island is overwritten to '0'; count = islands found so far"
+  Init: count = 0, grid unchanged ✓
+  Maintain:
+    What changes? When a '1' is found, count++ then BFS marks all connected '1' cells as '0'.
+    Could it break the promise? No — cells are marked before enqueuing, so no cell enters the queue twice.
+    Flip test: what would break it? Marking after dequeuing (same cell pushed multiple times from different directions).
+      Does the code prevent it? Yes — grid[nr][nc] = '0' before queue.push. ✓
+  Terminate: all cells scanned; count is the number of islands ✓
+
+topologicalSort:
+  Promise: "order holds all nodes whose prerequisites are satisfied; inDegree reflects remaining prerequisites"
+  Init: all zero-in-degree nodes seeded ✓
+  Maintain:
+    What changes? Dequeue node, append to order, decrement each neighbor; enqueue if in-degree hits 0.
+    Could it break the promise? No — each edge decrements in-degree exactly once.
+    Flip test: what would break it? Enqueueing before decrementing.
+      Does the code prevent it? Yes — the '=== 0' check follows the decrement. ✓
+  Terminate: queue empty; length check detects cycles ✓
+
+networkDelay (Dijkstra):
+  Promise: "dist[v] = shortest known distance from k to v; stale entries identified by d > dist[node]"
+  Init: dist = {k: 0}, heap = [[0, k]] ✓
+  Maintain:
+    What changes? Pop minimum; skip if stale; relax outgoing edges.
+    Could it break the promise? No — dist[neighbor] updates only when strictly shorter.
+    Flip test: what would break it? Not skipping stale entries.
+      Does the code prevent it? Yes — d > dist.get(node) triggers a skip. ✓
+  Terminate: heap empty; max(dist.values()) is the answer ✓
+
+orangesRotting:
+  Promise: "each BFS level = one minute; freshCount tracks remaining fresh oranges"
+  Init: all rotten oranges seeded; freshCount correct ✓
+  Maintain:
+    What changes? Process one full level then increment minutes.
+    Could it break the promise? No — snapshotting levelSize separates minute boundaries.
+    Flip test: what would break it? Not snapshotting (newly rotted oranges processed in current minute).
+      Does the code prevent it? Yes — levelSize captured before any processing. ✓
+  Terminate: freshCount === 0 returns minutes; else -1 ✓
+
+cloneGraph:
+  Promise: "visited maps every seen original node to its unique clone; all neighbor edges replicated"
+  Init: visited empty ✓
+  Maintain:
+    What changes? First visit: create clone, store in visited immediately, then recurse neighbors.
+    Could it break the promise? No — storing before recursing prevents infinite loops on cycles.
+    Flip test: what would break it? Recursing before storing.
+      Does the code prevent it? Yes — visited.set(original, clone) before the neighbor loop. ✓
+  Terminate: all reachable nodes cloned with all edges; root's clone returned ✓`,
     jsTemplateWalkthrough:
       '── Number of Islands (BFS) ──\n' +
       'grid = [["1","1","0"],\n' +
@@ -4978,14 +5458,17 @@ function lengthOfLIS(nums) {
         // Binary search for where num should go
         let lo = 0;
         let hi = tails.length;
-        repeatWhile(() => lo < hi, () => {
-            const mid = Math.floor((lo + hi) / 2);
-            if (tails[mid] < num) {
-                lo = mid + 1;
-            } else {
-                hi = mid;
+        repeatWhile(
+            () => lo < hi,
+            () => {
+                const mid = Math.floor((lo + hi) / 2);
+                if (tails[mid] < num) {
+                    lo = mid + 1;
+                } else {
+                    hi = mid;
+                }
             }
-        });
+        );
 
         // Replace or extend
         tails[lo] = num;
@@ -5017,6 +5500,59 @@ function maxProfit(prices) {
 
     return Math.max(sold, rest);
 }`,
+    verification: `rob:
+  Promise: "dp[i] = maximum money robbable from houses 0..i"
+  Base case: dp[0] = nums[0]; dp[1] = max(nums[0], nums[1]) ✓
+  Inductive step: assume dp[0..i-1] correct. Skip house i (dp[i-1]) or rob it (dp[i-2] + nums[i]). Take max ✓
+  Why nothing is missed: every valid plan either includes or excludes house i ✓
+
+longestCommonSubsequence:
+  Promise: "dp[i][j] = LCS length of text1[0..i-1] and text2[0..j-1]"
+  Base case: dp[0][j] = dp[i][0] = 0 ✓
+  Inductive step: chars match: dp[i-1][j-1] + 1; mismatch: max(dp[i-1][j], dp[i][j-1]) ✓
+  Why nothing is missed: every LCS ends with a match or skips a char from one side ✓
+
+coinChange:
+  Promise: "dp[i] = minimum coins for amount i"
+  Base case: dp[0] = 0 ✓
+  Inductive step: for each coin c <= i: dp[i] = min(dp[i], dp[i-c] + 1) ✓
+  Why nothing is missed: every valid combination uses some last coin ✓
+
+canPartition:
+  Promise: "dp[j] = true if some subset of processed nums sums to j"
+  Base case: dp[0] = true ✓
+  Inductive step: iterate j backwards; dp[j] |= dp[j - num]. Backwards prevents reusing num (0/1 knapsack) ✓
+  Why nothing is missed: each num is either included or excluded ✓
+
+maxSubArray (Kadane's):
+  Promise: "currentSum = max subarray sum ending at current position; maxSum = global best"
+  Init: currentSum = 0, maxSum = nums[0] ✓
+  Maintain:
+    What changes? Reset currentSum to 0 if negative, add current num, update maxSum.
+    Flip test: not resetting allows a negative prefix to drag down subsequent sums.
+      Does the code prevent it? Yes — explicit reset when currentSum < 0. ✓
+  Terminate: maxSum is the answer ✓
+
+minDistance (edit distance):
+  Promise: "dp[i][j] = minimum edits to convert word1[0..i-1] to word2[0..j-1]"
+  Base case: dp[i][0] = i; dp[0][j] = j ✓
+  Inductive step: match: dp[i-1][j-1]; mismatch: 1 + min(dp[i][j-1], dp[i-1][j], dp[i-1][j-1]) ✓
+  Why nothing is missed: every edit sequence ends with insert, delete, or replace ✓
+
+lengthOfLIS:
+  Promise: "tails[k] = smallest tail of any IS of length k+1 seen so far"
+  Base case: tails empty ✓
+  Inductive step: binary search places num at leftmost position where tails[lo] >= num; replace (or extend). tails.length = LIS length ✓
+  Why nothing is missed: every num either extends the longest IS or improves an existing tail ✓
+
+maxProfit (state machine):
+  Promise: "hold/sold/rest = max profit in each state after prices processed so far"
+  Init: hold = -Infinity, sold = rest = 0 ✓
+  Maintain:
+    What changes? All three states computed from previous-day values (snapshotted).
+    Flip test: updating hold before computing sold would use today's hold instead of yesterday's.
+      Does the code prevent it? Yes — prevHold/prevSold/prevRest captured before any update. ✓
+  Terminate: max(sold, rest) after all prices ✓`,
     jsTemplateWalkthrough:
       '── House Robber (1D DP) ──\n' +
       'nums = [2, 7, 9, 3, 1]\n\n' +
@@ -5533,6 +6069,27 @@ function canCompleteCircuit(gas, cost) {
     });
     return start;
 }`,
+    verification: `canJump:
+  Greedy choice: track farthest = max reachable index; if i > farthest, return false.
+  Assume wrong: ignoring farthest still gives correct answers.
+    Any position beyond farthest is unreachable by definition — returning true for it is wrong. Contradiction. ✓
+
+eraseOverlapIntervals:
+  Greedy choice: sort by end time; keep earliest-ending interval when intervals overlap.
+  Assume wrong: keeping the later-ending interval minimizes removals.
+    The later-ending interval overlaps with at least as many future intervals as the earlier-ending one.
+    Swapping to earlier-ending cannot increase conflicts. Contradiction. ✓
+
+partitionLabels:
+  Greedy choice: grow boundary to include last occurrence of every char seen; close only when i reaches boundary.
+  Assume wrong: closing before the boundary satisfies the constraint.
+    A char with last occurrence beyond the close appears in both parts. Constraint violated. Contradiction. ✓
+
+canCompleteCircuit:
+  Greedy choice: when tank < 0 at station i, reset start to i+1.
+  Assume wrong: valid start exists at some j <= i.
+    From j, the route passes through the same negative segment ending at i — tank goes negative again. Contradiction.
+    Total gas >= total cost guarantees exactly one valid start, which must be i+1. ✓`,
     jsTemplateWalkthrough:
       '── Jump Game ──\n' +
       'nums = [2, 3, 1, 1, 4]\n\n' +
@@ -5849,28 +6406,37 @@ function insert(intervals, newInterval) {
     let i = 0;
 
     // Phase 1: add all intervals that end before newInterval starts
-    repeatWhile(() => i < intervals.length && intervals[i][1] < newInterval[0], () => {
-        result.push(intervals[i]);
-        i++;
-    });
+    repeatWhile(
+        () => i < intervals.length && intervals[i][1] < newInterval[0],
+        () => {
+            result.push(intervals[i]);
+            i++;
+        }
+    );
 
     // Phase 2: merge all intervals that overlap with newInterval
-    repeatWhile(() => i < intervals.length && intervals[i][0] <= newInterval[1], () => {
-        newInterval = [
-            Math.min(newInterval[0], intervals[i][0]),
-            Math.max(newInterval[1], intervals[i][1])
-        ];
-        i++;
-    });
+    repeatWhile(
+        () => i < intervals.length && intervals[i][0] <= newInterval[1],
+        () => {
+            newInterval = [
+                Math.min(newInterval[0], intervals[i][0]),
+                Math.max(newInterval[1], intervals[i][1])
+            ];
+            i++;
+        }
+    );
 
     // Add the merged interval
     result.push(newInterval);
 
     // Phase 3: add all intervals that start after newInterval ends
-    repeatWhile(() => i < intervals.length, () => {
-        result.push(intervals[i]);
-        i++;
-    });
+    repeatWhile(
+        () => i < intervals.length,
+        () => {
+            result.push(intervals[i]);
+            i++;
+        }
+    );
 
     return result;
 }
@@ -5896,6 +6462,32 @@ function minMeetingRooms(intervals) {
 
     return rooms;
 }`,
+    verification: `merge:
+  Promise: 'merged always contains the current set of non-overlapping intervals covering all input seen so far'
+  Init: merged = [intervals[0]], one interval, trivially non-overlapping ✓
+  Maintain:
+    What changes? each iteration examines intervals[i] and either extends merged.last or appends
+    Could it break the promise? only if we fail to merge an overlap
+    Flip test: what if intervals[i].start <= merged.last.end but we do NOT extend?
+      Does the code prevent it? yes — the if-branch always extends when start <= last.end ✓
+  Terminate: i === intervals.length, all intervals processed, promise holds → merged is correct ✓
+
+insert:
+  Promise: 'after each phase, result contains the correct sorted merged list up to the intervals processed'
+  Phase 1 invariant: every interval added ends before newInterval starts (no overlap) ✓
+  Phase 2 invariant: newInterval is the running merge of all overlapping intervals seen ✓
+  Phase 3: remaining intervals all start after the merged interval ends, appended directly ✓
+  Why nothing missed: the three phases cover all positions (before / overlap / after) with no gaps ✓
+
+minMeetingRooms:
+  Promise: 'rooms = number of meetings that have started but not yet ended at the current start time'
+  Init: rooms=0, endPtr=0 before any starts processed ✓
+  Maintain:
+    What changes? for each starts[i]: if starts[i] < ends[endPtr] rooms++, else endPtr++
+    Could it break the promise? only if we fail to recycle a room that actually freed
+    Flip test: what if starts[i] >= ends[endPtr] but we do NOT advance endPtr?
+      Does the code prevent it? yes — the else branch always advances endPtr ✓
+  Terminate: all starts processed; rooms = peak overlap = minimum rooms needed ✓`,
     jsTemplateWalkthrough: "── Merge Intervals ──\n" +
 "Input: [[1,3],[2,6],[8,10],[15,18]]\n" +
 "After sort: [[1,3],[2,6],[8,10],[15,18]]\n" +
@@ -6181,35 +6773,38 @@ function spiralOrder(matrix) {
     let left = 0;
     let right = matrix[0].length - 1;
 
-    repeatWhile(() => top <= bottom && left <= right, () => {
-        // Traverse right along the top row
-        forEachBetween(left, right + 1, (col) => {
-            result.push(matrix[top][col]);
-        });
-        top++;
-
-        // Traverse down along the right column
-        forEachBetween(top, bottom + 1, (row) => {
-            result.push(matrix[row][right]);
-        });
-        right--;
-
-        // Traverse left along the bottom row (only if rows remain)
-        if (top <= bottom) {
-            forEachFromRight(matrix[bottom].slice(left, right + 1), (_, idx) => {
-                result.push(matrix[bottom][left + idx]);
+    repeatWhile(
+        () => top <= bottom && left <= right,
+        () => {
+            // Traverse right along the top row
+            forEachBetween(left, right + 1, (col) => {
+                result.push(matrix[top][col]);
             });
-            bottom--;
-        }
+            top++;
 
-        // Traverse up along the left column (only if columns remain)
-        if (left <= right) {
-            forEachFromRight(matrix.slice(top, bottom + 1), (_, idx) => {
-                result.push(matrix[top + idx][left]);
+            // Traverse down along the right column
+            forEachBetween(top, bottom + 1, (row) => {
+                result.push(matrix[row][right]);
             });
-            left++;
+            right--;
+
+            // Traverse left along the bottom row (only if rows remain)
+            if (top <= bottom) {
+                forEachFromRight(matrix[bottom].slice(left, right + 1), (_, idx) => {
+                    result.push(matrix[bottom][left + idx]);
+                });
+                bottom--;
+            }
+
+            // Traverse up along the left column (only if columns remain)
+            if (left <= right) {
+                forEachFromRight(matrix.slice(top, bottom + 1), (_, idx) => {
+                    result.push(matrix[top + idx][left]);
+                });
+                left++;
+            }
         }
-    });
+    );
 
     return result;
 }
@@ -6224,21 +6819,48 @@ function myPow(x, n) {
 
     let result = 1;
 
-    repeatWhile(() => n > 0, () => {
-        // If current bit of n is set, multiply result by current x
-        if (n % 2 === 1) {
-            result *= x;
+    repeatWhile(
+        () => n > 0,
+        () => {
+            // If current bit of n is set, multiply result by current x
+            if (n % 2 === 1) {
+                result *= x;
+            }
+
+            // Square x for the next bit position
+            x *= x;
+
+            // Shift to the next bit
+            n = Math.floor(n / 2);
         }
-
-        // Square x for the next bit position
-        x *= x;
-
-        // Shift to the next bit
-        n = Math.floor(n / 2);
-    });
+    );
 
     return result;
 }`,
+    verification: `rotate:
+  Promise: 'after the two-step transform, matrix[i][j] holds the value that was at matrix[n-1-j][i] — the 90° CW rotation'
+  Why two steps work: transpose maps [i][j] → [j][i]; reversing each row maps [j][i] → [j][n-1-i]; combined [i][j] → [j][n-1-i] which is exactly 90° CW ✓
+  Why not X: a single in-place swap cycle is harder to remember; transpose+reverse is two O(n²) passes with trivial code ✓
+
+spiralOrder:
+  Promise: 'result contains all elements visited so far in spiral order; boundaries (top,bottom,left,right) enclose only unvisited elements'
+  Init: boundaries cover the whole matrix, result is empty ✓
+  Maintain:
+    What changes? each direction traverses one wall and shrinks that boundary inward
+    Could it break the promise? only if we process a cell outside the current boundary
+    Flip test: what if we skip the guard 'if top <= bottom' before going left?
+      Does the code prevent it? yes — both guards check remaining rows/cols before the left and up passes ✓
+  Terminate: top > bottom or left > right; all cells are inside result ✓
+
+myPow:
+  Promise: 'result * x^n = original x^originalN at every loop iteration'
+  Init: result=1, so 1 * x^n = x^n ✓
+  Maintain:
+    What changes? if n is odd: result *= x (absorbs one factor); always x *= x, n = floor(n/2)
+    Could it break the promise? only if we skip multiplying result on an odd bit
+    Flip test: what if n is odd and we do NOT multiply result?
+      Does the code prevent it? yes — the if(n%2===1) branch always fires for odd n ✓
+  Terminate: n=0; x^0=1; result holds all absorbed factors = x^originalN ✓`,
     jsTemplateWalkthrough: "── Rotate 90° CW ──\n" +
 "Input: [[1,2,3],[4,5,6],[7,8,9]]\n" +
 "\n" +
@@ -6477,10 +7099,13 @@ function singleNumber(nums) {
 function hammingWeight(n) {
     let count = 0;
 
-    repeatWhile(() => n !== 0, () => {
-        count++;
-        n = n & (n - 1);  // remove lowest set bit
-    });
+    repeatWhile(
+        () => n !== 0,
+        () => {
+            count++;
+            n = n & (n - 1);  // remove lowest set bit
+        }
+    );
 
     return count;
 }
@@ -6512,6 +7137,41 @@ function reverseBits(n) {
 
     return result >>> 0;  // ensure unsigned 32-bit output
 }`,
+    verification: `singleNumber:
+  Promise: 'result = XOR of all elements seen so far'
+  Init: result=0; XOR identity: 0 ^ a = a ✓
+  Maintain:
+    What changes? result ^= num each iteration
+    Could it break the promise? only if XOR is not associative/commutative — it is ✓
+    Why pairs cancel: a ^ a = 0 for any duplicate pair; 0 ^ unique = unique ✓
+  Terminate: all elements processed; pairs have cancelled; result = the lone value ✓
+
+hammingWeight:
+  Promise: 'count = number of set bits removed so far; n = remaining bits yet to be counted'
+  Init: count=0, n=original input; no bits counted yet ✓
+  Maintain:
+    What changes? count++ and n = n & (n-1) removes the lowest set bit each iteration
+    Could it break the promise? only if n & (n-1) removes more than one bit at a time
+    Flip test: does n & (n-1) ever remove zero or two bits?
+      No — it always clears exactly the lowest set bit ✓
+  Terminate: n=0 (no bits left); count = total set bits in original n ✓
+
+countBits:
+  Promise: 'dp[i] = number of 1-bits in i for all 0 <= i processed so far'
+  Base case: dp[0] = 0 (zero has no set bits) ✓
+  Inductive step: assume dp[0..i-1] correct.
+    For i: i >> 1 drops the last bit; dp[i>>1] is correct by induction.
+    Adding (i & 1) accounts for the last bit. So dp[i] = correct bit count ✓
+  Why nothing missed: every i from 1..n is processed in order ✓
+
+reverseBits:
+  Promise: 'result holds the first i bits of n in reversed order after i iterations'
+  Init: result=0, i=0; zero bits reversed ✓
+  Maintain:
+    What changes? extract last bit of n, shift result left and OR in the bit, shift n right
+    Could it break the promise? only if we shift n in the wrong direction
+    The code uses >>>= 1 (unsigned shift) ensuring we always process the true next bit ✓
+  Terminate: i=32; all 32 bits processed; result = n with all bits reversed ✓`,
     jsTemplateWalkthrough: "── Single Number ──\n" +
 "Input: [4, 1, 2, 1, 2]\n" +
 "\n" +
@@ -6793,11 +7453,14 @@ class UnionFind {
 
     find(x) {
         // Walk up to the root, compressing path along the way
-        repeatWhile(() => this.parent[x] !== x, () => {
-            // Path compression: point directly to grandparent
-            this.parent[x] = this.parent[this.parent[x]];
-            x = this.parent[x];
-        });
+        repeatWhile(
+            () => this.parent[x] !== x,
+            () => {
+                // Path compression: point directly to grandparent
+                this.parent[x] = this.parent[this.parent[x]];
+                x = this.parent[x];
+            }
+        );
         return x;
     }
 
@@ -6857,6 +7520,34 @@ function hasCycle(n, edges) {
 
     return false;
 }`,
+    verification: `UnionFind.find:
+  Promise: 'returns the root of x; every node on the path from x to root now points at most one hop from root (path compression)'
+  Init: each node is its own parent; find(x) returns x immediately ✓
+  Maintain:
+    What changes? parent[x] is set to grandparent, then x moves to parent[x]
+    Could this skip the true root? no — we always end at the node where parent[node]===node ✓
+    Flip test: what if path compression pointed to the wrong node?
+      It always points to parent[parent[x]], which is strictly closer to the root ✓
+  Terminate: parent[x]===x (x is its own root); returns x ✓
+
+UnionFind.union:
+  Greedy choice: attach the shorter tree (lower rank) under the taller tree
+  Assume wrong: suppose we attached the taller under the shorter.
+    Then the resulting tree height could grow, making future find() calls slower. Contradiction ✓
+  Same-root short-circuit: if rootX===rootY, merging would create a self-loop; we return false ✓
+
+countComponents:
+  Promise: 'uf.components = number of distinct components among all nodes processed so far'
+  Init: uf.components = n; each node is its own component ✓
+  Maintain:
+    What changes? uf.union(u,v) returns true and decrements components when two distinct roots merge
+    Could it over-decrement? no — union returns false (and does not decrement) when already connected ✓
+  Terminate: all edges processed; uf.components = final component count ✓
+
+hasCycle:
+  Promise: 'returns true immediately upon finding the first edge that connects two already-connected nodes'
+  Why union() returning false implies a cycle: if find(u)===find(v) before adding edge (u,v), a path u→v already exists; adding this edge creates a second path = cycle ✓
+  Why false negative impossible: every cycle contains at least one edge (u,v) where u and v were already connected ✓`,
     jsTemplateWalkthrough: "── Union-Find: countComponents ──\n" +
 "Input: n=5, edges=[[0,1],[1,2],[3,4]]\n" +
 "Initial parent: [0,1,2,3,4], components=5\n" +
@@ -7083,18 +7774,24 @@ def longest_subarray(nums, limit):
 function maxSlidingWindow(nums, k) {
     const dq = [];     // stores indices; nums[dq[0]] is always the max
     const result = [];
-    for (let i = 0; i < nums.length; i++) {
+    for (let currentIndex = 0; currentIndex < nums.length; currentIndex++) {
+        const currentVal = nums[currentIndex];
         // Expire: remove front if it has slid out of the window
-        while (dq.length > 0 && dq[0] < i - k + 1) {
+        while (dq.length > 0 && dq[0] < currentIndex - k + 1) {
             dq.shift();
         }
         // Clean: remove back indices whose values are <= current
-        while (dq.length > 0 && nums[dq[dq.length - 1]] <= nums[i]) {
-            dq.pop();
+        while (dq.length > 0) {
+            const backIndex = dq[dq.length - 1];
+            if (nums[backIndex] <= currentVal) {
+                dq.pop();
+            } else {
+                break;
+            }
         }
-        dq.push(i);
+        dq.push(currentIndex);
         // Record answer once the first full window is reached
-        if (i >= k - 1) {
+        if (currentIndex >= k - 1) {
             result.push(nums[dq[0]]);
         }
     }
@@ -7106,15 +7803,21 @@ function maxSlidingWindow(nums, k) {
 function minSlidingWindow(nums, k) {
     const dq = [];     // stores indices; nums[dq[0]] is always the min
     const result = [];
-    for (let i = 0; i < nums.length; i++) {
-        while (dq.length > 0 && dq[0] < i - k + 1) {
+    for (let currentIndex = 0; currentIndex < nums.length; currentIndex++) {
+        const currentVal = nums[currentIndex];
+        while (dq.length > 0 && dq[0] < currentIndex - k + 1) {
             dq.shift();
         }
-        while (dq.length > 0 && nums[dq[dq.length - 1]] >= nums[i]) {
-            dq.pop();
+        while (dq.length > 0) {
+            const backIndex = dq[dq.length - 1];
+            if (nums[backIndex] >= currentVal) {
+                dq.pop();
+            } else {
+                break;
+            }
         }
-        dq.push(i);
-        if (i >= k - 1) {
+        dq.push(currentIndex);
+        if (currentIndex >= k - 1) {
             result.push(nums[dq[0]]);
         }
     }
@@ -7129,14 +7832,25 @@ function longestSubarray(nums, limit) {
     let left = 0;
     let result = 0;
     for (let right = 0; right < nums.length; right++) {
+        const rightVal = nums[right];
         // Maintain the max deque
-        while (maxDq.length > 0 && nums[maxDq[maxDq.length - 1]] <= nums[right]) {
-            maxDq.pop();
+        while (maxDq.length > 0) {
+            const backIndex = maxDq[maxDq.length - 1];
+            if (nums[backIndex] <= rightVal) {
+                maxDq.pop();
+            } else {
+                break;
+            }
         }
         maxDq.push(right);
         // Maintain the min deque
-        while (minDq.length > 0 && nums[minDq[minDq.length - 1]] >= nums[right]) {
-            minDq.pop();
+        while (minDq.length > 0) {
+            const backIndex = minDq[minDq.length - 1];
+            if (nums[backIndex] >= rightVal) {
+                minDq.pop();
+            } else {
+                break;
+            }
         }
         minDq.push(right);
         // Shrink from the left while constraint is violated
@@ -7160,18 +7874,28 @@ function longestSubarray(nums, limit) {
 function maxSlidingWindow(nums, k) {
     const dq = [];     // stores indices; nums[dq[0]] is always the max
     const result = [];
-    forEach(nums, (_, i) => {
+    forEach(nums, (currentVal, currentIndex) => {
         // Expire: remove front if it has slid out of the window
-        repeatWhile(() => dq.length > 0 && dq[0] < i - k + 1, () => {
-            dq.shift();
-        });
+        repeatWhile(
+            () => dq.length > 0 && dq[0] < currentIndex - k + 1,
+            () => {
+                dq.shift();
+            }
+        );
         // Clean: remove back indices whose values are <= current
-        repeatWhile(() => dq.length > 0 && nums[dq[dq.length - 1]] <= nums[i], () => {
-            dq.pop();
-        });
-        dq.push(i);
+        repeatWhile(
+            () => {
+                if (dq.length === 0) return false;
+                const backIndex = dq[dq.length - 1];
+                return nums[backIndex] <= currentVal;
+            },
+            () => {
+                dq.pop();
+            }
+        );
+        dq.push(currentIndex);
         // Record answer once the first full window is reached
-        if (i >= k - 1) {
+        if (currentIndex >= k - 1) {
             result.push(nums[dq[0]]);
         }
     });
@@ -7183,15 +7907,25 @@ function maxSlidingWindow(nums, k) {
 function minSlidingWindow(nums, k) {
     const dq = [];     // stores indices; nums[dq[0]] is always the min
     const result = [];
-    forEach(nums, (_, i) => {
-        repeatWhile(() => dq.length > 0 && dq[0] < i - k + 1, () => {
-            dq.shift();
-        });
-        repeatWhile(() => dq.length > 0 && nums[dq[dq.length - 1]] >= nums[i], () => {
-            dq.pop();
-        });
-        dq.push(i);
-        if (i >= k - 1) {
+    forEach(nums, (currentVal, currentIndex) => {
+        repeatWhile(
+            () => dq.length > 0 && dq[0] < currentIndex - k + 1,
+            () => {
+                dq.shift();
+            }
+        );
+        repeatWhile(
+            () => {
+                if (dq.length === 0) return false;
+                const backIndex = dq[dq.length - 1];
+                return nums[backIndex] >= currentVal;
+            },
+            () => {
+                dq.pop();
+            }
+        );
+        dq.push(currentIndex);
+        if (currentIndex >= k - 1) {
             result.push(nums[dq[0]]);
         }
     });
@@ -7205,31 +7939,73 @@ function longestSubarray(nums, limit) {
     const minDq = [];  // increasing — front is the current window min
     let left = 0;
     let result = 0;
-    forEach(nums, (_, right) => {
+    forEach(nums, (rightVal, right) => {
         // Maintain the max deque
-        repeatWhile(() => maxDq.length > 0 && nums[maxDq[maxDq.length - 1]] <= nums[right], () => {
-            maxDq.pop();
-        });
+        repeatWhile(
+            () => {
+                if (maxDq.length === 0) return false;
+                const backIndex = maxDq[maxDq.length - 1];
+                return nums[backIndex] <= rightVal;
+            },
+            () => {
+                maxDq.pop();
+            }
+        );
         maxDq.push(right);
         // Maintain the min deque
-        repeatWhile(() => minDq.length > 0 && nums[minDq[minDq.length - 1]] >= nums[right], () => {
-            minDq.pop();
-        });
+        repeatWhile(
+            () => {
+                if (minDq.length === 0) return false;
+                const backIndex = minDq[minDq.length - 1];
+                return nums[backIndex] >= rightVal;
+            },
+            () => {
+                minDq.pop();
+            }
+        );
         minDq.push(right);
         // Shrink from the left while constraint is violated
-        repeatWhile(() => nums[maxDq[0]] - nums[minDq[0]] > limit, () => {
-            left++;
-            if (maxDq[0] < left) {
-                maxDq.shift();
+        repeatWhile(
+            () => nums[maxDq[0]] - nums[minDq[0]] > limit,
+            () => {
+                left++;
+                if (maxDq[0] < left) {
+                    maxDq.shift();
+                }
+                if (minDq[0] < left) {
+                    minDq.shift();
+                }
             }
-            if (minDq[0] < left) {
-                minDq.shift();
-            }
-        });
+        );
         result = Math.max(result, right - left + 1);
     });
     return result;
 }`,
+    verification: `maxSlidingWindow:
+  Promise: 'dq contains indices of a non-increasing subsequence of nums within the current window [i-k+1 .. i]; nums[dq[0]] is the window maximum'
+  Init: dq=[]; empty deque satisfies non-increasing trivially ✓
+  Maintain:
+    What changes? expire stale front; pop back indices whose values <= nums[i]; push i
+    Could it break the promise? only if we keep a smaller element behind a larger one
+    Flip test: what if we skip the clean step and push i without popping smaller backs?
+      Then dq would have a smaller value before nums[i], violating non-increasing. The while-pop prevents this ✓
+  Terminate: i === nums.length; every window's max was recorded at i === k-1, k, ... ✓
+
+minSlidingWindow:
+  Promise: 'same structure as maxSlidingWindow but dq is non-decreasing; nums[dq[0]] is the window minimum'
+  The only difference: pop back when nums[back] >= nums[i] (keeps non-decreasing order)
+  Flip test: what if >= were changed to <=?
+    Then equal values would be popped, potentially losing the minimum unnecessarily. The >= catches equals to maintain non-decreasing ✓
+
+longestSubarray:
+  Promise: '[left..right] is the longest valid window ending at right where max-min <= limit'
+  Init: left=0, both deques empty; window of size 0 is trivially valid ✓
+  Maintain:
+    What changes? right advances; both deques updated; if max-min > limit, left advances and deque fronts expire
+    Could left advance too far? no — we stop as soon as the constraint is satisfied ✓
+    Flip test: what if we only maintained one deque?
+      We could not compute both max and min in O(1), so the constraint check would be wrong ✓
+  Terminate: right === nums.length; result = length of longest valid window seen ✓`,
     jsTemplateWalkthrough: "── Sliding Window Maximum ──\n" +
 "Input: nums=[1,3,-1,-3,5,3,6,7], k=3\n" +
 "\n" +
@@ -7534,27 +8310,36 @@ function merge(left, right) {
     let i = 0;
     let j = 0;
 
-    repeatWhile(() => i < left.length && j < right.length, () => {
-        if (left[i] <= right[j]) {
+    repeatWhile(
+        () => i < left.length && j < right.length,
+        () => {
+            if (left[i] <= right[j]) {
+                result.push(left[i]);
+                i++;
+            } else {
+                result.push(right[j]);
+                j++;
+            }
+        }
+    );
+
+    // Drain any remaining elements from the left side
+    repeatWhile(
+        () => i < left.length,
+        () => {
             result.push(left[i]);
             i++;
-        } else {
+        }
+    );
+
+    // Drain any remaining elements from the right side
+    repeatWhile(
+        () => j < right.length,
+        () => {
             result.push(right[j]);
             j++;
         }
-    });
-
-    // Drain any remaining elements from the left side
-    repeatWhile(() => i < left.length, () => {
-        result.push(left[i]);
-        i++;
-    });
-
-    // Drain any remaining elements from the right side
-    repeatWhile(() => j < right.length, () => {
-        result.push(right[j]);
-        j++;
-    });
+    );
 
     return result;
 }
@@ -7597,29 +8382,72 @@ function countInversions(nums) {
     let i = 0;
     let j = 0;
 
-    repeatWhile(() => i < left.length && j < right.length, () => {
-        if (left[i] <= right[j]) {
+    repeatWhile(
+        () => i < left.length && j < right.length,
+        () => {
+            if (left[i] <= right[j]) {
+                merged.push(left[i]);
+                i++;
+            } else {
+                // All remaining left elements are > right[j] → count them all
+                merged.push(right[j]);
+                j++;
+                totalInversions += left.length - i;
+            }
+        }
+    );
+
+    repeatWhile(
+        () => i < left.length,
+        () => {
             merged.push(left[i]);
             i++;
-        } else {
-            // All remaining left elements are > right[j] → count them all
+        }
+    );
+    repeatWhile(
+        () => j < right.length,
+        () => {
             merged.push(right[j]);
             j++;
-            totalInversions += left.length - i;
         }
-    });
-
-    repeatWhile(() => i < left.length, () => {
-        merged.push(left[i]);
-        i++;
-    });
-    repeatWhile(() => j < right.length, () => {
-        merged.push(right[j]);
-        j++;
-    });
+    );
 
     return [merged, totalInversions];
 }`,
+    verification: `mergeSort:
+  Promise: 'mergeSort(nums) returns a sorted copy of nums'
+  Base case: nums.length <= 1; a single element is already sorted ✓
+  Inductive step: assume mergeSort correctly sorts any array shorter than nums.
+    left = mergeSort(first half) sorted by induction ✓
+    right = mergeSort(second half) sorted by induction ✓
+    merge(left, right) combines two sorted arrays into one sorted array ✓
+  Why nothing missed: every element is in exactly one of left or right ✓
+
+merge:
+  Promise: 'result contains the merged sorted elements from left[0..i-1] and right[0..j-1]'
+  Init: result=[], i=j=0; trivially sorted ✓
+  Maintain:
+    What changes? always append the smaller of left[i] and right[j]
+    Could result become unsorted? only if we append something smaller than the last element
+    Flip test: what if left[i] > right[j] but we pick left[i]?
+      The if-condition (left[i] <= right[j]) prevents this ✓
+  Terminate: one side exhausted; drain the other; all elements in sorted order ✓
+
+quickSelect:
+  Promise: 'quickSelect(nums, k) returns the kth smallest element (0-indexed)'
+  Base case: when less.length or equal covers k, return immediately ✓
+  Inductive step: assume quickSelect works on any array smaller than nums.
+    After partition: k lands in exactly one of less / equal / greater.
+    In less: recurse with same k (smaller sub-problem) correct by induction ✓
+    In greater: recurse with adjusted k correct by induction ✓
+  Why O(n) average: random pivot splits roughly in half; T(n)=T(n/2)+O(n)=O(n) ✓
+
+countInversions:
+  Promise: 'countInversions(nums) returns [sorted copy of nums, count of inversions]'
+  Base case: length <= 1; 0 inversions ✓
+  Inductive step: left and right sub-array inversions counted recursively ✓
+    Cross inversions: when right[j] is chosen during merge, all remaining left elements are larger — counted as left.length - i ✓
+  Why nothing missed: every inversion is within left, within right, or crosses the boundary ✓`,
     jsTemplateWalkthrough: "── Merge Sort ──\n" +
 "Input: [3,1,4,1,5]\n" +
 "\n" +
@@ -7972,6 +8800,27 @@ class SegmentTree {
         return leftSum + rightSum;
     }
 }`,
+    verification: `SegmentTree._build:
+  Promise: 'tree[node] = sum of nums[start..end] after _build(node, start, end)'
+  Base case: start===end (leaf); tree[node] = nums[start] — trivially correct ✓
+  Inductive step: assume _build correct for all smaller ranges.
+    Left child built over [start,mid] correct by induction ✓
+    Right child built over [mid+1,end] correct by induction ✓
+    tree[node] = left child + right child = sum of entire [start,end] ✓
+  Why nothing missed: every index is covered by exactly one leaf ✓
+
+SegmentTree.update:
+  Promise: 'tree[node] = sum of the updated array over [start,end] after _update'
+  Base case: start===end (leaf); tree[node] set to new val ✓
+  Inductive step: recurse into exactly the child containing idx; on the way back, tree[node] recalculated as left + right ✓
+  Why only the path is updated: tree nodes not on the path from root to idx are unaffected, and their ranges do not include idx ✓
+
+SegmentTree.query:
+  Promise: '_query returns the sum of nums[max(l,start)..min(r,end)]'
+  Case 1 (no overlap): query range [l,r] and node range [start,end] are disjoint → contributes 0 ✓
+  Case 2 (full overlap): node range completely inside [l,r] → return stored sum ✓
+  Case 3 (partial overlap): split and sum both children; the ranges together cover exactly [start,end] ∩ [l,r] with no double-counting ✓
+  Why O(log n): at each level at most 4 nodes are in partial-overlap; the rest are full or none ✓`,
     jsTemplateWalkthrough: "── Segment Tree Build ──\n" +
 "Input: nums=[1,3,5,7]\n" +
 "Node 1 = root, covers [0,3]. Children: 2*node and 2*node+1\n" +
@@ -8280,46 +9129,52 @@ function kmpSearch(text, pattern) {
     // Build LPS array
     let matchLength = 0;   // length of current matching prefix-suffix
     let i = 1;     // lps[0] is always 0; start from index 1
-    repeatWhile(() => i < m, () => {
-        if (pattern[i] === pattern[matchLength]) {
-            // Extended the matching prefix-suffix
-            matchLength++;
-            lps[i] = matchLength;
-            i++;
-        } else if (matchLength > 0) {
-            // Mismatch after some match: fall back without advancing i
-            matchLength = lps[matchLength - 1];
-        } else {
-            // No match at all
-            lps[i] = 0;
-            i++;
+    repeatWhile(
+        () => i < m,
+        () => {
+            if (pattern[i] === pattern[matchLength]) {
+                // Extended the matching prefix-suffix
+                matchLength++;
+                lps[i] = matchLength;
+                i++;
+            } else if (matchLength > 0) {
+                // Mismatch after some match: fall back without advancing i
+                matchLength = lps[matchLength - 1];
+            } else {
+                // No match at all
+                lps[i] = 0;
+                i++;
+            }
         }
-    });
+    );
 
     // Search phase: use lps to skip redundant comparisons
     let textPos = 0;       // pointer into text
     let patternPos = 0;    // pointer into pattern
     const results = [];
 
-    repeatWhile(() => textPos < text.length, () => {
-        if (text[textPos] === pattern[patternPos]) {
-            textPos++;
-            patternPos++;
+    repeatWhile(
+        () => textPos < text.length,
+        () => {
+            if (text[textPos] === pattern[patternPos]) {
+                textPos++;
+                patternPos++;
 
-            if (patternPos === m) {
-                // Found a full match at index (textPos - patternPos)
-                results.push(textPos - patternPos);
-                // Use LPS to find the next possible overlap
+                if (patternPos === m) {
+                    // Found a full match at index (textPos - patternPos)
+                    results.push(textPos - patternPos);
+                    // Use LPS to find the next possible overlap
+                    patternPos = lps[patternPos - 1];
+                }
+            } else if (patternPos > 0) {
+                // Mismatch: use LPS to skip (keep textPos in place)
                 patternPos = lps[patternPos - 1];
+            } else {
+                // No partial match: just advance text
+                textPos++;
             }
-        } else if (patternPos > 0) {
-            // Mismatch: use LPS to skip (keep textPos in place)
-            patternPos = lps[patternPos - 1];
-        } else {
-            // No partial match: just advance text
-            textPos++;
         }
-    });
+    );
 
     return results;
 }
@@ -8365,6 +9220,34 @@ function rabinKarp(text, pattern) {
 
     return -1;
 }`,
+    verification: `kmpSearch:
+  Promise (LPS build): 'lps[i] = length of the longest proper prefix of pattern[0..i] that is also a suffix'
+  Init: lps[0]=0 (no proper prefix for a single character) ✓
+  Maintain:
+    What changes? matchLength extends when chars match; falls back via lps[matchLength-1] on mismatch
+    Flip test: what if on mismatch we reset matchLength to 0 instead of lps[matchLength-1]?
+      We would miss shorter valid prefix-suffix overlaps, producing a wrong (smaller) lps value ✓
+  Terminate: i===m; lps array complete ✓
+
+  Promise (search): 'result contains all starting indices where pattern appears in text'
+  Init: textPos=patternPos=0 ✓
+  Maintain:
+    On match: both advance; when patternPos===m record hit, reset via lps[m-1]
+    On mismatch patternPos>0: use lps to skip without moving textPos
+    On mismatch patternPos===0: advance textPos only
+    Flip test: what if we reset patternPos to 0 instead of lps[patternPos-1]?
+      We would re-compare already-matched characters, degrading to O(nm) ✓
+  Terminate: textPos===text.length ✓
+
+rabinKarp:
+  Promise: 'textWindowHash is always the polynomial hash of text[i..i+patternLen-1]'
+  Init: textWindowHash computed over first patternLen characters ✓
+  Maintain:
+    Roll: remove leftmost char (leftChar * power), shift left (* base), add new right char
+    Negative wrap prevented by (+mod)%mod ✓
+    Flip test: what if we skip string verification on hash match?
+      Hash collisions cause false positives; the text.slice check is mandatory ✓
+  Terminate: all windows checked; -1 returned if no match ✓`,
     jsTemplateWalkthrough: "── KMP: Build LPS ──\n" +
 "Pattern: \"aabaab\"\n" +
 "lps[0]=0 always.\n" +
@@ -8655,10 +9538,13 @@ class UnionFind {
     }
 
     find(x) {
-        repeatWhile(() => this.parent[x] !== x, () => {
-            this.parent[x] = this.parent[this.parent[x]];  // path compression
-            x = this.parent[x];
-        });
+        repeatWhile(
+            () => this.parent[x] !== x,
+            () => {
+                this.parent[x] = this.parent[this.parent[x]];  // path compression
+                x = this.parent[x];
+            }
+        );
         return x;
     }
 
@@ -8721,30 +9607,45 @@ function prim(n, adj) {
     const heap = [[0, 0]];
     let total = 0;
 
-    repeatWhile(() => heap.length > 0 && visited.size < n, () => {
-        // Extract minimum cost edge (sort simulates a min-heap)
-        heap.sort((a, b) => a[0] - b[0]);
-        const [cost, u] = heap.shift();
+    repeatWhile(
+        () => heap.length > 0 && visited.size < n,
+        () => {
+            // Extract minimum cost edge (sort simulates a min-heap)
+            heap.sort((a, b) => a[0] - b[0]);
+            const [cost, u] = heap.shift();
 
-        // Skip if this node was already added to the MST
-        if (visited.has(u)) {
-            return;
-        }
-
-        visited.add(u);
-        total += cost;
-
-        // Add all edges from u to unvisited neighbors
-        forEach(adj[u] || [], ([weight, v]) => {
-            if (!visited.has(v)) {
-                heap.push([weight, v]);
+            // Skip if this node was already added to the MST
+            if (visited.has(u)) {
+                return;
             }
-        });
-    });
+
+            visited.add(u);
+            total += cost;
+
+            // Add all edges from u to unvisited neighbors
+            forEach(adj[u] || [], ([weight, v]) => {
+                if (!visited.has(v)) {
+                    heap.push([weight, v]);
+                }
+            });
+        }
+    );
 
     // If not all nodes were visited, graph is disconnected
     return visited.size === n ? total : -1;
 }`,
+    verification: `kruskal:
+  Greedy choice: always add the cheapest edge that does not create a cycle
+  Assume wrong: suppose a cheaper MST skips edge e (chosen by Kruskal) and uses heavier edge f instead.
+    Replacing f with e still connects the same components and has lower or equal cost. Contradiction ✓
+  Cycle check: uf.union returns false when u and v share a root — that edge would create a second path ✓
+  Termination: mstEdges===n-1 connects all n nodes with exactly n-1 edges; disconnected graph returns -1 ✓
+
+prim:
+  Greedy choice: always add the cheapest edge crossing into unvisited territory
+  Why this is safe: the MST cut property — the minimum weight edge crossing any cut is in some MST ✓
+  Why skipping visited nodes is correct: re-adding a visited node would create a cycle ✓
+  Termination: visited.size===n means all nodes are in the MST ✓`,
     jsTemplateWalkthrough: "── Kruskal's Algorithm ──\n" +
 "n=4, edges=[[1,0,1],[2,0,2],[3,1,2],[4,1,3],[5,2,3]]\n" +
 "After sort: [[1,0,1],[2,0,2],[3,1,2],[4,1,3],[5,2,3]]\n" +
@@ -8940,13 +9841,19 @@ function nextGreater(nums) {
     const result = new Array(n).fill(-1);  // default: no next greater element
     const stack = [];  // stores indices; values in decreasing order
 
-    for (let i = 0; i < n; i++) {
+    for (let currentIndex = 0; currentIndex < n; currentIndex++) {
+        const currentVal = nums[currentIndex];
         // Pop all indices whose values are smaller than current
-        while (stack.length > 0 && nums[i] > nums[stack[stack.length - 1]]) {
-            const j = stack.pop();
-            result[j] = nums[i];  // nums[i] is the next greater element for index j
+        while (stack.length > 0) {
+            const topIndex = stack[stack.length - 1];
+            const topVal = nums[topIndex];
+            if (currentVal <= topVal) {
+                break;
+            }
+            stack.pop();
+            result[topIndex] = currentVal;  // currentVal is the next greater element for topIndex
         }
-        stack.push(i);
+        stack.push(currentIndex);
     }
 
     return result;
@@ -8959,12 +9866,19 @@ function dailyTemperatures(temps) {
     const result = new Array(n).fill(0);  // 0 means no warmer day ahead
     const stack = [];  // stores indices
 
-    for (let i = 0; i < n; i++) {
-        while (stack.length > 0 && temps[i] > temps[stack[stack.length - 1]]) {
-            const j = stack.pop();
-            result[j] = i - j;  // days until a warmer temperature
+    for (let todayIndex = 0; todayIndex < n; todayIndex++) {
+        const todayTemp = temps[todayIndex];
+        while (stack.length > 0) {
+            const waitingIndex = stack[stack.length - 1];
+            const waitingTemp = temps[waitingIndex];
+            if (todayTemp <= waitingTemp) {
+                break;
+            }
+            stack.pop();
+            const daysWaited = todayIndex - waitingIndex;
+            result[waitingIndex] = daysWaited;  // days until a warmer temperature
         }
-        stack.push(i);
+        stack.push(todayIndex);
     }
 
     return result;
@@ -8980,18 +9894,24 @@ function largestRectangleArea(heights) {
     // Sentinel 0 at end forces all remaining bars to be popped and processed
     heights.push(0);
 
-    for (let i = 0; i < heights.length; i++) {
-        while (stack.length > 0 && heights[stack[stack.length - 1]] > heights[i]) {
+    for (let currentIndex = 0; currentIndex < heights.length; currentIndex++) {
+        const currentHeight = heights[currentIndex];
+        while (stack.length > 0) {
+            const topIndex = stack[stack.length - 1];
+            const topHeight = heights[topIndex];
+            if (topHeight <= currentHeight) {
+                break;
+            }
             const poppedIndex = stack.pop();
             const barHeight = heights[poppedIndex];
 
             // Left boundary is the new stack top; if empty, extends to the start
             const leftBoundary = stack.length > 0 ? stack[stack.length - 1] : -1;
-            const barWidth = i - leftBoundary - 1;
+            const barWidth = currentIndex - leftBoundary - 1;
 
             maxArea = Math.max(maxArea, barHeight * barWidth);
         }
-        stack.push(i);
+        stack.push(currentIndex);
     }
 
     heights.pop();  // restore original array
@@ -9004,8 +9924,14 @@ function trap(height) {
     const stack = [];
     let water = 0;
 
-    for (let i = 0; i < height.length; i++) {
-        while (stack.length > 0 && height[i] > height[stack[stack.length - 1]]) {
+    for (let currentIndex = 0; currentIndex < height.length; currentIndex++) {
+        const currentHeight = height[currentIndex];
+        while (stack.length > 0) {
+            const topIndex = stack[stack.length - 1];
+            const topHeight = height[topIndex];
+            if (currentHeight <= topHeight) {
+                break;
+            }
             const bottomIndex = stack.pop();
             const bottomHeight = height[bottomIndex];
 
@@ -9015,11 +9941,11 @@ function trap(height) {
             }
 
             const leftWallIndex = stack[stack.length - 1];
-            const width = i - leftWallIndex - 1;
-            const boundedHeight = Math.min(height[i], height[leftWallIndex]) - bottomHeight;
+            const width = currentIndex - leftWallIndex - 1;
+            const boundedHeight = Math.min(currentHeight, height[leftWallIndex]) - bottomHeight;
             water += width * boundedHeight;
         }
-        stack.push(i);
+        stack.push(currentIndex);
     }
 
     return water;
@@ -9033,13 +9959,22 @@ function nextGreater(nums) {
     const result = new Array(n).fill(-1);  // default: no next greater element
     const stack = [];  // stores indices; values in decreasing order
 
-    forEachBetween(0, n, (i) => {
+    forEachBetween(0, n, (currentIndex) => {
+        const currentVal = nums[currentIndex];
         // Pop all indices whose values are smaller than current
-        repeatWhile(() => stack.length > 0 && nums[i] > nums[stack[stack.length - 1]], () => {
-            const j = stack.pop();
-            result[j] = nums[i];  // nums[i] is the next greater element for index j
-        });
-        stack.push(i);
+        repeatWhile(
+            () => {
+                if (stack.length === 0) return false;
+                const topIndex = stack[stack.length - 1];
+                const topVal = nums[topIndex];
+                return currentVal > topVal;
+            },
+            () => {
+                const topIndex = stack.pop();
+                result[topIndex] = currentVal;  // currentVal is the next greater element for topIndex
+            }
+        );
+        stack.push(currentIndex);
     });
 
     return result;
@@ -9052,12 +9987,22 @@ function dailyTemperatures(temps) {
     const result = new Array(n).fill(0);  // 0 means no warmer day ahead
     const stack = [];  // stores indices
 
-    forEachBetween(0, n, (i) => {
-        repeatWhile(() => stack.length > 0 && temps[i] > temps[stack[stack.length - 1]], () => {
-            const j = stack.pop();
-            result[j] = i - j;  // days until a warmer temperature
-        });
-        stack.push(i);
+    forEachBetween(0, n, (todayIndex) => {
+        const todayTemp = temps[todayIndex];
+        repeatWhile(
+            () => {
+                if (stack.length === 0) return false;
+                const waitingIndex = stack[stack.length - 1];
+                const waitingTemp = temps[waitingIndex];
+                return todayTemp > waitingTemp;
+            },
+            () => {
+                const waitingIndex = stack.pop();
+                const daysWaited = todayIndex - waitingIndex;
+                result[waitingIndex] = daysWaited;  // days until a warmer temperature
+            }
+        );
+        stack.push(todayIndex);
     });
 
     return result;
@@ -9073,18 +10018,27 @@ function largestRectangleArea(heights) {
     // Sentinel 0 at end forces all remaining bars to be popped and processed
     heights.push(0);
 
-    forEachBetween(0, heights.length, (i) => {
-        repeatWhile(() => stack.length > 0 && heights[stack[stack.length - 1]] > heights[i], () => {
-            const poppedIndex = stack.pop();
-            const barHeight = heights[poppedIndex];
+    forEachBetween(0, heights.length, (currentIndex) => {
+        const currentHeight = heights[currentIndex];
+        repeatWhile(
+            () => {
+                if (stack.length === 0) return false;
+                const topIndex = stack[stack.length - 1];
+                const topHeight = heights[topIndex];
+                return topHeight > currentHeight;
+            },
+            () => {
+                const poppedIndex = stack.pop();
+                const barHeight = heights[poppedIndex];
 
-            // Left boundary is the new stack top; if empty, extends to the start
-            const leftBoundary = stack.length > 0 ? stack[stack.length - 1] : -1;
-            const barWidth = i - leftBoundary - 1;
+                // Left boundary is the new stack top; if empty, extends to the start
+                const leftBoundary = stack.length > 0 ? stack[stack.length - 1] : -1;
+                const barWidth = currentIndex - leftBoundary - 1;
 
-            maxArea = Math.max(maxArea, barHeight * barWidth);
-        });
-        stack.push(i);
+                maxArea = Math.max(maxArea, barHeight * barWidth);
+            }
+        );
+        stack.push(currentIndex);
     });
 
     heights.pop();  // restore original array
@@ -9097,26 +10051,63 @@ function trap(height) {
     const stack = [];
     let water = 0;
 
-    forEachBetween(0, height.length, (i) => {
-        repeatWhile(() => stack.length > 0 && height[i] > height[stack[stack.length - 1]], () => {
-            const bottomIndex = stack.pop();
-            const bottomHeight = height[bottomIndex];
+    forEachBetween(0, height.length, (currentIndex) => {
+        const currentHeight = height[currentIndex];
+        repeatWhile(
+            () => {
+                if (stack.length === 0) return false;
+                const topIndex = stack[stack.length - 1];
+                const topHeight = height[topIndex];
+                return currentHeight > topHeight;
+            },
+            () => {
+                const bottomIndex = stack.pop();
+                const bottomHeight = height[bottomIndex];
 
-            // Need a left wall; if stack is empty, no container possible
-            if (stack.length === 0) {
-                return;
+                // Need a left wall; if stack is empty, no container possible
+                if (stack.length === 0) {
+                    return;
+                }
+
+                const leftWallIndex = stack[stack.length - 1];
+                const width = currentIndex - leftWallIndex - 1;
+                const boundedHeight = Math.min(currentHeight, height[leftWallIndex]) - bottomHeight;
+                water += width * boundedHeight;
             }
-
-            const leftWallIndex = stack[stack.length - 1];
-            const width = i - leftWallIndex - 1;
-            const boundedHeight = Math.min(height[i], height[leftWallIndex]) - bottomHeight;
-            water += width * boundedHeight;
-        });
-        stack.push(i);
+        );
+        stack.push(currentIndex);
     });
 
     return water;
 }`,
+    verification: `nextGreater:
+  Promise: 'result[j] = first element to the right of j greater than nums[j]; stack holds unresolved indices in decreasing value order'
+  Init: result filled with -1; stack=[]; trivially holds ✓
+  Maintain:
+    What changes? when nums[i] > nums[stack.top], pop j and set result[j]=nums[i]
+    Could we miss a next-greater? only if we push i before popping all smaller elements
+    The while-loop resolves all smaller elements before pushing i ✓
+  Terminate: i===n; remaining stack indices have no next-greater (stay -1) ✓
+
+dailyTemperatures:
+  Promise: 'same as nextGreater but result[j] records the distance i-j instead of the value'
+  Flip test: what if we recorded nums[i] instead of i-j?
+    We would answer "what is the warmer temperature" not "how many days" — wrong ✓
+
+largestRectangleArea:
+  Promise: 'stack holds indices in strictly increasing height order; every popped bar yields its maximal rectangle'
+  Init: stack=[]; trivially increasing ✓
+  Maintain:
+    When heights[i] < heights[stack.top]: pop poppedIdx; height = heights[poppedIdx]
+    leftBoundary = new stack.top (or -1 if empty); width = i - leftBoundary - 1 ✓
+    Flip test: what if we skipped the sentinel 0?
+      Bars remaining in the stack at the end would never be popped, missing their rectangles ✓
+  Terminate: all bars processed including sentinel; maxArea is correct ✓
+
+trap:
+  Promise: 'water = total trapped water between all processed valleys'
+  When a taller bar arrives: pop valley bottom; compute water = (min(rightWall, leftWall) - valleyFloor) * width ✓
+  Empty-stack break: no left wall means no container — water drains, correctly adds 0 ✓`,
     jsTemplateWalkthrough: "── Next Greater Element ──\n" +
 "Input: [2,1,2,4,3]\n" +
 "\n" +
@@ -9428,19 +10419,25 @@ class BIT {
     }
     // Add delta to 1-indexed position i; propagates up using +lsb
     update(i, delta) {
-        repeatWhile(() => i <= this.n, () => {
-            this.tree[i] += delta;
-            i += i & (-i);  // add lowest set bit to reach next responsible node
-        });
+        repeatWhile(
+            () => i <= this.n,
+            () => {
+                this.tree[i] += delta;
+                i += i & (-i);  // add lowest set bit to reach next responsible node
+            }
+        );
     }
 
     // Prefix sum from 1 to i (inclusive); accumulates down using -lsb
     query(i) {
         let total = 0;
-        repeatWhile(() => i > 0, () => {
-            total += this.tree[i];
-            i -= i & (-i);  // remove lowest set bit to reach next contributing node
-        });
+        repeatWhile(
+            () => i > 0,
+            () => {
+                total += this.tree[i];
+                i -= i & (-i);  // remove lowest set bit to reach next contributing node
+            }
+        );
         return total;
     }
 
@@ -9494,6 +10491,27 @@ function countInversions(nums) {
 
     return inversions;
 }`,
+    verification: `BIT.update:
+  Promise: 'tree[j] updated for every j that is a responsible ancestor of i; all prefix sums remain correct after the delta'
+  Why this works: any prefix query for [1..k] with k>=i passes through exactly the nodes updated here ✓
+  Flip test: what if we forgot to update tree[i] itself?
+    The current range would not reflect the delta, corrupting all prefix sums containing i ✓
+  Terminate: i > n; all responsible ancestors updated ✓
+
+BIT.query:
+  Promise: 'total accumulates exactly the tree nodes whose ranges together cover [1..i] without gaps or overlap'
+  Why ranges tile perfectly: subtracting the lowest set bit from i jumps to the predecessor whose range ends just before i; these ranges partition [1..i] ✓
+  Flip test: what if we subtracted a different bit?
+    Ranges would overlap or leave gaps, giving a wrong sum ✓
+  Terminate: i=0; complete ✓
+
+countInversions (BIT version):
+  Promise: 'after processing index i right-to-left, bit holds frequencies of nums[i+1..n-1]; inversions counts pairs with left element larger than right'
+  Init: bit empty; no elements to the right of the last index ✓
+  Maintain:
+    bit.query(r-1) counts elements already registered with rank < r (smaller than nums[i]) ✓
+    bit.update(r, 1) registers nums[i] ✓
+  Terminate: i=0; all inversions counted ✓`,
     jsTemplateWalkthrough: "── BIT Update ──\n" +
 "n=8. update(3, 5) — add 5 at 1-indexed position 3\n" +
 "\n" +
@@ -9847,18 +10865,21 @@ function topologicalSortKahn(numNodes, edges) {
 
     const order = [];
 
-    repeatWhile(() => queue.length > 0, () => {
-        const node = queue.shift();
-        order.push(node);
+    repeatWhile(
+        () => queue.length > 0,
+        () => {
+            const node = queue.shift();
+            order.push(node);
 
-        for (const neighbor of graph[node]) {
-            inDegree[neighbor]--;
+            for (const neighbor of graph[node]) {
+                inDegree[neighbor]--;
 
-            if (inDegree[neighbor] === 0) {
-                queue.push(neighbor);
+                if (inDegree[neighbor] === 0) {
+                    queue.push(neighbor);
+                }
             }
         }
-    });
+    );
 
     // Cycle check: if not all nodes processed, a cycle exists
     return order.length === numNodes ? order : [];
@@ -9917,6 +10938,27 @@ function topologicalSortDFS(numNodes, edges) {
 
     return order.reverse();
 }`,
+    verification: `topologicalSortKahn:
+  Promise: 'order contains nodes in topological order; every node in order has all its prerequisites already in order before it'
+  Init: queue contains all nodes with inDegree=0 (no prerequisites) ✓
+  Maintain:
+    What changes? pop node, add to order, decrement inDegree of all neighbors; enqueue neighbors that reach 0
+    Could a node be added before its prerequisites? only if some prerequisite edge points to a node already in order
+    Flip test: what if we enqueued a node with inDegree>0?
+      A prerequisite would not yet be in order, violating topo order. The if(inDegree===0) guard prevents this ✓
+  Terminate: queue empty; if order.length < numNodes → cycle (some nodes never reached inDegree=0) ✓
+
+canFinish:
+  Greedy choice: run Kahn's and check if all courses are processed
+  Why cycle detection works: in a cycle every node has at least one incoming edge that never gets decremented to 0 (its predecessor is blocked too); so cyclic nodes are never enqueued ✓
+  Correctness: all courses finishable iff the prerequisite graph is a DAG iff Kahn's processes all n nodes ✓
+
+topologicalSortDFS:
+  Promise: 'order (before reverse) = post-order of the DFS; after reverse, all edges point from earlier to later in the list'
+  Three states ensure: UNVISITED nodes are visited once; IN_PROGRESS → IN_PROGRESS is a back edge = cycle ✓
+  Post-order guarantee: a node is pushed only after ALL its reachable descendants are pushed; so it ends up before them after reverse ✓
+  Flip test: what if we used only two states (visited/not)?
+    We could not distinguish a cross edge from a back edge, missing cycle detection ✓`,
     jsTemplateWalkthrough: "── Kahn's Algorithm ──\n" +
 "numNodes=4, edges=[[0,1],[0,2],[1,3],[2,3]]\n" +
 "\n" +
@@ -10649,11 +11691,14 @@ class H2O {
         this.tryFormWater();
     }
     tryFormWater() {
-        repeatWhile(() => this.hydrogenQueue.length >= 2 && this.oxygenQueue.length >= 1, () => {
-            this.hydrogenQueue.shift()();
-            this.hydrogenQueue.shift()();
-            this.oxygenQueue.shift()();
-        });
+        repeatWhile(
+            () => this.hydrogenQueue.length >= 2 && this.oxygenQueue.length >= 1,
+            () => {
+                this.hydrogenQueue.shift()();
+                this.hydrogenQueue.shift()();
+                this.oxygenQueue.shift()();
+            }
+        );
     }
 }
 
@@ -10706,6 +11751,30 @@ class DiningPhilosophers {
         }
     }
 }`,
+    verification: `Sequential / PrintInOrder:
+  Safety: without gates, step2 or step3 could run before their predecessors
+  Prevention: each step awaits a Promise resolved only when its predecessor finishes; a Promise resolves at most once, so each gate opens exactly once ✓
+  Deadlock check: no circular wait — step1 resolves gate1, step2 awaits gate1 and resolves gate2, step3 awaits gate2 only; the dependency chain is strictly linear ✓
+
+FooBar / Alternating:
+  Safety: both threads could execute the same turn simultaneously
+  Prevention: JavaScript is single-threaded; the flag check and flip are uninterruptible within one microtask; setTimeout(0) yields control so the other coroutine can advance ✓
+  Deadlock check: after n iterations both loops complete; no thread ever waits forever because the other will always eventually flip the flag ✓
+
+AsyncQueue:
+  Safety: producer could enqueue into a full queue, or consumer could dequeue from an empty queue
+  Prevention: each is suspended by pushing a resolve into a waiting list; the other side calls shift()() to wake exactly one waiter after each state change ✓
+  Deadlock check: a producer is always woken by a consumer and vice versa; the queue state changes before the wake, so no circular-wait scenario can arise ✓
+
+H2O:
+  Safety: molecules could form with the wrong atom ratio
+  Prevention: tryFormWater fires only when hydrogenQueue.length >= 2 AND oxygenQueue.length >= 1; atoms are dequeued atomically as a group of exactly 2H + 1O ✓
+  Deadlock check: no locks are held; all execution is synchronous within a single event-loop tick; no thread waits on another thread ✓
+
+DiningPhilosophers:
+  Safety: all 5 philosophers grab their left fork simultaneously, then each waits for the right fork forever
+  Prevention: seatedCount is capped at 4; with 4 seated and 5 forks, by pigeonhole at least one philosopher holds no fork, so its neighbor can always acquire both ✓
+  Deadlock check: circular wait requires all 5 to be seated at once; the cap of 4 breaks this condition ✓`,
     jsTemplateWalkthrough: "── Sequential Ordering ──\n" +
 "Pattern: step1 → step2 → step3, regardless of which thread runs first\n" +
 "\n" +
