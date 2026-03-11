@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { lessons, TopicLesson } from '../data/lessons';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import CodeBlock from './CodeBlock';
@@ -319,7 +320,16 @@ function AllMnemonics() {
 
 export default function DSAReference() {
   const [language, setLanguage] = useLocalStorage<'python' | 'javascript'>('lc-language', 'javascript');
-  const [view, setView] = useState<'topics' | 'mnemonics'>('topics');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const view = searchParams.get('view') === 'mnemonics' ? 'mnemonics' : 'topics';
+
+  const setView = (v: 'topics' | 'mnemonics') => {
+    if (v === 'mnemonics') {
+      setSearchParams({ view: 'mnemonics' });
+    } else {
+      setSearchParams({});
+    }
+  };
 
   return (
     <div className="space-y-8">
