@@ -222,7 +222,47 @@ PREFIX/SUFFIX PRODUCTS (Product of Array Except Self):
   Two passes: left-to-right builds prefix, right-to-left multiplies suffix.
   result[i] = (product of everything left of i) × (product of everything right of i)
   Mnemonic: "Sweep left, sweep right, multiply"
-  Key trick: No division needed! Two O(n) passes = O(n) total.`,
+  Key trick: No division needed! Two O(n) passes = O(n) total.
+
+TEMPLATE-BY-TEMPLATE MEMORIZATION:
+
+twoSum:
+  "Find two indices whose values sum to target."
+  Data structure: Map (value → index) for O(1) complement lookup.
+  Steps to memorize:
+    1. Create empty Map called seen
+    2. For each num: compute complement = target - num
+    3. If complement in seen → return [seen.get(complement), i]
+    4. Else store seen.set(num, i)
+  Mnemonic: "Seen the partner? Return. Haven't? Remember yourself."
+
+topKFrequent:
+  "Return the k most frequently occurring numbers using bucket sort."
+  Data structures: Map (num → count) + buckets array indexed by frequency.
+  Steps to memorize:
+    1. Build count map
+    2. Create buckets array of size n+1 (index = frequency)
+    3. Fill buckets: buckets[freq].push(num)
+    4. Walk buckets backwards, collect until result.length === k
+  Mnemonic: "Count, bucket by frequency, harvest from the top."
+
+subarraySum:
+  "Count subarrays whose sum equals k."
+  Data structure: Map (prefixSum → count), initialized with {0: 1}.
+  Steps to memorize:
+    1. prefix.set(0, 1) — empty prefix sums to 0
+    2. For each num: currSum += num
+    3. count += prefix.get(currSum - k) || 0
+    4. prefix.set(currSum, (prefix.get(currSum) || 0) + 1)
+  Mnemonic: "Running sum minus k seen before? That's a valid subarray."
+
+productExceptSelf:
+  "Return array where result[i] = product of all elements except nums[i]."
+  Data structure: Single result array reused for both passes.
+  Steps to memorize:
+    1. Left pass: result[i] = prefixProduct before i; then prefixProduct *= nums[i]
+    2. Right pass: result[i] *= suffixProduct; then suffixProduct *= nums[i]
+  Mnemonic: "Left pass fills prefix, right pass multiplies in suffix."`,
   },
 
   'Two Pointers': {
@@ -474,7 +514,48 @@ TRAPPING RAIN WATER (two-pointer approach):
     left=0, right=n-1, leftMax=0, rightMax=0
     while left < right:
         if height[left] < height[right]: process left side
-        else: process right side`,
+        else: process right side
+
+TEMPLATE-BY-TEMPLATE MEMORIZATION:
+
+twoSumSorted:
+  "Find a pair in a sorted array that sums to target."
+  Data structure: No extra — two pointers on the sorted array itself.
+  Steps to memorize:
+    1. left = 0, right = n-1
+    2. curr = nums[left] + nums[right]
+    3. curr === target → return; curr < target → left++; curr > target → right--
+  Mnemonic: "Too small? Grow left. Too big? Shrink right."
+
+threeSum:
+  "Find all unique triplets summing to zero."
+  Data structure: Sorted array + two inner pointers.
+  Steps to memorize:
+    1. Sort the array
+    2. Outer loop fixes nums[i]; skip if duplicate (nums[i] === nums[i-1] and i > 0)
+    3. Inner two-pointer on [i+1 .. n-1]: sum < 0 → left++; sum > 0 → right--
+    4. On match: push triplet, skip duplicate lefts, left++, right--
+  Mnemonic: "Fix one, squeeze the rest, skip duplicates."
+
+removeDuplicates:
+  "Remove duplicates in-place from a sorted array, return new length."
+  Data structure: No extra — slow pointer marks end of unique section.
+  Steps to memorize:
+    1. slow = 0, fast starts at 1
+    2. If nums[fast] !== nums[slow]: slow++, nums[slow] = nums[fast]
+    3. Return slow + 1
+  Mnemonic: "Slow = last unique. Fast scouts ahead. New value? Extend unique section."
+
+trap:
+  "Compute total water trapped between bars."
+  Data structure: No extra — four variables: left, right, leftMax, rightMax, totalWater.
+  Steps to memorize:
+    1. left=0, right=n-1, leftMax=0, rightMax=0
+    2. If height[left] < height[right]: process left side (bottleneck)
+       - If height[left] >= leftMax: update leftMax; else add leftMax - height[left] to water
+       - left++
+    3. Else: mirror logic on right side; right--
+  Mnemonic: "Water limited by shorter wall. Move the short side inward."`,
   },
 
   'Sliding Window': {
@@ -683,7 +764,38 @@ Mnemonic: "ARRU" - Add Right, Remove Until valid, Update answer
 
 LONGEST vs SHORTEST:
   - Longest valid window: shrink only when INVALID, update answer AFTER shrinking
-  - Shortest valid window: shrink while VALID, update answer BEFORE shrinking`,
+  - Shortest valid window: shrink while VALID, update answer BEFORE shrinking
+
+TEMPLATE-BY-TEMPLATE MEMORIZATION:
+
+lengthOfLongestSubstring:
+  "Longest substring without repeating characters."
+  Data structure: Map (char → last index seen) so we know where to jump left.
+  Steps to memorize:
+    1. Map + left pointer + result
+    2. For each right char: if seen AND inside window (seen.get(char) >= left) → jump left past it
+    3. Update seen with current position
+    4. Window size = right - left + 1, track max
+  Mnemonic: "Seen it inside the window? Jump past it. Otherwise, grow."
+
+minWindow:
+  "Smallest window in s containing all characters of t."
+  Data structure: Map (char → count still needed); missing = number of chars still needed.
+  Steps to memorize:
+    1. Build need map from t, set missing = t.length
+    2. Expand right: if need[char] > 0, decrement missing; always decrement need[char]
+    3. When missing === 0: record shortest window, then shrink from left
+    4. Shrink: increment need[leftChar], if need[leftChar] > 0 then missing++; left++
+  Mnemonic: "Expand until valid, shrink while valid, track the shortest."
+
+maxSumSubarray:
+  "Maximum sum of any subarray of exactly size k."
+  Data structure: No extra — just a running window sum.
+  Steps to memorize:
+    1. Sum first k elements as initial windowSum
+    2. Slide: windowSum += nums[i] - nums[i - k]
+    3. Track maxSum after each slide
+  Mnemonic: "Add the new right, drop the old left, keep the best."`,
   },
 
   'Stack': {
@@ -875,7 +987,37 @@ MONOTONIC STACK (the most important pattern):
 
 Memory trick: "Pop the losers, push the current."
   - Next GREATER element = DECREASING stack (pop when current is bigger)
-  - Next SMALLER element = INCREASING stack (pop when current is smaller)`,
+  - Next SMALLER element = INCREASING stack (pop when current is smaller)
+
+TEMPLATE-BY-TEMPLATE MEMORIZATION:
+
+isValid:
+  "Validate that all brackets in a string are properly matched and nested."
+  Data structure: Stack of opening brackets.
+  Steps to memorize:
+    1. Build pairs map: closing → opening
+    2. If char is closing: check stack top matches expected open; if not → false; pop
+    3. If char is opening: push
+    4. Return stack.length === 0
+  Mnemonic: "Closing bracket? Match the top or fail. Opening? Stack it."
+
+dailyTemperatures:
+  "For each day, how many days until a warmer temperature?"
+  Data structure: Stack of indices (values are decreasing).
+  Steps to memorize:
+    1. result array filled with 0s
+    2. For each i: while stack not empty AND temps[i] > temps[stack top]: pop j, result[j] = i - j
+    3. Push i
+  Mnemonic: "Warmer day found? Tell all the colder waiting days how long they waited."
+
+evalRPN:
+  "Evaluate a Reverse Polish Notation expression."
+  Data structure: Stack of numbers.
+  Steps to memorize:
+    1. If token is operator: pop b then pop a, compute ops[token](a, b), push result
+    2. If token is number: push Number(token)
+    3. Return stack[0]
+  Mnemonic: "Number? Push. Operator? Pop two, compute, push result."`,
   },
 
   'Binary Search': {
@@ -1111,7 +1253,49 @@ Mnemonic: "Exact = <=, Boundary = <"
 SEARCH ON ANSWER pattern recognition:
 When a problem says "find the MINIMUM X such that..." or "find the MAXIMUM X such that..." and you can write a function can_do(x) -> bool, it's binary search on answer.
 
-Memory trick: "Can I do it with X? Yes/No → Binary search the boundary."`,
+Memory trick: "Can I do it with X? Yes/No → Binary search the boundary."
+
+TEMPLATE-BY-TEMPLATE MEMORIZATION:
+
+binarySearch:
+  "Find the index of target in a sorted array, or -1 if not found."
+  Data structure: No extra — left/right pointers on the array.
+  Steps to memorize:
+    1. left = 0, right = n-1; loop while left <= right
+    2. mid = left + Math.floor((right - left) / 2)
+    3. nums[mid] === target → return mid; < target → left = mid+1; > target → right = mid-1
+    4. Return -1 if loop ends
+  Mnemonic: "Equal? Done. Too small? Go right. Too big? Go left."
+
+firstTrue:
+  "Find the first index where a condition becomes true (left boundary search)."
+  Data structure: No extra — lo/hi pointers, condition function.
+  Steps to memorize:
+    1. Loop while lo < hi (not <=)
+    2. mid = lo + Math.floor((hi - lo) / 2)
+    3. condition(mid) is true → hi = mid (keep mid as candidate); else → lo = mid + 1
+    4. Return lo
+  Mnemonic: "Condition true? Narrow right (hi=mid). False? Skip left (lo=mid+1)."
+
+minEatingSpeed:
+  "Find minimum speed for Koko to eat all piles within h hours."
+  Data structure: No extra — binary search on the answer space [1, max(piles)].
+  Steps to memorize:
+    1. Define canFinish(speed): sum of ceil(pile/speed) <= h
+    2. Binary search in [1, max(piles)] for smallest speed where canFinish is true
+    3. Use left < right template; canFinish → right=mid; else → left=mid+1
+    4. Return left
+  Mnemonic: "Search on the answer. Can I do it? Shrink right. Can't? Push left."
+
+searchRotated:
+  "Find target in a rotated sorted array."
+  Data structure: No extra — left/right pointers.
+  Steps to memorize:
+    1. Find mid; if nums[mid] === target → return mid
+    2. Check which half is sorted: nums[left] <= nums[mid] → left half is sorted
+    3. If target is in the sorted half → search there; else search the other half
+    4. Return -1 if not found
+  Mnemonic: "One half is always sorted. Is target there? Go there. Else go other side."`,
   },
 
   'Linked List': {
@@ -1355,7 +1539,57 @@ Or think of it as: "Look ahead, point back, step forward (x2)"
 
 FAST/SLOW for cycle detection:
   Tortoise and Hare - hare moves 2x. If there's a cycle, they MUST meet.
-  If hare reaches null, no cycle.`,
+  If hare reaches null, no cycle.
+
+TEMPLATE-BY-TEMPLATE MEMORIZATION:
+
+reverseList:
+  "Reverse a singly linked list in-place."
+  Data structure: Three pointers: prev (null), curr (head), nxt.
+  Steps to memorize:
+    1. prev = null, curr = head
+    2. While curr: nxt = curr.next; curr.next = prev; prev = curr; curr = nxt
+    3. Return prev (new head)
+  Mnemonic: "Save next, reverse link, advance both. SRAA: Save, Reverse, Advance, Advance."
+
+hasCycle:
+  "Detect if a linked list contains a cycle."
+  Data structure: Two pointers: slow (1 step), fast (2 steps).
+  Steps to memorize:
+    1. slow = fast = head
+    2. While fast && fast.next: slow = slow.next; fast = fast.next.next
+    3. If slow === fast → return true
+    4. Return false
+  Mnemonic: "Tortoise and hare. If there's a loop, they must meet."
+
+findMiddle:
+  "Return the middle node of a linked list."
+  Data structure: Two pointers: slow (1 step), fast (2 steps).
+  Steps to memorize:
+    1. slow = fast = head
+    2. While fast && fast.next: slow = slow.next; fast = fast.next.next
+    3. Return slow (at middle when fast hits the end)
+  Mnemonic: "Fast runs twice as far. When fast stops, slow is at the middle."
+
+mergeTwoLists:
+  "Merge two sorted linked lists into one sorted list."
+  Data structure: Dummy head node to avoid edge cases at the start.
+  Steps to memorize:
+    1. dummy = new ListNode(0); curr = dummy
+    2. While l1 && l2: attach the smaller; advance that pointer; curr = curr.next
+    3. curr.next = l1 || l2
+    4. Return dummy.next
+  Mnemonic: "Dummy head, pick the smaller, attach, advance. Drain the leftovers."
+
+removeNthFromEnd:
+  "Remove the nth node from the end of the list."
+  Data structure: Dummy head + two pointers with a gap of n+1.
+  Steps to memorize:
+    1. dummy.next = head; fast = slow = dummy
+    2. Advance fast n+1 steps ahead
+    3. Move both until fast === null
+    4. slow.next = slow.next.next; return dummy.next
+  Mnemonic: "Create a gap of n+1. When fast hits the end, slow is just before the target."`,
   },
 
   'Trees': {
@@ -1615,7 +1849,58 @@ BFS SKELETON:
           if node.left: queue.append(node.left)
           if node.right: queue.append(node.right)
 
-Memory trick: "BFS = Queue + Level loop. DFS = Recursion + Base case."`,
+Memory trick: "BFS = Queue + Level loop. DFS = Recursion + Base case."
+
+TEMPLATE-BY-TEMPLATE MEMORIZATION:
+
+maxDepth:
+  "Return the maximum depth (height) of a binary tree."
+  Data structure: Recursion stack only.
+  Steps to memorize:
+    1. Base case: if !root return 0
+    2. Recurse left and right
+    3. Return 1 + Math.max(leftDepth, rightDepth)
+  Mnemonic: "Leaf returns 0. Each level adds 1. Take the taller side."
+
+levelOrder:
+  "Return nodes level by level as an array of arrays."
+  Data structure: Queue (array used as queue with shift).
+  Steps to memorize:
+    1. queue = [root]
+    2. While queue has items: snapshot levelSize = queue.length
+    3. Loop levelSize times: shift node, push val to level, enqueue children
+    4. Push level to result
+  Mnemonic: "Snapshot the level size, drain exactly that many, collect the level."
+
+isValidBST:
+  "Check if a binary tree is a valid BST."
+  Data structure: Recursion with passed-down (lo, hi) bounds.
+  Steps to memorize:
+    1. Base: if !root return true
+    2. If root.val <= lo OR root.val >= hi → return false
+    3. Recurse left with (lo, root.val) and right with (root.val, hi)
+  Mnemonic: "Every node must fit in its inherited range. Tighten the range as you go down."
+
+lowestCommonAncestor:
+  "Find the lowest common ancestor of nodes p and q in a binary tree."
+  Data structure: Recursion — return the node that found p or q.
+  Steps to memorize:
+    1. Base: if !root or root === p or root === q → return root
+    2. left = recurse left; right = recurse right
+    3. If both left and right are non-null → return root (LCA is here)
+    4. Return left || right
+  Mnemonic: "Both sides found something? You're the LCA. Else bubble up whoever was found."
+
+diameterOfBinaryTree:
+  "Return the length of the longest path between any two nodes."
+  Data structure: Outer variable maxDiameter + inner height function.
+  Steps to memorize:
+    1. Inner function height(node): returns height, updates maxDiameter as side effect
+    2. Base: if !node return 0
+    3. leftH = height(left); rightH = height(right)
+    4. maxDiameter = Math.max(maxDiameter, leftH + rightH)
+    5. Return 1 + Math.max(leftH, rightH)
+  Mnemonic: "Diameter at each node = left height + right height. Track the global max."`,
   },
 
   'Tries': {
@@ -1764,7 +2049,47 @@ The only difference:
   - search: return False if missing, check is_end at the end
   - startsWith: return False if missing, return True at the end (no is_end check)
 
-Mnemonic: "Trie = Tree of Characters. Walk char by char."`,
+Mnemonic: "Trie = Tree of Characters. Walk char by char."
+
+TEMPLATE-BY-TEMPLATE MEMORIZATION:
+
+TrieNode (constructor):
+  "A node holding a children map and an isEnd flag."
+  Data structure: Object with children = {} and isEnd = false.
+  Steps to memorize:
+    1. children: plain object (char → TrieNode) or Map
+    2. isEnd: boolean, false by default
+  Mnemonic: "Node = two fields: a door map and a finish flag."
+
+Trie.insert:
+  "Walk each character, creating nodes as needed, mark end."
+  Steps to memorize:
+    1. node = root
+    2. For each char: if !node.children[c] create new TrieNode; node = node.children[c]
+    3. node.isEnd = true
+  Mnemonic: "Walk and build. Mark the destination."
+
+Trie.search:
+  "Return true only if the full word was inserted (isEnd must be true)."
+  Steps to memorize:
+    1. node = _find(word)
+    2. Return node !== null && node.isEnd
+  Mnemonic: "Find the end node. Word exists only if isEnd is true."
+
+Trie.startsWith:
+  "Return true if any inserted word starts with this prefix."
+  Steps to memorize:
+    1. node = _find(prefix)
+    2. Return node !== null (no isEnd check needed)
+  Mnemonic: "Find the end node. Prefix exists if the path exists at all."
+
+Trie._find:
+  "Walk each char; return null if any char is missing, else return the final node."
+  Steps to memorize:
+    1. node = root
+    2. For each char: if !node.children[c] return null; node = node.children[c]
+    3. Return node
+  Mnemonic: "Path broken? Return null. Path complete? Return the node you landed on."`,
   },
 
   'Heap / Priority Queue': {
@@ -1958,7 +2283,37 @@ TWO HEAPS FOR MEDIAN (the trickiest pattern):
 
   Steps: push to left → balance by moving left-top to right → rebalance sizes
 
-Mnemonic: "Heap = always know the extreme. Min-heap = smallest on top. Negate for max."`,
+Mnemonic: "Heap = always know the extreme. Min-heap = smallest on top. Negate for max."
+
+TEMPLATE-BY-TEMPLATE MEMORIZATION:
+
+MinHeap (push):
+  "Insert a value and bubble it up to restore the heap property."
+  Data structure: Array-based binary heap (parent at floor((i-1)/2)).
+  Steps to memorize:
+    1. heap.push(val)
+    2. _bubbleUp(heap.length - 1): while i > 0, compare with parent
+    3. If parent > child: swap; i = parent
+  Mnemonic: "Push to end, then float up past any bigger parents."
+
+MinHeap (pop):
+  "Remove and return the minimum (root), restore heap property."
+  Data structure: Same array heap.
+  Steps to memorize:
+    1. Save top = heap[0]
+    2. Move last element to heap[0], _sinkDown(0)
+    3. Sink: find smallest among node and its two children; swap if needed; repeat
+    4. Return top
+  Mnemonic: "Swap root with last, shrink, then sink the new root down."
+
+topKFrequent:
+  "Return the k most frequent elements (sort-based approach)."
+  Data structure: Map (num → count), then sorted entries array.
+  Steps to memorize:
+    1. Build count map
+    2. [...count.entries()].sort((a, b) => b[1] - a[1])
+    3. slice(0, k).map(([num]) => num)
+  Mnemonic: "Count, sort by frequency descending, slice the top k."`,
   },
 
   'Backtracking': {
@@ -2225,7 +2580,44 @@ THREE VARIATIONS (only the loop changes):
 DUPLICATE HANDLING: Sort first, then:
   if i > start and nums[i] == nums[i-1]: continue
 
-Mnemonic: "CEO" - Choose, Explore, unchoOse`,
+Mnemonic: "CEO" - Choose, Explore, unchoOse
+
+TEMPLATE-BY-TEMPLATE MEMORIZATION:
+
+subsets:
+  "Generate all subsets (power set) of an array."
+  Data structure: result array + path array passed through recursion.
+  Steps to memorize:
+    1. backtrack(start, path): immediately push [...path]
+    2. Loop i from start to end: push nums[i], recurse(i+1), pop
+  Mnemonic: "Record before choosing. i+1 prevents reuse."
+
+permute:
+  "Generate all permutations of an array."
+  Data structure: used[] boolean array to track which elements are in current path.
+  Steps to memorize:
+    1. Base: if path.length === nums.length → push copy
+    2. Loop all i: skip if used[i]; set used[i]=true, push, recurse, pop, used[i]=false
+  Mnemonic: "Try every unused element at each position. Undo when done."
+
+combinationSum:
+  "Find all combinations that sum to target (elements can be reused)."
+  Data structure: result array + path array.
+  Steps to memorize:
+    1. Base: remaining === 0 → push copy
+    2. Loop i from start: push candidate, recurse(i, remaining - candidate), pop
+    3. Pass i (not i+1) to allow reuse; prune if remaining < 0
+  Mnemonic: "Reuse allowed: pass same i. Prune when overshot."
+
+solveNQueens:
+  "Place n queens on n×n board so no two attack each other."
+  Data structure: Three Sets: cols, diag1 (row-col), diag2 (row+col).
+  Steps to memorize:
+    1. For each row, try each col: skip if col/diag1/diag2 is taken
+    2. Place queen: add to all three sets, board[row][col]='Q'
+    3. Recurse(row+1); if row===n → push board snapshot
+    4. Remove queen: board[row][col]='.', delete from all three sets
+  Mnemonic: "Three sets guard columns and both diagonals. Place, recurse, undo."`,
   },
 
   'Graphs': {
@@ -2637,7 +3029,55 @@ CLONE GRAPH:
   "HashMap = translation table from old → new."
   DFS/BFS: visit each node, create its clone, store in map.
   When wiring neighbors, look up the clone in the map.
-  Mnemonic: "Copy the person, then copy their contacts."`,
+  Mnemonic: "Copy the person, then copy their contacts."
+
+TEMPLATE-BY-TEMPLATE MEMORIZATION:
+
+numIslands:
+  "Count distinct islands in a grid of '1's and '0's."
+  Data structure: Queue for BFS; modify grid in-place to mark visited.
+  Steps to memorize:
+    1. Scan grid; when '1' found: count++, BFS from that cell
+    2. BFS: queue = [[r,c]], mark cell '0'; pop cell, check 4 neighbors, mark & enqueue '1' neighbors
+  Mnemonic: "Found land? Count it and flood-fill it to '0'."
+
+topologicalSort (Kahn's):
+  "Order nodes in a DAG so every prerequisite comes before its dependent."
+  Data structure: Adjacency list + inDegree array + queue.
+  Steps to memorize:
+    1. Build graph and inDegree from edges
+    2. Seed queue with all nodes where inDegree === 0
+    3. Pop node → add to order → for each neighbor: inDegree[neighbor]--; if 0 → enqueue
+    4. If order.length !== numNodes → cycle exists
+  Mnemonic: "Peel nodes with no dependencies, ripple the reduction through their neighbors."
+
+networkDelay (Dijkstra):
+  "Shortest time for a signal to reach all nodes from source k."
+  Data structure: Map for distances + array-based min-heap (sorted on pop).
+  Steps to memorize:
+    1. dist = {k: 0}; heap = [[0, k]]
+    2. Pop [d, node]; if d > dist[node] → stale, skip
+    3. For each [neighbor, weight]: newDist = d + weight; if newDist < dist[neighbor] → update and push
+    4. Return max(dist.values()) if all nodes reached, else -1
+  Mnemonic: "Greedy BFS with a heap. Always extend the shortest known path."
+
+orangesRotting (multi-source BFS):
+  "Minimum minutes for all fresh oranges to rot from multiple rotten sources."
+  Data structure: Queue seeded with ALL initially rotten oranges.
+  Steps to memorize:
+    1. Collect all rotten cells into queue; count fresh cells
+    2. BFS level by level (each level = 1 minute): spread rot to fresh neighbors
+    3. Return minutes if freshCount === 0, else -1
+  Mnemonic: "All fires burn simultaneously. Count waves until nothing fresh remains."
+
+cloneGraph:
+  "Deep clone a connected undirected graph."
+  Data structure: Map (original node → clone node) to avoid re-cloning.
+  Steps to memorize:
+    1. DFS(node): if in visited → return clone; else create clone, store in visited
+    2. For each neighbor: cloneNeighbor = dfs(neighbor); clone.neighbors.push(cloneNeighbor)
+    3. Return clone
+  Mnemonic: "Check visited first. Clone node, then clone its connections via recursion."`,
   },
 
   'Dynamic Programming': {
@@ -3038,7 +3478,85 @@ BUY/SELL STOCK STATE MACHINE:
   hold = max(prevHold, prevRest - price)  — keep holding or buy from rest
   sold = prevHold + price                  — sell what we hold
   rest = max(prevRest, prevSold)           — stay resting or cooldown from sold
-  Mnemonic: "Hold/Sold/Rest — each day pick the best transition."`,
+  Mnemonic: "Hold/Sold/Rest — each day pick the best transition."
+
+TEMPLATE-BY-TEMPLATE MEMORIZATION:
+
+rob:
+  "Maximum money robbed from non-adjacent houses."
+  Data structure: 1D dp array (or two rolling variables).
+  Steps to memorize:
+    1. dp[0] = nums[0]; dp[1] = max(nums[0], nums[1])
+    2. dp[i] = max(dp[i-1], dp[i-2] + nums[i])
+    3. Return dp[n-1]
+  Mnemonic: "Skip or rob. Take the better of skipping this house or robbing it plus two-back."
+
+longestCommonSubsequence:
+  "Length of the longest subsequence common to both strings."
+  Data structure: 2D dp table (m+1) × (n+1).
+  Steps to memorize:
+    1. dp[i][j] = 0 for all base cases
+    2. If text1[i-1] === text2[j-1]: dp[i][j] = dp[i-1][j-1] + 1
+    3. Else: dp[i][j] = max(dp[i-1][j], dp[i][j-1])
+    4. Return dp[m][n]
+  Mnemonic: "Match? Diagonal + 1. Miss? Best of skipping either character."
+
+coinChange:
+  "Minimum coins to make the given amount (coins can be reused)."
+  Data structure: 1D dp array of size amount+1, initialized to Infinity.
+  Steps to memorize:
+    1. dp[0] = 0
+    2. For each amount i: for each coin: if coin <= i → dp[i] = min(dp[i], dp[i-coin] + 1)
+    3. Return dp[amount] === Infinity ? -1 : dp[amount]
+  Mnemonic: "Build up from 0. Each amount = cheapest way to reach it using any coin."
+
+canPartition:
+  "Can the array be split into two subsets with equal sum?"
+  Data structure: 1D boolean dp array of size target+1.
+  Steps to memorize:
+    1. If total is odd → false; target = total / 2
+    2. dp[0] = true; for each num: iterate j backwards from target to num
+    3. dp[j] = dp[j] || dp[j - num]
+    4. Return dp[target]
+  Mnemonic: "0/1 knapsack goes BACKWARD to prevent reuse. Can I reach the target?"
+
+maxSubArray (Kadane's):
+  "Maximum sum of any contiguous subarray."
+  Data structure: Two variables: currentSum and maxSum.
+  Steps to memorize:
+    1. If currentSum < 0: reset to 0
+    2. currentSum += num
+    3. maxSum = max(maxSum, currentSum)
+  Mnemonic: "Negative running sum? Restart. Always track the best seen so far."
+
+minDistance (edit distance):
+  "Minimum insertions/deletions/replacements to convert word1 to word2."
+  Data structure: 2D dp table (m+1) × (n+1).
+  Steps to memorize:
+    1. dp[i][0] = i (delete all of word1); dp[0][j] = j (insert all of word2)
+    2. If chars match: dp[i][j] = dp[i-1][j-1]
+    3. Else: dp[i][j] = 1 + min(dp[i][j-1], dp[i-1][j], dp[i-1][j-1]) — insert, delete, replace
+    4. Return dp[m][n]
+  Mnemonic: "Match = diagonal free. Mismatch = 1 + min of three neighbors."
+
+lengthOfLIS:
+  "Length of the longest increasing subsequence (O(n log n) via binary search)."
+  Data structure: tails array — tails[i] is smallest tail for IS of length i+1.
+  Steps to memorize:
+    1. For each num: binary search in tails for first element >= num (lo < hi template)
+    2. tails[lo] = num (replace or extend)
+    3. Return tails.length
+  Mnemonic: "Patience sort — place on leftmost valid pile, or start a new pile."
+
+maxProfit (state machine with cooldown):
+  "Max profit from stock with a one-day cooldown after selling."
+  Data structure: Three state variables: hold, sold, rest.
+  Steps to memorize:
+    1. hold = -Infinity, sold = 0, rest = 0
+    2. Each day: newHold = max(hold, rest - price); newSold = hold + price; newRest = max(rest, sold)
+    3. Assign all three new values simultaneously
+    4. Return max(sold, rest)
+  Mnemonic: "Three buckets. Each day: can I buy (from rest), sell (from hold), or just rest?"`,
   },
 
   'Greedy': {
@@ -3258,7 +3776,48 @@ Ask yourself: "If I make the locally best choice, can it ever hurt me later?"
   - Yes → Use DP instead
   - No → Greedy works!
 
-Mnemonic: "Greedy = sort + scan + local best choice"`,
+Mnemonic: "Greedy = sort + scan + local best choice"
+
+TEMPLATE-BY-TEMPLATE MEMORIZATION:
+
+canJump:
+  "Can you reach the last index given jump lengths at each position?"
+  Data structure: Single variable farthest.
+  Steps to memorize:
+    1. farthest = 0
+    2. For each i: if i > farthest → return false
+    3. farthest = max(farthest, i + nums[i])
+    4. Return true
+  Mnemonic: "If you can't reach position i, you're stuck. Otherwise keep extending."
+
+eraseOverlapIntervals:
+  "Minimum number of intervals to remove to eliminate all overlaps."
+  Data structure: Sort by end time; track last kept end.
+  Steps to memorize:
+    1. Sort intervals by end time
+    2. end = -Infinity, count = 0
+    3. For each [s, e]: if s >= end → keep (end = e); else → remove (count++)
+    4. Return count
+  Mnemonic: "Sort by end. Overlap? Remove. No overlap? Keep and update end."
+
+partitionLabels:
+  "Partition string so each character appears in at most one part."
+  Data structure: Map (char → last index in string).
+  Steps to memorize:
+    1. Build last = {char: last occurrence index}
+    2. start = 0, end = 0
+    3. For each i: end = max(end, last[s[i]]); if i === end → push end-start+1, start = end+1
+  Mnemonic: "Grow partition boundary to include every char's last occurrence. Close when you reach it."
+
+canCompleteCircuit:
+  "Find the starting gas station index to complete the circuit, or -1."
+  Data structure: Two variables: start and tank.
+  Steps to memorize:
+    1. If sum(gas) < sum(cost) → return -1
+    2. start = 0, tank = 0
+    3. For each i: tank += gas[i] - cost[i]; if tank < 0 → start = i+1, tank = 0
+    4. Return start
+  Mnemonic: "Tank goes negative? Restart from the next station. Total surplus guarantees one solution."`,
   },
 
   'Intervals': {
@@ -3448,7 +4007,37 @@ Two approaches, memorize whichever clicks:
   1. Heap: sort by start, use min-heap of end times. If earliest end <= current start, pop it. Heap size = rooms needed.
   2. Sweep line: events = [(start, +1), (end, -1)], sort, running sum, track max.
 
-Mnemonic: "Overlap = start of next <= end of current"`,
+Mnemonic: "Overlap = start of next <= end of current"
+
+TEMPLATE-BY-TEMPLATE MEMORIZATION:
+
+merge:
+  "Merge all overlapping intervals into a minimal list."
+  Data structure: Result array; always compare against the last merged interval.
+  Steps to memorize:
+    1. Sort by start time
+    2. merged = [intervals[0]]
+    3. For each next [s, e]: if s <= lastMerged[1] → extend end; else push new interval
+  Mnemonic: "Sort, seed, then extend or append."
+
+insert:
+  "Insert a new interval into a sorted list and merge any overlaps."
+  Data structure: Result array; three-phase linear scan.
+  Steps to memorize:
+    1. Phase 1: copy all intervals ending before newInterval starts
+    2. Phase 2: merge all overlapping intervals into newInterval
+    3. Phase 3: push newInterval, then copy remaining
+  Mnemonic: "Before, merge, after — three phases."
+
+minMeetingRooms:
+  "Minimum number of conference rooms needed."
+  Data structure: Two sorted arrays: starts and ends; one end pointer.
+  Steps to memorize:
+    1. Sort starts and ends independently
+    2. endPtr = 0, rooms = 0
+    3. For each start: if start < ends[endPtr] → rooms++ (new room); else → endPtr++ (reuse)
+    4. Return rooms
+  Mnemonic: "New meeting starts before earliest end? Need a room. Otherwise reuse one."`,
   },
 
   'Math & Geometry': {
@@ -3658,7 +4247,39 @@ FAST POWER (x^n in O(log n)):
   while n > 0:
       if n is odd: result *= x
       x *= x; n //= 2
-  Mnemonic: "Square x each time, multiply into result when bit is set"`,
+  Mnemonic: "Square x each time, multiply into result when bit is set"
+
+TEMPLATE-BY-TEMPLATE MEMORIZATION:
+
+rotate:
+  "Rotate an n×n matrix 90° clockwise in-place."
+  Data structure: The matrix itself; no extra space.
+  Steps to memorize:
+    1. Transpose: swap matrix[i][j] with matrix[j][i] for all j > i
+    2. Reverse each row
+  Mnemonic: "Transpose then reverse rows = rotate right. (For CCW: reverse columns instead.)"
+
+spiralOrder:
+  "Return all matrix elements in spiral (clockwise) order."
+  Data structure: Result array; four boundary variables: top, bottom, left, right.
+  Steps to memorize:
+    1. While top <= bottom && left <= right:
+    2. Right along top row → top++
+    3. Down along right col → right--
+    4. Left along bottom row (if top <= bottom) → bottom--
+    5. Up along left col (if left <= right) → left++
+  Mnemonic: "RDLU + shrink each boundary after traversing it."
+
+myPow:
+  "Compute x^n in O(log n) using fast exponentiation."
+  Data structure: Two variables: result and x.
+  Steps to memorize:
+    1. If n < 0: x = 1/x, n = -n
+    2. result = 1; while n > 0:
+    3. If n is odd (n % 2 === 1): result *= x
+    4. x *= x; n = Math.floor(n / 2)
+    5. Return result
+  Mnemonic: "Odd bit? Multiply into result. Always square x and shift n right."`,
   },
 
   'Bit Manipulation': {
@@ -3812,7 +4433,45 @@ THE 3 TRICKS YOU NEED (covers 90% of bit problems):
      Extract bit i: (n >> i) & 1
      Set bit i: n | (1 << i)
 
-Mnemonic: "XOR cancels twins. AND(n, n-1) kills the lowest bit."`,
+Mnemonic: "XOR cancels twins. AND(n, n-1) kills the lowest bit."
+
+TEMPLATE-BY-TEMPLATE MEMORIZATION:
+
+singleNumber:
+  "Find the one element that appears once; all others appear twice."
+  Data structure: Single integer result (no extra space).
+  Steps to memorize:
+    1. result = 0
+    2. For each num: result ^= num
+    3. Return result
+  Mnemonic: "XOR all. Pairs cancel to 0. The lone value survives."
+
+hammingWeight:
+  "Count the number of 1-bits in a 32-bit integer."
+  Data structure: Single counter; modify n in-place.
+  Steps to memorize:
+    1. count = 0
+    2. While n !== 0: count++; n = n & (n - 1)
+    3. Return count
+  Mnemonic: "n & (n-1) kills the lowest set bit. Count how many kills until zero."
+
+countBits:
+  "Return array where result[i] = number of 1-bits in i, for 0..n."
+  Data structure: 1D dp array.
+  Steps to memorize:
+    1. dp[0] = 0
+    2. For i from 1 to n: dp[i] = dp[i >> 1] + (i & 1)
+    3. Return dp
+  Mnemonic: "Bit count of i = bit count of i/2 plus the last bit. Shift and add."
+
+reverseBits:
+  "Reverse the 32 bits of an unsigned integer."
+  Data structure: Single result integer built bit by bit.
+  Steps to memorize:
+    1. result = 0
+    2. For 32 iterations: lastBit = n & 1; result = (result << 1) | lastBit; n >>>= 1
+    3. Return result >>> 0 (ensure unsigned)
+  Mnemonic: "Peel the last bit of n, stick it onto the left of result, 32 times."`,
   },
 
   'Union Find': {
@@ -4020,7 +4679,49 @@ Mnemonic: "Find your boss, merge the smaller team under the bigger one."
 PATH COMPRESSION visual: Instead of A -> B -> C -> Root,
 make it A -> Root, B -> Root, C -> Root (flat tree = fast lookup).
 
-WHEN TO USE: If you see "connected components" or "are X and Y in the same group?" → Union-Find.`,
+WHEN TO USE: If you see "connected components" or "are X and Y in the same group?" → Union-Find.
+
+TEMPLATE-BY-TEMPLATE MEMORIZATION:
+
+UnionFind (constructor):
+  "Initialize n nodes, each as its own component."
+  Data structure: parent[] (index = own root initially) + rank[] (all zeros) + components count.
+  Steps to memorize:
+    1. parent = [0, 1, 2, ..., n-1]
+    2. rank = [0, 0, ..., 0]
+    3. components = n
+  Mnemonic: "Everyone is their own boss at the start."
+
+UnionFind.find:
+  "Find the root of x with path compression."
+  Steps to memorize:
+    1. While parent[x] !== x: parent[x] = parent[parent[x]] (skip to grandparent); x = parent[x]
+    2. Return x
+  Mnemonic: "Walk up, shortcut to grandparent each step. Stop when you're your own boss."
+
+UnionFind.union:
+  "Merge the components containing x and y."
+  Steps to memorize:
+    1. px = find(x); py = find(y); if px === py → return false (same component)
+    2. Attach shorter tree under taller (union by rank): if rank[px] < rank[py] → swap
+    3. parent[py] = px; if ranks equal → rank[px]++; components--
+    4. Return true
+  Mnemonic: "Find both roots. Same? Skip. Different? Attach smaller under bigger."
+
+countComponents:
+  "Count the number of connected components."
+  Steps to memorize:
+    1. Create UnionFind(n)
+    2. For each edge [u, v]: uf.union(u, v)
+    3. Return uf.components
+  Mnemonic: "Union all edges. Remaining component count = answer."
+
+hasCycle (UF version):
+  "Detect a cycle in an undirected graph using Union-Find."
+  Steps to memorize:
+    1. For each edge [u, v]: if uf.union(u, v) returns false → cycle detected
+    2. Return true if any union fails, else false
+  Mnemonic: "Already connected before we add this edge? That edge creates a cycle."`,
   },
 
   'Monotonic Queue': {
@@ -4215,7 +4916,34 @@ Think of it as a "hall of fame" that only keeps potential winners:
   - Champion retires → removed from front (window expiry)
   - Current champion → always at the front
 
-WHEN TO USE: "sliding window" + "max/min" in the same sentence → monotonic deque.`,
+WHEN TO USE: "sliding window" + "max/min" in the same sentence → monotonic deque.
+
+TEMPLATE-BY-TEMPLATE MEMORIZATION:
+
+maxSlidingWindow:
+  "Return the maximum value in each sliding window of size k."
+  Data structure: Deque of indices (values in deque are decreasing; front = max).
+  Steps to memorize:
+    1. For each i: expire front if dq[0] < i - k + 1
+    2. Pop from back while nums[back] <= nums[i]
+    3. Push i; if i >= k-1 → record nums[dq[0]] as answer
+  Mnemonic: "ECA-R: Expire, Clean, Add, Record."
+
+minSlidingWindow:
+  "Return the minimum value in each sliding window of size k."
+  Data structure: Deque of indices (values increasing; front = min).
+  Steps to memorize:
+    1. Same as maxSlidingWindow but pop back when nums[back] >= nums[i]
+  Mnemonic: "Same as max, just flip the comparison: >= instead of <=."
+
+longestSubarray:
+  "Longest subarray where max - min <= limit."
+  Data structure: Two deques: maxDq (decreasing) and minDq (increasing) + left pointer.
+  Steps to memorize:
+    1. Maintain both deques as new elements arrive
+    2. While nums[maxDq[0]] - nums[minDq[0]] > limit: left++; expire fronts if outside window
+    3. result = max(result, right - left + 1)
+  Mnemonic: "Two deques track window max and min. Shrink left whenever constraint breaks."`,
   },
 
   'Divide & Conquer': {
@@ -4466,7 +5194,43 @@ WHEN TO USE D&C:
   - "Count X across all pairs" → modified merge sort
   - Any problem that naturally splits in half
 
-Mnemonic: "Split in half, solve each half, stitch together."`,
+Mnemonic: "Split in half, solve each half, stitch together."
+
+TEMPLATE-BY-TEMPLATE MEMORIZATION:
+
+mergeSort:
+  "Sort an array by recursively splitting and merging."
+  Data structure: Temporary arrays created during merge; result built bottom-up.
+  Steps to memorize:
+    1. Base: if length <= 1, return as-is
+    2. Split at mid; mergeSort(left); mergeSort(right)
+    3. Merge: two-pointer, pick smaller each step, drain leftovers
+  Mnemonic: "Split to atoms, sort while merging back up."
+
+merge (helper):
+  "Merge two sorted arrays into one."
+  Steps to memorize:
+    1. i = 0, j = 0; while both have elements: push the smaller, advance that pointer
+    2. Drain any remaining elements from left or right
+  Mnemonic: "Pick the smaller from each head. Drain the leftovers."
+
+quickSelect:
+  "Find the kth smallest element in O(n) average."
+  Data structure: Three sub-arrays: less, equal, greater.
+  Steps to memorize:
+    1. Random pivot; partition into less / equal / greater
+    2. k < less.length → recurse left; k < less + equal → return pivot
+    3. Else recurse right with k adjusted by len(less) + len(equal)
+  Mnemonic: "Partition, then recurse into exactly ONE side."
+
+countInversions:
+  "Count pairs (i, j) where i < j but nums[i] > nums[j]."
+  Data structure: Modified merge sort; count during merge.
+  Steps to memorize:
+    1. Split and recurse as merge sort
+    2. During merge: when right element is chosen over left: inv += left.length - i
+    3. Return [merged, total inversions]
+  Mnemonic: "When right beats left during merge, all remaining left elements are inversions."`,
   },
 
   'Segment Tree': {
@@ -4671,7 +5435,35 @@ QUERY (range):
 Mnemonic for query: "None? Zero. All? Return. Partial? Split."
 
 WHEN TO USE: "range query + update" in the same problem → Segment Tree.
-If only queries (no updates): prefix sum is simpler.`,
+If only queries (no updates): prefix sum is simpler.
+
+TEMPLATE-BY-TEMPLATE MEMORIZATION:
+
+SegmentTree (constructor / _build):
+  "Build the segment tree from an array."
+  Data structure: Array of size 4*n; node i has children 2i and 2i+1.
+  Steps to memorize:
+    1. Allocate tree = new Array(4 * n).fill(0)
+    2. _build(nums, node=1, start=0, end=n-1)
+    3. Base (leaf): tree[node] = nums[start]
+    4. Else: build left child (2*node), build right child (2*node+1), tree[node] = left + right
+  Mnemonic: "Leaf stores value. Parent stores sum of children."
+
+SegmentTree.update:
+  "Update a single index, then recalculate all affected parents."
+  Steps to memorize:
+    1. Walk down to the leaf matching idx (go left if idx <= mid, else right)
+    2. At leaf: set new value
+    3. On the way back up: recalculate tree[node] = left child + right child
+  Mnemonic: "Find the leaf, set it, bubble the sum back up."
+
+SegmentTree.query:
+  "Range sum over [l, r] using three-case recursion."
+  Steps to memorize:
+    1. No overlap (r < start or end < l): return 0
+    2. Full overlap (l <= start and end <= r): return tree[node]
+    3. Partial: recurse both children, sum results
+  Mnemonic: "None? Zero. All? Return. Partial? Split and sum."`,
   },
 
   'String Algorithms': {
@@ -4905,7 +5697,32 @@ RABIN-KARP is easier to memorize:
   Rolling hash: remove leftmost char, add rightmost char.
   If hashes match, verify with string comparison.
 
-Mnemonic: "KMP = never re-check matched characters. LPS tells you where to jump."`,
+Mnemonic: "KMP = never re-check matched characters. LPS tells you where to jump."
+
+TEMPLATE-BY-TEMPLATE MEMORIZATION:
+
+kmpSearch:
+  "Find all occurrences of pattern in text in O(n+m)."
+  Data structure: LPS array (Longest Proper Prefix which is also Suffix).
+  Steps to memorize (Phase 1 — build LPS):
+    1. lps[0] = 0; len = 0, i = 1
+    2. If pattern[i] === pattern[len]: len++, lps[i] = len, i++
+    3. Else if len > 0: len = lps[len-1] (key fallback); else: lps[i] = 0, i++
+  Steps to memorize (Phase 2 — search):
+    1. i = 0 (text), j = 0 (pattern)
+    2. Match: i++, j++; if j === m → found at i-j, j = lps[j-1]
+    3. Mismatch: if j > 0 → j = lps[j-1]; else i++
+  Mnemonic: "LPS tells you: 'don't restart from zero, restart from this shorter match.'"
+
+rabinKarp:
+  "Find first occurrence of pattern in text using rolling hash."
+  Data structure: Two integers: pHash and tHash; precomputed power = base^(m-1).
+  Steps to memorize:
+    1. Compute pHash and initial tHash over first m chars
+    2. For each window: if hashes match AND string matches → return i
+    3. Roll hash: remove left char (tHash - leftChar * power), add right char (tHash * base + rightChar)
+    4. Always take mod; add mod before mod to avoid negatives
+  Mnemonic: "Hash match? Verify. Then slide: drop left, add right."`,
   },
 
   'Minimum Spanning Tree': {
@@ -5132,7 +5949,33 @@ KRUSKAL vs PRIM:
   Prim = local view (grow from one node, pick cheapest neighbor)
   Both give the same MST.
 
-WHEN TO USE: "connect all nodes with minimum cost" = MST.`,
+WHEN TO USE: "connect all nodes with minimum cost" = MST.
+
+TEMPLATE-BY-TEMPLATE MEMORIZATION:
+
+UnionFind (for MST — same as Union Find topic):
+  "Reuse the standard UnionFind class: constructor, find, union."
+  Mnemonic: "Already memorized. Just copy it here."
+
+kruskal:
+  "Build the MST by greedily adding cheapest non-cycle edges."
+  Data structure: Sorted edges array + UnionFind.
+  Steps to memorize:
+    1. Sort edges by weight ascending
+    2. For each [weight, u, v]: if uf.union(u, v) succeeds → add to MST (mstCost += weight, mstEdges++)
+    3. Stop early when mstEdges === n-1
+    4. Return mstCost if mstEdges === n-1, else -1
+  Mnemonic: "Sort, union, skip cycles, stop at n-1 edges."
+
+prim:
+  "Build the MST by growing from a starting node, always adding the cheapest bridge."
+  Data structure: Visited set + min-heap of [cost, node].
+  Steps to memorize:
+    1. heap = [[0, startNode]]; visited = new Set()
+    2. Pop min [cost, u]; if visited → skip; add to visited, total += cost
+    3. Push all [weight, v] for unvisited neighbors
+    4. Return total if all nodes visited, else -1
+  Mnemonic: "BFS with a heap. Always grab the cheapest edge to new territory."`,
   },
 
   'Monotonic Stack': {
@@ -5365,7 +6208,50 @@ QUICK REFERENCE:
   Next Greater Element → pop when bigger → result[j] = nums[i]
   Daily Temperatures → pop when warmer → result[j] = i - j
   Largest Rectangle → pop when shorter → area = height * width
-  Trapping Rain Water → pop when taller → water += width * bounded_height`,
+  Trapping Rain Water → pop when taller → water += width * bounded_height
+
+TEMPLATE-BY-TEMPLATE MEMORIZATION:
+
+nextGreater:
+  "For each element, find the next element to its right that is larger."
+  Data structure: Stack of indices (values decreasing from bottom to top).
+  Steps to memorize:
+    1. result filled with -1; stack = []
+    2. For each i: while stack not empty AND nums[i] > nums[stack top]: pop j, result[j] = nums[i]
+    3. Push i
+  Mnemonic: "Current is bigger than stack top? That top just found its next greater."
+
+dailyTemperatures:
+  "For each day, number of days until a warmer day (or 0 if none)."
+  Data structure: Stack of indices (same decreasing pattern).
+  Steps to memorize:
+    1. result filled with 0; stack = []
+    2. For each i: while stack not empty AND temps[i] > temps[stack top]: pop j, result[j] = i - j
+    3. Push i
+  Mnemonic: "Identical to nextGreater, but record i - j instead of nums[i]."
+
+largestRectangleArea:
+  "Find the largest rectangle that can be formed in a histogram."
+  Data structure: Stack of indices (values increasing from bottom to top).
+  Steps to memorize:
+    1. Append 0 sentinel to heights
+    2. For each i: while stack not empty AND heights[stack top] > heights[i]:
+       pop poppedIdx; height = heights[poppedIdx]; leftBoundary = stack top (or -1 if empty)
+       width = i - leftBoundary - 1; maxArea = max(maxArea, height * width)
+    3. Push i; remove sentinel
+  Mnemonic: "Pop shorter bars. Width = gap between new top and current i. Append 0 to flush all."
+
+trap (stack version):
+  "Calculate trapped rainwater by collecting water in valleys."
+  Data structure: Stack of indices.
+  Steps to memorize:
+    1. For each i: while stack not empty AND height[i] > height[stack top]:
+       pop bottom; if stack empty → break (no left wall)
+       leftWall = stack top; width = i - leftWall - 1
+       boundedHeight = min(height[i], height[leftWall]) - height[bottom]
+       water += width * boundedHeight
+    2. Push i
+  Mnemonic: "Pop the valley floor. Left wall = new top. Water = (min of two walls - floor) * width."`,
   },
 
   'Binary Indexed Tree': {
@@ -5580,7 +6466,53 @@ BIT vs SEGMENT TREE:
   BIT: simpler, faster constant, but only prefix sums/counts
   Segment Tree: more complex, but handles range min/max/any operation
 
-WHEN TO USE: "prefix sum + updates" or "count smaller/larger elements"`,
+WHEN TO USE: "prefix sum + updates" or "count smaller/larger elements"
+
+TEMPLATE-BY-TEMPLATE MEMORIZATION:
+
+BIT (constructor):
+  "Initialize a 1-indexed Fenwick tree with n+1 zeros."
+  Data structure: Array of size n+1 (index 0 unused).
+  Steps to memorize:
+    1. this.n = n; this.tree = new Array(n + 1).fill(0)
+  Mnemonic: "1-indexed array. Leave index 0 empty."
+
+BIT.update:
+  "Add delta to 1-indexed position i and propagate upward."
+  Steps to memorize:
+    1. While i <= n: tree[i] += delta; i += i & (-i)
+  Mnemonic: "Add lowest set bit to climb up the tree."
+
+BIT.query:
+  "Prefix sum from index 1 to i (inclusive)."
+  Steps to memorize:
+    1. total = 0; while i > 0: total += tree[i]; i -= i & (-i)
+    2. Return total
+  Mnemonic: "Remove lowest set bit to descend. Accumulate as you go."
+
+BIT.rangeQuery:
+  "Sum from index l to r (both 1-indexed, inclusive)."
+  Steps to memorize:
+    1. Return query(r) - query(l - 1)
+  Mnemonic: "Prefix sum trick: query right minus query just before left."
+
+NumArray:
+  "Range sum query with point updates using BIT."
+  Data structure: BIT + copy of original nums (for delta computation).
+  Steps to memorize:
+    1. Build BIT by calling update(i+1, nums[i]) for each element
+    2. update(index, val): delta = val - nums[index]; nums[index] = val; bit.update(index+1, delta)
+    3. sumRange(l, r): bit.rangeQuery(l+1, r+1)
+  Mnemonic: "Only pass the delta (diff), not the absolute value. Convert 0-indexed to 1-indexed."
+
+countInversions (BIT version):
+  "Count inversions using BIT as a frequency table."
+  Data structure: BIT over coordinate-compressed value ranks.
+  Steps to memorize:
+    1. Coordinate compress: assign ranks 1..k to sorted unique values
+    2. Process right to left: inversions += bit.query(rank[num] - 1); bit.update(rank[num], 1)
+    3. Return inversions
+  Mnemonic: "Going right to left: how many smaller values have I already seen to my right?"`,
   },
 
   'Topological Sort': {
@@ -5822,7 +6754,35 @@ Mnemonic: "Visit all children first, then add yourself. Reverse at the end."
 WHEN TO USE:
   - "Order of operations with dependencies" → topo sort
   - "Can all tasks be completed?" → is it a DAG? (topo sort, check length)
-  - "Alien/custom ordering" → extract edges from constraints, topo sort`,
+  - "Alien/custom ordering" → extract edges from constraints, topo sort
+
+TEMPLATE-BY-TEMPLATE MEMORIZATION:
+
+topologicalSortKahn:
+  "BFS-based topo sort using in-degree counting."
+  Data structure: Adjacency list + inDegree array + queue.
+  Steps to memorize:
+    1. Build graph and inDegree from edges
+    2. Queue all nodes where inDegree === 0
+    3. Pop node → push to order → for each neighbor: inDegree[neighbor]--; if 0 → enqueue
+    4. order.length === numNodes ? return order : return [] (cycle)
+  Mnemonic: "Peel nodes with no dependencies. Cycle = not all nodes peeled."
+
+canFinish:
+  "Can all courses be completed given prerequisites? (cycle detection)"
+  Steps to memorize:
+    1. Run topologicalSortKahn(numCourses, prerequisites)
+    2. Return order.length === numCourses
+  Mnemonic: "Topo sort succeeds on DAGs. Cycle means impossible."
+
+topologicalSortDFS:
+  "DFS-based topo sort using three-state coloring."
+  Data structure: State array (UNVISITED=0, IN_PROGRESS=1, DONE=2) + order array.
+  Steps to memorize:
+    1. dfs(node): if IN_PROGRESS → cycle (return false); if DONE → return true
+    2. Mark IN_PROGRESS; recurse all neighbors; mark DONE; order.push(node)
+    3. Run dfs on all UNVISITED nodes; return order.reverse()
+  Mnemonic: "Post-order = add yourself after all children. Reverse gives topo order."`,
   },
 
   'Concurrency': {
@@ -6378,6 +7338,60 @@ BUILDING H2O (#1117):
 DINING PHILOSOPHERS (#1226):
   "One less chair than people prevents deadlock."
   Semaphore(4) with 5 forks: pigeonhole guarantees someone always gets both forks.
-  Mnemonic: "Musical chairs — 4 seats, 5 players, no deadlock."`,
+  Mnemonic: "Musical chairs — 4 seats, 5 players, no deadlock."
+
+TEMPLATE-BY-TEMPLATE MEMORIZATION:
+
+Sequential (Print in Order pattern):
+  "Enforce execution order step1 → step2 → step3 regardless of thread start order."
+  Data structure: Two Promise/Event gates (p1, p2) with stored resolve functions.
+  Steps to memorize:
+    1. step1: run action, call r1() (opens gate 1)
+    2. step2: await p1, run action, call r2() (opens gate 2)
+    3. step3: await p2, run action
+  Mnemonic: "Relay race. Pass the baton (resolve the promise) when your leg is done."
+
+PrintInOrder (#1114):
+  "Two promise gates chain first → second → third."
+  Steps to memorize:
+    1. Constructor: create firstDone and secondDone promises; store resolve functions
+    2. first(): run printFirst(), call resolveFirst()
+    3. second(): await firstDone, run printSecond(), call resolveSecond()
+    4. third(): await secondDone, run printThird()
+  Mnemonic: "Each method holds a key to unlock the next."
+
+FooBar (#1115 — Alternating):
+  "Two async loops alternate using a boolean flag."
+  Data structure: Single boolean fooTurn (starts true).
+  Steps to memorize:
+    1. foo loop: while !fooTurn → spin-wait (yield with setTimeout(r,0)); run printFoo(); fooTurn = false
+    2. bar loop: while fooTurn → spin-wait; run printBar(); fooTurn = true
+  Mnemonic: "Spin until your flag. Do work. Flip the flag."
+
+AsyncQueue / ProducerConsumer (#1188):
+  "Bounded queue that blocks producers when full and consumers when empty."
+  Data structure: Queue array + waitingProducers array + waitingConsumers array.
+  Steps to memorize:
+    1. enqueue: if full → await (push resolve to waitingProducers); push item; wake waiting consumer
+    2. dequeue: if empty → await (push resolve to waitingConsumers); shift item; wake waiting producer
+  Mnemonic: "Two waiting lists act as semaphores. Wake the opposite side after each operation."
+
+H2O (#1117):
+  "Form water molecules: release exactly 2 hydrogens and 1 oxygen together."
+  Data structure: hydrogenQueue and oxygenQueue arrays; tryFormWater flushes when ready.
+  Steps to memorize:
+    1. hydrogen(fn): push fn to hydrogenQueue; tryFormWater()
+    2. oxygen(fn): push fn to oxygenQueue; tryFormWater()
+    3. tryFormWater: while hydrogenQueue.length >= 2 && oxygenQueue.length >= 1: call 2 H + 1 O
+  Mnemonic: "Buffer atoms. Flush when 2H + 1O are ready."
+
+DiningPhilosophers (#1226):
+  "5 philosophers, 5 forks; prevent deadlock by limiting to 4 seated at once."
+  Data structure: 5 fork locks + seatedCount counter + seatWaiters array.
+  Steps to memorize:
+    1. wantsToEat: spin-wait if seatedCount >= 4; seatedCount++
+    2. Acquire left fork, then right fork; eat(); release both forks; seatedCount--
+    3. Wake a waiting philosopher if any
+  Mnemonic: "Only 4 can sit at once. Pigeonhole guarantees someone always gets both forks."`,
   },
 };
