@@ -220,8 +220,82 @@ function TopicCard({ lesson, language, setLanguage }: {
   );
 }
 
+function parseMemoSections(text: string) {
+  const templateMarker = 'TEMPLATE-BY-TEMPLATE MEMORIZATION:';
+  const idx = text.indexOf(templateMarker);
+  if (idx === -1) return { general: text.trim(), templates: [] };
+
+  const general = text.slice(0, idx).trim();
+  const templateBlock = text.slice(idx + templateMarker.length).trim();
+
+  // Split into individual function entries — each starts with a name followed by " — O("
+  const entries: { name: string; body: string }[] = [];
+  const lines = templateBlock.split('\n');
+  let currentName = '';
+  let currentLines: string[] = [];
+
+  for (const line of lines) {
+    // Detect function header: starts with non-space, contains " — O(" or " — O(1)"
+    const headerMatch = line.match(/^(\S[^—]*)\s*—\s*O\(/);
+    if (headerMatch) {
+      if (currentName) {
+        entries.push({ name: currentName, body: currentLines.join('\n').trim() });
+      }
+      currentName = headerMatch[1].trim();
+      currentLines = [line];
+    } else {
+      currentLines.push(line);
+    }
+  }
+  if (currentName) {
+    entries.push({ name: currentName, body: currentLines.join('\n').trim() });
+  }
+
+  return { general, templates: entries };
+}
+
+function MemoAccordion({ title, children, defaultOpen = false, id }: { title: string; children: React.ReactNode; defaultOpen?: boolean; id?: string }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div id={id} className="scroll-mt-4">
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between py-2 px-3 rounded-md bg-gray-800/50 hover:bg-gray-800 transition-colors cursor-pointer"
+      >
+        <span className="text-sm font-semibold text-gray-300">{title}</span>
+        <span className="text-gray-500 text-xs">{open ? '▾' : '▸'}</span>
+      </button>
+      {open && <div className="mt-2 pl-3 border-l border-gray-800">{children}</div>}
+    </div>
+  );
+}
+
 function AllMnemonics() {
   const allTopics = DSA_CATEGORIES.flatMap(c => c.topics);
+  const [openTopics, setOpenTopics] = useState<Set<string>>(new Set());
+
+  const toggleTopic = (name: string) => {
+    setOpenTopics(prev => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+  };
+
+  const jumpToTopic = (name: string) => {
+    // Open the topic if not already open
+    setOpenTopics(prev => {
+      const next = new Set(prev);
+      next.add(name);
+      return next;
+    });
+    // Scroll after a tick so the DOM updates
+    setTimeout(() => {
+      const el = document.getElementById(`mnemonic-${name.replace(/[^a-zA-Z0-9]/g, '-')}`);
+      if (el) el.scrollIntoView({ block: 'start' });
+    }, 50);
+  };
 
   return (
     <div className="space-y-6">
@@ -235,10 +309,7 @@ function AllMnemonics() {
             return (
               <button
                 key={name}
-                onClick={() => {
-                  const el = document.getElementById(`mnemonic-${name.replace(/[^a-zA-Z0-9]/g, '-')}`);
-                  if (el) el.scrollIntoView({ block: 'start' });
-                }}
+                onClick={() => jumpToTopic(name)}
                 className="text-xs px-2 py-1 rounded bg-gray-800 text-gray-400 hover:text-gray-300 hover:bg-gray-700/50 transition-colors cursor-pointer"
               >
                 {name}
@@ -248,7 +319,7 @@ function AllMnemonics() {
         </div>
       </div>
 
-      {/* All mnemonics */}
+      {/* All mnemonics as accordions */}
       {DSA_CATEGORIES.map(category => {
         const topicsWithMnemonics = category.topics.filter(
           name => lessons[name]?.memorization
@@ -260,17 +331,48 @@ function AllMnemonics() {
             <h2 className="text-lg font-semibold text-gray-200 mb-3 border-b border-gray-800 pb-2">
               {category.name}
             </h2>
-            <div className="space-y-4">
+            <div className="space-y-2">
               {topicsWithMnemonics.map(topicName => {
                 const lesson = lessons[topicName]!;
+                const isOpen = openTopics.has(topicName);
+                const { general, templates } = parseMemoSections(lesson.memorization!);
+
                 return (
                   <div
                     key={topicName}
                     id={`mnemonic-${topicName.replace(/[^a-zA-Z0-9]/g, '-')}`}
-                    className="rounded-lg p-4 scroll-mt-4"
+                    className="rounded-lg border border-gray-800 overflow-hidden scroll-mt-4"
                   >
-                    <h3 className="text-sm font-bold text-gray-300 mb-2">{lesson.topic}</h3>
-                    <GlossaryHighlighter text={lesson.memorization!} className="text-sm text-gray-300 leading-relaxed whitespace-pre-line font-mono" />
+                    <button
+                      onClick={() => toggleTopic(topicName)}
+                      className="w-full flex items-center justify-between p-4 bg-gray-900/50 hover:bg-gray-900 transition-colors cursor-pointer"
+                    >
+                      <h3 className="text-sm font-bold text-gray-200">{lesson.topic}</h3>
+                      <span className="text-gray-500">{isOpen ? '▾' : '▸'}</span>
+                    </button>
+                    {isOpen && (
+                      <div className="p-4 pt-0 space-y-3">
+                        {/* General mnemonics */}
+                        {general && (
+                          <MemoAccordion title="General Mnemonics & Patterns" defaultOpen={true}>
+                            <GlossaryHighlighter text={general} className="text-sm text-gray-300 leading-relaxed whitespace-pre-line font-mono" />
+                          </MemoAccordion>
+                        )}
+
+                        {/* Template-by-template */}
+                        {templates.length > 0 && (
+                          <MemoAccordion title="Template-by-Template Memorization" defaultOpen={true}>
+                            <div className="space-y-1">
+                              {templates.map((entry, i) => (
+                                <MemoAccordion key={i} title={entry.name}>
+                                  <pre className="text-xs text-gray-400 leading-relaxed whitespace-pre-wrap font-mono py-2">{entry.body}</pre>
+                                </MemoAccordion>
+                              ))}
+                            </div>
+                          </MemoAccordion>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })}
