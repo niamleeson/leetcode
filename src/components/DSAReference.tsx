@@ -237,7 +237,7 @@ function TopicCard({ lesson, language, setLanguage, codeStyle, setCodeStyle }: {
             {activeTab === 'memorization' && (
               <div>
                 {lesson.memorization ? (
-                  <GlossaryHighlighter text={lesson.memorization!} className="text-sm text-gray-300 leading-relaxed whitespace-pre-line font-mono" />
+                  <GlossaryHighlighter text={lesson.memorization!} className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap font-mono" />
                 ) : (
                   <p className="text-sm text-gray-500 italic">Memorization techniques coming soon for this topic.</p>
                 )}
@@ -333,7 +333,7 @@ function AllMnemonics() {
                     </button>
                     {isOpen && (
                       <div className="p-4 pt-2">
-                        <GlossaryHighlighter text={lesson.memorization!} className="text-sm text-gray-300 leading-relaxed whitespace-pre-line font-mono" />
+                        <GlossaryHighlighter text={lesson.memorization!} className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap font-mono" />
                       </div>
                     )}
                   </div>
