@@ -98,7 +98,7 @@ export default function App() {
         dailyGoal={store.dailyGoal}
         getTopicStats={store.getTopicStats}
       />
-      <main className="p-6 pt-14 overflow-y-auto max-w-5xl mx-auto">
+      <main className="p-6 overflow-y-auto max-w-5xl mx-auto">
         <Routes>
           <Route path="/" element={
             <Dashboard
