@@ -25,7 +25,7 @@ function slugToTopic(slug: string): Topic | null {
 
 export { topicToSlug, slugToTopic };
 
-const ENABLE_ASK_CLAUDE = import.meta.env.DEV;
+const ENABLE_ASK_CLAUDE = false;
 
 export default function App() {
   const store = useAppStore();
