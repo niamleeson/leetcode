@@ -413,11 +413,11 @@ subarraySum — O(n) time, O(n) space
   Use when: "subarray sum equals k", "number of subarrays summing to target"
   Example:
     nums = [1, 2, 3], k = 3
-    prefix sums: 0, 1, 3, 6
-                    ^  ^
-                    0  3    3 - 0 = 3 = k (subarray [1,2])
-                       ^     ^
-                       3     6    6 - 3 = 3 = k (subarray [3])
+    prefix: [0,  1,  3,  6]
+             ^       ^
+             0       3    →  3 - 0 = 3 = k (subarray [1,2])
+                     ^   ^
+                     3   6  →  6 - 3 = 3 = k (subarray [3])
     "Any two prefix sums that differ by k = a valid subarray between them."
   Steps:
     1. prefix.set(0, 1) — empty prefix sums to 0
