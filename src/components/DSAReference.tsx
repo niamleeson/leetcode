@@ -237,7 +237,7 @@ function AllMnemonics() {
                 key={name}
                 onClick={() => {
                   const el = document.getElementById(`mnemonic-${name.replace(/[^a-zA-Z0-9]/g, '-')}`);
-                  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  if (el) el.scrollIntoView({ block: 'start' });
                 }}
                 className="text-xs px-2 py-1 rounded bg-gray-800 text-gray-400 hover:text-gray-300 hover:bg-gray-700/50 transition-colors cursor-pointer"
               >
