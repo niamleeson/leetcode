@@ -84,15 +84,18 @@ function LanguageToggle({ language, setLanguage }: {
   );
 }
 
-function TopicCard({ lesson, language, setLanguage }: {
+function TopicCard({ lesson, language, setLanguage, codeStyle, setCodeStyle }: {
   lesson: TopicLesson;
   language: 'python' | 'javascript';
   setLanguage: (lang: 'python' | 'javascript') => void;
+  codeStyle: 'readable' | 'original';
+  setCodeStyle: (style: 'readable' | 'original') => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState<'template' | 'memorization' | 'overview'>('template');
 
   const showJs = language === 'javascript' && lesson.jsTemplate;
+  const useReadable = codeStyle === 'readable' && showJs && lesson.jsTemplateReadable;
 
   return (
     <div className="bg-gray-900 border border-gray-800 rounded-lg overflow-hidden">
@@ -185,10 +188,36 @@ function TopicCard({ lesson, language, setLanguage }: {
                   <h4 className="text-xs font-semibold text-blue-300 uppercase tracking-wider">
                     {showJs ? 'JavaScript' : 'Python'} Templates
                   </h4>
-                  <LanguageToggle language={language} setLanguage={setLanguage} />
+                  <div className="flex items-center gap-2">
+                    {showJs && lesson.jsTemplateReadable && (
+                      <div className="inline-flex rounded-md bg-gray-800 p-0.5">
+                        <button
+                          onClick={() => setCodeStyle('readable')}
+                          className={`px-2.5 py-1 text-xs font-medium rounded transition-colors ${
+                            codeStyle === 'readable'
+                              ? 'bg-emerald-600 text-white'
+                              : 'text-gray-400 hover:text-gray-200'
+                          }`}
+                        >
+                          Readable
+                        </button>
+                        <button
+                          onClick={() => setCodeStyle('original')}
+                          className={`px-2.5 py-1 text-xs font-medium rounded transition-colors ${
+                            codeStyle === 'original'
+                              ? 'bg-gray-600 text-white'
+                              : 'text-gray-400 hover:text-gray-200'
+                          }`}
+                        >
+                          Original
+                        </button>
+                      </div>
+                    )}
+                    <LanguageToggle language={language} setLanguage={setLanguage} />
+                  </div>
                 </div>
                 <CodeBlock
-                  code={showJs ? lesson.jsTemplate! : lesson.template}
+                  code={useReadable ? lesson.jsTemplateReadable! : (showJs ? lesson.jsTemplate! : lesson.template)}
                   language={showJs ? 'javascript' : 'python'}
                 />
                 {language === 'javascript' && !lesson.jsTemplate && (
@@ -320,6 +349,7 @@ function AllMnemonics() {
 
 export default function DSAReference() {
   const [language, setLanguage] = useLocalStorage<'python' | 'javascript'>('lc-language', 'javascript');
+  const [codeStyle, setCodeStyle] = useLocalStorage<'readable' | 'original'>('lc-code-style', 'readable');
   const [searchParams, setSearchParams] = useSearchParams();
   const view = searchParams.get('view') === 'mnemonics' ? 'mnemonics' : 'topics';
 
@@ -546,6 +576,8 @@ export default function DSAReference() {
                       lesson={lesson}
                       language={language}
                       setLanguage={setLanguage}
+                      codeStyle={codeStyle}
+                      setCodeStyle={setCodeStyle}
                     />
                   );
                 })}

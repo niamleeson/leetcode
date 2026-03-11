@@ -9,6 +9,7 @@ export interface TopicLesson {
   commonMistakes: string[];
   tips: string[];
   memorization?: string;  // Mnemonics and techniques for memorizing templates
+  jsTemplateReadable?: string; // Readable version using iteration helpers
 }
 
 export const lessons: Record<string, TopicLesson> = {
@@ -104,23 +105,23 @@ function topKFrequent(nums, k) {
 // Prefix sum pattern
 function subarraySum(nums, k) {
     // Map: prefix sum -> how many times we've seen it
-    const prefix = new Map();
-    prefix.set(0, 1);  // empty prefix has sum 0
+    const sumFrequency = new Map();
+    sumFrequency.set(0, 1);  // empty prefix has sum 0
 
-    let currSum = 0;
+    let runningSumSoFar = 0;
     let count = 0;
 
     for (const num of nums) {
-        currSum = currSum + num;
+        runningSumSoFar = runningSumSoFar + num;
 
-        // How many earlier prefix sums equal (currSum - k)?
-        const target = currSum - k;
-        const matches = prefix.get(target) || 0;
-        count = count + matches;
+        // How many earlier prefix sums equal (runningSumSoFar - k)?
+        const neededPrefixSum = runningSumSoFar - k;
+        const matchCount = sumFrequency.get(neededPrefixSum) || 0;
+        count = count + matchCount;
 
         // Record this prefix sum
-        const existing = prefix.get(currSum) || 0;
-        prefix.set(currSum, existing + 1);
+        const currentFreq = sumFrequency.get(runningSumSoFar) || 0;
+        sumFrequency.set(runningSumSoFar, currentFreq + 1);
     }
     return count;
 }
@@ -131,18 +132,146 @@ function productExceptSelf(nums) {
     const result = new Array(n).fill(1);
 
     // Build prefix products (left to right)
-    let prefixProduct = 1;
+    let productOfAllToMyLeft = 1;
     for (let i = 0; i < n; i++) {
-        result[i] = prefixProduct;
-        prefixProduct = prefixProduct * nums[i];
+        result[i] = productOfAllToMyLeft;
+        productOfAllToMyLeft = productOfAllToMyLeft * nums[i];
     }
 
     // Multiply by suffix products (right to left)
-    let suffixProduct = 1;
+    let productOfAllToMyRight = 1;
     for (let i = n - 1; i >= 0; i--) {
-        result[i] = result[i] * suffixProduct;
-        suffixProduct = suffixProduct * nums[i];
+        result[i] = result[i] * productOfAllToMyRight;
+        productOfAllToMyRight = productOfAllToMyRight * nums[i];
     }
+
+    return result;
+}`,
+    jsTemplateReadable: `// ── Iteration Helpers (used across all templates) ──
+
+function forEach(arr, callback) {
+    for (let i = 0; i < arr.length; i++) callback(arr[i], i);
+}
+
+function forEachFromRight(arr, callback) {
+    for (let i = arr.length - 1; i >= 0; i--) callback(arr[i], i);
+}
+
+function forEachStartingAt(startIndex, arr, callback) {
+    for (let i = startIndex; i < arr.length; i++) callback(arr[i], i);
+}
+
+function forEachBetween(start, endExclusive, callback) {
+    for (let i = start; i < endExclusive; i++) callback(i);
+}
+
+function advancePast(arr, index, shouldSkip) {
+    while (index < arr.length && shouldSkip(arr[index], index)) {
+        index = index + 1;
+    }
+    return index;
+}
+
+function advancePastFromRight(arr, index, shouldSkip) {
+    while (index >= 0 && shouldSkip(arr[index], index)) {
+        index = index - 1;
+    }
+    return index;
+}
+
+function repeatWhile(condition, action) {
+    while (condition()) action();
+}
+
+// Two Sum pattern - complement lookup
+function twoSum(nums, target) {
+    const seen = new Map(); // value -> index
+
+    forEach(nums, (currentNum, i) => {
+        const complement = target - currentNum;
+
+        // Check if the partner number was already seen
+        if (seen.has(complement)) {
+            const partnerIndex = seen.get(complement);
+            return [partnerIndex, i];
+        }
+
+        // Remember this number and its index
+        seen.set(currentNum, i);
+    });
+}
+
+// Frequency count pattern (bucket sort)
+function topKFrequent(nums, k) {
+    // Step 1: Count how often each number appears
+    const count = new Map();
+    forEach(nums, (num) => {
+        const current = count.get(num) || 0;
+        count.set(num, current + 1);
+    });
+
+    // Step 2: Create buckets where index = frequency
+    const buckets = Array.from({ length: nums.length + 1 }, () => []);
+    for (const [num, freq] of count) {
+        buckets[freq].push(num);
+    }
+
+    // Step 3: Walk backwards from highest frequency
+    const result = [];
+    forEachFromRight(buckets, (bucket, freq) => {
+        if (freq === 0) return;
+        forEach(bucket, (num) => {
+            result.push(num);
+            if (result.length === k) {
+                return result;
+            }
+        });
+    });
+    return result;
+}
+
+// Prefix sum pattern
+function subarraySum(nums, k) {
+    // Map: prefix sum -> how many times we've seen it
+    const sumFrequency = new Map();
+    sumFrequency.set(0, 1);  // empty prefix has sum 0
+
+    let runningSumSoFar = 0;
+    let count = 0;
+
+    forEach(nums, (num) => {
+        runningSumSoFar = runningSumSoFar + num;
+
+        // How many earlier prefix sums equal (runningSumSoFar - k)?
+        const neededPrefixSum = runningSumSoFar - k;
+        const matchCount = sumFrequency.get(neededPrefixSum) || 0;
+        count = count + matchCount;
+
+        // Record this prefix sum
+        const currentFreq = sumFrequency.get(runningSumSoFar) || 0;
+        sumFrequency.set(runningSumSoFar, currentFreq + 1);
+    });
+    return count;
+}
+
+// Prefix/Suffix Products (Product of Array Except Self)
+function productExceptSelf(nums) {
+    const n = nums.length;
+    const result = new Array(n).fill(1);
+
+    // Build prefix products (left to right)
+    let productOfAllToMyLeft = 1;
+    forEachBetween(0, n, (i) => {
+        result[i] = productOfAllToMyLeft;
+        productOfAllToMyLeft = productOfAllToMyLeft * nums[i];
+    });
+
+    // Multiply by suffix products (right to left)
+    let productOfAllToMyRight = 1;
+    forEachFromRight(nums, (_, i) => {
+        result[i] = result[i] * productOfAllToMyRight;
+        productOfAllToMyRight = productOfAllToMyRight * nums[i];
+    });
 
     return result;
 }`,
@@ -166,30 +295,30 @@ function productExceptSelf(nums) {
       '  freq=2: push 2 → result=[1,2], length===k → return!\n\n' +
       '── Prefix Sum ──\n' +
       'nums = [1, 1, 1], k = 2\n' +
-      'prefix = {0: 1}\n\n' +
-      'num=1: currSum=1, target=1-2=-1\n' +
-      '       prefix has -1? No → matches=0\n' +
-      '       count=0, prefix={0:1, 1:1}\n\n' +
-      'num=1: currSum=2, target=2-2=0\n' +
-      '       prefix has 0? Yes (1 time) → matches=1\n' +
-      '       count=1, prefix={0:1, 1:1, 2:1}\n\n' +
-      'num=1: currSum=3, target=3-2=1\n' +
-      '       prefix has 1? Yes (1 time) → matches=1\n' +
-      '       count=2, prefix={0:1, 1:1, 2:1, 3:1}\n\n' +
+      'sumFrequency = {0: 1}\n\n' +
+      'num=1: runningSumSoFar=1, neededPrefixSum=1-2=-1\n' +
+      '       sumFrequency has -1? No → matchCount=0\n' +
+      '       count=0, sumFrequency={0:1, 1:1}\n\n' +
+      'num=1: runningSumSoFar=2, neededPrefixSum=2-2=0\n' +
+      '       sumFrequency has 0? Yes (1 time) → matchCount=1\n' +
+      '       count=1, sumFrequency={0:1, 1:1, 2:1}\n\n' +
+      'num=1: runningSumSoFar=3, neededPrefixSum=3-2=1\n' +
+      '       sumFrequency has 1? Yes (1 time) → matchCount=1\n' +
+      '       count=2, sumFrequency={0:1, 1:1, 2:1, 3:1}\n\n' +
       'return 2  (subarrays [1,1] at idx 0-1 and idx 1-2)\n\n' +
       '── Prefix/Suffix Products ──\n' +
       'nums = [1, 2, 3, 4]\n\n' +
       'Prefix pass (left to right):\n' +
-      '  i=0: result[0]=1, prefixProduct=1*1=1\n' +
-      '  i=1: result[1]=1, prefixProduct=1*2=2\n' +
-      '  i=2: result[2]=2, prefixProduct=2*3=6\n' +
-      '  i=3: result[3]=6, prefixProduct=6*4=24\n' +
+      '  i=0: result[0]=1, productOfAllToMyLeft=1*1=1\n' +
+      '  i=1: result[1]=1, productOfAllToMyLeft=1*2=2\n' +
+      '  i=2: result[2]=2, productOfAllToMyLeft=2*3=6\n' +
+      '  i=3: result[3]=6, productOfAllToMyLeft=6*4=24\n' +
       'result after prefix: [1, 1, 2, 6]\n\n' +
       'Suffix pass (right to left):\n' +
-      '  i=3: result[3]=6*1=6,  suffixProduct=1*4=4\n' +
-      '  i=2: result[2]=2*4=8,  suffixProduct=4*3=12\n' +
-      '  i=1: result[1]=1*12=12, suffixProduct=12*2=24\n' +
-      '  i=0: result[0]=1*24=24, suffixProduct=24*1=24\n\n' +
+      '  i=3: result[3]=6*1=6,  productOfAllToMyRight=1*4=4\n' +
+      '  i=2: result[2]=2*4=8,  productOfAllToMyRight=4*3=12\n' +
+      '  i=1: result[1]=1*12=12, productOfAllToMyRight=12*2=24\n' +
+      '  i=0: result[0]=1*24=24, productOfAllToMyRight=24*1=24\n\n' +
       'return [24, 12, 8, 6]  (each = product of all other elements)',
     complexity: 'Most hash map solutions: O(n) time, O(n) space. Prefix sum: O(n) time, O(n) space.',
     commonMistakes: [
@@ -227,9 +356,10 @@ PREFIX/SUFFIX PRODUCTS (Product of Array Except Self):
 TEMPLATE-BY-TEMPLATE MEMORIZATION:
 
 twoSum — O(n) time, O(n) space
-  What: Find two indices whose values sum to target.
+  Problem: Given an array of integers and a target, return the indices of the two numbers that add up to the target.
   Use when: "two sum", "pair that adds to target", "complement lookup"
-  Key insight: For each number, its needed partner is (target - num). A map gives O(1) lookup.
+  Why it works: For each number, its complement (target - num) is the only partner that works. A hash map gives O(1) lookup — instead of scanning every pair, you check once and store once.
+  Aha: You don't need to find the pair; you just need to recognize the partner the moment you see it.
   Steps:
     1. Create Map: seen (number → index)
     2. For each num: complement = target - num
@@ -238,9 +368,10 @@ twoSum — O(n) time, O(n) space
   Mnemonic: "Seen the partner? Return. Haven't? Remember yourself."
 
 topKFrequent — O(n) time, O(n) space
-  What: Return the k most frequently occurring numbers.
+  Problem: Given an array of integers and a number k, return the k most frequently occurring elements.
   Use when: "top k frequent", "k most common", "highest frequency elements"
-  Key insight: Bucket sort by frequency avoids O(n log n) sorting — index the bucket array by frequency.
+  Why it works: Instead of sorting by frequency (O(n log n)), bucket sort maps frequency → elements in O(n). Since frequencies are bounded by n, the bucket array has size n+1 — walk it backwards to get the most frequent first.
+  Aha: Frequency is bounded by array length, so you can use the index itself as the frequency key.
   Steps:
     1. Build count map (num → frequency)
     2. Create buckets array of size n+1 (index = frequency)
@@ -249,9 +380,10 @@ topKFrequent — O(n) time, O(n) space
   Mnemonic: "Count, bucket by frequency, harvest from the top."
 
 subarraySum — O(n) time, O(n) space
-  What: Count subarrays whose sum equals k.
+  Problem: Given an array of integers and a target k, count the number of contiguous subarrays whose elements sum to k.
   Use when: "subarray sum equals k", "number of subarrays summing to target"
-  Key insight: If prefixSum[j] - prefixSum[i] = k, then subarray i..j sums to k. Initialize map with {0: 1} for the empty prefix.
+  Why it works: A subarray from i to j sums to k when prefixSum[j] - prefixSum[i] = k, meaning prefixSum[i] = prefixSum[j] - k. A hash map counts how many times each prefix sum appeared, so the answer increments by that count at each step. Initialize with {0: 1} to account for subarrays starting at index 0.
+  Aha: You're not looking for subarrays directly — you're asking "how many earlier prefix sums equal currSum - k?"
   Steps:
     1. prefix.set(0, 1) — empty prefix sums to 0
     2. For each num: currSum += num
@@ -260,9 +392,10 @@ subarraySum — O(n) time, O(n) space
   Mnemonic: "Running sum minus k seen before? That's a valid subarray."
 
 productExceptSelf — O(n) time, O(1) extra space
-  What: Return array where result[i] = product of all elements except nums[i].
+  Problem: Given an array of integers, return an array where each element is the product of all other elements, without using division.
   Use when: "product except self", "product of all other elements", "no division allowed"
-  Key insight: Two passes — prefix products left-to-right, then suffix products right-to-left. result[i] = (product of everything left of i) × (product of everything right of i).
+  Why it works: result[i] = (product of everything left of i) × (product of everything right of i). Two passes compute these without division: the left pass builds prefix products, and the right pass multiplies in suffix products using a single running variable.
+  Aha: You don't need a prefix array — just carry one running variable per direction and write directly into result.
   Steps:
     1. Left pass: result[i] = prefixProduct before i; then prefixProduct *= nums[i]
     2. Right pass: result[i] *= suffixProduct; then suffixProduct *= nums[i]
@@ -334,11 +467,11 @@ function twoSumSorted(nums, target) {
     let right = nums.length - 1;
 
     while (left < right) {
-        const curr = nums[left] + nums[right];
+        const pairSum = nums[left] + nums[right];
 
-        if (curr === target) {
+        if (pairSum === target) {
             return [left, right];
-        } else if (curr < target) {
+        } else if (pairSum < target) {
             // Sum too small — move left pointer right to increase it
             left++;
         } else {
@@ -435,14 +568,122 @@ function trap(height) {
 
     return totalWater;
 }`,
+    jsTemplateReadable: `// (Uses shared helpers defined in Arrays & Hashing)
+
+// Opposite direction - pair with target sum (sorted)
+function twoSumSorted(nums, target) {
+    let left = 0;
+    let right = nums.length - 1;
+
+    repeatWhile(() => left < right, () => {
+        const pairSum = nums[left] + nums[right];
+
+        if (pairSum === target) {
+            return [left, right];
+        } else if (pairSum < target) {
+            // Sum too small — move left pointer right to increase it
+            left++;
+        } else {
+            // Sum too big — move right pointer left to decrease it
+            right--;
+        }
+    });
+}
+
+// 3Sum pattern - fix one, two-pointer on rest
+function threeSum(nums) {
+    nums.sort((a, b) => a - b);
+    const result = [];
+
+    forEach(nums, (_, i) => {
+        if (i >= nums.length - 2) return;
+        // Skip duplicate values for the fixed element
+        if (i > 0 && nums[i] === nums[i - 1]) {
+            return;
+        }
+
+        let left = i + 1;
+        let right = nums.length - 1;
+
+        repeatWhile(() => left < right, () => {
+            const total = nums[i] + nums[left] + nums[right];
+
+            if (total === 0) {
+                result.push([nums[i], nums[left], nums[right]]);
+
+                // Skip duplicate values for left pointer
+                left = advancePast(nums, left, (val) => val === nums[left + 1] && left < right);
+                left++;
+                right--;
+            } else if (total < 0) {
+                left++;
+            } else {
+                right--;
+            }
+        });
+    });
+    return result;
+}
+
+// Partition - remove duplicates in-place
+function removeDuplicates(nums) {
+    if (!nums.length) {
+        return 0;
+    }
+
+    // slow tracks the last position of the unique-element section
+    let slow = 0;
+
+    forEachStartingAt(1, nums, (_, fast) => {
+        if (nums[fast] !== nums[slow]) {
+            // Found a new unique element — extend the unique section
+            slow++;
+            nums[slow] = nums[fast];
+        }
+    });
+
+    return slow + 1;
+}
+
+// Trapping Rain Water (two-pointer approach)
+function trap(height) {
+    let left = 0;
+    let right = height.length - 1;
+    let leftMax = 0;
+    let rightMax = 0;
+    let totalWater = 0;
+
+    repeatWhile(() => left < right, () => {
+        if (height[left] < height[right]) {
+            // Left side is the bottleneck
+            if (height[left] >= leftMax) {
+                leftMax = height[left];
+            } else {
+                // Water trapped = leftMax - current height
+                totalWater = totalWater + (leftMax - height[left]);
+            }
+            left = left + 1;
+        } else {
+            // Right side is the bottleneck
+            if (height[right] >= rightMax) {
+                rightMax = height[right];
+            } else {
+                totalWater = totalWater + (rightMax - height[right]);
+            }
+            right = right - 1;
+        }
+    });
+
+    return totalWater;
+}`,
     jsTemplateWalkthrough:
       '── Two Sum Sorted ──\n' +
       'nums = [1, 3, 5, 7, 9], target = 10\n\n' +
-      'left=0, right=4: curr = 1+9 = 10 → found!\n' +
+      'left=0, right=4: pairSum = 1+9 = 10 → found!\n' +
       'return [0, 4]\n\n' +
       'Another example: target = 8\n' +
-      'left=0, right=4: curr = 1+9 = 10 > 8 → right--\n' +
-      'left=0, right=3: curr = 1+7 = 8 → found!\n' +
+      'left=0, right=4: pairSum = 1+9 = 10 > 8 → right--\n' +
+      'left=0, right=3: pairSum = 1+7 = 8 → found!\n' +
       'return [0, 3]\n\n' +
       '── 3Sum ──\n' +
       'nums = [-4, -1, -1, 0, 1, 2] (already sorted)\n\n' +
@@ -523,9 +764,10 @@ TRAPPING RAIN WATER (two-pointer approach):
 TEMPLATE-BY-TEMPLATE MEMORIZATION:
 
 twoSumSorted — O(n) time, O(1) space
-  What: Find a pair in a sorted array that sums to target.
+  Problem: Given a sorted array and a target, return the indices of two numbers that add up to the target.
   Use when: "sorted array", "pair with given sum", "two pointers on sorted input"
-  Key insight: Too small → move left pointer right to increase sum; too big → move right pointer left to decrease sum.
+  Why it works: The array is sorted, so moving left increases the sum and moving right decreases it. Start from the extremes — if the sum is too small, move left inward; if too big, move right inward. This eliminates half the candidates at each step.
+  Aha: Sorted order turns "which pair?" into a guided squeeze — you always know which direction to move.
   Steps:
     1. left = 0, right = n-1
     2. curr = nums[left] + nums[right]
@@ -533,9 +775,10 @@ twoSumSorted — O(n) time, O(1) space
   Mnemonic: "Too small? Grow left. Too big? Shrink right."
 
 threeSum — O(n²) time, O(1) space
-  What: Find all unique triplets summing to zero.
+  Problem: Given an array of integers, return all unique triplets that sum to zero.
   Use when: "three numbers summing to zero", "unique triplets", "3-way sum"
-  Key insight: Fix one element with the outer loop, then two-pointer the rest. Sort first to enable skipping duplicates.
+  Why it works: Sort first so duplicates are adjacent (easy to skip) and two pointers can squeeze inward. Fix the leftmost element with an outer loop, then apply two-pointer on the remaining sorted subarray. Sorting turns a three-variable problem into a two-variable one.
+  Aha: Reduce 3Sum to 2Sum by fixing one element — then the sorted two-pointer handles the rest.
   Steps:
     1. Sort the array
     2. Outer loop fixes nums[i]; skip if duplicate (nums[i] === nums[i-1] and i > 0)
@@ -544,9 +787,10 @@ threeSum — O(n²) time, O(1) space
   Mnemonic: "Fix one, squeeze the rest, skip duplicates."
 
 removeDuplicates — O(n) time, O(1) space
-  What: Remove duplicates in-place from a sorted array, return new length.
+  Problem: Given a sorted array, remove duplicates in-place and return the count of unique elements.
   Use when: "remove duplicates in-place", "sorted array dedup", "two-pointer partition"
-  Key insight: Slow pointer marks the write position (last unique element); fast pointer scans for the next new value.
+  Why it works: Because the array is sorted, duplicates are adjacent. The slow pointer always points to the last confirmed unique element. When fast finds something different, you extend the unique region by one step.
+  Aha: Two-pointer partitioning: slow = write head, fast = read head. Only write when you find something new.
   Steps:
     1. slow = 0, fast starts at 1
     2. If nums[fast] !== nums[slow]: slow++, nums[slow] = nums[fast]
@@ -554,9 +798,10 @@ removeDuplicates — O(n) time, O(1) space
   Mnemonic: "Slow = last unique. Fast scouts ahead. New value? Extend unique section."
 
 trap — O(n) time, O(1) space
-  What: Compute total water trapped between bars.
+  Problem: Given an elevation map as an array, compute the total amount of water that can be trapped after rain.
   Use when: "trapping rain water", "water between bars", "elevation map"
-  Key insight: Water at position i = min(leftMax, rightMax) - height[i]. Move the shorter side inward — it's the bottleneck.
+  Why it works: Water at any position is capped by min(leftMax, rightMax) - height[i]. By moving the pointer on the shorter wall, you know the water level at that position with certainty — the shorter side is always the bottleneck.
+  Aha: Process whichever side has the shorter max wall — you already know exactly how much water it holds.
   Steps:
     1. left=0, right=n-1, leftMax=0, rightMax=0
     2. If height[left] < height[right]: process left side (bottleneck)
@@ -649,43 +894,43 @@ function lengthOfLongestSubstring(s) {
 // Variable window - minimum window substring
 function minWindow(s, t) {
     // Build frequency map of what we need
-    const need = new Map();
+    const charDeficit = new Map();
     for (const c of t) {
-        need.set(c, (need.get(c) || 0) + 1);
+        charDeficit.set(c, (charDeficit.get(c) || 0) + 1);
     }
 
-    let missing = t.length; // how many chars still needed
+    let charsStillNeeded = t.length; // how many chars still needed
     let left = 0;
-    let start = 0;
-    let minLen = Infinity;
+    let bestWindowStart = 0;
+    let shortestWindowSoFar = Infinity;
 
     for (let right = 0; right < s.length; right++) {
         const rightChar = s[right];
 
         // If this char is needed (count > 0), one fewer missing
-        if ((need.get(rightChar) || 0) > 0) {
-            missing--;
+        if ((charDeficit.get(rightChar) || 0) > 0) {
+            charsStillNeeded--;
         }
-        need.set(rightChar, (need.get(rightChar) || 0) - 1);
+        charDeficit.set(rightChar, (charDeficit.get(rightChar) || 0) - 1);
 
         // When window satisfies all requirements, try to shrink from left
-        while (missing === 0) {
+        while (charsStillNeeded === 0) {
             const windowLen = right - left + 1;
-            if (windowLen < minLen) {
-                minLen = windowLen;
-                start = left;
+            if (windowLen < shortestWindowSoFar) {
+                shortestWindowSoFar = windowLen;
+                bestWindowStart = left;
             }
 
             // Remove leftmost char from window
             const leftChar = s[left];
-            need.set(leftChar, (need.get(leftChar) || 0) + 1);
-            if (need.get(leftChar) > 0) {
-                missing++; // window is now missing a required char
+            charDeficit.set(leftChar, (charDeficit.get(leftChar) || 0) + 1);
+            if (charDeficit.get(leftChar) > 0) {
+                charsStillNeeded++; // window is now missing a required char
             }
             left++;
         }
     }
-    return minLen === Infinity ? '' : s.slice(start, start + minLen);
+    return shortestWindowSoFar === Infinity ? '' : s.slice(bestWindowStart, bestWindowStart + shortestWindowSoFar);
 }
 
 // Fixed window - max sum of subarray of size k
@@ -702,6 +947,86 @@ function maxSumSubarray(nums, k) {
         windowSum = windowSum + nums[i] - nums[i - k];
         maxSum = Math.max(maxSum, windowSum);
     }
+    return maxSum;
+}`,
+    jsTemplateReadable: `// (Uses shared helpers defined in Arrays & Hashing)
+
+// Variable window - longest substring without repeating chars
+function lengthOfLongestSubstring(s) {
+    const seen = new Map(); // char -> last index seen
+    let left = 0;
+    let result = 0;
+
+    forEach(s, (char, right) => {
+        // If char was seen and is still inside the current window
+        if (seen.has(char) && seen.get(char) >= left) {
+            // Shrink window: move left past the previous occurrence
+            left = seen.get(char) + 1;
+        }
+
+        seen.set(char, right);
+
+        // Update the longest window found so far
+        const windowLength = right - left + 1;
+        result = Math.max(result, windowLength);
+    });
+    return result;
+}
+
+// Variable window - minimum window substring
+function minWindow(s, t) {
+    // Build frequency map of what we need
+    const charDeficit = new Map();
+    forEach(t, (c) => {
+        charDeficit.set(c, (charDeficit.get(c) || 0) + 1);
+    });
+
+    let charsStillNeeded = t.length; // how many chars still needed
+    let left = 0;
+    let bestWindowStart = 0;
+    let shortestWindowSoFar = Infinity;
+
+    forEach(s, (rightChar, right) => {
+        // If this char is needed (count > 0), one fewer missing
+        if ((charDeficit.get(rightChar) || 0) > 0) {
+            charsStillNeeded--;
+        }
+        charDeficit.set(rightChar, (charDeficit.get(rightChar) || 0) - 1);
+
+        // When window satisfies all requirements, try to shrink from left
+        repeatWhile(() => charsStillNeeded === 0, () => {
+            const windowLen = right - left + 1;
+            if (windowLen < shortestWindowSoFar) {
+                shortestWindowSoFar = windowLen;
+                bestWindowStart = left;
+            }
+
+            // Remove leftmost char from window
+            const leftChar = s[left];
+            charDeficit.set(leftChar, (charDeficit.get(leftChar) || 0) + 1);
+            if (charDeficit.get(leftChar) > 0) {
+                charsStillNeeded++; // window is now missing a required char
+            }
+            left++;
+        });
+    });
+    return shortestWindowSoFar === Infinity ? '' : s.slice(bestWindowStart, bestWindowStart + shortestWindowSoFar);
+}
+
+// Fixed window - max sum of subarray of size k
+function maxSumSubarray(nums, k) {
+    // Build the initial window of size k
+    let windowSum = 0;
+    forEachBetween(0, k, (i) => {
+        windowSum += nums[i];
+    });
+    let maxSum = windowSum;
+
+    // Slide the window: add the new right element, remove the old left element
+    forEachStartingAt(k, nums, (_, i) => {
+        windowSum = windowSum + nums[i] - nums[i - k];
+        maxSum = Math.max(maxSum, windowSum);
+    });
     return maxSum;
 }`,
     jsTemplateWalkthrough:
@@ -721,17 +1046,17 @@ function maxSumSubarray(nums, k) {
       'return 3\n\n' +
       '── Minimum Window Substring ──\n' +
       's = "ADOBECODEBANC", t = "ABC"\n' +
-      'need = {A:1, B:1, C:1}, missing=3\n\n' +
-      'right=0: A, need[A]=1>0 → missing=2, need[A]=0\n' +
-      'right=1: D → need[D]=-1\n' +
-      'right=2: O → need[O]=-1\n' +
-      'right=3: B, need[B]=1>0 → missing=1, need[B]=0\n' +
-      'right=4: E → need[E]=-1\n' +
-      'right=5: C, need[C]=1>0 → missing=0 ← valid window!\n' +
-      '  window="ADOBEC", len=6, minLen=6, start=0\n' +
-      '  shrink: remove A, need[A]=1>0 → missing=1, left=1 → exit while\n' +
+      'charDeficit = {A:1, B:1, C:1}, charsStillNeeded=3\n\n' +
+      'right=0: A, charDeficit[A]=1>0 → charsStillNeeded=2, charDeficit[A]=0\n' +
+      'right=1: D → charDeficit[D]=-1\n' +
+      'right=2: O → charDeficit[O]=-1\n' +
+      'right=3: B, charDeficit[B]=1>0 → charsStillNeeded=1, charDeficit[B]=0\n' +
+      'right=4: E → charDeficit[E]=-1\n' +
+      'right=5: C, charDeficit[C]=1>0 → charsStillNeeded=0 ← valid window!\n' +
+      '  window="ADOBEC", len=6, shortestWindowSoFar=6, bestWindowStart=0\n' +
+      '  shrink: remove A, charDeficit[A]=1>0 → charsStillNeeded=1, left=1 → exit while\n' +
       '...(sliding continues)...\n' +
-      'right=9: A, need[A]=1>0 → missing=0 ← valid!\n' +
+      'right=9: A, charDeficit[A]=1>0 → charsStillNeeded=0 ← valid!\n' +
       '  window="ODEBA" … shrinks to "BANC" len=4\n\n' +
       'return "BANC"\n\n' +
       '── Max Sum Subarray (Fixed k=3) ──\n' +
@@ -777,9 +1102,10 @@ LONGEST vs SHORTEST:
 TEMPLATE-BY-TEMPLATE MEMORIZATION:
 
 lengthOfLongestSubstring — O(n) time, O(min(n,charset)) space
-  What: Find the longest substring without repeating characters.
+  Problem: Given a string, return the length of the longest substring that contains no repeating characters.
   Use when: "longest substring without repeating", "no duplicate characters", "unique character window"
-  Key insight: A map tracks the last seen index of each char. On duplicate, jump left pointer past the previous occurrence in one step.
+  Why it works: The map stores the last index each character was seen. When a duplicate is found inside the current window (seen index >= left), jump left directly past it — no need to shrink one step at a time. This keeps the window valid in O(1) per step.
+  Aha: Don't slide left by 1 on duplicates — jump it directly past the previous occurrence.
   Steps:
     1. Map + left pointer + result
     2. For each right char: if seen AND inside window (seen.get(char) >= left) → jump left past it
@@ -788,9 +1114,10 @@ lengthOfLongestSubstring — O(n) time, O(min(n,charset)) space
   Mnemonic: "Seen it inside the window? Jump past it. Otherwise, grow."
 
 minWindow — O(n) time, O(charset) space
-  What: Find the smallest window in s containing all characters of t.
+  Problem: Given strings s and t, return the minimum window substring of s that contains all characters of t.
   Use when: "minimum window substring", "smallest window containing all chars", "find substring with all required characters"
-  Key insight: Expand right until all chars are covered (missing=0), then shrink left while still valid. Track the shortest valid window seen.
+  Why it works: The 'charsStillNeeded' counter tracks how many required characters aren't yet in the window. Expanding right fills the window; when missing = 0 the window is valid. Then shrink from the left while it stays valid, recording the shortest window seen. The charDeficit map tracks over-coverage so shrinking is always O(1).
+  Aha: Two phases: grow until satisfied, shrink while still satisfied. The 'charsStillNeeded' variable makes the phase-switch O(1).
   Steps:
     1. Build need map from t, set missing = t.length
     2. Expand right: if need[char] > 0, decrement missing; always decrement need[char]
@@ -799,9 +1126,10 @@ minWindow — O(n) time, O(charset) space
   Mnemonic: "Expand until valid, shrink while valid, track the shortest."
 
 maxSumSubarray — O(n) time, O(1) space
-  What: Find the maximum sum of any subarray of exactly size k.
+  Problem: Given an array and integer k, return the maximum sum of any contiguous subarray of exactly k elements.
   Use when: "fixed window size", "maximum sum of k elements", "sliding window of size k"
-  Key insight: Slide the window — add the new right element, subtract the old left element that fell out.
+  Why it works: Once you have the sum of the first window, each subsequent window is exactly one element different — you add the new right element and subtract the one that left the window on the left. This avoids recomputing the sum from scratch each time.
+  Aha: Fixed window = sliding sum. O(n) by updating rather than recomputing.
   Steps:
     1. Sum first k elements as initial windowSum
     2. Slide: windowSum += nums[i] - nums[i - k]
@@ -925,6 +1253,72 @@ function evalRPN(tokens) {
     }
     return stack[0];
 }`,
+    jsTemplateReadable: `// (Uses shared helpers defined in Arrays & Hashing)
+
+// Valid parentheses
+function isValid(s) {
+    const stack = [];
+    const pairs = { ')': '(', ']': '[', '}': '{' };
+
+    forEach(s, (c) => {
+        if (pairs[c]) {
+            // Closing bracket: check that it matches the top of stack
+            const expectedOpen = pairs[c];
+            const top = stack[stack.length - 1];
+            if (!stack.length || top !== expectedOpen) {
+                return false;
+            }
+            stack.pop();
+        } else {
+            // Opening bracket: push onto stack
+            stack.push(c);
+        }
+    });
+
+    // If stack is empty, all brackets were matched
+    return stack.length === 0;
+}
+
+// Monotonic stack - daily temperatures (next warmer day)
+function dailyTemperatures(temps) {
+    const n = temps.length;
+    const result = new Array(n).fill(0);
+    const stack = []; // stores indices waiting for a warmer day
+
+    forEachBetween(0, n, (i) => {
+        // Pop all indices whose temperature is less than today's temp
+        repeatWhile(() => stack.length && temps[i] > temps[stack[stack.length - 1]], () => {
+            const j = stack.pop();
+            result[j] = i - j; // days waited = current index - past index
+        });
+        stack.push(i);
+    });
+    return result;
+}
+
+// Evaluate reverse polish notation
+function evalRPN(tokens) {
+    const stack = [];
+    const ops = {
+        '+': (a, b) => a + b,
+        '-': (a, b) => a - b,
+        '*': (a, b) => a * b,
+        '/': (a, b) => Math.trunc(a / b),
+    };
+
+    forEach(tokens, (t) => {
+        if (ops[t]) {
+            // Pop operands in reverse order (b was pushed last)
+            const b = stack.pop();
+            const a = stack.pop();
+            const resultVal = ops[t](a, b);
+            stack.push(resultVal);
+        } else {
+            stack.push(Number(t));
+        }
+    });
+    return stack[0];
+}`,
     jsTemplateWalkthrough:
       '── Valid Parentheses ──\n' +
       's = "({[]})"  (valid)\n\n' +
@@ -1003,9 +1397,10 @@ Memory trick: "Pop the losers, push the current."
 TEMPLATE-BY-TEMPLATE MEMORIZATION:
 
 isValid — O(n) time, O(n) space
-  What: Validate that all brackets in a string are properly matched and nested.
+  Problem: Given a string of bracket characters, determine if every opening bracket is closed in the correct order.
   Use when: "valid parentheses", "balanced brackets", "matching pairs"
-  Key insight: Push opening brackets; on each closing bracket, pop and check for a match. If stack is empty at the end, all brackets matched.
+  Why it works: A stack naturally tracks the most recently opened bracket. When you see a closing bracket, only the top of the stack could possibly be its match — any deeper bracket would require closing all brackets on top first. If the top doesn't match, the string is invalid.
+  Aha: The stack is a memory of "what I'm still waiting to close, in order."
   Steps:
     1. Build pairs map: closing → opening
     2. If char is closing: check stack top matches expected open; if not → false; pop
@@ -1014,9 +1409,10 @@ isValid — O(n) time, O(n) space
   Mnemonic: "Closing bracket? Match the top or fail. Opening? Stack it."
 
 dailyTemperatures — O(n) time, O(n) space
-  What: For each day, how many days until a warmer temperature?
+  Problem: Given a list of daily temperatures, return an array where each entry is the number of days until a warmer temperature, or 0 if none.
   Use when: "days until warmer", "next greater temperature", "waiting days"
-  Key insight: Maintain a monotonic decreasing stack of indices. When a warmer day is found, pop all colder waiting days and record their wait time as (i - j).
+  Why it works: A monotonic decreasing stack stores indices of days still waiting for a warmer day. When you encounter a warmer temperature, every colder day on top of the stack has found its answer — pop them and record their wait as (currentIndex - theirIndex). Any day not popped stays at 0.
+  Aha: The stack holds "unresolved" days. A hotter day arriving resolves them all at once.
   Steps:
     1. result array filled with 0s
     2. For each i: while stack not empty AND temps[i] > temps[stack top]: pop j, result[j] = i - j
@@ -1024,9 +1420,10 @@ dailyTemperatures — O(n) time, O(n) space
   Mnemonic: "Warmer day found? Tell all the colder waiting days how long they waited."
 
 evalRPN — O(n) time, O(n) space
-  What: Evaluate a Reverse Polish Notation expression.
+  Problem: Given an array of tokens representing a postfix (Reverse Polish Notation) expression, evaluate and return the result.
   Use when: "reverse polish notation", "postfix expression", "stack-based calculator"
-  Key insight: Push numbers; on each operator pop two operands (b then a), compute, push result. The last value on the stack is the answer.
+  Why it works: In RPN, operators always follow their operands. A stack accumulates operands; when an operator arrives, the two most recent operands are exactly at the top of the stack. Pop, compute, push result — the stack naturally reflects the computation tree.
+  Aha: The stack IS the operand memory. Operators consume from the top, results go back to the top.
   Steps:
     1. If token is operator: pop b then pop a, compute ops[token](a, b), push result
     2. If token is number: push Number(token)
@@ -1124,31 +1521,31 @@ function binarySearch(nums, target) {
 }
 
 // Find first position where condition is true (left boundary)
-function firstTrue(lo, hi, condition) {
-    // Invariant: answer is in [lo, hi]
-    while (lo < hi) {
-        const mid = lo + Math.floor((hi - lo) / 2);
+function firstTrue(low, high, condition) {
+    // Invariant: answer is in [low, high]
+    while (low < high) {
+        const mid = low + Math.floor((high - low) / 2);
 
         if (condition(mid)) {
             // mid could be the answer, don't exclude it
-            hi = mid;
+            high = mid;
         } else {
             // mid is definitely not the answer
-            lo = mid + 1;
+            low = mid + 1;
         }
     }
-    return lo;
+    return low;
 }
 
 // Search on answer - Koko eating bananas
 function minEatingSpeed(piles, h) {
     // Check: can Koko finish all piles in h hours eating at this speed?
     function canFinish(speed) {
-        let totalHours = 0;
+        let hoursNeeded = 0;
         for (const pile of piles) {
-            totalHours += Math.ceil(pile / speed);
+            hoursNeeded += Math.ceil(pile / speed);
         }
-        return totalHours <= h;
+        return hoursNeeded <= h;
     }
 
     // Binary search on the answer: minimum feasible speed
@@ -1197,6 +1594,104 @@ function searchRotated(nums, target) {
     }
     return -1;
 }`,
+    jsTemplateReadable: `// (Uses shared helpers defined in Arrays & Hashing)
+
+// Classic binary search
+function binarySearch(nums, target) {
+    let left = 0;
+    let right = nums.length - 1;
+
+    repeatWhile(() => left <= right, () => {
+        // Avoid integer overflow: use left + floor((right - left) / 2)
+        const mid = left + Math.floor((right - left) / 2);
+
+        if (nums[mid] === target) {
+            return mid;
+        } else if (nums[mid] < target) {
+            // Target is in the right half
+            left = mid + 1;
+        } else {
+            // Target is in the left half
+            right = mid - 1;
+        }
+    });
+    return -1;
+}
+
+// Find first position where condition is true (left boundary)
+function firstTrue(low, high, condition) {
+    // Invariant: answer is in [low, high]
+    repeatWhile(() => low < high, () => {
+        const mid = low + Math.floor((high - low) / 2);
+
+        if (condition(mid)) {
+            // mid could be the answer, don't exclude it
+            high = mid;
+        } else {
+            // mid is definitely not the answer
+            low = mid + 1;
+        }
+    });
+    return low;
+}
+
+// Search on answer - Koko eating bananas
+function minEatingSpeed(piles, h) {
+    // Check: can Koko finish all piles in h hours eating at this speed?
+    function canFinish(speed) {
+        let hoursNeeded = 0;
+        forEach(piles, (pile) => {
+            hoursNeeded += Math.ceil(pile / speed);
+        });
+        return hoursNeeded <= h;
+    }
+
+    // Binary search on the answer: minimum feasible speed
+    let left = 1;
+    let right = Math.max(...piles);
+
+    repeatWhile(() => left < right, () => {
+        const mid = left + Math.floor((right - left) / 2);
+        if (canFinish(mid)) {
+            right = mid; // mid works, try slower
+        } else {
+            left = mid + 1; // too slow, must go faster
+        }
+    });
+    return left;
+}
+
+// Search in rotated sorted array
+function searchRotated(nums, target) {
+    let left = 0;
+    let right = nums.length - 1;
+
+    repeatWhile(() => left <= right, () => {
+        const mid = Math.floor((left + right) / 2);
+
+        if (nums[mid] === target) {
+            return mid;
+        }
+
+        // Determine which half is sorted
+        if (nums[left] <= nums[mid]) {
+            // Left half [left..mid] is sorted
+            if (nums[left] <= target && target < nums[mid]) {
+                right = mid - 1; // target is in the sorted left half
+            } else {
+                left = mid + 1; // target is in the right half
+            }
+        } else {
+            // Right half [mid..right] is sorted
+            if (nums[mid] < target && target <= nums[right]) {
+                left = mid + 1; // target is in the sorted right half
+            } else {
+                right = mid - 1; // target is in the left half
+            }
+        }
+    });
+    return -1;
+}`,
     jsTemplateWalkthrough:
       '── Classic Binary Search ──\n' +
       'nums = [1, 3, 5, 7, 9, 11], target = 7\n\n' +
@@ -1208,11 +1703,11 @@ function searchRotated(nums, target) {
       'mid=3: nums[3]=7 === 7 → return 3\n\n' +
       '── First True (Left Boundary) ──\n' +
       'Find first index where nums[i] >= 5\n' +
-      'nums = [1, 2, 3, 5, 7, 9], lo=0, hi=5\n\n' +
-      'mid=2: condition(2)=nums[2]=3 >= 5? No → lo=3\n' +
-      'mid=4: condition(4)=nums[4]=7 >= 5? Yes → hi=4\n' +
-      'mid=3: condition(3)=nums[3]=5 >= 5? Yes → hi=3\n' +
-      'lo===hi=3 → return 3\n\n' +
+      'nums = [1, 2, 3, 5, 7, 9], low=0, high=5\n\n' +
+      'mid=2: condition(2)=nums[2]=3 >= 5? No → low=3\n' +
+      'mid=4: condition(4)=nums[4]=7 >= 5? Yes → high=4\n' +
+      'mid=3: condition(3)=nums[3]=5 >= 5? Yes → high=3\n' +
+      'low===high=3 → return 3\n\n' +
       '── Koko Bananas (Search on Answer) ──\n' +
       'piles = [3, 6, 7, 11], h = 8\n' +
       'Binary search speed in [1, 11]\n\n' +
@@ -1272,9 +1767,10 @@ Memory trick: "Can I do it with X? Yes/No → Binary search the boundary."
 TEMPLATE-BY-TEMPLATE MEMORIZATION:
 
 binarySearch — O(log n) time, O(1) space
-  What: Find the index of target in a sorted array, or -1 if not found.
+  Problem: Given a sorted array and a target value, return the index of the target, or -1 if it doesn't exist.
   Use when: "sorted array", "find target", "O(log n) lookup"
-  Key insight: Use left <= right for exact match. Eliminate half each step by comparing mid to target.
+  Why it works: At each step, the mid element tells you which half can't contain the target. Eliminating half the search space each step yields O(log n). Using left <= right ensures the single-element case is handled correctly.
+  Aha: Every comparison eliminates half the remaining candidates — that's why it's O(log n).
   Steps:
     1. left = 0, right = n-1; loop while left <= right
     2. mid = left + Math.floor((right - left) / 2)
@@ -1283,9 +1779,10 @@ binarySearch — O(log n) time, O(1) space
   Mnemonic: "Equal? Done. Too small? Go right. Too big? Go left."
 
 firstTrue — O(log n) time, O(1) space
-  What: Find the first index where a monotonic condition becomes true (left boundary search).
+  Problem: Given a range [lo, hi] and a monotonic boolean condition, find the first position where the condition is true.
   Use when: "find first position where condition holds", "left boundary", "minimum valid value"
-  Key insight: Use left < right (not <=). When condition is true, keep mid as a candidate (hi=mid); when false, eliminate it (lo=mid+1).
+  Why it works: The condition is monotonic — once it flips to true, it stays true. When mid satisfies the condition, mid could be the answer, so keep it (hi=mid). When false, mid can't be the answer, so advance past it (lo=mid+1). The loop converges when lo===hi.
+  Aha: "Could mid be the answer?" — Yes → hi=mid (keep it). No → lo=mid+1 (skip it).
   Steps:
     1. Loop while lo < hi (not <=)
     2. mid = lo + Math.floor((hi - lo) / 2)
@@ -1294,9 +1791,10 @@ firstTrue — O(log n) time, O(1) space
   Mnemonic: "Condition true? Narrow right (hi=mid). False? Skip left (lo=mid+1)."
 
 minEatingSpeed — O(n log m) time, O(1) space
-  What: Find minimum eating speed for Koko to finish all piles within h hours.
+  Problem: Koko has piles of bananas and h hours. Find the minimum eating speed (bananas/hour) so she finishes all piles in time.
   Use when: "minimum speed/capacity/rate to finish in time", "binary search on the answer", "minimize X such that..."
-  Key insight: Binary search the answer space [1, max(piles)]. Define canFinish(speed) and find the smallest speed where it returns true.
+  Why it works: The answer space [1, max(piles)] is monotonic: too-slow speeds fail, fast-enough speeds succeed. Binary search finds the exact boundary. canFinish(speed) checks feasibility in O(n), so the whole search is O(n log max(piles)).
+  Aha: When the answer is a number and you can check "is X valid?" in O(n), binary search the answer itself.
   Steps:
     1. Define canFinish(speed): sum of ceil(pile/speed) <= h
     2. Binary search in [1, max(piles)] for smallest speed where canFinish is true
@@ -1305,9 +1803,10 @@ minEatingSpeed — O(n log m) time, O(1) space
   Mnemonic: "Search on the answer. Can I do it? Shrink right. Can't? Push left."
 
 searchRotated — O(log n) time, O(1) space
-  What: Find target in a rotated sorted array.
+  Problem: Given a sorted array that was rotated at an unknown pivot, find the index of a target value, or -1 if not found.
   Use when: "rotated sorted array", "search with unknown pivot", "shifted sorted array"
-  Key insight: One half is always sorted. Check if target falls in the sorted half — if yes, search there; otherwise search the other half.
+  Why it works: Even in a rotated array, one of the two halves around mid is always fully sorted. Compare nums[left] to nums[mid] to identify which half is sorted, then check whether the target lies within that range. This restores binary search behavior.
+  Aha: After rotation, one half is still perfectly sorted — use that to decide which way to go.
   Steps:
     1. Find mid; if nums[mid] === target → return mid
     2. Check which half is sorted: nums[left] <= nums[mid] → left half is sorted
@@ -1385,22 +1884,22 @@ def remove_nth_from_end(head, n):
     return dummy.next`,
     jsTemplate: `// Reverse a linked list (iterative)
 function reverseList(head) {
-    let prev = null;
-    let curr = head;
+    let previousNode = null;
+    let currentNode = head;
 
-    while (curr) {
-        // Save the next node before we overwrite curr.next
-        const nxt = curr.next;
+    while (currentNode) {
+        // Save the next node before we overwrite currentNode.next
+        const nextNode = currentNode.next;
 
-        // Reverse the link: point current node back to prev
-        curr.next = prev;
+        // Reverse the link: point current node back to previousNode
+        currentNode.next = previousNode;
 
         // Advance both pointers forward
-        prev = curr;
-        curr = nxt;
+        previousNode = currentNode;
+        currentNode = nextNode;
     }
-    // prev is now the new head of the reversed list
-    return prev;
+    // previousNode is now the new head of the reversed list
+    return previousNode;
 }
 
 // Detect cycle (Floyd's algorithm)
@@ -1438,21 +1937,21 @@ function findMiddle(head) {
 function mergeTwoLists(l1, l2) {
     // Dummy head simplifies the edge case of inserting before the first node
     const dummy = new ListNode(0);
-    let curr = dummy;
+    let tail = dummy;
 
     while (l1 && l2) {
         if (l1.val <= l2.val) {
-            curr.next = l1;
+            tail.next = l1;
             l1 = l1.next;
         } else {
-            curr.next = l2;
+            tail.next = l2;
             l2 = l2.next;
         }
-        curr = curr.next;
+        tail = tail.next;
     }
 
     // Attach remaining nodes from whichever list is non-empty
-    curr.next = l1 || l2;
+    tail.next = l1 || l2;
     return dummy.next;
 }
 
@@ -1477,17 +1976,113 @@ function removeNthFromEnd(head, n) {
     slow.next = slow.next.next;
     return dummy.next;
 }`,
+    jsTemplateReadable: `// (Uses shared helpers defined in Arrays & Hashing)
+
+// Reverse a linked list (iterative)
+function reverseList(head) {
+    let previousNode = null;
+    let currentNode = head;
+
+    repeatWhile(() => currentNode !== null, () => {
+        // Save the next node before we overwrite currentNode.next
+        const nextNode = currentNode.next;
+
+        // Reverse the link: point current node back to previousNode
+        currentNode.next = previousNode;
+
+        // Advance both pointers forward
+        previousNode = currentNode;
+        currentNode = nextNode;
+    });
+    // previousNode is now the new head of the reversed list
+    return previousNode;
+}
+
+// Detect cycle (Floyd's algorithm)
+function hasCycle(head) {
+    let slow = head;
+    let fast = head;
+
+    // fast moves 2 steps, slow moves 1 step
+    // If there's a cycle, they'll eventually meet
+    repeatWhile(() => fast !== null && fast.next !== null, () => {
+        slow = slow.next;
+        fast = fast.next.next;
+
+        if (slow === fast) {
+            return true;
+        }
+    });
+    return false;
+}
+
+// Find middle of linked list
+function findMiddle(head) {
+    let slow = head;
+    let fast = head;
+
+    // When fast reaches the end, slow is at the middle
+    repeatWhile(() => fast !== null && fast.next !== null, () => {
+        slow = slow.next;
+        fast = fast.next.next;
+    });
+    return slow;
+}
+
+// Merge two sorted lists
+function mergeTwoLists(l1, l2) {
+    // Dummy head simplifies the edge case of inserting before the first node
+    const dummy = new ListNode(0);
+    let tail = dummy;
+
+    repeatWhile(() => l1 !== null && l2 !== null, () => {
+        if (l1.val <= l2.val) {
+            tail.next = l1;
+            l1 = l1.next;
+        } else {
+            tail.next = l2;
+            l2 = l2.next;
+        }
+        tail = tail.next;
+    });
+
+    // Attach remaining nodes from whichever list is non-empty
+    tail.next = l1 || l2;
+    return dummy.next;
+}
+
+// Remove nth node from end (two-pointer gap)
+function removeNthFromEnd(head, n) {
+    const dummy = new ListNode(0, head);
+    let fast = dummy;
+    let slow = dummy;
+
+    // Advance fast n+1 steps ahead so the gap between fast and slow is n+1
+    forEachBetween(0, n + 1, () => {
+        fast = fast.next;
+    });
+
+    // Move both until fast reaches the end
+    repeatWhile(() => fast !== null, () => {
+        fast = fast.next;
+        slow = slow.next;
+    });
+
+    // slow is now just before the node to remove
+    slow.next = slow.next.next;
+    return dummy.next;
+}`,
     jsTemplateWalkthrough:
       '── Reverse Linked List ──\n' +
       '1 → 2 → 3 → null\n\n' +
-      'prev=null, curr=1\n' +
-      'iter1: nxt=2, 1.next=null, prev=1, curr=2\n' +
+      'previousNode=null, currentNode=1\n' +
+      'iter1: nextNode=2, 1.next=null, previousNode=1, currentNode=2\n' +
       '       null ← 1   2 → 3\n' +
-      'iter2: nxt=3, 2.next=1, prev=2, curr=3\n' +
+      'iter2: nextNode=3, 2.next=1, previousNode=2, currentNode=3\n' +
       '       null ← 1 ← 2   3\n' +
-      'iter3: nxt=null, 3.next=2, prev=3, curr=null\n' +
+      'iter3: nextNode=null, 3.next=2, previousNode=3, currentNode=null\n' +
       '       null ← 1 ← 2 ← 3\n\n' +
-      'return prev=3  (new head)\n\n' +
+      'return previousNode=3  (new head)\n\n' +
       '── Detect Cycle ──\n' +
       'List: 1 → 2 → 3 → 4 → 2 (cycle at node 2)\n\n' +
       'slow=1, fast=1\n' +
@@ -1505,12 +2100,12 @@ function removeNthFromEnd(head, n) {
       'l1: 1 → 3 → 5\n' +
       'l2: 2 → 4 → 6\n\n' +
       'dummy → ?\n' +
-      'l1.val=1 <= l2.val=2 → curr.next=l1(1), l1=3, curr=1\n' +
-      'l1.val=3 > l2.val=2  → curr.next=l2(2), l2=4, curr=2\n' +
-      'l1.val=3 <= l2.val=4 → curr.next=l1(3), l1=5, curr=3\n' +
-      'l1.val=5 > l2.val=4  → curr.next=l2(4), l2=6, curr=4\n' +
-      'l1.val=5 <= l2.val=6 → curr.next=l1(5), l1=null, curr=5\n' +
-      'l1=null → curr.next=l2(6)\n\n' +
+      'l1.val=1 <= l2.val=2 → tail.next=l1(1), l1=3, tail=1\n' +
+      'l1.val=3 > l2.val=2  → tail.next=l2(2), l2=4, tail=2\n' +
+      'l1.val=3 <= l2.val=4 → tail.next=l1(3), l1=5, tail=3\n' +
+      'l1.val=5 > l2.val=4  → tail.next=l2(4), l2=6, tail=4\n' +
+      'l1.val=5 <= l2.val=6 → tail.next=l1(5), l1=null, tail=5\n' +
+      'l1=null → tail.next=l2(6)\n\n' +
       'result: 1 → 2 → 3 → 4 → 5 → 6\n\n' +
       '── Remove Nth From End ──\n' +
       '1 → 2 → 3 → 4 → 5, n=2\n\n' +
@@ -1562,9 +2157,10 @@ FAST/SLOW for cycle detection:
 TEMPLATE-BY-TEMPLATE MEMORIZATION:
 
 reverseList — O(n) time, O(1) space
-  What: Reverse a singly linked list in-place.
+  Problem: Given the head of a singly linked list, reverse the list in-place and return the new head.
   Use when: "reverse linked list", "reverse a list", "flip the list"
-  Key insight: Save next before overwriting, reverse the link, advance both pointers. SRAA: Save, Reverse, Advance, Advance.
+  Why it works: You can't reverse a link without losing the rest of the list — so save next first. Then flip the pointer, advance prev to curr, and advance curr to the saved next. Three variables carry the full state across every step.
+  Aha: Save before overwrite. You need three pointers: prev (the growing reversed list), curr (current node), nxt (saved future).
   Steps:
     1. prev = null, curr = head
     2. While curr: nxt = curr.next; curr.next = prev; prev = curr; curr = nxt
@@ -1572,9 +2168,10 @@ reverseList — O(n) time, O(1) space
   Mnemonic: "Save next, reverse link, advance both. SRAA: Save, Reverse, Advance, Advance."
 
 hasCycle — O(n) time, O(1) space
-  What: Detect if a linked list contains a cycle.
+  Problem: Given the head of a linked list, determine if the list contains a cycle.
   Use when: "detect cycle", "loop in linked list", "Floyd's algorithm"
-  Key insight: Fast pointer moves 2x as fast as slow. If a cycle exists, fast will eventually lap slow and they'll meet.
+  Why it works: If a cycle exists, fast (moving 2x) laps slow (moving 1x) — their relative speed inside the cycle is 1, so they must collide. If no cycle, fast hits null first. This avoids using a visited set.
+  Aha: Inside a cycle, fast gains 1 step per iteration on slow — collision is inevitable.
   Steps:
     1. slow = fast = head
     2. While fast && fast.next: slow = slow.next; fast = fast.next.next
@@ -1583,9 +2180,10 @@ hasCycle — O(n) time, O(1) space
   Mnemonic: "Tortoise and hare. If there's a loop, they must meet."
 
 findMiddle — O(n) time, O(1) space
-  What: Return the middle node of a linked list.
+  Problem: Given the head of a linked list, return the middle node. If two middles exist, return the second one.
   Use when: "find middle node", "split linked list in half", "median of list"
-  Key insight: When fast reaches the end (moving 2 steps at a time), slow (moving 1 step) is exactly at the middle.
+  Why it works: Fast moves 2 steps for every 1 slow step. When fast can't advance further (null or null.next), slow has covered exactly half the distance fast covered — landing at the middle.
+  Aha: Fast travels 2x the distance. When fast stops, slow is exactly halfway.
   Steps:
     1. slow = fast = head
     2. While fast && fast.next: slow = slow.next; fast = fast.next.next
@@ -1593,20 +2191,22 @@ findMiddle — O(n) time, O(1) space
   Mnemonic: "Fast runs twice as far. When fast stops, slow is at the middle."
 
 mergeTwoLists — O(n+m) time, O(1) space
-  What: Merge two sorted linked lists into one sorted list.
+  Problem: Given the heads of two sorted linked lists, merge them into one sorted linked list and return the head.
   Use when: "merge two sorted lists", "combine sorted linked lists"
-  Key insight: A dummy head eliminates edge cases at the start. Always pick the smaller of the two current heads and attach it.
+  Why it works: Because both lists are sorted, at each step the smaller of the two current heads must come next. The dummy node eliminates the special case of inserting the very first node — tail always has a previous node to point from.
+  Aha: Dummy node = no special case for the first element. Just always attach the smaller and advance.
   Steps:
-    1. dummy = new ListNode(0); curr = dummy
-    2. While l1 && l2: attach the smaller; advance that pointer; curr = curr.next
-    3. curr.next = l1 || l2
+    1. dummy = new ListNode(0); tail = dummy
+    2. While l1 && l2: attach the smaller; advance that pointer; tail = tail.next
+    3. tail.next = l1 || l2
     4. Return dummy.next
   Mnemonic: "Dummy head, pick the smaller, attach, advance. Drain the leftovers."
 
 removeNthFromEnd — O(n) time, O(1) space
-  What: Remove the nth node from the end of the list.
+  Problem: Given the head of a linked list and n, remove the nth node from the end of the list and return the head.
   Use when: "remove nth from end", "delete kth from last"
-  Key insight: Create a gap of n+1 between fast and slow. When fast hits null, slow is exactly one node before the target.
+  Why it works: A gap of n+1 between fast and slow means that when fast reaches null, slow is exactly at the node just before the one to delete. Starting both from a dummy node handles the edge case of removing the head.
+  Aha: Gap = n+1 (not n) so slow stops one node BEFORE the target, enabling removal.
   Steps:
     1. dummy.next = head; fast = slow = dummy
     2. Advance fast n+1 steps ahead
@@ -1783,6 +2383,105 @@ function diameterOfBinaryTree(root) {
     height(root);
     return maxDiameter;
 }`,
+    jsTemplateReadable: `// (Uses shared helpers defined in Arrays & Hashing)
+
+// DFS - maximum depth
+function maxDepth(root) {
+    if (!root) {
+        return 0;
+    }
+
+    const leftDepth = maxDepth(root.left);
+    const rightDepth = maxDepth(root.right);
+
+    return 1 + Math.max(leftDepth, rightDepth);
+}
+
+// BFS - level order traversal
+function levelOrder(root) {
+    if (!root) {
+        return [];
+    }
+
+    const result = [];
+    const queue = [root];
+
+    repeatWhile(() => queue.length > 0, () => {
+        const levelSize = queue.length;
+        const level = [];
+
+        // Process all nodes at the current level
+        forEachBetween(0, levelSize, () => {
+            const node = queue.shift();
+            level.push(node.val);
+
+            if (node.left) {
+                queue.push(node.left);
+            }
+            if (node.right) {
+                queue.push(node.right);
+            }
+        });
+        result.push(level);
+    });
+    return result;
+}
+
+// Validate BST
+// Pass down valid range: node value must be in (lo, hi)
+function isValidBST(root, lo = -Infinity, hi = Infinity) {
+    if (!root) {
+        return true;
+    }
+    if (root.val <= lo || root.val >= hi) {
+        return false;
+    }
+
+    const leftValid = isValidBST(root.left, lo, root.val);
+    const rightValid = isValidBST(root.right, root.val, hi);
+    return leftValid && rightValid;
+}
+
+// Lowest common ancestor
+function lowestCommonAncestor(root, p, q) {
+    // Base case: found one of the targets (or null)
+    if (!root || root === p || root === q) {
+        return root;
+    }
+
+    const left = lowestCommonAncestor(root.left, p, q);
+    const right = lowestCommonAncestor(root.right, p, q);
+
+    // If both sides found something, this node is the LCA
+    if (left && right) {
+        return root;
+    }
+
+    // Otherwise, return whichever side found a target
+    return left || right;
+}
+
+// Diameter of binary tree
+function diameterOfBinaryTree(root) {
+    let maxDiameter = 0;
+
+    function height(node) {
+        if (!node) {
+            return 0;
+        }
+
+        const leftHeight = height(node.left);
+        const rightHeight = height(node.right);
+
+        // Diameter through this node = leftHeight + rightHeight
+        maxDiameter = Math.max(maxDiameter, leftHeight + rightHeight);
+
+        return 1 + Math.max(leftHeight, rightHeight);
+    }
+
+    height(root);
+    return maxDiameter;
+}`,
     jsTemplateWalkthrough:
       '── Max Depth (DFS) ──\n' +
       '    3\n' +
@@ -1877,9 +2576,10 @@ Memory trick: "BFS = Queue + Level loop. DFS = Recursion + Base case."
 TEMPLATE-BY-TEMPLATE MEMORIZATION:
 
 maxDepth — O(n) time, O(h) space
-  What: Return the maximum depth (height) of a binary tree.
+  Problem: Given the root of a binary tree, return its maximum depth (number of nodes along the longest root-to-leaf path).
   Use when: "max depth", "height of tree", "deepest level"
-  Key insight: 1 + max(left depth, right depth). A null node returns 0.
+  Why it works: At every node, the depth is 1 (for itself) plus the deeper of its two subtrees. Null nodes return 0, which is the natural base case — no node, no depth.
+  Aha: Recursive structure mirrors the tree structure — solve each subtree, combine with +1 and max.
   Steps:
     1. Base case: if !root return 0
     2. Recurse left and right
@@ -1887,9 +2587,10 @@ maxDepth — O(n) time, O(h) space
   Mnemonic: "Leaf returns 0. Each level adds 1. Take the taller side."
 
 levelOrder — O(n) time, O(w) space
-  What: Return nodes level by level as an array of arrays.
+  Problem: Given the root of a binary tree, return the values of its nodes level by level, as a list of lists.
   Use when: "level order traversal", "BFS on tree", "nodes by depth"
-  Key insight: Snapshot queue.length before processing each level — that's exactly how many nodes belong to the current level.
+  Why it works: BFS naturally visits nodes level by level. By snapshotting queue.length at the start of each iteration, you know exactly how many nodes belong to the current level — process exactly that many before moving on.
+  Aha: Snapshot queue.length = process exactly one level per iteration. This is the key to level separation.
   Steps:
     1. queue = [root]
     2. While queue has items: snapshot levelSize = queue.length
@@ -1898,9 +2599,10 @@ levelOrder — O(n) time, O(w) space
   Mnemonic: "Snapshot the level size, drain exactly that many, collect the level."
 
 isValidBST — O(n) time, O(h) space
-  What: Check if a binary tree is a valid BST.
+  Problem: Given the root of a binary tree, determine if it is a valid binary search tree.
   Use when: "validate BST", "check if tree is BST", "BST property verification"
-  Key insight: Pass min/max bounds down the recursion — every node must be strictly in its inherited (lo, hi) range.
+  Why it works: A node's value must be bounded not just by its immediate parent but by all ancestors. Passing lo/hi bounds down ensures every node in the left subtree is less than every ancestor above it, not just its parent.
+  Aha: Local comparison is insufficient — you must carry the full valid range down the recursion.
   Steps:
     1. Base: if !root return true
     2. If root.val <= lo OR root.val >= hi → return false
@@ -1908,9 +2610,10 @@ isValidBST — O(n) time, O(h) space
   Mnemonic: "Every node must fit in its inherited range. Tighten the range as you go down."
 
 lowestCommonAncestor — O(n) time, O(h) space
-  What: Find the lowest common ancestor of nodes p and q in a binary tree.
+  Problem: Given a binary tree and two nodes p and q, find their lowest common ancestor.
   Use when: "lowest common ancestor", "LCA", "deepest shared ancestor"
-  Key insight: If both left and right subtrees return non-null, the current node is where p and q split — it's the LCA.
+  Why it works: Each recursive call returns either null (not found), or a node matching p or q. If the left subtree found one target and the right subtree found the other, the current node is the LCA — it's the first node where the two paths diverge. Otherwise, bubble up whichever side found something.
+  Aha: When both left and right return non-null simultaneously, you're at the split point — that's the LCA.
   Steps:
     1. Base: if !root or root === p or root === q → return root
     2. left = recurse left; right = recurse right
@@ -1919,9 +2622,10 @@ lowestCommonAncestor — O(n) time, O(h) space
   Mnemonic: "Both sides found something? You're the LCA. Else bubble up whoever was found."
 
 diameterOfBinaryTree — O(n) time, O(h) space
-  What: Return the length of the longest path between any two nodes.
+  Problem: Given the root of a binary tree, return the length of the diameter (the longest path between any two nodes, measured in edges).
   Use when: "diameter of binary tree", "longest path", "maximum path length"
-  Key insight: The diameter passing through any node = leftHeight + rightHeight. Track the global max as a side effect of computing heights.
+  Why it works: The longest path through any node spans its left and right subtrees: diameter = leftHeight + rightHeight. You compute heights bottom-up via DFS and update a global max as a side effect — one pass computes both heights and the answer.
+  Aha: The path doesn't have to go through the root. Track the global max at every node during the height calculation.
   Steps:
     1. Inner function height(node): returns height, updates maxDiameter as side effect
     2. Base: if !node return 0
@@ -2022,6 +2726,59 @@ class Trie {
         return node; // return the node at the end of the prefix
     }
 }`,
+    jsTemplateReadable: `// (Uses shared helpers defined in Arrays & Hashing)
+
+class TrieNode {
+    constructor() {
+        this.children = {}; // char -> TrieNode
+        this.isEnd = false; // true if a word ends at this node
+    }
+}
+
+class Trie {
+    constructor() {
+        this.root = new TrieNode();
+    }
+
+    insert(word) {
+        let node = this.root;
+
+        forEach(word, (c) => {
+            // Create a new node if this character path doesn't exist yet
+            if (!node.children[c]) {
+                node.children[c] = new TrieNode();
+            }
+            node = node.children[c];
+        });
+
+        // Mark the end of this word
+        node.isEnd = true;
+    }
+
+    search(word) {
+        // Word exists only if we can walk all chars AND end node is marked
+        const node = this._find(word);
+        return node !== null && node.isEnd;
+    }
+
+    startsWith(prefix) {
+        // Prefix exists if we can walk all chars (no isEnd check needed)
+        return this._find(prefix) !== null;
+    }
+
+    _find(prefix) {
+        let node = this.root;
+
+        forEach(prefix, (c) => {
+            if (!node.children[c]) {
+                return null; // path doesn't exist
+            }
+            node = node.children[c];
+        });
+
+        return node; // return the node at the end of the prefix
+    }
+}`,
     jsTemplateWalkthrough:
       '── Trie: Insert and Search ──\n' +
       'Operations: insert("app"), insert("apple"), search("app"), search("apple"), startsWith("ap")\n\n' +
@@ -2082,18 +2839,20 @@ Mnemonic: "Trie = Tree of Characters. Walk char by char."
 TEMPLATE-BY-TEMPLATE MEMORIZATION:
 
 TrieNode (constructor) — O(1) per node creation
-  What: A node holding a children map and an isEnd flag.
+  Problem: Design a node for a prefix tree (Trie) that stores character-by-character string data.
   Use when: Building a trie to store and search strings.
-  Key insight: All three operations (insert/search/startsWith) walk char-by-char; they only differ at the end.
+  Why it works: Each node represents one character in a path. The children map branches to the next character; isEnd marks that a complete word ends here. All trie operations (insert/search/startsWith) share the same char-by-char walk — they only differ in what they do at the end.
+  Aha: Two fields do everything: children (where to go next) and isEnd (did a word stop here?).
   Steps:
     1. children: plain object (char → TrieNode) or Map
     2. isEnd: boolean, false by default
   Mnemonic: "Node = two fields: a door map and a finish flag."
 
 Trie.insert — O(m) time per operation
-  What: Walk each character, creating nodes as needed, mark end.
+  Problem: Insert a word into the trie so it can later be searched.
   Use when: "add word to trie", "build trie from words"
-  Key insight: Create missing nodes as you walk. Mark isEnd = true at the last character.
+  Why it works: Walk the trie one character at a time. If a node for a character doesn't exist yet, create it. At the end of the word, set isEnd = true to distinguish full words from mere prefixes.
+  Aha: Missing node during insert = create it. Missing node during search = word doesn't exist.
   Steps:
     1. node = root
     2. For each char: if !node.children[c] create new TrieNode; node = node.children[c]
@@ -2101,27 +2860,30 @@ Trie.insert — O(m) time per operation
   Mnemonic: "Walk and build. Mark the destination."
 
 Trie.search — O(m) time per operation
-  What: Return true only if the full word was inserted (isEnd must be true).
+  Problem: Return true if the given word was previously inserted into the trie.
   Use when: "exact word lookup in trie", "does this word exist?"
-  Key insight: Path must exist AND the final node must have isEnd = true. A prefix alone is not enough.
+  Why it works: Use _find to walk the trie. If the path exists AND the final node is marked isEnd, a full word was inserted there. Without the isEnd check, you'd incorrectly return true for prefixes of inserted words.
+  Aha: Path exists ≠ word exists. isEnd is what distinguishes a word from a prefix.
   Steps:
     1. node = _find(word)
     2. Return node !== null && node.isEnd
   Mnemonic: "Find the end node. Word exists only if isEnd is true."
 
 Trie.startsWith — O(m) time per operation
-  What: Return true if any inserted word starts with this prefix.
+  Problem: Return true if any word in the trie starts with the given prefix.
   Use when: "prefix exists in trie", "autocomplete check"
-  Key insight: Only need to verify the path exists — no isEnd check needed.
+  Why it works: You only need the path to exist — whether or not a word ends exactly there doesn't matter. _find returns null if any character is missing, so non-null means the prefix was at least partially inserted.
+  Aha: Unlike search, startsWith doesn't care about isEnd — just whether the path exists.
   Steps:
     1. node = _find(prefix)
     2. Return node !== null (no isEnd check needed)
   Mnemonic: "Find the end node. Prefix exists if the path exists at all."
 
 Trie._find — O(m) time per operation
-  What: Walk each char; return null if any char is missing, else return the final node.
+  Problem: Walk the trie along the characters of a string; return the final node or null if any character is missing.
   Use when: Internal helper shared by search and startsWith.
-  Key insight: One broken link in the chain means the string was never inserted.
+  Why it works: Each character advances to the next node. If any character has no corresponding child, the string was never fully inserted — return null immediately. If you reach the end, return the node for the caller to inspect (isEnd check is the caller's job).
+  Aha: _find is the shared walk. It stops early on a missing link; the caller decides what "reaching the end" means.
   Steps:
     1. node = root
     2. For each char: if !node.children[c] return null; node = node.children[c]
@@ -2255,13 +3017,101 @@ class MinHeap {
 // Top K frequent elements (using sort)
 function topKFrequent(nums, k) {
     // Step 1: count frequencies
-    const count = new Map();
+    const frequency = new Map();
     for (const num of nums) {
-        count.set(num, (count.get(num) || 0) + 1);
+        frequency.set(num, (frequency.get(num) || 0) + 1);
     }
 
     // Step 2: sort entries by frequency descending, take first k
-    const sortedEntries = [...count.entries()].sort((a, b) => b[1] - a[1]);
+    const sortedEntries = [...frequency.entries()].sort((a, b) => b[1] - a[1]);
+    return sortedEntries.slice(0, k).map(([num]) => num);
+}`,
+    jsTemplateReadable: `// (Uses shared helpers defined in Arrays & Hashing)
+
+// JavaScript doesn't have a built-in heap.
+// Here's a minimal MinHeap implementation:
+
+class MinHeap {
+    constructor() {
+        this.heap = [];
+    }
+
+    push(val) {
+        this.heap.push(val);
+        this._bubbleUp(this.heap.length - 1);
+    }
+
+    pop() {
+        const top = this.heap[0];
+        const last = this.heap.pop();
+
+        // Move last element to top and sink it down to restore heap property
+        if (this.heap.length) {
+            this.heap[0] = last;
+            this._sinkDown(0);
+        }
+        return top;
+    }
+
+    peek() {
+        return this.heap[0];
+    }
+
+    get size() {
+        return this.heap.length;
+    }
+
+    _bubbleUp(i) {
+        repeatWhile(() => i > 0, () => {
+            const parent = Math.floor((i - 1) / 2);
+
+            if (this.heap[parent] <= this.heap[i]) {
+                i = 0; // break out of loop
+                return;
+            }
+
+            // Swap child with parent
+            [this.heap[parent], this.heap[i]] = [this.heap[i], this.heap[parent]];
+            i = parent;
+        });
+    }
+
+    _sinkDown(i) {
+        const n = this.heap.length;
+
+        repeatWhile(() => true, () => {
+            let smallest = i;
+            const left = 2 * i + 1;
+            const right = 2 * i + 2;
+
+            if (left < n && this.heap[left] < this.heap[smallest]) {
+                smallest = left;
+            }
+            if (right < n && this.heap[right] < this.heap[smallest]) {
+                smallest = right;
+            }
+
+            if (smallest === i) {
+                i = -1; // break signal
+                return;
+            }
+
+            [this.heap[smallest], this.heap[i]] = [this.heap[i], this.heap[smallest]];
+            i = smallest;
+        });
+    }
+}
+
+// Top K frequent elements (using sort)
+function topKFrequent(nums, k) {
+    // Step 1: count frequencies
+    const frequency = new Map();
+    forEach(nums, (num) => {
+        frequency.set(num, (frequency.get(num) || 0) + 1);
+    });
+
+    // Step 2: sort entries by frequency descending, take first k
+    const sortedEntries = [...frequency.entries()].sort((a, b) => b[1] - a[1]);
     return sortedEntries.slice(0, k).map(([num]) => num);
 }`,
     jsTemplateWalkthrough:
@@ -2285,7 +3135,7 @@ function topKFrequent(nums, k) {
       '  return 1\n\n' +
       '── Top K Frequent ──\n' +
       'nums = [1,1,1,2,2,3], k=2\n\n' +
-      'count: {1:3, 2:2, 3:1}\n' +
+      'frequency: {1:3, 2:2, 3:1}\n' +
       'sorted entries: [[1,3],[2,2],[3,1]]\n' +
       'slice(0,2): [[1,3],[2,2]]\n' +
       'map to nums: [1, 2]\n\n' +
@@ -2325,9 +3175,10 @@ Mnemonic: "Heap = always know the extreme. Min-heap = smallest on top. Negate fo
 TEMPLATE-BY-TEMPLATE MEMORIZATION:
 
 MinHeap (push) — O(log n) time
-  What: Insert a value and bubble it up to restore the heap property.
+  Problem: Insert a value into a min-heap while maintaining the heap property.
   Use when: "insert into heap", "add to priority queue"
-  Key insight: New element goes to the end. Bubble up by repeatedly swapping with parent while parent > child.
+  Why it works: Appending to the end preserves structure but may violate the heap property. Bubble up by comparing with parent and swapping until the parent is smaller or we reach the root. At most log n swaps — one per level.
+  Aha: Structure first (append), then order (bubble up). Log n levels = log n swaps max.
   Steps:
     1. heap.push(val)
     2. _bubbleUp(heap.length - 1): while i > 0, compare with parent
@@ -2335,9 +3186,10 @@ MinHeap (push) — O(log n) time
   Mnemonic: "Push to end, then float up past any bigger parents."
 
 MinHeap (pop) — O(log n) time
-  What: Remove and return the minimum (root), restore heap property.
+  Problem: Remove and return the minimum element from a min-heap while restoring the heap property.
   Use when: "extract minimum", "pop from priority queue"
-  Key insight: Swap root with last element, shrink, then sink the new root down by swapping with its smallest child.
+  Why it works: The minimum is always at the root. To remove it without destroying the structure, move the last element to the root (maintains complete tree), then sink it down by swapping with its smallest child until the heap property is restored.
+  Aha: Swap root ↔ last, shrink, then sink. The "last to root" trick preserves structure; sinking restores order.
   Steps:
     1. Save top = heap[0]
     2. Move last element to heap[0], _sinkDown(0)
@@ -2345,10 +3197,11 @@ MinHeap (pop) — O(log n) time
     4. Return top
   Mnemonic: "Swap root with last, shrink, then sink the new root down."
 
-topKFrequent — O(n log n) time
-  What: Return the k most frequent elements (sort-based approach).
+topKFrequent (heap) — O(n log n) time
+  Problem: Given an array of integers and k, return the k most frequently occurring elements.
   Use when: "k most frequent", "top k by frequency" (heap/sort variant)
-  Key insight: Count frequencies, sort entries by frequency descending, take first k.
+  Why it works: Build a frequency map in O(n), then sort entries by frequency in O(n log n). The first k entries after sorting by frequency descending are the answer. (For O(n log k), use a size-k min-heap instead of full sort.)
+  Aha: Frequency map + sort is the simplest correct approach; use a heap if you need O(n log k).
   Steps:
     1. Build count map
     2. [...count.entries()].sort((a, b) => b[1] - a[1])
@@ -2547,6 +3400,122 @@ function solveNQueens(n) {
     backtrack(0, board);
     return result;
 }`,
+    jsTemplateReadable: `// (Uses shared helpers defined in Arrays & Hashing)
+
+// Subsets
+function subsets(nums) {
+    const result = [];
+
+    function backtrack(start, path) {
+        // Add a snapshot of current path as a valid subset (including empty)
+        result.push([...path]);
+
+        forEachStartingAt(start, nums, (_, i) => {
+            path.push(nums[i]);       // CHOOSE
+            backtrack(i + 1, path);  // EXPLORE (i+1 prevents reuse)
+            path.pop();               // UNCHOOSE
+        });
+    }
+
+    backtrack(0, []);
+    return result;
+}
+
+// Permutations
+function permute(nums) {
+    const result = [];
+    const used = new Array(nums.length).fill(false);
+
+    function backtrack(path) {
+        if (path.length === nums.length) {
+            result.push([...path]); // Found a complete permutation
+            return;
+        }
+
+        forEach(nums, (_, i) => {
+            if (used[i]) {
+                return; // Skip already-used elements
+            }
+
+            used[i] = true;
+            path.push(nums[i]);  // CHOOSE
+            backtrack(path);      // EXPLORE
+            path.pop();           // UNCHOOSE
+            used[i] = false;
+        });
+    }
+
+    backtrack([]);
+    return result;
+}
+
+// Combination Sum (can reuse elements)
+function combinationSum(candidates, target) {
+    const result = [];
+
+    function backtrack(start, path, remaining) {
+        if (remaining === 0) {
+            result.push([...path]); // Found a valid combination
+            return;
+        }
+        if (remaining < 0) {
+            return; // Overshot — prune this branch
+        }
+
+        forEachStartingAt(start, candidates, (_, i) => {
+            path.push(candidates[i]);
+
+            // Pass i (not i+1) to allow reusing the same element
+            backtrack(i, path, remaining - candidates[i]);
+
+            path.pop(); // UNCHOOSE
+        });
+    }
+
+    backtrack(0, [], target);
+    return result;
+}
+
+// N-Queens
+function solveNQueens(n) {
+    const result = [];
+    const cols = new Set();
+    const diag1 = new Set(); // row - col (top-left to bottom-right diagonals)
+    const diag2 = new Set(); // row + col (top-right to bottom-left diagonals)
+
+    function backtrack(row, board) {
+        if (row === n) {
+            // Convert board to string format and save
+            result.push(board.map(r => r.join('')));
+            return;
+        }
+
+        forEachBetween(0, n, (col) => {
+            // Check if this position is under attack
+            if (cols.has(col) || diag1.has(row - col) || diag2.has(row + col)) {
+                return;
+            }
+
+            // Place queen
+            cols.add(col);
+            diag1.add(row - col);
+            diag2.add(row + col);
+            board[row][col] = 'Q';
+
+            backtrack(row + 1, board); // Move to next row
+
+            // Remove queen (backtrack)
+            board[row][col] = '.';
+            cols.delete(col);
+            diag1.delete(row - col);
+            diag2.delete(row + col);
+        });
+    }
+
+    const board = Array.from({ length: n }, () => new Array(n).fill('.'));
+    backtrack(0, board);
+    return result;
+}`,
     jsTemplateWalkthrough:
       '── Subsets ──\n' +
       'nums = [1, 2, 3]\n\n' +
@@ -2625,27 +3594,30 @@ Mnemonic: "CEO" - Choose, Explore, unchoOse
 TEMPLATE-BY-TEMPLATE MEMORIZATION:
 
 subsets — O(2^n) time
-  What: Generate all subsets (power set) of an array.
+  Problem: Given an integer array with unique elements, return all possible subsets (the power set).
   Use when: "all subsets", "power set", "every possible combination"
-  Key insight: Record the current path at every node of the decision tree, not just the leaves. Use i+1 to avoid reuse.
+  Why it works: At each node in the decision tree, the current path is a valid subset — record it immediately (even the empty set at the root). Then extend by choosing each remaining element. Using i+1 ensures each element is considered only once per branch.
+  Aha: Record at every node (not just leaves). That's what makes this subsets, not combinations.
   Steps:
     1. backtrack(start, path): immediately push [...path]
     2. Loop i from start to end: push nums[i], recurse(i+1), pop
   Mnemonic: "Record before choosing. i+1 prevents reuse."
 
 permute — O(n!) time
-  What: Generate all permutations of an array.
+  Problem: Given an array of distinct integers, return all possible permutations.
   Use when: "all permutations", "every ordering", "arrange elements"
-  Key insight: A used[] boolean array tracks which elements are already in the current path. Try all unused elements at each position.
+  Why it works: At each position in the permutation, try every element not yet used. The used[] array tracks what's in the current path. When the path is full-length, it's a complete permutation. After recursing, undo the choice to explore other orderings.
+  Aha: Unlike subsets, order matters — you try all elements at every position, not just those after start.
   Steps:
     1. Base: if path.length === nums.length → push copy
     2. Loop all i: skip if used[i]; set used[i]=true, push, recurse, pop, used[i]=false
   Mnemonic: "Try every unused element at each position. Undo when done."
 
 combinationSum — O(n^(t/m)) time where t=target, m=min candidate
-  What: Find all combinations that sum to target (elements can be reused).
+  Problem: Given an array of distinct candidates and a target, return all unique combinations that sum to the target (candidates may be reused).
   Use when: "combination sum", "sum to target with reuse allowed", "unlimited use of candidates"
-  Key insight: Pass same index i (not i+1) to allow reusing the same element. Prune when remaining goes negative.
+  Why it works: Passing i (not i+1) to the recursive call allows choosing the same candidate again. Sort candidates first so you can prune early: if candidates[i] > remaining, all subsequent candidates are also too large (break instead of continue).
+  Aha: Reuse = recurse with i (not i+1). That's the only change from regular combination problems.
   Steps:
     1. Base: remaining === 0 → push copy
     2. Loop i from start: push candidate, recurse(i, remaining - candidate), pop
@@ -2653,9 +3625,10 @@ combinationSum — O(n^(t/m)) time where t=target, m=min candidate
   Mnemonic: "Reuse allowed: pass same i. Prune when overshot."
 
 solveNQueens — O(n!) time
-  What: Place n queens on n×n board so no two attack each other.
+  Problem: Place n queens on an n×n chessboard so that no two queens attack each other. Return all valid arrangements.
   Use when: "n-queens", "place queens", "no two queens attack"
-  Key insight: Three sets track columns and both diagonal directions. A queen at (row, col) blocks col, (row-col) diagonal, and (row+col) diagonal.
+  Why it works: Place one queen per row (so rows are automatically unique). Three sets track occupied columns and both diagonals. A queen at (row, col) occupies col, and diagonals identified by (row-col) and (row+col). These sets give O(1) conflict checks.
+  Aha: Three sets replace the O(n) conflict scan. diagonal = row-col, anti-diagonal = row+col.
   Steps:
     1. For each row, try each col: skip if col/diag1/diag2 is taken
     2. Place queen: add to all three sets, board[row][col]='Q'
@@ -2791,7 +3764,7 @@ function numIslands(grid) {
 function topologicalSort(numCourses, prerequisites) {
     // Build adjacency list and in-degree array
     const graph = Array.from({ length: numCourses }, () => []);
-    const inDegree = new Array(numCourses).fill(0);
+    const inDegree = new Array(numCourses).fill(0); // inDegree[i] = number of prerequisites for node i
 
     for (const [course, prereq] of prerequisites) {
         graph[prereq].push(course);
@@ -2942,6 +3915,203 @@ function cloneGraph(node) {
 
     return dfs(node);
 }`,
+    jsTemplateReadable: `// (Uses shared helpers defined in Arrays & Hashing)
+
+// BFS - number of islands (grid)
+function numIslands(grid) {
+    if (!grid.length) {
+        return 0;
+    }
+
+    const rows = grid.length;
+    const cols = grid[0].length;
+    const directions = [[0, 1], [0, -1], [1, 0], [-1, 0]];
+    let count = 0;
+
+    forEachBetween(0, rows, (r) => {
+        forEachBetween(0, cols, (c) => {
+            if (grid[r][c] === '1') {
+                count++;
+
+                // BFS to mark all connected land cells as visited
+                const queue = [[r, c]];
+                grid[r][c] = '0'; // Mark visited by overwriting
+
+                repeatWhile(() => queue.length > 0, () => {
+                    const [row, col] = queue.shift();
+
+                    forEach(directions, ([dr, dc]) => {
+                        const nr = row + dr;
+                        const nc = col + dc;
+
+                        const inBounds = nr >= 0 && nr < rows && nc >= 0 && nc < cols;
+                        if (inBounds && grid[nr][nc] === '1') {
+                            grid[nr][nc] = '0'; // Mark before enqueuing
+                            queue.push([nr, nc]);
+                        }
+                    });
+                });
+            }
+        });
+    });
+    return count;
+}
+
+// Topological sort (Kahn's algorithm)
+function topologicalSort(numCourses, prerequisites) {
+    // Build adjacency list and in-degree array
+    const graph = Array.from({ length: numCourses }, () => []);
+    const inDegree = new Array(numCourses).fill(0); // inDegree[i] = number of prerequisites for node i
+
+    forEach(prerequisites, ([course, prereq]) => {
+        graph[prereq].push(course);
+        inDegree[course]++;
+    });
+
+    // Start with all nodes that have no prerequisites
+    const queue = [];
+    forEachBetween(0, numCourses, (i) => {
+        if (inDegree[i] === 0) {
+            queue.push(i);
+        }
+    });
+
+    const order = [];
+    repeatWhile(() => queue.length > 0, () => {
+        const node = queue.shift();
+        order.push(node);
+
+        // Reduce in-degree of neighbors; enqueue if they become free
+        forEach(graph[node], (neighbor) => {
+            inDegree[neighbor]--;
+            if (inDegree[neighbor] === 0) {
+                queue.push(neighbor);
+            }
+        });
+    });
+
+    // If we processed all courses, no cycle exists
+    return order.length === numCourses ? order : [];
+}
+
+// Dijkstra's shortest path
+function networkDelay(times, n, k) {
+    // Build adjacency list: node -> [[neighbor, weight], ...]
+    const graph = new Map();
+    forEach(times, ([u, v, w]) => {
+        if (!graph.has(u)) {
+            graph.set(u, []);
+        }
+        graph.get(u).push([v, w]);
+    });
+
+    const dist = new Map([[k, 0]]);
+
+    // Simple priority queue: sorted array of [distance, node]
+    // (In production, use a proper MinHeap for O(log n) pop)
+    const heap = [[0, k]];
+
+    repeatWhile(() => heap.length > 0, () => {
+        heap.sort((a, b) => a[0] - b[0]);
+        const [d, node] = heap.shift();
+
+        // Stale entry — we already found a shorter path
+        if (d > (dist.get(node) ?? Infinity)) {
+            return;
+        }
+
+        forEach(graph.get(node) || [], ([neighbor, weight]) => {
+            const newDist = d + weight;
+            if (newDist < (dist.get(neighbor) ?? Infinity)) {
+                dist.set(neighbor, newDist);
+                heap.push([newDist, neighbor]);
+            }
+        });
+    });
+
+    if (dist.size !== n) {
+        return -1; // Not all nodes reachable
+    }
+    return Math.max(...dist.values());
+}
+
+// Multi-source BFS (Rotting Oranges pattern)
+function orangesRotting(grid) {
+    const rows = grid.length;
+    const cols = grid[0].length;
+    const queue = [];
+    let freshCount = 0;
+
+    // Collect all initial rotten oranges and count fresh ones
+    forEachBetween(0, rows, (r) => {
+        forEachBetween(0, cols, (c) => {
+            if (grid[r][c] === 2) {
+                queue.push([r, c]);
+            } else if (grid[r][c] === 1) {
+                freshCount = freshCount + 1;
+            }
+        });
+    });
+
+    let minutes = 0;
+    const directions = [[0, 1], [0, -1], [1, 0], [-1, 0]];
+
+    // BFS level by level (each level = 1 minute)
+    repeatWhile(() => queue.length > 0 && freshCount > 0, () => {
+        const levelSize = queue.length;
+
+        forEachBetween(0, levelSize, () => {
+            const [row, col] = queue.shift();
+
+            forEach(directions, ([dr, dc]) => {
+                const newRow = row + dr;
+                const newCol = col + dc;
+                const inBounds = newRow >= 0 && newRow < rows && newCol >= 0 && newCol < cols;
+
+                if (inBounds && grid[newRow][newCol] === 1) {
+                    grid[newRow][newCol] = 2;
+                    freshCount = freshCount - 1;
+                    queue.push([newRow, newCol]);
+                }
+            });
+        });
+
+        minutes = minutes + 1;
+    });
+
+    return freshCount === 0 ? minutes : -1;
+}
+
+// Clone Graph (DFS + HashMap)
+function cloneGraph(node) {
+    if (!node) {
+        return null;
+    }
+
+    // Map from original node to its clone
+    const visited = new Map();
+
+    function dfs(original) {
+        // If already cloned, return the clone
+        if (visited.has(original)) {
+            return visited.get(original);
+        }
+
+        // Create a clone of this node
+        const clone = new Node(original.val);
+        visited.set(original, clone);
+
+        // Clone all neighbors recursively
+        forEach(original.neighbors, (neighbor) => {
+            const clonedNeighbor = dfs(neighbor);
+            clone.neighbors.push(clonedNeighbor);
+        });
+
+        return clone;
+    }
+
+    return dfs(node);
+}`,
     jsTemplateWalkthrough:
       '── Number of Islands (BFS) ──\n' +
       'grid = [["1","1","0"],\n' +
@@ -3078,18 +4248,20 @@ CLONE GRAPH:
 TEMPLATE-BY-TEMPLATE MEMORIZATION:
 
 numIslands — O(m×n) time
-  What: Count distinct islands in a grid of '1's and '0's.
+  Problem: Given a 2D grid of '1's (land) and '0's (water), count the number of islands.
   Use when: "number of islands", "count connected components in grid", "flood fill"
-  Key insight: BFS/DFS from each '1' cell, marking visited cells as '0'. Each BFS call covers one entire island.
+  Why it works: BFS/DFS from each unvisited '1' cell floods the entire connected land mass, marking cells '0' to prevent revisits. Each BFS invocation = one island. Marking in-place avoids a separate visited set.
+  Aha: Flood-fill each island to '0' as you count it. No separate visited set needed.
   Steps:
     1. Scan grid; when '1' found: count++, BFS from that cell
     2. BFS: queue = [[r,c]], mark cell '0'; pop cell, check 4 neighbors, mark & enqueue '1' neighbors
   Mnemonic: "Found land? Count it and flood-fill it to '0'."
 
 topologicalSort (Kahn's) — O(V+E) time
-  What: Order nodes in a DAG so every prerequisite comes before its dependent.
+  Problem: Given n courses and a list of prerequisites, return a valid course order, or empty if a cycle makes it impossible.
   Use when: "course schedule", "build order", "dependency resolution", "topological order"
-  Key insight: Start with all nodes that have in-degree 0 (no dependencies). Peel them off layer by layer, reducing neighbors' in-degrees.
+  Why it works: Nodes with in-degree 0 have no unmet dependencies — they can go first. Processing them reduces their neighbors' in-degrees, potentially freeing new nodes. If the result includes all nodes, no cycle exists; if some nodes are stuck with non-zero in-degree, a cycle blocks them.
+  Aha: In-degree 0 = ready to process. Removing a node ripples freedom to its dependents.
   Steps:
     1. Build graph and inDegree from edges
     2. Seed queue with all nodes where inDegree === 0
@@ -3098,9 +4270,10 @@ topologicalSort (Kahn's) — O(V+E) time
   Mnemonic: "Peel nodes with no dependencies, ripple the reduction through their neighbors."
 
 networkDelay (Dijkstra) — O((V+E) log V) time
-  What: Find shortest time for a signal to reach all nodes from source k.
+  Problem: Given n network nodes, directed weighted edges, and a source node k, return the minimum time for all nodes to receive a signal, or -1 if unreachable.
   Use when: "shortest path weighted graph", "Dijkstra", "minimum cost to reach all nodes"
-  Key insight: Use a min-heap. Always extend the shortest known path. Skip stale entries where a shorter path was already found.
+  Why it works: A min-heap always extends the shortest discovered path first (greedy). Once a node is popped, its shortest distance is final — any later pop with a larger distance is stale and skipped. Relaxing edges from the smallest-cost node is optimal because no future path can be shorter.
+  Aha: Dijkstra = BFS but ordered by cost, not steps. Min-heap enforces "cheapest first."
   Steps:
     1. dist = {k: 0}; heap = [[0, k]]
     2. Pop [d, node]; if d > dist[node] → stale, skip
@@ -3109,9 +4282,10 @@ networkDelay (Dijkstra) — O((V+E) log V) time
   Mnemonic: "Greedy BFS with a heap. Always extend the shortest known path."
 
 orangesRotting (multi-source BFS) — O(m×n) time
-  What: Find minimum minutes for all fresh oranges to rot.
+  Problem: Given a grid of fresh (1) and rotten (2) oranges, find the minimum minutes until all oranges are rotten, or -1 if impossible.
   Use when: "rotting oranges", "multi-source BFS", "spread from multiple starting points"
-  Key insight: Start BFS from ALL rotten oranges simultaneously. Each BFS level = 1 minute.
+  Why it works: Rot spreads simultaneously from all rotten oranges, not one at a time. By seeding the BFS queue with all rotten cells at once, each BFS level corresponds to exactly one minute of spreading. If any fresh oranges remain after BFS completes, they're unreachable.
+  Aha: Multi-source BFS = add ALL sources to the initial queue. Each level = one unit of time.
   Steps:
     1. Collect all rotten cells into queue; count fresh cells
     2. BFS level by level (each level = 1 minute): spread rot to fresh neighbors
@@ -3119,9 +4293,10 @@ orangesRotting (multi-source BFS) — O(m×n) time
   Mnemonic: "All fires burn simultaneously. Count waves until nothing fresh remains."
 
 cloneGraph — O(V+E) time
-  What: Deep clone a connected undirected graph.
+  Problem: Given a reference to a node in a connected undirected graph, return a deep copy of the entire graph.
   Use when: "clone graph", "deep copy graph", "duplicate node structure"
-  Key insight: A map from original → clone serves as both a visited set and a lookup table. Wire neighbors using the map.
+  Why it works: A hash map from original node → cloned node doubles as a visited set, preventing infinite loops in cyclic graphs. When visiting a node already in the map, return its clone immediately instead of re-cloning. Each node's neighbors are wired by recursively cloning them.
+  Aha: The visited map IS the clone lookup table — one structure serves two purposes.
   Steps:
     1. DFS(node): if in visited → return clone; else create clone, store in visited
     2. For each neighbor: cloneNeighbor = dfs(neighbor); clone.neighbors.push(cloneNeighbor)
@@ -3205,6 +4380,7 @@ def can_partition(nums):
     return dp[target]`,
     jsTemplate: `// 1D DP - House Robber
 // dp[i] = max money we can rob from houses 0..i
+// dp with two variables: best from 2-back and 1-back
 function rob(nums) {
     if (nums.length === 0) {
         return 0;
@@ -3255,7 +4431,8 @@ function coinChange(coins, amount) {
     for (let i = 1; i <= amount; i++) {
         for (const coin of coins) {
             if (coin <= i) {
-                dp[i] = Math.min(dp[i], dp[i - coin] + 1);
+                const usingThisCoin = dp[i - coin] + 1;
+                dp[i] = Math.min(dp[i], usingThisCoin);
             }
         }
     }
@@ -3385,6 +4562,193 @@ function maxProfit(prices) {
         // Today I rest: I either rested before, or I was in cooldown (just sold)
         rest = Math.max(prevRest, prevSold);
     }
+
+    return Math.max(sold, rest);
+}`,
+    jsTemplateReadable: `// (Uses shared helpers defined in Arrays & Hashing)
+
+// 1D DP - House Robber
+// dp[i] = max money we can rob from houses 0..i
+// dp with two variables: best from 2-back and 1-back
+function rob(nums) {
+    if (nums.length === 0) {
+        return 0;
+    }
+    if (nums.length <= 2) {
+        return Math.max(...nums);
+    }
+    const dp = new Array(nums.length);
+    dp[0] = nums[0];                        // Only one house available
+    dp[1] = Math.max(nums[0], nums[1]);     // Best of first two houses
+
+    forEachStartingAt(2, nums, (_, i) => {
+        // Either skip house i (take dp[i-1]) or rob it (take dp[i-2] + nums[i])
+        const skipHouse = dp[i - 1];
+        const robHouse = dp[i - 2] + nums[i];
+        dp[i] = Math.max(skipHouse, robHouse);
+    });
+    return dp[nums.length - 1];
+}
+
+// 2D DP - Longest Common Subsequence
+// dp[i][j] = LCS length of text1[0..i-1] and text2[0..j-1]
+function longestCommonSubsequence(text1, text2) {
+    const m = text1.length;
+    const n = text2.length;
+    const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+
+    forEachBetween(1, m + 1, (i) => {
+        forEachBetween(1, n + 1, (j) => {
+            if (text1[i - 1] === text2[j - 1]) {
+                // Characters match: extend from diagonal
+                dp[i][j] = dp[i - 1][j - 1] + 1;
+            } else {
+                // Take best by skipping one char
+                dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
+            }
+        });
+    });
+    return dp[m][n];
+}
+
+// Knapsack - Coin Change (unbounded: coins can be reused)
+// dp[i] = minimum coins to make amount i
+function coinChange(coins, amount) {
+    const dp = new Array(amount + 1).fill(Infinity);
+    dp[0] = 0; // 0 coins needed for amount 0
+
+    forEachBetween(1, amount + 1, (i) => {
+        forEach(coins, (coin) => {
+            if (coin <= i) {
+                const usingThisCoin = dp[i - coin] + 1;
+                dp[i] = Math.min(dp[i], usingThisCoin);
+            }
+        });
+    });
+    return dp[amount] === Infinity ? -1 : dp[amount];
+}
+
+// 0/1 Knapsack - Partition Equal Subset Sum
+// dp[j] = true if we can form sum j using some subset of nums
+function canPartition(nums) {
+    const total = nums.reduce((a, b) => a + b, 0);
+
+    if (total % 2 !== 0) {
+        return false;
+    }
+
+    const target = total / 2;
+    const dp = new Array(target + 1).fill(false);
+    dp[0] = true; // Empty subset sums to 0
+
+    forEach(nums, (num) => {
+        // Iterate BACKWARDS to prevent reusing the same num in one pass
+        forEachFromRight(dp, (_, j) => {
+            if (j >= num) {
+                dp[j] = dp[j] || dp[j - num];
+            }
+        });
+    });
+    return dp[target];
+}
+
+// Kadane's Algorithm - Maximum Subarray Sum
+function maxSubArray(nums) {
+    let currentSum = 0;
+    let maxSum = nums[0];
+
+    forEach(nums, (num) => {
+        // If running sum is negative, start fresh
+        if (currentSum < 0) {
+            currentSum = 0;
+        }
+
+        currentSum = currentSum + num;
+
+        // Track the best sum found so far
+        if (currentSum > maxSum) {
+            maxSum = currentSum;
+        }
+    });
+
+    return maxSum;
+}
+
+// Edit Distance (2D DP)
+function minDistance(word1, word2) {
+    const m = word1.length;
+    const n = word2.length;
+
+    // dp[i][j] = min edits to convert word1[0..i-1] to word2[0..j-1]
+    const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+
+    // Base cases: converting to/from empty string
+    forEachBetween(0, m + 1, (i) => { dp[i][0] = i; });
+    forEachBetween(0, n + 1, (j) => { dp[0][j] = j; });
+
+    forEachBetween(1, m + 1, (i) => {
+        forEachBetween(1, n + 1, (j) => {
+            if (word1[i - 1] === word2[j - 1]) {
+                // Characters match, no edit needed
+                dp[i][j] = dp[i - 1][j - 1];
+            } else {
+                // Take minimum of insert, delete, replace
+                const insertOp = dp[i][j - 1] + 1;
+                const deleteOp = dp[i - 1][j] + 1;
+                const replaceOp = dp[i - 1][j - 1] + 1;
+                dp[i][j] = Math.min(insertOp, deleteOp, replaceOp);
+            }
+        });
+    });
+
+    return dp[m][n];
+}
+
+// Longest Increasing Subsequence (Binary Search O(n log n))
+function lengthOfLIS(nums) {
+    // tails[i] = smallest tail element for increasing subsequence of length i+1
+    const tails = [];
+
+    forEach(nums, (num) => {
+        // Binary search for where num should go
+        let lo = 0;
+        let hi = tails.length;
+        repeatWhile(() => lo < hi, () => {
+            const mid = Math.floor((lo + hi) / 2);
+            if (tails[mid] < num) {
+                lo = mid + 1;
+            } else {
+                hi = mid;
+            }
+        });
+
+        // Replace or extend
+        tails[lo] = num;
+    });
+
+    // Length of tails = length of LIS
+    return tails.length;
+}
+
+// Buy/Sell Stock with State Machine (Cooldown)
+function maxProfit(prices) {
+    // Three states: hold (own stock), sold (just sold), rest (cooldown/no stock)
+    let hold = -Infinity;   // max profit while holding stock
+    let sold = 0;           // max profit on day we just sold
+    let rest = 0;           // max profit while resting (no stock, not just sold)
+
+    forEach(prices, (price) => {
+        const prevHold = hold;
+        const prevSold = sold;
+        const prevRest = rest;
+
+        // Today I hold: either I held before, or I bought today (from rest)
+        hold = Math.max(prevHold, prevRest - price);
+        // Today I sold: I must have held before
+        sold = prevHold + price;
+        // Today I rest: I either rested before, or I was in cooldown (just sold)
+        rest = Math.max(prevRest, prevSold);
+    });
 
     return Math.max(sold, rest);
 }`,
@@ -3756,6 +5120,93 @@ function canCompleteCircuit(gas, cost) {
     }
     return start;
 }`,
+    jsTemplateReadable: `// (Uses shared helpers defined in Arrays & Hashing)
+
+// Jump Game - can reach end?
+function canJump(nums) {
+    let farthest = 0; // farthest index we can reach so far
+
+    forEach(nums, (_, i) => {
+        // If current index exceeds farthest reachable, we're stuck
+        if (i > farthest) {
+            return false;
+        }
+
+        // Update farthest reachable position
+        farthest = Math.max(farthest, i + nums[i]);
+    });
+    return true;
+}
+
+// Non-overlapping intervals (min removals)
+function eraseOverlapIntervals(intervals) {
+    // Sort by end time: greedily keep intervals that end earliest
+    intervals.sort((a, b) => a[1] - b[1]);
+
+    let count = 0;
+    let end = -Infinity; // end time of the last kept interval
+
+    forEach(intervals, ([s, e]) => {
+        if (s >= end) {
+            // No overlap: keep this interval, update end
+            end = e;
+        } else {
+            // Overlap: remove this interval (count the removal)
+            count++;
+        }
+    });
+    return count;
+}
+
+// Partition Labels
+function partitionLabels(s) {
+    // Build map of each char's last occurrence
+    const last = {};
+    forEach(s, (c, i) => {
+        last[c] = i;
+    });
+
+    let start = 0;
+    let end = 0;
+    const result = [];
+
+    forEach(s, (c, i) => {
+        // Extend partition boundary to include last occurrence of current char
+        end = Math.max(end, last[c]);
+
+        if (i === end) {
+            // Reached end of current partition
+            result.push(end - start + 1);
+            start = end + 1;
+        }
+    });
+    return result;
+}
+
+// Gas Station
+function canCompleteCircuit(gas, cost) {
+    // If total gas < total cost, no solution exists
+    const totalGas = gas.reduce((a, b) => a + b, 0);
+    const totalCost = cost.reduce((a, b) => a + b, 0);
+
+    if (totalGas < totalCost) {
+        return -1;
+    }
+
+    let start = 0;
+    let tank = 0;
+
+    forEach(gas, (_, i) => {
+        tank += gas[i] - cost[i];
+
+        if (tank < 0) {
+            // Can't start from current start — try starting from next station
+            start = i + 1;
+            tank = 0;
+        }
+    });
+    return start;
+}`,
     jsTemplateWalkthrough:
       '── Jump Game ──\n' +
       'nums = [2, 3, 1, 1, 4]\n\n' +
@@ -4008,6 +5459,84 @@ function minMeetingRooms(intervals) {
 
     return rooms;
 }`,
+    jsTemplateReadable: `// (Uses shared helpers defined in Arrays & Hashing)
+
+// Merge Intervals
+function merge(intervals) {
+    // Step 1: sort by start time so overlapping intervals are adjacent
+    intervals.sort((a, b) => a[0] - b[0]);
+
+    // Step 2: seed merged list with the first interval
+    const merged = [intervals[0]];
+
+    forEachStartingAt(1, intervals, ([start, end]) => {
+        const lastMerged = merged[merged.length - 1];
+
+        if (start <= lastMerged[1]) {
+            // Overlaps: extend the last merged interval's end if needed
+            lastMerged[1] = Math.max(lastMerged[1], end);
+        } else {
+            // No overlap: start a new interval
+            merged.push([start, end]);
+        }
+    });
+
+    return merged;
+}
+
+// Insert Interval
+function insert(intervals, newInterval) {
+    const result = [];
+    let i = 0;
+
+    // Phase 1: add all intervals that end before newInterval starts
+    repeatWhile(() => i < intervals.length && intervals[i][1] < newInterval[0], () => {
+        result.push(intervals[i]);
+        i++;
+    });
+
+    // Phase 2: merge all intervals that overlap with newInterval
+    repeatWhile(() => i < intervals.length && intervals[i][0] <= newInterval[1], () => {
+        newInterval = [
+            Math.min(newInterval[0], intervals[i][0]),
+            Math.max(newInterval[1], intervals[i][1])
+        ];
+        i++;
+    });
+
+    // Add the merged interval
+    result.push(newInterval);
+
+    // Phase 3: add all intervals that start after newInterval ends
+    repeatWhile(() => i < intervals.length, () => {
+        result.push(intervals[i]);
+        i++;
+    });
+
+    return result;
+}
+
+// Meeting Rooms II (min rooms needed)
+function minMeetingRooms(intervals) {
+    // Separate and sort start times and end times independently
+    const starts = intervals.map(interval => interval[0]).sort((a, b) => a - b);
+    const ends = intervals.map(interval => interval[1]).sort((a, b) => a - b);
+
+    let rooms = 0;
+    let endPtr = 0;
+
+    forEachBetween(0, starts.length, (i) => {
+        if (starts[i] < ends[endPtr]) {
+            // New meeting starts before earliest ongoing meeting ends → need extra room
+            rooms++;
+        } else {
+            // A meeting has ended — reuse that room
+            endPtr++;
+        }
+    });
+
+    return rooms;
+}`,
     jsTemplateWalkthrough: "── Merge Intervals ──\n" +
 "Input: [[1,3],[2,6],[8,10],[15,18]]\n" +
 "After sort: [[1,3],[2,6],[8,10],[15,18]]\n" +
@@ -4242,6 +5771,93 @@ function myPow(x, n) {
 
     return result;
 }`,
+    jsTemplateReadable: `// (Uses shared helpers defined in Arrays & Hashing)
+
+// Rotate image 90° clockwise (in-place)
+function rotate(matrix) {
+    const n = matrix.length;
+
+    // Step 1: Transpose — swap matrix[i][j] with matrix[j][i]
+    forEachBetween(0, n, (i) => {
+        forEachStartingAt(i + 1, matrix[i], (_, j) => {
+            const temp = matrix[i][j];
+            matrix[i][j] = matrix[j][i];
+            matrix[j][i] = temp;
+        });
+    });
+
+    // Step 2: Reverse each row to complete the 90° CW rotation
+    forEach(matrix, (row) => {
+        row.reverse();
+    });
+}
+
+// Spiral order
+function spiralOrder(matrix) {
+    const result = [];
+    let top = 0;
+    let bottom = matrix.length - 1;
+    let left = 0;
+    let right = matrix[0].length - 1;
+
+    repeatWhile(() => top <= bottom && left <= right, () => {
+        // Traverse right along the top row
+        forEachBetween(left, right + 1, (col) => {
+            result.push(matrix[top][col]);
+        });
+        top++;
+
+        // Traverse down along the right column
+        forEachBetween(top, bottom + 1, (row) => {
+            result.push(matrix[row][right]);
+        });
+        right--;
+
+        // Traverse left along the bottom row (only if rows remain)
+        if (top <= bottom) {
+            forEachFromRight(matrix[bottom].slice(left, right + 1), (_, idx) => {
+                result.push(matrix[bottom][left + idx]);
+            });
+            bottom--;
+        }
+
+        // Traverse up along the left column (only if columns remain)
+        if (left <= right) {
+            forEachFromRight(matrix.slice(top, bottom + 1), (_, idx) => {
+                result.push(matrix[top + idx][left]);
+            });
+            left++;
+        }
+    });
+
+    return result;
+}
+
+// Fast power (x^n in O(log n))
+function myPow(x, n) {
+    // Handle negative exponents
+    if (n < 0) {
+        x = 1 / x;
+        n = -n;
+    }
+
+    let result = 1;
+
+    repeatWhile(() => n > 0, () => {
+        // If current bit of n is set, multiply result by current x
+        if (n % 2 === 1) {
+            result *= x;
+        }
+
+        // Square x for the next bit position
+        x *= x;
+
+        // Shift to the next bit
+        n = Math.floor(n / 2);
+    });
+
+    return result;
+}`,
     jsTemplateWalkthrough: "── Rotate 90° CW ──\n" +
 "Input: [[1,2,3],[4,5,6],[7,8,9]]\n" +
 "\n" +
@@ -4439,6 +6055,60 @@ function reverseBits(n) {
 
     return result >>> 0;  // ensure unsigned 32-bit output
 }`,
+    jsTemplateReadable: `// (Uses shared helpers defined in Arrays & Hashing)
+
+// Single Number (find unique in array of pairs)
+// XOR property: a ^ a = 0, a ^ 0 = a → duplicates cancel out
+function singleNumber(nums) {
+    let result = 0;
+
+    forEach(nums, (num) => {
+        result ^= num;  // pairs cancel, unique survives
+    });
+
+    return result;
+}
+
+// Number of 1 bits (Hamming weight)
+// Trick: n & (n-1) clears the lowest set bit each iteration
+function hammingWeight(n) {
+    let count = 0;
+
+    repeatWhile(() => n !== 0, () => {
+        count++;
+        n = n & (n - 1);  // remove lowest set bit
+    });
+
+    return count;
+}
+
+// Counting bits for 0..n
+// DP trick: dp[i] = dp[i >> 1] + (i & 1)
+// The bit count of i = bit count of i/2, plus 1 if i is odd
+function countBits(n) {
+    const dp = new Array(n + 1).fill(0);
+
+    forEachStartingAt(1, dp, (_, i) => {
+        const halfBits = dp[i >> 1];   // bit count of i with last bit removed
+        const lastBit = i & 1;          // 1 if i is odd, else 0
+        dp[i] = halfBits + lastBit;
+    });
+
+    return dp;
+}
+
+// Reverse bits (32-bit unsigned integer)
+function reverseBits(n) {
+    let result = 0;
+
+    forEachBetween(0, 32, () => {
+        const lastBit = n & 1;               // extract the lowest bit of n
+        result = (result << 1) | lastBit;    // shift result left, then add the bit
+        n >>>= 1;                            // unsigned right shift n
+    });
+
+    return result >>> 0;  // ensure unsigned 32-bit output
+}`,
     jsTemplateWalkthrough: "── Single Number ──\n" +
 "Input: [4, 1, 2, 1, 2]\n" +
 "\n" +
@@ -4625,26 +6295,26 @@ def has_cycle(n, edges):
     }
 
     union(x, y) {
-        let px = this.find(x);
-        let py = this.find(y);
+        let rootX = this.find(x);
+        let rootY = this.find(y);
 
         // Already in the same component — no union needed
-        if (px === py) {
+        if (rootX === rootY) {
             return false;
         }
 
         // Union by rank: attach the shorter tree under the taller one
-        if (this.rank[px] < this.rank[py]) {
-            const temp = px;
-            px = py;
-            py = temp;
+        if (this.rank[rootX] < this.rank[rootY]) {
+            const temp = rootX;
+            rootX = rootY;
+            rootY = temp;
         }
 
-        this.parent[py] = px;
+        this.parent[rootY] = rootX;
 
         // Only increase rank when two equal-height trees merge
-        if (this.rank[px] === this.rank[py]) {
-            this.rank[px]++;
+        if (this.rank[rootX] === this.rank[rootY]) {
+            this.rank[rootX]++;
         }
 
         this.components--;
@@ -4677,6 +6347,84 @@ function hasCycle(n, edges) {
             return true;
         }
     }
+
+    return false;
+}`,
+    jsTemplateReadable: `// (Uses shared helpers defined in Arrays & Hashing)
+
+class UnionFind {
+    constructor(n) {
+        // Each node starts as its own parent (its own component)
+        this.parent = Array.from({ length: n }, (_, i) => i);
+        // Rank tracks approximate tree height for union-by-rank
+        this.rank = new Array(n).fill(0);
+        // Track number of distinct components
+        this.components = n;
+    }
+
+    find(x) {
+        // Walk up to the root, compressing path along the way
+        repeatWhile(() => this.parent[x] !== x, () => {
+            // Path compression: point directly to grandparent
+            this.parent[x] = this.parent[this.parent[x]];
+            x = this.parent[x];
+        });
+        return x;
+    }
+
+    union(x, y) {
+        let rootX = this.find(x);
+        let rootY = this.find(y);
+
+        // Already in the same component — no union needed
+        if (rootX === rootY) {
+            return false;
+        }
+
+        // Union by rank: attach the shorter tree under the taller one
+        if (this.rank[rootX] < this.rank[rootY]) {
+            const temp = rootX;
+            rootX = rootY;
+            rootY = temp;
+        }
+
+        this.parent[rootY] = rootX;
+
+        // Only increase rank when two equal-height trees merge
+        if (this.rank[rootX] === this.rank[rootY]) {
+            this.rank[rootX]++;
+        }
+
+        this.components--;
+        return true;
+    }
+
+    connected(x, y) {
+        return this.find(x) === this.find(y);
+    }
+}
+
+// Count connected components in a graph
+function countComponents(n, edges) {
+    const uf = new UnionFind(n);
+
+    forEach(edges, ([u, v]) => {
+        uf.union(u, v);
+    });
+
+    return uf.components;
+}
+
+// Detect a cycle in an undirected graph
+function hasCycle(n, edges) {
+    const uf = new UnionFind(n);
+
+    forEach(edges, ([u, v]) => {
+        // If u and v are already connected, adding this edge creates a cycle
+        if (!uf.union(u, v)) {
+            return true;
+        }
+    });
 
     return false;
 }`,
@@ -4942,6 +6690,83 @@ function longestSubarray(nums, limit) {
     }
     return result;
 }`,
+    jsTemplateReadable: `// (Uses shared helpers defined in Arrays & Hashing)
+
+// Sliding Window Maximum
+// Deque stores indices; nums values in deque are DECREASING (front = max)
+function maxSlidingWindow(nums, k) {
+    const dq = [];     // stores indices; nums[dq[0]] is always the max
+    const result = [];
+    forEach(nums, (_, i) => {
+        // Expire: remove front if it has slid out of the window
+        repeatWhile(() => dq.length > 0 && dq[0] < i - k + 1, () => {
+            dq.shift();
+        });
+        // Clean: remove back indices whose values are <= current
+        repeatWhile(() => dq.length > 0 && nums[dq[dq.length - 1]] <= nums[i], () => {
+            dq.pop();
+        });
+        dq.push(i);
+        // Record answer once the first full window is reached
+        if (i >= k - 1) {
+            result.push(nums[dq[0]]);
+        }
+    });
+    return result;
+}
+
+// Sliding Window Minimum
+// Same loop structure, but remove from back when back >= current
+function minSlidingWindow(nums, k) {
+    const dq = [];     // stores indices; nums[dq[0]] is always the min
+    const result = [];
+    forEach(nums, (_, i) => {
+        repeatWhile(() => dq.length > 0 && dq[0] < i - k + 1, () => {
+            dq.shift();
+        });
+        repeatWhile(() => dq.length > 0 && nums[dq[dq.length - 1]] >= nums[i], () => {
+            dq.pop();
+        });
+        dq.push(i);
+        if (i >= k - 1) {
+            result.push(nums[dq[0]]);
+        }
+    });
+    return result;
+}
+
+// Longest subarray where max - min <= limit
+// Uses TWO deques: one tracks the running max, one tracks the running min
+function longestSubarray(nums, limit) {
+    const maxDq = [];  // decreasing — front is the current window max
+    const minDq = [];  // increasing — front is the current window min
+    let left = 0;
+    let result = 0;
+    forEach(nums, (_, right) => {
+        // Maintain the max deque
+        repeatWhile(() => maxDq.length > 0 && nums[maxDq[maxDq.length - 1]] <= nums[right], () => {
+            maxDq.pop();
+        });
+        maxDq.push(right);
+        // Maintain the min deque
+        repeatWhile(() => minDq.length > 0 && nums[minDq[minDq.length - 1]] >= nums[right], () => {
+            minDq.pop();
+        });
+        minDq.push(right);
+        // Shrink from the left while constraint is violated
+        repeatWhile(() => nums[maxDq[0]] - nums[minDq[0]] > limit, () => {
+            left++;
+            if (maxDq[0] < left) {
+                maxDq.shift();
+            }
+            if (minDq[0] < left) {
+                minDq.shift();
+            }
+        });
+        result = Math.max(result, right - left + 1);
+    });
+    return result;
+}`,
     jsTemplateWalkthrough: "── Sliding Window Maximum ──\n" +
 "Input: nums=[1,3,-1,-3,5,3,6,7], k=3\n" +
 "\n" +
@@ -4961,8 +6786,8 @@ function longestSubarray(nums, limit) {
 "right=1: maxDq=[0](8), minDq=[1](2). 8-2=6>4 → left=1\n" +
 "  maxDq[0]=0<1 → shift. maxDq=[1](2). 2-2=0<=4. len=1\n" +
 "right=2: maxDq=[2](4), minDq=[1,2](2,4). 4-2=2<=4. len=2\n" +
-"right=3: maxDq=[3](7), minDq=[1,3](2,7). 7-2=5>4 → left=2\n" +
-"  minDq[0]=1<2 → shift. minDq=[3](7). 7-7=0<=4. len=2\n" +
+"right=3: maxDq=[3](7), minDq=[1,2,3](2,4,7). 7-2=5>4 → left=2\n" +
+"  minDq[0]=1<2 → shift. minDq=[2,3](4,7). 7-4=3<=4. len=2\n" +
 "Result: 2",
     complexity: 'O(n) time (each element enters and leaves deque once). O(k) space for the deque.',
     commonMistakes: [
@@ -5174,11 +6999,11 @@ function countInversions(nums) {
     }
 
     const mid = Math.floor(nums.length / 2);
-    const [left, leftInv] = countInversions(nums.slice(0, mid));
-    const [right, rightInv] = countInversions(nums.slice(mid));
+    const [left, leftInversions] = countInversions(nums.slice(0, mid));
+    const [right, rightInversions] = countInversions(nums.slice(mid));
 
     const merged = [];
-    let inv = leftInv + rightInv;
+    let totalInversions = leftInversions + rightInversions;
     let i = 0;
     let j = 0;
 
@@ -5190,7 +7015,7 @@ function countInversions(nums) {
             // All remaining left elements are > right[j] → count them all
             merged.push(right[j]);
             j++;
-            inv += left.length - i;
+            totalInversions += left.length - i;
         }
     }
 
@@ -5203,7 +7028,112 @@ function countInversions(nums) {
         j++;
     }
 
-    return [merged, inv];
+    return [merged, totalInversions];
+}`,
+    jsTemplateReadable: `// (Uses shared helpers defined in Arrays & Hashing)
+
+// Merge Sort — Divide, Conquer, Combine
+function mergeSort(nums) {
+    if (nums.length <= 1) {
+        return nums;  // base case: already sorted
+    }
+    const mid = Math.floor(nums.length / 2);
+    const left = mergeSort(nums.slice(0, mid));
+    const right = mergeSort(nums.slice(mid));
+    return merge(left, right);
+}
+
+// Merge two already-sorted arrays into one sorted array
+function merge(left, right) {
+    const result = [];
+    let i = 0;
+    let j = 0;
+
+    repeatWhile(() => i < left.length && j < right.length, () => {
+        if (left[i] <= right[j]) {
+            result.push(left[i]);
+            i++;
+        } else {
+            result.push(right[j]);
+            j++;
+        }
+    });
+
+    // Drain any remaining elements from the left side
+    repeatWhile(() => i < left.length, () => {
+        result.push(left[i]);
+        i++;
+    });
+
+    // Drain any remaining elements from the right side
+    repeatWhile(() => j < right.length, () => {
+        result.push(right[j]);
+        j++;
+    });
+
+    return result;
+}
+
+// Quick Select — find the kth smallest element (0-indexed) in O(n) average
+function quickSelect(nums, k) {
+    // Randomize pivot to avoid O(n^2) on sorted inputs
+    const pivotIndex = Math.floor(Math.random() * nums.length);
+    const pivot = nums[pivotIndex];
+
+    const less = nums.filter(x => x < pivot);
+    const equal = nums.filter(x => x === pivot);
+    const greater = nums.filter(x => x > pivot);
+
+    if (k < less.length) {
+        // kth smallest is in the less partition
+        return quickSelect(less, k);
+    } else if (k < less.length + equal.length) {
+        // kth smallest is the pivot itself
+        return pivot;
+    } else {
+        // kth smallest is in the greater partition; adjust k
+        return quickSelect(greater, k - less.length - equal.length);
+    }
+}
+
+// Count inversions using modified merge sort
+// An inversion is a pair where nums[i] > nums[j] with i < j
+function countInversions(nums) {
+    if (nums.length <= 1) {
+        return [nums, 0];
+    }
+
+    const mid = Math.floor(nums.length / 2);
+    const [left, leftInversions] = countInversions(nums.slice(0, mid));
+    const [right, rightInversions] = countInversions(nums.slice(mid));
+
+    const merged = [];
+    let totalInversions = leftInversions + rightInversions;
+    let i = 0;
+    let j = 0;
+
+    repeatWhile(() => i < left.length && j < right.length, () => {
+        if (left[i] <= right[j]) {
+            merged.push(left[i]);
+            i++;
+        } else {
+            // All remaining left elements are > right[j] → count them all
+            merged.push(right[j]);
+            j++;
+            totalInversions += left.length - i;
+        }
+    });
+
+    repeatWhile(() => i < left.length, () => {
+        merged.push(left[i]);
+        i++;
+    });
+    repeatWhile(() => j < right.length, () => {
+        merged.push(right[j]);
+        j++;
+    });
+
+    return [merged, totalInversions];
 }`,
     jsTemplateWalkthrough: "── Merge Sort ──\n" +
 "Input: [3,1,4,1,5]\n" +
@@ -5235,8 +7165,8 @@ function countInversions(nums) {
 "countInversions([3]) = ([3], 0)\n" +
 "countInversions([1,2]) = ([1,2], 0)\n" +
 "merge [3] and [1,2]:\n" +
-"  3>1: push 1, j++, inv += left.length-i = 1-0=1. inv=1\n" +
-"  3>2: push 2, j++, inv += 1. inv=2\n" +
+"  3>1: push 1, j++, totalInversions += left.length-i = 1-0=1. totalInversions=1\n" +
+"  3>2: push 2, j++, totalInversions += 1. totalInversions=2\n" +
 "  push 3\n" +
 "Return ([1,2,3], 2) ✓",
     complexity: 'Merge sort: O(n log n). Quick select: O(n) avg, O(n^2) worst. Binary search: O(log n).',
@@ -5378,6 +7308,83 @@ Leaves are individual elements. Each parent = combine(left_child, right_child).`
         return (self._query(2 * node, start, mid, l, r) +
                 self._query(2 * node + 1, mid + 1, end, l, r))`,
     jsTemplate: `class SegmentTree {
+    constructor(nums) {
+        this.n = nums.length;
+        // 4*n slots is always sufficient to store the entire segment tree
+        this.tree = new Array(4 * this.n).fill(0);
+
+        if (this.n > 0) {
+            this._build(nums, 1, 0, this.n - 1);
+        }
+    }
+    // Build the tree recursively; node 1 is the root covering [0, n-1]
+    _build(nums, node, start, end) {
+        if (start === end) {
+            // Leaf node: store the actual value
+            this.tree[node] = nums[start];
+            return;
+        }
+
+        const mid = Math.floor((start + end) / 2);
+
+        // Build left child (2*node) and right child (2*node+1)
+        this._build(nums, 2 * node, start, mid);
+        this._build(nums, 2 * node + 1, mid + 1, end);
+
+        // Parent stores combined value of both children
+        this.tree[node] = this.tree[2 * node] + this.tree[2 * node + 1];
+    }
+
+    // Point update: set nums[idx] = val
+    update(idx, val) {
+        this._update(1, 0, this.n - 1, idx, val);
+    }
+
+    _update(node, start, end, idx, val) {
+        if (start === end) {
+            // Reached the leaf — set the new value
+            this.tree[node] = val;
+            return;
+        }
+
+        const mid = Math.floor((start + end) / 2);
+
+        if (idx <= mid) {
+            this._update(2 * node, start, mid, idx, val);
+        } else {
+            this._update(2 * node + 1, mid + 1, end, idx, val);
+        }
+
+        // Recalculate parent from updated children
+        this.tree[node] = this.tree[2 * node] + this.tree[2 * node + 1];
+    }
+
+    // Range sum query over [l, r] (0-indexed, inclusive)
+    query(l, r) {
+        return this._query(1, 0, this.n - 1, l, r);
+    }
+
+    _query(node, start, end, l, r) {
+        // Case 1: No overlap — node range is completely outside query range
+        if (r < start || end < l) {
+            return 0;
+        }
+
+        // Case 2: Full overlap — node range is completely inside query range
+        if (l <= start && end <= r) {
+            return this.tree[node];
+        }
+
+        // Case 3: Partial overlap — query both children and combine
+        const mid = Math.floor((start + end) / 2);
+        const leftSum = this._query(2 * node, start, mid, l, r);
+        const rightSum = this._query(2 * node + 1, mid + 1, end, l, r);
+        return leftSum + rightSum;
+    }
+}`,
+    jsTemplateReadable: `// (Uses shared helpers defined in Arrays & Hashing)
+
+class SegmentTree {
     constructor(nums) {
         this.n = nums.length;
         // 4*n slots is always sufficient to store the entire segment tree
@@ -5632,20 +7639,20 @@ def rabin_karp(text, pattern):
 // Phase 2: search text using LPS to skip on mismatches
 function kmpSearch(text, pattern) {
     const m = pattern.length;
-    const lps = new Array(m).fill(0);
+    const lps = new Array(m).fill(0); // Longest Prefix-Suffix match lengths
 
     // Build LPS array
-    let len = 0;   // length of current matching prefix-suffix
+    let matchLength = 0;   // length of current matching prefix-suffix
     let i = 1;     // lps[0] is always 0; start from index 1
     while (i < m) {
-        if (pattern[i] === pattern[len]) {
+        if (pattern[i] === pattern[matchLength]) {
             // Extended the matching prefix-suffix
-            len++;
-            lps[i] = len;
+            matchLength++;
+            lps[i] = matchLength;
             i++;
-        } else if (len > 0) {
+        } else if (matchLength > 0) {
             // Mismatch after some match: fall back without advancing i
-            len = lps[len - 1];
+            matchLength = lps[matchLength - 1];
         } else {
             // No match at all
             lps[i] = 0;
@@ -5654,27 +7661,27 @@ function kmpSearch(text, pattern) {
     }
 
     // Search phase: use lps to skip redundant comparisons
-    i = 0;           // pointer into text
-    let j = 0;       // pointer into pattern
+    let textPos = 0;       // pointer into text
+    let patternPos = 0;    // pointer into pattern
     const results = [];
 
-    while (i < text.length) {
-        if (text[i] === pattern[j]) {
-            i++;
-            j++;
+    while (textPos < text.length) {
+        if (text[textPos] === pattern[patternPos]) {
+            textPos++;
+            patternPos++;
 
-            if (j === m) {
-                // Found a full match at index (i - j)
-                results.push(i - j);
+            if (patternPos === m) {
+                // Found a full match at index (textPos - patternPos)
+                results.push(textPos - patternPos);
                 // Use LPS to find the next possible overlap
-                j = lps[j - 1];
+                patternPos = lps[patternPos - 1];
             }
-        } else if (j > 0) {
-            // Mismatch: use LPS to skip (keep i in place)
-            j = lps[j - 1];
+        } else if (patternPos > 0) {
+            // Mismatch: use LPS to skip (keep textPos in place)
+            patternPos = lps[patternPos - 1];
         } else {
             // No partial match: just advance text
-            i++;
+            textPos++;
         }
     }
 
@@ -5683,42 +7690,139 @@ function kmpSearch(text, pattern) {
 
 // Rabin-Karp - rolling hash for O(n+m) average pattern matching
 function rabinKarp(text, pattern) {
-    const n = text.length;
-    const m = pattern.length;
+    const textLen = text.length;
+    const patternLen = pattern.length;
 
-    if (m > n) {
+    if (patternLen > textLen) {
         return -1;
     }
 
     const base = 26;
     const mod = 1e9 + 7;
 
-    // Precompute base^(m-1) — used to remove the leftmost character from hash
+    // Precompute base^(patternLen-1) — used to remove the leftmost character from hash
     let power = 1;
-    for (let i = 0; i < m - 1; i++) {
+    for (let i = 0; i < patternLen - 1; i++) {
         power = (power * base) % mod;
     }
 
     // Hash the pattern and the initial text window
-    let pHash = 0;
-    let tHash = 0;
-    for (let i = 0; i < m; i++) {
-        pHash = (pHash * base + pattern.charCodeAt(i)) % mod;
-        tHash = (tHash * base + text.charCodeAt(i)) % mod;
+    let patternHash = 0;
+    let textWindowHash = 0;
+    for (let i = 0; i < patternLen; i++) {
+        patternHash = (patternHash * base + pattern.charCodeAt(i)) % mod;
+        textWindowHash = (textWindowHash * base + text.charCodeAt(i)) % mod;
     }
 
-    for (let i = 0; i <= n - m; i++) {
-        if (pHash === tHash && text.slice(i, i + m) === pattern) {
+    for (let i = 0; i <= textLen - patternLen; i++) {
+        if (patternHash === textWindowHash && text.slice(i, i + patternLen) === pattern) {
             return i;  // hash matched and string verified
         }
 
         // Roll the hash: remove leftmost char, add next char
-        if (i + m < n) {
+        if (i + patternLen < textLen) {
             const leftCharHash = (text.charCodeAt(i) * power) % mod;
-            tHash = ((tHash - leftCharHash) % mod + mod) % mod;  // +mod prevents negatives
-            tHash = (tHash * base + text.charCodeAt(i + m)) % mod;
+            textWindowHash = ((textWindowHash - leftCharHash) % mod + mod) % mod;  // +mod prevents negatives
+            textWindowHash = (textWindowHash * base + text.charCodeAt(i + patternLen)) % mod;
         }
     }
+
+    return -1;
+}`,
+    jsTemplateReadable: `// (Uses shared helpers defined in Arrays & Hashing)
+
+// KMP - pattern matching in O(n+m)
+// Phase 1: build LPS (Longest Proper Prefix which is also Suffix)
+// Phase 2: search text using LPS to skip on mismatches
+function kmpSearch(text, pattern) {
+    const m = pattern.length;
+    const lps = new Array(m).fill(0); // Longest Prefix-Suffix match lengths
+
+    // Build LPS array
+    let matchLength = 0;   // length of current matching prefix-suffix
+    let i = 1;     // lps[0] is always 0; start from index 1
+    repeatWhile(() => i < m, () => {
+        if (pattern[i] === pattern[matchLength]) {
+            // Extended the matching prefix-suffix
+            matchLength++;
+            lps[i] = matchLength;
+            i++;
+        } else if (matchLength > 0) {
+            // Mismatch after some match: fall back without advancing i
+            matchLength = lps[matchLength - 1];
+        } else {
+            // No match at all
+            lps[i] = 0;
+            i++;
+        }
+    });
+
+    // Search phase: use lps to skip redundant comparisons
+    let textPos = 0;       // pointer into text
+    let patternPos = 0;    // pointer into pattern
+    const results = [];
+
+    repeatWhile(() => textPos < text.length, () => {
+        if (text[textPos] === pattern[patternPos]) {
+            textPos++;
+            patternPos++;
+
+            if (patternPos === m) {
+                // Found a full match at index (textPos - patternPos)
+                results.push(textPos - patternPos);
+                // Use LPS to find the next possible overlap
+                patternPos = lps[patternPos - 1];
+            }
+        } else if (patternPos > 0) {
+            // Mismatch: use LPS to skip (keep textPos in place)
+            patternPos = lps[patternPos - 1];
+        } else {
+            // No partial match: just advance text
+            textPos++;
+        }
+    });
+
+    return results;
+}
+
+// Rabin-Karp - rolling hash for O(n+m) average pattern matching
+function rabinKarp(text, pattern) {
+    const textLen = text.length;
+    const patternLen = pattern.length;
+
+    if (patternLen > textLen) {
+        return -1;
+    }
+
+    const base = 26;
+    const mod = 1e9 + 7;
+
+    // Precompute base^(patternLen-1) — used to remove the leftmost character from hash
+    let power = 1;
+    forEachBetween(0, patternLen - 1, () => {
+        power = (power * base) % mod;
+    });
+
+    // Hash the pattern and the initial text window
+    let patternHash = 0;
+    let textWindowHash = 0;
+    forEachBetween(0, patternLen, (i) => {
+        patternHash = (patternHash * base + pattern.charCodeAt(i)) % mod;
+        textWindowHash = (textWindowHash * base + text.charCodeAt(i)) % mod;
+    });
+
+    forEachBetween(0, textLen - patternLen + 1, (i) => {
+        if (patternHash === textWindowHash && text.slice(i, i + patternLen) === pattern) {
+            return i;  // hash matched and string verified
+        }
+
+        // Roll the hash: remove leftmost char, add next char
+        if (i + patternLen < textLen) {
+            const leftCharHash = (text.charCodeAt(i) * power) % mod;
+            textWindowHash = ((textWindowHash - leftCharHash) % mod + mod) % mod;  // +mod prevents negatives
+            textWindowHash = (textWindowHash * base + text.charCodeAt(i + patternLen)) % mod;
+        }
+    });
 
     return -1;
 }`,
@@ -5726,32 +7830,32 @@ function rabinKarp(text, pattern) {
 "Pattern: \"aabaab\"\n" +
 "lps[0]=0 always.\n" +
 "\n" +
-"i=1, len=0: p[1]=a == p[0]=a → len=1, lps[1]=1, i=2\n" +
-"i=2, len=1: p[2]=b != p[1]=a → len=lps[0]=0\n" +
-"i=2, len=0: p[2]=b != p[0]=a → lps[2]=0, i=3\n" +
-"i=3, len=0: p[3]=a == p[0]=a → len=1, lps[3]=1, i=4\n" +
-"i=4, len=1: p[4]=a == p[1]=a → len=2, lps[4]=2, i=5\n" +
-"i=5, len=2: p[5]=b == p[2]=b → len=3, lps[5]=3, i=6\n" +
+"i=1, matchLength=0: p[1]=a == p[0]=a → matchLength=1, lps[1]=1, i=2\n" +
+"i=2, matchLength=1: p[2]=b != p[1]=a → matchLength=lps[0]=0\n" +
+"i=2, matchLength=0: p[2]=b != p[0]=a → lps[2]=0, i=3\n" +
+"i=3, matchLength=0: p[3]=a == p[0]=a → matchLength=1, lps[3]=1, i=4\n" +
+"i=4, matchLength=1: p[4]=a == p[1]=a → matchLength=2, lps[4]=2, i=5\n" +
+"i=5, matchLength=2: p[5]=b == p[2]=b → matchLength=3, lps[5]=3, i=6\n" +
 "LPS = [0,1,0,1,2,3]\n" +
 "\n" +
 "── KMP: Search ──\n" +
 "text=\"aabaabaab\", pattern=\"aabaab\"\n" +
 "\n" +
-"i=0..5: all match. j=6==m → found at index 0! j=lps[5]=3\n" +
-"i=6, j=3: t[6]=a == p[3]=a → i=7, j=4\n" +
-"i=7, j=4: t[7]=a == p[4]=a → i=8, j=5\n" +
-"i=8, j=5: t[8]=b == p[5]=b → j=6==m → found at index 3!\n" +
+"textPos=0..5: all match. patternPos=6==m → found at index 0! patternPos=lps[5]=3\n" +
+"textPos=6, patternPos=3: t[6]=a == p[3]=a → textPos=7, patternPos=4\n" +
+"textPos=7, patternPos=4: t[7]=a == p[4]=a → textPos=8, patternPos=5\n" +
+"textPos=8, patternPos=5: t[8]=b == p[5]=b → patternPos=6==m → found at index 3!\n" +
 "Results: [0, 3] ✓\n" +
 "\n" +
 "── Rabin-Karp ──\n" +
-"text=\"abcdef\", pattern=\"cde\", base=26, m=3, power=676\n" +
+"text=\"abcdef\", pattern=\"cde\", base=26, patternLen=3, power=676\n" +
 "\n" +
-"pHash = hash(\"cde\")\n" +
-"tHash[i=0] = hash(\"abc\") ≠ pHash → slide\n" +
-"  remove 'a': tHash = (tHash - a*676 + mod) % mod\n" +
-"  add 'd':    tHash = tHash*26 + d\n" +
-"tHash[i=1] = hash(\"bcd\") ≠ pHash → slide\n" +
-"tHash[i=2] = hash(\"cde\") == pHash → verify → return 2 ✓",
+"patternHash = hash(\"cde\")\n" +
+"textWindowHash[i=0] = hash(\"abc\") ≠ patternHash → slide\n" +
+"  remove 'a': textWindowHash = (textWindowHash - a*676 + mod) % mod\n" +
+"  add 'd':    textWindowHash = textWindowHash*26 + d\n" +
+"textWindowHash[i=1] = hash(\"bcd\") ≠ patternHash → slide\n" +
+"textWindowHash[i=2] = hash(\"cde\") == patternHash → verify → return 2 ✓",
     complexity: 'KMP: O(n+m) guaranteed. Rabin-Karp: O(n+m) average, O(nm) worst (hash collisions).',
     commonMistakes: [
       'KMP: Wrong LPS construction (using length = 0 reset instead of length = lps[length-1])',
@@ -5901,24 +8005,24 @@ class UnionFind {
     }
 
     union(x, y) {
-        let px = this.find(x);
-        let py = this.find(y);
+        let rootX = this.find(x);
+        let rootY = this.find(y);
 
-        if (px === py) {
+        if (rootX === rootY) {
             return false;  // already in the same component — would create a cycle
         }
 
         // Union by rank: attach shorter tree under taller tree
-        if (this.rank[px] < this.rank[py]) {
-            const temp = px;
-            px = py;
-            py = temp;
+        if (this.rank[rootX] < this.rank[rootY]) {
+            const temp = rootX;
+            rootX = rootY;
+            rootY = temp;
         }
 
-        this.parent[py] = px;
+        this.parent[rootY] = rootX;
 
-        if (this.rank[px] === this.rank[py]) {
-            this.rank[px]++;
+        if (this.rank[rootX] === this.rank[rootY]) {
+            this.rank[rootX]++;
         }
 
         return true;
@@ -5979,6 +8083,107 @@ function prim(n, adj) {
             }
         }
     }
+
+    // If not all nodes were visited, graph is disconnected
+    return visited.size === n ? total : -1;
+}`,
+    jsTemplateReadable: `// (Uses shared helpers defined in Arrays & Hashing)
+
+// Kruskal's Algorithm
+// Uses Union-Find to detect cycles; greedily picks cheapest edges
+class UnionFind {
+    constructor(n) {
+        this.parent = Array.from({ length: n }, (_, i) => i);
+        this.rank = new Array(n).fill(0);
+    }
+
+    find(x) {
+        repeatWhile(() => this.parent[x] !== x, () => {
+            this.parent[x] = this.parent[this.parent[x]];  // path compression
+            x = this.parent[x];
+        });
+        return x;
+    }
+
+    union(x, y) {
+        let rootX = this.find(x);
+        let rootY = this.find(y);
+
+        if (rootX === rootY) {
+            return false;  // already in the same component — would create a cycle
+        }
+
+        // Union by rank: attach shorter tree under taller tree
+        if (this.rank[rootX] < this.rank[rootY]) {
+            const temp = rootX;
+            rootX = rootY;
+            rootY = temp;
+        }
+
+        this.parent[rootY] = rootX;
+
+        if (this.rank[rootX] === this.rank[rootY]) {
+            this.rank[rootX]++;
+        }
+
+        return true;
+    }
+}
+
+function kruskal(n, edges) {
+    // edges = [[weight, u, v], ...]
+    // Step 1: sort all edges by weight (cheapest first)
+    edges.sort((a, b) => a[0] - b[0]);
+
+    const uf = new UnionFind(n);
+    let mstCost = 0;
+    let mstEdges = 0;
+
+    forEach(edges, ([weight, u, v]) => {
+        // Add edge only if it doesn't create a cycle
+        if (uf.union(u, v)) {
+            mstCost += weight;
+            mstEdges++;
+
+            // MST has exactly n-1 edges — we're done
+            if (mstEdges === n - 1) {
+                return mstCost;
+            }
+        }
+    });
+
+    // If we couldn't collect n-1 edges, graph is disconnected
+    return mstEdges === n - 1 ? mstCost : -1;
+}
+
+// Prim's Algorithm (using sorted array as a simple priority queue)
+// Grow the MST one node at a time: always pick the cheapest edge to an unvisited node
+function prim(n, adj) {
+    const visited = new Set();
+    // Heap entries: [cost, node]. Start from node 0 with cost 0.
+    const heap = [[0, 0]];
+    let total = 0;
+
+    repeatWhile(() => heap.length > 0 && visited.size < n, () => {
+        // Extract minimum cost edge (sort simulates a min-heap)
+        heap.sort((a, b) => a[0] - b[0]);
+        const [cost, u] = heap.shift();
+
+        // Skip if this node was already added to the MST
+        if (visited.has(u)) {
+            return;
+        }
+
+        visited.add(u);
+        total += cost;
+
+        // Add all edges from u to unvisited neighbors
+        forEach(adj[u] || [], ([weight, v]) => {
+            if (!visited.has(v)) {
+                heap.push([weight, v]);
+            }
+        });
+    });
 
     // If not all nodes were visited, graph is disconnected
     return visited.size === n ? total : -1;
@@ -6237,6 +8442,99 @@ function trap(height) {
         }
         stack.push(i);
     }
+
+    return water;
+}`,
+    jsTemplateReadable: `// (Uses shared helpers defined in Arrays & Hashing)
+
+// Next Greater Element
+// Decreasing stack: pop when current > top; current is the "next greater" for popped items
+function nextGreater(nums) {
+    const n = nums.length;
+    const result = new Array(n).fill(-1);  // default: no next greater element
+    const stack = [];  // stores indices; values in decreasing order
+
+    forEachBetween(0, n, (i) => {
+        // Pop all indices whose values are smaller than current
+        repeatWhile(() => stack.length > 0 && nums[i] > nums[stack[stack.length - 1]], () => {
+            const j = stack.pop();
+            result[j] = nums[i];  // nums[i] is the next greater element for index j
+        });
+        stack.push(i);
+    });
+
+    return result;
+}
+
+// Daily Temperatures
+// Same structure: pop when current temp is warmer; answer is the number of days waited
+function dailyTemperatures(temps) {
+    const n = temps.length;
+    const result = new Array(n).fill(0);  // 0 means no warmer day ahead
+    const stack = [];  // stores indices
+
+    forEachBetween(0, n, (i) => {
+        repeatWhile(() => stack.length > 0 && temps[i] > temps[stack[stack.length - 1]], () => {
+            const j = stack.pop();
+            result[j] = i - j;  // days until a warmer temperature
+        });
+        stack.push(i);
+    });
+
+    return result;
+}
+
+// Largest Rectangle in Histogram
+// For each bar popped: it's the shortest bar in its maximal rectangle.
+// Width = distance between new stack top and current i.
+function largestRectangleArea(heights) {
+    const stack = [];  // stores indices in increasing height order
+    let maxArea = 0;
+
+    // Sentinel 0 at end forces all remaining bars to be popped and processed
+    heights.push(0);
+
+    forEachBetween(0, heights.length, (i) => {
+        repeatWhile(() => stack.length > 0 && heights[stack[stack.length - 1]] > heights[i], () => {
+            const poppedIndex = stack.pop();
+            const barHeight = heights[poppedIndex];
+
+            // Left boundary is the new stack top; if empty, extends to the start
+            const leftBoundary = stack.length > 0 ? stack[stack.length - 1] : -1;
+            const barWidth = i - leftBoundary - 1;
+
+            maxArea = Math.max(maxArea, barHeight * barWidth);
+        });
+        stack.push(i);
+    });
+
+    heights.pop();  // restore original array
+    return maxArea;
+}
+
+// Trapping Rain Water
+// Water collects in valleys between two walls
+function trap(height) {
+    const stack = [];
+    let water = 0;
+
+    forEachBetween(0, height.length, (i) => {
+        repeatWhile(() => stack.length > 0 && height[i] > height[stack[stack.length - 1]], () => {
+            const bottomIndex = stack.pop();
+            const bottomHeight = height[bottomIndex];
+
+            // Need a left wall; if stack is empty, no container possible
+            if (stack.length === 0) {
+                return;
+            }
+
+            const leftWallIndex = stack[stack.length - 1];
+            const width = i - leftWallIndex - 1;
+            const boundedHeight = Math.min(height[i], height[leftWallIndex]) - bottomHeight;
+            water += width * boundedHeight;
+        });
+        stack.push(i);
+    });
 
     return water;
 }`,
@@ -6507,6 +8805,84 @@ function countInversions(nums) {
 
     return inversions;
 }`,
+    jsTemplateReadable: `// (Uses shared helpers defined in Arrays & Hashing)
+
+// BIT (Fenwick Tree): efficient prefix sums with O(log n) point update
+// Magic: i & (-i) = lowest set bit. Update goes UP (+lsb), query goes DOWN (-lsb)
+class BIT {
+    constructor(n) {
+        this.n = n;
+        // MUST be 1-indexed — index 0 is never used
+        this.tree = new Array(n + 1).fill(0);
+    }
+    // Add delta to 1-indexed position i; propagates up using +lsb
+    update(i, delta) {
+        repeatWhile(() => i <= this.n, () => {
+            this.tree[i] += delta;
+            i += i & (-i);  // add lowest set bit to reach next responsible node
+        });
+    }
+
+    // Prefix sum from 1 to i (inclusive); accumulates down using -lsb
+    query(i) {
+        let total = 0;
+        repeatWhile(() => i > 0, () => {
+            total += this.tree[i];
+            i -= i & (-i);  // remove lowest set bit to reach next contributing node
+        });
+        return total;
+    }
+
+    // Range sum from l to r (both 1-indexed, inclusive)
+    rangeQuery(l, r) {
+        return this.query(r) - this.query(l - 1);
+    }
+}
+
+// Range Sum Query - Mutable
+// Stores original values to compute delta on update (never store full value directly)
+class NumArray {
+    constructor(nums) {
+        this.nums = [...nums];  // keep a copy for delta computation
+        this.bit = new BIT(nums.length);
+
+        forEach(nums, (val, i) => {
+            this.bit.update(i + 1, val);  // convert 0-indexed to 1-indexed
+        });
+    }
+
+    update(index, val) {
+        const delta = val - this.nums[index];  // only add the difference
+        this.nums[index] = val;
+        this.bit.update(index + 1, delta);     // convert to 1-indexed
+    }
+
+    sumRange(left, right) {
+        return this.bit.rangeQuery(left + 1, right + 1);  // convert to 1-indexed
+    }
+}
+
+// Count inversions using BIT as a frequency table
+// Process right to left: for each element, query how many smaller elements appear to its right
+function countInversions(nums) {
+    // Coordinate compress values to range [1..k] so BIT stays small
+    const sorted = [...new Set(nums)].sort((a, b) => a - b);
+    const rank = new Map();
+    sorted.forEach((v, i) => rank.set(v, i + 1));
+
+    const bit = new BIT(sorted.length);
+    let inversions = 0;
+
+    forEachFromRight(nums, (val, i) => {
+        const r = rank.get(val);
+        // Count elements already seen (to the right of i) that are smaller than nums[i]
+        inversions += bit.query(r - 1);
+        // Mark nums[i] as seen
+        bit.update(r, 1);
+    });
+
+    return inversions;
+}`,
     jsTemplateWalkthrough: "── BIT Update ──\n" +
 "n=8. update(3, 5) — add 5 at 1-indexed position 3\n" +
 "\n" +
@@ -6714,7 +9090,7 @@ def topological_sort_dfs(num_nodes, edges):
 function topologicalSortKahn(numNodes, edges) {
     // Build adjacency list and count prerequisites for each node
     const graph = Array.from({ length: numNodes }, () => []);
-    const inDegree = new Array(numNodes).fill(0);
+    const inDegree = new Array(numNodes).fill(0); // inDegree[i] = number of prerequisites for node i
 
     for (const [u, v] of edges) {
         graph[u].push(v);    // u must come before v
@@ -6798,6 +9174,100 @@ function topologicalSortDFS(numNodes, edges) {
             }
         }
     }
+
+    return order.reverse();
+}`,
+    jsTemplateReadable: `// (Uses shared helpers defined in Arrays & Hashing)
+
+// Kahn's Algorithm — BFS-based topological sort
+// Key idea: repeatedly remove nodes with no remaining dependencies
+function topologicalSortKahn(numNodes, edges) {
+    // Build adjacency list and count prerequisites for each node
+    const graph = Array.from({ length: numNodes }, () => []);
+    const inDegree = new Array(numNodes).fill(0); // inDegree[i] = number of prerequisites for node i
+
+    forEach(edges, ([u, v]) => {
+        graph[u].push(v);    // u must come before v
+        inDegree[v]++;       // v gains one more prerequisite
+    });
+
+    // Seed the queue with nodes that have no prerequisites
+    const queue = [];
+    forEachBetween(0, numNodes, (i) => {
+        if (inDegree[i] === 0) {
+            queue.push(i);
+        }
+    });
+
+    const order = [];
+
+    repeatWhile(() => queue.length > 0, () => {
+        const node = queue.shift();
+        order.push(node);
+
+        for (const neighbor of graph[node]) {
+            inDegree[neighbor]--;
+
+            if (inDegree[neighbor] === 0) {
+                queue.push(neighbor);
+            }
+        }
+    });
+
+    // Cycle check: if not all nodes processed, a cycle exists
+    return order.length === numNodes ? order : [];
+}
+
+// Course Schedule: are all courses completable?
+function canFinish(numCourses, prerequisites) {
+    const order = topologicalSortKahn(numCourses, prerequisites);
+    return order.length === numCourses;
+}
+
+// DFS-based topological sort
+// Post-order: add self AFTER all descendants, then reverse the result
+function topologicalSortDFS(numNodes, edges) {
+    const graph = Array.from({ length: numNodes }, () => []);
+
+    forEach(edges, ([u, v]) => {
+        graph[u].push(v);
+    });
+
+    const UNVISITED = 0;
+    const IN_PROGRESS = 1;  // on the current DFS path — back edge here = cycle
+    const DONE = 2;
+
+    const state = new Array(numNodes).fill(UNVISITED);
+    const order = [];
+
+    function dfs(node) {
+        if (state[node] === IN_PROGRESS) {
+            return false;  // cycle detected (back edge)
+        }
+        if (state[node] === DONE) {
+            return true;   // already fully processed
+        }
+
+        state[node] = IN_PROGRESS;
+
+        for (const neighbor of graph[node]) {
+            if (!dfs(neighbor)) {
+                return false;
+            }
+        }
+
+        state[node] = DONE;
+        order.push(node);  // post-order: add after all children
+        return true;
+    }
+
+    forEachBetween(0, numNodes, (i) => {
+        if (state[i] === UNVISITED) {
+            if (!dfs(i)) {
+                return [];
+            }
+        }
+    });
 
     return order.reverse();
 }`,
@@ -7258,6 +9728,261 @@ class H2O {
             this.hydrogenQueue.shift()();
             this.oxygenQueue.shift()();
         }
+    }
+}
+
+// Dining Philosophers (#1226)
+// Limit concurrency to 4 to prevent deadlock with 5 forks
+class DiningPhilosophers {
+    constructor() {
+        this.forks = Array.from({ length: 5 }, () => ({ locked: false, waiters: [] }));
+        this.seats = 4;
+        this.seatedCount = 0;
+        this.seatWaiters = [];
+    }
+    async acquireFork(index) {
+        while (this.forks[index].locked) {
+            await new Promise(r => this.forks[index].waiters.push(r));
+        }
+        this.forks[index].locked = true;
+    }
+    releaseFork(index) {
+        this.forks[index].locked = false;
+        if (this.forks[index].waiters.length > 0) {
+            this.forks[index].waiters.shift()();
+        }
+    }
+    async wantsToEat(philosopher, pickLeftFork, pickRightFork, eat, putLeftFork, putRightFork) {
+        // Limit to 4 seated to prevent deadlock
+        while (this.seatedCount >= this.seats) {
+            await new Promise(r => this.seatWaiters.push(r));
+        }
+        this.seatedCount++;
+
+        const left = philosopher;
+        const right = (philosopher + 1) % 5;
+
+        await this.acquireFork(left);
+        pickLeftFork();
+        await this.acquireFork(right);
+        pickRightFork();
+
+        eat();
+
+        putLeftFork();
+        this.releaseFork(left);
+        putRightFork();
+        this.releaseFork(right);
+
+        this.seatedCount--;
+        if (this.seatWaiters.length > 0) {
+            this.seatWaiters.shift()();
+        }
+    }
+}`,
+    jsTemplateReadable: `// (Uses shared helpers defined in Arrays & Hashing)
+
+// JavaScript concurrency uses Promises and async/await.
+// In interviews, these patterns map to Python's threading primitives.
+// The key concepts are the same: ordering, mutual exclusion, coordination.
+
+// ============================================================
+// TEMPLATE 1: Sequential Ordering (Promise chain)
+// Equivalent to Python's threading.Event chain
+// ============================================================
+class Sequential {
+    constructor() {
+        // Create two "gates": each is a Promise whose resolve function is stored
+        this.p1 = new Promise(resolve => {
+            this.r1 = resolve;  // calling r1() opens the gate for step2
+        });
+        this.p2 = new Promise(resolve => {
+            this.r2 = resolve;  // calling r2() opens the gate for step3
+        });
+    }
+
+    // step1 runs freely; it opens the gate for step2 when done
+    step1(action) {
+        action();
+        this.r1();  // signal: step1 is done
+    }
+
+    // step2 waits for step1 to finish before running
+    async step2(action) {
+        await this.p1;  // block until r1() is called
+        action();
+        this.r2();      // signal: step2 is done
+    }
+
+    // step3 waits for step2 to finish before running
+    async step3(action) {
+        await this.p2;  // block until r2() is called
+        action();
+    }
+}
+
+// ============================================================
+// TEMPLATE 2: Alternating execution (ping-pong)
+// Equivalent to Python's two-semaphore pattern
+// ============================================================
+class Alternating {
+    constructor(n) {
+        this.n = n;
+        this.turn = 'a';  // tracks whose turn it is
+    }
+
+    async threadA(action) {
+        await forEachBetween(0, this.n, async (i) => {
+            // Spin-wait until it's A's turn (yields control each iteration)
+            while (this.turn !== 'a') {
+                await new Promise(r => setTimeout(r, 0));
+            }
+            action();
+            this.turn = 'b';  // pass the turn to B
+        });
+    }
+
+    async threadB(action) {
+        await forEachBetween(0, this.n, async (i) => {
+            while (this.turn !== 'b') {
+                await new Promise(r => setTimeout(r, 0));
+            }
+            action();
+            this.turn = 'a';  // pass the turn back to A
+        });
+    }
+}
+
+// ============================================================
+// TEMPLATE 3: Producer-Consumer (bounded async queue)
+// Equivalent to Python's two-semaphore + lock pattern
+// ============================================================
+class AsyncQueue {
+    constructor(capacity) {
+        this.capacity = capacity;
+        this.queue = [];
+        // Waiting lists act as semaphore queues
+        this.waitingProducers = [];
+        this.waitingConsumers = [];
+    }
+
+    async enqueue(item) {
+        // Block if queue is full (like semaphore.empty_slots.acquire())
+        while (this.queue.length >= this.capacity) {
+            await new Promise(resolve => this.waitingProducers.push(resolve));
+        }
+
+        this.queue.push(item);
+
+        // Wake up a waiting consumer if any
+        if (this.waitingConsumers.length > 0) {
+            this.waitingConsumers.shift()();
+        }
+    }
+
+    async dequeue() {
+        // Block if queue is empty (like semaphore.full_slots.acquire())
+        while (this.queue.length === 0) {
+            await new Promise(resolve => this.waitingConsumers.push(resolve));
+        }
+
+        const item = this.queue.shift();
+
+        // Wake up a waiting producer if any
+        if (this.waitingProducers.length > 0) {
+            this.waitingProducers.shift()();
+        }
+
+        return item;
+    }
+}
+
+// ============================================================
+// TEMPLATE 4: Web Workers (true parallelism in JS)
+// ============================================================
+// Main thread:
+//   const worker = new Worker('worker.js');
+//   worker.postMessage({ task: 'compute', data: [1, 2, 3] });
+//   worker.onmessage = (e) => {
+//       console.log('Result:', e.data.result);
+//   };
+//
+// worker.js (runs in separate thread):
+//   self.onmessage = (e) => {
+//       const result = heavyComputation(e.data);
+//       self.postMessage({ result });
+//   };
+
+// Print in Order (#1114)
+// Two promise gates enforce first → second → third
+class PrintInOrder {
+    constructor() {
+        this.firstDone = new Promise(resolve => { this.resolveFirst = resolve; });
+        this.secondDone = new Promise(resolve => { this.resolveSecond = resolve; });
+    }
+    first(printFirst) {
+        printFirst();
+        this.resolveFirst();
+    }
+    async second(printSecond) {
+        await this.firstDone;
+        printSecond();
+        this.resolveSecond();
+    }
+    async third(printThird) {
+        await this.secondDone;
+        printThird();
+    }
+}
+
+// FooBar Alternately (#1115)
+// Two flags alternate who runs next
+class FooBar {
+    constructor(n) {
+        this.n = n;
+        this.fooTurn = true;
+    }
+    async foo(printFoo) {
+        await forEachBetween(0, this.n, async (i) => {
+            while (!this.fooTurn) {
+                await new Promise(r => setTimeout(r, 0));
+            }
+            printFoo();
+            this.fooTurn = false;
+        });
+    }
+    async bar(printBar) {
+        await forEachBetween(0, this.n, async (i) => {
+            while (this.fooTurn) {
+                await new Promise(r => setTimeout(r, 0));
+            }
+            printBar();
+            this.fooTurn = true;
+        });
+    }
+}
+
+// Building H2O (#1117)
+// Queue hydrogen and oxygen; flush when 2H + 1O available
+class H2O {
+    constructor() {
+        this.hydrogenQueue = [];
+        this.oxygenQueue = [];
+    }
+    hydrogen(releaseHydrogen) {
+        this.hydrogenQueue.push(releaseHydrogen);
+        this.tryFormWater();
+    }
+    oxygen(releaseOxygen) {
+        this.oxygenQueue.push(releaseOxygen);
+        this.tryFormWater();
+    }
+    tryFormWater() {
+        repeatWhile(() => this.hydrogenQueue.length >= 2 && this.oxygenQueue.length >= 1, () => {
+            this.hydrogenQueue.shift()();
+            this.hydrogenQueue.shift()();
+            this.oxygenQueue.shift()();
+        });
     }
 }
 
