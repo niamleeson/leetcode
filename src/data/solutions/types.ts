@@ -6,6 +6,7 @@ export interface ProblemSolution {
   approach: string;
   code: string;
   jsCode?: string;
+  jsWalkthrough?: string;
   explanation: string;
   timeComplexity: string;
   spaceComplexity: string;

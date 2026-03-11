@@ -4,6 +4,7 @@ export interface TopicLesson {
   keyPatterns: string[];
   template: string;       // Python code template
   jsTemplate?: string;    // JavaScript code template
+  jsTemplateWalkthrough?: string;  // Step-by-step walkthrough for JS template
   complexity: string;
   commonMistakes: string[];
   tips: string[];
@@ -55,38 +56,104 @@ def subarray_sum(nums, k):
     jsTemplate: `// Two Sum pattern - complement lookup
 function twoSum(nums, target) {
     const seen = new Map(); // value -> index
+
     for (let i = 0; i < nums.length; i++) {
-        const complement = target - nums[i];
+        const currentNum = nums[i];
+        const complement = target - currentNum;
+
+        // Check if the partner number was already seen
         if (seen.has(complement)) {
-            return [seen.get(complement), i];
+            const partnerIndex = seen.get(complement);
+            return [partnerIndex, i];
         }
-        seen.set(nums[i], i);
+
+        // Remember this number and its index
+        seen.set(currentNum, i);
     }
 }
 
-// Frequency count pattern
+// Frequency count pattern (bucket sort)
 function topKFrequent(nums, k) {
+    // Step 1: Count how often each number appears
     const count = new Map();
     for (const num of nums) {
-        count.set(num, (count.get(num) || 0) + 1);
+        const current = count.get(num) || 0;
+        count.set(num, current + 1);
     }
-    return [...count.entries()]
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, k)
-        .map(([num]) => num);
+
+    // Step 2: Create buckets where index = frequency
+    const buckets = Array.from({ length: nums.length + 1 }, () => []);
+    for (const [num, freq] of count) {
+        buckets[freq].push(num);
+    }
+
+    // Step 3: Walk backwards from highest frequency
+    const result = [];
+    for (let freq = buckets.length - 1; freq > 0; freq--) {
+        for (const num of buckets[freq]) {
+            result.push(num);
+            if (result.length === k) {
+                return result;
+            }
+        }
+    }
+    return result;
 }
 
 // Prefix sum pattern
 function subarraySum(nums, k) {
-    const prefix = new Map([[0, 1]]); // prefixSum -> count
-    let currSum = 0, count = 0;
+    // Map: prefix sum -> how many times we've seen it
+    const prefix = new Map();
+    prefix.set(0, 1);  // empty prefix has sum 0
+
+    let currSum = 0;
+    let count = 0;
+
     for (const num of nums) {
-        currSum += num;
-        count += prefix.get(currSum - k) || 0;
-        prefix.set(currSum, (prefix.get(currSum) || 0) + 1);
+        currSum = currSum + num;
+
+        // How many earlier prefix sums equal (currSum - k)?
+        const target = currSum - k;
+        const matches = prefix.get(target) || 0;
+        count = count + matches;
+
+        // Record this prefix sum
+        const existing = prefix.get(currSum) || 0;
+        prefix.set(currSum, existing + 1);
     }
     return count;
 }`,
+    jsTemplateWalkthrough:
+      '── Two Sum ──\n' +
+      'nums = [2, 7, 11, 15], target = 9\n\n' +
+      'i=0: currentNum=2, complement=9-2=7\n' +
+      '     seen has 7? No → seen: {2→0}\n\n' +
+      'i=1: currentNum=7, complement=9-7=2\n' +
+      '     seen has 2? Yes, at index 0\n' +
+      '     return [0, 1]\n\n' +
+      '── Top K Frequent (Bucket Sort) ──\n' +
+      'nums = [1,1,1,2,2,3], k = 2\n\n' +
+      'Step 1 — count: {1:3, 2:2, 3:1}\n\n' +
+      'Step 2 — buckets (index = frequency):\n' +
+      '  buckets[1] = [3]\n' +
+      '  buckets[2] = [2]\n' +
+      '  buckets[3] = [1]\n\n' +
+      'Step 3 — walk backwards:\n' +
+      '  freq=3: push 1 → result=[1]\n' +
+      '  freq=2: push 2 → result=[1,2], length===k → return!\n\n' +
+      '── Prefix Sum ──\n' +
+      'nums = [1, 1, 1], k = 2\n' +
+      'prefix = {0: 1}\n\n' +
+      'num=1: currSum=1, target=1-2=-1\n' +
+      '       prefix has -1? No → matches=0\n' +
+      '       count=0, prefix={0:1, 1:1}\n\n' +
+      'num=1: currSum=2, target=2-2=0\n' +
+      '       prefix has 0? Yes (1 time) → matches=1\n' +
+      '       count=1, prefix={0:1, 1:1, 2:1}\n\n' +
+      'num=1: currSum=3, target=3-2=1\n' +
+      '       prefix has 1? Yes (1 time) → matches=1\n' +
+      '       count=2, prefix={0:1, 1:1, 2:1, 3:1}\n\n' +
+      'return 2  (subarrays [1,1] at idx 0-1 and idx 1-2)',
     complexity: 'Most hash map solutions: O(n) time, O(n) space. Prefix sum: O(n) time, O(n) space.',
     commonMistakes: [
       'Forgetting to handle duplicate keys in hash map',

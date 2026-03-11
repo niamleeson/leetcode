@@ -98,7 +98,7 @@ export default function ProblemPage({ getProgress, onRate, onUpdateNotes, onRese
   const { id } = useParams();
   const [showNotes, setShowNotes] = useState(false);
   const [revealedHints, setRevealedHints] = useState(0);
-  const [language, setLanguage] = useLocalStorage<'python' | 'javascript'>('lc-language', 'python');
+  const [language, setLanguage] = useLocalStorage<'python' | 'javascript'>('lc-language', 'javascript');
 
   const problemId = Number(id);
   const problem = uniqueProblems.find(p => p.id === problemId);
@@ -192,16 +192,6 @@ export default function ProblemPage({ getProgress, onRate, onUpdateNotes, onRese
               </h2>
               <div className="flex items-center bg-gray-800 rounded-md p-0.5 text-xs">
                 <button
-                  onClick={() => setLanguage('python')}
-                  className={`px-2.5 py-1 rounded transition-colors ${
-                    language === 'python'
-                      ? 'bg-gray-600 text-white'
-                      : 'text-gray-400 hover:text-gray-200'
-                  }`}
-                >
-                  Python
-                </button>
-                <button
                   onClick={() => setLanguage('javascript')}
                   className={`px-2.5 py-1 rounded transition-colors ${
                     language === 'javascript'
@@ -211,6 +201,16 @@ export default function ProblemPage({ getProgress, onRate, onUpdateNotes, onRese
                 >
                   JavaScript
                 </button>
+                <button
+                  onClick={() => setLanguage('python')}
+                  className={`px-2.5 py-1 rounded transition-colors ${
+                    language === 'python'
+                      ? 'bg-gray-600 text-white'
+                      : 'text-gray-400 hover:text-gray-200'
+                  }`}
+                >
+                  Python
+                </button>
               </div>
             </div>
             <CodeBlock
@@ -219,6 +219,12 @@ export default function ProblemPage({ getProgress, onRate, onUpdateNotes, onRese
             />
             {language === 'javascript' && !solution.jsCode && (
               <p className="text-xs text-gray-500 mt-1">JavaScript solution not available, showing Python.</p>
+            )}
+            {language === 'javascript' && solution.jsWalkthrough && (
+              <div className="mt-3 bg-gray-950 border border-sky-900/30 rounded-md p-4 text-sm leading-relaxed">
+                <h3 className="text-xs font-semibold text-sky-400 uppercase tracking-wider mb-3">Step-by-Step Walkthrough</h3>
+                <pre className="text-sky-200/90 whitespace-pre-wrap font-mono text-xs leading-relaxed">{solution.jsWalkthrough}</pre>
+              </div>
             )}
           </section>
 

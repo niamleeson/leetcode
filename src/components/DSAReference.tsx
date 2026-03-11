@@ -60,16 +60,6 @@ function LanguageToggle({ language, setLanguage }: {
   return (
     <div className="inline-flex rounded-md bg-gray-800 p-0.5">
       <button
-        onClick={() => setLanguage('python')}
-        className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
-          language === 'python'
-            ? 'bg-blue-600 text-white'
-            : 'text-gray-400 hover:text-gray-200'
-        }`}
-      >
-        Python
-      </button>
-      <button
         onClick={() => setLanguage('javascript')}
         className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
           language === 'javascript'
@@ -78,6 +68,16 @@ function LanguageToggle({ language, setLanguage }: {
         }`}
       >
         JavaScript
+      </button>
+      <button
+        onClick={() => setLanguage('python')}
+        className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
+          language === 'python'
+            ? 'bg-blue-600 text-white'
+            : 'text-gray-400 hover:text-gray-200'
+        }`}
+      >
+        Python
       </button>
     </div>
   );
@@ -195,6 +195,12 @@ function TopicCard({ lesson, language, setLanguage }: {
                     JavaScript template not available for this topic. Showing Python.
                   </p>
                 )}
+                {showJs && lesson.jsTemplateWalkthrough && (
+                  <div className="mt-3 bg-gray-950 border border-sky-900/30 rounded-md p-4 text-sm leading-relaxed">
+                    <h4 className="text-xs font-semibold text-sky-400 uppercase tracking-wider mb-3">Step-by-Step Walkthrough</h4>
+                    <pre className="text-sky-200/90 whitespace-pre-wrap font-mono text-xs leading-relaxed">{lesson.jsTemplateWalkthrough}</pre>
+                  </div>
+                )}
               </div>
             )}
 
@@ -274,7 +280,7 @@ function AllMnemonics() {
 }
 
 export default function DSAReference() {
-  const [language, setLanguage] = useLocalStorage<'python' | 'javascript'>('lc-language', 'python');
+  const [language, setLanguage] = useLocalStorage<'python' | 'javascript'>('lc-language', 'javascript');
   const [view, setView] = useState<'topics' | 'mnemonics'>('topics');
 
   return (
