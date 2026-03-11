@@ -25,6 +25,8 @@ function slugToTopic(slug: string): Topic | null {
 
 export { topicToSlug, slugToTopic };
 
+const ENABLE_ASK_CLAUDE = import.meta.env.DEV;
+
 export default function App() {
   const store = useAppStore();
   const [highlighted, setHighlighted] = useState('');
@@ -37,6 +39,8 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (!ENABLE_ASK_CLAUDE) return;
+
     const handleMouseUp = () => {
       // Don't replace panel while a request is pending
       if (panelLockedRef.current) return;
@@ -142,8 +146,8 @@ export default function App() {
         </Routes>
       </main>
 
-      {/* Ask Claude panel - appears on text selection */}
-      {highlighted && panelPos && (
+      {/* Ask Claude panel - appears on text selection (dev only) */}
+      {ENABLE_ASK_CLAUDE && highlighted && panelPos && (
         <div data-ask-claude-panel>
           <AskClaudePanel
             highlighted={highlighted}

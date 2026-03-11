@@ -80,6 +80,11 @@ export default function GlossaryHighlighter({ text, className }: { text: string;
 
   const handleClose = useCallback(() => setActiveTooltip(null), []);
 
+  // In production builds, render plain text (no highlighting/tooltips)
+  if (!import.meta.env.DEV) {
+    return <span className={className}>{text}</span>;
+  }
+
   if (!entries.length) {
     return <span className={className}>{text}</span>;
   }
