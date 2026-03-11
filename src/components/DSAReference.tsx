@@ -220,55 +220,7 @@ function TopicCard({ lesson, language, setLanguage }: {
   );
 }
 
-function parseMemoSections(text: string) {
-  const templateMarker = 'TEMPLATE-BY-TEMPLATE MEMORIZATION:';
-  const idx = text.indexOf(templateMarker);
-  if (idx === -1) return { general: text.trim(), templates: [] };
 
-  const general = text.slice(0, idx).trim();
-  const templateBlock = text.slice(idx + templateMarker.length).trim();
-
-  // Split into individual function entries — each starts with a name followed by " — O("
-  const entries: { name: string; body: string }[] = [];
-  const lines = templateBlock.split('\n');
-  let currentName = '';
-  let currentLines: string[] = [];
-
-  for (const line of lines) {
-    // Detect function header: starts with non-space, contains " — O(" or " — O(1)"
-    const headerMatch = line.match(/^(\S[^—]*)\s*—\s*O\(/);
-    if (headerMatch) {
-      if (currentName) {
-        entries.push({ name: currentName, body: currentLines.join('\n').trim() });
-      }
-      currentName = headerMatch[1].trim();
-      currentLines = [line];
-    } else {
-      currentLines.push(line);
-    }
-  }
-  if (currentName) {
-    entries.push({ name: currentName, body: currentLines.join('\n').trim() });
-  }
-
-  return { general, templates: entries };
-}
-
-function MemoAccordion({ title, children, defaultOpen = false, id }: { title: string; children: React.ReactNode; defaultOpen?: boolean; id?: string }) {
-  const [open, setOpen] = useState(defaultOpen);
-  return (
-    <div id={id} className="scroll-mt-4">
-      <button
-        onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between py-2 px-3 rounded-md bg-gray-800/50 hover:bg-gray-800 transition-colors cursor-pointer"
-      >
-        <span className="text-sm font-semibold text-gray-300">{title}</span>
-        <span className="text-gray-500 text-xs">{open ? '▾' : '▸'}</span>
-      </button>
-      {open && <div className="mt-2 pl-3 border-l border-gray-800">{children}</div>}
-    </div>
-  );
-}
 
 function AllMnemonics() {
   const allTopics = DSA_CATEGORIES.flatMap(c => c.topics);
@@ -335,7 +287,6 @@ function AllMnemonics() {
               {topicsWithMnemonics.map(topicName => {
                 const lesson = lessons[topicName]!;
                 const isOpen = openTopics.has(topicName);
-                const { general, templates } = parseMemoSections(lesson.memorization!);
 
                 return (
                   <div
