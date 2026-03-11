@@ -216,7 +216,13 @@ For Prefix Sum, remember the equation:
   subarray_sum(i, j) = prefix[j] - prefix[i]
 Initialize with {0: 1} because an empty prefix sums to 0.
 
-VISUAL ANCHOR: Picture a dictionary/phonebook. Instead of scanning every entry (O(n^2)), you flip directly to the right page (O(1) lookup). That's what hash maps do.`,
+VISUAL ANCHOR: Picture a dictionary/phonebook. Instead of scanning every entry (O(n^2)), you flip directly to the right page (O(1) lookup). That's what hash maps do.
+
+PREFIX/SUFFIX PRODUCTS (Product of Array Except Self):
+  Two passes: left-to-right builds prefix, right-to-left multiplies suffix.
+  result[i] = (product of everything left of i) × (product of everything right of i)
+  Mnemonic: "Sweep left, sweep right, multiply"
+  Key trick: No division needed! Two O(n) passes = O(n) total.`,
   },
 
   'Two Pointers': {
@@ -457,7 +463,18 @@ This one sentence IS the algorithm. If sum < target, you need bigger (left++). I
 For 3Sum: "Fix one, two-pointer the rest, skip duplicates."
   - Outer loop: fix nums[i]
   - Inner: two-pointer on [i+1 ... n-1]
-  - Skip: if nums[i] == nums[i-1], continue`,
+  - Skip: if nums[i] == nums[i-1], continue
+
+TRAPPING RAIN WATER (two-pointer approach):
+  Water at position i = min(leftMax, rightMax) - height[i]
+  Move the SHORTER side inward (same logic as Container With Most Water).
+  Mnemonic: "Water is limited by the shorter wall. Move the short side."
+
+  Template:
+    left=0, right=n-1, leftMax=0, rightMax=0
+    while left < right:
+        if height[left] < height[right]: process left side
+        else: process right side`,
   },
 
   'Sliding Window': {
@@ -2607,7 +2624,20 @@ DIJKSTRA (memorize as "greedy BFS with a heap"):
   Key: skip if already found shorter (lazy deletion)
 
 GRID PROBLEMS: "It's just a graph where neighbors are up/down/left/right"
-  dirs = [(0,1),(0,-1),(1,0),(-1,0)]`,
+  dirs = [(0,1),(0,-1),(1,0),(-1,0)]
+
+MULTI-SOURCE BFS (Rotting Oranges):
+  "Start BFS from ALL sources at once, not just one."
+  1. Collect all starting points into the queue
+  2. BFS level by level (each level = 1 time unit)
+  3. Count remaining unvisited targets
+  Mnemonic: "Fire spreads from ALL flames simultaneously."
+
+CLONE GRAPH:
+  "HashMap = translation table from old → new."
+  DFS/BFS: visit each node, create its clone, store in map.
+  When wiring neighbors, look up the clone in the map.
+  Mnemonic: "Copy the person, then copy their contacts."`,
   },
 
   'Dynamic Programming': {
@@ -2984,7 +3014,31 @@ STARTING STRATEGY: Can't figure out the DP? Write brute-force recursion first, t
 
 0/1 vs UNBOUNDED KNAPSACK:
   0/1 (each item once): inner loop goes BACKWARD
-  Unbounded (reuse items): inner loop goes FORWARD`,
+  Unbounded (reuse items): inner loop goes FORWARD
+
+KADANE'S ALGORITHM (Maximum Subarray):
+  "Negative sum? Start fresh. Always track the best."
+  if curSum < 0: curSum = 0
+  curSum += num
+  maxSum = max(maxSum, curSum)
+
+EDIT DISTANCE:
+  "Match? Diagonal free. Mismatch? 1 + min(insert, delete, replace)"
+  insert = dp[i][j-1], delete = dp[i-1][j], replace = dp[i-1][j-1]
+  Base cases: dp[i][0] = i (delete all), dp[0][j] = j (insert all)
+
+LONGEST INCREASING SUBSEQUENCE (O(n log n)):
+  "Patience sorting: maintain smallest possible tails."
+  tails[i] = smallest ending value for IS of length i+1
+  Binary search where each num goes. Length of tails = LIS length.
+  Mnemonic: "Card game — place on leftmost valid pile, or start new pile."
+
+BUY/SELL STOCK STATE MACHINE:
+  Three states: hold, sold, rest
+  hold = max(prevHold, prevRest - price)  — keep holding or buy from rest
+  sold = prevHold + price                  — sell what we hold
+  rest = max(prevRest, prevSold)           — stay resting or cooldown from sold
+  Mnemonic: "Hold/Sold/Rest — each day pick the best transition."`,
   },
 
   'Greedy': {
@@ -6302,6 +6356,28 @@ DEADLOCK PREVENTION (memorize the 4 conditions, break ANY one):
   3. No preemption       → allow timeouts / try-lock
   4. Circular wait       → order resources OR limit concurrency (Semaphore(n-1))
 
-Mnemonic: "MHNC" - Mutual exclusion, Hold-and-wait, No preemption, Circular wait`,
+Mnemonic: "MHNC" - Mutual exclusion, Hold-and-wait, No preemption, Circular wait
+
+PER-PROBLEM MEMORY TRICKS:
+
+PRINT IN ORDER (#1114):
+  "Chain of promises: each step resolves the next gate."
+  2 promises, 2 resolvers. first() fires resolver1, second() awaits promise1 then fires resolver2.
+  Mnemonic: "Relay race — pass the baton."
+
+FOOBAR ALTERNATELY (#1115):
+  "Boolean flag ping-pong: fooTurn=true/false."
+  Each loop iteration: spin-wait until it's your turn, do work, flip the flag.
+  Mnemonic: "Tennis — hit the ball, wait for return."
+
+BUILDING H2O (#1117):
+  "Queue atoms, flush when recipe is ready (2H + 1O)."
+  Two queues (hydrogen, oxygen). After each enqueue, tryFormWater checks if 2H+1O available.
+  Mnemonic: "Buffet line — serve when enough ingredients."
+
+DINING PHILOSOPHERS (#1226):
+  "One less chair than people prevents deadlock."
+  Semaphore(4) with 5 forks: pigeonhole guarantees someone always gets both forks.
+  Mnemonic: "Musical chairs — 4 seats, 5 players, no deadlock."`,
   },
 };
