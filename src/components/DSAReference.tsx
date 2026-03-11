@@ -333,24 +333,155 @@ export default function DSAReference() {
         <>
           {/* Quick reference card */}
           <div className="bg-gradient-to-r from-blue-950/40 to-gray-900/40 border border-blue-900/30 rounded-lg p-4">
-            <h3 className="text-sm font-semibold text-blue-300 mb-2">Quick Decision Guide</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-gray-400">
-              <div><span className="text-blue-400">Find pair with sum?</span> → Hash Map</div>
-              <div><span className="text-blue-400">Sorted array pair?</span> → Two Pointers</div>
-              <div><span className="text-blue-400">Subarray/substring?</span> → Sliding Window</div>
-              <div><span className="text-blue-400">Nested/matching?</span> → Stack</div>
-              <div><span className="text-blue-400">Min/max feasible?</span> → Binary Search on Answer</div>
-              <div><span className="text-blue-400">Pointer dance?</span> → Linked List</div>
-              <div><span className="text-blue-400">Hierarchical?</span> → Tree (DFS/BFS)</div>
-              <div><span className="text-blue-400">Prefix lookup?</span> → Trie</div>
-              <div><span className="text-blue-400">Top-K / stream?</span> → Heap</div>
-              <div><span className="text-blue-400">All combinations?</span> → Backtracking</div>
-              <div><span className="text-blue-400">Shortest path?</span> → BFS / Dijkstra</div>
-              <div><span className="text-blue-400">Overlapping subproblems?</span> → DP</div>
-              <div><span className="text-blue-400">Local optimal = global?</span> → Greedy</div>
-              <div><span className="text-blue-400">Ranges/schedules?</span> → Intervals (sort first)</div>
-              <div><span className="text-blue-400">Find unique / toggle?</span> → Bit Manipulation (XOR)</div>
-              <div><span className="text-blue-400">Thread ordering?</span> → Semaphore / Event</div>
+            <h3 className="text-sm font-semibold text-blue-300 mb-3">Quick Decision Guide</h3>
+
+            {/* Arrays & Hashing */}
+            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mt-2 mb-1">Arrays & Hashing</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5 text-xs text-gray-400 mb-3">
+              <div><span className="text-blue-400">Find pair with target sum?</span> → Hash Map (complement lookup)</div>
+              <div><span className="text-blue-400">Count frequencies / group by?</span> → Hash Map / Counter</div>
+              <div><span className="text-blue-400">Subarray sum equals k?</span> → Prefix Sum + Hash Map</div>
+              <div><span className="text-blue-400">Product except self?</span> → Prefix / Suffix Products</div>
+              <div><span className="text-blue-400">Top-K frequent?</span> → Bucket Sort or Heap</div>
+              <div><span className="text-blue-400">Duplicates / seen before?</span> → Hash Set</div>
+            </div>
+
+            {/* Two Pointers & Sliding Window */}
+            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Two Pointers & Sliding Window</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5 text-xs text-gray-400 mb-3">
+              <div><span className="text-blue-400">Sorted array, find pair?</span> → Two Pointers (opposite ends)</div>
+              <div><span className="text-blue-400">3Sum / triplets?</span> → Fix one + Two Pointers on rest</div>
+              <div><span className="text-blue-400">Container / trapping water?</span> → Two Pointers (move shorter side)</div>
+              <div><span className="text-blue-400">Remove duplicates in-place?</span> → Slow/Fast pointers</div>
+              <div><span className="text-blue-400">Longest substring/subarray?</span> → Sliding Window (expand right, shrink left)</div>
+              <div><span className="text-blue-400">Shortest/minimum window?</span> → Sliding Window (shrink while valid)</div>
+              <div><span className="text-blue-400">Fixed-size window max/sum?</span> → Sliding Window (slide, add right, drop left)</div>
+              <div><span className="text-blue-400">Anagram / permutation in string?</span> → Sliding Window + Frequency Map</div>
+            </div>
+
+            {/* Stack */}
+            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Stack</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5 text-xs text-gray-400 mb-3">
+              <div><span className="text-blue-400">Matching brackets / nesting?</span> → Stack (push open, pop on close)</div>
+              <div><span className="text-blue-400">Next greater / warmer element?</span> → Monotonic Decreasing Stack</div>
+              <div><span className="text-blue-400">Next smaller element?</span> → Monotonic Increasing Stack</div>
+              <div><span className="text-blue-400">Largest rectangle in histogram?</span> → Monotonic Stack (find boundaries)</div>
+              <div><span className="text-blue-400">Evaluate expression / RPN?</span> → Stack (operands + operators)</div>
+              <div><span className="text-blue-400">Decode nested string?</span> → Stack (track context layers)</div>
+              <div><span className="text-blue-400">Min stack / special stack?</span> → Two stacks (main + min tracker)</div>
+            </div>
+
+            {/* Binary Search */}
+            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Binary Search</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5 text-xs text-gray-400 mb-3">
+              <div><span className="text-blue-400">Find target in sorted array?</span> → Classic Binary Search (left &lt;= right)</div>
+              <div><span className="text-blue-400">First/last position of X?</span> → Boundary Binary Search (left &lt; right)</div>
+              <div><span className="text-blue-400">"Minimum X such that..."?</span> → Binary Search on Answer</div>
+              <div><span className="text-blue-400">Search in rotated array?</span> → Binary Search (find sorted half first)</div>
+              <div><span className="text-blue-400">Koko / ship packages / split array?</span> → Binary Search on Answer + feasibility check</div>
+            </div>
+
+            {/* Linked List */}
+            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Linked List</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5 text-xs text-gray-400 mb-3">
+              <div><span className="text-blue-400">Reverse a list?</span> → Iterative: prev/curr/next dance</div>
+              <div><span className="text-blue-400">Detect cycle?</span> → Fast/Slow pointers (Floyd&apos;s)</div>
+              <div><span className="text-blue-400">Find middle?</span> → Fast/Slow pointers</div>
+              <div><span className="text-blue-400">Merge sorted lists?</span> → Dummy head + compare heads</div>
+              <div><span className="text-blue-400">Remove nth from end?</span> → Two pointers with n-gap</div>
+              <div><span className="text-blue-400">Reorder / rearrange?</span> → Find middle → reverse 2nd half → merge</div>
+              <div><span className="text-blue-400">Deep copy with random pointers?</span> → Hash Map (old → new)</div>
+              <div><span className="text-blue-400">LRU Cache?</span> → Hash Map + Doubly Linked List</div>
+            </div>
+
+            {/* Trees */}
+            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Trees</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5 text-xs text-gray-400 mb-3">
+              <div><span className="text-blue-400">Depth / height / balanced?</span> → DFS (recursive: base case + combine)</div>
+              <div><span className="text-blue-400">Level-by-level traversal?</span> → BFS (queue, process per level)</div>
+              <div><span className="text-blue-400">Validate BST?</span> → DFS with min/max bounds</div>
+              <div><span className="text-blue-400">Lowest common ancestor?</span> → DFS (found left? found right? → root)</div>
+              <div><span className="text-blue-400">Diameter / path sum?</span> → DFS with global max tracking</div>
+              <div><span className="text-blue-400">Serialize / deserialize?</span> → Preorder + null markers</div>
+              <div><span className="text-blue-400">Prefix lookup / autocomplete?</span> → Trie (char-by-char tree)</div>
+            </div>
+
+            {/* Heap */}
+            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Heap / Priority Queue</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5 text-xs text-gray-400 mb-3">
+              <div><span className="text-blue-400">Top-K elements?</span> → Min-Heap of size K</div>
+              <div><span className="text-blue-400">Merge K sorted things?</span> → Min-Heap (push heads, pop smallest)</div>
+              <div><span className="text-blue-400">Find running median?</span> → Two Heaps (max-heap left + min-heap right)</div>
+              <div><span className="text-blue-400">Task scheduler / cooldown?</span> → Max-Heap (pick most frequent)</div>
+            </div>
+
+            {/* Graph */}
+            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Graphs</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5 text-xs text-gray-400 mb-3">
+              <div><span className="text-blue-400">Shortest path (unweighted)?</span> → BFS</div>
+              <div><span className="text-blue-400">Shortest path (weighted)?</span> → Dijkstra (min-heap)</div>
+              <div><span className="text-blue-400">Connected components / islands?</span> → BFS/DFS or Union-Find</div>
+              <div><span className="text-blue-400">Spread from multiple sources?</span> → Multi-source BFS</div>
+              <div><span className="text-blue-400">Clone / deep copy graph?</span> → DFS/BFS + Hash Map (old → new)</div>
+              <div><span className="text-blue-400">Dependency order?</span> → Topological Sort (Kahn&apos;s BFS)</div>
+              <div><span className="text-blue-400">Cycle in directed graph?</span> → Topo sort (incomplete = cycle) or 3-state DFS</div>
+              <div><span className="text-blue-400">Minimum cost to connect all?</span> → MST (Kruskal&apos;s or Prim&apos;s)</div>
+            </div>
+
+            {/* Backtracking */}
+            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Backtracking</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5 text-xs text-gray-400 mb-3">
+              <div><span className="text-blue-400">All subsets / power set?</span> → Backtrack (record at every node)</div>
+              <div><span className="text-blue-400">All permutations?</span> → Backtrack (used set, try all positions)</div>
+              <div><span className="text-blue-400">Combinations that sum to target?</span> → Backtrack (start index, remaining)</div>
+              <div><span className="text-blue-400">With duplicates?</span> → Sort + skip if nums[i] === nums[i-1]</div>
+              <div><span className="text-blue-400">Place queens / sudoku?</span> → Backtrack + constraint sets</div>
+              <div><span className="text-blue-400">Word search on grid?</span> → DFS backtrack (mark visited, restore)</div>
+            </div>
+
+            {/* DP */}
+            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Dynamic Programming</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5 text-xs text-gray-400 mb-3">
+              <div><span className="text-blue-400">Max subarray sum?</span> → Kadane&apos;s (reset if negative)</div>
+              <div><span className="text-blue-400">Climbing stairs / Fibonacci?</span> → 1D DP (dp[i] = dp[i-1] + dp[i-2])</div>
+              <div><span className="text-blue-400">Rob houses (no adjacent)?</span> → 1D DP (rob or skip)</div>
+              <div><span className="text-blue-400">Coin change / min cost?</span> → Unbounded Knapsack (forward loop)</div>
+              <div><span className="text-blue-400">Subset sum / partition?</span> → 0/1 Knapsack (backward loop)</div>
+              <div><span className="text-blue-400">Two strings (LCS, edit dist)?</span> → 2D DP (match → diagonal, else min of 3)</div>
+              <div><span className="text-blue-400">Longest increasing subseq?</span> → Binary Search on tails (O(n log n))</div>
+              <div><span className="text-blue-400">Buy/sell stock with cooldown?</span> → State Machine DP (hold/sold/rest)</div>
+              <div><span className="text-blue-400">Can&apos;t figure out DP?</span> → Write brute-force recursion + memoize</div>
+            </div>
+
+            {/* Greedy & Intervals */}
+            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Greedy & Intervals</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5 text-xs text-gray-400 mb-3">
+              <div><span className="text-blue-400">Can reach the end?</span> → Greedy (track farthest reachable)</div>
+              <div><span className="text-blue-400">Merge overlapping intervals?</span> → Sort by start, extend end</div>
+              <div><span className="text-blue-400">Min rooms / max overlap?</span> → Sort starts + ends, sweep</div>
+              <div><span className="text-blue-400">Non-overlapping (max events)?</span> → Sort by end time, pick greedily</div>
+              <div><span className="text-blue-400">Gas station / circular route?</span> → Greedy (deficit reset)</div>
+            </div>
+
+            {/* Bit, Math, Design */}
+            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Bit Manipulation, Math & Other</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5 text-xs text-gray-400 mb-3">
+              <div><span className="text-blue-400">Find unique in pairs?</span> → XOR all elements</div>
+              <div><span className="text-blue-400">Count set bits?</span> → n &amp; (n-1) removes lowest bit</div>
+              <div><span className="text-blue-400">Rotate matrix 90°?</span> → Transpose + reverse rows</div>
+              <div><span className="text-blue-400">Spiral traversal?</span> → 4 boundaries, shrink after each pass</div>
+              <div><span className="text-blue-400">Range sum + updates?</span> → Segment Tree or BIT</div>
+              <div><span className="text-blue-400">Sliding window max/min?</span> → Monotonic Deque</div>
+            </div>
+
+            {/* Concurrency */}
+            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Concurrency</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5 text-xs text-gray-400">
+              <div><span className="text-blue-400">Enforce execution order?</span> → Promise gates / Events</div>
+              <div><span className="text-blue-400">Alternate two threads?</span> → Two semaphores (ping-pong)</div>
+              <div><span className="text-blue-400">Producer-consumer / bounded queue?</span> → Semaphore(capacity) + Lock</div>
+              <div><span className="text-blue-400">Group threads (2H + 1O)?</span> → Semaphore (ratio) + Barrier (grouping)</div>
+              <div><span className="text-blue-400">Prevent deadlock?</span> → Semaphore(n-1) to break circular wait</div>
             </div>
           </div>
 
