@@ -233,13 +233,16 @@ function AllMnemonics() {
             const lesson = lessons[name];
             if (!lesson?.memorization) return null;
             return (
-              <a
+              <button
                 key={name}
-                href={`#mnemonic-${name.replace(/[^a-zA-Z0-9]/g, '-')}`}
-                className="text-xs px-2 py-1 rounded bg-gray-800 text-gray-400 hover:text-gray-300 hover:bg-gray-700/50 transition-colors"
+                onClick={() => {
+                  const el = document.getElementById(`mnemonic-${name.replace(/[^a-zA-Z0-9]/g, '-')}`);
+                  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }}
+                className="text-xs px-2 py-1 rounded bg-gray-800 text-gray-400 hover:text-gray-300 hover:bg-gray-700/50 transition-colors cursor-pointer"
               >
                 {name}
-              </a>
+              </button>
             );
           })}
         </div>
