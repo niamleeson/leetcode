@@ -7062,9 +7062,11 @@ def has_cycle(n, edges):
     find(x) {
         // Walk up to the root, compressing path along the way
         while (this.parent[x] !== x) {
-            // Path compression: point directly to grandparent
-            this.parent[x] = this.parent[this.parent[x]];
-            x = this.parent[x];
+            // Path compression: skip parent, point to grandparent
+            const parent = this.parent[x];
+            const grandparent = this.parent[parent];
+            this.parent[x] = grandparent;
+            x = grandparent;
         }
         return x;
     }
@@ -7142,9 +7144,11 @@ class UnionFind {
         repeatWhile(
             () => this.parent[x] !== x,
             () => {
-                // Path compression: point directly to grandparent
-                this.parent[x] = this.parent[this.parent[x]];
-                x = this.parent[x];
+                // Path compression: skip parent, point to grandparent
+                const parent = this.parent[x];
+                const grandparent = this.parent[parent];
+                this.parent[x] = grandparent;
+                x = grandparent;
             }
         );
         return x;
@@ -8978,8 +8982,11 @@ class UnionFind {
 
     find(x) {
         while (this.parent[x] !== x) {
-            this.parent[x] = this.parent[this.parent[x]];  // path compression
-            x = this.parent[x];
+            // Path compression: skip parent, point to grandparent
+            const parent = this.parent[x];
+            const grandparent = this.parent[parent];
+            this.parent[x] = grandparent;
+            x = grandparent;
         }
         return x;
     }
@@ -9082,8 +9089,11 @@ class UnionFind {
         repeatWhile(
             () => this.parent[x] !== x,
             () => {
-                this.parent[x] = this.parent[this.parent[x]];  // path compression
-                x = this.parent[x];
+                // Path compression: skip parent, point to grandparent
+                const parent = this.parent[x];
+                const grandparent = this.parent[parent];
+                this.parent[x] = grandparent;
+                x = grandparent;
             }
         );
         return x;
