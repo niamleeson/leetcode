@@ -7402,25 +7402,26 @@ def has_cycle(n, edges):
     }
 
     union(x, y) {
-        let rootX = this.find(x);
-        let rootY = this.find(y);
+        const rootX = this.find(x);
+        const rootY = this.find(y);
 
         // Already in the same component — no union needed
         if (rootX === rootY) {
             return false;
         }
 
-        // Union by rank: attach the shorter tree under the taller one
-        if (this.rank[rootX] < this.rank[rootY]) {
-            const temp = rootX;
-            rootX = rootY;
-            rootY = temp;
-        }
+        const rankX = this.rank[rootX];
+        const rankY = this.rank[rootY];
 
-        this.parent[rootY] = rootX;
-
-        // Only increase rank when two equal-height trees merge
-        if (this.rank[rootX] === this.rank[rootY]) {
+        if (rankX > rankY) {
+            // X is taller — attach Y under X
+            this.parent[rootY] = rootX;
+        } else if (rankY > rankX) {
+            // Y is taller — attach X under Y
+            this.parent[rootX] = rootY;
+        } else {
+            // Same height — pick X as root, height increases by 1
+            this.parent[rootY] = rootX;
             this.rank[rootX]++;
         }
 
@@ -7483,25 +7484,26 @@ class UnionFind {
     }
 
     union(x, y) {
-        let rootX = this.find(x);
-        let rootY = this.find(y);
+        const rootX = this.find(x);
+        const rootY = this.find(y);
 
         // Already in the same component — no union needed
         if (rootX === rootY) {
             return false;
         }
 
-        // Union by rank: attach the shorter tree under the taller one
-        if (this.rank[rootX] < this.rank[rootY]) {
-            const temp = rootX;
-            rootX = rootY;
-            rootY = temp;
-        }
+        const rankX = this.rank[rootX];
+        const rankY = this.rank[rootY];
 
-        this.parent[rootY] = rootX;
-
-        // Only increase rank when two equal-height trees merge
-        if (this.rank[rootX] === this.rank[rootY]) {
+        if (rankX > rankY) {
+            // X is taller — attach Y under X
+            this.parent[rootY] = rootX;
+        } else if (rankY > rankX) {
+            // Y is taller — attach X under Y
+            this.parent[rootX] = rootY;
+        } else {
+            // Same height — pick X as root, height increases by 1
+            this.parent[rootY] = rootX;
             this.rank[rootX]++;
         }
 
@@ -9465,23 +9467,25 @@ class UnionFind {
     }
 
     union(x, y) {
-        let rootX = this.find(x);
-        let rootY = this.find(y);
+        const rootX = this.find(x);
+        const rootY = this.find(y);
 
         if (rootX === rootY) {
             return false;  // already in the same component — would create a cycle
         }
 
-        // Union by rank: attach shorter tree under taller tree
-        if (this.rank[rootX] < this.rank[rootY]) {
-            const temp = rootX;
-            rootX = rootY;
-            rootY = temp;
-        }
+        const rankX = this.rank[rootX];
+        const rankY = this.rank[rootY];
 
-        this.parent[rootY] = rootX;
-
-        if (this.rank[rootX] === this.rank[rootY]) {
+        if (rankX > rankY) {
+            // X is taller — attach Y under X
+            this.parent[rootY] = rootX;
+        } else if (rankY > rankX) {
+            // Y is taller — attach X under Y
+            this.parent[rootX] = rootY;
+        } else {
+            // Same height — pick X as root, height increases by 1
+            this.parent[rootY] = rootX;
             this.rank[rootX]++;
         }
 
@@ -9569,23 +9573,25 @@ class UnionFind {
     }
 
     union(x, y) {
-        let rootX = this.find(x);
-        let rootY = this.find(y);
+        const rootX = this.find(x);
+        const rootY = this.find(y);
 
         if (rootX === rootY) {
             return false;  // already in the same component — would create a cycle
         }
 
-        // Union by rank: attach shorter tree under taller tree
-        if (this.rank[rootX] < this.rank[rootY]) {
-            const temp = rootX;
-            rootX = rootY;
-            rootY = temp;
-        }
+        const rankX = this.rank[rootX];
+        const rankY = this.rank[rootY];
 
-        this.parent[rootY] = rootX;
-
-        if (this.rank[rootX] === this.rank[rootY]) {
+        if (rankX > rankY) {
+            // X is taller — attach Y under X
+            this.parent[rootY] = rootX;
+        } else if (rankY > rankX) {
+            // Y is taller — attach X under Y
+            this.parent[rootX] = rootY;
+        } else {
+            // Same height — pick X as root, height increases by 1
+            this.parent[rootY] = rootX;
             this.rank[rootX]++;
         }
 
