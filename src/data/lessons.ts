@@ -402,6 +402,15 @@ PREFIX/SUFFIX PRODUCTS (Product of Array Except Self):
   Mnemonic: "Sweep left, sweep right, multiply"
   Key trick: No division needed! Two O(n) passes = O(n) total.
 
+
+METHOD MNEMONICS:
+  hash map (set/get): "Phone book lookup"
+    set(key, val): Store entry. get(key): Flip to the page. O(1) both.
+  
+  prefix sum: "Running total trick"
+    Build: Walk left to right, accumulate sum. Query: Subtract two prefix values.
+    prefixSum[j] - prefixSum[i] = sum of elements from i to j.
+
 TEMPLATE-BY-TEMPLATE MEMORIZATION:
 
 twoSum — O(n) time, O(n) space
@@ -878,6 +887,19 @@ TRAPPING RAIN WATER (two-pointer approach):
         if height[left] < height[right]: process left side
         else: process right side
 
+
+METHOD MNEMONICS:
+  opposite-direction: "Vise grip"
+    Start at both ends. Too small? Move left in. Too big? Move right in.
+    Always converges because one pointer moves each step.
+  
+  fast-slow (cycle detection): "Tortoise and hare"
+    Slow moves 1 step, fast moves 2. If they meet, there is a cycle.
+    To find cycle start: reset one to head, both move 1 step until they meet.
+  
+  partition (remove duplicates): "Slow writes, fast reads"
+    Slow marks where to write next. Fast scans ahead for new values.
+
 TEMPLATE-BY-TEMPLATE MEMORIZATION:
 
 twoSumSorted — O(n) time, O(1) space
@@ -1255,7 +1277,7 @@ Think of it as an inchworm crawling across the array:
 
 The template is always the same skeleton:
   left = 0
-  for right in range(n):
+  for right from 0 to n-1:
       ADD nums[right] to window
       while WINDOW IS INVALID:
           REMOVE nums[left] from window
@@ -1267,6 +1289,17 @@ Mnemonic: "ARRU" - Add Right, Remove Until valid, Update answer
 LONGEST vs SHORTEST:
   - Longest valid window: shrink only when INVALID, update answer AFTER shrinking
   - Shortest valid window: shrink while VALID, update answer BEFORE shrinking
+
+
+METHOD MNEMONICS:
+  expand (grow window): "Stretch the inchworm forward"
+    Add nums[right] to the window state. Always happens.
+  
+  shrink (contract window): "Pull the tail up"
+    Remove nums[left] from window state, left++. Repeat while invalid.
+  
+  update answer: "Snapshot the best"
+    After shrinking, the window is valid. Record its size if it beats the best.
 
 TEMPLATE-BY-TEMPLATE MEMORIZATION:
 
@@ -1618,15 +1651,29 @@ PARENTHESES (the easiest stack problem - memorize this first):
 MONOTONIC STACK (the most important pattern):
   Visualize a mountain range. You scan left to right. When you see a taller peak, all shorter peaks to its left now know their "next greater element."
 
-  for i in range(n):
-      while stack and nums[i] > nums[stack[-1]]:
+  for i from 0 to n-1:
+      while stack and nums[i] > nums[stack.top]:
           j = stack.pop()        # j found its next greater: i
           result[j] = i - j      # or nums[i], depending on problem
-      stack.append(i)
+      stack.push(i)
 
 Memory trick: "Pop the losers, push the current."
   - Next GREATER element = DECREASING stack (pop when current is bigger)
   - Next SMALLER element = INCREASING stack (pop when current is smaller)
+
+
+METHOD MNEMONICS:
+  push/pop (parentheses): "Open? Stack it. Close? Match the top."
+    Opening bracket: push. Closing bracket: pop and verify match.
+    End: stack must be empty.
+  
+  monotonic stack: "Pop the losers, push the current"
+    While top is weaker than current -> pop (they found their answer).
+    Push current (it is still waiting for its answer).
+    Next GREATER = decreasing stack. Next SMALLER = increasing stack.
+  
+  evalRPN: "Number? Push. Operator? Pop two, compute, push result."
+    Simple stack calculator. Always pop b first, then a. Compute a op b.
 
 TEMPLATE-BY-TEMPLATE MEMORIZATION:
 
@@ -2057,7 +2104,7 @@ TEMPLATE 1 - Exact match (find target):
   while left <= right:        # NOTE: <=
       mid = left + (right - left) // 2
       if nums[mid] == target: return mid
-      elif nums[mid] < target: left = mid + 1
+      else if nums[mid] < target: left = mid + 1
       else: right = mid - 1
 
 TEMPLATE 2 - Boundary/minimum feasible (find first true):
@@ -2073,6 +2120,18 @@ SEARCH ON ANSWER pattern recognition:
 When a problem says "find the MINIMUM X such that..." or "find the MAXIMUM X such that..." and you can write a function can_do(x) -> bool, it's binary search on answer.
 
 Memory trick: "Can I do it with X? Yes/No → Binary search the boundary."
+
+
+METHOD MNEMONICS:
+  exact match: "Equal? Done. Too small? Go right. Too big? Go left."
+    while left <= right. Three-way branch. Return mid or -1.
+  
+  boundary search: "True? Keep as candidate. False? Skip past."
+    while left < right. Condition true -> right = mid. False -> left = mid + 1.
+    Returns first position where condition holds.
+  
+  search on answer: "Can I do it with X? Binary search the boundary."
+    Define canDo(x) -> boolean. Binary search for the min/max valid x.
 
 TEMPLATE-BY-TEMPLATE MEMORIZATION:
 
@@ -2101,13 +2160,13 @@ firstTrue — O(log n) time, O(1) space
     lo=3, hi=5: mid=4, T -> hi=4
     lo=3, hi=4: mid=3, T -> hi=3
     lo=3 == hi=3 -> return 3
-    "False? Skip past mid (lo=mid+1). True? It might be the answer (hi=mid)."
+    "false? Skip past mid (lo=mid+1). true? It might be the answer (hi=mid)."
   Steps:
     1. Loop while lo < hi (not <=)
     2. mid = lo + Math.floor((hi - lo) / 2)
     3. condition(mid) is true → hi = mid (keep mid as candidate); else → lo = mid + 1
     4. Return lo
-  Mnemonic: "Condition true? Narrow right (hi=mid). False? Skip left (lo=mid+1)."
+  Mnemonic: "Condition true? Narrow right (hi=mid). false? Skip left (lo=mid+1)."
 
 minEatingSpeed — O(n log m) time, O(1) space
   Problem: Koko has piles of bananas and h hours. Find the minimum eating speed (bananas/hour) so she finishes all piles in time.
@@ -2537,7 +2596,7 @@ There are really only 4 operations to memorize. Use the mnemonic "RDMF":
   F - Fast/slow: cycle detection
 
 REVERSAL (the hardest to memorize - practice this one most):
-  prev = None; curr = head
+  prev = null; curr = head
   while curr:
       nxt = curr.next     # Save next
       curr.next = prev    # Reverse link
@@ -2551,6 +2610,22 @@ Or think of it as: "Look ahead, point back, step forward (x2)"
 FAST/SLOW for cycle detection:
   Tortoise and Hare - hare moves 2x. If there's a cycle, they MUST meet.
   If hare reaches null, no cycle.
+
+
+METHOD MNEMONICS:
+  reverse: "Save, flip, step, step"
+    Save next. Flip the arrow. Step prev forward. Step curr forward.
+    Four lines per iteration. Return prev at the end.
+  
+  find middle: "Tortoise and hare"
+    Slow moves 1, fast moves 2. When fast stops, slow is at middle.
+  
+  merge two sorted: "Dummy head, pick smaller, drain leftovers"
+    Create dummy node. Compare heads, attach smaller, advance that pointer.
+    When one list is empty, attach the rest of the other.
+  
+  detect cycle: "Two runners on a track"
+    Fast gains 1 step per lap. If there is a loop, they must collide.
 
 TEMPLATE-BY-TEMPLATE MEMORIZATION:
 
@@ -3030,8 +3105,8 @@ Every tree problem is one of 3 things:
   3. PATH/AGGREGATION - combine info from subtrees
 
 THE UNIVERSAL DFS SKELETON (memorize this one thing):
-  def dfs(node):
-      if not node: return BASE_CASE
+  dfs(node):
+      if node is empty: return BASE_CASE
       left = dfs(node.left)
       right = dfs(node.right)
       return COMBINE(left, right)
@@ -3042,15 +3117,31 @@ Examples of COMBINE:
   - Diameter: update global with left+right, return 1 + max(left, right)
 
 BFS SKELETON:
-  queue = deque([root])
+  queue = queue initialized with [root]
   while queue:
-      for _ in range(len(queue)):  # process one LEVEL
-          node = queue.popleft()
+      repeat queue.length times:  # process one LEVEL
+          node = queue.shift()
           # process node
-          if node.left: queue.append(node.left)
-          if node.right: queue.append(node.right)
+          if node.left: queue.push(node.left)
+          if node.right: queue.push(node.right)
 
 Memory trick: "BFS = Queue + Level loop. DFS = Recursion + Base case."
+
+
+METHOD MNEMONICS:
+  DFS (recursive): "Base case, recurse left, recurse right, combine"
+    Null node? Return base value. Otherwise recurse both children and merge results.
+    Every tree DFS is just: what to return for null, and how to combine children.
+  
+  BFS (level-order): "Snapshot size, drain level, enqueue children"
+    Record queue.length at start of level. Pop exactly that many.
+    Each popped node enqueues its children for the next level.
+  
+  validate BST: "Carry (lo, hi) range down. Tighten at each node."
+    Left child gets hi=node.val. Right child gets lo=node.val.
+  
+  LCA: "Both sides found? I am the ancestor. One side? Bubble it up."
+    Base: null or target returns self. If left AND right are non-null, current is LCA.
 
 TEMPLATE-BY-TEMPLATE MEMORIZATION:
 
@@ -3361,22 +3452,36 @@ Trie.startsWith:
     ],
     memorization: `HOW TO MEMORIZE TRIE:
 A Trie is just a tree where each edge is a character. Memorize the node:
-  class TrieNode:
+  TrieNode:
       children = {}    # char -> TrieNode
-      is_end = False   # marks end of a complete word
+      is_end = false   # marks end of a complete word
 
 All three operations (insert, search, startsWith) share the SAME walk:
   node = root
   for char in word:
-      if char not in node.children: [create or return False]
+      if char not in node.children: [create or return false]
       node = node.children[char]
 
 The only difference:
-  - insert: create missing nodes, set is_end = True at the end
-  - search: return False if missing, check is_end at the end
-  - startsWith: return False if missing, return True at the end (no is_end check)
+  - insert: create missing nodes, set is_end = true at the end
+  - search: return false if missing, check is_end at the end
+  - startsWith: return false if missing, return true at the end (no is_end check)
 
 Mnemonic: "Trie = Tree of Characters. Walk char by char."
+
+
+METHOD MNEMONICS:
+  insert(word): "Walk and build"
+    For each char: if path does not exist, create it. At the end, mark isEnd = true.
+  
+  search(word): "Walk and check end"
+    For each char: if path does not exist, return false. At the end, check isEnd.
+  
+  startsWith(prefix): "Walk and survive"
+    For each char: if path does not exist, return false. Survived = true.
+  
+  _find(str): "Walk or die"
+    For each char: follow the path or return null. Return the landing node.
 
 TEMPLATE-BY-TEMPLATE MEMORIZATION:
 
@@ -3749,14 +3854,14 @@ topKFrequent (heap/sort):
     ],
     memorization: `HOW TO MEMORIZE HEAP:
 Python heapq cheat sheet (memorize these 4 operations):
-  heapq.heappush(heap, item)    # add item
-  heapq.heappop(heap)           # remove & return smallest
+  heap.push(item)    # add item
+  heap.pop()           # remove & return smallest
   heap[0]                        # peek at smallest (don't pop)
-  heapq.heapify(list)           # convert list to heap in O(n)
+  heapify(list)           # convert list to heap in O(n)
 
 MAX-HEAP TRICK: Python only has min-heap. Negate values!
-  heapq.heappush(heap, -val)    # push negated
-  -heapq.heappop(heap)          # pop and negate back
+  heap.push(-val)    # push negated
+  -heap.pop()          # pop and negate back
 
 TWO HEAPS FOR MEDIAN (the trickiest pattern):
   Picture a see-saw: left side (max-heap) and right side (min-heap).
@@ -3766,6 +3871,26 @@ TWO HEAPS FOR MEDIAN (the trickiest pattern):
   Steps: push to left → balance by moving left-top to right → rebalance sizes
 
 Mnemonic: "Heap = always know the extreme. Min-heap = smallest on top. Negate for max."
+
+
+METHOD MNEMONICS:
+  push(val): "Add to bottom, bubble up"
+    Append to end of array. Swap with parent while smaller than parent.
+    O(log n) — at most tree height swaps.
+  
+  pop(): "Remove top, sink replacement down"
+    Save top. Move last element to top. Swap with smallest child while bigger.
+    O(log n) — sink through at most tree height levels.
+  
+  peek(): "Just look at index 0"
+    The min (or max) is always at the root. O(1).
+  
+  heapify(array): "Sink every non-leaf, bottom to top"
+    Start from last non-leaf. Sink each one down. O(n) total, not O(n log n).
+
+  Two heaps (median): "Left max-heap, right min-heap, balance sizes"
+    Push to left. Move left-top to right. If right is bigger, move right-top back to left.
+    Median = left-top (odd) or average of both tops (even).
 
 TEMPLATE-BY-TEMPLATE MEMORIZATION:
 
@@ -4213,25 +4338,40 @@ solveNQueens:
     memorization: `HOW TO MEMORIZE BACKTRACKING:
 The template is ALWAYS this skeleton - memorize it as "Choose, Explore, Unchoose":
 
-  def backtrack(start, path):
+  backtrack(start, path):
       if GOAL_REACHED:
-          result.append(path[:])   # NOTE: copy!
+          result.push(path[:])   # NOTE: copy!
           return
-      for i in range(start, len(nums)):
+      for i from start to nums.length-1:
           if SKIP_CONDITION: continue    # pruning
-          path.append(nums[i])           # CHOOSE
+          path.push(nums[i])           # CHOOSE
           backtrack(i + 1, path)          # EXPLORE (i+1 for no reuse, i for reuse)
           path.pop()                      # UNCHOOSE
 
 THREE VARIATIONS (only the loop changes):
-  Subsets/Combinations: for i in range(start, n) → no duplicates via start index
-  Permutations: for i in range(n) if not used[i] → try all positions
+  Subsets/Combinations: for i from start to n-1 → no duplicates via start index
+  Permutations: for i from 0 to n-1 if not used[i] → try all positions
   Reuse allowed: backtrack(i, path) instead of backtrack(i+1, path)
 
 DUPLICATE HANDLING: Sort first, then:
   if i > start and nums[i] == nums[i-1]: continue
 
 Mnemonic: "CEO" - Choose, Explore, unchoOse
+
+
+METHOD MNEMONICS:
+  backtrack(start, path): "Choose, Explore, Unchoose"
+    Choose: add element to path.
+    Explore: recurse with updated state.
+    Unchoose: remove element from path (restore state).
+  
+  prune: "Skip early if impossible"
+    Check constraints before recursing. Saves exponential work.
+    Duplicate skip: if i > start and nums[i] == nums[i-1], continue.
+  
+  collect result: "Copy the path, do not store a reference"
+    Always push a copy of path (spread or slice), not the path itself.
+    The path mutates as backtracking continues.
 
 TEMPLATE-BY-TEMPLATE MEMORIZATION:
 
@@ -4930,17 +5070,17 @@ cloneGraph:
 Mnemonic: "BFS = Queue = Shortest. DFS = Stack/Recursion = Explore all."
 
 BFS SKELETON (memorize for shortest path / level-order):
-  queue = deque([start])
+  queue = queue initialized with [start]
   visited = {start}
   while queue:
-      node = queue.popleft()
+      node = queue.shift()
       for neighbor in graph[node]:
           if neighbor not in visited:
               visited.add(neighbor)
-              queue.append(neighbor)
+              queue.push(neighbor)
 
 DFS SKELETON:
-  def dfs(node):
+  dfs(node):
       visited.add(node)
       for neighbor in graph[node]:
           if neighbor not in visited:
@@ -4973,6 +5113,26 @@ CLONE GRAPH:
   DFS/BFS: visit each node, create its clone, store in map.
   When wiring neighbors, look up the clone in the map.
   Mnemonic: "Copy the person, then copy their contacts."
+
+
+METHOD MNEMONICS:
+  BFS: "Queue, visit, expand neighbors"
+    Enqueue start. While queue not empty: dequeue node, process it, enqueue unvisited neighbors.
+    Guarantees shortest path in unweighted graphs.
+  
+  DFS: "Visit, recurse neighbors"
+    Mark visited. For each unvisited neighbor: recurse.
+    Good for: connectivity, cycle detection, topological order.
+  
+  Dijkstra: "Greedy BFS with a min-heap"
+    Pop cheapest [dist, node]. Skip if stale. Relax all neighbors.
+    Key: never re-process a node with a worse distance.
+  
+  multi-source BFS: "All fires burn at once"
+    Seed queue with ALL sources. BFS level by level. Each level = one time step.
+  
+  clone graph: "Copy node, recurse neighbors, wire clones"
+    Map old -> new. If already cloned, return the clone. Otherwise create, recurse, connect.
 
 TEMPLATE-BY-TEMPLATE MEMORIZATION:
 
@@ -5709,6 +5869,22 @@ BUY/SELL STOCK STATE MACHINE:
   rest = max(prevRest, prevSold)           — stay resting or cooldown from sold
   Mnemonic: "Hold/Sold/Rest — each day pick the best transition."
 
+
+METHOD MNEMONICS:
+  define state: "What do I need to know to solve subproblem i?"
+    dp[i] = answer for the first i elements (or dp[i][j] for two dimensions).
+  
+  write recurrence: "How does dp[i] depend on smaller problems?"
+    Linear: dp[i] = f(dp[i-1], dp[i-2]). Knapsack: dp[i] = min over dp[i-coin].
+    Two-string: dp[i][j] depends on dp[i-1][j], dp[i][j-1], dp[i-1][j-1].
+  
+  Kadane (max subarray): "Negative? Restart. Always track best."
+    If running sum < 0, reset to 0. Add current element. Update global max.
+  
+  LIS (binary search): "Place card on leftmost valid pile"
+    tails[i] = smallest tail for increasing subsequence of length i+1.
+    Binary search for where each number goes. tails.length = LIS length.
+
 TEMPLATE-BY-TEMPLATE MEMORIZATION:
 
 rob — O(n) time, O(1) space
@@ -6187,6 +6363,21 @@ Ask yourself: "If I make the locally best choice, can it ever hurt me later?"
 
 Mnemonic: "Greedy = sort + scan + local best choice"
 
+
+METHOD MNEMONICS:
+  jump game (farthest reach): "Extend your reach at every step"
+    farthest = max(farthest, i + nums[i]). Fell behind? Stuck.
+  
+  interval scheduling: "Sort by end, keep non-overlapping"
+    Sort by end time. If current start >= last end, take it. Otherwise skip.
+  
+  gas station (deficit reset): "Tank negative? Restart from next"
+    Running tank goes negative? Set start = i+1, reset tank.
+    Total surplus >= 0 guarantees exactly one valid start.
+  
+  partition labels: "Grow boundary to last occurrence, close when reached"
+    Track last index of each char. Extend partition end. When i == end, close partition.
+
 TEMPLATE-BY-TEMPLATE MEMORIZATION:
 
 canJump — O(n) time, O(1) space
@@ -6556,10 +6747,10 @@ MERGE TEMPLATE (memorize this, it covers most interval problems):
   intervals.sort()
   merged = [intervals[0]]
   for s, e in intervals[1:]:
-      if s <= merged[-1][1]:          # overlaps!
-          merged[-1][1] = max(merged[-1][1], e)   # extend
+      if s <= merged.top[1]:          # overlaps!
+          merged.top[1] = max(merged.top[1], e)   # extend
       else:
-          merged.append([s, e])       # new interval
+          merged.push([s, e])       # new interval
 
 MEETING ROOMS II (how many concurrent?):
 Two approaches, memorize whichever clicks:
@@ -6567,6 +6758,18 @@ Two approaches, memorize whichever clicks:
   2. Sweep line: events = [(start, +1), (end, -1)], sort, running sum, track max.
 
 Mnemonic: "Overlap = start of next <= end of current"
+
+
+METHOD MNEMONICS:
+  merge intervals: "Sort by start, extend or append"
+    Sort. If next overlaps last (next.start <= last.end), extend last.end.
+    Otherwise, start a new merged interval.
+  
+  insert interval: "Three phases: before, merge, after"
+    Copy intervals ending before new. Merge all overlapping into new. Copy remaining.
+  
+  meeting rooms: "Sort starts and ends separately, race two pointers"
+    New start before earliest end? Need a new room. Otherwise recycle.
 
 TEMPLATE-BY-TEMPLATE MEMORIZATION:
 
@@ -6940,7 +7143,7 @@ SPIRAL ORDER (memorize the 4-wall shrink):
 DIGIT EXTRACTION:
   while n > 0:
       last_digit = n % 10
-      n = n // 10
+      n = floor(n / 10)
   Mnemonic: "Mod 10 peels, Div 10 shifts"
 
 FAST POWER (x^n in O(log n)):
@@ -6949,6 +7152,21 @@ FAST POWER (x^n in O(log n)):
       if n is odd: result *= x
       x *= x; n //= 2
   Mnemonic: "Square x each time, multiply into result when bit is set"
+
+
+METHOD MNEMONICS:
+  rotate matrix 90 CW: "Transpose then reverse rows"
+    Swap matrix[i][j] with matrix[j][i], then reverse each row. Two passes, in-place.
+  
+  spiral order: "RDLU + shrink"
+    Right along top row, Down along right col, Left along bottom row, Up along left col.
+    After each direction, shrink that boundary inward.
+  
+  fast power: "Square x, halve n, multiply when odd"
+    While n > 0: if n is odd, multiply result by x. Square x, halve n.
+  
+  digit extraction: "Mod peels, divide shifts"
+    n % 10 = last digit. floor(n / 10) = remove last digit.
 
 TEMPLATE-BY-TEMPLATE MEMORIZATION:
 
@@ -7252,6 +7470,21 @@ THE 3 TRICKS YOU NEED (covers 90% of bit problems):
      Set bit i: n | (1 << i)
 
 Mnemonic: "XOR cancels twins. AND(n, n-1) kills the lowest bit."
+
+
+METHOD MNEMONICS:
+  XOR scan: "XOR all elements — twins cancel, loner survives"
+    result = 0. For each num: result ^= num. Duplicates become 0.
+  
+  count set bits: "Kill the lowest bit, count kills"
+    While n != 0: n = n & (n-1), count++.
+    n & (n-1) clears exactly one bit per step.
+  
+  check power of 2: "n > 0 and n & (n-1) == 0"
+    Powers of 2 have exactly one set bit. Killing it gives 0.
+  
+  reverse bits: "Peel from right, paste to left, 32 times"
+    Extract last bit with n & 1. Shift result left, OR the bit in. Shift n right.
 
 TEMPLATE-BY-TEMPLATE MEMORIZATION:
 
@@ -7620,20 +7853,20 @@ hasCycle:
 The entire data structure is just 3 functions. Memorize them:
 
 FIND (with path compression):
-  def find(x):
+  find(x):
       while parent[x] != x:
           parent[x] = parent[parent[x]]  # point to grandparent
           x = parent[x]
       return x
 
 UNION (by rank):
-  def union(x, y):
+  union(x, y):
       px, py = find(x), find(y)
-      if px == py: return False  # already together
+      if px == py: return false  # already together
       if rank[px] < rank[py]: swap
       parent[py] = px           # attach smaller under larger
       if rank[px] == rank[py]: rank[px] += 1
-      return True
+      return true
 
 INIT:
   parent = [0, 1, 2, ..., n-1]  # everyone is their own boss
@@ -7645,6 +7878,20 @@ PATH COMPRESSION visual: Instead of A -> B -> C -> Root,
 make it A -> Root, B -> Root, C -> Root (flat tree = fast lookup).
 
 WHEN TO USE: If you see "connected components" or "are X and Y in the same group?" → Union-Find.
+
+
+METHOD MNEMONICS:
+  find(x): "Skip to grandpa"
+    Look up parent, look up grandparent, repoint to grandparent, jump.
+    Four lines: parent -> grandparent -> repoint -> jump.
+    Flattens the tree on every call (path compression).
+  
+  union(x, y): "Taller tree wins"
+    Find both roots. If same, already connected (return false).
+    Taller one becomes parent of shorter. Equal height? Pick one, increment its rank.
+  
+  init: "Everyone is their own boss"
+    parent[i] = i for all i. rank[i] = 0. components = n.
 
 TEMPLATE-BY-TEMPLATE MEMORIZATION:
 
@@ -8070,7 +8317,7 @@ longestSubarray:
     memorization: `HOW TO MEMORIZE MONOTONIC QUEUE:
 It's a deque with 3 operations per element. Memorize this loop:
 
-  for i in range(n):
+  for i from 0 to n-1:
       EXPIRE: remove front if outside window
       CLEAN:  remove back elements that lose to nums[i]
       ADD:    append i to back
@@ -8087,6 +8334,21 @@ Think of it as a "hall of fame" that only keeps potential winners:
   - Current champion → always at the front
 
 WHEN TO USE: "sliding window" + "max/min" in the same sentence → monotonic deque.
+
+
+METHOD MNEMONICS:
+  expire front: "Kick out retirees"
+    If front index is outside the window (< i - k + 1), remove it.
+  
+  clean back: "Kick out losers"
+    While back element is weaker than the newcomer, pop it from back.
+    For max-deque: weaker means <=. For min-deque: weaker means >=.
+  
+  add: "Push newcomer to back"
+    After cleaning, push current index to back of deque.
+  
+  record: "Front is always the champion"
+    If window is full (i >= k-1), front of deque is the answer.
 
 TEMPLATE-BY-TEMPLATE MEMORIZATION:
 
@@ -8548,6 +8810,19 @@ WHEN TO USE D&C:
 
 Mnemonic: "Split in half, solve each half, stitch together."
 
+
+METHOD MNEMONICS:
+  merge (two sorted arrays): "Two heads compete, drain leftovers"
+    Compare front of each array. Take smaller. When one is empty, drain the other.
+  
+  quick select: "Partition, recurse ONE side"
+    Pick pivot. Split into less/equal/greater.
+    k in less? Go left. k in equal? Return pivot. k in greater? Go right (adjust k).
+    Only recurse one side -> O(n) average.
+  
+  count inversions: "When right beats left, all remaining lefts are inversions"
+    During merge: if right element < left element, inversions += (left.length - i).
+
 TEMPLATE-BY-TEMPLATE MEMORIZATION:
 
 mergeSort — O(n log n) time
@@ -8589,14 +8864,14 @@ quickSelect — O(n) average time
   Example:
     Find k=1 (2nd smallest) in [3,1,4,1,5], pivot=3
     less=[1,1], equal=[3], greater=[4,5]
-    k=1 < len(less)=2 → recurse into less=[1,1], k=1
+    k=1 < less.length=2 → recurse into less=[1,1], k=1
       pivot=1: less=[], equal=[1,1], greater=[]
       k=1 < 0+2=2 → return pivot=1 ✓
     'Partition, check which bucket k lands in, recurse ONE side only.'
   Steps:
     1. Random pivot; partition into less / equal / greater
     2. k < less.length → recurse left; k < less + equal → return pivot
-    3. Else recurse right with k adjusted by len(less) + len(equal)
+    3. Else recurse right with k adjusted by less.length + equal.length
   Mnemonic: "Partition, then recurse into exactly ONE side."
 
 countInversions — O(n log n) time
@@ -8915,10 +9190,24 @@ QUERY (range):
   2. FULL OVERLAP (node range inside query range): return tree[node]
   3. PARTIAL: split and recurse into both children
 
-Mnemonic for query: "None? Zero. All? Return. Partial? Split."
+Mnemonic for query: "null? Zero. All? Return. Partial? Split."
 
 WHEN TO USE: "range query + update" in the same problem → Segment Tree.
 If only queries (no updates): prefix sum is simpler.
+
+
+METHOD MNEMONICS:
+  build: "Leaves are values, parents are sums"
+    Recurse to leaves, set value, combine on the way back up.
+    tree[node] = tree[2*node] + tree[2*node+1].
+  
+  update(i, val): "Drill to leaf, fix on the way up"
+    Recurse to the leaf matching index. Set new value.
+    Recalculate every parent on the way back: tree[node] = left + right.
+  
+  query(l, r): "No overlap? Zero. Full overlap? Return. Partial? Split."
+    Three cases. That is the whole algorithm.
+    At most O(log n) nodes are visited.
 
 TEMPLATE-BY-TEMPLATE MEMORIZATION:
 
@@ -8972,12 +9261,12 @@ SegmentTree.query — O(log n) time
         node6[2,2]: fully inside [1,2] → return tree[6]=5
         node7[3,3]: 3 > r=2 → NO OVERLAP → 0
     Total: 0+3+5+0 = 8 ✓
-    'None→0. Full→stored. Partial→split both. At most O(log n) nodes.'
+    'null→0. Full→stored. Partial→split both. At most O(log n) nodes.'
   Steps:
     1. No overlap (r < start or end < l): return 0
     2. Full overlap (l <= start and end <= r): return tree[node]
     3. Partial: recurse both children, sum results
-  Mnemonic: "None? Zero. All? Return. Partial? Split and sum."`,
+  Mnemonic: "null? Zero. All? Return. Partial? Split and sum."`,
   },
 
   'String Algorithms': {
@@ -9325,7 +9614,7 @@ LPS BUILD (the hard part - memorize this):
   length = 0, i = 1
   while i < m:
       if match: length++, lps[i] = length, i++
-      elif length > 0: length = lps[length - 1]  ← THE KEY LINE
+      else if length > 0: length = lps[length - 1]  ← THE KEY LINE
       else: lps[i] = 0, i++
 
 The key line says: "I can't extend the current prefix-suffix match, but maybe a shorter one works."
@@ -9334,7 +9623,7 @@ SEARCH:
   i = j = 0
   while i < n:
       if match: i++, j++ (if j == m: found it!)
-      elif j > 0: j = lps[j - 1]  ← same key idea
+      else if j > 0: j = lps[j - 1]  ← same key idea
       else: i++
 
 RABIN-KARP is easier to memorize:
@@ -9343,6 +9632,19 @@ RABIN-KARP is easier to memorize:
   If hashes match, verify with string comparison.
 
 Mnemonic: "KMP = never re-check matched characters. LPS tells you where to jump."
+
+
+METHOD MNEMONICS:
+  build LPS: "Match? Extend. Mismatch? Fall back to shorter prefix."
+    Two pointers: i walks the pattern, len tracks matched prefix length.
+    Match: len++, lps[i] = len, i++.
+    Mismatch with len > 0: len = lps[len-1] (the key fallback).
+    Mismatch with len == 0: lps[i] = 0, i++.
+  
+  search: "Match? Advance both. Mismatch? Jump j back using LPS."
+    i walks text, j walks pattern. Match: i++, j++.
+    j reaches pattern.length? Found match. Reset j = lps[j-1].
+    Mismatch: j > 0 ? j = lps[j-1] : i++. Never re-scan matched chars.
 
 TEMPLATE-BY-TEMPLATE MEMORIZATION:
 
@@ -9744,6 +10046,18 @@ KRUSKAL vs PRIM:
   Both give the same MST.
 
 WHEN TO USE: "connect all nodes with minimum cost" = MST.
+
+
+METHOD MNEMONICS:
+  Kruskal: "Sort edges, union greedily, skip cycles"
+    Sort all edges by weight. For each edge: if union(u,v) succeeds, add to MST.
+    If union fails (same root), skip — it would create a cycle.
+    Stop when MST has n-1 edges.
+  
+  Prim: "Start anywhere, always grab cheapest bridge"
+    Add start node to visited. Push its edges to min-heap.
+    Pop cheapest edge to unvisited node. Add that node, push its edges.
+    Repeat until all nodes are visited.
 
 TEMPLATE-BY-TEMPLATE MEMORIZATION:
 
@@ -10187,15 +10501,15 @@ trap:
     memorization: `HOW TO MEMORIZE MONOTONIC STACK:
 The core loop is always the same:
 
-  for i in range(n):
-      while stack and CONDITION(nums[i], nums[stack[-1]]):
+  for i from 0 to n-1:
+      while stack and CONDITION(nums[i], nums[stack.top]):
           j = stack.pop()
           # j just found its answer: i (or nums[i])
-      stack.append(i)
+      stack.push(i)
 
 The ONLY thing that changes is the CONDITION:
-  Next GREATER: nums[i] > nums[stack[-1]]  (decreasing stack)
-  Next SMALLER: nums[i] < nums[stack[-1]]  (increasing stack)
+  Next GREATER: nums[i] > nums[stack.top]  (decreasing stack)
+  Next SMALLER: nums[i] < nums[stack.top]  (increasing stack)
 
 Mnemonic: "Pop the losers, push the current"
   - A "loser" is any element that just found something greater/smaller than itself
@@ -10214,6 +10528,19 @@ QUICK REFERENCE:
   Daily Temperatures → pop when warmer → result[j] = i - j
   Largest Rectangle → pop when shorter → area = height * width
   Trapping Rain Water → pop when taller → water += width * bounded_height
+
+
+METHOD MNEMONICS:
+  monotonic stack: "Pop the losers, push the current"
+    While top is weaker than current -> pop (they found their answer).
+    Push current (it is still waiting).
+    Next GREATER: pop when current > top (decreasing stack).
+    Next SMALLER: pop when current < top (increasing stack).
+  
+  largest rectangle: "Pop when shorter arrives"
+    Pop the taller bar. Its right boundary = current index.
+    Its left boundary = new stack top (or -1 if empty).
+    Area = height * (right - left - 1). Append 0 sentinel to flush all bars.
 
 TEMPLATE-BY-TEMPLATE MEMORIZATION:
 
@@ -10613,6 +10940,19 @@ BIT vs SEGMENT TREE:
   Segment Tree: more complex, but handles range min/max/any operation
 
 WHEN TO USE: "prefix sum + updates" or "count smaller/larger elements"
+
+
+METHOD MNEMONICS:
+  update(i, delta): "Climb UP -- add lowest bit"
+    i += i & (-i) each step. Like climbing a ladder.
+    Every ancestor that covers index i gets the delta added.
+  
+  query(i): "Climb DOWN -- remove lowest bit"
+    i -= i & (-i) each step. Like descending a ladder.
+    Accumulate tree[i] at each step. Result = prefix sum from 1 to i.
+  
+  rangeQuery(l, r): "Prefix subtraction trick"
+    query(r) - query(l-1). Same idea as prefix sums.
 
 TEMPLATE-BY-TEMPLATE MEMORIZATION:
 
@@ -11066,6 +11406,18 @@ WHEN TO USE:
   - "Can all tasks be completed?" → is it a DAG? (topo sort, check length)
   - "Alien/custom ordering" → extract edges from constraints, topo sort
 
+
+METHOD MNEMONICS:
+  Kahn (BFS): "Peel the onion layer by layer"
+    Count in-degrees. Enqueue all nodes with in-degree 0.
+    Pop node -> add to order -> decrement neighbors' in-degrees.
+    Neighbor hits 0? Enqueue it. Not all nodes processed? Cycle exists.
+  
+  DFS approach: "Visit all children first, then add yourself. Reverse."
+    Three states: UNVISITED, IN_PROGRESS, DONE.
+    IN_PROGRESS seeing IN_PROGRESS = back edge = cycle.
+    Post-order: push node after all children done. Reverse at end = topo order.
+
 TEMPLATE-BY-TEMPLATE MEMORIZATION:
 
 topologicalSortKahn — O(V+E) time
@@ -11120,7 +11472,7 @@ topologicalSortDFS — O(V+E) time
   Steps:
     1. dfs(node): if IN_PROGRESS → cycle (return false); if DONE → return true
     2. Mark IN_PROGRESS; recurse all neighbors; mark DONE; order.push(node)
-    3. Run dfs on all UNVISITED nodes; return order.reverse()
+    3. Run dfs on all UNVISITED nodes; return reverse order
   Mnemonic: "Post-order = add yourself after all children. Reverse gives topo order."`,
   },
 
@@ -11960,6 +12312,24 @@ DINING PHILOSOPHERS (#1226):
   "One less chair than people prevents deadlock."
   Semaphore(4) with 5 forks: pigeonhole guarantees someone always gets both forks.
   Mnemonic: "Musical chairs — 4 seats, 5 players, no deadlock."
+
+
+METHOD MNEMONICS:
+  Event/Promise gate: "Wait for signal, then proceed"
+    One thread resolves/sets the event. Others await/wait on it.
+    Chain N methods with N-1 gates: each step opens the next gate.
+  
+  Semaphore ping-pong: "My turn, your turn"
+    Two semaphores, one starts at 1, other at 0.
+    After your work: release the other semaphore. Before your work: acquire yours.
+  
+  Producer-Consumer: "Two token jars"
+    Semaphore(capacity) for empty slots, Semaphore(0) for full slots.
+    Produce: acquire empty, add item, release full.
+    Consume: acquire full, take item, release empty.
+  
+  Deadlock prevention: "One fewer chair than people"
+    Semaphore(n-1) limits concurrency. Pigeonhole: someone always gets resources.
 
 TEMPLATE-BY-TEMPLATE MEMORIZATION:
 

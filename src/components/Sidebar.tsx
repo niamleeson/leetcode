@@ -61,7 +61,7 @@ export default function Sidebar({
         {/* Header with close button */}
         <div className="flex items-center justify-between p-4 border-b border-gray-800">
           <Link to="/" onClick={() => setOpen(false)}>
-            <h1 className="text-lg font-bold text-white">LeetCode Trainer</h1>
+            <h1 className="text-lg font-bold text-white">DSA Trainer</h1>
             <p className="text-xs text-gray-500 mt-1">Master algorithms with spaced repetition</p>
           </Link>
           <button
