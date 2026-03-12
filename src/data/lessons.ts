@@ -187,19 +187,23 @@ function repeatWhile(condition, action) {
 // Two Sum pattern - complement lookup
 function twoSum(nums, target) {
     const seen = new Map(); // value -> index
+    let result = null;
 
     forEach(nums, (currentNum, i) => {
+        if (result) return; // already found
         const complement = target - currentNum;
 
         // Check if the partner number was already seen
         if (seen.has(complement)) {
             const partnerIndex = seen.get(complement);
-            return [partnerIndex, i];
+            result = [partnerIndex, i];
+            return;
         }
 
         // Remember this number and its index
         seen.set(currentNum, i);
     });
+    return result;
 }
 
 // Frequency count pattern (bucket sort)
@@ -221,11 +225,10 @@ function topKFrequent(nums, k) {
     const result = [];
     forEachFromRight(buckets, (bucket, freq) => {
         if (freq === 0) return;
+        if (result.length >= k) return; // already collected enough
         forEach(bucket, (num) => {
+            if (result.length >= k) return; // already collected enough
             result.push(num);
-            if (result.length === k) {
-                return result;
-            }
         });
     });
     return result;
@@ -638,14 +641,15 @@ function trap(height) {
 function twoSumSorted(nums, target) {
     let left = 0;
     let right = nums.length - 1;
+    let result = null;
 
     repeatWhile(
-        () => left < right,
+        () => left < right && result === null,
         () => {
             const pairSum = nums[left] + nums[right];
 
             if (pairSum === target) {
-                return [left, right];
+                result = [left, right];
             } else if (pairSum < target) {
                 // Sum too small — move left pointer right to increase it
                 left++;
@@ -655,6 +659,7 @@ function twoSumSorted(nums, target) {
             }
         }
     );
+    return result;
 }
 
 // 3Sum pattern - fix one, two-pointer on rest
@@ -1446,14 +1451,17 @@ function evalRPN(tokens) {
 function isValid(s) {
     const stack = [];
     const pairs = { ')': '(', ']': '[', '}': '{' };
+    let invalid = false;
 
     forEach(s, (c) => {
+        if (invalid) return; // already found mismatch
         if (pairs[c]) {
             // Closing bracket: check that it matches the top of stack
             const expectedOpen = pairs[c];
             const top = stack[stack.length - 1];
             if (!stack.length || top !== expectedOpen) {
-                return false;
+                invalid = true;
+                return;
             }
             stack.pop();
         } else {
@@ -1462,8 +1470,8 @@ function isValid(s) {
         }
     });
 
-    // If stack is empty, all brackets were matched
-    return stack.length === 0;
+    // If stack is empty and no mismatches, all brackets were matched
+    return !invalid && stack.length === 0;
 }
 
 // Monotonic stack - daily temperatures (next warmer day)
@@ -1848,15 +1856,16 @@ function searchRotated(nums, target) {
 function binarySearch(nums, target) {
     let left = 0;
     let right = nums.length - 1;
+    let result = -1;
 
     repeatWhile(
-        () => left <= right,
+        () => left <= right && result === -1,
         () => {
             // Avoid integer overflow: use left + floor((right - left) / 2)
             const mid = left + Math.floor((right - left) / 2);
 
             if (nums[mid] === target) {
-                return mid;
+                result = mid;
             } else if (nums[mid] < target) {
                 // Target is in the right half
                 left = mid + 1;
@@ -1866,7 +1875,7 @@ function binarySearch(nums, target) {
             }
         }
     );
-    return -1;
+    return result;
 }
 
 // Find first position where condition is true (left boundary)
@@ -1922,14 +1931,16 @@ function minEatingSpeed(piles, h) {
 function searchRotated(nums, target) {
     let left = 0;
     let right = nums.length - 1;
+    let result = -1;
 
     repeatWhile(
-        () => left <= right,
+        () => left <= right && result === -1,
         () => {
             const mid = Math.floor((left + right) / 2);
 
             if (nums[mid] === target) {
-                return mid;
+                result = mid;
+                return;
             }
 
             // Determine which half is sorted
@@ -1950,7 +1961,7 @@ function searchRotated(nums, target) {
             }
         }
     );
-    return -1;
+    return result;
 }`,
     verification: `binarySearch:
   Promise: "if target exists, it lies within nums[left..right]"
@@ -2327,21 +2338,22 @@ function reverseList(head) {
 function hasCycle(head) {
     let slow = head;
     let fast = head;
+    let found = false;
 
     // fast moves 2 steps, slow moves 1 step
     // If there's a cycle, they'll eventually meet
     repeatWhile(
-        () => fast !== null && fast.next !== null,
+        () => !found && fast !== null && fast.next !== null,
         () => {
             slow = slow.next;
             fast = fast.next.next;
 
             if (slow === fast) {
-                return true;
+                found = true;
             }
         }
     );
-    return false;
+    return found;
 }
 
 // Find middle of linked list
@@ -3270,15 +3282,18 @@ class Trie {
 
     _find(prefix) {
         let node = this.root;
+        let missing = false;
 
         forEach(prefix, (c) => {
+            if (missing) return; // already hit a dead end
             if (!node.children[c]) {
-                return null; // path doesn't exist
+                missing = true; // path doesn't exist
+                return;
             }
             node = node.children[c];
         });
 
-        return node; // return the node at the end of the prefix
+        return missing ? null : node; // return the node at the end of the prefix
     }
 }`,
     verification: `Trie.insert:
@@ -3632,7 +3647,7 @@ class MinHeap {
         const n = this.heap.length;
 
         repeatWhile(
-            () => true,
+            () => i >= 0,
             () => {
                 let smallest = i;
                 const left = 2 * i + 1;
@@ -5987,17 +6002,20 @@ function canCompleteCircuit(gas, cost) {
 // Jump Game - can reach end?
 function canJump(nums) {
     let farthest = 0; // farthest index we can reach so far
+    let stuck = false;
 
     forEach(nums, (_, i) => {
+        if (stuck) return; // already determined unreachable
         // If current index exceeds farthest reachable, we're stuck
         if (i > farthest) {
-            return false;
+            stuck = true;
+            return;
         }
 
         // Update farthest reachable position
         farthest = Math.max(farthest, i + nums[i]);
     });
-    return true;
+    return !stuck;
 }
 
 // Non-overlapping intervals (min removals)
@@ -7510,15 +7528,17 @@ function countComponents(n, edges) {
 // Detect a cycle in an undirected graph
 function hasCycle(n, edges) {
     const uf = new UnionFind(n);
+    let found = false;
 
     forEach(edges, ([u, v]) => {
+        if (found) return; // already detected a cycle
         // If u and v are already connected, adding this edge creates a cycle
         if (!uf.union(u, v)) {
-            return true;
+            found = true;
         }
     });
 
-    return false;
+    return found;
 }`,
     verification: `UnionFind.find:
   Promise: 'returns the root of x; every node on the path from x to root now points at most one hop from root (path compression)'
@@ -10928,15 +10948,17 @@ function topologicalSortDFS(numNodes, edges) {
         return true;
     }
 
+    let hasCycle = false;
     forEachBetween(0, numNodes, (i) => {
+        if (hasCycle) return; // cycle already detected
         if (state[i] === UNVISITED) {
             if (!dfs(i)) {
-                return [];
+                hasCycle = true;
             }
         }
     });
 
-    return order.reverse();
+    return hasCycle ? [] : order.reverse();
 }`,
     verification: `topologicalSortKahn:
   Promise: 'order contains nodes in topological order; every node in order has all its prerequisites already in order before it'
