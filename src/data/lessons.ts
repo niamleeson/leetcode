@@ -10313,29 +10313,31 @@ function largestRectangleArea(heights) {
 // Trapping Rain Water
 // Water collects in valleys between two walls
 function trap(height) {
-    const stack = [];
+    const stack = [];  // stores [leftEdge, height] pairs
     let water = 0;
 
     for (let i = 0; i < height.length; i++) {
         while (stack.length > 0) {
-            const topIndex = stack[stack.length - 1];
-            if (height[i] <= height[topIndex]) {
+            const [topLeft, topHeight] = stack[stack.length - 1];
+            if (height[i] <= topHeight) {
                 break;
             }
-            const bottomIndex = stack.pop();
-            const bottomHeight = height[bottomIndex];
+
+            // Pop the valley bottom
+            stack.pop();
+            const bottomHeight = topHeight;
 
             // Need a left wall; if stack is empty, no container possible
             if (stack.length === 0) {
                 break;
             }
 
-            const leftWallIndex = stack[stack.length - 1];
-            const width = i - leftWallIndex - 1;
-            const boundedHeight = Math.min(height[i], height[leftWallIndex]) - bottomHeight;
+            const [leftWallLeft, leftWallHeight] = stack[stack.length - 1];
+            const width = i - leftWallLeft - 1;
+            const boundedHeight = Math.min(height[i], leftWallHeight) - bottomHeight;
             water += width * boundedHeight;
         }
-        stack.push(i);
+        stack.push([i, height[i]]);
     }
 
     return water;
@@ -10430,32 +10432,33 @@ function largestRectangleArea(heights) {
 // Trapping Rain Water
 // Water collects in valleys between two walls
 function trap(height) {
-    const stack = [];
+    const stack = [];  // stores [leftEdge, height] pairs
     let water = 0;
 
     forEachBetween(0, height.length, (i) => {
         repeatWhile(
             () => {
                 if (stack.length === 0) return false;
-                const topIndex = stack[stack.length - 1];
-                return height[i] > height[topIndex];
+                const [topLeft, topHeight] = stack[stack.length - 1];
+                return height[i] > topHeight;
             },
             () => {
-                const bottomIndex = stack.pop();
-                const bottomHeight = height[bottomIndex];
+                const [topLeft, topHeight] = stack[stack.length - 1];
+                stack.pop();
+                const bottomHeight = topHeight;
 
                 // Need a left wall; if stack is empty, no container possible
                 if (stack.length === 0) {
                     return;
                 }
 
-                const leftWallIndex = stack[stack.length - 1];
-                const width = i - leftWallIndex - 1;
-                const boundedHeight = Math.min(height[i], height[leftWallIndex]) - bottomHeight;
+                const [leftWallLeft, leftWallHeight] = stack[stack.length - 1];
+                const width = i - leftWallLeft - 1;
+                const boundedHeight = Math.min(height[i], leftWallHeight) - bottomHeight;
                 water += width * boundedHeight;
             }
         );
-        stack.push(i);
+        stack.push([i, height[i]]);
     });
 
     return water;
