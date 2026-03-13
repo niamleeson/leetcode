@@ -1277,18 +1277,15 @@ function merge(left, right) {
         let leftEdge = i;
 
         while (stack.length > 0) {
-            const [poppedLeft, poppedHeight] = stack[stack.length - 1];
-            if (poppedHeight <= heights[i]) {
+            const [topLeft, topHeight] = stack[stack.length - 1];
+            if (topHeight <= heights[i]) {
                 break;
             }
+
+            const width = i - topLeft;
+            maxArea = Math.max(maxArea, topHeight * width);
+            leftEdge = topLeft;
             stack.pop();
-
-            const width = i - poppedLeft;
-            const area = poppedHeight * width;
-            maxArea = Math.max(maxArea, area);
-
-            // Current bar inherits the popped bar's left edge
-            leftEdge = poppedLeft;
         }
 
         stack.push([leftEdge, heights[i]]);
@@ -1300,38 +1297,31 @@ function merge(left, right) {
     return maxArea;
 };`,
     jsWalkthrough:
-      'heights = [2,1,5,6,2,3] + sentinel 0\n\n' +
-      'i=0 h=2: stack empty → push [0,2]\n' +
-      '         stack: [[0,2]]\n\n' +
-      'i=1 h=1: top [0,2], 2>1 → pop\n' +
-      '         width=1-0=1, area=2*1=2, maxArea=2\n' +
-      '         leftEdge=0 (inherit)\n' +
-      '         push [0,1]  ← height 1 extends back to index 0\n' +
-      '         stack: [[0,1]]\n\n' +
-      'i=2 h=5: top [0,1], 1<=5 → stop. push [2,5]\n' +
-      '         stack: [[0,1],[2,5]]\n\n' +
-      'i=3 h=6: top [2,5], 5<=6 → stop. push [3,6]\n' +
-      '         stack: [[0,1],[2,5],[3,6]]\n\n' +
-      'i=4 h=2: top [3,6], 6>2 → pop\n' +
-      '         width=4-3=1, area=6*1=6, maxArea=6\n' +
-      '         leftEdge=3\n' +
-      '         top [2,5], 5>2 → pop\n' +
-      '         width=4-2=2, area=5*2=10, maxArea=10\n' +
-      '         leftEdge=2\n' +
-      '         top [0,1], 1<=2 → stop. push [2,2]\n' +
-      '         stack: [[0,1],[2,2]]\n\n' +
-      'i=5 h=3: top [2,2], 2<=3 → stop. push [5,3]\n' +
-      '         stack: [[0,1],[2,2],[5,3]]\n\n' +
+      'heights = [2,1,5,6,2,3] + sentinel 0\n' +
+      'Stack stores [leftEdge, height]. Peek top before popping.\n' +
+      'Compute area from top, inherit topLeft, then pop.\n\n' +
+      'i=0 h=2: stack empty → leftEdge=0, push [0,2]\n\n' +
+      'i=1 h=1: top=[0,2], 2>1\n' +
+      '         area=2*(1-0)=2, leftEdge=0, pop\n' +
+      '         stack empty → push [0,1]\n\n' +
+      'i=2 h=5: top=[0,1], 1<=5 → push [2,5]\n\n' +
+      'i=3 h=6: top=[2,5], 5<=6 → push [3,6]\n\n' +
+      'i=4 h=2: top=[3,6], 6>2\n' +
+      '         area=6*(4-3)=6, leftEdge=3, pop\n' +
+      '         top=[2,5], 5>2\n' +
+      '         area=5*(4-2)=10, leftEdge=2, pop  ← maxArea=10\n' +
+      '         top=[0,1], 1<=2 → push [2,2]\n\n' +
+      'i=5 h=3: top=[2,2], 2<=3 → push [5,3]\n\n' +
       'i=6 h=0 (sentinel):\n' +
-      '         pop [5,3]: width=6-5=1, area=3\n' +
-      '         pop [2,2]: width=6-2=4, area=8\n' +
-      '         pop [0,1]: width=6-0=6, area=6\n\n' +
+      '         top=[5,3]: area=3*(6-5)=3, pop\n' +
+      '         top=[2,2]: area=2*(6-2)=8, pop\n' +
+      '         top=[0,1]: area=1*(6-0)=6, pop\n\n' +
       'maxArea = 10  ✓',
     explanation:
-      '1. Maintain increasing stack of indices.\n' +
-      '2. When heights[i] < stack top, pop. The popped bar\'s height is the rectangle height.\n' +
-      '3. Width = distance from new stack top to current index (exclusive on both sides).\n' +
-      '4. If stack is empty after pop, width = i (rectangle extends to the beginning).\n' +
+      '1. Maintain increasing stack of [leftEdge, height] pairs.\n' +
+      '2. When heights[i] < top height, peek the top to compute area and inherit its left edge, then pop.\n' +
+      '3. Width = i - topLeft. The current bar inherits topLeft because it extends back through all popped taller bars.\n' +
+      '4. Push [leftEdge, heights[i]] — leftEdge is i if nothing was popped, or the last inherited topLeft.\n' +
       '5. Sentinel 0 at the end ensures all bars get popped.',
     timeComplexity: 'O(n)',
     spaceComplexity: 'O(n)',

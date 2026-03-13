@@ -10299,18 +10299,15 @@ function largestRectangleArea(heights) {
         let leftEdge = i;
 
         while (stack.length > 0) {
-            const [poppedLeft, poppedHeight] = stack[stack.length - 1];
-            if (poppedHeight <= heights[i]) {
+            const [topLeft, topHeight] = stack[stack.length - 1];
+            if (topHeight <= heights[i]) {
                 break;
             }
+
+            const width = i - topLeft;
+            maxArea = Math.max(maxArea, topHeight * width);
+            leftEdge = topLeft;
             stack.pop();
-
-            const width = i - poppedLeft;
-            const area = poppedHeight * width;
-            maxArea = Math.max(maxArea, area);
-
-            // Current bar inherits the popped bar's left edge
-            leftEdge = poppedLeft;
         }
 
         stack.push([leftEdge, heights[i]]);
@@ -10526,18 +10523,20 @@ trap:
 "Stack stores [leftEdge, height] pairs.\n" +
 "When popping taller bars, current bar inherits their left edge.\n" +
 "\n" +
-"i=0(h=2): push [0,2]. stack=[[0,2]]\n" +
-"i=1(h=1): top [0,2], 2>1 → pop. width=1-0=1, area=2. leftEdge=0\n" +
-"          push [0,1] ← inherits index 0. stack=[[0,1]]\n" +
-"i=2(h=5): 1<=5 → stop. push [2,5]. stack=[[0,1],[2,5]]\n" +
-"i=3(h=6): 5<=6 → stop. push [3,6]. stack=[[0,1],[2,5],[3,6]]\n" +
-"i=4(h=2): pop [3,6]: width=4-3=1, area=6. leftEdge=3\n" +
-"          pop [2,5]: width=4-2=2, area=10. leftEdge=2\n" +
-"          1<=2 → stop. push [2,2] ← inherits index 2\n" +
-"i=5(h=3): 2<=3 → stop. push [5,3]. stack=[[0,1],[2,2],[5,3]]\n" +
-"i=6(h=0): pop [5,3]: width=6-5=1, area=3\n" +
-"          pop [2,2]: width=6-2=4, area=8\n" +
-"          pop [0,1]: width=6-0=6, area=6\n" +
+"Peek top before popping. Compute area from top, inherit topLeft, then pop.\n" +
+"\n" +
+"i=0(h=2): stack empty → push [0,2]\n" +
+"i=1(h=1): top=[0,2], 2>1 → area=2*(1-0)=2, leftEdge=0, pop\n" +
+"          push [0,1] ← inherits index 0\n" +
+"i=2(h=5): top=[0,1], 1<=5 → push [2,5]\n" +
+"i=3(h=6): top=[2,5], 5<=6 → push [3,6]\n" +
+"i=4(h=2): top=[3,6], 6>2 → area=6*(4-3)=6, leftEdge=3, pop\n" +
+"          top=[2,5], 5>2 → area=5*(4-2)=10, leftEdge=2, pop\n" +
+"          top=[0,1], 1<=2 → push [2,2] ← inherits index 2\n" +
+"i=5(h=3): top=[2,2], 2<=3 → push [5,3]\n" +
+"i=6(h=0): top=[5,3]: area=3*1=3, pop\n" +
+"          top=[2,2]: area=2*4=8, pop\n" +
+"          top=[0,1]: area=1*6=6, pop\n" +
 "maxArea=10 ✓\n\n" +
 "── Daily Temperatures ──\n" +
 "Input: [73,74,75,71,69,72,76,73]\n\n" +
@@ -10602,9 +10601,9 @@ Mnemonic: "Pop the losers, push the current"
 LARGEST RECTANGLE (the king of monotonic stack):
   Think of it as "for each bar, what's the widest rectangle using this bar's height?"
   Stack stores [leftEdge, height] pairs instead of just indices.
-  - Pop when current bar is shorter → compute area = poppedHeight * (i - poppedLeft)
-  - Current bar inherits the popped bar's leftEdge (it extends back through taller bars)
-  - Width = i - poppedLeft (simple subtraction, no -1 needed)
+  - Peek the top: compute area = topHeight * (i - topLeft)
+  - Inherit topLeft as leftEdge (current bar extends back through taller bars)
+  - Then pop. Width = i - topLeft (simple subtraction, no -1 needed)
 
   Trick: append 0 at the end to force all remaining bars to pop.
 
@@ -10668,20 +10667,19 @@ dailyTemperatures — O(n) time
 largestRectangleArea — O(n) time
   Problem: Given an array of bar heights, find the largest rectangle that can be formed within the histogram.
   Use when: "largest rectangle in histogram", "maximal rectangle"
-  Key insight: Stack stores [leftEdge, height] pairs. When you pop a taller bar, the current bar inherits its left edge — because the current bar's rectangle extends back through all the taller bars that were popped. Width = i - poppedLeft.
+  Key insight: Stack stores [leftEdge, height] pairs. Peek the top before popping — compute area from topHeight * (i - topLeft), inherit topLeft as leftEdge, then pop. The current bar extends back through all popped taller bars.
   Example:
     heights=[2,1,5,6,2,3] + sentinel 0
-    i=1(h=1): pop [0,2]: width=1-0=1, area=2. push [0,1] ← inherits idx 0
-    i=4(h=2): pop [3,6]: width=4-3=1, area=6
-              pop [2,5]: width=4-2=2, area=10 (max!) push [2,2] ← inherits idx 2
+    i=1(h=1): top=[0,2] → area=2*(1-0)=2, leftEdge=0, pop. push [0,1]
+    i=4(h=2): top=[3,6] → area=6*1=6, pop. top=[2,5] → area=5*2=10, pop. push [2,2]
     sentinel 0 flushes remaining...
     maxArea=10 ✓
   Steps:
     1. Append 0 sentinel to heights
-    2. For each i: let leftEdge = i. While top height > heights[i]:
-       pop [poppedLeft, poppedHeight]; area = poppedHeight * (i - poppedLeft); leftEdge = poppedLeft
+    2. For each i: let leftEdge = i. While topHeight > heights[i]:
+       area = topHeight * (i - topLeft); leftEdge = topLeft; pop
     3. Push [leftEdge, heights[i]]; remove sentinel
-  Mnemonic: "Pop taller bars, inherit their left edge. Width = i - poppedLeft. Append 0 to flush all."
+  Mnemonic: "Peek top, compute area, inherit left edge, then pop. Append 0 to flush all."
 
 trap (stack version) — O(n) time
   Problem: Given an array representing an elevation map, compute the total water that can be trapped after rain.
