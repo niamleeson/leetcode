@@ -4321,7 +4321,27 @@ solveNQueens:
       '      i=1: push 3, backtrack(1,[2,2,3],0) → push [2,2,3]\n' +
       '  ...\n' +
       '  i=3: push 7, backtrack(3,[7],0) → push [7]\n\n' +
-      'result: [[2,2,3],[7]]',
+      'result: [[2,2,3],[7]]\n\n' +
+      '── N-Queens ──\n' +
+      'n=4\n\n' +
+      'backtrack(row=0, board):\n' +
+      '  col=0: place Q at (0,0). cols={0}, diag1={0}, diag2={0}\n' +
+      '    row=1: col=0 in cols. col=1: diag2=2? no, diag1=0 → skip. col=2: ok. place Q at (1,2)\n' +
+      '      row=2: col=0: diag2=2 conflict. col=1: diag1=-1? no check — cols ok, diag1=2-1=1 ok, diag2=2+1=3 ok → place Q at (2,1)? wait, diag1=1, but (0,0) has diag1=0, (1,2) has diag1=-1. ok!\n' +
+      '        but row=3: all cols blocked → backtrack\n' +
+      '      col=3: place Q at (2,3). cols={0,2,3}\n' +
+      '        row=3: col=1 → cols ok, diag1=3-1=2 conflicts with (1,2) → skip. all blocked → backtrack\n' +
+      '    row=1: col=3: place Q at (1,3). cols={0,3}, diag1={0,-2}, diag2={0,4}\n' +
+      '      row=2: col=1: ok → place Q at (2,1). diag1=1, diag2=3\n' +
+      '        row=3: col=2: cols ok, diag1=1 conflict → skip. col=0 in cols. all blocked → backtrack\n' +
+      '  col=1: place Q at (0,1). cols={1}, diag1={-1}, diag2={1}\n' +
+      '    row=1: col=3: ok. place Q at (1,3)\n' +
+      '      row=2: col=0: ok. place Q at (2,0)\n' +
+      '        row=3: col=2: ok! place Q at (3,2) → push solution!\n' +
+      '          [".Q..","...Q","Q...","..Q."] ✓\n\n' +
+      'Second solution: start col=2 at row 0 → eventually finds:\n' +
+      '  ["..Q.","Q...","...Q",".Q.."] ✓\n\n' +
+      'result: 2 solutions for n=4',
     complexity: 'Subsets: O(2^n). Permutations: O(n!). Pruning helps in practice.',
     commonMistakes: [
       'Forgetting to undo the choice (path.pop(), set.remove())',
@@ -7435,7 +7455,20 @@ reverseBits:
 "i=3: dp[1] + (3&1) = 1+1 = 2\n" +
 "i=4: dp[2] + (4&1) = 1+0 = 1\n" +
 "i=5: dp[2] + (5&1) = 1+1 = 2\n" +
-"Return [0,1,1,2,1,2] ✓",
+"Return [0,1,1,2,1,2] ✓\n\n" +
+"── Reverse Bits ──\n" +
+"Input: n = 43261596 (binary: 00000010100101000001111010011100)\n\n" +
+"Iteration 0:  n & 1 = 0. result = (0<<1)|0 = 0. n >>>= 1\n" +
+"Iteration 1:  n & 1 = 0. result = (0<<1)|0 = 0. n >>>= 1\n" +
+"Iteration 2:  n & 1 = 1. result = (0<<1)|1 = 1. n >>>= 1\n" +
+"Iteration 3:  n & 1 = 1. result = (1<<1)|1 = 3. n >>>= 1\n" +
+"Iteration 4:  n & 1 = 1. result = (3<<1)|1 = 7. n >>>= 1\n" +
+"...\n" +
+"After 32 iterations, all bits reversed.\n" +
+"Bit-by-bit: peel from right of n, paste to right of result.\n" +
+"result <<= 1 makes room, | lastBit fills it.\n" +
+"n >>>= 1 moves to next bit (unsigned to handle bit 31).\n" +
+"Return result >>> 0 to ensure unsigned 32-bit output ✓",
     complexity: 'O(1) or O(log n) for bit operations. O(n) for array-based bit problems.',
     commonMistakes: [
       'Confusing & (AND) with && (logical AND)',
@@ -8290,6 +8323,22 @@ longestSubarray:
 "i=5: val=3.  nums[4]=5>3 → stop. push 5. dq=[4,5]. result=[3,3,5,5]\n" +
 "i=6: val=6.  clean: pop 5(3),4(5). push 6. dq=[6]. result=[3,3,5,5,6]\n" +
 "i=7: val=7.  clean: pop 6(6). push 7. dq=[7]. result=[3,3,5,5,6,7] ✓\n" +
+"\n" +
+"── Sliding Window Minimum ──\n" +
+"Input: nums=[1,3,-1,-3,5,3,6,7], k=3\n" +
+"\n" +
+"Same as max, but deque is INCREASING (front = min).\n" +
+"Remove from back when back >= current (losers to the new small value).\n\n" +
+"i=0: val=1.  push 0. dq=[0]\n" +
+"i=1: val=3.  nums[0]=1<3 → stop. push 1. dq=[0,1]\n" +
+"i=2: val=-1. pop 1(3), pop 0(1). push 2. dq=[2]. i>=2 → result=[-1]\n" +
+"i=3: val=-3. pop 2(-1). push 3. dq=[3]. result=[-1,-3]\n" +
+"i=4: val=5.  nums[3]=-3<5 → stop. push 4. dq=[3,4]. result=[-1,-3,-3]\n" +
+"i=5: val=3.  pop 4(5). push 5. dq=[3,5]. dq[0]=3=5-3+1=3 → on boundary, ok.\n" +
+"  result=[-1,-3,-3,-3]\n" +
+"i=6: val=6.  dq[0]=3<6-3+1=4 → expire, shift. dq=[5]. push 6. dq=[5,6].\n" +
+"  result=[-1,-3,-3,-3,3]\n" +
+"i=7: val=7.  push 7. dq=[5,6,7]. dq[0]=5>=5 → ok. result=[-1,-3,-3,-3,3,3] ✓\n" +
 "\n" +
 "── Longest Subarray (max - min <= limit) ──\n" +
 "Input: nums=[8,2,4,7], limit=4\n" +
@@ -10483,7 +10532,36 @@ trap:
 "i=6(h=0): pop 5: h=3, left=4, w=6-4-1=1. area=3\n" +
 "          pop 4: h=2, left=1, w=6-1-1=4. area=8\n" +
 "          pop 1: h=1, left=-1, w=6. area=6\n" +
-"maxArea=10 ✓",
+"maxArea=10 ✓\n\n" +
+"── Daily Temperatures ──\n" +
+"Input: [73,74,75,71,69,72,76,73]\n\n" +
+"i=0: temp=73. stack=[]. push 0. stack=[0]\n" +
+"i=1: temp=74. 74>73 → pop 0, result[0]=1-0=1. push 1. stack=[1]\n" +
+"i=2: temp=75. 75>74 → pop 1, result[1]=2-1=1. push 2. stack=[2]\n" +
+"i=3: temp=71. 71<75 → stop. push 3. stack=[2,3]\n" +
+"i=4: temp=69. 69<71 → stop. push 4. stack=[2,3,4]\n" +
+"i=5: temp=72. 72>69 → pop 4, result[4]=5-4=1.\n" +
+"             72>71 → pop 3, result[3]=5-3=2.\n" +
+"             72<75 → stop. push 5. stack=[2,5]\n" +
+"i=6: temp=76. 76>72 → pop 5, result[5]=6-5=1.\n" +
+"             76>75 → pop 2, result[2]=6-2=4. push 6. stack=[6]\n" +
+"i=7: temp=73. 73<76 → stop. push 7. stack=[6,7]\n" +
+"Remaining [6,7] → result stays 0\n" +
+"Result: [1,1,4,2,1,1,0,0] ✓\n\n" +
+"── Trapping Rain Water (Stack) ──\n" +
+"Input: [0,1,0,2,1,0,1,3,2,1,2,1]\n\n" +
+"Processing key moments:\n" +
+"i=0(h=0): push 0. stack=[0]\n" +
+"i=1(h=1): 1>0 → pop 0 (bottom=0). stack empty → no left wall. push 1.\n" +
+"i=2(h=0): 0<1 → push 2. stack=[1,2]\n" +
+"i=3(h=2): 2>0 → pop 2 (bottom=0). left=1(h=1).\n" +
+"  width=3-1-1=1. bounded=min(2,1)-0=1. water+=1\n" +
+"  2>1 → pop 1 (bottom=1). stack empty → no left wall. push 3.\n" +
+"...\n" +
+"i=5(h=0): push. i=6(h=1): pop 5(bottom=0). left=4(h=1).\n" +
+"  width=6-4-1=1. bounded=min(1,1)-0=1. water+=1\n" +
+"i=7(h=3): pops cascade — each pop computes a water layer.\n\n" +
+"Total water = 6 ✓",
     complexity: 'O(n) time (each element pushed/popped once). O(n) space for the stack.',
     commonMistakes: [
       'Confusing increasing vs decreasing: next GREATER = decreasing stack, next SMALLER = increasing',
@@ -10891,6 +10969,18 @@ countInversions (BIT version):
 "  tree[6] covers indices [5,6]\n" +
 "  tree[4] covers indices [1,4]\n" +
 "  Combined: sum of indices [1,6] ✓\n" +
+"\n" +
+"── Range Sum Query - Mutable ──\n" +
+"nums=[1,3,5], build BIT from it:\n" +
+"  update(1,1), update(2,3), update(3,5)\n" +
+"  tree: [0, 1, 4, 5, 9, ...]\n\n" +
+"sumRange(0,2): bit.rangeQuery(1,3) = query(3) - query(0)\n" +
+"  query(3): i=3, total+=tree[3]=5. i=3-1=2. total+=tree[2]=4. i=2-2=0 → stop. total=9\n" +
+"  query(0): 0 → stop. total=0\n" +
+"  rangeQuery = 9 - 0 = 9 ✓ (1+3+5=9)\n\n" +
+"update(1, 2): delta = 2 - nums[1] = 2 - 3 = -1. nums[1]=2\n" +
+"  bit.update(2, -1): tree[2]=4-1=3. tree[4]=9-1=8\n\n" +
+"sumRange(0,2): query(3)-query(0) = (5+3) - 0 = 8 ✓ (1+2+5=8)\n" +
 "\n" +
 "── Count Inversions ──\n" +
 "Input: [3,1,2] → expected 2 inversions: (3,1) and (3,2)\n" +
@@ -12243,7 +12333,26 @@ DiningPhilosophers:
       'Philosopher 0: seatedCount=1<=4, acquire fork0, acquire fork1, eat,\n' +
       '               release fork1, release fork0, seatedCount=0\n\n' +
       'Deadlock prevention: with only 4 seated, at least one philosopher\n' +
-      'can always pick up BOTH forks (circular wait is broken) ✓',
+      'can always pick up BOTH forks (circular wait is broken) ✓\n\n' +
+      '── Web Workers ──\n' +
+      'Main thread and worker thread run in TRUE parallel (separate OS threads).\n\n' +
+      'Main thread:\n' +
+      '  const worker = new Worker("worker.js")\n' +
+      '  worker.postMessage({ task: "compute", data: [1,2,3] })\n' +
+      '  → message sent to worker thread via structured clone\n\n' +
+      'Worker thread (worker.js):\n' +
+      '  self.onmessage fires → receives { task: "compute", data: [1,2,3] }\n' +
+      '  Performs heavyComputation(data) → result = 6\n' +
+      '  self.postMessage({ result: 6 })\n' +
+      '  → message sent back to main thread\n\n' +
+      'Main thread:\n' +
+      '  worker.onmessage fires → receives { result: 6 }\n' +
+      '  console.log("Result:", 6) ✓\n\n' +
+      'Key constraints:\n' +
+      '  - No shared memory (unless SharedArrayBuffer)\n' +
+      '  - Communication only via postMessage (serialized copies)\n' +
+      '  - Worker has no DOM access\n' +
+      '  - Good for: image processing, crypto, large data transforms',
     complexity: 'Concurrency primitives are O(1) for acquire/release. Total work is O(n) where n is the number of operations. The key cost is blocking/waiting time, not CPU time.',
     commonMistakes: [
       'Deadlock: acquiring locks in inconsistent order across threads',
