@@ -194,47 +194,63 @@ Explanation: The largest rectangle has area = 5 * 2 = 10 (bars at indices 2 and 
 
         return max_area`,
     jsCode: `var largestRectangleArea = function(heights) {
-    const stack = []; // stores indices of bars in increasing height order
+    const stack = [];  // stores [leftEdge, height] pairs
     let maxArea = 0;
-    const n = heights.length;
 
-    // We go one past the end (sentinel height 0) to flush remaining bars
-    for (let i = 0; i <= n; i++) {
-        const currentHeight = i < n ? heights[i] : 0;
+    // Sentinel 0 at end forces all remaining bars to be popped
+    heights.push(0);
 
-        // Pop bars that are taller than the current bar — they've found their right boundary
-        while (stack.length && heights[stack[stack.length - 1]] > currentHeight) {
-            const poppedIndex = stack.pop();
-            const barHeight = heights[poppedIndex];
+    for (let i = 0; i < heights.length; i++) {
+        let leftEdge = i;
 
-            // Width extends from current i back to just after the new stack top
-            const leftBoundary = stack.length === 0 ? 0 : stack[stack.length - 1] + 1;
-            const barWidth = i - leftBoundary;
+        while (stack.length > 0) {
+            const [poppedLeft, poppedHeight] = stack[stack.length - 1];
+            if (poppedHeight <= heights[i]) {
+                break;
+            }
+            stack.pop();
 
-            const area = barHeight * barWidth;
+            const width = i - poppedLeft;
+            const area = poppedHeight * width;
             maxArea = Math.max(maxArea, area);
+
+            // Current bar inherits the popped bar's left edge
+            leftEdge = poppedLeft;
         }
 
-        stack.push(i);
+        stack.push([leftEdge, heights[i]]);
     }
 
+    heights.pop();  // restore original array
     return maxArea;
 };`,
     jsWalkthrough:
-      'heights = [2,1,5,6,2,3]\n\n' +
-      'i=0 h=2: stack empty → push 0         stack: [0]\n' +
-      'i=1 h=1: heights[0]=2 > 1 → pop 0\n' +
-      '         barHeight=2, leftBoundary=0, width=1, area=2 → maxArea=2\n' +
-      '         push 1                        stack: [1]\n' +
-      'i=2 h=5: 5 > heights[1]=1? No → push 2  stack: [1,2]\n' +
-      'i=3 h=6: 6 > heights[2]=5? No → push 3  stack: [1,2,3]\n' +
-      'i=4 h=2: heights[3]=6 > 2 → pop 3\n' +
-      '         barHeight=6, left=3, width=1, area=6 → maxArea=6\n' +
-      '         heights[2]=5 > 2 → pop 2\n' +
-      '         barHeight=5, left=2, width=2, area=10 → maxArea=10\n' +
-      '         push 4                        stack: [1,4]\n' +
-      'i=5 h=3: 3 > heights[4]=2? No → push 5  stack: [1,4,5]\n' +
-      'i=6 h=0 (sentinel): pop 5 → area=3*1=3, pop 4 → area=2*3=6, pop 1 → area=1*6=6\n\n' +
+      'heights = [2,1,5,6,2,3] + sentinel 0\n\n' +
+      'i=0 h=2: stack empty → push [0,2]\n' +
+      '         stack: [[0,2]]\n\n' +
+      'i=1 h=1: top [0,2], 2>1 → pop\n' +
+      '         width=1-0=1, area=2*1=2, maxArea=2\n' +
+      '         leftEdge=0 (inherit)\n' +
+      '         push [0,1]  ← height 1 extends back to index 0\n' +
+      '         stack: [[0,1]]\n\n' +
+      'i=2 h=5: top [0,1], 1<=5 → stop. push [2,5]\n' +
+      '         stack: [[0,1],[2,5]]\n\n' +
+      'i=3 h=6: top [2,5], 5<=6 → stop. push [3,6]\n' +
+      '         stack: [[0,1],[2,5],[3,6]]\n\n' +
+      'i=4 h=2: top [3,6], 6>2 → pop\n' +
+      '         width=4-3=1, area=6*1=6, maxArea=6\n' +
+      '         leftEdge=3\n' +
+      '         top [2,5], 5>2 → pop\n' +
+      '         width=4-2=2, area=5*2=10, maxArea=10\n' +
+      '         leftEdge=2\n' +
+      '         top [0,1], 1<=2 → stop. push [2,2]\n' +
+      '         stack: [[0,1],[2,2]]\n\n' +
+      'i=5 h=3: top [2,2], 2<=3 → stop. push [5,3]\n' +
+      '         stack: [[0,1],[2,2],[5,3]]\n\n' +
+      'i=6 h=0 (sentinel):\n' +
+      '         pop [5,3]: width=6-5=1, area=3\n' +
+      '         pop [2,2]: width=6-2=4, area=8\n' +
+      '         pop [0,1]: width=6-0=6, area=6\n\n' +
       'maxArea = 10',
     explanation: `- Iterate through all bars plus one extra (height 0) to flush remaining bars from the stack.
 - Maintain a stack of indices in increasing order of heights.

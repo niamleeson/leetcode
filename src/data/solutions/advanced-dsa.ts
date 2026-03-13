@@ -1267,32 +1267,31 @@ function merge(left, right) {
     heights.pop()
     return max_area`,
     jsCode: `var largestRectangleArea = function(heights) {
-    // Stack stores indices in increasing order of their heights
-    const stack = [];
+    const stack = [];  // stores [leftEdge, height] pairs
     let maxArea = 0;
 
-    // Append a sentinel height of 0 to flush all remaining bars at the end
+    // Sentinel 0 at end forces all remaining bars to be popped
     heights.push(0);
 
     for (let i = 0; i < heights.length; i++) {
-        const currentHeight = heights[i];
+        let leftEdge = i;
 
-        // While the current bar is shorter than the stack top,
-        // the top bar can no longer extend rightward — compute its area now
-        while (stack.length > 0 && heights[stack[stack.length - 1]] > currentHeight) {
-            const poppedIndex = stack.pop();
-            const rectangleHeight = heights[poppedIndex];
+        while (stack.length > 0) {
+            const [poppedLeft, poppedHeight] = stack[stack.length - 1];
+            if (poppedHeight <= heights[i]) {
+                break;
+            }
+            stack.pop();
 
-            // Width: from the new stack top (exclusive) to current index (exclusive)
-            // If stack is now empty, the popped bar was the shortest seen — extends to index 0
-            const leftBoundary = stack.length > 0 ? stack[stack.length - 1] : -1;
-            const rectangleWidth = i - leftBoundary - 1;
-
-            const area = rectangleHeight * rectangleWidth;
+            const width = i - poppedLeft;
+            const area = poppedHeight * width;
             maxArea = Math.max(maxArea, area);
+
+            // Current bar inherits the popped bar's left edge
+            leftEdge = poppedLeft;
         }
 
-        stack.push(i);
+        stack.push([leftEdge, heights[i]]);
     }
 
     // Remove the sentinel we added
@@ -1301,21 +1300,32 @@ function merge(left, right) {
     return maxArea;
 };`,
     jsWalkthrough:
-      'heights = [2,1,5,6,2,3]  → append 0 → [2,1,5,6,2,3,0]\n\n' +
-      'i=0 (h=2): stack=[] → push 0   stack=[0]\n' +
-      'i=1 (h=1): 1<heights[0]=2 → pop 0, rectH=2\n' +
-      '  stack empty → leftBoundary=-1, width=1-(-1)-1=1, area=2*1=2\n' +
-      '  push 1   stack=[1]   maxArea=2\n' +
-      'i=2 (h=5): 5>1 → push 2   stack=[1,2]\n' +
-      'i=3 (h=6): 6>5 → push 3   stack=[1,2,3]\n' +
-      'i=4 (h=2): 2<heights[3]=6 → pop 3, rectH=6, leftBoundary=2, width=4-2-1=1, area=6\n' +
-      '           2<heights[2]=5 → pop 2, rectH=5, leftBoundary=1, width=4-1-1=2, area=10\n' +
-      '           2>heights[1]=1 → stop; push 4   stack=[1,4]   maxArea=10\n' +
-      'i=5 (h=3): 3>2 → push 5   stack=[1,4,5]\n' +
-      'i=6 (sentinel 0): 0<heights[5]=3 → pop 5, rectH=3, leftBoundary=4, width=6-4-1=1, area=3\n' +
-      '           0<heights[4]=2 → pop 4, rectH=2, leftBoundary=1, width=6-1-1=4, area=8\n' +
-      '           0<heights[1]=1 → pop 1, rectH=1, leftBoundary=-1, width=6-(-1)-1=6, area=6\n' +
-      '           stack empty → stop\n\n' +
+      'heights = [2,1,5,6,2,3] + sentinel 0\n\n' +
+      'i=0 h=2: stack empty → push [0,2]\n' +
+      '         stack: [[0,2]]\n\n' +
+      'i=1 h=1: top [0,2], 2>1 → pop\n' +
+      '         width=1-0=1, area=2*1=2, maxArea=2\n' +
+      '         leftEdge=0 (inherit)\n' +
+      '         push [0,1]  ← height 1 extends back to index 0\n' +
+      '         stack: [[0,1]]\n\n' +
+      'i=2 h=5: top [0,1], 1<=5 → stop. push [2,5]\n' +
+      '         stack: [[0,1],[2,5]]\n\n' +
+      'i=3 h=6: top [2,5], 5<=6 → stop. push [3,6]\n' +
+      '         stack: [[0,1],[2,5],[3,6]]\n\n' +
+      'i=4 h=2: top [3,6], 6>2 → pop\n' +
+      '         width=4-3=1, area=6*1=6, maxArea=6\n' +
+      '         leftEdge=3\n' +
+      '         top [2,5], 5>2 → pop\n' +
+      '         width=4-2=2, area=5*2=10, maxArea=10\n' +
+      '         leftEdge=2\n' +
+      '         top [0,1], 1<=2 → stop. push [2,2]\n' +
+      '         stack: [[0,1],[2,2]]\n\n' +
+      'i=5 h=3: top [2,2], 2<=3 → stop. push [5,3]\n' +
+      '         stack: [[0,1],[2,2],[5,3]]\n\n' +
+      'i=6 h=0 (sentinel):\n' +
+      '         pop [5,3]: width=6-5=1, area=3\n' +
+      '         pop [2,2]: width=6-2=4, area=8\n' +
+      '         pop [0,1]: width=6-0=6, area=6\n\n' +
       'maxArea = 10  ✓',
     explanation:
       '1. Maintain increasing stack of indices.\n' +
