@@ -8080,24 +8080,23 @@ def longest_subarray(nums, limit):
 function maxSlidingWindow(nums, k) {
     const dq = [];     // stores indices; nums[dq[0]] is always the max
     const result = [];
-    for (let currentIndex = 0; currentIndex < nums.length; currentIndex++) {
-        const currentVal = nums[currentIndex];
+    for (let i = 0; i < nums.length; i++) {
         // Expire: remove front if it has slid out of the window
-        while (dq.length > 0 && dq[0] < currentIndex - k + 1) {
+        while (dq.length > 0 && dq[0] < i - k + 1) {
             dq.shift();
         }
         // Clean: remove back indices whose values are <= current
         while (dq.length > 0) {
             const backIndex = dq[dq.length - 1];
-            if (nums[backIndex] <= currentVal) {
+            if (nums[backIndex] <= nums[i]) {
                 dq.pop();
             } else {
                 break;
             }
         }
-        dq.push(currentIndex);
+        dq.push(i);
         // Record answer once the first full window is reached
-        if (currentIndex >= k - 1) {
+        if (i >= k - 1) {
             result.push(nums[dq[0]]);
         }
     }
@@ -8109,21 +8108,20 @@ function maxSlidingWindow(nums, k) {
 function minSlidingWindow(nums, k) {
     const dq = [];     // stores indices; nums[dq[0]] is always the min
     const result = [];
-    for (let currentIndex = 0; currentIndex < nums.length; currentIndex++) {
-        const currentVal = nums[currentIndex];
-        while (dq.length > 0 && dq[0] < currentIndex - k + 1) {
+    for (let i = 0; i < nums.length; i++) {
+        while (dq.length > 0 && dq[0] < i - k + 1) {
             dq.shift();
         }
         while (dq.length > 0) {
             const backIndex = dq[dq.length - 1];
-            if (nums[backIndex] >= currentVal) {
+            if (nums[backIndex] >= nums[i]) {
                 dq.pop();
             } else {
                 break;
             }
         }
-        dq.push(currentIndex);
-        if (currentIndex >= k - 1) {
+        dq.push(i);
+        if (i >= k - 1) {
             result.push(nums[dq[0]]);
         }
     }
@@ -8180,10 +8178,10 @@ function longestSubarray(nums, limit) {
 function maxSlidingWindow(nums, k) {
     const dq = [];     // stores indices; nums[dq[0]] is always the max
     const result = [];
-    forEach(nums, (currentVal, currentIndex) => {
+    forEach(nums, (val, i) => {
         // Expire: remove front if it has slid out of the window
         repeatWhile(
-            () => dq.length > 0 && dq[0] < currentIndex - k + 1,
+            () => dq.length > 0 && dq[0] < i - k + 1,
             () => {
                 dq.shift();
             }
@@ -8193,15 +8191,15 @@ function maxSlidingWindow(nums, k) {
             () => {
                 if (dq.length === 0) return false;
                 const backIndex = dq[dq.length - 1];
-                return nums[backIndex] <= currentVal;
+                return nums[backIndex] <= val;
             },
             () => {
                 dq.pop();
             }
         );
-        dq.push(currentIndex);
+        dq.push(i);
         // Record answer once the first full window is reached
-        if (currentIndex >= k - 1) {
+        if (i >= k - 1) {
             result.push(nums[dq[0]]);
         }
     });
@@ -8213,9 +8211,9 @@ function maxSlidingWindow(nums, k) {
 function minSlidingWindow(nums, k) {
     const dq = [];     // stores indices; nums[dq[0]] is always the min
     const result = [];
-    forEach(nums, (currentVal, currentIndex) => {
+    forEach(nums, (val, i) => {
         repeatWhile(
-            () => dq.length > 0 && dq[0] < currentIndex - k + 1,
+            () => dq.length > 0 && dq[0] < i - k + 1,
             () => {
                 dq.shift();
             }
@@ -8224,14 +8222,14 @@ function minSlidingWindow(nums, k) {
             () => {
                 if (dq.length === 0) return false;
                 const backIndex = dq[dq.length - 1];
-                return nums[backIndex] >= currentVal;
+                return nums[backIndex] >= val;
             },
             () => {
                 dq.pop();
             }
         );
-        dq.push(currentIndex);
-        if (currentIndex >= k - 1) {
+        dq.push(i);
+        if (i >= k - 1) {
             result.push(nums[dq[0]]);
         }
     });
@@ -10242,19 +10240,17 @@ function nextGreater(nums) {
     const result = new Array(n).fill(-1);  // default: no next greater element
     const stack = [];  // stores indices; values in decreasing order
 
-    for (let currentIndex = 0; currentIndex < n; currentIndex++) {
-        const currentVal = nums[currentIndex];
+    for (let i = 0; i < n; i++) {
         // Pop all indices whose values are smaller than current
         while (stack.length > 0) {
             const topIndex = stack[stack.length - 1];
-            const topVal = nums[topIndex];
-            if (currentVal <= topVal) {
+            if (nums[i] <= nums[topIndex]) {
                 break;
             }
             stack.pop();
-            result[topIndex] = currentVal;  // currentVal is the next greater element for topIndex
+            result[topIndex] = nums[i];  // nums[i] is the next greater element for topIndex
         }
-        stack.push(currentIndex);
+        stack.push(i);
     }
 
     return result;
@@ -10267,19 +10263,16 @@ function dailyTemperatures(temps) {
     const result = new Array(n).fill(0);  // 0 means no warmer day ahead
     const stack = [];  // stores indices
 
-    for (let todayIndex = 0; todayIndex < n; todayIndex++) {
-        const todayTemp = temps[todayIndex];
+    for (let i = 0; i < n; i++) {
         while (stack.length > 0) {
-            const waitingIndex = stack[stack.length - 1];
-            const waitingTemp = temps[waitingIndex];
-            if (todayTemp <= waitingTemp) {
+            const topIndex = stack[stack.length - 1];
+            if (temps[i] <= temps[topIndex]) {
                 break;
             }
             stack.pop();
-            const daysWaited = todayIndex - waitingIndex;
-            result[waitingIndex] = daysWaited;  // days until a warmer temperature
+            result[topIndex] = i - topIndex;  // days until a warmer temperature
         }
-        stack.push(todayIndex);
+        stack.push(i);
     }
 
     return result;
@@ -10323,12 +10316,10 @@ function trap(height) {
     const stack = [];
     let water = 0;
 
-    for (let currentIndex = 0; currentIndex < height.length; currentIndex++) {
-        const currentHeight = height[currentIndex];
+    for (let i = 0; i < height.length; i++) {
         while (stack.length > 0) {
             const topIndex = stack[stack.length - 1];
-            const topHeight = height[topIndex];
-            if (currentHeight <= topHeight) {
+            if (height[i] <= height[topIndex]) {
                 break;
             }
             const bottomIndex = stack.pop();
@@ -10340,11 +10331,11 @@ function trap(height) {
             }
 
             const leftWallIndex = stack[stack.length - 1];
-            const width = currentIndex - leftWallIndex - 1;
-            const boundedHeight = Math.min(currentHeight, height[leftWallIndex]) - bottomHeight;
+            const width = i - leftWallIndex - 1;
+            const boundedHeight = Math.min(height[i], height[leftWallIndex]) - bottomHeight;
             water += width * boundedHeight;
         }
-        stack.push(currentIndex);
+        stack.push(i);
     }
 
     return water;
@@ -10358,22 +10349,20 @@ function nextGreater(nums) {
     const result = new Array(n).fill(-1);  // default: no next greater element
     const stack = [];  // stores indices; values in decreasing order
 
-    forEachBetween(0, n, (currentIndex) => {
-        const currentVal = nums[currentIndex];
+    forEachBetween(0, n, (i) => {
         // Pop all indices whose values are smaller than current
         repeatWhile(
             () => {
                 if (stack.length === 0) return false;
                 const topIndex = stack[stack.length - 1];
-                const topVal = nums[topIndex];
-                return currentVal > topVal;
+                return nums[i] > nums[topIndex];
             },
             () => {
                 const topIndex = stack.pop();
-                result[topIndex] = currentVal;  // currentVal is the next greater element for topIndex
+                result[topIndex] = nums[i];  // nums[i] is the next greater element for topIndex
             }
         );
-        stack.push(currentIndex);
+        stack.push(i);
     });
 
     return result;
@@ -10386,22 +10375,19 @@ function dailyTemperatures(temps) {
     const result = new Array(n).fill(0);  // 0 means no warmer day ahead
     const stack = [];  // stores indices
 
-    forEachBetween(0, n, (todayIndex) => {
-        const todayTemp = temps[todayIndex];
+    forEachBetween(0, n, (i) => {
         repeatWhile(
             () => {
                 if (stack.length === 0) return false;
-                const waitingIndex = stack[stack.length - 1];
-                const waitingTemp = temps[waitingIndex];
-                return todayTemp > waitingTemp;
+                const topIndex = stack[stack.length - 1];
+                return temps[i] > temps[topIndex];
             },
             () => {
-                const waitingIndex = stack.pop();
-                const daysWaited = todayIndex - waitingIndex;
-                result[waitingIndex] = daysWaited;  // days until a warmer temperature
+                const topIndex = stack.pop();
+                result[topIndex] = i - topIndex;  // days until a warmer temperature
             }
         );
-        stack.push(todayIndex);
+        stack.push(i);
     });
 
     return result;
@@ -10417,27 +10403,24 @@ function largestRectangleArea(heights) {
     // Sentinel 0 at end forces all remaining bars to be popped and processed
     heights.push(0);
 
-    forEachBetween(0, heights.length, (currentIndex) => {
-        const currentHeight = heights[currentIndex];
+    forEachBetween(0, heights.length, (i) => {
+        let leftEdge = i;
+
         repeatWhile(
             () => {
                 if (stack.length === 0) return false;
-                const topIndex = stack[stack.length - 1];
-                const topHeight = heights[topIndex];
-                return topHeight > currentHeight;
+                const [topLeft, topHeight] = stack[stack.length - 1];
+                return topHeight > heights[i];
             },
             () => {
-                const poppedIndex = stack.pop();
-                const barHeight = heights[poppedIndex];
-
-                // Left boundary is the new stack top; if empty, extends to the start
-                const leftBoundary = stack.length > 0 ? stack[stack.length - 1] : -1;
-                const barWidth = currentIndex - leftBoundary - 1;
-
-                maxArea = Math.max(maxArea, barHeight * barWidth);
+                const [topLeft, topHeight] = stack[stack.length - 1];
+                const width = i - topLeft;
+                maxArea = Math.max(maxArea, topHeight * width);
+                leftEdge = topLeft;
+                stack.pop();
             }
         );
-        stack.push(currentIndex);
+        stack.push([leftEdge, heights[i]]);
     });
 
     heights.pop();  // restore original array
@@ -10450,14 +10433,12 @@ function trap(height) {
     const stack = [];
     let water = 0;
 
-    forEachBetween(0, height.length, (currentIndex) => {
-        const currentHeight = height[currentIndex];
+    forEachBetween(0, height.length, (i) => {
         repeatWhile(
             () => {
                 if (stack.length === 0) return false;
                 const topIndex = stack[stack.length - 1];
-                const topHeight = height[topIndex];
-                return currentHeight > topHeight;
+                return height[i] > height[topIndex];
             },
             () => {
                 const bottomIndex = stack.pop();
@@ -10469,12 +10450,12 @@ function trap(height) {
                 }
 
                 const leftWallIndex = stack[stack.length - 1];
-                const width = currentIndex - leftWallIndex - 1;
-                const boundedHeight = Math.min(currentHeight, height[leftWallIndex]) - bottomHeight;
+                const width = i - leftWallIndex - 1;
+                const boundedHeight = Math.min(height[i], height[leftWallIndex]) - bottomHeight;
                 water += width * boundedHeight;
             }
         );
-        stack.push(currentIndex);
+        stack.push(i);
     });
 
     return water;
