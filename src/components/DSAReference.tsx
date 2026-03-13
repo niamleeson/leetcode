@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { lessons, TopicLesson } from '../data/lessons';
+import { templateBlockMeta, splitTemplateByBlocks } from '../data/template-block-meta';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import CodeBlock from './CodeBlock';
 import GlossaryHighlighter from './GlossaryHighlighter';
@@ -102,6 +103,40 @@ function VerifySection({ text }: { text: string }) {
   );
 }
 
+function TemplateBlocks({ lesson, showJs, useReadable, language }: {
+  lesson: TopicLesson;
+  showJs: boolean;
+  useReadable: boolean;
+  language: 'python' | 'javascript';
+}) {
+  const templateStr = useReadable ? lesson.jsTemplateReadable! : (showJs ? lesson.jsTemplate! : lesson.template);
+  const blocksMeta = templateBlockMeta[lesson.topic];
+
+  if (!blocksMeta || !blocksMeta.length) {
+    return <CodeBlock code={templateStr} language={language} />;
+  }
+
+  const { blocks, codes } = splitTemplateByBlocks(templateStr, blocksMeta, language);
+
+  if (!blocks.length) {
+    return <CodeBlock code={templateStr} language={language} />;
+  }
+
+  return (
+    <div className="space-y-4">
+      {blocks.map((block, i) => (
+        <div key={i}>
+          <div className="bg-gray-800/60 border border-gray-700/50 rounded-lg px-3 py-2 mb-2">
+            <h5 className="text-sm font-semibold text-blue-300">{block.title}</h5>
+            <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">{block.statement}</p>
+          </div>
+          <CodeBlock code={codes[i] || ''} language={language} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function TopicCard({ lesson, language, setLanguage, codeStyle, setCodeStyle }: {
   lesson: TopicLesson;
   language: 'python' | 'javascript';
@@ -112,7 +147,7 @@ function TopicCard({ lesson, language, setLanguage, codeStyle, setCodeStyle }: {
   const [expanded, setExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState<'template' | 'memorization' | 'overview'>('template');
 
-  const showJs = language === 'javascript' && lesson.jsTemplate;
+  const showJs = language === 'javascript' && !!lesson.jsTemplate;
   const useReadable = codeStyle === 'readable' && showJs && lesson.jsTemplateReadable;
 
   return (
@@ -234,8 +269,10 @@ function TopicCard({ lesson, language, setLanguage, codeStyle, setCodeStyle }: {
                     <LanguageToggle language={language} setLanguage={setLanguage} />
                   </div>
                 </div>
-                <CodeBlock
-                  code={useReadable ? lesson.jsTemplateReadable! : (showJs ? lesson.jsTemplate! : lesson.template)}
+                <TemplateBlocks
+                  lesson={lesson}
+                  showJs={showJs}
+                  useReadable={!!useReadable}
                   language={showJs ? 'javascript' : 'python'}
                 />
                 {language === 'javascript' && !lesson.jsTemplate && (
