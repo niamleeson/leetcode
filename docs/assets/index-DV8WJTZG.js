@@ -9668,13 +9668,15 @@ prim — O(E log V) time
     2. Pop min [cost, u]; if visited → skip; add to visited, total += cost
     3. Push all [weight, v] for unvisited neighbors
     4. Return total if all nodes visited, else -1
-  Mnemonic: "BFS with a heap. Always grab the cheapest edge to new territory."`},"Monotonic Stack":{topic:"Monotonic Stack",overview:`A monotonic stack maintains elements in sorted (increasing or decreasing) order. When a new element breaks the monotonic property, we pop elements until the property is restored. Each pop reveals a relationship (like "next greater element").
+  Mnemonic: "BFS with a heap. Always grab the cheapest edge to new territory."`},"Monotonic Stack":{topic:"Monotonic Stack",overview:`The stack is a waiting line of unresolved elements. Each element sits in the stack thinking "I haven't found my answer yet." As you scan left to right, every new element asks: "do I resolve anyone who's waiting?" If yes, pop them — they just found their answer. Then the new element joins the waiting line itself.
+
+The stack stays monotonic as a natural consequence. You're not trying to keep it sorted — it just happens because you pop anyone the new arrival resolves. What remains is everyone it couldn't satisfy, which by definition forms a monotonic order.
 
 Two types:
-• Monotonic decreasing stack: Pop when current > top → finds NEXT GREATER element
-• Monotonic increasing stack: Pop when current < top → finds NEXT SMALLER element
+• Decreasing stack (next GREATER): Small elements are the most easily satisfied — they sit on top and get popped first when something bigger arrives.
+• Increasing stack (next SMALLER): Big elements are the most easily satisfied — they sit on top and get popped first when something smaller arrives.
 
-Key insight: Every element is pushed and popped at most once → O(n) total.
+Every element is pushed once (joins the waiting line) and popped once (gets its answer) → O(n) total.
 
 Classic problems: Next Greater Element, Daily Temperatures, Largest Rectangle in Histogram, Trapping Rain Water.`,keyPatterns:["Next greater element: Decreasing stack, pop when current is larger","Next smaller element: Increasing stack, pop when current is smaller","Largest rectangle in histogram: Find left and right boundaries using monotonic stack","Trapping rain water: Track left/right max heights (or use stack for valleys)","Stock span: How many consecutive days with price <= today"],template:`# Next Greater Element (for each element, find the next one that is larger)
 def next_greater(nums):
