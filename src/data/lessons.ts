@@ -10313,12 +10313,12 @@ function largestRectangleArea(heights) {
 // Trapping Rain Water
 // Water collects in valleys between two walls
 function trap(height) {
-    const stack = [];  // stores [waterStart, wallHeight]
+    const stack = [];  // stores [wallIndex, wallHeight]
     let water = 0;
 
     for (let i = 0; i < height.length; i++) {
         while (stack.length > 0) {
-            const [topWaterStart, topHeight] = stack[stack.length - 1];
+            const [topIndex, topHeight] = stack[stack.length - 1];
             if (height[i] <= topHeight) {
                 break;
             }
@@ -10332,12 +10332,12 @@ function trap(height) {
                 break;
             }
 
-            const [leftWaterStart, leftWallHeight] = stack[stack.length - 1];
-            const width = i - leftWaterStart;
+            const [leftWallIndex, leftWallHeight] = stack[stack.length - 1];
+            const width = i - (leftWallIndex + 1);
             const boundedHeight = Math.min(height[i], leftWallHeight) - bottomHeight;
             water += width * boundedHeight;
         }
-        stack.push([i + 1, height[i]]);
+        stack.push([i, height[i]]);
     }
 
     return water;
@@ -10432,18 +10432,18 @@ function largestRectangleArea(heights) {
 // Trapping Rain Water
 // Water collects in valleys between two walls
 function trap(height) {
-    const stack = [];  // stores [waterStart, wallHeight]
+    const stack = [];  // stores [wallIndex, wallHeight]
     let water = 0;
 
     forEachBetween(0, height.length, (i) => {
         repeatWhile(
             () => {
                 if (stack.length === 0) return false;
-                const [topWaterStart, topHeight] = stack[stack.length - 1];
+                const [topIndex, topHeight] = stack[stack.length - 1];
                 return height[i] > topHeight;
             },
             () => {
-                const [topWaterStart, topHeight] = stack[stack.length - 1];
+                const [topIndex, topHeight] = stack[stack.length - 1];
                 stack.pop();
                 const bottomHeight = topHeight;
 
@@ -10452,13 +10452,13 @@ function trap(height) {
                     return;
                 }
 
-                const [leftWaterStart, leftWallHeight] = stack[stack.length - 1];
-                const width = i - leftWaterStart;
+                const [leftWallIndex, leftWallHeight] = stack[stack.length - 1];
+                const width = i - (leftWallIndex + 1);
                 const boundedHeight = Math.min(height[i], leftWallHeight) - bottomHeight;
                 water += width * boundedHeight;
             }
         );
-        stack.push([i + 1, height[i]]);
+        stack.push([i, height[i]]);
     });
 
     return water;
@@ -10539,27 +10539,27 @@ trap:
 "Result: [1,1,4,2,1,1,0,0] ✓\n\n" +
 "── Trapping Rain Water (Stack) ──\n" +
 "Input: [0,1,0,2,1,0,1,3,2,1,2,1]\n" +
-"Stack stores [waterStart, wallHeight]. Push [i+1, height[i]].\n" +
-"waterStart = just inside the wall (wallIndex + 1).\n\n" +
-"i=0(h=0): push [1,0]\n" +
-"i=1(h=1): top=[1,0], 1>0 → pop, bottom=0. stack empty → break.\n" +
-"          push [2,1]\n" +
-"i=2(h=0): 0<=1 → push [3,0]. stack=[[2,1],[3,0]]\n" +
-"i=3(h=2): top=[3,0], 2>0 → pop, bottom=0.\n" +
-"  left=[2,1]. width=3-2=1, bounded=min(2,1)-0=1. water=1\n" +
-"  top=[2,1], 2>1 → pop, bottom=1. stack empty → break.\n" +
-"  push [4,2]\n" +
-"i=4(h=1): 1<=2 → push [5,1]\n" +
-"i=5(h=0): 0<=1 → push [6,0]\n" +
-"i=6(h=1): top=[6,0], 1>0 → pop, bottom=0.\n" +
-"  left=[5,1]. width=6-5=1, bounded=min(1,1)-0=1. water=2\n" +
-"  1<=1 → push [7,1]\n" +
-"i=7(h=3): top=[7,1], 3>1 → pop, bottom=1.\n" +
-"  left=[5,1]. width=7-5=2, bounded=min(3,1)-1=0. water=2\n" +
-"  top=[5,1], 3>1 → pop, bottom=1.\n" +
-"  left=[4,2]. width=7-4=3, bounded=min(3,2)-1=1. water+=3→5\n" +
-"  top=[4,2], 3>2 → pop, bottom=2. stack empty → break.\n" +
-"  push [8,3]\n" +
+"Stack stores [wallIndex, wallHeight]. Push [i, height[i]].\n" +
+"width = i - (leftWallIndex + 1)\n\n" +
+"i=0(h=0): push [0,0]\n" +
+"i=1(h=1): top=[0,0], 1>0 → pop, bottom=0. stack empty → break.\n" +
+"          push [1,1]\n" +
+"i=2(h=0): 0<=1 → push [2,0]. stack=[[1,1],[2,0]]\n" +
+"i=3(h=2): top=[2,0], 2>0 → pop, bottom=0.\n" +
+"  left=[1,1]. width=3-(1+1)=1, bounded=min(2,1)-0=1. water=1\n" +
+"  top=[1,1], 2>1 → pop, bottom=1. stack empty → break.\n" +
+"  push [3,2]\n" +
+"i=4(h=1): 1<=2 → push [4,1]\n" +
+"i=5(h=0): 0<=1 → push [5,0]\n" +
+"i=6(h=1): top=[5,0], 1>0 → pop, bottom=0.\n" +
+"  left=[4,1]. width=6-(4+1)=1, bounded=min(1,1)-0=1. water=2\n" +
+"  1<=1 → push [6,1]\n" +
+"i=7(h=3): top=[6,1], 3>1 → pop, bottom=1.\n" +
+"  left=[4,1]. width=7-(4+1)=2, bounded=min(3,1)-1=0. water=2\n" +
+"  top=[4,1], 3>1 → pop, bottom=1.\n" +
+"  left=[3,2]. width=7-(3+1)=3, bounded=min(3,2)-1=1. water+=3→5\n" +
+"  top=[3,2], 3>2 → pop, bottom=2. stack empty → break.\n" +
+"  push [7,3]\n" +
 "...continues for remaining bars...\n\n" +
 "Total water = 6 ✓",
     complexity: 'O(n) time (each element pushed/popped once). O(n) space for the stack.',
@@ -10606,7 +10606,7 @@ QUICK REFERENCE:
   Next Greater Element → pop when bigger → result[j] = nums[i]
   Daily Temperatures → pop when warmer → result[j] = i - j
   Largest Rectangle → pop when shorter → inherit left edge → area = height * width
-  Trapping Rain Water → pop when taller → store [waterStart, wallHeight] → water += width * bounded_height
+  Trapping Rain Water → pop when taller → store [wallIndex, wallHeight] → water += width * bounded_height
 
 
 METHOD MNEMONICS:
@@ -10679,26 +10679,26 @@ largestRectangleArea — O(n) time
 trap (stack version) — O(n) time
   Problem: Given an array representing an elevation map, compute the total water that can be trapped after rain.
   Use when: "trapping rain water" (stack approach), "water between bars"
-  Stack stores [waterStart, wallHeight] pairs. Push [i+1, height[i]] — waterStart is just inside the wall.
+  Stack stores [wallIndex, wallHeight] pairs. Push [i, height[i]].
   Example:
     height=[0,1,0,2]
-    i=0(h=0): push [1,0]
-    i=1(h=1): top=[1,0], 1>0 → pop, bottom=0. stack empty → break. push [2,1]
-    i=2(h=0): 0<=1 → push [3,0]. stack=[[2,1],[3,0]]
-    i=3(h=2): top=[3,0], 2>0 → pop, bottom=0. left=[2,1].
-      width=3-2=1, bounded=min(2,1)-0=1, water=1
-      top=[2,1], 2>1 → pop, bottom=1. stack empty → break.
-      push [4,2]
+    i=0(h=0): push [0,0]
+    i=1(h=1): top=[0,0], 1>0 → pop, bottom=0. stack empty → break. push [1,1]
+    i=2(h=0): 0<=1 → push [2,0]. stack=[[1,1],[2,0]]
+    i=3(h=2): top=[2,0], 2>0 → pop, bottom=0. left=[1,1].
+      width=3-(1+1)=1, bounded=min(2,1)-0=1, water=1
+      top=[1,1], 2>1 → pop, bottom=1. stack empty → break.
+      push [3,2]
     Final water=1 ✓
   Steps:
     1. For each i: while stack not empty:
-       peek top [waterStart, wallHeight]; if height[i] <= wallHeight → break
+       peek top [wallIndex, wallHeight]; if height[i] <= wallHeight → break
        pop; bottomHeight = wallHeight; if stack empty → break
-       left = stack top [leftWaterStart, leftWallHeight]
-       width = i - leftWaterStart; boundedHeight = min(height[i], leftWallHeight) - bottomHeight
+       left = stack top [leftWallIndex, leftWallHeight]
+       width = i - (leftWallIndex + 1); boundedHeight = min(height[i], leftWallHeight) - bottomHeight
        water += width * boundedHeight
-    2. Push [i+1, height[i]]
-  Mnemonic: "Peek then pop the valley floor. Left wall = new top. width = i - leftWaterStart (no -1). Push [i+1, h]."`,
+    2. Push [i, height[i]]
+  Mnemonic: "Peek then pop the valley floor. Left wall = new top. width = i - (leftWallIndex + 1). Push [i, h]."`,
   },
 
   'Binary Indexed Tree': {
