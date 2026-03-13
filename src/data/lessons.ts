@@ -10325,7 +10325,6 @@ function trap(height) {
 
             // Pop the valley bottom
             stack.pop();
-            const bottomHeight = topHeight;
 
             // Need a left wall; if stack is empty, no container possible
             if (stack.length === 0) {
@@ -10334,8 +10333,9 @@ function trap(height) {
 
             const [leftWallIndex, leftWallHeight] = stack[stack.length - 1];
             const width = i - (leftWallIndex + 1);
-            const boundedHeight = Math.min(height[i], leftWallHeight) - bottomHeight;
-            water += width * boundedHeight;
+            const minWall = Math.min(height[i], leftWallHeight);
+            const waterFilledHeight = minWall - topHeight;
+            water += width * waterFilledHeight;
         }
         stack.push([i, height[i]]);
     }
@@ -10445,7 +10445,6 @@ function trap(height) {
             () => {
                 const [topIndex, topHeight] = stack[stack.length - 1];
                 stack.pop();
-                const bottomHeight = topHeight;
 
                 // Need a left wall; if stack is empty, no container possible
                 if (stack.length === 0) {
@@ -10454,8 +10453,9 @@ function trap(height) {
 
                 const [leftWallIndex, leftWallHeight] = stack[stack.length - 1];
                 const width = i - (leftWallIndex + 1);
-                const boundedHeight = Math.min(height[i], leftWallHeight) - bottomHeight;
-                water += width * boundedHeight;
+                const minWall = Math.min(height[i], leftWallHeight);
+                const waterFilledHeight = minWall - topHeight;
+                water += width * waterFilledHeight;
             }
         );
         stack.push([i, height[i]]);
@@ -10542,23 +10542,23 @@ trap:
 "Stack stores [wallIndex, wallHeight]. Push [i, height[i]].\n" +
 "width = i - (leftWallIndex + 1)\n\n" +
 "i=0(h=0): push [0,0]\n" +
-"i=1(h=1): top=[0,0], 1>0 → pop, bottom=0. stack empty → break.\n" +
+"i=1(h=1): top=[0,0], 1>0 → pop. stack empty → break.\n" +
 "          push [1,1]\n" +
 "i=2(h=0): 0<=1 → push [2,0]. stack=[[1,1],[2,0]]\n" +
-"i=3(h=2): top=[2,0], 2>0 → pop, bottom=0.\n" +
-"  left=[1,1]. width=3-(1+1)=1, bounded=min(2,1)-0=1. water=1\n" +
-"  top=[1,1], 2>1 → pop, bottom=1. stack empty → break.\n" +
+"i=3(h=2): top=[2,0], 2>0 → pop.\n" +
+"  left=[1,1]. width=3-(1+1)=1, minWall=min(2,1)=1, filled=1-0=1. water=1\n" +
+"  top=[1,1], 2>1 → pop. stack empty → break.\n" +
 "  push [3,2]\n" +
 "i=4(h=1): 1<=2 → push [4,1]\n" +
 "i=5(h=0): 0<=1 → push [5,0]\n" +
-"i=6(h=1): top=[5,0], 1>0 → pop, bottom=0.\n" +
-"  left=[4,1]. width=6-(4+1)=1, bounded=min(1,1)-0=1. water=2\n" +
+"i=6(h=1): top=[5,0], 1>0 → pop.\n" +
+"  left=[4,1]. width=6-(4+1)=1, minWall=min(1,1)=1, filled=1-0=1. water=2\n" +
 "  1<=1 → push [6,1]\n" +
-"i=7(h=3): top=[6,1], 3>1 → pop, bottom=1.\n" +
-"  left=[4,1]. width=7-(4+1)=2, bounded=min(3,1)-1=0. water=2\n" +
-"  top=[4,1], 3>1 → pop, bottom=1.\n" +
-"  left=[3,2]. width=7-(3+1)=3, bounded=min(3,2)-1=1. water+=3→5\n" +
-"  top=[3,2], 3>2 → pop, bottom=2. stack empty → break.\n" +
+"i=7(h=3): top=[6,1], 3>1 → pop.\n" +
+"  left=[4,1]. width=7-(4+1)=2, minWall=min(3,1)=1, filled=1-1=0. water=2\n" +
+"  top=[4,1], 3>1 → pop.\n" +
+"  left=[3,2]. width=7-(3+1)=3, minWall=min(3,2)=2, filled=2-1=1. water+=3→5\n" +
+"  top=[3,2], 3>2 → pop. stack empty → break.\n" +
 "  push [7,3]\n" +
 "...continues for remaining bars...\n\n" +
 "Total water = 6 ✓",
@@ -10683,22 +10683,22 @@ trap (stack version) — O(n) time
   Example:
     height=[0,1,0,2]
     i=0(h=0): push [0,0]
-    i=1(h=1): top=[0,0], 1>0 → pop, bottom=0. stack empty → break. push [1,1]
+    i=1(h=1): top=[0,0], 1>0 → pop. stack empty → break. push [1,1]
     i=2(h=0): 0<=1 → push [2,0]. stack=[[1,1],[2,0]]
-    i=3(h=2): top=[2,0], 2>0 → pop, bottom=0. left=[1,1].
-      width=3-(1+1)=1, bounded=min(2,1)-0=1, water=1
-      top=[1,1], 2>1 → pop, bottom=1. stack empty → break.
+    i=3(h=2): top=[2,0], 2>0 → pop. left=[1,1].
+      width=3-(1+1)=1, minWall=min(2,1)=1, filled=1-0=1, water=1
+      top=[1,1], 2>1 → pop. stack empty → break.
       push [3,2]
     Final water=1 ✓
   Steps:
     1. For each i: while stack not empty:
-       peek top [wallIndex, wallHeight]; if height[i] <= wallHeight → break
-       pop; bottomHeight = wallHeight; if stack empty → break
+       peek top [topIndex, topHeight]; if height[i] <= topHeight → break
+       pop; if stack empty → break
        left = stack top [leftWallIndex, leftWallHeight]
-       width = i - (leftWallIndex + 1); boundedHeight = min(height[i], leftWallHeight) - bottomHeight
-       water += width * boundedHeight
+       width = i - (leftWallIndex + 1); minWall = min(height[i], leftWallHeight)
+       waterFilledHeight = minWall - topHeight; water += width * waterFilledHeight
     2. Push [i, height[i]]
-  Mnemonic: "Peek then pop the valley floor. Left wall = new top. width = i - (leftWallIndex + 1). Push [i, h]."`,
+  Mnemonic: "Peek top, pop valley floor. Left wall = new top. width = i - (leftWallIndex + 1). waterFilled = minWall - topHeight."`,
   },
 
   'Binary Indexed Tree': {
