@@ -7982,18 +7982,40 @@ i=7: val=7.  dq[0]=5, i-k=4, 5≠4 → no expire. push 7. dq=[5,6,7]. result=[-1
 
 ── Longest Subarray (max - min <= limit) ──
 Input: nums=[10,1,2,4,7,2], limit=5
+Two deques: maxDq (decreasing, front=max), minDq (increasing, front=min)
 
-right=0(10): maxDq=[0](10), minDq=[0](10). 10-10=0<=5. len=1
-right=1(1):  maxDq=[0,1](10,1), minDq: pop 0(10), push 1. minDq=[1](1).
-  10-1=9>5 → left=1. maxDq[0]=0<1 → shift. maxDq=[1](1). 1-1=0<=5. len=1
-right=2(2):  maxDq: pop 1(1), push 2. maxDq=[2](2). minDq=[1,2](1,2).
-  2-1=1<=5. len=2
-right=3(4):  maxDq: pop 2(2), push 3. maxDq=[3](4). minDq=[1,2,3](1,2,4).
-  4-1=3<=5. len=3
-right=4(7):  maxDq: pop 3(4), push 4. maxDq=[4](7). minDq=[1,2,3,4](1,2,4,7).
-  7-1=6>5 → left=2. minDq[0]=1<2 → shift. minDq=[2,3,4](2,4,7). 7-2=5<=5. len=3
-right=5(2):  maxDq=[4,5](7,2). minDq: pop 4(7),3(4),2(2), push 5. minDq=[5](2).
-  7-2=5<=5. len=4
+right=0(10):
+  maxDq: push 0. maxDq=[0(10)]
+  minDq: push 0. minDq=[0(10)]
+  max-min = 10-10 = 0 <= 5 ✓ len=1
+
+right=1(1):
+  maxDq: 10>1 → keep. push 1. maxDq=[0(10), 1(1)]
+  minDq: 10>=1 → pop 0. push 1. minDq=[1(1)]
+  max-min = 10-1 = 9 > 5 ✗ → shrink: left=1. maxDq[0]=0 < 1 → shift.
+  maxDq=[1(1)], minDq=[1(1)]. max-min = 1-1 = 0 <= 5 ✓ len=1
+
+right=2(2):
+  maxDq: 1<=2 → pop 1. push 2. maxDq=[2(2)]
+  minDq: 1<2 → keep. push 2. minDq=[1(1), 2(2)]
+  max-min = 2-1 = 1 <= 5 ✓ len=2
+
+right=3(4):
+  maxDq: 2<=4 → pop 2. push 3. maxDq=[3(4)]
+  minDq: 2<4 → keep. push 3. minDq=[1(1), 2(2), 3(4)]
+  max-min = 4-1 = 3 <= 5 ✓ len=3
+
+right=4(7):
+  maxDq: 4<=7 → pop 3. push 4. maxDq=[4(7)]
+  minDq: 4<7 → keep. push 4. minDq=[1(1), 2(2), 3(4), 4(7)]
+  max-min = 7-1 = 6 > 5 ✗ → shrink: left=2. minDq[0]=1 < 2 → shift.
+  maxDq=[4(7)], minDq=[2(2), 3(4), 4(7)]. max-min = 7-2 = 5 <= 5 ✓ len=3
+
+right=5(2):
+  maxDq: 7>2 → keep. push 5. maxDq=[4(7), 5(2)]
+  minDq: 7>=2 → pop 4. 4>=2 → pop 3. 2>=2 → pop 2. push 5. minDq=[5(2)]
+  max-min = 7-2 = 5 <= 5 ✓ len=4
+
 Result: 4`,complexity:"O(n) time (each element enters and leaves deque once). O(k) space for the deque.",commonMistakes:["Storing values instead of indices (can't check if element left the window)","Forgetting to remove expired front elements (stale max/min)","Wrong comparison direction: <= for max deque, >= for min deque","Using a regular queue instead of deque (can't pop from back)"],tips:["Monotonic deque = monotonic stack + ability to pop from front (for window expiry)","Always store INDICES, look up values via nums[idx]","Front = answer (max or min). Back = where new elements enter.","The deque never has more than k elements, so space is O(k)."],memorization:`HOW TO MEMORIZE MONOTONIC QUEUE:
 It's a deque with 3 operations per element. Memorize this loop:
 

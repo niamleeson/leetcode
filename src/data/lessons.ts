@@ -8340,18 +8340,33 @@ longestSubarray:
 "\n" +
 "── Longest Subarray (max - min <= limit) ──\n" +
 "Input: nums=[10,1,2,4,7,2], limit=5\n" +
-"\n" +
-"right=0(10): maxDq=[0](10), minDq=[0](10). 10-10=0<=5. len=1\n" +
-"right=1(1):  maxDq=[0,1](10,1), minDq: pop 0(10), push 1. minDq=[1](1).\n" +
-"  10-1=9>5 → left=1. maxDq[0]=0<1 → shift. maxDq=[1](1). 1-1=0<=5. len=1\n" +
-"right=2(2):  maxDq: pop 1(1), push 2. maxDq=[2](2). minDq=[1,2](1,2).\n" +
-"  2-1=1<=5. len=2\n" +
-"right=3(4):  maxDq: pop 2(2), push 3. maxDq=[3](4). minDq=[1,2,3](1,2,4).\n" +
-"  4-1=3<=5. len=3\n" +
-"right=4(7):  maxDq: pop 3(4), push 4. maxDq=[4](7). minDq=[1,2,3,4](1,2,4,7).\n" +
-"  7-1=6>5 → left=2. minDq[0]=1<2 → shift. minDq=[2,3,4](2,4,7). 7-2=5<=5. len=3\n" +
-"right=5(2):  maxDq=[4,5](7,2). minDq: pop 4(7),3(4),2(2), push 5. minDq=[5](2).\n" +
-"  7-2=5<=5. len=4\n" +
+"Two deques: maxDq (decreasing, front=max), minDq (increasing, front=min)\n\n" +
+"right=0(10):\n" +
+"  maxDq: push 0. maxDq=[0(10)]\n" +
+"  minDq: push 0. minDq=[0(10)]\n" +
+"  max-min = 10-10 = 0 <= 5 ✓ len=1\n\n" +
+"right=1(1):\n" +
+"  maxDq: 10>1 → keep. push 1. maxDq=[0(10), 1(1)]\n" +
+"  minDq: 10>=1 → pop 0. push 1. minDq=[1(1)]\n" +
+"  max-min = 10-1 = 9 > 5 ✗ → shrink: left=1. maxDq[0]=0 < 1 → shift.\n" +
+"  maxDq=[1(1)], minDq=[1(1)]. max-min = 1-1 = 0 <= 5 ✓ len=1\n\n" +
+"right=2(2):\n" +
+"  maxDq: 1<=2 → pop 1. push 2. maxDq=[2(2)]\n" +
+"  minDq: 1<2 → keep. push 2. minDq=[1(1), 2(2)]\n" +
+"  max-min = 2-1 = 1 <= 5 ✓ len=2\n\n" +
+"right=3(4):\n" +
+"  maxDq: 2<=4 → pop 2. push 3. maxDq=[3(4)]\n" +
+"  minDq: 2<4 → keep. push 3. minDq=[1(1), 2(2), 3(4)]\n" +
+"  max-min = 4-1 = 3 <= 5 ✓ len=3\n\n" +
+"right=4(7):\n" +
+"  maxDq: 4<=7 → pop 3. push 4. maxDq=[4(7)]\n" +
+"  minDq: 4<7 → keep. push 4. minDq=[1(1), 2(2), 3(4), 4(7)]\n" +
+"  max-min = 7-1 = 6 > 5 ✗ → shrink: left=2. minDq[0]=1 < 2 → shift.\n" +
+"  maxDq=[4(7)], minDq=[2(2), 3(4), 4(7)]. max-min = 7-2 = 5 <= 5 ✓ len=3\n\n" +
+"right=5(2):\n" +
+"  maxDq: 7>2 → keep. push 5. maxDq=[4(7), 5(2)]\n" +
+"  minDq: 7>=2 → pop 4. 4>=2 → pop 3. 2>=2 → pop 2. push 5. minDq=[5(2)]\n" +
+"  max-min = 7-2 = 5 <= 5 ✓ len=4\n\n" +
 "Result: 4",
     complexity: 'O(n) time (each element enters and leaves deque once). O(k) space for the deque.',
     commonMistakes: [
