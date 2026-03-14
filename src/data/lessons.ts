@@ -8129,6 +8129,8 @@ function minSlidingWindow(nums, k) {
 }
 
 // Longest subarray where max - min <= limit
+// Key insight: sliding window. If a window [left, right] satisfies the constraint,
+// try expanding right. If it violates, shrink left. Classic variable-size sliding window.
 // Uses TWO deques: one tracks the running max, one tracks the running min
 function longestSubarray(nums, limit) {
     const maxDq = [];  // decreasing — front is the current window max
@@ -8237,6 +8239,8 @@ function minSlidingWindow(nums, k) {
 }
 
 // Longest subarray where max - min <= limit
+// Key insight: sliding window. If a window [left, right] satisfies the constraint,
+// try expanding right. If it violates, shrink left. Classic variable-size sliding window.
 // Uses TWO deques: one tracks the running max, one tracks the running min
 function longestSubarray(nums, limit) {
     const maxDq = [];  // decreasing — front is the current window max
