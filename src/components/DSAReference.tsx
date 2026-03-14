@@ -85,6 +85,36 @@ function LanguageToggle({ language, setLanguage }: {
   );
 }
 
+function splitWalkthroughBySection(walkthrough: string): { title: string; content: string }[] {
+  const sections: { title: string; content: string }[] = [];
+  // Split on ── Title ── markers, capturing the title
+  const parts = walkthrough.split(/── (.+?) ──\n?/);
+  // parts = [before, title1, content1, title2, content2, ...]
+  for (let i = 1; i < parts.length; i += 2) {
+    const content = (parts[i + 1] || '').trim();
+    if (content) sections.push({ title: parts[i], content });
+  }
+  return sections;
+}
+
+function WalkthroughSection({ text }: { text: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="mt-2 border border-sky-900/30 rounded-lg overflow-hidden">
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between px-4 py-3 bg-sky-950/20 hover:bg-sky-950/30 transition-colors cursor-pointer"
+      >
+        <span className="text-xs font-semibold text-sky-400 uppercase tracking-wider">Step-by-Step Walkthrough</span>
+        <span className="text-sky-600 text-xs">{open ? '▾' : '▸'}</span>
+      </button>
+      {open && (
+        <pre className="p-4 text-xs text-sky-200/90 leading-relaxed whitespace-pre-wrap font-mono">{text}</pre>
+      )}
+    </div>
+  );
+}
+
 function VerifySection({ text }: { text: string }) {
   const [open, setOpen] = useState(false);
   return (
@@ -111,16 +141,63 @@ function TemplateBlocks({ lesson, showJs, useReadable, language }: {
 }) {
   const templateStr = useReadable ? lesson.jsTemplateReadable! : (showJs ? lesson.jsTemplate! : lesson.template);
   const blocksMeta = templateBlockMeta[lesson.topic];
+  const walkthroughSections = showJs && lesson.jsTemplateWalkthrough
+    ? splitWalkthroughBySection(lesson.jsTemplateWalkthrough)
+    : [];
 
   if (!blocksMeta || !blocksMeta.length) {
-    return <CodeBlock code={templateStr} language={language} />;
+    return (
+      <div>
+        <CodeBlock code={templateStr} language={language} />
+        {walkthroughSections.map((s, i) => (
+          <WalkthroughSection key={i} text={s.content} />
+        ))}
+      </div>
+    );
   }
 
   const { blocks, codes } = splitTemplateByBlocks(templateStr, blocksMeta, language);
 
   if (!blocks.length) {
-    return <CodeBlock code={templateStr} language={language} />;
+    return (
+      <div>
+        <CodeBlock code={templateStr} language={language} />
+        {walkthroughSections.map((s, i) => (
+          <WalkthroughSection key={i} text={s.content} />
+        ))}
+      </div>
+    );
   }
+
+  // Assign walkthroughs to blocks: try title matching first, then fill remaining by order
+  const blockWalkthroughs: (string | undefined)[] = blocks.map(() => undefined);
+  const usedWalkthroughs = new Set<number>();
+
+  // Pass 1: match by title
+  blocks.forEach((block, bi) => {
+    const name = block.title.replace(/^LC \d+: /, '').toLowerCase();
+    const wi = walkthroughSections.findIndex((s, si) => {
+      if (usedWalkthroughs.has(si)) return false;
+      const wt = s.title.toLowerCase();
+      return name.includes(wt) || wt.includes(name);
+    });
+    if (wi !== -1) {
+      blockWalkthroughs[bi] = walkthroughSections[wi].content;
+      usedWalkthroughs.add(wi);
+    }
+  });
+
+  // Pass 2: assign remaining walkthroughs in order to blocks without one
+  const unusedWalkthroughs = walkthroughSections
+    .map((s, i) => ({ ...s, idx: i }))
+    .filter(s => !usedWalkthroughs.has(s.idx));
+  let unusedIdx = 0;
+  blocks.forEach((_, bi) => {
+    if (!blockWalkthroughs[bi] && unusedIdx < unusedWalkthroughs.length) {
+      blockWalkthroughs[bi] = unusedWalkthroughs[unusedIdx].content;
+      unusedIdx++;
+    }
+  });
 
   return (
     <div className="space-y-4">
@@ -131,6 +208,7 @@ function TemplateBlocks({ lesson, showJs, useReadable, language }: {
             <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">{block.statement}</p>
           </div>
           <CodeBlock code={codes[i] || ''} language={language} />
+          {blockWalkthroughs[i] && <WalkthroughSection text={blockWalkthroughs[i]!} />}
         </div>
       ))}
     </div>
@@ -279,12 +357,6 @@ function TopicCard({ lesson, language, setLanguage, codeStyle, setCodeStyle }: {
                   <p className="text-xs text-yellow-500/70 mt-2 italic">
                     JavaScript template not available for this topic. Showing Python.
                   </p>
-                )}
-                {showJs && lesson.jsTemplateWalkthrough && (
-                  <div className="mt-3 bg-gray-950 border border-sky-900/30 rounded-md p-4 text-sm leading-relaxed">
-                    <h4 className="text-xs font-semibold text-sky-400 uppercase tracking-wider mb-3">Step-by-Step Walkthrough</h4>
-                    <pre className="text-sky-200/90 whitespace-pre-wrap font-mono text-xs leading-relaxed">{lesson.jsTemplateWalkthrough}</pre>
-                  </div>
                 )}
                 {lesson.verification && (
                   <div className="mt-3">

@@ -4,6 +4,24 @@ import { useLocalStorage } from '../hooks/useLocalStorage';
 import CodeBlock from './CodeBlock';
 import GlossaryHighlighter from './GlossaryHighlighter';
 
+function WalkthroughSection({ text }: { text: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="mt-2 border border-sky-900/30 rounded-lg overflow-hidden">
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between px-4 py-3 bg-sky-950/20 hover:bg-sky-950/30 transition-colors cursor-pointer"
+      >
+        <span className="text-xs font-semibold text-sky-400 uppercase tracking-wider">Step-by-Step Walkthrough</span>
+        <span className="text-sky-600 text-xs">{open ? '▾' : '▸'}</span>
+      </button>
+      {open && (
+        <pre className="p-4 text-xs text-sky-200/90 leading-relaxed whitespace-pre-wrap font-mono">{text}</pre>
+      )}
+    </div>
+  );
+}
+
 interface LessonPanelProps {
   topic: string;
 }
@@ -97,10 +115,7 @@ export default function LessonPanel({ topic }: LessonPanelProps) {
               </p>
             )}
             {showJs && lesson.jsTemplateWalkthrough && (
-              <div className="mt-3 bg-gray-950 border border-sky-900/30 rounded-md p-4 text-sm leading-relaxed">
-                <h4 className="text-xs font-semibold text-sky-400 uppercase tracking-wider mb-3">Step-by-Step Walkthrough</h4>
-                <pre className="text-sky-200/90 whitespace-pre-wrap font-mono text-xs leading-relaxed">{lesson.jsTemplateWalkthrough}</pre>
-              </div>
+              <WalkthroughSection text={lesson.jsTemplateWalkthrough} />
             )}
           </div>
 
