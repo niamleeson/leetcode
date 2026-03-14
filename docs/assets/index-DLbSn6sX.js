@@ -7726,7 +7726,7 @@ function maxSlidingWindow(nums, k) {
     const result = [];
     for (let i = 0; i < nums.length; i++) {
         // Expire: remove front if it has slid out of the window
-        while (dq.length > 0 && dq[0] < i - k + 1) {
+        while (dq.length > 0 && dq[0] === i - k) {
             dq.shift();
         }
         // Clean: remove back indices whose values are <= current
@@ -7740,7 +7740,7 @@ function maxSlidingWindow(nums, k) {
         }
         dq.push(i);
         // Record answer once the first full window is reached
-        if (i >= k - 1) {
+        if (i + 1 >= k) {
             result.push(nums[dq[0]]);
         }
     }
@@ -7753,7 +7753,7 @@ function minSlidingWindow(nums, k) {
     const dq = [];     // stores indices; nums[dq[0]] is always the min
     const result = [];
     for (let i = 0; i < nums.length; i++) {
-        while (dq.length > 0 && dq[0] < i - k + 1) {
+        while (dq.length > 0 && dq[0] === i - k) {
             dq.shift();
         }
         while (dq.length > 0) {
@@ -7765,7 +7765,7 @@ function minSlidingWindow(nums, k) {
             }
         }
         dq.push(i);
-        if (i >= k - 1) {
+        if (i + 1 >= k) {
             result.push(nums[dq[0]]);
         }
     }
@@ -7824,7 +7824,7 @@ function maxSlidingWindow(nums, k) {
     forEach(nums, (val, i) => {
         // Expire: remove front if it has slid out of the window
         repeatWhile(
-            () => dq.length > 0 && dq[0] < i - k + 1,
+            () => dq.length > 0 && dq[0] === i - k,
             () => {
                 dq.shift();
             }
@@ -7842,7 +7842,7 @@ function maxSlidingWindow(nums, k) {
         );
         dq.push(i);
         // Record answer once the first full window is reached
-        if (i >= k - 1) {
+        if (i + 1 >= k) {
             result.push(nums[dq[0]]);
         }
     });
@@ -7856,7 +7856,7 @@ function minSlidingWindow(nums, k) {
     const result = [];
     forEach(nums, (val, i) => {
         repeatWhile(
-            () => dq.length > 0 && dq[0] < i - k + 1,
+            () => dq.length > 0 && dq[0] === i - k,
             () => {
                 dq.shift();
             }
@@ -7872,7 +7872,7 @@ function minSlidingWindow(nums, k) {
             }
         );
         dq.push(i);
-        if (i >= k - 1) {
+        if (i + 1 >= k) {
             result.push(nums[dq[0]]);
         }
     });
@@ -7957,7 +7957,7 @@ Input: nums=[1,3,-1,-3,5,3,6,7], k=3
 i=0: val=1.  clean: nothing. push 0. dq=[0]
 i=1: val=3.  clean: nums[0]=1<=3 → pop 0. push 1. dq=[1]
 i=2: val=-1. nums[1]=3>-1 → stop. push 2. dq=[1,2]. i>=2 → result=[3]
-i=3: val=-3. push 3. dq=[1,2,3]. dq[0]=1>=1, no expire. result=[3,3]
+i=3: val=-3. push 3. dq=[1,2,3]. dq[0]=1, i-k=0, 1≠0 → no expire. result=[3,3]
 i=4: val=5.  clean: pop 3(-3),2(-1),1(3). push 4. dq=[4]. result=[3,3,5]
 i=5: val=3.  nums[4]=5>3 → stop. push 5. dq=[4,5]. result=[3,3,5,5]
 i=6: val=6.  clean: pop 5(3),4(5). push 6. dq=[6]. result=[3,3,5,5,6]
@@ -7974,11 +7974,11 @@ i=1: val=3.  nums[0]=1<3 → stop. push 1. dq=[0,1]
 i=2: val=-1. pop 1(3), pop 0(1). push 2. dq=[2]. i>=2 → result=[-1]
 i=3: val=-3. pop 2(-1). push 3. dq=[3]. result=[-1,-3]
 i=4: val=5.  nums[3]=-3<5 → stop. push 4. dq=[3,4]. result=[-1,-3,-3]
-i=5: val=3.  pop 4(5). push 5. dq=[3,5]. dq[0]=3=5-3+1=3 → on boundary, ok.
+i=5: val=3.  pop 4(5). push 5. dq=[3,5]. dq[0]=3, i-k=2, 3≠2 → no expire.
   result=[-1,-3,-3,-3]
-i=6: val=6.  dq[0]=3<6-3+1=4 → expire, shift. dq=[5]. push 6. dq=[5,6].
+i=6: val=6.  dq[0]=3===i-k=3 → expire, shift. dq=[5]. push 6. dq=[5,6].
   result=[-1,-3,-3,-3,3]
-i=7: val=7.  push 7. dq=[5,6,7]. dq[0]=5>=5 → ok. result=[-1,-3,-3,-3,3,3] ✓
+i=7: val=7.  dq[0]=5, i-k=4, 5≠4 → no expire. push 7. dq=[5,6,7]. result=[-1,-3,-3,-3,3,3] ✓
 
 ── Longest Subarray (max - min <= limit) ──
 Input: nums=[8,2,4,7], limit=4
@@ -8023,7 +8023,7 @@ METHOD MNEMONICS:
     After cleaning, push current index to back of deque.
   
   record: "Front is always the champion"
-    If window is full (i >= k-1), front of deque is the answer.
+    If window is full (i + 1 >= k), front of deque is the answer.
 
 TEMPLATE-BY-TEMPLATE MEMORIZATION:
 
@@ -8039,9 +8039,9 @@ maxSlidingWindow — O(n) time, O(k) space
     i=4: 5>all→pop 3,2,1. push 4. dq=[4(5)] → result=[3,3,5]
     'Deque = hall of fame. New champ evicts old losers. Stale front expires.'
   Steps:
-    1. For each i: expire front if dq[0] < i - k + 1
+    1. For each i: expire front if dq[0] === i - k
     2. Pop from back while nums[back] <= nums[i]
-    3. Push i; if i >= k-1 → record nums[dq[0]] as answer
+    3. Push i; if i + 1 >= k → record nums[dq[0]] as answer
   Mnemonic: "ECA-R: Expire, Clean, Add, Record."
 
 minSlidingWindow — O(n) time, O(k) space
