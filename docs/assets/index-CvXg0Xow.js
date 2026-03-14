@@ -7953,32 +7953,74 @@ longestSubarray:
       We could not compute both max and min in O(1), so the constraint check would be wrong ✓
   Terminate: right === nums.length; result = length of longest valid window seen ✓`,jsTemplateWalkthrough:`── Sliding Window Maximum ──
 Input: nums=[1,3,-1,-3,5,3,6,7], k=3
+Deque stores indices, decreasing by value. Front = window max.
 
-i=0: val=1.  clean: nothing. push 0. dq=[0]
-i=1: val=3.  clean: nums[0]=1<=3 → pop 0. push 1. dq=[1]
-i=2: val=-1. nums[1]=3>-1 → stop. push 2. dq=[1,2]. i>=2 → result=[3]
-i=3: val=-3. push 3. dq=[1,2,3]. dq[0]=1, i-k=0, 1≠0 → no expire. result=[3,3]
-i=4: val=5.  clean: pop 3(-3),2(-1),1(3). push 4. dq=[4]. result=[3,3,5]
-i=5: val=3.  nums[4]=5>3 → stop. push 5. dq=[4,5]. result=[3,3,5,5]
-i=6: val=6.  clean: pop 5(3),4(5). push 6. dq=[6]. result=[3,3,5,5,6]
-i=7: val=7.  clean: pop 6(6). push 7. dq=[7]. result=[3,3,5,5,6,7] ✓
+i=0(1):
+  expire: dq empty. clean: dq empty. push 0. dq=[0(1)]
+
+i=1(3):
+  expire: dq empty or dq[0]≠i-k. clean: 1<=3 → pop 0. push 1. dq=[1(3)]
+
+i=2(-1):
+  expire: dq[0]=1, i-k=-1, 1≠-1. clean: 3>-1 → keep. push 2. dq=[1(3), 2(-1)]
+  i+1=3 >= k=3 → result=[3]
+
+i=3(-3):
+  expire: dq[0]=1, i-k=0, 1≠0. clean: -1>-3 → keep. push 3. dq=[1(3), 2(-1), 3(-3)]
+  result=[3, 3]
+
+i=4(5):
+  expire: dq[0]=1, i-k=1, 1===1 → shift. dq=[2(-1), 3(-3)]
+  clean: -3<=5 → pop 3. -1<=5 → pop 2. push 4. dq=[4(5)]
+  result=[3, 3, 5]
+
+i=5(3):
+  expire: dq[0]=4, i-k=2, 4≠2. clean: 5>3 → keep. push 5. dq=[4(5), 5(3)]
+  result=[3, 3, 5, 5]
+
+i=6(6):
+  expire: dq[0]=4, i-k=3, 4≠3. clean: 3<=6 → pop 5. 5<=6 → pop 4. push 6. dq=[6(6)]
+  result=[3, 3, 5, 5, 6]
+
+i=7(7):
+  expire: dq[0]=6, i-k=4, 6≠4. clean: 6<=7 → pop 6. push 7. dq=[7(7)]
+  result=[3, 3, 5, 5, 6, 7] ✓
 
 ── Sliding Window Minimum ──
 Input: nums=[1,3,-1,-3,5,3,6,7], k=3
+Same structure but deque is INCREASING (front = min). Pop back when >= current.
 
-Same as max, but deque is INCREASING (front = min).
-Remove from back when back >= current (losers to the new small value).
+i=0(1):
+  expire: —. clean: —. push 0. dq=[0(1)]
 
-i=0: val=1.  push 0. dq=[0]
-i=1: val=3.  nums[0]=1<3 → stop. push 1. dq=[0,1]
-i=2: val=-1. pop 1(3), pop 0(1). push 2. dq=[2]. i>=2 → result=[-1]
-i=3: val=-3. pop 2(-1). push 3. dq=[3]. result=[-1,-3]
-i=4: val=5.  nums[3]=-3<5 → stop. push 4. dq=[3,4]. result=[-1,-3,-3]
-i=5: val=3.  pop 4(5). push 5. dq=[3,5]. dq[0]=3, i-k=2, 3≠2 → no expire.
-  result=[-1,-3,-3,-3]
-i=6: val=6.  dq[0]=3===i-k=3 → expire, shift. dq=[5]. push 6. dq=[5,6].
-  result=[-1,-3,-3,-3,3]
-i=7: val=7.  dq[0]=5, i-k=4, 5≠4 → no expire. push 7. dq=[5,6,7]. result=[-1,-3,-3,-3,3,3] ✓
+i=1(3):
+  expire: —. clean: 1<3 → keep. push 1. dq=[0(1), 1(3)]
+
+i=2(-1):
+  expire: dq[0]=0, i-k=-1, 0≠-1. clean: 3>=-1 → pop 1. 1>=-1 → pop 0. push 2. dq=[2(-1)]
+  i+1=3 >= k=3 → result=[-1]
+
+i=3(-3):
+  expire: dq[0]=2, i-k=0, 2≠0. clean: -1>=-3 → pop 2. push 3. dq=[3(-3)]
+  result=[-1, -3]
+
+i=4(5):
+  expire: dq[0]=3, i-k=1, 3≠1. clean: -3<5 → keep. push 4. dq=[3(-3), 4(5)]
+  result=[-1, -3, -3]
+
+i=5(3):
+  expire: dq[0]=3, i-k=2, 3≠2. clean: 5>=3 → pop 4. -3<3 → keep. push 5. dq=[3(-3), 5(3)]
+  result=[-1, -3, -3, -3]
+
+i=6(6):
+  expire: dq[0]=3, i-k=3, 3===3 → shift. dq=[5(3)]
+  clean: 3<6 → keep. push 6. dq=[5(3), 6(6)]
+  result=[-1, -3, -3, -3, 3]
+
+i=7(7):
+  expire: dq[0]=5, i-k=4, 5≠4. clean: 6<7 → keep. push 7. dq=[5(3), 6(6), 7(7)]
+  result=[-1, -3, -3, -3, 3, 3] ✓
+
 
 ── Longest Subarray (max - min <= limit) ──
 Input: nums=[10,1,2,4,7,2], limit=5
@@ -10013,77 +10055,138 @@ trap:
   When a taller bar arrives: pop valley bottom; compute water = (min(rightWall, leftWall) - valleyFloor) * width ✓
   Empty-stack break: no left wall means no container — water drains, correctly adds 0 ✓`,jsTemplateWalkthrough:`── Next Greater Element ──
 Input: [2,1,2,4,3]
+Decreasing stack. Pop when current > top. Current is the "next greater" for popped index.
 
-i=0: val=2. stack=[]. push 0. stack=[0]
-i=1: val=1. 1<nums[0]=2 → stop. push 1. stack=[0,1]
-i=2: val=2. 2>nums[1]=1 → pop 1, result[1]=2. 2=nums[0]=2 → stop. push 2. stack=[0,2]
-i=3: val=4. 4>nums[2]=2 → pop 2, result[2]=4. 4>nums[0]=2 → pop 0, result[0]=4. push 3.
-i=4: val=3. 3<nums[3]=4 → stop. push 4. stack=[3,4]
+i=0(2):
+  stack empty. push 0. stack=[0(2)]
+
+i=1(1):
+  top=0(2), 2>1 → keep. push 1. stack=[0(2), 1(1)]
+
+i=2(2):
+  top=1(1), 2>1 → pop 1, result[1]=2
+  top=0(2), 2=2 → keep. push 2. stack=[0(2), 2(2)]
+
+i=3(4):
+  top=2(2), 4>2 → pop 2, result[2]=4
+  top=0(2), 4>2 → pop 0, result[0]=4
+  stack empty. push 3. stack=[3(4)]
+
+i=4(3):
+  top=3(4), 4>3 → keep. push 4. stack=[3(4), 4(3)]
+
 Remaining [3,4] have no next greater → result stays -1
 Result: [4,2,4,-1,-1] ✓
 
 ── Largest Rectangle in Histogram ──
 Input: [2,1,5,6,2,3] + sentinel 0
-Stack stores [leftEdge, height] pairs.
-When popping taller bars, current bar inherits their left edge.
+Stack stores [leftEdge, height] pairs. Peek top, compute area, inherit leftEdge, then pop.
 
-Peek top before popping. Compute area from top, inherit topLeft, then pop.
+i=0(h=2):
+  stack empty. push [0,2]. stack=[[0,2]]
 
-i=0(h=2): stack empty → push [0,2]
-i=1(h=1): top=[0,2], 2>1 → area=2*(1-0)=2, leftEdge=0, pop
-          push [0,1] ← inherits index 0
-i=2(h=5): top=[0,1], 1<=5 → push [2,5]
-i=3(h=6): top=[2,5], 5<=6 → push [3,6]
-i=4(h=2): top=[3,6], 6>2 → area=6*(4-3)=6, leftEdge=3, pop
-          top=[2,5], 5>2 → area=5*(4-2)=10, leftEdge=2, pop
-          top=[0,1], 1<=2 → push [2,2] ← inherits index 2
-i=5(h=3): top=[2,2], 2<=3 → push [5,3]
-i=6(h=0): top=[5,3]: area=3*1=3, pop
-          top=[2,2]: area=2*4=8, pop
-          top=[0,1]: area=1*6=6, pop
-maxArea=10 ✓
+i=1(h=1):
+  top=[0,2], 2>1 → area=2*(1-0)=2, leftEdge=0, pop.
+  stack empty. push [0,1] ← inherits left edge 0. stack=[[0,1]]
+
+i=2(h=5):
+  top=[0,1], 1<=5 → keep. push [2,5]. stack=[[0,1], [2,5]]
+
+i=3(h=6):
+  top=[2,5], 5<=6 → keep. push [3,6]. stack=[[0,1], [2,5], [3,6]]
+
+i=4(h=2):
+  top=[3,6], 6>2 → area=6*(4-3)=6, leftEdge=3, pop.
+  top=[2,5], 5>2 → area=5*(4-2)=10, leftEdge=2, pop.
+  top=[0,1], 1<=2 → keep. push [2,2] ← inherits left edge 2. stack=[[0,1], [2,2]]
+
+i=5(h=3):
+  top=[2,2], 2<=3 → keep. push [5,3]. stack=[[0,1], [2,2], [5,3]]
+
+i=6(h=0, sentinel):
+  top=[5,3], 3>0 → area=3*(6-5)=3, leftEdge=5, pop.
+  top=[2,2], 2>0 → area=2*(6-2)=8, leftEdge=2, pop.
+  top=[0,1], 1>0 → area=1*(6-0)=6, leftEdge=0, pop.
+  stack empty. push [0,0].
+
+maxArea = 10 ✓
 
 ── Daily Temperatures ──
 Input: [73,74,75,71,69,72,76,73]
+Decreasing stack. Pop when current temp > top. Days to wait = i - poppedIndex.
 
-i=0: temp=73. stack=[]. push 0. stack=[0]
-i=1: temp=74. 74>73 → pop 0, result[0]=1-0=1. push 1. stack=[1]
-i=2: temp=75. 75>74 → pop 1, result[1]=2-1=1. push 2. stack=[2]
-i=3: temp=71. 71<75 → stop. push 3. stack=[2,3]
-i=4: temp=69. 69<71 → stop. push 4. stack=[2,3,4]
-i=5: temp=72. 72>69 → pop 4, result[4]=5-4=1.
-             72>71 → pop 3, result[3]=5-3=2.
-             72<75 → stop. push 5. stack=[2,5]
-i=6: temp=76. 76>72 → pop 5, result[5]=6-5=1.
-             76>75 → pop 2, result[2]=6-2=4. push 6. stack=[6]
-i=7: temp=73. 73<76 → stop. push 7. stack=[6,7]
+i=0(73):
+  stack empty. push 0. stack=[0(73)]
+
+i=1(74):
+  top=0(73), 74>73 → pop 0, result[0]=1-0=1
+  stack empty. push 1. stack=[1(74)]
+
+i=2(75):
+  top=1(74), 75>74 → pop 1, result[1]=2-1=1
+  stack empty. push 2. stack=[2(75)]
+
+i=3(71):
+  top=2(75), 75>71 → keep. push 3. stack=[2(75), 3(71)]
+
+i=4(69):
+  top=3(71), 71>69 → keep. push 4. stack=[2(75), 3(71), 4(69)]
+
+i=5(72):
+  top=4(69), 72>69 → pop 4, result[4]=5-4=1
+  top=3(71), 72>71 → pop 3, result[3]=5-3=2
+  top=2(75), 75>72 → keep. push 5. stack=[2(75), 5(72)]
+
+i=6(76):
+  top=5(72), 76>72 → pop 5, result[5]=6-5=1
+  top=2(75), 76>75 → pop 2, result[2]=6-2=4
+  stack empty. push 6. stack=[6(76)]
+
+i=7(73):
+  top=6(76), 76>73 → keep. push 7. stack=[6(76), 7(73)]
+
 Remaining [6,7] → result stays 0
 Result: [1,1,4,2,1,1,0,0] ✓
 
 ── Trapping Rain Water (Stack) ──
 Input: [0,1,0,2,1,0,1,3,2,1,2,1]
-Stack stores [wallIndex, wallHeight]. Push [i, height[i]].
-width = i - (leftWallIndex + 1)
+Stack stores [wallIndex, wallHeight]. width = i - (leftWallIndex + 1).
 
-i=0(h=0): push [0,0]
-i=1(h=1): top=[0,0], 1>0 → pop. stack empty → break.
-          push [1,1]
-i=2(h=0): 0<=1 → push [2,0]. stack=[[1,1],[2,0]]
-i=3(h=2): top=[2,0], 2>0 → pop.
-  left=[1,1]. width=3-(1+1)=1, minWall=min(2,1)=1, filled=1-0=1. water=1
-  top=[1,1], 2>1 → pop. stack empty → break.
-  push [3,2]
-i=4(h=1): 1<=2 → push [4,1]
-i=5(h=0): 0<=1 → push [5,0]
-i=6(h=1): top=[5,0], 1>0 → pop.
-  left=[4,1]. width=6-(4+1)=1, minWall=min(1,1)=1, filled=1-0=1. water=2
-  1<=1 → push [6,1]
-i=7(h=3): top=[6,1], 3>1 → pop.
-  left=[4,1]. width=7-(4+1)=2, minWall=min(3,1)=1, filled=1-1=0. water=2
-  top=[4,1], 3>1 → pop.
-  left=[3,2]. width=7-(3+1)=3, minWall=min(3,2)=2, filled=2-1=1. water+=3→5
-  top=[3,2], 3>2 → pop. stack empty → break.
-  push [7,3]
+i=0(h=0):
+  stack empty. push [0,0]. stack=[[0,0]]
+
+i=1(h=1):
+  top=[0,0], 1>0 → pop. stack empty → break (no left wall).
+  push [1,1]. stack=[[1,1]]
+
+i=2(h=0):
+  top=[1,1], 0<=1 → keep. push [2,0]. stack=[[1,1], [2,0]]
+
+i=3(h=2):
+  top=[2,0], 2>0 → pop (floor=0). left=[1,1].
+    width=3-(1+1)=1, minWall=min(2,1)=1, filled=1-0=1. water=1
+  top=[1,1], 2>1 → pop (floor=1). stack empty → break.
+  push [3,2]. stack=[[3,2]]
+
+i=4(h=1):
+  top=[3,2], 1<=2 → keep. push [4,1]. stack=[[3,2], [4,1]]
+
+i=5(h=0):
+  top=[4,1], 0<=1 → keep. push [5,0]. stack=[[3,2], [4,1], [5,0]]
+
+i=6(h=1):
+  top=[5,0], 1>0 → pop (floor=0). left=[4,1].
+    width=6-(4+1)=1, minWall=min(1,1)=1, filled=1-0=1. water=2
+  top=[4,1], 1<=1 → keep. push [6,1]. stack=[[3,2], [4,1], [6,1]]
+
+i=7(h=3):
+  top=[6,1], 3>1 → pop (floor=1). left=[4,1].
+    width=7-(4+1)=2, minWall=min(3,1)=1, filled=1-1=0. water=2
+  top=[4,1], 3>1 → pop (floor=1). left=[3,2].
+    width=7-(3+1)=3, minWall=min(3,2)=2, filled=2-1=1. water+=3→5
+  top=[3,2], 3>2 → pop (floor=2). stack empty → break.
+  push [7,3]. stack=[[7,3]]
+
 ...continues for remaining bars...
 
 Total water = 6 ✓`,complexity:"O(n) time (each element pushed/popped once). O(n) space for the stack.",commonMistakes:["Confusing increasing vs decreasing: next GREATER = decreasing stack, next SMALLER = increasing","Storing values instead of indices (need indices for distance/width calculations)","Largest rectangle: forgetting the sentinel value at the end to flush the stack","Trapping rain water: not checking if stack is empty after popping"],tips:['"Next greater element" → monotonic DECREASING stack','"Next smaller element" → monotonic INCREASING stack',"Store indices or [position, value] pairs — pairs make width calculations clearer","Largest rectangle in histogram is the hardest monotonic stack problem — master it and the rest are easy","For circular arrays (Next Greater Element II), iterate 2*n with index % n"],memorization:`HOW TO MEMORIZE MONOTONIC STACK:
