@@ -7981,15 +7981,20 @@ i=6: val=6.  dq[0]=3===i-k=3 → expire, shift. dq=[5]. push 6. dq=[5,6].
 i=7: val=7.  dq[0]=5, i-k=4, 5≠4 → no expire. push 7. dq=[5,6,7]. result=[-1,-3,-3,-3,3,3] ✓
 
 ── Longest Subarray (max - min <= limit) ──
-Input: nums=[8,2,4,7], limit=4
+Input: nums=[10,1,2,4,7,2], limit=5
 
-right=0: maxDq=[0](8), minDq=[0](8). 8-8=0<=4. len=1
-right=1: maxDq=[0](8), minDq=[1](2). 8-2=6>4 → left=1
-  maxDq[0]=0<1 → shift. maxDq=[1](2). 2-2=0<=4. len=1
-right=2: maxDq=[2](4), minDq=[1,2](2,4). 4-2=2<=4. len=2
-right=3: maxDq=[3](7), minDq=[1,2,3](2,4,7). 7-2=5>4 → left=2
-  minDq[0]=1<2 → shift. minDq=[2,3](4,7). 7-4=3<=4. len=2
-Result: 2`,complexity:"O(n) time (each element enters and leaves deque once). O(k) space for the deque.",commonMistakes:["Storing values instead of indices (can't check if element left the window)","Forgetting to remove expired front elements (stale max/min)","Wrong comparison direction: <= for max deque, >= for min deque","Using a regular queue instead of deque (can't pop from back)"],tips:["Monotonic deque = monotonic stack + ability to pop from front (for window expiry)","Always store INDICES, look up values via nums[idx]","Front = answer (max or min). Back = where new elements enter.","The deque never has more than k elements, so space is O(k)."],memorization:`HOW TO MEMORIZE MONOTONIC QUEUE:
+right=0(10): maxDq=[0](10), minDq=[0](10). 10-10=0<=5. len=1
+right=1(1):  maxDq=[0,1](10,1), minDq: pop 0(10), push 1. minDq=[1](1).
+  10-1=9>5 → left=1. maxDq[0]=0<1 → shift. maxDq=[1](1). 1-1=0<=5. len=1
+right=2(2):  maxDq: pop 1(1), push 2. maxDq=[2](2). minDq=[1,2](1,2).
+  2-1=1<=5. len=2
+right=3(4):  maxDq: pop 2(2), push 3. maxDq=[3](4). minDq=[1,2,3](1,2,4).
+  4-1=3<=5. len=3
+right=4(7):  maxDq: pop 3(4), push 4. maxDq=[4](7). minDq=[1,2,3,4](1,2,4,7).
+  7-1=6>5 → left=2. minDq[0]=1<2 → shift. minDq=[2,3,4](2,4,7). 7-2=5<=5. len=3
+right=5(2):  maxDq=[4,5](7,2). minDq: pop 4(7),3(4),2(2), push 5. minDq=[5](2).
+  7-2=5<=5. len=4
+Result: 4`,complexity:"O(n) time (each element enters and leaves deque once). O(k) space for the deque.",commonMistakes:["Storing values instead of indices (can't check if element left the window)","Forgetting to remove expired front elements (stale max/min)","Wrong comparison direction: <= for max deque, >= for min deque","Using a regular queue instead of deque (can't pop from back)"],tips:["Monotonic deque = monotonic stack + ability to pop from front (for window expiry)","Always store INDICES, look up values via nums[idx]","Front = answer (max or min). Back = where new elements enter.","The deque never has more than k elements, so space is O(k)."],memorization:`HOW TO MEMORIZE MONOTONIC QUEUE:
 It's a deque with 3 operations per element. Memorize this loop:
 
   for i from 0 to n-1:
@@ -8063,13 +8068,15 @@ longestSubarray — O(n) time
   Problem: Given an integer array and a limit, return the length of the longest subarray where the difference between max and min is at most limit.
   Use when: "longest subarray with bounded range", "max minus min constraint"
   Example:
-    nums=[8,2,4,7], limit=4
-    right=0: maxDq=[0(8)], minDq=[0(8)]. 8-8=0 <= 4. len=1
-    right=1: maxDq=[0(8)], minDq=[1(2)]. 8-2=6 > 4 → shrink!
-      left=1, expire front 0 from maxDq. maxDq=[1(2)]. 2-2=0. len=1
-    right=2: maxDq=[2(4)], minDq=[1(2),2(4)]. 4-2=2 <= 4. len=2
-    right=3: maxDq=[3(7)], minDq=[1(2),2,3(7)]. 7-2=5 > 4 → shrink!
-      left=2, expire idx 1. 7-4=3 <= 4. len=2
+    nums=[10,1,2,4,7,2], limit=5
+    right=0: maxDq=[0(10)], minDq=[0(10)]. 10-10=0<=5. len=1
+    right=1: maxDq=[0,1(10,1)], minDq=[1(1)]. 10-1=9>5 → shrink!
+      left=1, expire front 0 from maxDq. 1-1=0<=5. len=1
+    right=2: maxDq=[2(2)], minDq=[1,2(1,2)]. 2-1=1<=5. len=2
+    right=3: maxDq=[3(4)], minDq=[1,2,3(1,2,4)]. 4-1=3<=5. len=3
+    right=4: maxDq=[4(7)], minDq=[1,2,3,4(1,2,4,7)]. 7-1=6>5 → shrink!
+      left=2, expire front 1 from minDq. 7-2=5<=5. len=3
+    right=5: maxDq=[4,5(7,2)], minDq=[5(2)]. 7-2=5<=5. len=4
     'Two deques = O(1) max and min. Shrink left when max-min > limit.'
   Steps:
     1. Maintain both deques as new elements arrive
