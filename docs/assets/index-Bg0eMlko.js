@@ -8670,11 +8670,11 @@ class SegmentTree {
         this.tree = new Array(4 * this.n).fill(identity);
 
         if (this.n > 0) {
-            this._build(nums, 1, 0, this.n - 1);
+            this._build(nums, 0, 0, this.n - 1);
         }
     }
 
-    // Build the tree recursively; node 1 is the root covering [0, n-1]
+    // Build the tree recursively; node 0 is the root covering [0, n-1]
     _build(nums, node, start, end) {
         if (start === end) {
             // Leaf node: store the actual value
@@ -8684,17 +8684,17 @@ class SegmentTree {
 
         const mid = Math.floor((start + end) / 2);
 
-        // Build left child (2*node) and right child (2*node+1)
-        this._build(nums, 2 * node, start, mid);
-        this._build(nums, 2 * node + 1, mid + 1, end);
+        // Build left child (2*node+1) and right child (2*node+2)
+        this._build(nums, 2 * node + 1, start, mid);
+        this._build(nums, 2 * node + 2, mid + 1, end);
 
         // Parent stores combined value of both children
-        this.tree[node] = this.merge(this.tree[2 * node], this.tree[2 * node + 1]);
+        this.tree[node] = this.merge(this.tree[2 * node + 1], this.tree[2 * node + 2]);
     }
 
     // Point update: set nums[idx] = val
     update(idx, val) {
-        this._update(1, 0, this.n - 1, idx, val);
+        this._update(0, 0, this.n - 1, idx, val);
     }
 
     _update(node, start, end, idx, val) {
@@ -8707,18 +8707,18 @@ class SegmentTree {
         const mid = Math.floor((start + end) / 2);
 
         if (idx <= mid) {
-            this._update(2 * node, start, mid, idx, val);
+            this._update(2 * node + 1, start, mid, idx, val);
         } else {
-            this._update(2 * node + 1, mid + 1, end, idx, val);
+            this._update(2 * node + 2, mid + 1, end, idx, val);
         }
 
         // Recalculate parent from updated children
-        this.tree[node] = this.merge(this.tree[2 * node], this.tree[2 * node + 1]);
+        this.tree[node] = this.merge(this.tree[2 * node + 1], this.tree[2 * node + 2]);
     }
 
     // Range query over [l, r] (0-indexed, inclusive)
     query(l, r) {
-        return this._query(1, 0, this.n - 1, l, r);
+        return this._query(0, 0, this.n - 1, l, r);
     }
 
     _query(node, start, end, l, r) {
@@ -8734,8 +8734,8 @@ class SegmentTree {
 
         // Case 3: Partial overlap — query both children and combine
         const mid = Math.floor((start + end) / 2);
-        const leftResult = this._query(2 * node, start, mid, l, r);
-        const rightResult = this._query(2 * node + 1, mid + 1, end, l, r);
+        const leftResult = this._query(2 * node + 1, start, mid, l, r);
+        const rightResult = this._query(2 * node + 2, mid + 1, end, l, r);
         return this.merge(leftResult, rightResult);
     }
 }`,jsTemplateReadable:`// (Uses shared helpers defined in Arrays & Hashing)
@@ -8754,11 +8754,11 @@ class SegmentTree {
         this.tree = new Array(4 * this.n).fill(identity);
 
         if (this.n > 0) {
-            this._build(nums, 1, 0, this.n - 1);
+            this._build(nums, 0, 0, this.n - 1);
         }
     }
 
-    // Build the tree recursively; node 1 is the root covering [0, n-1]
+    // Build the tree recursively; node 0 is the root covering [0, n-1]
     _build(nums, node, start, end) {
         if (start === end) {
             // Leaf node: store the actual value
@@ -8768,17 +8768,17 @@ class SegmentTree {
 
         const mid = Math.floor((start + end) / 2);
 
-        // Build left child (2*node) and right child (2*node+1)
-        this._build(nums, 2 * node, start, mid);
-        this._build(nums, 2 * node + 1, mid + 1, end);
+        // Build left child (2*node+1) and right child (2*node+2)
+        this._build(nums, 2 * node + 1, start, mid);
+        this._build(nums, 2 * node + 2, mid + 1, end);
 
         // Parent stores combined value of both children
-        this.tree[node] = this.merge(this.tree[2 * node], this.tree[2 * node + 1]);
+        this.tree[node] = this.merge(this.tree[2 * node + 1], this.tree[2 * node + 2]);
     }
 
     // Point update: set nums[idx] = val
     update(idx, val) {
-        this._update(1, 0, this.n - 1, idx, val);
+        this._update(0, 0, this.n - 1, idx, val);
     }
 
     _update(node, start, end, idx, val) {
@@ -8791,18 +8791,18 @@ class SegmentTree {
         const mid = Math.floor((start + end) / 2);
 
         if (idx <= mid) {
-            this._update(2 * node, start, mid, idx, val);
+            this._update(2 * node + 1, start, mid, idx, val);
         } else {
-            this._update(2 * node + 1, mid + 1, end, idx, val);
+            this._update(2 * node + 2, mid + 1, end, idx, val);
         }
 
         // Recalculate parent from updated children
-        this.tree[node] = this.merge(this.tree[2 * node], this.tree[2 * node + 1]);
+        this.tree[node] = this.merge(this.tree[2 * node + 1], this.tree[2 * node + 2]);
     }
 
     // Range query over [l, r] (0-indexed, inclusive)
     query(l, r) {
-        return this._query(1, 0, this.n - 1, l, r);
+        return this._query(0, 0, this.n - 1, l, r);
     }
 
     _query(node, start, end, l, r) {
@@ -8818,8 +8818,8 @@ class SegmentTree {
 
         // Case 3: Partial overlap — query both children and combine
         const mid = Math.floor((start + end) / 2);
-        const leftResult = this._query(2 * node, start, mid, l, r);
-        const rightResult = this._query(2 * node + 1, mid + 1, end, l, r);
+        const leftResult = this._query(2 * node + 1, start, mid, l, r);
+        const rightResult = this._query(2 * node + 2, mid + 1, end, l, r);
         return this.merge(leftResult, rightResult);
     }
 }`,verification:`SegmentTree._build:
@@ -8834,7 +8834,7 @@ class SegmentTree {
 SegmentTree.update:
   Promise: 'tree[node] = merge of the updated array over [start,end] after _update'
   Base case: start===end (leaf); tree[node] set to new val ✓
-  Inductive step: recurse into exactly the child containing idx; on the way back, tree[node] recalculated as merge(left, right) ✓
+  Inductive step: recurse into exactly the child containing idx (2*node+1 or 2*node+2); on the way back, tree[node] recalculated as merge(left, right) ✓
   Why only the path is updated: tree nodes not on the path from root to idx are unaffected, and their ranges do not include idx ✓
 
 SegmentTree.query:
@@ -8844,39 +8844,39 @@ SegmentTree.query:
   Case 3 (partial overlap): split and merge both children; the ranges together cover exactly [start,end] ∩ [l,r] with no double-counting ✓
   Why O(log n): at each level at most 4 nodes are in partial-overlap; the rest are full or none ✓`,jsTemplateWalkthrough:`── Segment Tree Build ──
 Input: nums=[1,3,5,7], merge=(a,b)=>a+b, identity=0
-Node 1 = root, covers [0,3]. Children: 2*node and 2*node+1
+Node 0 = root, covers [0,3]. Children: 2*node+1 and 2*node+2
 
-_build(1,[0,3]): mid=1
-  _build(2,[0,1]): mid=0
-    _build(4,[0,0]): leaf → tree[4]=1
-    _build(5,[1,1]): leaf → tree[5]=3
-    tree[2] = merge(1,3) = 4
-  _build(3,[2,3]): mid=2
-    _build(6,[2,2]): leaf → tree[6]=5
-    _build(7,[3,3]): leaf → tree[7]=7
-    tree[3] = merge(5,7) = 12
-  tree[1] = merge(4,12) = 16
+_build(0,[0,3]): mid=1
+  _build(1,[0,1]): mid=0
+    _build(3,[0,0]): leaf → tree[3]=1
+    _build(4,[1,1]): leaf → tree[4]=3
+    tree[1] = merge(1,3) = 4
+  _build(2,[2,3]): mid=2
+    _build(5,[2,2]): leaf → tree[5]=5
+    _build(6,[3,3]): leaf → tree[6]=7
+    tree[2] = merge(5,7) = 12
+  tree[0] = merge(4,12) = 16
 
 ── Range Query ──
 query(1,2) → merge of indices 1..2 = merge(3,5) = 8
 
-_query(1,[0,3],l=1,r=2): partial → split
-  _query(2,[0,1],l=1,r=2): partial → split
-    _query(4,[0,0],l=1,r=2): end=0 < l=1 → NO OVERLAP → identity=0
-    _query(5,[1,1],l=1,r=2): 1<=1 and 1<=2 → FULL → tree[5]=3
+_query(0,[0,3],l=1,r=2): partial → split
+  _query(1,[0,1],l=1,r=2): partial → split
+    _query(3,[0,0],l=1,r=2): end=0 < l=1 → NO OVERLAP → identity=0
+    _query(4,[1,1],l=1,r=2): 1<=1 and 1<=2 → FULL → tree[4]=3
     merge(0, 3) = 3
-  _query(3,[2,3],l=1,r=2): partial → split
-    _query(6,[2,2],l=1,r=2): FULL → tree[6]=5
-    _query(7,[3,3],l=1,r=2): start=3 > r=2 → NO OVERLAP → identity=0
+  _query(2,[2,3],l=1,r=2): partial → split
+    _query(5,[2,2],l=1,r=2): FULL → tree[5]=5
+    _query(6,[3,3],l=1,r=2): start=3 > r=2 → NO OVERLAP → identity=0
     merge(5, 0) = 5
   merge(3, 5) = 8 ✓
 
 ── Point Update ──
 update(1, 10): change index 1 from 3 to 10
 
-Path down: node1→node2→node5(leaf) → tree[5]=10
-Path back up: tree[2]=merge(tree[4],tree[5])=merge(1,10)=11
-             tree[1]=merge(tree[2],tree[3])=merge(11,12)=23`,complexity:"Build: O(n). Query: O(log n). Update: O(log n). Space: O(n).",commonMistakes:["Allocating too little space (use 4n, not 2n)","Wrong merge function (sum vs min vs max)","Off-by-one in range checks (use inclusive ranges consistently)","Forgetting to update parent after modifying child in update"],tips:["For range sum + point update: segment tree is the go-to","For range min/max: change + to min/max in build/update/query","BIT (Fenwick tree) is simpler for range sum, but segment tree is more versatile","If you need range UPDATE (not point update): add lazy propagation"],memorization:`HOW TO MEMORIZE SEGMENT TREE:
+Path down: node0→node1→node4(leaf) → tree[4]=10
+Path back up: tree[1]=merge(tree[3],tree[4])=merge(1,10)=11
+             tree[0]=merge(tree[1],tree[2])=merge(11,12)=23`,complexity:"Build: O(n). Query: O(log n). Update: O(log n). Space: O(n).",commonMistakes:["Allocating too little space (use 4n, not 2n)","Wrong merge function (sum vs min vs max)","Off-by-one in range checks (use inclusive ranges consistently)","Forgetting to update parent after modifying child in update"],tips:["For range sum + point update: segment tree is the go-to","For range min/max: change + to min/max in build/update/query","BIT (Fenwick tree) is simpler for range sum, but segment tree is more versatile","If you need range UPDATE (not point update): add lazy propagation"],memorization:`HOW TO MEMORIZE SEGMENT TREE:
 The tree has 3 functions: BUILD, UPDATE, QUERY. All recursive with same structure.
 
 Node indexing: node i has children 2i and 2i+1.
