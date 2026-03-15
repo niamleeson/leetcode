@@ -11047,39 +11047,58 @@ countInversions (BIT version):
     bit.query(r-1) counts elements already registered with rank < r (smaller than nums[i]) ✓
     bit.update(r, 1) registers nums[i] ✓
   Terminate: i=0; all inversions counted ✓`,
-    jsTemplateWalkthrough: "── BIT Update ──\n" +
-"n=8. update(3, 5) — add 5 at 1-indexed position 3\n" +
-"\n" +
-"i=3 (011): tree[3]+=5. lsb=0b001=1. i=3+1=4\n" +
-"i=4 (100): tree[4]+=5. lsb=0b100=4. i=4+4=8\n" +
-"i=8 (1000): tree[8]+=5. i=8+8=16>8 → stop\n" +
-"\n" +
+    jsTemplateWalkthrough: "── BIT Core Concept ──\n" +
+"BIT is 1-indexed. Each index i covers a range based on its lowest set bit.\n" +
+"Lowest set bit: i & (-i). This determines how many elements tree[i] covers.\n\n" +
+"nums = [3, 1, 4, 2]\n\n" +
+"i=1: 1 & (-1) = 1 → covers 1 element  → just nums[1]\n" +
+"i=2: 2 & (-2) = 2 → covers 2 elements → nums[1] + nums[2]\n" +
+"i=3: 3 & (-3) = 1 → covers 1 element  → just nums[3]\n" +
+"i=4: 4 & (-4) = 4 → covers 4 elements → nums[1] + nums[2] + nums[3] + nums[4]\n\n" +
+"Build by inserting each number:\n\n" +
+"Insert nums[0]=3 at index 1:\n" +
+"  i=1: tree[1] += 3.  i += 1&(-1)=1 → i=2\n" +
+"  i=2: tree[2] += 3.  i += 2&(-2)=2 → i=4\n" +
+"  i=4: tree[4] += 3.  i += 4&(-4)=4 → i=8 > n, stop.\n\n" +
+"Insert nums[1]=1 at index 2:\n" +
+"  i=2: tree[2] += 1.  i += 2 → i=4\n" +
+"  i=4: tree[4] += 1.  i += 4 → i=8 > n, stop.\n\n" +
+"Insert nums[2]=4 at index 3:\n" +
+"  i=3: tree[3] += 4.  i += 1 → i=4\n" +
+"  i=4: tree[4] += 4.  i += 4 → i=8 > n, stop.\n\n" +
+"Insert nums[3]=2 at index 4:\n" +
+"  i=4: tree[4] += 2.  i += 4 → i=8 > n, stop.\n\n" +
+"Final tree:\n" +
+"  tree = [_, 3, 4, 4, 10]\n" +
+"            │  │  │   └─ sum of [1..4] = 3+1+4+2 = 10\n" +
+"            │  │  └───── sum of [3..3] = 4\n" +
+"            │  └──────── sum of [1..2] = 3+1 = 4\n" +
+"            └─────────── sum of [1..1] = 3\n\n" +
 "── BIT Query ──\n" +
-"query(6): prefix sum from 1 to 6\n" +
-"\n" +
-"i=6 (110): total+=tree[6]. lsb=0b010=2. i=6-2=4\n" +
-"i=4 (100): total+=tree[4]. lsb=0b100=4. i=4-4=0 → stop\n" +
-"total = tree[6]+tree[4]\n" +
-"  tree[6] covers indices [5,6]\n" +
-"  tree[4] covers indices [1,4]\n" +
-"  Combined: sum of indices [1,6] ✓\n" +
-"\n" +
+"Query walks DOWN by stripping the lowest set bit: i -= i & (-i)\n\n" +
+"query(3): prefix sum of first 3 elements\n" +
+"  i=3: sum += tree[3] = 4.   i -= 3&(-3)=1 → i=2\n" +
+"  i=2: sum += tree[2] = 4.   i -= 2&(-2)=2 → i=0, stop.\n" +
+"  sum = 4 + 4 = 8  ✓  (3 + 1 + 4 = 8)\n\n" +
+"── BIT Update ──\n" +
+"Update walks UP by adding the lowest set bit: i += i & (-i)\n\n" +
+"update(2, delta=5): add 5 to index 2\n" +
+"  i=2: tree[2] += 5 → 9.    i += 2&(-2)=2 → i=4\n" +
+"  i=4: tree[4] += 5 → 15.   i += 4&(-4)=4 → i=8 > n, stop.\n\n" +
 "── Range Sum Query - Mutable ──\n" +
 "nums=[1,3,5], build BIT from it:\n" +
 "  update(1,1), update(2,3), update(3,5)\n" +
 "  tree: [0, 1, 4, 5, 9, ...]\n\n" +
 "sumRange(0,2): bit.rangeQuery(1,3) = query(3) - query(0)\n" +
-"  query(3): i=3, total+=tree[3]=5. i=3-1=2. total+=tree[2]=4. i=2-2=0 → stop. total=9\n" +
-"  query(0): 0 → stop. total=0\n" +
+"  query(3): i=3, sum+=tree[3]=5. i=2, sum+=tree[2]=4. i=0 → stop. sum=9\n" +
+"  query(0): 0 → stop. sum=0\n" +
 "  rangeQuery = 9 - 0 = 9 ✓ (1+3+5=9)\n\n" +
 "update(1, 2): delta = 2 - nums[1] = 2 - 3 = -1. nums[1]=2\n" +
 "  bit.update(2, -1): tree[2]=4-1=3. tree[4]=9-1=8\n\n" +
-"sumRange(0,2): query(3)-query(0) = (5+3) - 0 = 8 ✓ (1+2+5=8)\n" +
-"\n" +
+"sumRange(0,2): query(3)-query(0) = (5+3) - 0 = 8 ✓ (1+2+5=8)\n\n" +
 "── Count Inversions ──\n" +
 "Input: [3,1,2] → expected 2 inversions: (3,1) and (3,2)\n" +
-"rank: {1→1, 2→2, 3→3}\n" +
-"\n" +
+"rank: {1→1, 2→2, 3→3}\n\n" +
 "i=2: val=2, r=2. query(1)=0. update(2,1). inv=0\n" +
 "i=1: val=1, r=1. query(0)=0. update(1,1). inv=0\n" +
 "i=0: val=3, r=3. query(2)=tree[2]+tree[...]=2 (saw 1 and 2). inv=2\n" +
