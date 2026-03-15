@@ -10802,7 +10802,9 @@ Key idea: Each index i is responsible for a range of elements determined by its 
 • Update: Add delta to index i, propagate upward (i += i & (-i))
 • Query: Sum from 1 to i, accumulate downward (i -= i & (-i))
 
-Use 1-indexed arrays. Range sum [l, r] = query(r) - query(l-1).`,
+Use 1-indexed arrays. Range sum [l, r] = query(r) - query(l-1).
+
+Note: Segment Tree can do everything BIT can (sum, count) plus more (min, max, gcd). If you already know Segment Tree, you don't strictly need BIT. BIT's advantage is simplicity — two loops vs a whole class — so it's less code for sum/count problems.`,
     keyPatterns: [
       'Prefix sum + point update: The core BIT use case',
       'Range sum query: query(r) - query(l-1)',
