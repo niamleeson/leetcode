@@ -11048,55 +11048,56 @@ countInversions (BIT version):
     bit.update(r, 1) registers nums[i] ✓
   Terminate: i=0; all inversions counted ✓`,
     jsTemplateWalkthrough: "── BIT Core Concept ──\n" +
-"BIT is 1-indexed. Each index i covers a range based on its lowest set bit (LSB).\n\n" +
-"LSB = i & (-i). In two's complement, -i flips all bits and adds 1,\n" +
-"so ANDing with the original keeps only the lowest set bit:\n\n" +
+"You have an array and want two fast operations:\n" +
+"  1. Update a single element\n" +
+"  2. Get the prefix sum from index 1 to i\n\n" +
+"Instead of storing raw values, tree[i] stores the sum of a\n" +
+"specific chunk of the original array. Which chunk?\n\n" +
+"tree[i] stores the sum of the last (i & (-i)) elements ending at i.\n\n" +
+"── The Binary Operation: i & (-i) ──\n" +
+"In two's complement, -i flips all bits and adds 1.\n" +
+"ANDing with the original keeps only the lowest set bit:\n\n" +
 "  i  =  6 = 0110\n" +
 "  -i = -6 = 1010   (flip: 1001, +1: 1010)\n" +
 "  i & (-i) = 0110 & 1010 = 0010 = 2\n\n" +
-"The LSB tells you how many elements tree[i] covers:\n\n" +
-"nums = [3, 1, 4, 2]\n\n" +
-"i=1 (001): LSB=1 → covers 1 element  → just nums[1]\n" +
-"i=2 (010): LSB=2 → covers 2 elements → nums[1] + nums[2]\n" +
-"i=3 (011): LSB=1 → covers 1 element  → just nums[3]\n" +
-"i=4 (100): LSB=4 → covers 4 elements → nums[1] + nums[2] + nums[3] + nums[4]\n\n" +
-"Update walks UP by adding LSB (i += i & (-i)):\n" +
-"  Each parent's range contains the child's range.\n" +
-"  i=3 (011) +1→ i=4 (100) +4→ i=8 (done)\n\n" +
-"Query walks DOWN by stripping LSB (i -= i & (-i)):\n" +
-"  Each step jumps to the next non-overlapping range.\n" +
-"  i=7 (111) -1→ i=6 (110) -2→ i=4 (100) -4→ i=0 (done)\n" +
-"  tree[7]=[7] + tree[6]=[5,6] + tree[4]=[1..4] = [1..7] ✓\n\n" +
-"Build by inserting each number:\n\n" +
-"Insert nums[0]=3 at index 1:\n" +
-"  i=1: tree[1] += 3.  i += 1&(-1)=1 → i=2\n" +
-"  i=2: tree[2] += 3.  i += 2&(-2)=2 → i=4\n" +
-"  i=4: tree[4] += 3.  i += 4&(-4)=4 → i=8 > n, stop.\n\n" +
-"Insert nums[1]=1 at index 2:\n" +
-"  i=2: tree[2] += 1.  i += 2 → i=4\n" +
-"  i=4: tree[4] += 1.  i += 4 → i=8 > n, stop.\n\n" +
-"Insert nums[2]=4 at index 3:\n" +
-"  i=3: tree[3] += 4.  i += 1 → i=4\n" +
-"  i=4: tree[4] += 4.  i += 4 → i=8 > n, stop.\n\n" +
-"Insert nums[3]=2 at index 4:\n" +
-"  i=4: tree[4] += 2.  i += 4 → i=8 > n, stop.\n\n" +
-"Final tree:\n" +
-"  tree = [_, 3, 4, 4, 10]\n" +
-"            │  │  │   └─ sum of [1..4] = 3+1+4+2 = 10\n" +
-"            │  │  └───── sum of [3..3] = 4\n" +
-"            │  └──────── sum of [1..2] = 3+1 = 4\n" +
-"            └─────────── sum of [1..1] = 3\n\n" +
+"── What Each tree[i] Covers ──\n" +
+"arr:    [_, 3, 1, 4, 2, 5, 1, 2, 3]   (1-indexed)\n" +
+"index:      1  2  3  4  5  6  7  8\n\n" +
+"tree[1]: LSB=1, last 1 ending at 1 → sum of [1..1] = 3\n" +
+"tree[2]: LSB=2, last 2 ending at 2 → sum of [1..2] = 3+1 = 4\n" +
+"tree[3]: LSB=1, last 1 ending at 3 → sum of [3..3] = 4\n" +
+"tree[4]: LSB=4, last 4 ending at 4 → sum of [1..4] = 3+1+4+2 = 10\n" +
+"tree[5]: LSB=1, last 1 ending at 5 → sum of [5..5] = 5\n" +
+"tree[6]: LSB=2, last 2 ending at 6 → sum of [5..6] = 5+1 = 6\n" +
+"tree[7]: LSB=1, last 1 ending at 7 → sum of [7..7] = 2\n" +
+"tree[8]: LSB=8, last 8 ending at 8 → sum of [1..8] = 21\n\n" +
+"Visually — each bracket shows what tree[i] covers:\n\n" +
+"index:  1    2    3    4    5    6    7    8\n" +
+"value:  3    1    4    2    5    1    2    3\n\n" +
+"tree[1] [3]\n" +
+"tree[2] [3    1]\n" +
+"tree[3]            [4]\n" +
+"tree[4] [3    1    4    2]\n" +
+"tree[5]                  [5]\n" +
+"tree[6]                  [5    1]\n" +
+"tree[7]                             [2]\n" +
+"tree[8] [3    1    4    2    5    1    2    3]\n\n" +
 "── BIT Query ──\n" +
-"Query walks DOWN by stripping the lowest set bit: i -= i & (-i)\n\n" +
-"query(3): prefix sum of first 3 elements\n" +
-"  i=3: sum += tree[3] = 4.   i -= 3&(-3)=1 → i=2\n" +
-"  i=2: sum += tree[2] = 4.   i -= 2&(-2)=2 → i=0, stop.\n" +
-"  sum = 4 + 4 = 8  ✓  (3 + 1 + 4 = 8)\n\n" +
+"Query walks DOWN by stripping LSB: i -= i & (-i)\n" +
+"Each step jumps to the next non-overlapping range.\n\n" +
+"query(7): prefix sum of [1..7]\n" +
+"  i=7: sum += tree[7] (covers [7..7]) = 2.   i -= LSB(7)=1 → i=6\n" +
+"  i=6: sum += tree[6] (covers [5..6]) = 6.   i -= LSB(6)=2 → i=4\n" +
+"  i=4: sum += tree[4] (covers [1..4]) = 10.  i -= LSB(4)=4 → i=0, stop.\n" +
+"  [1..4] + [5..6] + [7..7] = [1..7] ✓  No gaps, no overlaps.\n" +
+"  sum = 10 + 6 + 2 = 18 ✓  (3+1+4+2+5+1+2 = 18)\n\n" +
 "── BIT Update ──\n" +
-"Update walks UP by adding the lowest set bit: i += i & (-i)\n\n" +
-"update(2, delta=5): add 5 to index 2\n" +
-"  i=2: tree[2] += 5 → 9.    i += 2&(-2)=2 → i=4\n" +
-"  i=4: tree[4] += 5 → 15.   i += 4&(-4)=4 → i=8 > n, stop.\n\n" +
+"Update walks UP by adding LSB: i += i & (-i)\n" +
+"Visits every tree entry whose range includes the updated index.\n\n" +
+"update(3, delta=10): add 10 to index 3\n" +
+"  i=3: tree[3] += 10 (covers [3..3]) ✓ includes 3.  i += LSB(3)=1 → i=4\n" +
+"  i=4: tree[4] += 10 (covers [1..4]) ✓ includes 3.  i += LSB(4)=4 → i=8\n" +
+"  i=8: tree[8] += 10 (covers [1..8]) ✓ includes 3.  i += LSB(8)=8 → i=16 > n, stop.\n\n" +
 "── Range Sum Query - Mutable ──\n" +
 "nums=[1,3,5], build BIT from it:\n" +
 "  update(1,1), update(2,3), update(3,5)\n" +
