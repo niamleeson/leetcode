@@ -11048,13 +11048,25 @@ countInversions (BIT version):
     bit.update(r, 1) registers nums[i] ✓
   Terminate: i=0; all inversions counted ✓`,
     jsTemplateWalkthrough: "── BIT Core Concept ──\n" +
-"BIT is 1-indexed. Each index i covers a range based on its lowest set bit.\n" +
-"Lowest set bit: i & (-i). This determines how many elements tree[i] covers.\n\n" +
+"BIT is 1-indexed. Each index i covers a range based on its lowest set bit (LSB).\n\n" +
+"LSB = i & (-i). In two's complement, -i flips all bits and adds 1,\n" +
+"so ANDing with the original keeps only the lowest set bit:\n\n" +
+"  i  =  6 = 0110\n" +
+"  -i = -6 = 1010   (flip: 1001, +1: 1010)\n" +
+"  i & (-i) = 0110 & 1010 = 0010 = 2\n\n" +
+"The LSB tells you how many elements tree[i] covers:\n\n" +
 "nums = [3, 1, 4, 2]\n\n" +
-"i=1: 1 & (-1) = 1 → covers 1 element  → just nums[1]\n" +
-"i=2: 2 & (-2) = 2 → covers 2 elements → nums[1] + nums[2]\n" +
-"i=3: 3 & (-3) = 1 → covers 1 element  → just nums[3]\n" +
-"i=4: 4 & (-4) = 4 → covers 4 elements → nums[1] + nums[2] + nums[3] + nums[4]\n\n" +
+"i=1 (001): LSB=1 → covers 1 element  → just nums[1]\n" +
+"i=2 (010): LSB=2 → covers 2 elements → nums[1] + nums[2]\n" +
+"i=3 (011): LSB=1 → covers 1 element  → just nums[3]\n" +
+"i=4 (100): LSB=4 → covers 4 elements → nums[1] + nums[2] + nums[3] + nums[4]\n\n" +
+"Update walks UP by adding LSB (i += i & (-i)):\n" +
+"  Each parent's range contains the child's range.\n" +
+"  i=3 (011) +1→ i=4 (100) +4→ i=8 (done)\n\n" +
+"Query walks DOWN by stripping LSB (i -= i & (-i)):\n" +
+"  Each step jumps to the next non-overlapping range.\n" +
+"  i=7 (111) -1→ i=6 (110) -2→ i=4 (100) -4→ i=0 (done)\n" +
+"  tree[7]=[7] + tree[6]=[5,6] + tree[4]=[1..4] = [1..7] ✓\n\n" +
 "Build by inserting each number:\n\n" +
 "Insert nums[0]=3 at index 1:\n" +
 "  i=1: tree[1] += 3.  i += 1&(-1)=1 → i=2\n" +
