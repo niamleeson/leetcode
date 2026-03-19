@@ -2102,9 +2102,23 @@ searchRotated:
   Promise: "if target exists, it lies within nums[left..right]"
   Init: full array is the search space ✓
   Maintain: 'nums[left] <= nums[mid]' reliably identifies the sorted half ✓
-  Terminate: target found or window empty ✓`,jsTemplateWalkthrough:`── Search Insert (Generalized Template) ──
+  Terminate: target found or window empty ✓`,jsTemplateWalkthrough:`── The Generalized Template ──
+Template: "Minimize k s.t. condition(k) is True"
+
+The search space is [left, right]. Each step:
+  1. Compute mid = left + floor((right - left) / 2)
+  2. If condition(mid) is True → mid is a candidate, try smaller: right = mid
+  3. If condition(mid) is False → mid is not valid, skip past: left = mid + 1
+  4. When left === right → found the minimal k
+
+Why right = mid (not mid-1)? Because mid could BE the answer.
+Why left = mid+1 (not mid)? Because mid failed, so skip it.
+
+Return left for "first True" or left-1 for "last False".
+
+── Applications of the Template ──
+▸ Search Insert: minimize k s.t. nums[k] >= target
 nums = [1, 3, 5, 6], target = 2
-Generalized form: minimize k s.t. nums[k] >= 2
 left=0, right=4
 
 mid=2: nums[2]=5 >= 2? Yes → right=2
@@ -2112,8 +2126,8 @@ mid=1: nums[1]=3 >= 2? Yes → right=1
 mid=0: nums[0]=1 >= 2? No → left=1
 left===right=1 → return 1 (insert at index 1)
 
-── Sqrt (Return left - 1) ──
-x = 8, minimize k s.t. k*k > 8
+▸ Sqrt(x): minimize k s.t. k*k > x, return k-1
+x = 8
 left=0, right=9
 
 mid=4: 16 > 8? Yes → right=4
@@ -2121,9 +2135,8 @@ mid=2: 4 > 8? No → left=3
 mid=3: 9 > 8? Yes → right=3
 left===right=3 → return 3-1 = 2 (floor of sqrt(8))
 
-── Koko Bananas (Search on Answer) ──
+▸ Koko Bananas: minimize speed s.t. canFinish(speed)
 piles = [3, 6, 7, 11], h = 8
-Generalized form: minimize speed s.t. canFinish(speed)
 left=1, right=11
 
 mid=6: hours = ceil(3/6)+ceil(6/6)+ceil(7/6)+ceil(11/6)
@@ -2133,7 +2146,10 @@ mid=5: hours = 1+2+2+3 = 8 <= 8 → canFinish! right=5
 mid=4: hours = 1+2+2+3 = 8 <= 8 → canFinish! right=4
 left===right=4 → return 4
 
-── Search in Rotated Array (Exact Match) ──
+── Exact Match & Rotated Array ──
+▸ Exact match uses while left <= right (different template)
+
+Search in Rotated Array:
 nums = [4, 5, 6, 7, 0, 1, 2], target = 0
 
 left=0, right=6

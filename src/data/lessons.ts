@@ -2165,24 +2165,33 @@ searchRotated:
   Maintain: 'nums[left] <= nums[mid]' reliably identifies the sorted half ✓
   Terminate: target found or window empty ✓`,
     jsTemplateWalkthrough:
-      '── Search Insert (Generalized Template) ──\n' +
+      '── The Generalized Template ──\n' +
+      'Template: "Minimize k s.t. condition(k) is True"\n\n' +
+      'The search space is [left, right]. Each step:\n' +
+      '  1. Compute mid = left + floor((right - left) / 2)\n' +
+      '  2. If condition(mid) is True → mid is a candidate, try smaller: right = mid\n' +
+      '  3. If condition(mid) is False → mid is not valid, skip past: left = mid + 1\n' +
+      '  4. When left === right → found the minimal k\n\n' +
+      'Why right = mid (not mid-1)? Because mid could BE the answer.\n' +
+      'Why left = mid+1 (not mid)? Because mid failed, so skip it.\n\n' +
+      'Return left for "first True" or left-1 for "last False".\n\n' +
+      '── Applications of the Template ──\n' +
+      '▸ Search Insert: minimize k s.t. nums[k] >= target\n' +
       'nums = [1, 3, 5, 6], target = 2\n' +
-      'Generalized form: minimize k s.t. nums[k] >= 2\n' +
       'left=0, right=4\n\n' +
       'mid=2: nums[2]=5 >= 2? Yes → right=2\n' +
       'mid=1: nums[1]=3 >= 2? Yes → right=1\n' +
       'mid=0: nums[0]=1 >= 2? No → left=1\n' +
       'left===right=1 → return 1 (insert at index 1)\n\n' +
-      '── Sqrt (Return left - 1) ──\n' +
-      'x = 8, minimize k s.t. k*k > 8\n' +
+      '▸ Sqrt(x): minimize k s.t. k*k > x, return k-1\n' +
+      'x = 8\n' +
       'left=0, right=9\n\n' +
       'mid=4: 16 > 8? Yes → right=4\n' +
       'mid=2: 4 > 8? No → left=3\n' +
       'mid=3: 9 > 8? Yes → right=3\n' +
       'left===right=3 → return 3-1 = 2 (floor of sqrt(8))\n\n' +
-      '── Koko Bananas (Search on Answer) ──\n' +
+      '▸ Koko Bananas: minimize speed s.t. canFinish(speed)\n' +
       'piles = [3, 6, 7, 11], h = 8\n' +
-      'Generalized form: minimize speed s.t. canFinish(speed)\n' +
       'left=1, right=11\n\n' +
       'mid=6: hours = ceil(3/6)+ceil(6/6)+ceil(7/6)+ceil(11/6)\n' +
       '            = 1+1+2+2 = 6 <= 8 → canFinish! right=6\n' +
@@ -2190,7 +2199,9 @@ searchRotated:
       'mid=5: hours = 1+2+2+3 = 8 <= 8 → canFinish! right=5\n' +
       'mid=4: hours = 1+2+2+3 = 8 <= 8 → canFinish! right=4\n' +
       'left===right=4 → return 4\n\n' +
-      '── Search in Rotated Array (Exact Match) ──\n' +
+      '── Exact Match & Rotated Array ──\n' +
+      '▸ Exact match uses while left <= right (different template)\n\n' +
+      'Search in Rotated Array:\n' +
       'nums = [4, 5, 6, 7, 0, 1, 2], target = 0\n\n' +
       'left=0, right=6\n' +
       'mid=3: nums[3]=7, nums[0]=4 <= 7 → left half [4,5,6,7] sorted\n' +
