@@ -354,7 +354,7 @@ class Solution:
     examples:
       'Input: nums = [1,2,5,9], threshold = 6\nOutput: 5\nExplanation: Using divisor 5, we get ceil(1/5)+ceil(2/5)+ceil(5/5)+ceil(9/5) = 1+1+1+2 = 5 <= 6',
     intuition:
-      'Larger divisors produce smaller ceiling-divided sums, creating a monotonic relationship. This is the classic signal to use binary search: find the sweet spot where the sum just dips below the threshold.',
+      'Generalized form: Minimize k (divisor) s.t. ceilingSum(k) ≤ threshold. Larger divisors produce smaller ceiling-divided sums, creating a monotonic relationship perfect for the generalized binary search template.',
     approach:
       'Binary search on the divisor value from 1 to max(nums). For each candidate divisor, compute the sum of ceilings. If the sum is within threshold, try a smaller divisor; otherwise try larger.',
     code: `import math
@@ -5363,7 +5363,7 @@ BrowserHistory.prototype.forward = function(steps) {
     examples:
       'Input: bloomDay = [1,10,3,10,2], m = 3, k = 1\nOutput: 3',
     intuition:
-      'More days mean more flowers bloom, so feasibility is monotonic. Binary search on the day and for each candidate, greedily count how many bouquets of k adjacent bloomed flowers you can form.',
+      'Generalized form: Minimize k (days) s.t. canMake(k) is True. More days mean more flowers bloom, so feasibility is monotonic — perfect for the generalized binary search template. For each candidate day, greedily count how many bouquets of k adjacent bloomed flowers you can form.',
     approach:
       'Binary search on the answer (the day). For each candidate day, count how many bouquets of k adjacent bloomed flowers can be made. Check if it is >= m.',
     code: `class Solution:

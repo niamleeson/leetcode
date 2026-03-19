@@ -1363,62 +1363,59 @@ export const solutions: ProblemSolution[] = [
     examples:
       'Input: nums = [1,3,5,6], target = 5\nOutput: 2',
     intuition:
-      'Binary search naturally finds the insertion point. When the search ends without finding the target, the left pointer sits exactly where the target should be inserted to maintain sorted order. This is the foundation of many binary search applications.',
+      'Generalized form: Minimize k s.t. nums[k] >= target. Binary search naturally finds the insertion point. The generalized template with condition nums[mid] >= target directly gives the correct insertion index, handling both found and not-found cases identically.',
     approach:
-      'Use binary search to find the target or the insertion point. The left pointer after binary search gives the correct insertion index.',
+      'Use the generalized binary search template: minimize k s.t. nums[k] >= target. Initialize right = len(nums) to handle insertion at the end. The condition nums[mid] >= target directly gives the insertion point, with no special case needed for found vs. not-found.',
     code: `class Solution:
     def searchInsert(self, nums: list[int], target: int) -> int:
-        lo, hi = 0, len(nums) - 1
-        while lo <= hi:
+        lo, hi = 0, len(nums)
+        while lo < hi:
             mid = (lo + hi) // 2
-            if nums[mid] == target:
-                return mid
-            elif nums[mid] < target:
-                lo = mid + 1
+            if nums[mid] >= target:
+                hi = mid
             else:
-                hi = mid - 1
+                lo = mid + 1
         return lo`,
     jsCode: `var searchInsert = function(nums, target) {
+    // Generalized form: minimize k s.t. nums[k] >= target
     let lo = 0;
-    let hi = nums.length - 1;
+    let hi = nums.length; // right = len(nums) to handle insertion at end
 
-    while (lo <= hi) {
+    while (lo < hi) {
         const mid = Math.floor((lo + hi) / 2);
-        const midValue = nums[mid];
 
-        if (midValue === target) {
-            // Found the target
-            return mid;
-        } else if (midValue < target) {
-            // Target is in the right half
-            lo = mid + 1;
+        if (nums[mid] >= target) {
+            // mid satisfies the condition — could be the answer
+            hi = mid;
         } else {
-            // Target is in the left half
-            hi = mid - 1;
+            // mid doesn't satisfy — answer is to the right
+            lo = mid + 1;
         }
     }
 
-    // Target not found; lo is the insertion point
+    // lo is the minimal index where nums[lo] >= target (or len if target > all)
     return lo;
 };`,
     jsWalkthrough:
-      'Input: nums = [1,3,5,6], target = 5\n\n' +
-      'lo=0, hi=3\n' +
-      'mid=1: nums[1]=3 < 5 -> lo=2\n' +
-      'mid=2: nums[2]=5 === 5 -> return 2\n\n' +
+      'Generalized: minimize k s.t. nums[k] >= target\n\n' +
+      'Input: nums = [1,3,5,6], target = 5\n' +
+      'lo=0, hi=4\n\n' +
+      'mid=2: nums[2]=5 >= 5? Yes → hi=2\n' +
+      'mid=1: nums[1]=3 >= 5? No → lo=2\n' +
+      'lo===hi=2 → return 2\n\n' +
       '---\n' +
-      'Input: nums = [1,3,5,6], target = 2 (not found)\n\n' +
-      'lo=0, hi=3\n' +
-      'mid=1: nums[1]=3 > 2 -> hi=0\n' +
-      'mid=0: nums[0]=1 < 2 -> lo=1\n' +
-      'lo(1) > hi(0) -> loop ends\n' +
-      'Return lo=1 (insert between index 0 and 1)',
+      'Input: nums = [1,3,5,6], target = 2 (not found)\n' +
+      'lo=0, hi=4\n\n' +
+      'mid=2: nums[2]=5 >= 2? Yes → hi=2\n' +
+      'mid=1: nums[1]=3 >= 2? Yes → hi=1\n' +
+      'mid=0: nums[0]=1 >= 2? No → lo=1\n' +
+      'lo===hi=1 → return 1 (insert at index 1)',
     explanation:
-      '1. Standard binary search on the sorted array.\n' +
-      '2. If nums[mid] == target, return mid.\n' +
-      '3. If nums[mid] < target, search right half (lo = mid + 1).\n' +
-      '4. If nums[mid] > target, search left half (hi = mid - 1).\n' +
-      '5. When loop ends, lo is the correct insertion position.',
+      '1. Apply generalized template: minimize k s.t. nums[k] >= target.\n' +
+      '2. Initialize lo = 0, hi = len(nums). Right is len(nums) because target could be larger than all elements.\n' +
+      '3. If nums[mid] >= target, mid is a candidate — set hi = mid.\n' +
+      '4. If nums[mid] < target, mid is not valid — set lo = mid + 1.\n' +
+      '5. When lo === hi, we\'ve found the first index where nums[k] >= target, which is the insertion point.',
     timeComplexity: 'O(log n)',
     spaceComplexity: 'O(1)',
     hints: [
@@ -2944,54 +2941,54 @@ export const solutions: ProblemSolution[] = [
     examples:
       'Input: x = 8\nOutput: 2\nExplanation: The square root of 8 is 2.828..., rounded down to 2.',
     intuition:
-      'Binary search works perfectly here: you\'re looking for the largest integer whose square is at most x. The search space is [0, x], and at each step you check if mid*mid is too big or too small. This converges in O(log x) steps.',
+      'Generalized form: Minimize k s.t. k*k > x, then return k - 1. Binary search works perfectly here: you\'re looking for the largest integer whose square is at most x. Using the generalized template with condition k² > x, left converges to the first k where k² > x, so left - 1 is the floor of sqrt(x).',
     approach:
-      'Use binary search on the range [0, x]. For each midpoint, check if mid * mid <= x. Find the largest mid such that mid * mid <= x.',
+      'Use the generalized binary search template: minimize k s.t. k*k > x, then return k - 1. Initialize right = x + 1 to handle edge cases x = 0 and x = 1. The result left - 1 gives the floor of the square root.',
     code: `class Solution:
     def mySqrt(self, x: int) -> int:
-        lo, hi = 0, x
-        while lo <= hi:
+        lo, hi = 0, x + 1
+        while lo < hi:
             mid = (lo + hi) // 2
-            if mid * mid <= x:
-                lo = mid + 1
+            if mid * mid > x:
+                hi = mid
             else:
-                hi = mid - 1
-        return hi`,
+                lo = mid + 1
+        return lo - 1`,
     jsCode: `var mySqrt = function(x) {
+    // Generalized form: minimize k s.t. k*k > x, return k - 1
     let lo = 0;
-    let hi = x;
+    let hi = x + 1; // right = x + 1 to handle x = 0 and x = 1
 
-    while (lo <= hi) {
+    while (lo < hi) {
         const mid = Math.floor((lo + hi) / 2);
-        const midSquared = mid * mid;
 
-        if (midSquared <= x) {
-            // mid might be the answer or we can go higher
-            lo = mid + 1;
+        if (mid * mid > x) {
+            // mid satisfies the condition — could be the answer
+            hi = mid;
         } else {
-            // mid is too large
-            hi = mid - 1;
+            // mid doesn't satisfy — answer is to the right
+            lo = mid + 1;
         }
     }
 
-    // hi is the largest integer where hi^2 <= x (floor of sqrt)
-    return hi;
+    // lo is the first k where k² > x, so lo - 1 is floor(sqrt(x))
+    return lo - 1;
 };`,
     jsWalkthrough:
-      'Input: x = 8\n\n' +
-      'lo=0, hi=8\n' +
-      'mid=4: 4*4=16 > 8 -> hi=3\n' +
-      'mid=1: 1*1=1 <= 8 -> lo=2\n' +
-      'mid=2: 2*2=4 <= 8 -> lo=3\n' +
-      'mid=3: 3*3=9 > 8 -> hi=2\n' +
-      'lo(3) > hi(2) -> loop ends\n\n' +
-      'Return hi=2 (since floor(sqrt(8))=2.828...=2)',
+      'Generalized: minimize k s.t. k*k > x, return k-1\n\n' +
+      'Input: x = 8\n' +
+      'lo=0, hi=9\n\n' +
+      'mid=4: 16 > 8? Yes → hi=4\n' +
+      'mid=2: 4 > 8? No → lo=3\n' +
+      'mid=3: 9 > 8? Yes → hi=3\n' +
+      'lo===hi=3 → return 3-1 = 2\n\n' +
+      'floor(sqrt(8)) = 2 ✓',
     explanation:
-      '1. Binary search in the range [0, x].\n' +
-      '2. If mid^2 <= x, the answer might be mid or larger, so move lo up.\n' +
-      '3. If mid^2 > x, mid is too large, so move hi down.\n' +
-      '4. When the loop ends, hi is the largest integer where hi^2 <= x.\n' +
-      '5. Return hi as the floor of the square root.',
+      '1. Apply generalized template: minimize k s.t. k² > x.\n' +
+      '2. Initialize lo = 0, hi = x + 1 to handle x = 0 and x = 1.\n' +
+      '3. If mid² > x, mid satisfies the condition — set hi = mid.\n' +
+      '4. If mid² ≤ x, mid doesn\'t satisfy — set lo = mid + 1.\n' +
+      '5. When lo === hi, lo is the first k where k² > x. Return lo - 1 (floor of sqrt).',
     timeComplexity: 'O(log x)',
     spaceComplexity: 'O(1)',
     hints: [

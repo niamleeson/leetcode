@@ -109,6 +109,9 @@ export const problems: Problem[] = [
   { id: 540, title: "Single Element in a Sorted Array", difficulty: "Medium", topics: ["Binary Search"], url: "https://leetcode.com/problems/single-element-in-a-sorted-array/" },
   { id: 658, title: "Find K Closest Elements", difficulty: "Medium", topics: ["Binary Search", "Sorting"], url: "https://leetcode.com/problems/find-k-closest-elements/" },
   { id: 1011, title: "Capacity To Ship Packages Within D Days", difficulty: "Medium", topics: ["Binary Search"], url: "https://leetcode.com/problems/capacity-to-ship-packages-within-d-days/" },
+  { id: 668, title: "Kth Smallest Number in Multiplication Table", difficulty: "Hard", topics: ["Binary Search", "Math & Geometry"], url: "https://leetcode.com/problems/kth-smallest-number-in-a-multiplication-table/" },
+  { id: 719, title: "Find K-th Smallest Pair Distance", difficulty: "Hard", topics: ["Binary Search", "Two Pointers", "Sorting"], url: "https://leetcode.com/problems/find-k-th-smallest-pair-distance/" },
+  { id: 1201, title: "Ugly Number III", difficulty: "Medium", topics: ["Binary Search", "Math & Geometry"], url: "https://leetcode.com/problems/ugly-number-iii/" },
   { id: 2300, title: "Successful Pairs of Spells and Potions", difficulty: "Medium", topics: ["Binary Search", "Sorting"], url: "https://leetcode.com/problems/successful-pairs-of-spells-and-potions/" },
 
   // ============================================================

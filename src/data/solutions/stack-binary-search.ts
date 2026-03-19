@@ -1536,7 +1536,7 @@ Output: true`,
 Output: 1
 Explanation: The original array was [1,2,3,4,5] rotated 3 times.`,
     intuition:
-      "The minimum element sits at the 'rotation point' where the sorted order breaks. If the middle element is greater than the rightmost element, the break must be somewhere to the right (the array wraps around). Otherwise, the right side is properly sorted and the minimum is at mid or to the left. Comparing with the right end (not the left) is what makes this work correctly.",
+      "Generalized form: Minimize k s.t. nums[k] ≤ nums[right] (the rotation boundary). The minimum element sits at the 'rotation point' where the sorted order breaks. If the middle element is greater than the rightmost element, the break must be somewhere to the right (the array wraps around). Otherwise, the right side is properly sorted and the minimum is at mid or to the left. Comparing with the right end (not the left) is what makes this work correctly.",
     approach:
       "Use binary search comparing the middle element with the rightmost element. If nums[mid] > nums[hi], the minimum is in the right half (the rotation point is there). Otherwise, it is in the left half including mid.",
     code: `class Solution:
@@ -1673,7 +1673,7 @@ Output: 4`,
 Output: 4
 Explanation: At speed 4, hours needed = ceil(3/4)+ceil(6/4)+ceil(7/4)+ceil(11/4) = 1+2+2+3 = 8 <= 8.`,
     intuition:
-      "This is a 'binary search on the answer' pattern. Instead of directly computing the answer, notice that if speed k works, then any speed greater than k also works. This monotonic property means you can binary search over possible speeds. For each candidate speed, a simple linear scan tells you whether it is fast enough.",
+      "Generalized form: Minimize k (eating speed) s.t. hoursNeeded(k) ≤ h. This is a 'binary search on the answer' pattern. If speed k works, any speed greater than k also works — this monotonic property means you can binary search over possible speeds. For each candidate speed, a simple linear scan tells you whether it is fast enough.",
     approach:
       "Binary search on the answer (eating speed k). The minimum speed is 1 and the maximum is max(piles). For each candidate speed, calculate total hours needed. Use binary search to find the minimum k that finishes within h hours.",
     code: `class Solution:
@@ -1755,7 +1755,7 @@ Explanation: At speed 4, hours needed = ceil(3/4)+ceil(6/4)+ceil(7/4)+ceil(11/4)
 Output: 2
 Explanation: nums[2] = 3 is a peak element.`,
     intuition:
-      "Imagine hiking and you are at a point on a trail. If the path goes uphill to your right, there must be a peak somewhere to the right (since the trail eventually drops to negative infinity at the edge). Always walk uphill and you are guaranteed to reach a peak. Binary search just makes this 'walk uphill' process logarithmic by jumping to the midpoint each time.",
+      "Generalized form: Minimize k s.t. nums[k] > nums[k+1] (a peak). Imagine hiking and you are at a point on a trail. If the path goes uphill to your right, there must be a peak somewhere to the right (since the trail eventually drops to negative infinity at the edge). Always walk uphill and you are guaranteed to reach a peak. Binary search just makes this 'walk uphill' process logarithmic by jumping to the midpoint each time.",
     approach:
       "Use binary search. If nums[mid] < nums[mid + 1], a peak must exist on the right side (since the array ends with -infinity). Otherwise, a peak exists on the left side including mid. This narrows to a peak in O(log n).",
     code: `class Solution:
@@ -1825,7 +1825,7 @@ Explanation: nums[2] = 3 is a peak element.`,
 Output: 4
 Explanation: isBadVersion(3) -> false, isBadVersion(4) -> true, so 4 is the first bad version.`,
     intuition:
-      "The versions form a pattern like [good, good, ..., good, bad, bad, ..., bad]. You are looking for the exact boundary where good switches to bad. Binary search is perfect for finding such a boundary: check the middle, and depending on whether it is good or bad, you know which half contains the transition point.",
+      "Generalized form: Minimize k s.t. isBadVersion(k) is True. The versions form a pattern like [good, good, ..., good, bad, bad, ..., bad]. You are looking for the exact boundary where good switches to bad. Binary search is perfect for finding such a boundary: check the middle, and depending on whether it is good or bad, you know which half contains the transition point.",
     approach:
       "Binary search for the boundary between good and bad versions. If mid is bad, the first bad version is at mid or earlier. If mid is good, the first bad version is after mid. This minimizes the number of API calls to O(log n).",
     code: `# The isBadVersion API is already defined for you.
@@ -1894,7 +1894,7 @@ class Solution:
 Output: 18
 Explanation: Split into [7,2,5] and [10,8]. The largest sum is 18 and this is the minimum possible.`,
     intuition:
-      "Instead of trying all possible ways to split the array (exponentially many), flip the question: 'Given a maximum allowed subarray sum, can I split the array into k or fewer parts?' This yes/no question is easy to check greedily, and the answer has a monotonic property (if max_sum works, any larger value also works), making it perfect for binary search on the answer.",
+      "Generalized form: Minimize k (max subarray sum) s.t. canSplit(k) is True. Instead of trying all possible ways to split the array (exponentially many), flip the question: 'Given a maximum allowed subarray sum, can I split the array into k or fewer parts?' This yes/no question is easy to check greedily, and the answer has a monotonic property (if max_sum works, any larger value also works), making it perfect for binary search on the answer.",
     approach:
       "Binary search on the answer (the largest subarray sum). The minimum possible answer is max(nums) and the maximum is sum(nums). For each candidate, greedily check if we can split the array into k or fewer subarrays where each sum does not exceed the candidate.",
     code: `class Solution:
@@ -2090,7 +2090,7 @@ Output: 5`,
 Output: 15
 Explanation: Ship with capacity 15: Day 1: [1,2,3,4,5], Day 2: [6,7], Day 3: [8], Day 4: [9], Day 5: [10].`,
     intuition:
-      "This is the same 'binary search on the answer' pattern as Koko Eating Bananas and Split Array Largest Sum. The ship capacity has a monotonic property: a bigger ship can always finish in fewer or equal days. So binary search over possible capacities, and for each one, greedily simulate loading packages day by day to check feasibility.",
+      "Generalized form: Minimize k (ship capacity) s.t. canShip(k) is True. This is the same 'binary search on the answer' pattern as Koko Eating Bananas and Split Array Largest Sum. The ship capacity has a monotonic property: a bigger ship can always finish in fewer or equal days. So binary search over possible capacities, and for each one, greedily simulate loading packages day by day to check feasibility.",
     approach:
       "Binary search on the ship capacity. The minimum capacity is max(weights) (must fit the heaviest package) and the maximum is sum(weights) (ship everything in one day). For each candidate capacity, greedily simulate loading to check if all packages ship within the given days.",
     code: `class Solution:
@@ -2185,6 +2185,281 @@ Explanation: Ship with capacity 15: Day 1: [1,2,3,4,5], Day 2: [6,7], Day 3: [8]
       "This problem is equivalent to splitting the weights array into at most 'days' subarrays and minimizing the maximum subarray sum.",
       "Binary search on the capacity. The range is [max(weights), sum(weights)].",
       "For each candidate capacity, greedily fill each day's load. If you need more than 'days' days, the capacity is too small.",
+    ],
+  },
+  // 668. Kth Smallest Number in Multiplication Table
+  {
+    id: 668,
+    description:
+      "Given the height m and the length n of a m * n Multiplication Table, and a positive integer k, you need to return the k-th smallest number in this table.",
+    examples: `Input: m = 3, n = 3, k = 5
+Output: 3
+Explanation: The Multiplication Table:
+1  2  3
+2  4  6
+3  6  9
+The 5th smallest number is 3 (1, 2, 2, 3, 3).`,
+    intuition:
+      "Generalized form: Minimize num s.t. count(≤ num) ≥ k. Instead of materializing the entire table (O(mn) space), observe that each row i contains multiples of i. The count of numbers ≤ num in row i is min(num // i, n). Summing across rows gives total count ≤ num. This count is monotonic, so binary search finds the exact threshold.",
+    approach:
+      "Binary search on the answer value in range [1, m*n]. For each candidate num, count how many entries in the multiplication table are ≤ num by iterating row by row: row i contributes min(num // i, n) entries. If count ≥ k, try smaller; otherwise try larger.",
+    code: `class Solution:
+    def findKthNumber(self, m: int, n: int, k: int) -> int:
+        def enough(num) -> bool:
+            count = 0
+            for val in range(1, m + 1):
+                add = min(num // val, n)
+                if add == 0:
+                    break
+                count += add
+            return count >= k
+
+        left, right = 1, n * m
+        while left < right:
+            mid = left + (right - left) // 2
+            if enough(mid):
+                right = mid
+            else:
+                left = mid + 1
+        return left`,
+    jsCode: `var findKthNumber = function(m, n, k) {
+    // Condition: are there at least k numbers <= num in the table?
+    const enough = (num) => {
+        let count = 0;
+        for (let val = 1; val <= m; val++) {
+            // Row val has entries: val, 2*val, 3*val, ...
+            // Count of entries <= num is min(floor(num/val), n)
+            const add = Math.min(Math.floor(num / val), n);
+            if (add === 0) break; // early exit: all remaining rows contribute 0
+            count += add;
+        }
+        return count >= k;
+    };
+
+    // Binary search: minimize num s.t. enough(num) is true
+    let left = 1;
+    let right = m * n;
+
+    while (left < right) {
+        const mid = left + Math.floor((right - left) / 2);
+        if (enough(mid)) {
+            right = mid;
+        } else {
+            left = mid + 1;
+        }
+    }
+
+    return left;
+};`,
+    jsWalkthrough:
+      'Generalized: minimize num s.t. count(≤ num) ≥ k\n\n' +
+      'm=3, n=3, k=5, search [1, 9]\n\n' +
+      'mid=5: row1: min(5,3)=3, row2: min(2,3)=2, row3: min(1,3)=1 → count=6 >= 5 → right=5\n' +
+      'mid=3: row1: min(3,3)=3, row2: min(1,3)=1, row3: min(1,3)=1 → count=5 >= 5 → right=3\n' +
+      'mid=2: row1: min(2,3)=2, row2: min(1,3)=1, row3: min(0,3)=0 → count=3 < 5 → left=3\n' +
+      'left===right=3 → return 3',
+    explanation: `- Binary search on the answer value in [1, m*n].
+- enough(num): For each row i (from 1 to m), count entries ≤ num as min(num // i, n). Sum all counts. Return count ≥ k.
+- Early exit: when num // val == 0, all larger rows also contribute 0.
+- If enough(mid) is True, mid might be the answer — set right = mid.
+- If False, mid is too small — set left = mid + 1.
+- The result is guaranteed to be in the multiplication table (proof by contradiction: if num is not in the table, then enough(num-1) would also be True, contradicting that num is the minimum).`,
+    timeComplexity: 'O(m * log(m * n))',
+    spaceComplexity: 'O(1)',
+    hints: [
+      'Don\'t materialize the table. Each row i has entries that are multiples of i.',
+      'Count of entries ≤ num in row i is min(num // i, n).',
+      'Binary search on the value: minimize num s.t. count(≤ num) ≥ k.',
+    ],
+  },
+  // 719. Find K-th Smallest Pair Distance
+  {
+    id: 719,
+    description:
+      "Given an integer array nums and an integer k, return the kth smallest distance among all the pairs. The distance of a pair (A, B) is defined as the absolute difference between A and B.",
+    examples: `Input: nums = [1,3,1], k = 1
+Output: 0
+Explanation: All pairs: (1,3)→2, (1,1)→0, (3,1)→2. The 1st smallest distance is 0.`,
+    intuition:
+      "Generalized form: Minimize d s.t. countPairsWithDist(≤ d) ≥ k. Sort the array first, then for each candidate distance d, use a two-pointer sliding window to count pairs with distance ≤ d. This count is monotonic in d, making it perfect for binary search.",
+    approach:
+      "Sort nums. Binary search on the distance d in [0, max-min]. For each candidate d, use two pointers to count pairs with distance ≤ d: for each right pointer j, advance left pointer i while nums[j] - nums[i] > d, then add (j - i) pairs.",
+    code: `class Solution:
+    def smallestDistancePair(self, nums: list[int], k: int) -> int:
+        nums.sort()
+        n = len(nums)
+
+        def enough(distance) -> bool:
+            count, i = 0, 0
+            for j in range(n):
+                while nums[j] - nums[i] > distance:
+                    i += 1
+                count += j - i
+            return count >= k
+
+        left, right = 0, nums[-1] - nums[0]
+        while left < right:
+            mid = left + (right - left) // 2
+            if enough(mid):
+                right = mid
+            else:
+                left = mid + 1
+        return left`,
+    jsCode: `var smallestDistancePair = function(nums, k) {
+    nums.sort((a, b) => a - b);
+    const n = nums.length;
+
+    // Condition: are there at least k pairs with distance <= distance?
+    const enough = (distance) => {
+        let count = 0;
+        let i = 0;
+        for (let j = 0; j < n; j++) {
+            // Slide left pointer until the pair (i, j) has distance <= d
+            while (nums[j] - nums[i] > distance) {
+                i++;
+            }
+            // All pairs (i, j), (i+1, j), ..., (j-1, j) have distance <= d
+            count += j - i;
+        }
+        return count >= k;
+    };
+
+    // Binary search: minimize distance s.t. enough(distance) is true
+    let left = 0;
+    let right = nums[n - 1] - nums[0];
+
+    while (left < right) {
+        const mid = left + Math.floor((right - left) / 2);
+        if (enough(mid)) {
+            right = mid;
+        } else {
+            left = mid + 1;
+        }
+    }
+
+    return left;
+};`,
+    jsWalkthrough:
+      'Generalized: minimize d s.t. pairsWithDist(≤ d) ≥ k\n\n' +
+      'nums = [1,1,3] (sorted), k = 1\n' +
+      'search [0, 2]\n\n' +
+      'mid=1: enough(1)?\n' +
+      '  j=0: count+=0  j=1: nums[1]-nums[0]=0≤1, count+=1  j=2: nums[2]-nums[0]=2>1, i=1; count+=1\n' +
+      '  count=2 >= 1 → true → right=1\n' +
+      'mid=0: enough(0)?\n' +
+      '  j=0: count+=0  j=1: nums[1]-nums[0]=0≤0, count+=1  j=2: nums[2]-nums[1]=2>0, i=2; count+=0\n' +
+      '  count=1 >= 1 → true → right=0\n' +
+      'left===right=0 → return 0',
+    explanation: `- Sort nums so we can use two pointers efficiently.
+- Binary search on the distance d in [0, max(nums) - min(nums)].
+- enough(d): Use two pointers. For each j, advance i until nums[j] - nums[i] <= d. Count += (j - i), since all elements between i and j form valid pairs with j.
+- If enough(mid) is True, try a smaller distance: right = mid.
+- If False, need a larger distance: left = mid + 1.
+- The result is guaranteed to be an actual pair distance (by the same proof-by-contradiction as other Kth-Smallest problems).`,
+    timeComplexity: 'O(n log n + n log(max-min))',
+    spaceComplexity: 'O(1) (excluding sort space)',
+    hints: [
+      'Sort the array first so you can use two pointers.',
+      'For a given distance d, count pairs with distance ≤ d using a sliding window.',
+      'Binary search on the distance: minimize d s.t. count(pairs with dist ≤ d) ≥ k.',
+    ],
+  },
+  // 1201. Ugly Number III
+  {
+    id: 1201,
+    description:
+      "An ugly number is a positive integer that is divisible by a, b, or c. Given four integers n, a, b, and c, return the nth ugly number.",
+    examples: `Input: n = 3, a = 2, b = 3, c = 5
+Output: 4
+Explanation: The ugly numbers are 2, 3, 4, 5, 6, 8, 9, 10... The 3rd is 4.
+
+Input: n = 4, a = 2, b = 3, c = 4
+Output: 6
+Explanation: The ugly numbers are 2, 3, 4, 6, 8, 9, 10, 12... The 4th is 6.`,
+    intuition:
+      "Generalized form: Minimize num s.t. uglyCount(num) ≥ n. Count ugly numbers up to num using inclusion-exclusion: count divisible by a OR b OR c = (num/a + num/b + num/c) - (num/lcm(a,b) + num/lcm(a,c) + num/lcm(b,c)) + num/lcm(a,b,c). This count is monotonic, so binary search applies directly.",
+    approach:
+      "Binary search on the answer value. For each candidate num, use inclusion-exclusion with LCM to count how many ugly numbers exist up to num without double-counting. If count ≥ n, try smaller; otherwise try larger.",
+    code: `import math
+
+class Solution:
+    def nthUglyNumber(self, n: int, a: int, b: int, c: int) -> int:
+        def enough(num) -> bool:
+            total = num//a + num//b + num//c - num//ab - num//ac - num//bc + num//abc
+            return total >= n
+
+        ab = a * b // math.gcd(a, b)
+        ac = a * c // math.gcd(a, c)
+        bc = b * c // math.gcd(b, c)
+        abc = a * bc // math.gcd(a, bc)
+        left, right = 1, 10 ** 10
+        while left < right:
+            mid = left + (right - left) // 2
+            if enough(mid):
+                right = mid
+            else:
+                left = mid + 1
+        return left`,
+    jsCode: `var nthUglyNumber = function(n, a, b, c) {
+    // Greatest common divisor
+    const gcd = (x, y) => {
+        while (y) { [x, y] = [y, x % y]; }
+        return x;
+    };
+    // Least common multiple
+    const lcm = (x, y) => Math.floor(x / gcd(x, y)) * y;
+
+    const ab = lcm(a, b);
+    const ac = lcm(a, c);
+    const bc = lcm(b, c);
+    const abc = lcm(a, bc);
+
+    // Condition: are there at least n ugly numbers <= num?
+    // Uses inclusion-exclusion to avoid double-counting
+    const enough = (num) => {
+        const count = Math.floor(num / a) + Math.floor(num / b) + Math.floor(num / c)
+            - Math.floor(num / ab) - Math.floor(num / ac) - Math.floor(num / bc)
+            + Math.floor(num / abc);
+        return count >= n;
+    };
+
+    // Binary search: minimize num s.t. enough(num) is true
+    let left = 1;
+    let right = 2 * 10 ** 9;
+
+    while (left < right) {
+        const mid = left + Math.floor((right - left) / 2);
+        if (enough(mid)) {
+            right = mid;
+        } else {
+            left = mid + 1;
+        }
+    }
+
+    return left;
+};`,
+    jsWalkthrough:
+      'Generalized: minimize num s.t. uglyCount(num) ≥ n\n\n' +
+      'n=3, a=2, b=3, c=5\n' +
+      'lcm(2,3)=6, lcm(2,5)=10, lcm(3,5)=15, lcm(2,15)=30\n\n' +
+      'mid=4: count = 4/2 + 4/3 + 4/5 - 4/6 - 4/10 - 4/15 + 4/30\n' +
+      '     = 2 + 1 + 0 - 0 - 0 - 0 + 0 = 3 >= 3 → right=4\n' +
+      'mid=2: count = 1 + 0 + 0 - 0 - 0 - 0 + 0 = 1 < 3 → left=3\n' +
+      'mid=3: count = 1 + 1 + 0 - 0 - 0 - 0 + 0 = 2 < 3 → left=4\n' +
+      'left===right=4 → return 4',
+    explanation: `- Precompute LCMs: lcm(a,b), lcm(a,c), lcm(b,c), lcm(a,b,c).
+- Binary search on the answer value in [1, 2*10^9].
+- enough(num): Count ugly numbers ≤ num using inclusion-exclusion principle:
+  count = num/a + num/b + num/c - num/lcm(a,b) - num/lcm(a,c) - num/lcm(b,c) + num/lcm(a,b,c)
+- If count ≥ n, num might be the answer — set right = mid.
+- If count < n, num is too small — set left = mid + 1.
+- The result is guaranteed to be an ugly number (same proof-by-contradiction as Kth-Smallest problems).`,
+    timeComplexity: 'O(log(2 * 10^9))',
+    spaceComplexity: 'O(1)',
+    hints: [
+      'Use inclusion-exclusion with LCM to count ugly numbers ≤ num without double-counting.',
+      'Binary search on the value: minimize num s.t. uglyCount(num) ≥ n.',
+      'LCM(a, b) = a * b / GCD(a, b). Compute pairwise and triple LCMs.',
     ],
   },
 ];

@@ -1738,35 +1738,62 @@ evalRPN — O(n) time, O(n) space
     topic: 'Binary Search',
     overview: `Binary search halves the search space each step, achieving O(log n). Beyond sorted arrays, it applies to any problem where you can define a monotonic condition to binary search on.
 
-Key insight: Binary search works whenever you can answer "is this value feasible?" and the answer changes from False to True (or vice versa) at some threshold.`,
+Most binary search problems reduce to one generalized form: "Minimize k such that condition(k) is True." If condition(k) is True implies condition(k+1) is True (monotonicity), binary search applies. You only customize three things: (1) initialize boundaries to include all possible elements, (2) design the condition function, (3) decide return value — left is the minimal k satisfying the condition; return left - 1 if you need the last k where condition is False.
+
+"When can we use binary search?" → Whenever you can discover monotonicity. The search space doesn't need to be a sorted array — it can be any range of values where a feasibility condition flips from False to True at some threshold.`,
     keyPatterns: [
-      'Classic: Find target in sorted array',
-      'Boundary: Find first/last position where condition is true',
-      'Search on answer: Binary search on the answer value itself (min/max optimization)',
+      'Generalized: Minimize k s.t. condition(k) is True — customize boundaries, condition function, and return value',
+      'Classic: Find target in sorted array (exact match variant)',
+      'Boundary: Find first/last position where condition is true (direct application of generalized form)',
+      'Search on answer: Binary search on the answer value itself — define a feasibility function as the condition (Koko, Ship Packages, Split Array, Bouquets, Smallest Divisor)',
+      'Kth-Smallest: Binary search on the value, condition counts elements ≤ mid (Multiplication Table, Pair Distance, Ugly Numbers)',
       'Rotated array: Modified binary search with pivot detection',
     ],
-    template: `# Classic binary search
-def binary_search(nums, target):
-    left, right = 0, len(nums) - 1
-    while left <= right:
-        mid = left + (right - left) // 2
-        if nums[mid] == target:
-            return mid
-        elif nums[mid] < target:
-            left = mid + 1
-        else:
-            right = mid - 1
-    return -1
+    template: `# ═══ THE GENERALIZED TEMPLATE ═══
+# Most binary search problems reduce to:
+# "Minimize k such that condition(k) is True"
+#
+# Customize 3 things:
+# 1. Boundaries (left, right) — include all possible elements
+# 2. condition(mid) — the feasibility/monotonic check
+# 3. Return value — left (first True) or left - 1 (last False)
 
-# Find first position where condition is true (left boundary)
-def first_true(lo, hi, condition):
-    while lo < hi:
-        mid = lo + (hi - lo) // 2
+def binary_search(array) -> int:
+    def condition(value) -> bool:
+        pass  # customize this
+
+    left, right = 0, len(array)  # customize boundaries
+    while left < right:
+        mid = left + (right - left) // 2
         if condition(mid):
-            hi = mid
+            right = mid
         else:
-            lo = mid + 1
-    return lo
+            left = mid + 1
+    return left  # minimal k where condition is True
+
+# ═══ APPLICATIONS OF THE TEMPLATE ═══
+
+# Search insert position (minimize k s.t. nums[k] >= target)
+def search_insert(nums, target):
+    left, right = 0, len(nums)
+    while left < right:
+        mid = left + (right - left) // 2
+        if nums[mid] >= target:
+            right = mid
+        else:
+            left = mid + 1
+    return left
+
+# Sqrt(x) (minimize k s.t. k*k > x, return k - 1)
+def my_sqrt(x):
+    left, right = 0, x + 1
+    while left < right:
+        mid = left + (right - left) // 2
+        if mid * mid > x:
+            right = mid
+        else:
+            left = mid + 1
+    return left - 1
 
 # Search on answer - Koko eating bananas
 def min_eating_speed(piles, h):
@@ -1782,6 +1809,21 @@ def min_eating_speed(piles, h):
         else:
             left = mid + 1
     return left
+
+# ═══ EXACT MATCH (different template) ═══
+# Only for "find target in sorted array"
+
+def binary_search_exact(nums, target):
+    left, right = 0, len(nums) - 1
+    while left <= right:
+        mid = left + (right - left) // 2
+        if nums[mid] == target:
+            return mid
+        elif nums[mid] < target:
+            left = mid + 1
+        else:
+            right = mid - 1
+    return -1
 
 # Search in rotated sorted array
 def search_rotated(nums, target):
@@ -1801,48 +1843,69 @@ def search_rotated(nums, target):
             else:
                 right = mid - 1
     return -1`,
-    jsTemplate: `// Classic binary search
-function binarySearch(nums, target) {
-    let left = 0;
-    let right = nums.length - 1;
+    jsTemplate: `// ═══ THE GENERALIZED TEMPLATE ═══
+// Most binary search problems reduce to:
+// "Minimize k such that condition(k) is True"
+//
+// Customize 3 things:
+// 1. Boundaries (left, right) — include all possible elements
+// 2. condition(mid) — the feasibility/monotonic check
+// 3. Return value — left (first true) or left - 1 (last false)
 
-    while (left <= right) {
-        // Avoid integer overflow: use left + floor((right - left) / 2)
+function binarySearchGeneralized(searchSpace) {
+    function condition(value) {
+        // customize this
+    }
+
+    let left = 0;                       // customize: min of search space
+    let right = searchSpace.length;     // customize: max of search space
+
+    while (left < right) {
         const mid = left + Math.floor((right - left) / 2);
-
-        if (nums[mid] === target) {
-            return mid;
-        } else if (nums[mid] < target) {
-            // Target is in the right half
-            left = mid + 1;
+        if (condition(mid)) {
+            right = mid;     // mid could be the answer
         } else {
-            // Target is in the left half
-            right = mid - 1;
+            left = mid + 1;  // mid is not the answer
         }
     }
-    return -1;
+    return left; // minimal k where condition is true
 }
 
-// Find first position where condition is true (left boundary)
-function firstTrue(low, high, condition) {
-    // Invariant: answer is in [low, high]
-    while (low < high) {
-        const mid = low + Math.floor((high - low) / 2);
+// ═══ APPLICATIONS OF THE TEMPLATE ═══
 
-        if (condition(mid)) {
-            // mid could be the answer, don't exclude it
-            high = mid;
+// Search insert position (minimize k s.t. nums[k] >= target)
+function searchInsert(nums, target) {
+    let left = 0;
+    let right = nums.length;
+    while (left < right) {
+        const mid = left + Math.floor((right - left) / 2);
+        if (nums[mid] >= target) {
+            right = mid;
         } else {
-            // mid is definitely not the answer
-            low = mid + 1;
+            left = mid + 1;
         }
     }
-    return low;
+    return left;
+}
+
+// Sqrt(x) (minimize k s.t. k*k > x, return k - 1)
+function mySqrt(x) {
+    let left = 0;
+    let right = x + 1;
+    while (left < right) {
+        const mid = left + Math.floor((right - left) / 2);
+        if (mid * mid > x) {
+            right = mid;
+        } else {
+            left = mid + 1;
+        }
+    }
+    return left - 1;
 }
 
 // Search on answer - Koko eating bananas
 function minEatingSpeed(piles, h) {
-    // Check: can Koko finish all piles in h hours eating at this speed?
+    // condition: can Koko finish all piles in h hours at this speed?
     function canFinish(speed) {
         let hoursNeeded = 0;
         for (const pile of piles) {
@@ -1851,19 +1914,38 @@ function minEatingSpeed(piles, h) {
         return hoursNeeded <= h;
     }
 
-    // Binary search on the answer: minimum feasible speed
     let left = 1;
     let right = Math.max(...piles);
 
     while (left < right) {
         const mid = left + Math.floor((right - left) / 2);
         if (canFinish(mid)) {
-            right = mid; // mid works, try slower
+            right = mid;
         } else {
-            left = mid + 1; // too slow, must go faster
+            left = mid + 1;
         }
     }
     return left;
+}
+
+// ═══ EXACT MATCH (different template) ═══
+// Only for "find target in sorted array"
+
+function binarySearchExact(nums, target) {
+    let left = 0;
+    let right = nums.length - 1;
+
+    while (left <= right) {
+        const mid = left + Math.floor((right - left) / 2);
+        if (nums[mid] === target) {
+            return mid;
+        } else if (nums[mid] < target) {
+            left = mid + 1;
+        } else {
+            right = mid - 1;
+        }
+    }
+    return -1;
 }
 
 // Search in rotated sorted array
@@ -1878,20 +1960,17 @@ function searchRotated(nums, target) {
             return mid;
         }
 
-        // Determine which half is sorted
         if (nums[left] <= nums[mid]) {
-            // Left half [left..mid] is sorted
             if (nums[left] <= target && target < nums[mid]) {
-                right = mid - 1; // target is in the sorted left half
+                right = mid - 1;
             } else {
-                left = mid + 1; // target is in the right half
+                left = mid + 1;
             }
         } else {
-            // Right half [mid..right] is sorted
             if (nums[mid] < target && target <= nums[right]) {
-                left = mid + 1; // target is in the sorted right half
+                left = mid + 1;
             } else {
-                right = mid - 1; // target is in the left half
+                right = mid - 1;
             }
         }
     }
@@ -1899,55 +1978,73 @@ function searchRotated(nums, target) {
 }`,
     jsTemplateReadable: `// (Uses shared helpers defined in Arrays & Hashing)
 
-// Classic binary search
-function binarySearch(nums, target) {
+// ═══ THE GENERALIZED TEMPLATE ═══
+// "Minimize k such that condition(k) is True"
+
+function binarySearchGeneralized(searchSpace) {
+    function condition(value) {
+        // customize this
+    }
+
     let left = 0;
-    let right = nums.length - 1;
-    let result = -1;
+    let right = searchSpace.length;
 
     repeatWhile(
-        () => left <= right && result === -1,
+        () => left < right,
         () => {
-            // Avoid integer overflow: use left + floor((right - left) / 2)
             const mid = left + Math.floor((right - left) / 2);
-
-            if (nums[mid] === target) {
-                result = mid;
-            } else if (nums[mid] < target) {
-                // Target is in the right half
-                left = mid + 1;
+            if (condition(mid)) {
+                right = mid;
             } else {
-                // Target is in the left half
-                right = mid - 1;
+                left = mid + 1;
             }
         }
     );
-    return result;
+    return left;
 }
 
-// Find first position where condition is true (left boundary)
-function firstTrue(low, high, condition) {
-    // Invariant: answer is in [low, high]
-    repeatWhile(
-        () => low < high,
-        () => {
-            const mid = low + Math.floor((high - low) / 2);
+// ═══ APPLICATIONS ═══
 
-            if (condition(mid)) {
-                // mid could be the answer, don't exclude it
-                high = mid;
+// Search insert position (minimize k s.t. nums[k] >= target)
+function searchInsert(nums, target) {
+    let left = 0;
+    let right = nums.length;
+
+    repeatWhile(
+        () => left < right,
+        () => {
+            const mid = left + Math.floor((right - left) / 2);
+            if (nums[mid] >= target) {
+                right = mid;
             } else {
-                // mid is definitely not the answer
-                low = mid + 1;
+                left = mid + 1;
             }
         }
     );
-    return low;
+    return left;
+}
+
+// Sqrt(x) (minimize k s.t. k*k > x, return k - 1)
+function mySqrt(x) {
+    let left = 0;
+    let right = x + 1;
+
+    repeatWhile(
+        () => left < right,
+        () => {
+            const mid = left + Math.floor((right - left) / 2);
+            if (mid * mid > x) {
+                right = mid;
+            } else {
+                left = mid + 1;
+            }
+        }
+    );
+    return left - 1;
 }
 
 // Search on answer - Koko eating bananas
 function minEatingSpeed(piles, h) {
-    // Check: can Koko finish all piles in h hours eating at this speed?
     function canFinish(speed) {
         let hoursNeeded = 0;
         forEach(piles, (pile) => {
@@ -1956,7 +2053,6 @@ function minEatingSpeed(piles, h) {
         return hoursNeeded <= h;
     }
 
-    // Binary search on the answer: minimum feasible speed
     let left = 1;
     let right = Math.max(...piles);
 
@@ -1965,13 +2061,36 @@ function minEatingSpeed(piles, h) {
         () => {
             const mid = left + Math.floor((right - left) / 2);
             if (canFinish(mid)) {
-                right = mid; // mid works, try slower
+                right = mid;
             } else {
-                left = mid + 1; // too slow, must go faster
+                left = mid + 1;
             }
         }
     );
     return left;
+}
+
+// ═══ EXACT MATCH (different template) ═══
+
+function binarySearchExact(nums, target) {
+    let left = 0;
+    let right = nums.length - 1;
+    let result = -1;
+
+    repeatWhile(
+        () => left <= right && result === -1,
+        () => {
+            const mid = left + Math.floor((right - left) / 2);
+            if (nums[mid] === target) {
+                result = mid;
+            } else if (nums[mid] < target) {
+                left = mid + 1;
+            } else {
+                right = mid - 1;
+            }
+        }
+    );
+    return result;
 }
 
 // Search in rotated sorted array
@@ -1990,91 +2109,88 @@ function searchRotated(nums, target) {
                 return;
             }
 
-            // Determine which half is sorted
             if (nums[left] <= nums[mid]) {
-                // Left half [left..mid] is sorted
                 if (nums[left] <= target && target < nums[mid]) {
-                    right = mid - 1; // target is in the sorted left half
+                    right = mid - 1;
                 } else {
-                    left = mid + 1; // target is in the right half
+                    left = mid + 1;
                 }
             } else {
-                // Right half [mid..right] is sorted
                 if (nums[mid] < target && target <= nums[right]) {
-                    left = mid + 1; // target is in the sorted right half
+                    left = mid + 1;
                 } else {
-                    right = mid - 1; // target is in the left half
+                    right = mid - 1;
                 }
             }
         }
     );
     return result;
 }`,
-    verification: `binarySearch:
-  Promise: "if target exists, it lies within nums[left..right]"
-  Init: left = 0, right = n-1 — the entire array is the search space ✓
+    verification: `generalizedTemplate:
+  Promise: "the minimal k where condition(k) is True lies within [left, right]"
+  Init: [left, right] covers the full search space ✓
   Maintain:
-    What changes? We compute mid and eliminate the half that cannot contain the target.
-    Could it break the promise? No — nums[mid] < target means target is to the right (sorted), so left = mid+1 is safe; symmetrically right = mid-1.
-    Flip test: what would break it? Setting left = mid instead of mid+1 (infinite loop possible).
-      Does the code prevent it? Yes — we use mid+1 and mid-1, strictly shrinking the window each step. ✓
-  Terminate: left > right means the window is empty and target does not exist; any match returns the index immediately ✓
-
-firstTrue:
-  Promise: "the first index where condition is true lies within [low, high]"
-  Init: [low, high] is the full given range ✓
-  Maintain:
-    What changes? condition(mid) true sets high = mid (mid stays a candidate); false sets low = mid+1 (mid cannot be the answer).
+    What changes? condition(mid) true sets right = mid (mid stays a candidate); false sets left = mid+1 (mid cannot be the answer).
     Could it break the promise? No — we never eliminate a position where the condition holds.
-    Flip test: what would break it? Setting high = mid-1 when condition(mid) is true (would skip the actual first true).
-      Does the code prevent it? Yes — we set high = mid, not mid-1. ✓
-  Terminate: low === high converges to the first true index ✓
+    Flip test: what would break it? Setting right = mid-1 when condition(mid) is true (would skip the actual first true).
+      Does the code prevent it? Yes — we set right = mid, not mid-1. ✓
+  Terminate: left === right converges to the first true index ✓
 
-minEatingSpeed:
+searchInsert (condition = nums[k] >= target):
+  Promise: "the first index where nums[k] >= target lies within [left, right]"
+  Init: left = 0, right = len(nums) — right = len(nums) handles insertion at end ✓
+  Maintain: Same generalized template ✓
+  Terminate: left === right is the insertion point ✓
+
+mySqrt (condition = k*k > x, return left - 1):
+  Promise: "the first k where k² > x lies within [left, right]"
+  Init: left = 0, right = x + 1 — handles x = 0 and x = 1 ✓
+  Return: left - 1 is the largest k where k² <= x ✓
+
+minEatingSpeed (condition = canFinish):
   Promise: "the minimum valid speed lies within [left, right]"
   Init: left = 1, right = max(piles) — the answer is guaranteed in this range ✓
-  Maintain:
-    What changes? canFinish(mid) true sets right = mid (keep mid as candidate); false sets left = mid+1 (mid too slow).
-    Could it break the promise? No — same firstTrue pattern applied to a monotonic predicate.
-    Flip test: what would break it? Setting right = mid-1 when canFinish is true (skips the optimal speed).
-      Does the code prevent it? Yes — right = mid preserves the candidate. ✓
+  Maintain: Same generalized template applied to monotonic predicate ✓
   Terminate: left === right is the minimum speed where canFinish is true ✓
+
+binarySearchExact:
+  Promise: "if target exists, it lies within nums[left..right]"
+  Init: left = 0, right = n-1 — the entire array is the search space ✓
+  Maintain: mid+1 and mid-1 strictly shrink the window each step ✓
+  Terminate: left > right means target does not exist; any match returns immediately ✓
 
 searchRotated:
   Promise: "if target exists, it lies within nums[left..right]"
   Init: full array is the search space ✓
-  Maintain:
-    What changes? We identify the sorted half, check if target is inside it, and eliminate the other half.
-    Could it break the promise? No — one half is always sorted; we can safely compare target against its endpoints.
-    Flip test: what would break it? Misidentifying which half is sorted.
-      Does the code prevent it? Yes — 'nums[left] <= nums[mid]' reliably identifies the sorted left half. ✓
-  Terminate: target found and index returned, or window empty and -1 returned ✓`,
+  Maintain: 'nums[left] <= nums[mid]' reliably identifies the sorted half ✓
+  Terminate: target found or window empty ✓`,
     jsTemplateWalkthrough:
-      '── Classic Binary Search ──\n' +
-      'nums = [1, 3, 5, 7, 9, 11], target = 7\n\n' +
-      'left=0, right=5\n' +
-      'mid=2: nums[2]=5 < 7 → left=3\n' +
-      'left=3, right=5\n' +
-      'mid=4: nums[4]=9 > 7 → right=3\n' +
-      'left=3, right=3\n' +
-      'mid=3: nums[3]=7 === 7 → return 3\n\n' +
-      '── First True (Left Boundary) ──\n' +
-      'Find first index where nums[i] >= 5\n' +
-      'nums = [1, 2, 3, 5, 7, 9], low=0, high=5\n\n' +
-      'mid=2: condition(2)=nums[2]=3 >= 5? No → low=3\n' +
-      'mid=4: condition(4)=nums[4]=7 >= 5? Yes → high=4\n' +
-      'mid=3: condition(3)=nums[3]=5 >= 5? Yes → high=3\n' +
-      'low===high=3 → return 3\n\n' +
+      '── Search Insert (Generalized Template) ──\n' +
+      'nums = [1, 3, 5, 6], target = 2\n' +
+      'Generalized form: minimize k s.t. nums[k] >= 2\n' +
+      'left=0, right=4\n\n' +
+      'mid=2: nums[2]=5 >= 2? Yes → right=2\n' +
+      'mid=1: nums[1]=3 >= 2? Yes → right=1\n' +
+      'mid=0: nums[0]=1 >= 2? No → left=1\n' +
+      'left===right=1 → return 1 (insert at index 1)\n\n' +
+      '── Sqrt (Return left - 1) ──\n' +
+      'x = 8, minimize k s.t. k*k > 8\n' +
+      'left=0, right=9\n\n' +
+      'mid=4: 16 > 8? Yes → right=4\n' +
+      'mid=2: 4 > 8? No → left=3\n' +
+      'mid=3: 9 > 8? Yes → right=3\n' +
+      'left===right=3 → return 3-1 = 2 (floor of sqrt(8))\n\n' +
       '── Koko Bananas (Search on Answer) ──\n' +
       'piles = [3, 6, 7, 11], h = 8\n' +
-      'Binary search speed in [1, 11]\n\n' +
+      'Generalized form: minimize speed s.t. canFinish(speed)\n' +
+      'left=1, right=11\n\n' +
       'mid=6: hours = ceil(3/6)+ceil(6/6)+ceil(7/6)+ceil(11/6)\n' +
       '            = 1+1+2+2 = 6 <= 8 → canFinish! right=6\n' +
       'mid=3: hours = 1+2+3+4 = 10 > 8 → too slow, left=4\n' +
       'mid=5: hours = 1+2+2+3 = 8 <= 8 → canFinish! right=5\n' +
       'mid=4: hours = 1+2+2+3 = 8 <= 8 → canFinish! right=4\n' +
       'left===right=4 → return 4\n\n' +
-      '── Search in Rotated Array ──\n' +
+      '── Search in Rotated Array (Exact Match) ──\n' +
       'nums = [4, 5, 6, 7, 0, 1, 2], target = 0\n\n' +
       'left=0, right=6\n' +
       'mid=3: nums[3]=7, nums[0]=4 <= 7 → left half [4,5,6,7] sorted\n' +
@@ -2092,46 +2208,58 @@ searchRotated:
       'Not identifying when binary search on answer applies',
     ],
     tips: [
-      'Use left < right (exclusive) for boundary-finding; left <= right for exact match',
-      '"Minimum value that satisfies X" → binary search on answer',
-      'Koko bananas, ship packages, split array → all "search on answer" pattern',
+      'Almost every binary search problem is: "Minimize k s.t. condition(k) is True" — identify the monotonicity first',
+      'Use left < right for boundary/generalized form; left <= right only for exact match',
+      '"Minimum value that satisfies X" → binary search on answer with feasibility condition',
+      'Koko bananas, ship packages, split array, bouquets, smallest divisor → all structurally identical once you define the condition function',
+      'Kth-Smallest problems (multiplication table, pair distance, ugly numbers) → condition counts elements ≤ mid, check count ≥ k',
       'For rotated arrays: determine which half is sorted, then check if target is in that half',
+      'Three things to customize: (1) boundary initialization, (2) condition function, (3) return left vs left - 1',
     ],
     memorization: `HOW TO MEMORIZE BINARY SEARCH:
-There are only 2 templates you need. Memorize the DIFFERENCE:
 
-TEMPLATE 1 - Exact match (find target):
+THE ONE GENERALIZED TEMPLATE (covers most problems):
+  "Minimize k such that condition(k) is True"
+
+  left, right = min(search_space), max(search_space)
+  while left < right:         # NOTE: strict <
+      mid = left + (right - left) // 2
+      if condition(mid): right = mid    # mid is a candidate
+      else: left = mid + 1             # mid is not the answer
+  return left                          # or left - 1 if you need last False
+
+  Three things to customize:
+  1. Boundaries — include ALL possible elements
+  2. Condition function — the creative part
+  3. Return value — left (first True) or left - 1 (last False)
+
+EXACT MATCH variant (only for "find target in sorted array"):
   while left <= right:        # NOTE: <=
       mid = left + (right - left) // 2
       if nums[mid] == target: return mid
       else if nums[mid] < target: left = mid + 1
       else: right = mid - 1
 
-TEMPLATE 2 - Boundary/minimum feasible (find first true):
-  while left < right:         # NOTE: <
-      mid = left + (right - left) // 2
-      if condition(mid): right = mid
-      else: left = mid + 1
-  return left
+Mnemonic: "Exact = <=, Generalized = <"
 
-Mnemonic: "Exact = <=, Boundary = <"
+PATTERN RECOGNITION:
+  "Find the MINIMUM X such that..." → condition(x) = feasible(x), return left
+  "Find the MAXIMUM X such that..." → condition(x) = NOT feasible(x), return left - 1
+  "Find Kth smallest..." → condition(x) = count(≤x) ≥ k, return left
+  "Can I do it with X? Yes/No" → Binary search the boundary
 
-SEARCH ON ANSWER pattern recognition:
-When a problem says "find the MINIMUM X such that..." or "find the MAXIMUM X such that..." and you can write a function can_do(x) -> bool, it's binary search on answer.
-
-Memory trick: "Can I do it with X? Yes/No → Binary search the boundary."
-
-
-METHOD MNEMONICS:
-  exact match: "Equal? Done. Too small? Go right. Too big? Go left."
-    while left <= right. Three-way branch. Return mid or -1.
-  
-  boundary search: "True? Keep as candidate. False? Skip past."
-    while left < right. Condition true -> right = mid. False -> left = mid + 1.
-    Returns first position where condition holds.
-  
-  search on answer: "Can I do it with X? Binary search the boundary."
-    Define canDo(x) -> boolean. Binary search for the min/max valid x.
+HOW TO APPLY — same template, different conditions:
+  278 First Bad Version:     condition(k) = isBadVersion(k)
+  35  Search Insert:         condition(k) = nums[k] >= target
+  69  Sqrt(x):               condition(k) = k*k > x, return left - 1
+  875 Koko Bananas:          condition(k) = hoursNeeded(k) <= h
+  1011 Ship Packages:        condition(k) = daysNeeded(k) <= days
+  410 Split Array:           condition(k) = canSplit(k)
+  1283 Smallest Divisor:     condition(k) = ceilingSum(k) <= threshold
+  1482 Bouquets:             condition(k) = canMake(k)
+  668 Kth in Mult Table:     condition(k) = countLeq(k) >= target
+  719 Kth Smallest Pair Dist: condition(k) = pairsWithinDist(k) >= k
+  1201 Ugly Number III:      condition(k) = uglyCount(k) >= n
 
 TEMPLATE-BY-TEMPLATE MEMORIZATION:
 

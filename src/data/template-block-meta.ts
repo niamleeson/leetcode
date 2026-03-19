@@ -148,28 +148,22 @@ export const templateBlockMeta: Record<string, TemplateBlockMeta[]> = {
 
   'Binary Search': [
     {
-      title: 'LC 704: Binary Search',
-      statement: 'Given an array of integers nums sorted in ascending order, and an integer target, write a function to search target in nums. If target exists, return its index. Otherwise, return -1.',
-      codeStart: '# Classic binary search',
-      jsCodeStart: '// Classic binary search',
+      title: 'The Generalized Template',
+      statement: 'Most binary search problems reduce to: "Minimize k s.t. condition(k) is True." Customize boundaries, condition function, and return value.',
+      codeStart: '# ═══ THE GENERALIZED TEMPLATE',
+      jsCodeStart: '// ═══ THE GENERALIZED TEMPLATE',
     },
     {
-      title: 'LC 278: First Bad Version',
-      statement: 'Find the first position in a search space where a condition becomes true. This is the generalized left-boundary binary search pattern used in problems like First Bad Version and search insert position.',
-      codeStart: '# Find first position',
-      jsCodeStart: '// Find first position',
+      title: 'Applications of the Template',
+      statement: 'Search Insert Position (condition: nums[k] >= target), Sqrt(x) (condition: k² > x, return k-1), and Koko Eating Bananas (condition: canFinish(speed)).',
+      codeStart: '# ═══ APPLICATIONS',
+      jsCodeStart: '// ═══ APPLICATIONS',
     },
     {
-      title: 'LC 875: Koko Eating Bananas',
-      statement: 'Koko loves to eat bananas. There are n piles. She can decide her bananas-per-hour eating speed k. Return the minimum integer k such that she can eat all the bananas within h hours.',
-      codeStart: '# Search on answer - Koko',
-      jsCodeStart: '// Search on answer - Koko',
-    },
-    {
-      title: 'LC 33: Search in Rotated Sorted Array',
-      statement: 'Given the array nums after a possible rotation and an integer target, return the index of target if it is in nums, or -1 if it is not. You must write an algorithm with O(log n) runtime complexity.',
-      codeStart: '# Search in rotated sorted array',
-      jsCodeStart: '// Search in rotated sorted array',
+      title: 'Exact Match & Rotated Array',
+      statement: 'Classic exact-match binary search (while left <= right) and search in rotated sorted array — these use a different template from the generalized form.',
+      codeStart: '# ═══ EXACT MATCH',
+      jsCodeStart: '// ═══ EXACT MATCH',
     },
   ],
 
