@@ -12823,6 +12823,95 @@ DiningPhilosophers (#1226) — O(1) per eat
   },
 };
 
+// System Design topic lesson
+lessons['System Design'] = {
+  topic: 'System Design',
+  overview: `System design is the art of designing large-scale distributed systems that handle millions of users, terabytes of data, and complex business requirements. Unlike algorithmic problems, system design has no single correct answer — it's about making informed trade-offs.
+
+Key areas to master:
+• Requirements gathering — functional vs non-functional requirements
+• Capacity estimation — QPS, storage, bandwidth calculations
+• High-level architecture — components, data flow, APIs
+• Component deep dives — databases, caches, queues, load balancers
+• Scaling strategies — horizontal/vertical scaling, sharding, replication
+• Trade-off analysis — consistency vs availability, latency vs throughput`,
+  keyPatterns: [
+    'Start with requirements: clarify functional and non-functional requirements before designing',
+    'Back-of-envelope estimation: calculate QPS, storage needs, and bandwidth to inform decisions',
+    'API-first design: define the API contract before internal architecture',
+    'Database selection: SQL for ACID transactions, NoSQL for scale and flexibility',
+    'Caching strategy: cache-aside for reads, write-through/write-behind for writes',
+    'Message queues: decouple producers from consumers for async processing',
+    'Load balancing: distribute traffic across stateless application servers',
+    'Sharding: partition data by key (hash, range, or directory-based)',
+    'Replication: master-slave for reads, multi-master for writes, consensus for strong consistency',
+    'CDN: serve static content from edge locations close to users',
+  ],
+  template: `# System Design Interview Framework
+#
+# Step 1: Requirements (5 min)
+# - Functional: What should the system do?
+# - Non-functional: Scale, latency, availability, consistency
+# - Constraints: Budget, team size, timeline
+#
+# Step 2: Capacity Estimation (5 min)
+# - DAU / MAU
+# - QPS = DAU * actions_per_day / 86400
+# - Storage = items_per_day * item_size * retention_days
+# - Bandwidth = QPS * avg_response_size
+#
+# Step 3: High-Level Design (10 min)
+# Client -> Load Balancer -> API Servers -> Cache -> Database
+#                                        -> Message Queue -> Workers
+#
+# Step 4: Component Deep Dive (15 min)
+# - Database schema and indexing
+# - Caching strategy (what to cache, TTL, invalidation)
+# - Data partitioning (shard key selection)
+# - Async processing (what can be deferred)
+#
+# Step 5: Scaling & Trade-offs (5 min)
+# - Single points of failure
+# - Bottleneck analysis
+# - CAP theorem implications
+# - Cost vs performance trade-offs`,
+  complexity: `System design problems are evaluated on:
+• Completeness: Did you cover all major components?
+• Scalability: Can the system handle 10x/100x growth?
+• Trade-off awareness: Did you explain why you chose X over Y?
+• Depth: Can you go deep on any component when asked?
+
+Common capacity benchmarks:
+• 1 web server: ~1,000 QPS
+• 1 database server: ~10,000 QPS (read), ~1,000 QPS (write)
+• Redis: ~100,000 QPS
+• Kafka: ~1,000,000 messages/sec per partition`,
+  commonMistakes: [
+    'Jumping into design without clarifying requirements first',
+    'Over-engineering: adding components you cannot justify',
+    'Ignoring non-functional requirements (latency, availability targets)',
+    'Not doing back-of-envelope math to validate design choices',
+    'Forgetting about failure modes and what happens when components crash',
+    'Using a single database for everything instead of polyglot persistence',
+    'Not considering the read/write ratio when choosing caching strategy',
+    'Ignoring data consistency implications of caching and replication',
+    'Designing for current scale only without considering growth',
+    'Not discussing monitoring, alerting, and operational concerns',
+  ],
+  tips: [
+    'Always start with "What are we optimizing for?" — latency, throughput, consistency, or cost',
+    'Use the "funnel" approach: start broad (high-level), then dive deep into 1-2 components',
+    'Know your numbers: 1 day = 86,400 sec ≈ 100K sec; 1 year ≈ 30M sec',
+    'For any storage system, ask: read-heavy or write-heavy? This determines your architecture',
+    'When in doubt, add a cache (Redis) and a queue (Kafka) — they solve 80% of scaling problems',
+    'Practice drawing system diagrams quickly — boxes, arrows, labels',
+    'Always discuss trade-offs: "We could use X, which gives us Y but costs us Z"',
+    'Mention real-world systems: "This is similar to how Twitter/Uber/Netflix does it"',
+    'End with a summary of bottlenecks and how you would monitor the system',
+    'Practice 30 systems until the patterns become second nature',
+  ],
+};
+
 // Attach mindset content to each lesson
 for (const [topic, content] of Object.entries(mindsets)) {
   if (lessons[topic]) {
