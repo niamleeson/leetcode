@@ -12590,8 +12590,8 @@ DiningPhilosophers:
       '  re-check on next tick → eventually fooTurn=false\n\n' +
       '── Building H2O (#1117) ──\n' +
       'Calls arrive: H, H, O, H, H, O\n\n' +
-      'hydrogen("H1"): hydrogenQueue=[H1], tryFormWater: H<2 → wait\n' +
-      'hydrogen("H2"): hydrogenQueue=[H1,H2], tryFormWater: H>=2,O<1 → wait\n' +
+      'hydrogen("H1"): hydrogenQueue=[H1], tryFormWater: H<2 → not enough, return\n' +
+      'hydrogen("H2"): hydrogenQueue=[H1,H2], tryFormWater: H>=2,O<1 → not enough, return\n' +
       'oxygen("O1"):   oxygenQueue=[O1], tryFormWater:\n' +
       '  H>=2 && O>=1 → H1(), H2(), O1() → queues empty → water formed!\n' +
       'hydrogen("H3"): hydrogenQueue=[H3]\n' +
@@ -12601,7 +12601,7 @@ DiningPhilosophers:
       '5 philosophers, 5 forks. Without limit: all grab left fork → deadlock.\n\n' +
       'Solution: allow at most 4 seated simultaneously.\n' +
       'Philosopher 0: seatedCount=1<=4, acquire fork0, acquire fork1, eat,\n' +
-      '               release fork1, release fork0, seatedCount=0\n\n' +
+      '               release fork0, release fork1, seatedCount=0\n\n' +
       'Deadlock prevention: with only 4 seated, at least one philosopher\n' +
       'can always pick up BOTH forks (circular wait is broken) ✓\n\n' +
       '── Web Workers ──\n' +
@@ -12813,7 +12813,7 @@ DiningPhilosophers (#1226) — O(1) per eat
       P0..P3 seated (seatedCount=4). P4 waits.
       P0 has fork0,fork1 (neighbors free). P0 eats → releases forks → seatedCount=3.
       P4 can now enter. With 5 forks and ≤4 seated, pigeonhole: ≥1 fork is always free.
-    Guarantee: 4 diners need 8 fork-acquisitions but only 5 forks → at least one pair is available.
+    Guarantee: 4 seated + 5 forks → worst case each grabs left fork (4 taken), 1 remains free → that's someone's right fork, so they eat.
     'Seat n-1. Pigeonhole: more forks than seated means someone always eats.'
   Steps:
     1. wantsToEat: spin-wait if seatedCount >= 4; seatedCount++
