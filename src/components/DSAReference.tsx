@@ -223,7 +223,7 @@ function TopicCard({ lesson, language, setLanguage, codeStyle, setCodeStyle }: {
   setCodeStyle: (style: 'readable' | 'original') => void;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const [activeTab, setActiveTab] = useState<'template' | 'memorization' | 'overview'>('template');
+  const [activeTab, setActiveTab] = useState<'template' | 'memorization' | 'overview' | 'mindset'>('template');
 
   const showJs = language === 'javascript' && !!lesson.jsTemplate;
   const useReadable = codeStyle === 'readable' && showJs && lesson.jsTemplateReadable;
@@ -250,13 +250,13 @@ function TopicCard({ lesson, language, setLanguage, codeStyle, setCodeStyle }: {
         <div className="border-t border-gray-800">
           {/* Tabs */}
           <div className="flex border-b border-gray-800">
-            {(['template', 'memorization', 'overview'] as const).map(tab => (
+            {(['template', 'memorization', 'mindset', 'overview'] as const).map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
                 className={`flex-1 px-4 py-2 text-xs font-medium capitalize transition-colors ${
                   activeTab === tab
-                    ? 'text-blue-400 border-b-2 border-blue-400 bg-blue-950/20'
+                    ? (tab === 'mindset' ? 'text-amber-400 border-b-2 border-amber-400 bg-amber-950/20' : 'text-blue-400 border-b-2 border-blue-400 bg-blue-950/20')
                     : 'text-gray-500 hover:text-gray-300'
                 }`}
               >
@@ -375,6 +375,16 @@ function TopicCard({ lesson, language, setLanguage, codeStyle, setCodeStyle }: {
                 )}
                 {lesson.verification && (
                   <VerifySection text={lesson.verification} />
+                )}
+              </div>
+            )}
+
+            {activeTab === 'mindset' && (
+              <div className="space-y-4">
+                {lesson.mindset ? (
+                  <GlossaryHighlighter text={lesson.mindset} className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap font-mono" />
+                ) : (
+                  <p className="text-sm text-gray-500 italic">Mindset guide coming soon for this topic.</p>
                 )}
               </div>
             )}

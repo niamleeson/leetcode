@@ -1,3 +1,5 @@
+import { mindsets } from './mindsets';
+
 export interface TopicLesson {
   topic: string;
   overview: string;
@@ -11,6 +13,7 @@ export interface TopicLesson {
   memorization?: string;  // Mnemonics and techniques for memorizing templates
   jsTemplateReadable?: string; // Readable version using iteration helpers
   verification?: string; // Verify-your-understanding exercises for each template
+  mindset?: string;      // Five core mindsets for approaching problems with this technique
 }
 
 export const lessons: Record<string, TopicLesson> = {
@@ -12819,3 +12822,10 @@ DiningPhilosophers (#1226) — O(1) per eat
   Mnemonic: "Only 4 can sit at once. Pigeonhole guarantees someone always gets both forks."`,
   },
 };
+
+// Attach mindset content to each lesson
+for (const [topic, content] of Object.entries(mindsets)) {
+  if (lessons[topic]) {
+    lessons[topic].mindset = content;
+  }
+}
