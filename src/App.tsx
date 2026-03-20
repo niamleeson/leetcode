@@ -9,6 +9,7 @@ import AllProblems from './components/AllProblems';
 import SearchView from './components/SearchView';
 import ProblemPage from './components/ProblemPage';
 import DSAReference from './components/DSAReference';
+import SystemDesignReference from './components/SystemDesignReference';
 import AskClaudePanel from './components/AskClaudePanel';
 import GlossaryPage from './components/GlossaryPage';
 import { Topic } from './types';
@@ -130,6 +131,7 @@ export default function App() {
             />
           } />
           <Route path="/dsa" element={<DSAReference />} />
+          <Route path="/system-design" element={<SystemDesignReference />} />
           <Route path="/glossary" element={<GlossaryPage />} />
           <Route path="/topic/:slug" element={
             <TopicRoute store={store} />

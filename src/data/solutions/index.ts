@@ -17,7 +17,12 @@ import { solutions as batch5Extra } from './batch5-extra';
 import { solutions as batch6Extra } from './batch6-extra';
 import { solutions as concurrency } from './concurrency';
 import { solutions as advancedDsa } from './advanced-dsa';
-import { solutions as systemDesign } from './system-design';
+import { solutionsM1 as sdM1 } from './system-design-m1';
+import { solutionsM2 as sdM2 } from './system-design-m2';
+import { solutionsM3 as sdM3 } from './system-design-m3';
+import { solutionsM4 as sdM4 } from './system-design-m4';
+import { solutionsM5 as sdM5 } from './system-design-m5';
+import { solutionsM6 as sdM6 } from './system-design-m6';
 
 const allSolutions: ProblemSolution[] = [
   ...arraysHashing,
@@ -34,7 +39,12 @@ const allSolutions: ProblemSolution[] = [
   ...batch6Extra,
   ...concurrency,
   ...advancedDsa,
-  ...systemDesign,
+  ...sdM1,
+  ...sdM2,
+  ...sdM3,
+  ...sdM4,
+  ...sdM5,
+  ...sdM6,
 ];
 
 // Build a map for O(1) lookup by problem ID
