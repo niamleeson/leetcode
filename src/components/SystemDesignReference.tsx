@@ -152,7 +152,7 @@ function ProblemCard({ problemId }: { problemId: number }) {
               <>
                 {/* Intuition */}
                 {solution.intuition && (
-                  <div className="bg-gradient-to-r from-blue-950/40 to-gray-900/40 border border-blue-900/30 rounded-lg p-4">
+                  <div className="bg-gray-800/40 border border-gray-700/50 rounded-lg p-4">
                     <h4 className="text-xs font-semibold text-blue-300 uppercase tracking-wider mb-2">Key Insight</h4>
                     <MarkdownContent content={solution.intuition} />
                   </div>
