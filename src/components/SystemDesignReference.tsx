@@ -138,11 +138,7 @@ function ProblemCard({ problemId }: { problemId: number }) {
                 onClick={() => setActiveTab(tab.key)}
                 className={`flex-1 px-4 py-2 text-xs font-medium transition-colors ${
                   activeTab === tab.key
-                    ? tab.key === 'tradeoffs'
-                      ? 'text-amber-400 border-b-2 border-amber-400 bg-amber-950/20'
-                      : tab.key === 'code'
-                      ? 'text-emerald-400 border-b-2 border-emerald-400 bg-emerald-950/20'
-                      : 'text-blue-400 border-b-2 border-blue-400 bg-blue-950/20'
+                    ? 'text-blue-400 border-b-2 border-blue-400 bg-blue-950/20'
                     : 'text-gray-500 hover:text-gray-300'
                 }`}
               >
@@ -156,8 +152,8 @@ function ProblemCard({ problemId }: { problemId: number }) {
               <>
                 {/* Intuition */}
                 {solution.intuition && (
-                  <div className="bg-gradient-to-r from-purple-950/30 to-gray-900/30 border border-purple-900/30 rounded-lg p-4">
-                    <h4 className="text-xs font-semibold text-purple-300 uppercase tracking-wider mb-2">Key Insight</h4>
+                  <div className="bg-gradient-to-r from-blue-950/40 to-gray-900/40 border border-blue-900/30 rounded-lg p-4">
+                    <h4 className="text-xs font-semibold text-blue-300 uppercase tracking-wider mb-2">Key Insight</h4>
                     <MarkdownContent content={solution.intuition} />
                   </div>
                 )}
@@ -184,7 +180,7 @@ function ProblemCard({ problemId }: { problemId: number }) {
               <div className="space-y-4">
                 {solution.code && (
                   <div>
-                    <h4 className="text-xs font-semibold text-emerald-300 uppercase tracking-wider mb-2">
+                    <h4 className="text-xs font-semibold text-blue-300 uppercase tracking-wider mb-2">
                       Core Implementation (JavaScript)
                     </h4>
                     <CodeBlock code={solution.code} language="javascript" />
@@ -192,7 +188,7 @@ function ProblemCard({ problemId }: { problemId: number }) {
                 )}
                 {solution.jsCode && (
                   <div>
-                    <h4 className="text-xs font-semibold text-emerald-300 uppercase tracking-wider mb-2">
+                    <h4 className="text-xs font-semibold text-blue-300 uppercase tracking-wider mb-2">
                       Additional Implementation
                     </h4>
                     <CodeBlock code={solution.jsCode} language="javascript" />
@@ -205,7 +201,7 @@ function ProblemCard({ problemId }: { problemId: number }) {
               <>
                 {solution.explanation && (
                   <div>
-                    <h4 className="text-xs font-semibold text-amber-300 uppercase tracking-wider mb-2">Scaling & Trade-offs</h4>
+                    <h4 className="text-xs font-semibold text-blue-300 uppercase tracking-wider mb-2">Scaling & Trade-offs</h4>
                     <MarkdownContent content={solution.explanation} />
                   </div>
                 )}
@@ -238,11 +234,11 @@ function ProblemCard({ problemId }: { problemId: number }) {
                 )}
                 {solution.hints && solution.hints.length > 0 && (
                   <div>
-                    <h4 className="text-xs font-semibold text-emerald-300 uppercase tracking-wider mb-2">Expert Tips & Common Pitfalls</h4>
+                    <h4 className="text-xs font-semibold text-blue-300 uppercase tracking-wider mb-2">Expert Tips & Common Pitfalls</h4>
                     <ul className="space-y-2">
                       {solution.hints.map((hint, i) => (
                         <li key={i} className="text-sm text-gray-400 flex gap-2 bg-gray-800/30 rounded-lg p-3">
-                          <span className="text-emerald-500 mt-0.5 shrink-0 font-bold">{i + 1}.</span>
+                          <span className="text-blue-500 mt-0.5 shrink-0 font-bold">{i + 1}.</span>
                           <span>{hint}</span>
                         </li>
                       ))}
@@ -270,53 +266,53 @@ export default function SystemDesignReference() {
       </div>
 
       {/* Quick Decision Guide */}
-      <div className="bg-gradient-to-r from-indigo-950/40 to-gray-900/40 border border-indigo-900/30 rounded-lg p-4">
-        <h3 className="text-sm font-semibold text-indigo-300 mb-3">System Design Interview Framework</h3>
+      <div className="bg-gradient-to-r from-blue-950/40 to-gray-900/40 border border-blue-900/30 rounded-lg p-4">
+        <h3 className="text-sm font-semibold text-blue-300 mb-3">System Design Interview Framework</h3>
 
         <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mt-2 mb-1">Step 1: Requirements (5 min)</h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5 text-xs text-gray-400 mb-3">
-          <div><span className="text-indigo-400">Functional requirements?</span> → What should the system do?</div>
-          <div><span className="text-indigo-400">Non-functional requirements?</span> → Scale, latency, availability, consistency</div>
-          <div><span className="text-indigo-400">Users and scale?</span> → DAU, MAU, peak QPS</div>
-          <div><span className="text-indigo-400">Constraints?</span> → Budget, region, compliance</div>
+          <div><span className="text-blue-400">Functional requirements?</span> → What should the system do?</div>
+          <div><span className="text-blue-400">Non-functional requirements?</span> → Scale, latency, availability, consistency</div>
+          <div><span className="text-blue-400">Users and scale?</span> → DAU, MAU, peak QPS</div>
+          <div><span className="text-blue-400">Constraints?</span> → Budget, region, compliance</div>
         </div>
 
         <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Step 2: Capacity Estimation (5 min)</h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5 text-xs text-gray-400 mb-3">
-          <div><span className="text-indigo-400">QPS?</span> → DAU × actions/day ÷ 86,400</div>
-          <div><span className="text-indigo-400">Storage?</span> → items/day × item_size × retention</div>
-          <div><span className="text-indigo-400">Bandwidth?</span> → QPS × avg_response_size</div>
-          <div><span className="text-indigo-400">Memory (cache)?</span> → QPS × response_size × cache_duration</div>
+          <div><span className="text-blue-400">QPS?</span> → DAU × actions/day ÷ 86,400</div>
+          <div><span className="text-blue-400">Storage?</span> → items/day × item_size × retention</div>
+          <div><span className="text-blue-400">Bandwidth?</span> → QPS × avg_response_size</div>
+          <div><span className="text-blue-400">Memory (cache)?</span> → QPS × response_size × cache_duration</div>
         </div>
 
         <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Step 3: High-Level Design (10 min)</h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5 text-xs text-gray-400 mb-3">
-          <div><span className="text-indigo-400">Read-heavy system?</span> → Cache + Read Replicas + CDN</div>
-          <div><span className="text-indigo-400">Write-heavy system?</span> → Message Queue + Async Processing</div>
-          <div><span className="text-indigo-400">Real-time delivery?</span> → WebSockets + Pub/Sub</div>
-          <div><span className="text-indigo-400">Search functionality?</span> → Inverted Index (Elasticsearch)</div>
-          <div><span className="text-indigo-400">Geospatial queries?</span> → Geohash / QuadTree + Redis GEO</div>
-          <div><span className="text-indigo-400">Distributed transactions?</span> → Saga Pattern + Compensating Actions</div>
+          <div><span className="text-blue-400">Read-heavy system?</span> → Cache + Read Replicas + CDN</div>
+          <div><span className="text-blue-400">Write-heavy system?</span> → Message Queue + Async Processing</div>
+          <div><span className="text-blue-400">Real-time delivery?</span> → WebSockets + Pub/Sub</div>
+          <div><span className="text-blue-400">Search functionality?</span> → Inverted Index (Elasticsearch)</div>
+          <div><span className="text-blue-400">Geospatial queries?</span> → Geohash / QuadTree + Redis GEO</div>
+          <div><span className="text-blue-400">Distributed transactions?</span> → Saga Pattern + Compensating Actions</div>
         </div>
 
         <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Step 4: Key Trade-offs</h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5 text-xs text-gray-400 mb-3">
-          <div><span className="text-indigo-400">Consistency vs Availability?</span> → CAP theorem (pick CP or AP)</div>
-          <div><span className="text-indigo-400">Push vs Pull?</span> → Fan-out on write vs fan-out on read</div>
-          <div><span className="text-indigo-400">SQL vs NoSQL?</span> → ACID transactions vs horizontal scale</div>
-          <div><span className="text-indigo-400">Sync vs Async?</span> → Immediate response vs eventual processing</div>
-          <div><span className="text-indigo-400">Cache invalidation?</span> → TTL vs event-driven vs write-through</div>
-          <div><span className="text-indigo-400">Monolith vs Microservices?</span> → Simplicity vs independent scaling</div>
+          <div><span className="text-blue-400">Consistency vs Availability?</span> → CAP theorem (pick CP or AP)</div>
+          <div><span className="text-blue-400">Push vs Pull?</span> → Fan-out on write vs fan-out on read</div>
+          <div><span className="text-blue-400">SQL vs NoSQL?</span> → ACID transactions vs horizontal scale</div>
+          <div><span className="text-blue-400">Sync vs Async?</span> → Immediate response vs eventual processing</div>
+          <div><span className="text-blue-400">Cache invalidation?</span> → TTL vs event-driven vs write-through</div>
+          <div><span className="text-blue-400">Monolith vs Microservices?</span> → Simplicity vs independent scaling</div>
         </div>
 
         <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Capacity Benchmarks</h4>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-1.5 text-xs text-gray-400">
-          <div><span className="text-indigo-400">Web server:</span> ~1K QPS</div>
-          <div><span className="text-indigo-400">DB reads:</span> ~10K QPS</div>
-          <div><span className="text-indigo-400">DB writes:</span> ~1K QPS</div>
-          <div><span className="text-indigo-400">Redis:</span> ~100K QPS</div>
-          <div><span className="text-indigo-400">Kafka:</span> ~1M msg/sec</div>
-          <div><span className="text-indigo-400">1 day:</span> 86,400 sec ≈ 100K sec</div>
+          <div><span className="text-blue-400">Web server:</span> ~1K QPS</div>
+          <div><span className="text-blue-400">DB reads:</span> ~10K QPS</div>
+          <div><span className="text-blue-400">DB writes:</span> ~1K QPS</div>
+          <div><span className="text-blue-400">Redis:</span> ~100K QPS</div>
+          <div><span className="text-blue-400">Kafka:</span> ~1M msg/sec</div>
+          <div><span className="text-blue-400">1 day:</span> 86,400 sec ≈ 100K sec</div>
         </div>
       </div>
 
