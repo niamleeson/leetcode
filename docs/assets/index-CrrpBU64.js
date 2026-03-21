@@ -11952,6 +11952,12 @@ def topological_sort_dfs(num_nodes, edges):
                 return []  # cycle
     order.reverse()
     return order`,jsTemplate:`// Kahn's Algorithm — BFS-based topological sort
+// topological sort
+// graph traversal
+// starting with nodes of indegree of 0
+// use queue for visiting neighboring nodes
+// as visiting neighbors of each node
+// decrease indegree and if indegree is 0, collect in order array
 // Key idea: repeatedly remove nodes with no remaining dependencies
 function topologicalSortKahn(numNodes, edges) {
     // Build adjacency list and count prerequisites for each node
