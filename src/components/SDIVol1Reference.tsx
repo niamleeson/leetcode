@@ -3,6 +3,7 @@ import { solutionMap } from '../data/solutions';
 import { sdiVol1Problems } from '../data/problems-sdi-vol1';
 import { sdiVol2Problems } from '../data/problems-sdi-vol2';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 const allProblems = [...sdiVol1Problems, ...sdiVol2Problems];
 
@@ -48,6 +49,7 @@ function MarkdownContent({ content, className }: { content: string; className?: 
   return (
     <div className={className}>
       <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
         components={{
           h1: ({ children }) => <h1 className="text-xl font-bold text-white mt-4 mb-2">{children}</h1>,
           h2: ({ children }) => <h2 className="text-lg font-semibold text-blue-300 mt-4 mb-2 pb-1 border-b border-gray-800">{children}</h2>,
