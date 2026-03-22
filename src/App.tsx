@@ -11,7 +11,6 @@ import ProblemPage from './components/ProblemPage';
 import DSAReference from './components/DSAReference';
 import SystemDesignReference from './components/SystemDesignReference';
 import SDIVol1Reference from './components/SDIVol1Reference';
-import SDIVol2Reference from './components/SDIVol2Reference';
 import AskClaudePanel from './components/AskClaudePanel';
 import GlossaryPage from './components/GlossaryPage';
 import { Topic } from './types';
@@ -135,7 +134,6 @@ export default function App() {
           <Route path="/dsa" element={<DSAReference />} />
           <Route path="/system-design" element={<SystemDesignReference />} />
           <Route path="/sdi-vol1" element={<SDIVol1Reference />} />
-          <Route path="/sdi-vol2" element={<SDIVol2Reference />} />
           <Route path="/glossary" element={<GlossaryPage />} />
           <Route path="/topic/:slug" element={
             <TopicRoute store={store} />

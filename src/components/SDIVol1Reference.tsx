@@ -1,9 +1,12 @@
 import { useState } from 'react';
 import { solutionMap } from '../data/solutions';
 import { sdiVol1Problems } from '../data/problems-sdi-vol1';
+import { sdiVol2Problems } from '../data/problems-sdi-vol2';
 import ReactMarkdown from 'react-markdown';
 
-const SDI_CATEGORIES = [
+const allProblems = [...sdiVol1Problems, ...sdiVol2Problems];
+
+const SDI_VOL1_CATEGORIES = [
   {
     name: 'Foundational Concepts',
     ids: [9101, 9102, 9103],
@@ -19,6 +22,25 @@ const SDI_CATEGORIES = [
   {
     name: 'Communication, Search & Storage',
     ids: [9112, 9113, 9114, 9115],
+  },
+];
+
+const SDI_VOL2_CATEGORIES = [
+  {
+    name: 'Location & Maps',
+    ids: [9201, 9202, 9203],
+  },
+  {
+    name: 'Infrastructure & Data Processing',
+    ids: [9204, 9205, 9206],
+  },
+  {
+    name: 'Booking, Email & Storage',
+    ids: [9207, 9208, 9209],
+  },
+  {
+    name: 'Gaming, Payments & Finance',
+    ids: [9210, 9211, 9212, 9213],
   },
 ];
 
@@ -101,12 +123,12 @@ function StepHeader({ step, title, time }: { step: number; title: string; time: 
 function ChapterCard({ problemId }: { problemId: number }) {
   const [expanded, setExpanded] = useState(false);
 
-  const problem = sdiVol1Problems.find(p => p.id === problemId);
+  const problem = allProblems.find(p => p.id === problemId);
   const solution = solutionMap[problemId];
 
   if (!problem || !solution) return null;
 
-  const chapterNum = problemId - 9100;
+  const chapterNum = problemId >= 9200 ? problemId - 9200 : problemId - 9100;
 
   return (
     <div className="bg-gray-900 border border-gray-800 rounded-lg overflow-hidden">
@@ -196,9 +218,9 @@ export default function SDIVol1Reference() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-white">System Design Interview - Vol. 1</h1>
+        <h1 className="text-2xl font-bold text-white">System Design Interview — Book Notes</h1>
         <p className="text-gray-400 mt-1 text-sm">
-          15 chapters covering scaling fundamentals, estimation techniques, and 12 classic system design problems — rewritten with clear explanations, architecture diagrams, and the 4-step interview framework.
+          28 chapters from Alex Xu's System Design Interview Vol. 1 & Vol. 2 — rewritten with clear explanations, architecture diagrams, and the 4-step interview framework.
         </p>
       </div>
 
@@ -257,8 +279,28 @@ export default function SDIVol1Reference() {
         </div>
       </div>
 
-      {/* Categories */}
-      {SDI_CATEGORIES.map(category => (
+      {/* Volume 1 */}
+      <h2 className="text-xl font-bold text-white border-b border-blue-900/50 pb-2">
+        Volume 1 — An Insider's Guide
+      </h2>
+      {SDI_VOL1_CATEGORIES.map(category => (
+        <div key={category.name}>
+          <h2 className="text-lg font-semibold text-gray-200 mb-3 border-b border-gray-800 pb-2">
+            {category.name}
+          </h2>
+          <div className="space-y-3">
+            {category.ids.map(id => (
+              <ChapterCard key={id} problemId={id} />
+            ))}
+          </div>
+        </div>
+      ))}
+
+      {/* Volume 2 */}
+      <h2 className="text-xl font-bold text-white border-b border-blue-900/50 pb-2 mt-12">
+        Volume 2 — An Insider's Guide
+      </h2>
+      {SDI_VOL2_CATEGORIES.map(category => (
         <div key={category.name}>
           <h2 className="text-lg font-semibold text-gray-200 mb-3 border-b border-gray-800 pb-2">
             {category.name}
