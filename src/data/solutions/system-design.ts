@@ -3,15 +3,281 @@ import { ProblemSolution } from './types';
 export const solutions: ProblemSolution[] = [
   {
     id: 9001,
-    description: `- Shorten long URLs to compact aliases (e.g., 7-character base62 codes)\\n- Redirect short URLs to original destinations with minimal latency\\n- Support custom aliases, expiration, and analytics\\n- Handle 100M+ URLs with 10:1 read-to-write ratio\\n`,
-    examples: `Exercise 1: Implement Base62 Encoding\\nWrite a service that takes a numeric ID and converts it to a base62 string (a-z, A-Z, 0-9). Then implement the reverse decoding. Ensure the output is always exactly 7 characters by zero-padding.\\n\\nExercise 2: Design a Key Range Pre-generation Service\\nBuild a service that pre-generates batches of unique 7-character keys and stores them in a database. Worker nodes request a batch of unused keys, mark them as allocated, and use them for new URL mappings without coordination.`,
-    intuition: `A URL shortener is fundamentally a distributed hash map that converts long URLs into short keys and retrieves them with single-digit millisecond latency. The core challenge is generating globally unique short codes at scale without coordination bottlenecks.`,
-    approach: `A stateless API layer sits behind a load balancer, backed by a distributed key-value store for URL mappings. A separate ID generation service produces unique short codes. A cache layer (Redis) handles hot URLs to reduce database reads.\\n\\n\\n- **ID Generator**: Base62 encoding of auto-increment IDs or pre-generated random keys stored in a key range table\\n- **Database**: NoSQL store (DynamoDB) mapping short code to long URL, creation time, and expiry\\n- **Cache**: LRU cache for frequently accessed URLs\\n- **Analytics Service**: Async event pipeline tracking clicks, referrers, and geolocation\\n`,
-    code: `# System Design: Design a URL Shortener (TinyURL)\\n#\\n# Key Components:\\n# - ID Generator: Base62 encoding of auto-increment IDs or pre-generated random keys stored in a key range table\\n# - Database: NoSQL store (DynamoDB) mapping short code to long URL, creation time, and expiry\\n# - Cache: LRU cache for frequently accessed URLs\\n# - Analytics Service: Async event pipeline tracking clicks, referrers, and geolocation\\n#\\n# Architecture Notes:\\n# A stateless API layer sits behind a load balancer, backed by a distributed key-value store for URL m\\n`,
-    explanation: `Horizontally scale the API tier. Partition the database by hash of short code. Use consistent hashing for cache distribution. Pre-generate key ranges to avoid collisions without coordination.\\n\\n\\n- Sequential IDs are predictable but simple; random codes need collision checks but are secure\\n- 301 (permanent) redirects reduce server load but lose analytics; 302 (temporary) keeps tracking intact`,
-    timeComplexity: "N/A - System Design",
-    spaceComplexity: "N/A - System Design",
-    hints: ["Implement Base62 Encoding: Write a service that takes a numeric ID and converts it to a base62 string (a-z, A-Z, 0-9). Then implement the reverse decoding. Ensure the output is always exactly 7 charac", "Design a Key Range Pre-generation Service: Build a service that pre-generates batches of unique 7-character keys and stores them in a database. Worker nodes request a batch of unused keys, mark them a", "Problem: Multiple servers generate the same short code simultaneously, causing URL overwrites. Solution: Use a key pre-generation service (KGS) that allocates unique key ranges to each server. Alterna", "Problem: Database reads become a bottleneck as popular URLs get millions of redirects per second. Solution: Place a multi-tier caching layer (local in-memory + distributed Redis) in front of the datab"],
+    description: `## Clarifying Questions to Ask
+- What is the **traffic volume**? How many URL shortenings per day?
+- What is the **read-to-write ratio**? (Reads are typically 10:1 or higher)
+- How long should shortened URLs last? Do they **expire**?
+- Should users be able to pick **custom short links**?
+- Do we need **analytics** (click counts, referrers, geo)?
+
+## Functional Requirements
+- Given a long URL, generate a **unique short URL** (e.g., \`tinyurl.com/abc123\`)
+- Given a short URL, **redirect** to the original long URL
+- Users can optionally set **custom aliases**
+- Links expire after a **configurable TTL** (default: 5 years)
+
+## Non-Functional Requirements
+- **Low latency**: Redirect in < 10ms (read-heavy)
+- **High availability**: The system should be always up (favor AP over CP)
+- **Non-guessable**: Short codes should not be easily predictable
+
+## Capacity Estimation
+| Metric | Estimate |
+|--------|----------|
+| New URLs / day | 100M |
+| Read:Write ratio | 10:1 → 1B redirects/day |
+| Write QPS | 100M / 86,400 ≈ **1,160 QPS** |
+| Read QPS (redirects) | **11,600 QPS** (peak: ~23K) |
+| Storage per URL | ~500 bytes (short code + long URL + metadata) |
+| Storage / year | 100M × 365 × 500B ≈ **18 TB/year** |
+| Cache (20% hot URLs) | 1B × 0.2 × 500B ≈ **100 GB** |
+`,
+    examples: `## Follow-Up Discussion Points
+- **How would you support analytics?** → Async event pipeline (Kafka → analytics DB). Log click events with timestamp, referrer, geo, device. Don't block the redirect path.
+- **How would you handle spam/abuse?** → Rate limiting on creation API. URL blacklist checking against known malicious domains. CAPTCHA for unauthenticated users.
+- **What if we need to support 10x traffic?** → Add more cache nodes, DB read replicas, and API servers. The stateless tier scales horizontally. Consider moving to a globally distributed cache (Redis Cluster across regions).
+- **How would you do A/B testing on redirect logic?** → Feature flags at the API layer. Route a percentage of traffic through new logic while monitoring latency and error rates.
+- **301 vs 302 redirect?** → 301 (permanent) reduces server load since browsers cache it, but you lose analytics. 302 (temporary) keeps every request flowing through your servers for tracking.`,
+    intuition: `A URL shortener is fundamentally a **distributed hash map** — it maps a short key to a long URL and retrieves it with single-digit millisecond latency. The two core design challenges are: (1) generating **globally unique short codes** at scale without coordination bottlenecks, and (2) serving **billions of redirects/day** with consistent low latency.`,
+    approach: `## Component Overview
+
+A **stateless API layer** behind a load balancer handles both creation and redirection. A **Key Generation Service (KGS)** pre-generates unique short codes to avoid collision at write time. A **NoSQL database** stores the URL mappings. A **distributed cache** (Redis) absorbs the read-heavy redirect traffic.
+
+## API Design
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| \`POST /api/v1/urls\` | Create | Body: \`{ longUrl, customAlias?, expireAt? }\` → Returns \`{ shortUrl }\` |
+| \`GET /:shortCode\` | Redirect | Returns **302** redirect to original URL |
+| \`DELETE /api/v1/urls/:shortCode\` | Delete | Removes the URL mapping |
+
+## Data Model
+
+| Column | Type | Notes |
+|--------|------|-------|
+| short_code (PK) | VARCHAR(7) | Base62 encoded key |
+| long_url | TEXT | Original URL |
+| user_id | BIGINT | Creator (nullable for anonymous) |
+| created_at | TIMESTAMP | Creation time |
+| expires_at | TIMESTAMP | TTL expiration |
+`,
+    code: `## Architecture Diagram
+
+\`\`\`
+┌──────────┐         ┌─────────────────┐
+│  Client   │────────▶│  Load Balancer   │
+│ (Browser) │◀────────│  (Nginx/ALB)     │
+└──────────┘  302    └────────┬────────┘
+                              │
+                    ┌─────────▼──────────┐
+                    │   API Servers       │
+                    │   (Stateless)       │
+                    │                     │
+                    │  POST /api/v1/urls  │
+                    │  GET /:shortCode    │
+                    └──┬──────────┬───┬──┘
+                       │          │   │
+              ┌────────▼──┐  ┌───▼───▼────────┐
+              │   Cache    │  │   Key Gen       │
+              │  (Redis    │  │   Service (KGS) │
+              │  Cluster)  │  │                 │
+              │            │  │ Pre-generated   │
+              │  shortCode │  │ unique keys     │
+              │  → longUrl │  └───────┬─────────┘
+              └─────┬──────┘          │
+                    │ miss            │ allocate batch
+              ┌─────▼─────────────────▼──────────┐
+              │         Database (NoSQL)           │
+              │     e.g., DynamoDB / Cassandra     │
+              │                                    │
+              │  short_code → long_url, metadata   │
+              │  Partitioned by short_code hash    │
+              └────────────────────────────────────┘
+\`\`\`
+
+## Write Flow (URL Creation)
+
+\`\`\`
+Client                API Server              KGS                DB
+  │                      │                     │                  │
+  │  POST /api/v1/urls   │                     │                  │
+  │─────────────────────▶│                     │                  │
+  │                      │  Get next key batch │                  │
+  │                      │────────────────────▶│                  │
+  │                      │  [key1,key2,key3..] │                  │
+  │                      │◀────────────────────│                  │
+  │                      │                     │                  │
+  │                      │  Store: key→longUrl │                  │
+  │                      │────────────────────────────────────────▶
+  │                      │                     │     ACK          │
+  │  { shortUrl }        │◀────────────────────────────────────────
+  │◀─────────────────────│                     │                  │
+\`\`\`
+
+## Read Flow (Redirect)
+
+\`\`\`
+Client                API Server              Cache             DB
+  │                      │                     │                  │
+  │  GET /abc123         │                     │                  │
+  │─────────────────────▶│                     │                  │
+  │                      │  Lookup abc123      │                  │
+  │                      │────────────────────▶│                  │
+  │                      │                     │                  │
+  │                      │    ┌─ Cache HIT ────┤                  │
+  │                      │◀───┤  return longUrl │                  │
+  │                      │    └────────────────┘                  │
+  │                      │                                        │
+  │                      │    ┌─ Cache MISS ──────────────────────┤
+  │                      │    │  Query DB for abc123              │
+  │                      │────┴──────────────────────────────────▶│
+  │                      │◀──────────────── return longUrl ───────│
+  │                      │  Update cache       │                  │
+  │                      │────────────────────▶│                  │
+  │                      │                     │                  │
+  │  302 Redirect        │                     │                  │
+  │◀─────────────────────│                     │                  │
+\`\`\`
+`,
+    jsCode: `## Deep Dive: ID Generation Strategies
+
+The most critical component — how do we generate unique short codes at scale?
+
+### Option A: Base62 Encoding of Auto-Increment ID
+
+\`\`\`
+                    ┌──────────────────┐
+                    │  Auto-Increment   │
+                    │  ID Generator     │
+                    │  (Single DB seq)  │
+                    └────────┬─────────┘
+                             │ ID: 11157
+                             ▼
+                    ┌──────────────────┐
+                    │  Base62 Encode    │
+                    │  11157 → "2TX"    │
+                    │  chars: [0-9a-zA-Z]│
+                    └──────────────────┘
+\`\`\`
+
+**Pros**: No collisions, simple, sortable by time
+**Cons**: Predictable (security risk), single point of failure for ID gen
+
+### Option B: Key Generation Service (KGS) — Recommended
+
+\`\`\`
+┌─────────────────────────────────────────────────┐
+│              Key Generation Service              │
+│                                                  │
+│  ┌──────────────┐     ┌──────────────────────┐  │
+│  │  Used Keys   │     │  Unused Keys          │  │
+│  │  DB Table    │     │  DB Table             │  │
+│  │              │     │                       │  │
+│  │  abc123 ✓    │     │  xyz789  (available)  │  │
+│  │  def456 ✓    │◀────│  qrs012  (available)  │  │
+│  │  ghi789 ✓    │move │  tuv345  (available)  │  │
+│  └──────────────┘     └───────────┬───────────┘  │
+│                                   │              │
+└───────────────────────────────────┼──────────────┘
+                                    │ allocate batch
+                    ┌───────────────▼───────────────┐
+                    │       API Server (in-memory)   │
+                    │   Local batch: [xyz789, qrs012]│
+                    │   Use one key per new URL      │
+                    │   Request new batch when low   │
+                    └───────────────────────────────┘
+\`\`\`
+
+**Pros**: No collisions, no coordination between servers, fast (in-memory keys)
+**Cons**: Some keys wasted if server dies, slightly more complex
+
+---
+
+## Deep Dive: Database Partitioning
+
+\`\`\`
+                         Hash(shortCode)
+                              │
+              ┌───────────────┼───────────────┐
+              ▼               ▼               ▼
+       ┌────────────┐ ┌────────────┐ ┌────────────┐
+       │ Partition 0 │ │ Partition 1 │ │ Partition 2 │
+       │             │ │             │ │             │
+       │ a-f range   │ │ g-p range   │ │ q-z range   │
+       │             │ │             │ │             │
+       │ Replica 1   │ │ Replica 1   │ │ Replica 1   │
+       │ Replica 2   │ │ Replica 2   │ │ Replica 2   │
+       │ Replica 3   │ │ Replica 3   │ │ Replica 3   │
+       └────────────┘ └────────────┘ └────────────┘
+\`\`\`
+
+- **Partition key**: Hash of short_code for even distribution
+- **Replication factor**: 3 for durability
+- Why not partition by user_id? → Read path only has short_code, not user_id
+
+---
+
+## Deep Dive: Cache Strategy
+
+\`\`\`
+┌──────────────────────────────────────────────┐
+│              Cache Architecture               │
+│                                               │
+│  ┌─────────────────────────────────────────┐ │
+│  │  Tier 1: Local In-Memory (per server)   │ │
+│  │  - Top 1000 URLs per node               │ │
+│  │  - ~0.1ms lookup                        │ │
+│  └────────────────┬────────────────────────┘ │
+│                   │ miss                      │
+│  ┌────────────────▼────────────────────────┐ │
+│  │  Tier 2: Redis Cluster (distributed)    │ │
+│  │  - 100GB across shards                  │ │
+│  │  - ~1ms lookup                          │ │
+│  │  - LRU eviction, 24h TTL               │ │
+│  └────────────────┬────────────────────────┘ │
+│                   │ miss                      │
+│  ┌────────────────▼────────────────────────┐ │
+│  │  Tier 3: Database                       │ │
+│  │  - ~5-10ms lookup                       │ │
+│  │  - Populate cache on read               │ │
+│  └─────────────────────────────────────────┘ │
+└──────────────────────────────────────────────┘
+\`\`\`
+
+- **Cache-aside pattern**: Check cache first, on miss read from DB and populate cache
+- **Write-around**: Don't cache on write (most URLs are never accessed again)
+- **Hot key protection**: Replicate extremely popular URLs across multiple cache shards
+`,
+    explanation: `## Bottlenecks & Improvements
+- **Single KGS failure** → Run multiple KGS instances, each owning a key range. If one dies, its unused keys are lost (acceptable waste)
+- **Database as bottleneck** → Read replicas + cache absorb 99%+ of reads. Writes are only ~1.2K QPS which a single primary handles easily
+- **Cache thundering herd** → When a popular URL's cache expires, thousands of requests hit DB simultaneously. Use cache locking (only one request fetches from DB, others wait)
+- **Global latency** → Deploy in multiple regions with geo-DNS routing. Each region has its own cache layer. DB replication across regions for reads
+
+## Key Trade-offs Made
+
+| Decision | Trade-off |
+|----------|-----------|
+| KGS over Base62 auto-increment | More complexity, but no single-point ID generation and non-predictable URLs |
+| NoSQL over SQL | Lose ACID transactions, gain horizontal scaling and simpler key-value access |
+| 302 over 301 redirect | Higher server load, but retain analytics and ability to update mappings |
+| Cache-aside over write-through | Cold start on first access, but don't waste cache on URLs never visited |
+| Eventual consistency | Short delay before URL is available in all regions, but higher availability |
+
+## Monitoring & Alerting
+- **Latency**: p50, p95, p99 for redirect response time
+- **Error rate**: 404s (expired/missing URLs), 5xx from DB/cache failures
+- **Cache hit ratio**: Should be > 95% — alert if drops below 90%
+- **KGS key pool**: Alert when unused keys drop below threshold
+`,
+    timeComplexity: "Write: O(1) — single KGS key allocation + DB insert. Read: O(1) — cache lookup or single DB read.",
+    spaceComplexity: "~18 TB/year for URL storage. ~100 GB for cache (20% hot URLs). Grows linearly with URL count.",
+    hints: [
+      "Always clarify the read-to-write ratio first — it determines your entire caching and scaling strategy. For URL shorteners, reads dominate 10:1 or higher.",
+      "The KGS approach eliminates the hardest distributed systems problem (unique ID generation) by pre-computing keys. Each server holds a local batch — zero coordination at write time.",
+      "Don't use MD5/SHA256 and truncate — collision probability is too high at scale. Base62 encoding of a unique ID or pre-generated keys are both better approaches.",
+      "Consider the 301 vs 302 trade-off early — it affects whether you can do analytics and whether you can update/expire URLs. Most interviewers want to hear you reason about this."
+    ],
   },
   {
     id: 9002,

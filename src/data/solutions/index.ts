@@ -23,6 +23,13 @@ import { solutionsM3 as sdM3 } from './system-design-m3';
 import { solutionsM4 as sdM4 } from './system-design-m4';
 import { solutionsM5 as sdM5 } from './system-design-m5';
 import { solutionsM6 as sdM6 } from './system-design-m6';
+import { sdiVol1M1 } from './sdi-vol1-m1';
+import { sdiVol1M2 } from './sdi-vol1-m2';
+import { sdiVol1M3 } from './sdi-vol1-m3';
+import { sdiVol1M4 } from './sdi-vol1-m4';
+import { sdiVol2M1 } from './sdi-vol2-m1';
+import { sdiVol2M2 } from './sdi-vol2-m2';
+import { sdiVol2M3 } from './sdi-vol2-m3';
 
 const allSolutions: ProblemSolution[] = [
   ...arraysHashing,
@@ -45,6 +52,13 @@ const allSolutions: ProblemSolution[] = [
   ...sdM4,
   ...sdM5,
   ...sdM6,
+  ...sdiVol1M1,
+  ...sdiVol1M2,
+  ...sdiVol1M3,
+  ...sdiVol1M4,
+  ...sdiVol2M1,
+  ...sdiVol2M2,
+  ...sdiVol2M3,
 ];
 
 // Build a map for O(1) lookup by problem ID

@@ -1,34 +1,24 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { solutionMap } from '../data/solutions';
-import { systemDesignProblems } from '../data/problems-system-design';
+import { sdiVol1Problems } from '../data/problems-sdi-vol1';
 import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 
-const SD_CATEGORIES = [
+const SDI_CATEGORIES = [
   {
-    name: 'Core System Design Problems',
-    ids: [9001, 9002, 9003, 9004, 9005],
+    name: 'Foundational Concepts',
+    ids: [9101, 9102, 9103],
   },
   {
-    name: 'Storage & Data Systems',
-    ids: [9006, 9007, 9008, 9009, 9010],
+    name: 'Core Infrastructure',
+    ids: [9104, 9105, 9106, 9107],
   },
   {
-    name: 'E-Commerce & Marketplace',
-    ids: [9011, 9012, 9013, 9014, 9015],
+    name: 'Web & Data Systems',
+    ids: [9108, 9109, 9110, 9111],
   },
   {
-    name: 'Infrastructure & Platform',
-    ids: [9016, 9017, 9018, 9019, 9020],
-  },
-  {
-    name: 'Social & Real-Time Systems',
-    ids: [9021, 9022, 9023, 9024],
-  },
-  {
-    name: 'Data & Analytics',
-    ids: [9025, 9026, 9027, 9028, 9029, 9030],
+    name: 'Communication, Search & Storage',
+    ids: [9112, 9113, 9114, 9115],
   },
 ];
 
@@ -36,7 +26,6 @@ function MarkdownContent({ content, className }: { content: string; className?: 
   return (
     <div className={className}>
       <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
         components={{
           h1: ({ children }) => <h1 className="text-xl font-bold text-white mt-4 mb-2">{children}</h1>,
           h2: ({ children }) => <h2 className="text-lg font-semibold text-blue-300 mt-4 mb-2 pb-1 border-b border-gray-800">{children}</h2>,
@@ -109,13 +98,15 @@ function StepHeader({ step, title, time }: { step: number; title: string; time: 
   );
 }
 
-function ProblemCard({ problemId }: { problemId: number }) {
+function ChapterCard({ problemId }: { problemId: number }) {
   const [expanded, setExpanded] = useState(false);
 
-  const problem = systemDesignProblems.find(p => p.id === problemId);
+  const problem = sdiVol1Problems.find(p => p.id === problemId);
   const solution = solutionMap[problemId];
 
   if (!problem || !solution) return null;
+
+  const chapterNum = problemId - 9100;
 
   return (
     <div className="bg-gray-900 border border-gray-800 rounded-lg overflow-hidden">
@@ -124,17 +115,17 @@ function ProblemCard({ problemId }: { problemId: number }) {
         className="w-full flex items-center justify-between p-4 hover:bg-gray-800/50 transition-colors text-left"
       >
         <div className="flex items-center gap-3">
-          <span className="text-xs text-gray-600 font-mono w-8">#{problemId - 9000}</span>
+          <span className="text-xs text-gray-600 font-mono w-12">Ch {chapterNum}</span>
           <h3 className="text-white font-semibold">{problem.title}</h3>
         </div>
         <div className="flex items-center gap-3">
-          <Link
-            to={`/problem/${problemId}`}
-            onClick={e => e.stopPropagation()}
-            className="text-xs text-blue-400 hover:text-blue-300 px-2 py-1 rounded bg-blue-950/30 hover:bg-blue-950/50 transition-colors"
-          >
-            Practice
-          </Link>
+          <span className={`text-xs px-2 py-0.5 rounded ${
+            problem.difficulty === 'Easy' ? 'bg-emerald-950/50 text-emerald-400' :
+            problem.difficulty === 'Medium' ? 'bg-yellow-950/50 text-yellow-400' :
+            'bg-red-950/50 text-red-400'
+          }`}>
+            {problem.difficulty}
+          </span>
           <svg
             className={`w-4 h-4 text-gray-500 transition-transform shrink-0 ${expanded ? 'rotate-180' : ''}`}
             fill="none" stroke="currentColor" viewBox="0 0 24 24"
@@ -200,14 +191,14 @@ function ProblemCard({ problemId }: { problemId: number }) {
   );
 }
 
-export default function SystemDesignReference() {
+export default function SDIVol1Reference() {
   return (
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-white">System Design Reference</h1>
+        <h1 className="text-2xl font-bold text-white">System Design Interview - Vol. 1</h1>
         <p className="text-gray-400 mt-1 text-sm">
-          30 complete system design problems with architecture, JavaScript implementations, scaling strategies, and trade-off analysis.
+          15 chapters covering scaling fundamentals, estimation techniques, and 12 classic system design problems — rewritten with clear explanations, architecture diagrams, and the 4-step interview framework.
         </p>
       </div>
 
@@ -267,14 +258,14 @@ export default function SystemDesignReference() {
       </div>
 
       {/* Categories */}
-      {SD_CATEGORIES.map(category => (
+      {SDI_CATEGORIES.map(category => (
         <div key={category.name}>
           <h2 className="text-lg font-semibold text-gray-200 mb-3 border-b border-gray-800 pb-2">
             {category.name}
           </h2>
           <div className="space-y-3">
             {category.ids.map(id => (
-              <ProblemCard key={id} problemId={id} />
+              <ChapterCard key={id} problemId={id} />
             ))}
           </div>
         </div>

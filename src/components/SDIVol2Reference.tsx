@@ -1,34 +1,24 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { solutionMap } from '../data/solutions';
-import { systemDesignProblems } from '../data/problems-system-design';
+import { sdiVol2Problems } from '../data/problems-sdi-vol2';
 import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 
-const SD_CATEGORIES = [
+const SDI_V2_CATEGORIES = [
   {
-    name: 'Core System Design Problems',
-    ids: [9001, 9002, 9003, 9004, 9005],
+    name: 'Location & Maps',
+    ids: [9201, 9202, 9203],
   },
   {
-    name: 'Storage & Data Systems',
-    ids: [9006, 9007, 9008, 9009, 9010],
+    name: 'Infrastructure & Data Processing',
+    ids: [9204, 9205, 9206],
   },
   {
-    name: 'E-Commerce & Marketplace',
-    ids: [9011, 9012, 9013, 9014, 9015],
+    name: 'Booking, Email & Storage',
+    ids: [9207, 9208, 9209],
   },
   {
-    name: 'Infrastructure & Platform',
-    ids: [9016, 9017, 9018, 9019, 9020],
-  },
-  {
-    name: 'Social & Real-Time Systems',
-    ids: [9021, 9022, 9023, 9024],
-  },
-  {
-    name: 'Data & Analytics',
-    ids: [9025, 9026, 9027, 9028, 9029, 9030],
+    name: 'Gaming, Payments & Finance',
+    ids: [9210, 9211, 9212, 9213],
   },
 ];
 
@@ -36,7 +26,6 @@ function MarkdownContent({ content, className }: { content: string; className?: 
   return (
     <div className={className}>
       <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
         components={{
           h1: ({ children }) => <h1 className="text-xl font-bold text-white mt-4 mb-2">{children}</h1>,
           h2: ({ children }) => <h2 className="text-lg font-semibold text-blue-300 mt-4 mb-2 pb-1 border-b border-gray-800">{children}</h2>,
@@ -109,13 +98,15 @@ function StepHeader({ step, title, time }: { step: number; title: string; time: 
   );
 }
 
-function ProblemCard({ problemId }: { problemId: number }) {
+function ChapterCard({ problemId }: { problemId: number }) {
   const [expanded, setExpanded] = useState(false);
 
-  const problem = systemDesignProblems.find(p => p.id === problemId);
+  const problem = sdiVol2Problems.find(p => p.id === problemId);
   const solution = solutionMap[problemId];
 
   if (!problem || !solution) return null;
+
+  const chapterNum = problemId - 9200;
 
   return (
     <div className="bg-gray-900 border border-gray-800 rounded-lg overflow-hidden">
@@ -124,17 +115,17 @@ function ProblemCard({ problemId }: { problemId: number }) {
         className="w-full flex items-center justify-between p-4 hover:bg-gray-800/50 transition-colors text-left"
       >
         <div className="flex items-center gap-3">
-          <span className="text-xs text-gray-600 font-mono w-8">#{problemId - 9000}</span>
+          <span className="text-xs text-gray-600 font-mono w-12">Ch {chapterNum}</span>
           <h3 className="text-white font-semibold">{problem.title}</h3>
         </div>
         <div className="flex items-center gap-3">
-          <Link
-            to={`/problem/${problemId}`}
-            onClick={e => e.stopPropagation()}
-            className="text-xs text-blue-400 hover:text-blue-300 px-2 py-1 rounded bg-blue-950/30 hover:bg-blue-950/50 transition-colors"
-          >
-            Practice
-          </Link>
+          <span className={`text-xs px-2 py-0.5 rounded ${
+            problem.difficulty === 'Easy' ? 'bg-emerald-950/50 text-emerald-400' :
+            problem.difficulty === 'Medium' ? 'bg-yellow-950/50 text-yellow-400' :
+            'bg-red-950/50 text-red-400'
+          }`}>
+            {problem.difficulty}
+          </span>
           <svg
             className={`w-4 h-4 text-gray-500 transition-transform shrink-0 ${expanded ? 'rotate-180' : ''}`}
             fill="none" stroke="currentColor" viewBox="0 0 24 24"
@@ -146,7 +137,6 @@ function ProblemCard({ problemId }: { problemId: number }) {
 
       {expanded && (
         <div className="border-t border-gray-800 p-4 space-y-1">
-          {/* Key Insight */}
           {solution.intuition && (
             <div className="bg-gray-800/40 border border-gray-700/50 rounded-lg p-4 mb-4">
               <h4 className="text-xs font-semibold text-blue-300 uppercase tracking-wider mb-2">Key Insight</h4>
@@ -154,26 +144,22 @@ function ProblemCard({ problemId }: { problemId: number }) {
             </div>
           )}
 
-          {/* Step 1: Requirements */}
           <StepHeader step={1} title="Understand the Problem & Establish Scope" time="3-10 min" />
           {solution.description && <MarkdownContent content={solution.description} />}
 
           <hr className="border-gray-800 my-5" />
 
-          {/* Step 2: High-Level Design */}
           <StepHeader step={2} title="Propose High-Level Design & Get Buy-In" time="10-15 min" />
           {solution.approach && <MarkdownContent content={solution.approach} />}
           {solution.code && <MarkdownContent content={solution.code} />}
 
           <hr className="border-gray-800 my-5" />
 
-          {/* Step 3: Deep Dive */}
           <StepHeader step={3} title="Design Deep Dive" time="10-25 min" />
           {solution.jsCode && <MarkdownContent content={solution.jsCode} />}
 
           <hr className="border-gray-800 my-5" />
 
-          {/* Step 4: Wrap Up */}
           <StepHeader step={4} title="Wrap Up" time="3-5 min" />
           {solution.explanation && <MarkdownContent content={solution.explanation} />}
           {solution.examples && (
@@ -200,18 +186,16 @@ function ProblemCard({ problemId }: { problemId: number }) {
   );
 }
 
-export default function SystemDesignReference() {
+export default function SDIVol2Reference() {
   return (
     <div className="space-y-8">
-      {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-white">System Design Reference</h1>
+        <h1 className="text-2xl font-bold text-white">System Design Interview - Vol. 2</h1>
         <p className="text-gray-400 mt-1 text-sm">
-          30 complete system design problems with architecture, JavaScript implementations, scaling strategies, and trade-off analysis.
+          13 advanced system design problems covering proximity services, distributed infrastructure, payments, and real-time systems — rewritten with clear explanations, architecture diagrams, and the 4-step interview framework.
         </p>
       </div>
 
-      {/* Quick Decision Guide */}
       <div className="bg-gradient-to-r from-blue-950/40 to-gray-900/40 border border-blue-900/30 rounded-lg p-4">
         <h3 className="text-sm font-semibold text-blue-300 mb-3">System Design Interview Framework</h3>
 
@@ -221,8 +205,6 @@ export default function SystemDesignReference() {
           <div><span className="text-blue-400">Functional requirements?</span> → What should the system do?</div>
           <div><span className="text-blue-400">Non-functional requirements?</span> → Scale, latency, availability, consistency</div>
           <div><span className="text-blue-400">Users and scale?</span> → DAU, QPS, storage, bandwidth estimates</div>
-          <div><span className="text-blue-400">Constraints?</span> → Budget, region, existing tech stack</div>
-          <div><span className="text-blue-400">Back-of-envelope</span> → DAU × actions/day ÷ 86,400 = QPS</div>
         </div>
 
         <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Step 2: Propose High-Level Design & Get Buy-In (10-15 min)</h4>
@@ -230,19 +212,15 @@ export default function SystemDesignReference() {
           <div><span className="text-blue-400">Draw box diagrams</span> → Clients, APIs, servers, DB, cache, CDN, queues</div>
           <div><span className="text-blue-400">Define API endpoints</span> → RESTful contracts for core operations</div>
           <div><span className="text-blue-400">Data model & schema</span> → Tables, key-value pairs, relationships</div>
-          <div><span className="text-blue-400">Walk through use cases</span> → Trace the flow through your diagram</div>
           <div><span className="text-blue-400">Get buy-in</span> → Collaborate with interviewer before deep dive</div>
-          <div><span className="text-blue-400">Read vs Write heavy?</span> → Cache + Replicas vs Queue + Async</div>
         </div>
 
         <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Step 3: Design Deep Dive (10-25 min)</h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5 text-xs text-gray-400 mb-3">
           <div><span className="text-blue-400">Prioritize components</span> → Focus on what the interviewer cares about</div>
           <div><span className="text-blue-400">Drill into bottlenecks</span> → Where does the system break at scale?</div>
-          <div><span className="text-blue-400">Key algorithms</span> → Hashing, sharding, replication strategies</div>
-          <div><span className="text-blue-400">Data partitioning</span> → How to shard, consistent hashing</div>
-          <div><span className="text-blue-400">Failure handling</span> → Replication, failover, circuit breakers</div>
-          <div><span className="text-blue-400">Time management</span> → Don't get lost in one component</div>
+          <div><span className="text-blue-400">Key algorithms</span> → Geohash, consistent hashing, event sourcing</div>
+          <div><span className="text-blue-400">Failure handling</span> → Idempotency, exactly-once, circuit breakers</div>
         </div>
 
         <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Step 4: Wrap Up (3-5 min)</h4>
@@ -250,31 +228,18 @@ export default function SystemDesignReference() {
           <div><span className="text-blue-400">Identify bottlenecks</span> → Never say "it's perfect"</div>
           <div><span className="text-blue-400">Error cases</span> → Server failure, network loss, data corruption</div>
           <div><span className="text-blue-400">Operational concerns</span> → Monitoring, alerting, rollout strategy</div>
-          <div><span className="text-blue-400">Next scale curve</span> → 1M → 10M users: what changes?</div>
-          <div><span className="text-blue-400">Recap your design</span> → Refresh interviewer's memory</div>
           <div><span className="text-blue-400">Trade-offs made</span> → Consistency vs availability, push vs pull</div>
-        </div>
-
-        <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Capacity Benchmarks</h4>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-1.5 text-xs text-gray-400">
-          <div><span className="text-blue-400">Web server:</span> ~1K QPS</div>
-          <div><span className="text-blue-400">DB reads:</span> ~10K QPS</div>
-          <div><span className="text-blue-400">DB writes:</span> ~1K QPS</div>
-          <div><span className="text-blue-400">Redis:</span> ~100K QPS</div>
-          <div><span className="text-blue-400">Kafka:</span> ~1M msg/sec</div>
-          <div><span className="text-blue-400">1 day:</span> 86,400 sec ≈ 100K sec</div>
         </div>
       </div>
 
-      {/* Categories */}
-      {SD_CATEGORIES.map(category => (
+      {SDI_V2_CATEGORIES.map(category => (
         <div key={category.name}>
           <h2 className="text-lg font-semibold text-gray-200 mb-3 border-b border-gray-800 pb-2">
             {category.name}
           </h2>
           <div className="space-y-3">
             {category.ids.map(id => (
-              <ProblemCard key={id} problemId={id} />
+              <ChapterCard key={id} problemId={id} />
             ))}
           </div>
         </div>
