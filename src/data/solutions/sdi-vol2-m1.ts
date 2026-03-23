@@ -92,88 +92,99 @@ A **Location-Based Service (LBS)** handles proximity search queries using an in-
 `,
     code: `## Architecture Diagram
 
-\`\`\`
-+----------+        +-------------------+
-|  Mobile  |------->| Load Balancer     |
-|  Client  |<-------| (Nginx / ALB)     |
-+----------+        +--------+----------+
-                             |
-              +--------------+--------------+
-              |                             |
-    +---------v----------+     +------------v-----------+
-    | Location-Based     |     | Business Service       |
-    | Service (LBS)      |     | (CRUD operations)      |
-    | [Stateless]        |     | [Stateless]            |
-    |                    |     |                        |
-    | GET /search/nearby |     | POST/PUT/DELETE /biz   |
-    +---------+----------+     +-----+----------+-------+
-              |                      |          |
-    +---------v----------+     +-----v----+ +---v-----------+
-    | Geospatial Index   |     | Business | | Business DB   |
-    | (In-Memory)        |     | Cache    | | (MySQL /      |
-    |                    |     | (Redis)  | |  PostgreSQL)  |
-    | Geohash -> [biz_id]|     +----------+ +-------+-------+
-    +--------------------+                          |
-              |                                     |
-    +---------v------------------+                  |
-    | Search Result Cache        |<-----------------+
-    | (Redis)                    |   nightly rebuild
-    | geohash:radius -> [biz]   |
-    +----------------------------+
+\`\`\`mermaid
+graph TD
+    N0["Mobile Client"]
+    N1["Load Balancer (Nginx / ALB)"]
+    N2["Location-Based Service (LBS)"]
+    N3["Business Service"]
+    N4["Geospatial Index (In-Memory)"]
+    N5["Business Cache"]
+    N6[("Business DB")]
+    N7["Search Result Cache (Redis)"]
+    N0 --> N1
+    N1 --> N2
+    N1 --> N3
+    N2 --> N7
+    N2 --> N4
+    N4 --> N6
+    N3 --> N5
+    N3 --> N6
+    N5 --> N6
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## Search Flow
 
-\`\`\`
-Client            LBS                Cache          Geo Index      DB
-  |                |                   |               |            |
-  | GET /nearby    |                   |               |            |
-  | lat,lng,radius |                   |               |            |
-  |--------------->|                   |               |            |
-  |                | hash(lat,lng)     |               |            |
-  |                | -> geohash "9q8y" |               |            |
-  |                |                   |               |            |
-  |                | Check cache       |               |            |
-  |                |------------------>|               |            |
-  |                |     MISS          |               |            |
-  |                |<------------------|               |            |
-  |                |                   |               |            |
-  |                | Query geohash     |               |            |
-  |                | + 8 neighbors     |               |            |
-  |                |------------------------------>|   |            |
-  |                |     candidate IDs             |   |            |
-  |                |<------------------------------|   |            |
-  |                |                   |               |            |
-  |                | Filter by actual  |               |            |
-  |                | Haversine distance|               |            |
-  |                |                   |               |            |
-  |                | Fetch biz details |               |            |
-  |                |---------------------------------------------->|
-  |                |                   |               |     data   |
-  |                |<----------------------------------------------|
-  |                |                   |               |            |
-  |                | Populate cache    |               |            |
-  |                |------------------>|               |            |
-  | JSON response  |                   |               |            |
-  |<---------------|                   |               |            |
+\`\`\`mermaid
+graph TD
+    N0["Mobile Client"]
+    N1["WS Servers"]
+    N2["Location Cache"]
+    N3["Pub/Sub (Redis)"]
+    N4["Friend Service"]
+    N5["Location History Service"]
+    N0 --> N1
+    N1 --> N2
+    N1 --> N3
+    N1 --> N4
+    N1 --> N5
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## Geohash Neighbor Lookup
 
-\`\`\`
-+--------+--------+--------+
-| geohash| geohash| geohash|
-|  NW    |   N    |   NE   |
-+--------+--------+--------+
-| geohash| TARGET | geohash|
-|   W    | 9q8yb  |   E    |
-+--------+--------+--------+
-| geohash| geohash| geohash|
-|  SW    |   S    |   SE   |
-+--------+--------+--------+
-
-Search all 9 cells to handle boundary cases.
-Filter candidates by exact distance with Haversine formula.
+\`\`\`mermaid
+graph TD
+    N0["Mobile Client"]
+    N1["CDN"]
+    N2[("Map Tile Service")]
+    N3["Load Balancer"]
+    N4["API Gateway"]
+    N5["Routing Service"]
+    N6["Navigation Service"]
+    N7["Geocoding Service"]
+    N8[("Road Graph Store")]
+    N9["Traffic Service"]
+    N10["Geocoding Index"]
+    N11["Traffic Ingestion Pipeline"]
+    N0 --> N1
+    N0 --> N3
+    N1 --> N2
+    N3 --> N4
+    N4 --> N5
+    N4 --> N6
+    N4 --> N7
+    N5 --> N8
+    N5 --> N9
+    N6 --> N8
+    N6 --> N9
+    N7 --> N10
+    N11 --> N9
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N8 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N9 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N10 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N11 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
 \`\`\`
 `,
     jsCode: `## Deep Dive: Geohash vs Quadtree vs Google S2
@@ -371,98 +382,70 @@ When a user searches with a 5-mile radius, we pick geohash precision 5 (~4.9 km 
 `,
     code: `## Architecture Diagram
 
-\`\`\`
-+----------+     WebSocket      +---------------------+
-|  Mobile  |<=================>| WebSocket Servers    |
-|  Client  |  Persistent Conn  | (Stateful)           |
-+----------+                    |                      |
-                                | - Receive loc updates|
-                                | - Push friend locs   |
-                                +----+--------+--------+
-                                     |        |
-                          +----------v--+  +--v-----------+
-                          | Location    |  | Pub/Sub      |
-                          | Cache       |  | (Redis       |
-                          | (Redis)     |  |  Pub/Sub)    |
-                          |             |  |              |
-                          | user_id ->  |  | Channel per  |
-                          | {lat,lng,ts}|  | user for     |
-                          +-------------+  | location     |
-                                           | broadcasts   |
-                                           +------+-------+
-                                                  |
-                                     +------------v-----------+
-                                     | Friend Service         |
-                                     | (Who are my friends?)  |
-                                     +------------------------+
-                                                  |
-                                     +------------v-----------+
-                                     | Location History       |
-                                     | Service (async)        |
-                                     | Kafka -> Cassandra     |
-                                     +------------------------+
+\`\`\`mermaid
+graph TD
+    N0["Producer"]
+    N1["Partition Router"]
+    N2["Broker 1 Topic-A P0"]
+    N3["Broker 2 Topic-A P1"]
+    N4["Coordination Service"]
+    N5["Consumer Group A"]
+    N6["Consumer Group B"]
+    N0 --> N1
+    N1 --> N2
+    N1 --> N3
+    N2 --> N5
+    N2 --> N6
+    N3 --> N5
+    N3 --> N6
+    N4 --> N2
+    N4 --> N3
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## Location Update Flow
 
-\`\`\`
-User A (Client)     WS Server 1      Redis Cache    Redis Pub/Sub    WS Server 2     User B (Client)
-     |                   |                |               |                |               |
-     | loc_update        |                |               |                |               |
-     | {lat,lng,ts}      |                |               |                |               |
-     |=================>|                |               |                |               |
-     |                   | SET loc:A      |               |                |               |
-     |                   |--------------->|               |                |               |
-     |                   |     OK         |               |                |               |
-     |                   |<---------------|               |                |               |
-     |                   |                |               |                |               |
-     |                   | PUBLISH        |               |                |               |
-     |                   | user:A:location|               |                |               |
-     |                   | {lat,lng,ts}   |               |                |               |
-     |                   |------------------------------>|                |               |
-     |                   |                |               |                |               |
-     |                   |                |               | Deliver to     |               |
-     |                   |                |               | subscribers    |               |
-     |                   |                |               |--------------->|               |
-     |                   |                |               |                |               |
-     |                   |                |               |                | Compute dist  |
-     |                   |                |               |                | to User B     |
-     |                   |                |               |                |               |
-     |                   |                |               |                | friend_loc    |
-     |                   |                |               |                | (if within    |
-     |                   |                |               |                |  radius)      |
-     |                   |                |               |                |==============>|
-     |                   |                |               |                |               |
+\`\`\`mermaid
+sequenceDiagram
+    participant A as User A (Client)
+    participant WS1 as WS Server 1
+    participant RC as Redis Cache
+    participant PS as Redis Pub/Sub
+    participant WS2 as WS Server 2
+    participant B as User B (Client)
+
+    A->>WS1: loc_update {lat,lng,ts}
+    WS1->>RC: SET loc:A
+    RC-->>WS1: OK
+    WS1->>PS: PUBLISH user:A:location {lat,lng,ts}
+    PS->>WS2: Deliver to subscribers
+    Note over WS2: Compute distance to User B
+    WS2->>B: friend_loc (if within radius)
 \`\`\`
 
 ## WebSocket Connection Initialization
 
-\`\`\`
-User opens app     WS Server          Friend Service    Redis Pub/Sub    Location Cache
-     |                 |                     |                |               |
-     | WS Connect      |                     |                |               |
-     |================>|                     |                |               |
-     |                 | Get friend list     |                |               |
-     |                 |-------------------->|                |               |
-     |                 |   [B, C, D, E]      |                |               |
-     |                 |<--------------------|                |               |
-     |                 |                     |                |               |
-     |                 | SUBSCRIBE to:       |                |               |
-     |                 | user:B:location     |                |               |
-     |                 | user:C:location     |                |               |
-     |                 | user:D:location     |                |               |
-     |                 | user:E:location     |                |               |
-     |                 |---------------------------------->|  |               |
-     |                 |                     |                |               |
-     |                 | GET loc:B, loc:C,   |                |               |
-     |                 |     loc:D, loc:E    |                |               |
-     |                 |---------------------------------------------->|      |
-     |                 |   {lat,lng,ts} x4   |                |               |
-     |                 |<----------------------------------------------|      |
-     |                 |                     |                |               |
-     | Initial nearby  |                     |                |               |
-     | friends list    |                     |                |               |
-     |<=================|                     |                |               |
+\`\`\`mermaid
+sequenceDiagram
+    participant U as User opens app
+    participant WS as WS Server
+    participant FS as Friend Service
+    participant PS as Redis Pub/Sub
+    participant LC as Location Cache
+
+    U->>WS: WS Connect
+    WS->>FS: Get friend list
+    FS-->>WS: [B, C, D, E]
+    WS->>PS: SUBSCRIBE to user:B/C/D/E:location
+    WS->>LC: GET loc:B, loc:C, loc:D, loc:E
+    LC-->>WS: {lat,lng,ts} x4
+    WS->>U: Initial nearby friends list
 \`\`\`
 `,
     jsCode: `## Deep Dive: Pub/Sub Fanout and Scaling
@@ -650,123 +633,95 @@ The system consists of four major subsystems: a **Map Tile Service** backed by C
 `,
     code: `## Architecture Diagram
 
-\`\`\`
-+----------+       +------------------+       +-------------------+
-|  Mobile  |------>| CDN              |------>| Map Tile Service  |
-|  Client  |<------| (CloudFront/     |       | (Tile Storage)    |
-|          |       |  Akamai)         |       |                   |
-|          |       +------------------+       | S3 / Object Store |
-|          |                                   | Pre-rendered tiles|
-|          |                                   +-------------------+
-|          |
-|          |       +------------------+
-|          |------>| Load Balancer    |
-|          |       +--------+---------+
-|          |                |
-|          |       +--------v----------------------------------+
-|          |       |  API Gateway                              |
-|          |       +-----+-------------+-------------+---------+
-|          |             |             |             |
-|          |    +--------v-----+ +----v-------+ +---v-----------+
-|          |    | Routing      | | Navigation | | Geocoding     |
-|          |    | Service      | | Service    | | Service       |
-|          |    |              | |            | |               |
-|          |    | Preprocessed | | WebSocket  | | Address <->   |
-|          |    | road graph   | | sessions   | | Coordinates   |
-|          |    +------+-------+ +-----+------+ +-------+-------+
-|          |           |               |                |
-|          |    +------v-------+ +-----v------+ +-------v-------+
-|          |    | Road Graph   | | Traffic    | | Geocoding     |
-|          |    | Store        | | Service    | | Index         |
-|          |    | (In-Memory)  | | (Live      | | (Elasticsearch|
-|          |    |              | |  speeds)   | |  / custom)    |
-|          |    +--------------+ +-----+------+ +---------------+
-|          |                          |
-|          |                   +------v--------------+
-|          |  GPS pings        | Traffic Ingestion   |
-|          |------------------>| Pipeline            |
-|          |                   | (Kafka -> Flink ->  |
-|          |                   |  Traffic DB)        |
-|          |                   +---------------------+
+\`\`\`mermaid
+graph TD
+    Client["Mobile Client"]
+    CDN["CDN (CloudFront / Akamai)"]
+    Tiles["Map Tile Service (S3 / Object Store)"]
+    LB["Load Balancer"]
+    GW["API Gateway"]
+    Routing["Routing Service (Preprocessed road graph)"]
+    Nav["Navigation Service (WebSocket sessions)"]
+    Geo["Geocoding Service (Address to Coordinates)"]
+    RoadGraph["Road Graph Store (In-Memory)"]
+    Traffic["Traffic Service (Live speeds)"]
+    GeoIdx["Geocoding Index (Elasticsearch)"]
+    Ingest["Traffic Ingestion Pipeline (Kafka -> Flink -> Traffic DB)"]
+
+    Client --> CDN
+    CDN --> Tiles
+    Client --> LB
+    LB --> GW
+    GW --> Routing
+    GW --> Nav
+    GW --> Geo
+    Routing --> RoadGraph
+    Nav --> Traffic
+    Geo --> GeoIdx
+    Client -->|"GPS pings"| Ingest
+    Ingest --> Traffic
+
+    style Client fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style CDN fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style Tiles fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style LB fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style GW fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style Routing fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style Nav fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style Geo fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style RoadGraph fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style Traffic fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style GeoIdx fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style Ingest fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## Map Tile Rendering Pipeline
 
-\`\`\`
-Raw Map Data          Tile Build System              CDN / Storage
-(OpenStreetMap,       (Offline Pipeline)
- satellite, etc.)
-     |                       |                            |
-     | Ingest raw data       |                            |
-     |---------------------->|                            |
-     |                       | For each zoom level 0-21:  |
-     |                       | Subdivide world into tiles  |
-     |                       | Render vector/raster tile   |
-     |                       | Apply detail level rules    |
-     |                       |                            |
-     |                       | Upload tiles               |
-     |                       |--------------------------->|
-     |                       |                            |
-     |                       | Zoom 0: 1 tile (world)     |
-     |                       | Zoom 10: ~1M tiles         |
-     |                       | Zoom 18: ~69B tiles        |
-     |                       | (only render populated     |
-     |                       |  areas at high zoom)       |
+\`\`\`mermaid
+sequenceDiagram
+    participant Raw as Raw Map Data (OSM, satellite)
+    participant Build as Tile Build System (Offline Pipeline)
+    participant CDN as CDN / Storage
+
+    Raw->>Build: Ingest raw data
+    Note over Build: For each zoom level 0-21:<br/>Subdivide world into tiles<br/>Render vector/raster tile<br/>Apply detail level rules
+    Build->>CDN: Upload tiles
+    Note over CDN: Zoom 0: 1 tile (world)<br/>Zoom 10: ~1M tiles<br/>Zoom 18: ~69B tiles<br/>(only render populated areas at high zoom)
 \`\`\`
 
 ## Route Computation Flow
 
-\`\`\`
-Client          Routing Service        Road Graph (Memory)    Traffic Service
-  |                  |                        |                     |
-  | POST /routes     |                        |                     |
-  | origin, dest     |                        |                     |
-  |----------------->|                        |                     |
-  |                  | Geocode origin/dest    |                     |
-  |                  | -> graph node IDs      |                     |
-  |                  |                        |                     |
-  |                  | Get live segment       |                     |
-  |                  | speeds                 |                     |
-  |                  |-------------------------------------------->|
-  |                  |     speed_map          |                     |
-  |                  |<--------------------------------------------|
-  |                  |                        |                     |
-  |                  | Run Contraction        |                     |
-  |                  | Hierarchies query      |                     |
-  |                  | with traffic weights   |                     |
-  |                  |----------------------->|                     |
-  |                  |     shortest path      |                     |
-  |                  |<-----------------------|                     |
-  |                  |                        |                     |
-  |                  | Expand CH shortcuts    |                     |
-  |                  | into full road path    |                     |
-  |                  |                        |                     |
-  | Route + ETA      |                        |                     |
-  |<-----------------|                        |                     |
+\`\`\`mermaid
+sequenceDiagram
+    participant C as Client
+    participant RS as Routing Service
+    participant RG as Road Graph (Memory)
+    participant TS as Traffic Service
+
+    C->>RS: POST /routes (origin, dest)
+    Note over RS: Geocode origin/dest -> graph node IDs
+    RS->>TS: Get live segment speeds
+    TS-->>RS: speed_map
+    RS->>RG: Run Contraction Hierarchies query with traffic weights
+    RG-->>RS: shortest path
+    Note over RS: Expand CH shortcuts into full road path
+    RS-->>C: Route + ETA
 \`\`\`
 
 ## Traffic Ingestion Pipeline
 
-\`\`\`
-Millions of         Kafka            Stream Processor       Traffic DB
-GPS devices         (Ingestion)      (Flink / Spark)        (Redis + archive)
-     |                  |                  |                      |
-     | GPS ping         |                  |                      |
-     | {lat,lng,speed,  |                  |                      |
-     |  heading,ts}     |                  |                      |
-     |----------------->|                  |                      |
-     |                  | Buffered batch   |                      |
-     |                  |----------------->|                      |
-     |                  |                  | Map-match to         |
-     |                  |                  | road segment         |
-     |                  |                  |                      |
-     |                  |                  | Aggregate speed      |
-     |                  |                  | per segment          |
-     |                  |                  | (sliding window)     |
-     |                  |                  |                      |
-     |                  |                  | Update segment speed |
-     |                  |                  |--------------------->|
-     |                  |                  |                      |
+\`\`\`mermaid
+sequenceDiagram
+    participant GPS as GPS Devices (Millions)
+    participant K as Kafka (Ingestion)
+    participant SP as Stream Processor (Flink / Spark)
+    participant DB as Traffic DB (Redis + archive)
+
+    GPS->>K: GPS ping {lat, lng, speed, heading, ts}
+    K->>SP: Buffered batch
+    Note over SP: Map-match to road segment
+    Note over SP: Aggregate speed per segment (sliding window)
+    SP->>DB: Update segment speed
 \`\`\`
 `,
     jsCode: `## Deep Dive: Map Tiling and Zoom Levels
@@ -992,131 +947,133 @@ Raw GPS coordinates are noisy and may not fall exactly on a road. **Map matching
 `,
     code: `## Architecture Diagram
 
-\`\`\`
-+----------+  +----------+  +----------+
-| Producer |  | Producer |  | Producer |
-+----+-----+  +----+-----+  +----+-----+
-     |              |              |
-     +--------------+--------------+
-                    |
-                    v
-          +---------+----------+
-          | Load Balancer /    |
-          | Partition Router   |
-          | (hash(key) % N)   |
-          +----+----------+----+
-               |          |
-    +----------v---+  +---v-----------+
-    | Broker 1     |  | Broker 2      |
-    |              |  |               |
-    | Topic-A P0   |  | Topic-A P1    |
-    | (Leader)     |  | (Leader)      |
-    | Topic-A P1   |  | Topic-A P0    |
-    | (Follower)   |  | (Follower)    |
-    +---------+----+  +----+----------+
-              |             |
-              +------+------+
-                     |
-          +----------v----------+
-          | Coordination        |
-          | Service             |
-          | (ZooKeeper / Raft)  |
-          |                     |
-          | - Broker registry   |
-          | - Leader election   |
-          | - Consumer groups   |
-          | - Topic metadata    |
-          +---------------------+
-                     |
-              +------+------+
-              |             |
-    +---------v----+  +-----v---------+
-    | Consumer     |  | Consumer      |
-    | Group A      |  | Group B       |
-    |              |  |               |
-    | C1: P0       |  | C1: P0, P1   |
-    | C2: P1       |  |              |
-    +--------------+  +--------------+
+\`\`\`mermaid
+graph TD
+    P1["Producer 1"]
+    P2["Producer 2"]
+    P3["Producer 3"]
+    Router["Partition Router (hash key mod N)"]
+    B1["Broker 1<br/>Topic-A P0 Leader<br/>Topic-A P1 Follower"]
+    B2["Broker 2<br/>Topic-A P1 Leader<br/>Topic-A P0 Follower"]
+    ZK["Coordination Service (ZooKeeper / Raft)<br/>Broker registry, Leader election,<br/>Consumer groups, Topic metadata"]
+    CGA["Consumer Group A<br/>C1: P0, C2: P1"]
+    CGB["Consumer Group B<br/>C1: P0 + P1"]
+
+    P1 --> Router
+    P2 --> Router
+    P3 --> Router
+    Router --> B1
+    Router --> B2
+    B1 --> ZK
+    B2 --> ZK
+    ZK --> CGA
+    ZK --> CGB
+
+    style P1 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style P2 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style P3 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style Router fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style B1 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style B2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style ZK fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style CGA fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style CGB fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## Partition Log Structure (On Disk)
 
-\`\`\`
-Topic-A, Partition 0:
-
-Segment Files (each ~1 GB):
-+------------------------------------------------------------+
-| segment-00000000000000000000.log                           |
-| +--------+--------+--------+--------+--------+--------+   |
-| | msg 0  | msg 1  | msg 2  | msg 3  | ...    | msg N  |   |
-| | off=0  | off=1  | off=2  | off=3  |        | off=N  |   |
-| +--------+--------+--------+--------+--------+--------+   |
-+------------------------------------------------------------+
-| segment-00000000000000000000.index                         |
-| Sparse index: offset -> file position                      |
-| [0 -> 0, 100 -> 28491, 200 -> 57823, ...]                 |
-+------------------------------------------------------------+
-| segment-00000000000000000000.timeindex                     |
-| Sparse index: timestamp -> offset                          |
-| [1690000000 -> 0, 1690000060 -> 523, ...]                  |
-+------------------------------------------------------------+
-
-When segment exceeds size limit, roll to new segment:
-+------------------------------------------------------------+
-| segment-00000000000000052341.log                           |
-| +--------+--------+--------+                               |
-| | msg    | msg    | msg    | ...  (active segment)         |
-| | off=   | off=   | off=   |                               |
-| | 52341  | 52342  | 52343  |                               |
-| +--------+--------+--------+                               |
-+------------------------------------------------------------+
+\`\`\`mermaid
+graph TD
+    N0["segment-000.log"]
+    N1["msg 0"]
+    N2["msg 1"]
+    N3["msg 2"]
+    N4["msg 3"]
+    N5["..."]
+    N6["msg N"]
+    N7["segment-000.index"]
+    N8["segment-000.timeindex"]
+    N9["segment-052341.log"]
+    N10["msg 52341"]
+    N0 --> N1
+    N0 --> N2
+    N0 --> N3
+    N0 --> N4
+    N0 --> N5
+    N0 --> N6
+    N0 --> N7
+    N0 --> N8
+    N9 --> N10
+    style N0 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N8 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N9 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N10 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## Replication Flow
 
-\`\`\`
-Producer        Leader (Broker 1)    Follower (Broker 2)   Follower (Broker 3)
-   |                  |                     |                     |
-   | produce(msg)     |                     |                     |
-   |----------------->|                     |                     |
-   |                  | Append to local log |                     |
-   |                  |                     |                     |
-   |                  |    Fetch request    |                     |
-   |                  |<--------------------|                     |
-   |                  | Return new messages |                     |
-   |                  |-------------------->|                     |
-   |                  |        Append       |                     |
-   |                  |                     |                     |
-   |                  |    Fetch request    |                     |
-   |                  |<-----------------------------------------|
-   |                  | Return new messages |                     |
-   |                  |----------------------------------------->|
-   |                  |                     |          Append     |
-   |                  |                     |                     |
-   |                  | All ISR caught up   |                     |
-   |                  | -> advance HW       |                     |
-   |                  | (High Watermark)    |                     |
-   |                  |                     |                     |
-   |     ACK          |                     |                     |
-   |<-----------------|                     |                     |
+\`\`\`mermaid
+sequenceDiagram
+    participant P as Producer
+    participant L as Leader (Broker 1)
+    participant F2 as Follower (Broker 2)
+    participant F3 as Follower (Broker 3)
+
+    P->>L: produce(msg)
+    Note over L: Append to local log
+    F2->>L: Fetch request
+    L->>F2: Return new messages
+    Note over F2: Append
+    F3->>L: Fetch request
+    L->>F3: Return new messages
+    Note over F3: Append
+    Note over L: All ISR caught up → advance HW (High Watermark)
+    L-->>P: ACK
 \`\`\`
 
 ## Consumer Rebalancing
 
-\`\`\`
-Before: Consumer Group with C1, C2 consuming Topic-A (P0, P1, P2)
+\`\`\`mermaid
+graph TD
+    subgraph Before["Before: C1, C2 consuming Topic-A"]
+        B_C1["C1"] --> B_P0["P0"]
+        B_C1 --> B_P1["P1"]
+        B_C2["C2"] --> B_P2["P2"]
+    end
+    subgraph Rebalance["C3 joins → Coordinator triggers rebalance"]
+        R1["Detect membership change"]
+        R2["Revoke all partition assignments"]
+        R3["Reassign via round-robin or range"]
+        R1 --> R2 --> R3
+    end
+    subgraph After["After: Reassigned"]
+        A_C1["C1"] --> A_P0["P0"]
+        A_C2["C2"] --> A_P1["P1"]
+        A_C3["C3"] --> A_P2["P2"]
+    end
+    Before --> Rebalance --> After
 
-  C1 -> [P0, P1]     C2 -> [P2]
-
-C3 joins the group:
-
-  Coordinator detects membership change
-  -> Trigger rebalance
-  -> Revoke all partition assignments
-  -> Reassign using round-robin or range strategy
-
-After:
-  C1 -> [P0]     C2 -> [P1]     C3 -> [P2]
+    style B_C1 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style B_C2 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style B_P0 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style B_P1 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style B_P2 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style R1 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style R2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style R3 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style A_C1 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style A_C2 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style A_C3 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style A_P0 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style A_P1 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style A_P2 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
 \`\`\`
 `,
     jsCode: `## Deep Dive: On-Disk Storage Design

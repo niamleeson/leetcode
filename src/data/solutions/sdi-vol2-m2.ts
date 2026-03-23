@@ -84,92 +84,119 @@ The system has four major layers: a **metrics collection** layer using agents on
 `,
     code: `## Architecture Diagram
 
-\`\`\`
-+------------------+    +------------------+    +------------------+
-| Host A           |    | Host B           |    | Host C           |
-| +-------------+  |    | +-------------+  |    | +-------------+  |
-| |Metrics Agent|  |    | |Metrics Agent|  |    | |Metrics Agent|  |
-| +------+------+  |    | +------+------+  |    | +------+------+  |
-+--------|--------+    +--------|--------+    +--------|--------+
-         |                      |                      |
-         +----------+-----------+----------+-----------+
-                    |                      |
-           +--------v--------+    +--------v--------+
-           | Collection Svc  |    | Collection Svc  |
-           | (Stateless)     |    | (Stateless)     |
-           +--------+--------+    +--------+--------+
-                    |                      |
-           +--------v----------------------v--------+
-           |           Kafka Cluster                 |
-           |  (Partitioned by metric_name hash)      |
-           +--------+---------------+-------+-------+
-                    |               |       |
-           +--------v-------+ +----v---+ +-v-----------+
-           | TSDB Writers   | |Alerting| |Stream       |
-           | (Consumer Grp) | |Service | |Aggregator   |
-           +--------+-------+ +----+---+ +------+------+
-                    |               |            |
-           +--------v--------+     |     +------v------+
-           | Time-Series DB  |     |     | Pre-computed|
-           | (InfluxDB /     |<----+     | Rollups     |
-           |  custom store)  |           +-------------+
-           +--------+--------+
-                    |
-           +--------v--------+
-           |  Query Service   |
-           +--------+--------+
-                    |
-           +--------v--------+
-           |  Dashboard UI    |
-           |  (Grafana-like)  |
-           +-----------------+
+\`\`\`mermaid
+graph TD
+    N0["Host A"]
+    N1["Host B"]
+    N2["Host C"]
+    N3["Metrics Agent"]
+    N4["Collection Svc"]
+    N5["Kafka Cluster"]
+    N6[("TSDB Writers")]
+    N7["Alerting Service"]
+    N8["Stream Aggregator"]
+    N9[("Time-Series DB")]
+    N10["Pre-computed Rollups"]
+    N11["Query Service"]
+    N12["Dashboard UI (Grafana)"]
+    N0 --> N3
+    N1 --> N3
+    N2 --> N3
+    N3 --> N4
+    N4 --> N5
+    N5 --> N6
+    N5 --> N7
+    N5 --> N8
+    N6 --> N9
+    N8 --> N10
+    N9 --> N11
+    N10 --> N11
+    N11 --> N12
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N8 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N9 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N10 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N11 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N12 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## Data Ingestion Flow
 
-\`\`\`
-Metrics Agent      Collection Svc        Kafka           TSDB Writer       TSDB
-     |                   |                  |                 |               |
-     | POST /metrics     |                  |                 |               |
-     | (batch of points) |                  |                 |               |
-     |------------------>|                  |                 |               |
-     |                   | Validate + tag   |                 |               |
-     |                   | enrichment       |                 |               |
-     |                   |                  |                 |               |
-     |                   | Produce to topic |                 |               |
-     |                   |----------------->|                 |               |
-     |                   |                  |                 |               |
-     |    200 OK         |                  | Consume batch   |               |
-     |<------------------|                  |---------------->|               |
-     |                   |                  |                 | Write to WAL  |
-     |                   |                  |                 |-------------->|
-     |                   |                  |                 | Flush to disk |
-     |                   |                  |                 |-------------->|
+\`\`\`mermaid
+graph TD
+    N0["Ad Server A"]
+    N1["Ad Server B"]
+    N2["Ad Server C"]
+    N3[("Click events")]
+    N4[("Kafka Cluster")]
+    N5["Real-Time Path (Flink)"]
+    N6["Batch Path"]
+    N7[("Aggregation DB")]
+    N8["Query Service"]
+    N9["Advertiser Dashboard"]
+    N0 --> N3
+    N1 --> N3
+    N2 --> N3
+    N3 --> N4
+    N4 --> N5
+    N4 --> N6
+    N5 --> N7
+    N6 --> N7
+    N7 --> N8
+    N8 --> N9
+    style N0 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N8 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N9 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## Alerting Evaluation Flow
 
-\`\`\`
-Kafka             Alerting Service          Alert Store        Notification
-  |                     |                       |                   |
-  | Stream of metrics   |                       |                   |
-  |-------------------->|                       |                   |
-  |                     | Evaluate rules        |                   |
-  |                     | against incoming data |                   |
-  |                     |                       |                   |
-  |                     | Condition met for     |                   |
-  |                     | required duration?    |                   |
-  |                     |----+                  |                   |
-  |                     |    | YES              |                   |
-  |                     |<---+                  |                   |
-  |                     |                       |                   |
-  |                     | Persist alert state   |                   |
-  |                     |---------------------->|                   |
-  |                     |                       |                   |
-  |                     | Deduplicate + route   |                   |
-  |                     |-------------------------------------->|
-  |                     |                       |   PagerDuty /     |
-  |                     |                       |   Slack / Email   |
+\`\`\`mermaid
+graph TD
+    N0["Browser / Mobile"]
+    N1["CDN"]
+    N2[("Static Assets (S3)")]
+    N3["API Gateway"]
+    N4["Hotel Service"]
+    N5["Payment Service"]
+    N6[("Hotel DB")]
+    N7[("Reservation DB")]
+    N8[("Payment DB")]
+    N9["Notification Service"]
+    N0 --> N1
+    N0 --> N3
+    N1 --> N2
+    N3 --> N4
+    N3 --> N5
+    N4 --> N6
+    N4 --> N7
+    N5 --> N8
+    N4 --> N9
+    N5 --> N9
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N8 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N9 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
 \`\`\`
 `,
     jsCode: `## Deep Dive: Time-Series Database Storage Engine
@@ -180,22 +207,47 @@ Time-series workloads have a unique access pattern: **writes are always appended
 
 ### LSM-Tree Optimized for Time
 
-\`\`\`
-Write Path (LSM-Tree based):
-+-------------------+
-| In-Memory Buffer  |  <- Active writes go here (sorted by time)
-| (MemTable)        |  <- Typically covers last few minutes
-+--------+----------+
-         | Flush when full
-+--------v----------+
-| Immutable SSTable |  <- Sorted, compressed on-disk files
-| (Level 0)        |  <- One file per flush
-+--------+----------+
-         | Compaction merges files
-+--------v----------+
-| Compacted SSTables|  <- Merged, deduped, time-partitioned
-| (Level 1+)       |  <- Each file covers a fixed time window
-+-------------------+
+\`\`\`mermaid
+graph TD
+    N0["External Mail"]
+    N1["SMTP Receiver"]
+    N2["Processing Pipeline"]
+    N3[("Email Body Store")]
+    N4["Search Index (ES)"]
+    N5["Push / WS Service"]
+    N6["User (Web / Mobile)"]
+    N7["API Server (Compose)"]
+    N8["Send Queue (Kafka)"]
+    N9["SMTP Sender"]
+    N10["API Server (REST/IMAP)"]
+    N11[("Metadata DB")]
+    N12[("Object Storage")]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    N2 --> N4
+    N2 --> N11
+    N2 --> N5
+    N6 --> N7
+    N6 --> N10
+    N7 --> N8
+    N8 --> N9
+    N10 --> N11
+    N10 --> N12
+    N5 --> N6
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N8 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N9 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N10 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N11 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N12 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 The key optimization is **time-based partitioning**: data is sharded into fixed time blocks (e.g., 2-hour blocks). This means queries for a time range only need to open the relevant block files, and old data can be deleted by simply dropping entire block files rather than scanning and deleting individual rows.
@@ -215,16 +267,32 @@ Time-series data compresses extremely well because consecutive values are highly
 
 Raw data at 10-second resolution is expensive to store and query over long time ranges. Downsampling reduces storage and query cost:
 
-\`\`\`
-Resolution Tiers:
-+------------------+------------------+-----------------+
-| Tier             | Resolution       | Retention       |
-+------------------+------------------+-----------------+
-| Raw              | 10 sec           | 7 days          |
-| Short-term       | 1 min            | 30 days         |
-| Medium-term      | 5 min            | 6 months        |
-| Long-term        | 1 hour           | 2+ years        |
-+------------------+------------------+-----------------+
+\`\`\`mermaid
+graph TD
+    N0["Client (SDK / CLI)"]
+    N1["API Gateway"]
+    N2[("Metadata Service")]
+    N3["GC Service"]
+    N4[("Storage Node")]
+    N5["Data File 1"]
+    N6["Data File 2"]
+    N7["Checksum Index"]
+    N0 --> N1
+    N1 --> N2
+    N1 --> N4
+    N4 --> N5
+    N4 --> N6
+    N4 --> N7
+    N3 --> N2
+    N3 --> N4
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 For each downsampled interval, store multiple aggregates: **min, max, avg, sum, count**. This lets dashboards show accurate graphs at any zoom level. Downsampling runs as a background job after the retention window for the higher-resolution tier expires.
@@ -233,24 +301,16 @@ For each downsampled interval, store multiple aggregates: **min, max, avg, sum, 
 
 The alerting service evaluates rules in a streaming fashion:
 
-\`\`\`
-Alert Rule Example:
-  IF avg(cpu.usage{host=*,region="us-east"}) > 90
-  FOR 5 minutes
-  NOTIFY pagerduty-oncall
-
-Evaluation Pipeline:
-+----------------+     +--------------+     +-------------+
-| Rule Evaluator |---->| State Machine|---->| Notification|
-| (per rule)     |     | (per series) |     | Router      |
-+----------------+     +--------------+     +-------------+
-       |                      |
-  Fetch current          Track state:
-  metric value           INACTIVE -> PENDING -> FIRING -> RESOLVED
-  every eval interval         |
-  (e.g., 15 sec)        PENDING requires condition
-                         to hold for "FOR" duration
-                         before transitioning to FIRING
+\`\`\`mermaid
+graph TD
+    N0["Rule Evaluator"]
+    N1["State Machine"]
+    N2["Notification Router"]
+    N0 --> N1
+    N1 --> N2
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 Each alert rule has a finite state machine per matching time series. The **PENDING** state prevents spurious alerts from momentary spikes. The **RESOLVED** state sends a recovery notification. Grouping, inhibition, and silencing are handled by the notification router to prevent alert fatigue.
@@ -381,106 +441,79 @@ Raw click events flow into **Kafka** as the central event bus. A **stream proces
 `,
     code: `## Architecture Diagram
 
-\`\`\`
-+-------------+     +-------------+     +-------------+
-| Ad Server A |     | Ad Server B |     | Ad Server C |
-+------+------+     +------+------+     +------+------+
-       |                   |                   |
-       | Click events      |                   |
-       +-------------------+-------------------+
-                           |
-                  +--------v--------+
-                  |   Kafka Cluster  |
-                  |  (click_events   |
-                  |   topic)         |
-                  +----+--------+---+
-                       |        |
-          +------------v--+  +--v--------------+
-          | Real-Time Path|  | Batch Path      |
-          |               |  |                 |
-          | Apache Flink  |  | Raw events      |
-          | - Dedup       |  | archived to S3  |
-          | - Windowed    |  |                 |
-          |   aggregation |  | Hourly Spark    |
-          | - Exactly-once|  | MapReduce job   |
-          +-------+-------+  +--------+--------+
-                  |                    |
-          +-------v-------+  +--------v--------+
-          | Aggregation DB |  | Reconciliation  |
-          | (ClickHouse /  |<-| Service         |
-          |  Druid)        |  | (compare & fix) |
-          +-------+--------+  +-----------------+
-                  |
-          +-------v--------+
-          | Query Service   |
-          +-------+--------+
-                  |
-          +-------v--------+
-          | Advertiser      |
-          | Dashboard       |
-          +----------------+
+\`\`\`mermaid
+graph TD
+    A1["Ad Server A"]
+    A2["Ad Server B"]
+    A3["Ad Server C"]
+    Kafka["Kafka Cluster (click_events topic)"]
+    RT["Real-Time Path<br/>Apache Flink<br/>Dedup, Windowed aggregation, Exactly-once"]
+    Batch["Batch Path<br/>Raw events archived to S3<br/>Hourly Spark MapReduce job"]
+    AggDB["Aggregation DB (ClickHouse / Druid)"]
+    Recon["Reconciliation Service (compare and fix)"]
+    Query["Query Service"]
+    Dash["Advertiser Dashboard"]
+
+    A1 -->|"Click events"| Kafka
+    A2 -->|"Click events"| Kafka
+    A3 -->|"Click events"| Kafka
+    Kafka --> RT
+    Kafka --> Batch
+    RT --> AggDB
+    Batch --> Recon
+    Recon --> AggDB
+    AggDB --> Query
+    Query --> Dash
+
+    style A1 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style A2 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style A3 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style Kafka fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style RT fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style Batch fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style AggDB fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style Recon fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style Query fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style Dash fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## Real-Time Aggregation Flow
 
-\`\`\`
-Ad Server          Kafka              Flink              Aggregation DB
-    |                |                   |                     |
-    | Click event    |                   |                     |
-    |--------------->|                   |                     |
-    |                | Consume           |                     |
-    |                |------------------>|                     |
-    |                |                   |                     |
-    |                |                   | 1. Dedup by         |
-    |                |                   |    click_id         |
-    |                |                   |    (bloom filter    |
-    |                |                   |     + Redis)        |
-    |                |                   |                     |
-    |                |                   | 2. Assign to        |
-    |                |                   |    tumbling window  |
-    |                |                   |    (1 min)          |
-    |                |                   |                     |
-    |                |                   | 3. Aggregate by     |
-    |                |                   |    (ad_id, country, |
-    |                |                   |     device)         |
-    |                |                   |                     |
-    |                |                   | 4. Window closes    |
-    |                |                   | ---- emit result -->|
-    |                |                   |                     | UPSERT into
-    |                |                   |                     | aggregation
-    |                |                   | 5. Checkpoint       | table
-    |                |                   |    to S3            |
-    |                |                   |                     |
+\`\`\`mermaid
+sequenceDiagram
+    participant AS as Ad Server
+    participant K as Kafka
+    participant F as Flink
+    participant DB as Aggregation DB
+
+    AS->>K: Click event
+    K->>F: Consume
+    Note over F: 1. Dedup by click_id (bloom filter + Redis)
+    Note over F: 2. Assign to tumbling window (1 min)
+    Note over F: 3. Aggregate by (ad_id, country, device)
+    Note over F: 4. Window closes
+    F->>DB: Emit result
+    Note over DB: UPSERT into aggregation table
+    Note over F: 5. Checkpoint to S3
 \`\`\`
 
 ## Batch Reconciliation Flow
 
-\`\`\`
-S3 (Raw Logs)       Spark Job           Recon Service       Aggregation DB
-     |                   |                    |                    |
-     | Read day's        |                    |                    |
-     | raw events        |                    |                    |
-     |------------------>|                    |                    |
-     |                   | MapReduce:         |                    |
-     |                   | Map: (ad_id, 1)    |                    |
-     |                   | Reduce: SUM        |                    |
-     |                   |                    |                    |
-     |                   | Batch counts       |                    |
-     |                   |------------------->|                    |
-     |                   |                    | Fetch streaming    |
-     |                   |                    | counts             |
-     |                   |                    |------------------->|
-     |                   |                    |<-------------------|
-     |                   |                    |                    |
-     |                   |                    | Compare:           |
-     |                   |                    | |batch - stream|   |
-     |                   |                    | > threshold?       |
-     |                   |                    |                    |
-     |                   |                    | If mismatch:       |
-     |                   |                    | update with batch  |
-     |                   |                    | counts (source of  |
-     |                   |                    | truth)             |
-     |                   |                    |------------------->|
+\`\`\`mermaid
+sequenceDiagram
+    participant S3 as S3 (Raw Logs)
+    participant Spark as Spark Job
+    participant Recon as Recon Service
+    participant DB as Aggregation DB
+
+    S3->>Spark: Read day's raw events
+    Note over Spark: MapReduce:<br/>Map: (ad_id, 1)<br/>Reduce: SUM
+    Spark->>Recon: Batch counts
+    Recon->>DB: Fetch streaming counts
+    DB-->>Recon: Streaming counts
+    Note over Recon: Compare: |batch - stream| > threshold?
+    Note over Recon: If mismatch: update with batch counts (source of truth)
+    Recon->>DB: Update corrected counts
 \`\`\`
 `,
     jsCode: `## Deep Dive: Stream Processing and Exactly-Once Semantics
@@ -489,25 +522,45 @@ S3 (Raw Logs)       Spark Job           Recon Service       Aggregation DB
 
 Stream processing must group events into finite windows for aggregation. The choice of window type affects latency, accuracy, and complexity:
 
-\`\`\`
-Tumbling Window (fixed, non-overlapping):
-|---Window 1---|---Window 2---|---Window 3---|
-0:00          1:00          2:00          3:00
-Events in each window counted independently.
-Used for: billing counts per minute
+\`\`\`mermaid
+graph TD
+    subgraph Tumbling["Tumbling Window (fixed, non-overlapping)"]
+        TW1["Window 1: 0:00-1:00"]
+        TW2["Window 2: 1:00-2:00"]
+        TW3["Window 3: 2:00-3:00"]
+        TW1 --> TW2 --> TW3
+        TN["Events counted independently per window"]
+        TU["Used for: billing counts per minute"]
+    end
+    subgraph Sliding["Sliding Window (fixed size, moves continuously)"]
+        SW1["Window A"]
+        SW2["Window B (overlaps A)"]
+        SW3["Window C (overlaps B)"]
+        SN["Events appear in multiple windows"]
+        SU["Used for: moving averages"]
+    end
+    subgraph Session["Session Window (gap-based)"]
+        SS1["Session 1 (events close together)"]
+        GAP["--- gap ---"]
+        SS2["Session 2 (events close together)"]
+        SS1 --- GAP --- SS2
+        SU2["Used for: user session analytics"]
+    end
 
-Sliding Window (fixed size, moves continuously):
-|---Window A---|
-   |---Window B---|
-      |---Window C---|
-Events appear in multiple windows.
-Used for: moving averages (e.g., avg clicks in last 5 min)
-
-Session Window (gap-based):
-|--Session 1--|     |----Session 2----|
-  events        gap    events
-  close together       close together
-Used for: user session analytics
+    style TW1 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style TW2 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style TW3 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style TN fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style TU fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style SW1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style SW2 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style SW3 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style SN fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style SU fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style SS1 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style GAP fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style SS2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style SU2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 For ad click billing, **tumbling windows** are the right choice — they produce non-overlapping, deterministic counts that can be reconciled against batch.
@@ -516,21 +569,16 @@ For ad click billing, **tumbling windows** are the right choice — they produce
 
 Achieving exactly-once counting requires coordination across three boundaries:
 
-\`\`\`
-Source (Kafka)        Processing (Flink)       Sink (Aggregation DB)
-+----------------+    +------------------+     +------------------+
-| Consumer offset|    | Operator state   |     | Output records   |
-| tracking       |    | (running counts) |     |                  |
-+--------+-------+    +--------+---------+     +--------+---------+
-         |                     |                         |
-         +---------------------+-------------------------+
-                               |
-                 All three must be committed ATOMICALLY
-                 via Flink's Checkpoint mechanism:
-                 1. Barrier injected into stream
-                 2. Each operator snapshots state to S3
-                 3. Kafka offsets committed
-                 4. Sink uses idempotent writes (UPSERT)
+\`\`\`mermaid
+graph TD
+    N0["Consumer offsets"]
+    N1["Operator state"]
+    N2["Output records"]
+    N0 --> N1
+    N1 --> N2
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 **How Flink checkpointing works**: Flink periodically injects checkpoint barriers into the data stream. When an operator receives a barrier, it snapshots its current state (e.g., running click counts) to durable storage (S3/HDFS). If a failure occurs, Flink rolls back all operators to the last successful checkpoint and replays events from Kafka starting at the committed offsets. The sink must use **idempotent writes** (UPSERT by \`ad_id + window_start\`) so that replayed events do not produce duplicate counts.
@@ -539,46 +587,43 @@ Source (Kafka)        Processing (Flink)       Sink (Aggregation DB)
 
 Users may click the same ad multiple times accidentally, or network retries may produce duplicate click events. Deduplication happens at two levels:
 
-\`\`\`
-Level 1: Within Flink (streaming dedup)
-+-------------------+
-| Bloom Filter      |  <- Fast probabilistic check (tiny false positive rate)
-| (in-memory)       |  <- Covers events in current window
-+---------+---------+
-          | Possible duplicate?
-+---------v---------+
-| Redis Exact Check |  <- Stores click_ids for last 24 hours
-| (distributed)     |  <- TTL auto-cleans old entries
-+-------------------+
-
-Level 2: At the aggregation DB (idempotent writes)
-  UPSERT into click_aggregation (ad_id, window_start)
-  SET click_count = new_count
-  WHERE updated_at < current_timestamp
-  This ensures replays do not double-count.
+\`\`\`mermaid
+graph TD
+    N0["Bloom Filter (in-memory)"]
+    N1["Redis Exact Check"]
+    N0 --> N1
+    style N0 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ### Handling Late-Arriving Events (Watermarking)
 
 Events can arrive out of order due to network delays. Watermarks tell the system "all events up to time T have likely arrived":
 
-\`\`\`
-Event Time:    10:00:01  10:00:03  10:00:02  10:00:15  10:00:05
-                  |         |         |          |         |
-                  v         v         v          v         v
-Stream:     ----[E1]-----[E3]-----[E2]-------[E15]-----[E5]----
-                                                 ^
-                                    Watermark: 10:00:10
-                                    (5 sec allowed lateness)
+\`\`\`mermaid
+graph LR
+    E1["E1 (10:00:01)"] --> E3["E3 (10:00:03)"]
+    E3 --> E2["E2 (10:00:02)"]
+    E2 --> E15["E15 (10:00:15)"]
+    E15 --> E5["E5 (10:00:05)"]
+    WM["Watermark: 10:00:10 (5 sec allowed lateness)"]
+    E5 -.->|"Late but within window → counted"| WM
 
-E5 arrives after the watermark but within the allowed
-lateness window -> still counted in the correct window.
+    subgraph LatePolicy["Events after allowed lateness"]
+        OA["Option A: Drop (simple, loses data)"]
+        OB["Option B: Route to late events side output"]
+        OC["Option C: Update previously emitted results"]
+    end
 
-Events arriving AFTER the allowed lateness:
-  Option A: Drop them (simple, loses data)
-  Option B: Route to a "late events" side output for
-            batch reconciliation to handle
-  Option C: Update previously emitted results (complex)
+    style E1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style E3 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style E2 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style E15 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style E5 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style WM fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style OA fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style OB fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style OC fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 For billing accuracy, **Option B** is preferred — late events are captured in the batch path which serves as the source of truth.
@@ -587,52 +632,32 @@ For billing accuracy, **Option B** is preferred — late events are captured in 
 
 The batch path runs periodically on the complete raw event log:
 
-\`\`\`
-MapReduce Job:
-+----------------------------------+
-| Map Phase                        |
-| Input: raw click events from S3  |
-| Output: (ad_id, 1) pairs         |
-+---------------+------------------+
-                |
-+---------------v------------------+
-| Shuffle Phase                    |
-| Group by ad_id                   |
-+---------------+------------------+
-                |
-+---------------v------------------+
-| Reduce Phase                     |
-| SUM all counts per ad_id         |
-| Output: (ad_id, total_count)     |
-+----------------------------------+
+\`\`\`mermaid
+graph TD
+    N0[("Map Phase: raw events from S3")]
+    N1["Shuffle Phase: Group by ad_id"]
+    N2["Reduce Phase: SUM counts"]
+    N0 --> N1
+    N1 --> N2
+    style N0 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 This produces the ground-truth count because it processes the **complete** dataset, not a stream. The reconciliation service compares batch vs real-time counts and overwrites the real-time result when discrepancies exceed a configurable threshold (e.g., > 0.1% difference).
 
 ### Data Reconciliation
 
-\`\`\`
-Reconciliation Strategy:
-+------------------+     +------------------+
-| Real-Time Counts |     | Batch Counts     |
-| (available in    |     | (available after |
-|  seconds)        |     |  batch job runs, |
-|                  |     |  e.g., T+1 hour) |
-+--------+---------+     +--------+---------+
-         |                         |
-         +------------+------------+
-                      |
-         +------------v-----------+
-         | Reconciliation Service  |
-         | For each (ad_id, hour): |
-         |   diff = |batch - RT|   |
-         |   if diff > threshold:  |
-         |     UPDATE with batch   |
-         |     count (source of    |
-         |     truth)              |
-         |   Log all discrepancies |
-         |   for monitoring        |
-         +------------------------+
+\`\`\`mermaid
+graph TD
+    N0["Real-Time Counts"]
+    N1["Batch Counts"]
+    N2["Reconciliation Service"]
+    N0 --> N2
+    N1 --> N2
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
 \`\`\`
 `,
     explanation: `## Wrap Up
@@ -775,89 +800,65 @@ A **CDN** serves static hotel images and listing pages. An **API Gateway** route
 `,
     code: `## Architecture Diagram
 
-\`\`\`
-+----------+         +-----------+          +------------------+
-| Browser /|         |   CDN     |          | Static Assets    |
-| Mobile   |-------->| (Images,  |--------->| (S3 / CloudFront)|
-| Client   |         |  Listings)|          +------------------+
-+----+-----+         +-----------+
-     |
-     | API calls
-     |
-+----v-----------------+
-|    API Gateway        |
-|  (Auth, Rate Limit,   |
-|   Routing)            |
-+----+------+------+---+
-     |      |      |
-+----v---+ +v------v---------+  +----------------+
-| Hotel  | | Reservation     |  | Payment        |
-| Service| | Service         |  | Service        |
-|        | |                 |  |                |
-| Search | | Book / Cancel   |  | Charge / Refund|
-| Detail | | Concurrency Ctrl|  | via Stripe/etc |
-+----+---+ +----+-----+------+  +-------+--------+
-     |          |     |                  |
-+----v---+ +----v-----v--------+  +------v--------+
-| Hotel  | | Reservation DB    |  | Payment DB    |
-| DB     | | (PostgreSQL)      |  | (PostgreSQL)  |
-| (Read  | |                   |  |               |
-| Replica| | ACID Transactions |  | Txn records   |
-| + Redis| | Locking for       |  +---------------+
-| Cache) | | concurrency       |
-+--------+ +-------------------+
-                    |
-            +-------v--------+
-            | Notification   |
-            | Service        |
-            | (Email / SMS)  |
-            +----------------+
+\`\`\`mermaid
+graph TD
+    Client["Browser / Mobile Client"]
+    CDN["CDN (Images, Listings)"]
+    Static["Static Assets (S3 / CloudFront)"]
+    GW["API Gateway (Auth, Rate Limit, Routing)"]
+    Hotel["Hotel Service (Search, Detail)"]
+    Res["Reservation Service (Book / Cancel, Concurrency Ctrl)"]
+    Pay["Payment Service (Charge / Refund via Stripe)"]
+    HotelDB["Hotel DB (Read Replica + Redis Cache)"]
+    ResDB["Reservation DB (PostgreSQL, ACID, Locking)"]
+    PayDB["Payment DB (PostgreSQL, Txn records)"]
+    Notif["Notification Service (Email / SMS)"]
+
+    Client --> CDN
+    CDN --> Static
+    Client -->|"API calls"| GW
+    GW --> Hotel
+    GW --> Res
+    GW --> Pay
+    Hotel --> HotelDB
+    Res --> ResDB
+    Pay --> PayDB
+    ResDB --> Notif
+
+    style Client fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style CDN fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style Static fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style GW fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style Hotel fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style Res fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style Pay fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style HotelDB fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style ResDB fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style PayDB fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style Notif fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## Reservation Flow (Optimistic Locking)
 
-\`\`\`
-Client             API Gateway       Reservation Svc      DB (PostgreSQL)
-  |                    |                   |                    |
-  | POST /reservations |                   |                    |
-  | {idempotencyKey}   |                   |                    |
-  |------------------->|                   |                    |
-  |                    |------------------>|                    |
-  |                    |                   |                    |
-  |                    |                   | BEGIN TRANSACTION  |
-  |                    |                   |------------------->|
-  |                    |                   |                    |
-  |                    |                   | SELECT reserved,   |
-  |                    |                   | total, version     |
-  |                    |                   | FROM room_inventory|
-  |                    |                   | WHERE room_type_id |
-  |                    |                   | AND date IN (...)  |
-  |                    |                   |------------------->|
-  |                    |                   |<-------------------|
-  |                    |                   |                    |
-  |                    |                   | Check: reserved    |
-  |                    |                   | < total * overbook |
-  |                    |                   | factor for ALL     |
-  |                    |                   | dates?             |
-  |                    |                   |                    |
-  |                    |                   | UPDATE inventory   |
-  |                    |                   | SET reserved += 1, |
-  |                    |                   | version += 1       |
-  |                    |                   | WHERE version =    |
-  |                    |                   | old_version        |
-  |                    |                   |------------------->|
-  |                    |                   |                    |
-  |                    |                   | rows affected = 0? |
-  |                    |                   | RETRY (conflict)   |
-  |                    |                   |                    |
-  |                    |                   | INSERT reservation |
-  |                    |                   |------------------->|
-  |                    |                   |                    |
-  |                    |                   | COMMIT             |
-  |                    |                   |------------------->|
-  |                    |                   |                    |
-  | 200 OK {res_id}    |                   |                    |
-  |<-------------------|<------------------|                    |
+\`\`\`mermaid
+sequenceDiagram
+    participant C as Client
+    participant GW as API Gateway
+    participant RS as Reservation Svc
+    participant DB as DB (PostgreSQL)
+
+    C->>GW: POST /reservations {idempotencyKey}
+    GW->>RS: Forward request
+    RS->>DB: BEGIN TRANSACTION
+    RS->>DB: SELECT reserved, total, version FROM room_inventory WHERE room_type_id AND date IN (...)
+    DB-->>RS: Inventory rows
+    Note over RS: Check: reserved < total * overbook factor for ALL dates?
+    RS->>DB: UPDATE inventory SET reserved += 1, version += 1 WHERE version = old_version
+    Note over RS: rows affected = 0? RETRY (conflict)
+    RS->>DB: INSERT reservation
+    RS->>DB: COMMIT
+    RS-->>GW: Success
+    GW-->>C: 200 OK {res_id}
 \`\`\`
 
 ## Pessimistic Locking Alternative
@@ -887,44 +888,40 @@ COMMIT;                                -- Lock released
 
 Without concurrency control, two users checking availability simultaneously could both see "1 room available" and both successfully book, resulting in an oversold room:
 
-\`\`\`
-Timeline without locking:
-User A                     DB                     User B
-  |                         |                        |
-  | SELECT available = 1    |                        |
-  |------------------------>|                        |
-  |                         | SELECT available = 1   |
-  |                         |<-----------------------|
-  | Check: 1 > 0 -> OK     |                        |
-  |                         |   Check: 1 > 0 -> OK   |
-  | UPDATE reserved += 1   |                        |
-  |------------------------>|                        |
-  |                         | UPDATE reserved += 1   |
-  |                         |<-----------------------|
-  |                         |                        |
-  BOTH succeed! Room is DOUBLE-BOOKED.
+\`\`\`mermaid
+sequenceDiagram
+    participant A as User A
+    participant DB as DB
+    participant B as User B
+
+    Note over A,B: Timeline without locking
+    A->>DB: SELECT available = 1
+    B->>DB: SELECT available = 1
+    Note over A: Check: 1 > 0 → OK
+    Note over B: Check: 1 > 0 → OK
+    A->>DB: UPDATE reserved += 1
+    B->>DB: UPDATE reserved += 1
+    Note over A,B: BOTH succeed! Room is DOUBLE-BOOKED.
 \`\`\`
 
 ### Option 1: Pessimistic Locking (SELECT FOR UPDATE)
 
-\`\`\`
-How it works:
-User A                     DB                     User B
-  |                         |                        |
-  | SELECT ... FOR UPDATE   |                        |
-  |------------------------>|                        |
-  |  Lock acquired on row   |                        |
-  |                         | SELECT ... FOR UPDATE  |
-  |                         |<-----------------------|
-  |                         | BLOCKED (waiting for   |
-  | Check + UPDATE + COMMIT |  User A's lock)        |
-  |------------------------>|                        |
-  |  Lock released          |                        |
-  |                         | Lock acquired          |
-  |                         |----------------------->|
-  |                         | Check: available = 0   |
-  |                         | -> REJECT              |
-  |                         |----------------------->|
+\`\`\`mermaid
+sequenceDiagram
+    participant A as User A
+    participant DB as DB
+    participant B as User B
+
+    Note over A,B: Pessimistic Locking (SELECT FOR UPDATE)
+    A->>DB: SELECT ... FOR UPDATE
+    Note over A,DB: Lock acquired on row
+    B->>DB: SELECT ... FOR UPDATE
+    Note over DB,B: BLOCKED (waiting for User A's lock)
+    A->>DB: Check + UPDATE + COMMIT
+    Note over A,DB: Lock released
+    DB-->>B: Lock acquired
+    Note over DB,B: Check: available = 0 → REJECT
+    DB-->>B: REJECT
 \`\`\`
 
 **Pros**: Simple to reason about, guaranteed correctness, no retry logic needed.
@@ -932,26 +929,19 @@ User A                     DB                     User B
 
 ### Option 2: Optimistic Locking (Version Column)
 
-\`\`\`
-How it works:
-User A                     DB                     User B
-  |                         |                        |
-  | SELECT (version=5)      |                        |
-  |------------------------>|                        |
-  |                         | SELECT (version=5)     |
-  |                         |<-----------------------|
-  |                         |                        |
-  | UPDATE ... WHERE        |                        |
-  | version = 5             |                        |
-  | SET version = 6         |                        |
-  |------------------------>|                        |
-  | 1 row affected -> OK    |                        |
-  |                         | UPDATE ... WHERE       |
-  |                         | version = 5            |
-  |                         |<-----------------------|
-  |                         | 0 rows affected ->     |
-  |                         | CONFLICT! Retry.       |
-  |                         |----------------------->|
+\`\`\`mermaid
+sequenceDiagram
+    participant A as User A
+    participant DB as DB
+    participant B as User B
+
+    Note over A,B: Optimistic Locking (Version Column)
+    A->>DB: SELECT (version=5)
+    B->>DB: SELECT (version=5)
+    A->>DB: UPDATE ... WHERE version=5, SET version=6
+    DB-->>A: 1 row affected → OK
+    B->>DB: UPDATE ... WHERE version=5
+    DB-->>B: 0 rows affected → CONFLICT! Retry.
 \`\`\`
 
 **Pros**: No blocking, higher throughput when conflicts are rare (which they are for hotels — ~6 QPS).
@@ -965,54 +955,32 @@ Since hotel reservation QPS is very low (~6 QPS), **either approach works well**
 
 Network failures and client retries can cause the same reservation request to be sent multiple times. The reservation API must be **idempotent** — processing the same request twice must not create two reservations.
 
-\`\`\`
-Idempotency Implementation:
-1. Client generates a unique idempotency_key (UUID) per booking attempt
-2. Server checks: does a reservation with this key already exist?
-
-+------------------+     +-----------------------+
-| Client sends     |     | Reservation Service   |
-| POST /reserve    |     |                       |
-| {idempotencyKey: |---->| 1. Check idempotency  |
-|  "abc-123"}      |     |    table for "abc-123" |
-+------------------+     |                       |
-                         | 2a. Found -> return   |
-                         |     cached response    |
-                         |                       |
-                         | 2b. Not found ->      |
-                         |     process normally   |
-                         |     store result with  |
-                         |     key "abc-123"      |
-                         +-----------------------+
-
--- Idempotency table
-CREATE TABLE idempotency_keys (
-  idempotency_key  VARCHAR(36) PRIMARY KEY,
-  reservation_id   BIGINT,
-  response_body    JSONB,
-  created_at       TIMESTAMP,
-  expires_at       TIMESTAMP  -- Clean up after 24h
-);
+\`\`\`mermaid
+graph TD
+    N0["Client sends POST /reserve"]
+    N1["Reservation Service checks idempotency"]
+    N0 --> N1
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ### Caching Strategy with CDC
 
 Hotel details and availability are read much more often than they are updated. Use Redis to cache hotel data, and **Change Data Capture (CDC)** to invalidate caches:
 
-\`\`\`
-+------------------+     +------------------+     +------------------+
-| Reservation DB   |---->| CDC Stream       |---->| Cache Invalidator|
-| (PostgreSQL)     |     | (Debezium ->     |     | Service          |
-|                  |     |  Kafka)          |     |                  |
-| INSERT/UPDATE    |     | Captures row     |     | Deletes stale    |
-| on inventory     |     | changes          |     | Redis keys       |
-+------------------+     +------------------+     +--------+---------+
-                                                           |
-                                                  +--------v---------+
-                                                  | Redis Cache       |
-                                                  | hotel:{id}:rooms  |
-                                                  | hotel:{id}:avail  |
-                                                  +------------------+
+\`\`\`mermaid
+graph TD
+    N0[("Reservation DB")]
+    N1["CDC Stream (Debezium)"]
+    N2["Cache Invalidator"]
+    N3["Redis Cache"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    style N0 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 This ensures the cache is eventually consistent with the database without requiring application code to manually invalidate — the CDC stream handles it automatically.
@@ -1167,207 +1135,160 @@ The system has three major subsystems: an **inbound email pipeline** (SMTP recei
 `,
     code: `## Architecture Diagram
 
-\`\`\`
-                    INBOUND EMAIL PATH
-+----------+     +-------------------+     +------------------+
-| External |     | SMTP Receiver     |     | Processing       |
-| Mail     |---->| (MX Records point |---->| Pipeline         |
-| Servers  |     |  here)            |     |                  |
-+----------+     +-------------------+     | 1. Spam Filter   |
-                                           | 2. Virus Scan    |
-                                           | 3. SPF/DKIM/DMARC|
-                                           | 4. Content Parse |
-                                           +--------+---------+
-                                                    |
-                    +-------------------------------+
-                    |                               |
-           +--------v--------+             +--------v--------+
-           | Email Body Store |             | Email Metadata  |
-           | (Object Storage  |             | DB (PostgreSQL  |
-           |  S3 / Blob)      |             |  sharded by     |
-           |                  |             |  user_id)       |
-           | Bodies + attach- |             +--------+--------+
-           | ments stored as  |                      |
-           | objects          |             +--------v--------+
-           +------------------+             | Search Index    |
-                                            | (Elasticsearch) |
-                                            +-----------------+
-                                                    |
-                                            +-------v---------+
-                                            | Push / WebSocket|
-                                            | Service         |
-                                            | (notify user of |
-                                            |  new email)     |
-                                            +-----------------+
+\`\`\`mermaid
+graph TD
+    subgraph Inbound["INBOUND EMAIL PATH"]
+        ExtMail["External Mail Servers"]
+        SMTP["SMTP Receiver (MX Records)"]
+        Pipeline["Processing Pipeline<br/>1. Spam Filter<br/>2. Virus Scan<br/>3. SPF/DKIM/DMARC<br/>4. Content Parse"]
+        BodyStore["Email Body Store (S3 / Blob)"]
+        MetaDB["Email Metadata DB (PostgreSQL, sharded by user_id)"]
+        Search["Search Index (Elasticsearch)"]
+        Push["Push / WebSocket Service"]
+    end
 
-                    OUTBOUND EMAIL PATH
-+-----------+     +-----------------+     +------------------+
-| User      |     | API Server      |     | Send Queue       |
-| (Web /    |---->| (Compose +      |---->| (Kafka /         |
-|  Mobile)  |     |  Validate)      |     |  SQS)            |
-+-----------+     +-----------------+     +--------+---------+
-                                                   |
-                                          +--------v---------+
-                                          | SMTP Sender       |
-                                          | (Outbound MTA)    |
-                                          |                   |
-                                          | - DNS MX lookup   |
-                                          | - TLS connection  |
-                                          | - Retry on failure|
-                                          | - Bounce handling |
-                                          +------------------+
+    subgraph Outbound["OUTBOUND EMAIL PATH"]
+        User1["User (Web / Mobile)"]
+        API1["API Server (Compose + Validate)"]
+        Queue["Send Queue (Kafka / SQS)"]
+        Sender["SMTP Sender (Outbound MTA)<br/>DNS MX lookup, TLS, Retry, Bounce handling"]
+    end
 
-                    USER ACCESS PATH
-+-----------+     +-----------------+     +------------------+
-| User      |     | API Server      |     | Metadata DB      |
-| (Web /    |---->| (REST / IMAP    |---->| (folder listing, |
-|  Mobile)  |     |  proxy)         |     |  search)         |
-+-----------+     +---------+-------+     +------------------+
-                            |
-                   +--------v--------+
-                   | Object Storage   |
-                   | (fetch body +    |
-                   |  attachments)    |
-                   +-----------------+
+    subgraph Access["USER ACCESS PATH"]
+        User2["User (Web / Mobile)"]
+        API2["API Server (REST / IMAP proxy)"]
+        MetaDB2["Metadata DB (folder listing, search)"]
+        ObjStore["Object Storage (fetch body + attachments)"]
+    end
+
+    ExtMail --> SMTP
+    SMTP --> Pipeline
+    Pipeline --> BodyStore
+    Pipeline --> MetaDB
+    MetaDB --> Search
+    Search --> Push
+
+    User1 --> API1
+    API1 --> Queue
+    Queue --> Sender
+
+    User2 --> API2
+    API2 --> MetaDB2
+    API2 --> ObjStore
+
+    style ExtMail fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style SMTP fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style Pipeline fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style BodyStore fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style MetaDB fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style Search fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style Push fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style User1 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style API1 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style Queue fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style Sender fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style User2 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style API2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style MetaDB2 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style ObjStore fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## Inbound Email Flow
 
-\`\`\`
-External MTA     SMTP Receiver     Spam Filter      Metadata DB     Object Store
-     |                |                |                |                |
-     | SMTP EHLO      |                |                |                |
-     |--------------->|                |                |                |
-     | MAIL FROM:     |                |                |                |
-     |--------------->|                |                |                |
-     | RCPT TO:       |                |                |                |
-     |--------------->|                |                |                |
-     | DATA (email)   |                |                |                |
-     |--------------->|                |                |                |
-     |                |                |                |                |
-     |                | Check SPF/DKIM |                |                |
-     |                | /DMARC headers |                |                |
-     |                |                |                |                |
-     |                | Spam score     |                |                |
-     |                |--------------->|                |                |
-     |                |  Score < thresh|                |                |
-     |                |<---------------|                |                |
-     |                |                |                |                |
-     |                | Parse MIME:    |                |                |
-     |                | extract body,  |                |                |
-     |                | attachments    |                |                |
-     |                |                |                |                |
-     |                | Store body +   |                |                |
-     |                | attachments    |                |                |
-     |                |---------------------------------------------->|
-     |                |                |                |                |
-     |                | Store metadata |                |                |
-     |                | (user mailbox) |                |                |
-     |                |------------------------------->|                |
-     |                |                |                |                |
-     | 250 OK         |                |                |                |
-     |<---------------|                |                |                |
+\`\`\`mermaid
+sequenceDiagram
+    participant MTA as External MTA
+    participant SMTP as SMTP Receiver
+    participant Spam as Spam Filter
+    participant Meta as Metadata DB
+    participant Obj as Object Store
+
+    MTA->>SMTP: SMTP EHLO
+    MTA->>SMTP: MAIL FROM:
+    MTA->>SMTP: RCPT TO:
+    MTA->>SMTP: DATA (email)
+    Note over SMTP: Check SPF/DKIM/DMARC headers
+    SMTP->>Spam: Spam score request
+    Spam-->>SMTP: Score < threshold
+    Note over SMTP: Parse MIME: extract body, attachments
+    SMTP->>Obj: Store body + attachments
+    SMTP->>Meta: Store metadata (user mailbox)
+    SMTP-->>MTA: 250 OK
 \`\`\`
 
 ## Outbound Email Flow
 
-\`\`\`
-User Client       API Server       Send Queue       SMTP Sender     External MTA
-     |                |                |                |                |
-     | POST /send     |                |                |                |
-     |--------------->|                |                |                |
-     |                | Validate:      |                |                |
-     |                | - recipients   |                |                |
-     |                | - size limits  |                |                |
-     |                | - rate limits  |                |                |
-     |                |                |                |                |
-     |                | Store in Sent  |                |                |
-     |                | folder         |                |                |
-     |                |                |                |                |
-     |                | Enqueue for    |                |                |
-     |                | delivery       |                |                |
-     |                |--------------->|                |                |
-     |                |                |                |                |
-     | 202 Accepted   |                | Dequeue        |                |
-     |<---------------|                |--------------->|                |
-     |                |                |                | DNS MX lookup  |
-     |                |                |                | for recipient  |
-     |                |                |                | domain         |
-     |                |                |                |                |
-     |                |                |                | SMTP handshake |
-     |                |                |                |--------------->|
-     |                |                |                |                |
-     |                |                |                | DATA (email)   |
-     |                |                |                |--------------->|
-     |                |                |                |                |
-     |                |                |                | 250 OK         |
-     |                |                |                |<---------------|
-     |                |                |                |                |
-     |                |                | On failure:    |                |
-     |                |                | retry with     |                |
-     |                |                | exponential    |                |
-     |                |                | backoff        |                |
-     |                |                | (up to 72 hrs) |                |
+\`\`\`mermaid
+sequenceDiagram
+    participant UC as User Client
+    participant API as API Server
+    participant Q as Send Queue
+    participant S as SMTP Sender
+    participant MTA as External MTA
+
+    UC->>API: POST /send
+    Note over API: Validate: recipients, size limits, rate limits
+    Note over API: Store in Sent folder
+    API->>Q: Enqueue for delivery
+    API-->>UC: 202 Accepted
+    Q->>S: Dequeue
+    Note over S: DNS MX lookup for recipient domain
+    S->>MTA: SMTP handshake
+    S->>MTA: DATA (email)
+    MTA-->>S: 250 OK
+    Note over Q: On failure: retry with exponential backoff (up to 72 hrs)
 \`\`\`
 `,
     jsCode: `## Deep Dive: Email Infrastructure
 
 ### Email Protocols
 
-\`\`\`
-Protocol Overview:
-+--------+------+------------------------------------------+
-|Protocol| Port | Purpose                                  |
-+--------+------+------------------------------------------+
-| SMTP   | 25   | Server-to-server email transfer           |
-| SMTPS  | 587  | Client-to-server submission (with TLS)    |
-| IMAP   | 993  | Client reads email (server-side storage)  |
-| POP3   | 995  | Client downloads email (client-side)      |
-+--------+------+------------------------------------------+
-
-SMTP is for SENDING/TRANSFERRING.
-IMAP/POP3 are for READING/ACCESSING.
-Modern web clients use REST APIs instead of IMAP/POP3.
+\`\`\`mermaid
+graph TD
+    N0["Protocol"]
+    N1["Port"]
+    N2["Purpose"]
+    N3["SMTP"]
+    N4["25 587"]
+    N5["Server-to-server / Client submission"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    N3 --> N4
+    N4 --> N5
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ### Spam Detection Pipeline
 
 Spam accounts for 60-80% of all email traffic. A multi-layered detection pipeline:
 
-\`\`\`
-Incoming Email
-     |
-     v
-+----+------------------+
-| Layer 1: Connection   |
-| - IP reputation check |  Block known spam IPs
-| - Rate limiting       |  Throttle suspicious senders
-| - DNS blacklists      |  (Spamhaus, etc.)
-+----+------------------+
-     |
-+----v------------------+
-| Layer 2: Authentication|
-| - SPF check           |  Sender's IP authorized for domain?
-| - DKIM verification   |  Signature valid?
-| - DMARC policy        |  Domain owner's disposition policy
-+----+------------------+
-     |
-+----v------------------+
-| Layer 3: Content       |
-| - Bayesian classifier |  ML model trained on spam corpus
-| - URL reputation      |  Check embedded links against blacklists
-| - Attachment scan     |  Virus/malware detection (ClamAV)
-| - Heuristic rules     |  SpamAssassin-style pattern matching
-+----+------------------+
-     |
-+----v------------------+
-| Layer 4: User Signals  |
-| - User's spam reports |  Feedback loop to retrain classifier
-| - Contact list        |  Emails from known contacts bypass
-+----+------------------+
-     |
-     v
-  Deliver to Inbox / Spam folder / Reject
+\`\`\`mermaid
+graph TD
+    Email["Incoming Email"]
+    L1["Layer 1: Connection<br/>IP reputation check, Rate limiting, DNS blacklists"]
+    L2["Layer 2: Authentication<br/>SPF check, DKIM verification, DMARC policy"]
+    L3["Layer 3: Content<br/>Bayesian classifier, URL reputation,<br/>Attachment scan, Heuristic rules"]
+    L4["Layer 4: User Signals<br/>User spam reports, Contact list"]
+    Deliver["Deliver to Inbox / Spam folder / Reject"]
+
+    Email --> L1
+    L1 --> L2
+    L2 --> L3
+    L3 --> L4
+    L4 --> Deliver
+
+    style Email fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style L1 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style L2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style L3 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style L4 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style Deliver fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ### Email Deliverability (SPF, DKIM, DMARC)
@@ -1395,78 +1316,32 @@ DMARC (Domain-based Message Auth):
 
 Email bodies and attachments dominate storage. Separating metadata from content is critical:
 
-\`\`\`
-Storage Layer Design:
-+------------------------------------+
-| Metadata (PostgreSQL, sharded)     |
-| - Fast queries: list inbox,        |
-|   filter by label, sort by date    |
-| - Shard by user_id                 |
-| - ~500 bytes per email metadata    |
-| - Index: (user_id, folder, date)   |
-+------------------------------------+
-              |
-              | body_storage_key
-              v
-+------------------------------------+
-| Email Bodies (Object Storage / S3) |
-| - Immutable blobs (write once)     |
-| - Content-addressed storage        |
-| - Deduplicate identical content    |
-|   (e.g., emails sent to 100 users  |
-|    in the same org -> store once)  |
-| - Tiered storage:                  |
-|   Hot (SSD): last 30 days         |
-|   Warm (HDD): 30 days - 1 year    |
-|   Cold (Glacier): > 1 year        |
-+------------------------------------+
-              |
-              | attachment_storage_key
-              v
-+------------------------------------+
-| Attachments (Blob Storage)         |
-| - Same dedup as bodies             |
-| - Virus-scanned before storage     |
-| - CDN for download (presigned URL) |
-+------------------------------------+
+\`\`\`mermaid
+graph TD
+    N0[("Metadata (PostgreSQL)")]
+    N1[("Email Bodies (S3)")]
+    N2[("Attachments (Blob)")]
+    N0 --> N1
+    N1 --> N2
+    style N0 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ### Full-Text Search
 
 Users expect to search email by subject, body, sender, and even attachment content:
 
-\`\`\`
-Search Architecture:
-+------------------+     +-------------------+
-| Email arrives    |---->| Indexing Pipeline  |
-| (new email       |     | (async)           |
-|  stored)         |     |                   |
-+------------------+     | 1. Extract text   |
-                         |    from body      |
-                         | 2. Extract text   |
-                         |    from attach-   |
-                         |    ments (PDF,    |
-                         |    DOCX, etc.)    |
-                         | 3. Tokenize +     |
-                         |    normalize      |
-                         | 4. Index into ES  |
-                         +--------+----------+
-                                  |
-                         +--------v----------+
-                         | Elasticsearch      |
-                         | Cluster            |
-                         |                    |
-                         | Index per user     |
-                         | (or per user shard)|
-                         |                    |
-                         | Fields indexed:    |
-                         | - subject          |
-                         | - body_text        |
-                         | - from, to, cc     |
-                         | - attachment_text  |
-                         | - labels           |
-                         | - date (for range) |
-                         +-------------------+
+\`\`\`mermaid
+graph TD
+    N0["Email arrives"]
+    N1["Indexing Pipeline"]
+    N2["Elasticsearch Cluster"]
+    N0 --> N1
+    N1 --> N2
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ### Email Threading
@@ -1654,128 +1529,66 @@ The system separates into three planes: a **metadata service** backed by a distr
 `,
     code: `## Architecture Diagram
 
-\`\`\`
-+-----------+       +------------------+
-| Client    |------>| API Gateway      |
-| (SDK /    |<------| (Auth, Routing,  |
-|  CLI)     |       |  Rate Limiting)  |
-+-----------+       +--------+---------+
-                             |
-              +--------------+--------------+
-              |                             |
-     +--------v--------+          +--------v--------+
-     | Metadata Service |          | Data Service     |
-     | (distributed DB) |          | (storage nodes)  |
-     |                  |          |                  |
-     | bucket+key ->    |          | Actual object    |
-     | data locations   |          | bytes on disk    |
-     |                  |          |                  |
-     | Backed by:       |          | Erasure coded    |
-     | - Vitess/CockDB  |          | across nodes     |
-     | - Sharded by     |          |                  |
-     |   bucket hash    |          | Append-only      |
-     +---------+--------+          | data files       |
-               |                   +--------+---------+
-               |                            |
-               +----------------------------+
-                            |
-                  +---------v----------+
-                  | Garbage Collection  |
-                  | Service             |
-                  |                     |
-                  | Reclaims space from |
-                  | deleted / over-     |
-                  | written objects     |
-                  +--------------------+
+\`\`\`mermaid
+graph TD
+    Client["Client (SDK / CLI)"]
+    GW["API Gateway (Auth, Routing, Rate Limiting)"]
+    Meta["Metadata Service (Vitess/CockDB)<br/>bucket+key -> data locations<br/>Sharded by bucket hash"]
+    Data["Data Service (Storage Nodes)<br/>Erasure coded across nodes<br/>Append-only data files"]
+    GC["Garbage Collection Service<br/>Reclaims space from deleted/overwritten objects"]
+    Node["Storage Node Detail:<br/>Data Files (~256MB append-only segments)<br/>[chunk1][chunk2][chunk3]...<br/>Checksum Index (chunk_id -> CRC32)"]
 
-Storage Node Detail:
-+------------------------------------------------+
-| Storage Node                                    |
-|                                                 |
-| +-------------------+  +---------------------+ |
-| | Data File 1       |  | Data File 2         | |
-| | (append-only,     |  | (append-only,       | |
-| |  ~256MB segment)  |  |  ~256MB segment)    | |
-| |                   |  |                     | |
-| | [chunk1][chunk2]  |  | [chunk5][chunk6]    | |
-| | [chunk3][chunk4]  |  | [chunk7]...         | |
-| +-------------------+  +---------------------+ |
-|                                                 |
-| +-------------------+                           |
-| | Checksum Index    |                           |
-| | chunk_id -> CRC32 |                           |
-| +-------------------+                           |
-+------------------------------------------------+
+    Client --> GW
+    GW --> Meta
+    GW --> Data
+    Meta --> GC
+    Data --> GC
+    Data --> Node
+
+    style Client fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style GW fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style Meta fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style Data fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style GC fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style Node fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## Object Upload Flow (PUT)
 
-\`\`\`
-Client          API Gateway      Metadata Svc      Data Service (nodes)
-  |                 |                 |                |  |  |  |  |  |
-  | PUT /bucket/key |                 |                |  |  |  |  |  |
-  |---------------->|                 |                |  |  |  |  |  |
-  |                 | Auth check      |                |  |  |  |  |  |
-  |                 |                 |                |  |  |  |  |  |
-  |                 | Allocate data   |                |  |  |  |  |  |
-  |                 | placement       |                |  |  |  |  |  |
-  |                 |---------------->|                |  |  |  |  |  |
-  |                 | Returns: write  |                |  |  |  |  |  |
-  |                 | to nodes        |                |  |  |  |  |  |
-  |                 | [N1,N2,N3,N4,  |                |  |  |  |  |  |
-  |                 |  N5,N6]         |                |  |  |  |  |  |
-  |                 |<----------------|                |  |  |  |  |  |
-  |                 |                 |                |  |  |  |  |  |
-  |                 | Split object into chunks         |  |  |  |  |  |
-  |                 | Erasure code: 4 data + 2 parity  |  |  |  |  |  |
-  |                 |                 |                |  |  |  |  |  |
-  |                 | Write chunk 1 (data) ----------->|  |  |  |  |  |
-  |                 | Write chunk 2 (data) ------------->|  |  |  |  |
-  |                 | Write chunk 3 (data) --------------->|  |  |  |
-  |                 | Write chunk 4 (data) ----------------->|  |  |
-  |                 | Write chunk 5 (parity) ------------------>|  |
-  |                 | Write chunk 6 (parity) --------------------->|
-  |                 |                 |                |  |  |  |  |  |
-  |                 | All ACKs received|               |  |  |  |  |  |
-  |                 |                 |                |  |  |  |  |  |
-  |                 | Commit metadata |                |  |  |  |  |  |
-  |                 |---------------->|                |  |  |  |  |  |
-  |                 | (key -> chunk   |                |  |  |  |  |  |
-  |                 |  locations)     |                |  |  |  |  |  |
-  |                 |                 |                |  |  |  |  |  |
-  | 200 OK          |                 |                |  |  |  |  |  |
-  |<----------------|                 |                |  |  |  |  |  |
+\`\`\`mermaid
+sequenceDiagram
+    participant C as Client
+    participant GW as API Gateway
+    participant Meta as Metadata Svc
+    participant DS as Data Service (nodes)
+
+    C->>GW: PUT /bucket/key
+    Note over GW: Auth check
+    GW->>Meta: Allocate data placement
+    Meta-->>GW: Write to nodes [N1,N2,N3,N4,N5,N6]
+    Note over GW: Split object into chunks<br/>Erasure code: 4 data + 2 parity
+    GW->>DS: Write chunks 1-4 (data) + chunks 5-6 (parity) in parallel
+    DS-->>GW: All ACKs received
+    GW->>Meta: Commit metadata (key -> chunk locations)
+    GW-->>C: 200 OK
 \`\`\`
 
 ## Object Download Flow (GET)
 
-\`\`\`
-Client          API Gateway      Metadata Svc      Data Service (nodes)
-  |                 |                 |                |  |  |  |
-  | GET /bucket/key |                 |                |  |  |  |
-  |---------------->|                 |                |  |  |  |
-  |                 | Lookup metadata |                |  |  |  |
-  |                 |---------------->|                |  |  |  |
-  |                 | Returns: chunk  |                |  |  |  |
-  |                 | locations       |                |  |  |  |
-  |                 | [N1:off1,       |                |  |  |  |
-  |                 |  N2:off2, ...]  |                |  |  |  |
-  |                 |<----------------|                |  |  |  |
-  |                 |                 |                |  |  |  |
-  |                 | Read 4 data chunks (parallel)    |  |  |  |
-  |                 | Read chunk 1 ------------------->|  |  |  |
-  |                 | Read chunk 2 --------------------->|  |  |
-  |                 | Read chunk 3 ----------------------->|  |
-  |                 | Read chunk 4 ------------------------->|
-  |                 |                 |                |  |  |  |
-  |                 | Verify checksums|                |  |  |  |
-  |                 | Reassemble object               |  |  |  |
-  |                 |                 |                |  |  |  |
-  | 200 OK + body   |                 |                |  |  |  |
-  |<----------------|                 |                |  |  |  |
-  |                 |                 |                |  |  |  |
-  | (If a data chunk is corrupt or unavailable,       |  |  |  |
-  |  use parity chunks to reconstruct it)             |  |  |  |
+\`\`\`mermaid
+sequenceDiagram
+    participant C as Client
+    participant GW as API Gateway
+    participant Meta as Metadata Svc
+    participant DS as Data Service (nodes)
+
+    C->>GW: GET /bucket/key
+    GW->>Meta: Lookup metadata
+    Meta-->>GW: Chunk locations [N1:off1, N2:off2, ...]
+    GW->>DS: Read 4 data chunks in parallel
+    DS-->>GW: Chunk data
+    Note over GW: Verify checksums<br/>Reassemble object<br/>(If corrupt/unavailable, use parity chunks to reconstruct)
+    GW-->>C: 200 OK + body
 \`\`\`
 `,
     jsCode: `## Deep Dive: Erasure Coding, Data Layout, and Durability
@@ -1813,28 +1626,20 @@ Erasure coding uses **half the storage** of 3x replication while tolerating the 
 
 ### Reed-Solomon Encoding
 
+**Reed-Solomon Encoding Matrix**
+
 \`\`\`
-How Reed-Solomon (4,2) works conceptually:
+Original Data:    [D1] [D2] [D3] [D4]
+                     |    |    |    |
+                     v    v    v    v
+Encoding Matrix:  [ 1  0  0  0 ]   → D1
+                  [ 0  1  0  0 ]   → D2
+                  [ 0  0  1  0 ]   → D3
+                  [ 0  0  0  1 ]   → D4
+                  [ 1  1  1  1 ]   → P1 (parity)
+                  [ 1  2  4  8 ]   → P2 (parity)
 
-Data chunks:    D1  D2  D3  D4
-                 |   |   |   |
-            +----v---v---v---v----+
-            | Encoding Matrix     |
-            |                     |
-            | [1 0 0 0] -> D1     |  (identity rows = data)
-            | [0 1 0 0] -> D2     |
-            | [0 0 1 0] -> D3     |
-            | [0 0 0 1] -> D4     |
-            | [a b c d] -> P1     |  (parity rows)
-            | [e f g h] -> P2     |
-            +---------------------+
-
-To reconstruct if D2 and D4 are lost:
-  Use any 4 of the remaining chunks (D1, D3, P1, P2)
-  Solve the linear system to recover D2 and D4
-  This works because the encoding matrix is an MDS
-  (Maximum Distance Separable) code -- any 4 rows
-  form an invertible matrix.
+Any 4 of 6 chunks can reconstruct the original data.
 \`\`\`
 
 Common erasure coding configurations:
@@ -1852,27 +1657,34 @@ Higher data-to-parity ratios reduce overhead but require more nodes and increase
 
 Each storage node uses append-only segment files for storing object chunks:
 
-\`\`\`
-Storage Node Disk Layout:
-/data/
-  segment_001.dat   (256 MB, sealed)
-  segment_002.dat   (256 MB, sealed)
-  segment_003.dat   (128 MB, active - still accepting writes)
-  segment_001.idx   (index: chunk_id -> offset, length)
-  segment_002.idx
-  segment_003.idx
-
-Inside a segment file:
-+--------+--------+--------+--------+--------+
-|Header  |Chunk A |Chunk B |Chunk C |Chunk D |...
-|8 bytes |variable|variable|variable|variable|
-+--------+--------+--------+--------+--------+
-
-Each chunk within a segment:
-+----------+----------+----------+----------+
-| chunk_id | length   | checksum | data ... |
-| 16 bytes | 4 bytes  | 4 bytes  | N bytes  |
-+----------+----------+----------+----------+
+\`\`\`mermaid
+graph TD
+    N0["Header 8B"]
+    N1["Chunk A"]
+    N2["Chunk B"]
+    N3["Chunk C"]
+    N4["Chunk D"]
+    N5["chunk_id 16B"]
+    N6["length 4B"]
+    N7["checksum 4B"]
+    N8["data N bytes"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    N3 --> N4
+    N4 --> N5
+    N5 --> N6
+    N6 --> N7
+    N7 --> N8
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N8 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 **Why append-only?** Sequential writes are much faster than random writes on both HDD and SSD. Append-only also simplifies concurrency — no need for file locks since only one writer appends to the active segment.
@@ -1881,35 +1693,19 @@ Each chunk within a segment:
 
 When objects are deleted or overwritten, the old data chunks become unreachable but still occupy disk space. GC reclaims this space:
 
-\`\`\`
-Garbage Collection Process:
-
-Phase 1: Mark
-+------------------+     +------------------+
-| Metadata Service |---->| GC Scanner       |
-| (all live object |     |                  |
-|  chunk refs)     |     | Build set of ALL |
-|                  |     | live chunk_ids   |
-+------------------+     +--------+---------+
-                                  |
-Phase 2: Sweep                    |
-+------------------+     +--------v---------+
-| Storage Node     |     | GC Sweeper       |
-| Segment Files    |<----| (per node)       |
-|                  |     |                  |
-| For each segment:|     | Scan segment:    |
-| Copy live chunks |     | chunk in live    |
-| to new segment,  |     | set? Keep.       |
-| skip dead chunks |     | Not? Skip.       |
-+------------------+     +------------------+
-
-Before GC:
-[live][dead][live][dead][dead][live]
-
-After GC (compaction):
-[live][live][live]  <- new segment, smaller
-
-The old segment is deleted after the new one is written.
+\`\`\`mermaid
+graph TD
+    N0["Metadata Service"]
+    N1["GC Scanner"]
+    N2[("Storage Node Segments")]
+    N3["GC Sweeper"]
+    N0 --> N1
+    N1 --> N2
+    N1 --> N3
+    style N0 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 GC runs during off-peak hours and is rate-limited to avoid impacting read/write performance.
@@ -1918,53 +1714,40 @@ GC runs during off-peak hours and is rate-limited to avoid impacting read/write 
 
 When versioning is enabled, overwriting an object creates a new version rather than replacing the old data:
 
+**Versioned Object Example**
+
 \`\`\`
-Versioned Object:
-  bucket: "photos"
-  key: "cat.jpg"
+Bucket: my-bucket
+Key:    photos/cat.jpg
 
-  Version 1 (v=aaa): uploaded 2024-01-01, 2MB
-  Version 2 (v=bbb): uploaded 2024-03-15, 3MB (overwrite)
-  Version 3 (v=ccc): delete marker, 2024-06-01
+Version ID    | Size   | Last Modified       | Delete Marker
+v3 (latest)   | 2.1 MB | 2024-03-15 10:30   | No
+v2            | 1.8 MB | 2024-03-10 08:15   | No
+v1            | 1.5 MB | 2024-03-01 12:00   | No
 
-GET /photos/cat.jpg          -> 404 (latest is delete marker)
-GET /photos/cat.jpg?v=bbb    -> returns 3MB version
-GET /photos/cat.jpg?v=aaa    -> returns 2MB version
-
-Metadata stores ALL versions:
-| bucket  | key     | version_id | is_delete_marker |
-|---------|---------|------------|------------------|
-| photos  | cat.jpg | aaa        | false            |
-| photos  | cat.jpg | bbb        | false            |
-| photos  | cat.jpg | ccc        | true             |
+GET /photos/cat.jpg           → returns v3
+GET /photos/cat.jpg?v=v1      → returns v1
+DELETE /photos/cat.jpg        → adds delete marker (v4)
+GET /photos/cat.jpg?v=v2      → still returns v2
 \`\`\`
 
 ### Multipart Upload
 
 Large objects (multi-GB) are uploaded in parts, each independently retryable:
 
-\`\`\`
-Multipart Upload Flow:
-1. POST /bucket/key?uploads -> returns uploadId
-2. PUT /bucket/key?partNumber=1&uploadId=X  (upload 100MB chunk)
-3. PUT /bucket/key?partNumber=2&uploadId=X  (upload 100MB chunk)
-   ... (parts can be uploaded in parallel)
-N. POST /bucket/key?uploadId=X  (complete: list all parts)
-
-+-------+  +-------+  +-------+  +-------+
-| Part 1|  | Part 2|  | Part 3|  | Part 4|
-| 100MB |  | 100MB |  | 100MB |  | 50MB  |
-+---+---+  +---+---+  +---+---+  +---+---+
-    |          |          |          |
-    v          v          v          v
- Node set A  Node set B  Node set C  Node set D
- (erasure    (erasure    (erasure    (erasure
-  coded)      coded)      coded)      coded)
-
-On "Complete":
-  Metadata links all parts as one logical object.
-  GET returns the concatenation of all parts.
-  Each part is independently erasure-coded and durable.
+\`\`\`mermaid
+graph TD
+    N0["Part 1 100MB"]
+    N1["Part 2 100MB"]
+    N2["Part 3 100MB"]
+    N3["Part 4 50MB"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ### Consistency Guarantees

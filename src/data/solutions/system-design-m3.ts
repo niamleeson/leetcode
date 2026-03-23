@@ -67,114 +67,93 @@ A **stateless API gateway** routes requests to domain-specific microservices: Pr
 `,
     code: `## Architecture Diagram
 
-\`\`\`
-+----------+       +------------------+       +------------------+
-| Client   |------>| API Gateway      |------>| Product Service  |
-| (Web/App)|       | (Rate Limiting,  |       | (Catalog CRUD)   |
-+----------+       |  Auth, Routing)  |       +--------+---------+
-                   +--------+---------+                |
-                            |                  +-------v---------+
-              +-------------+-------------+    | Elasticsearch   |
-              |             |             |    | (Search/Filter)  |
-     +--------v---+ +-------v----+ +------v--+ +----------------+
-     | Cart       | | Order      | | Inventory|
-     | Service    | | Service    | | Service  |
-     | (Redis)    | | (Saga      | | (Redis + |
-     |            | | Orchestrator| | Postgres)|
-     +--------+---+ +------+-----+ +----+-----+
-              |            |             |
-              |     +------v-------------v-----+
-              |     | PostgreSQL (Orders,       |
-              |     | Inventory, Transactions)  |
-              |     +--------------------------+
-              |            |
-              |     +------v-----+
-              +---->| Payment    |
-                    | Service    |
-                    | (Stripe)   |
-                    +------------+
+\`\`\`mermaid
+graph TD
+    Client["Client (Web/App)"] --> GW["API Gateway (Auth, Rate Limiting)"]
+    GW --> Product["Product Service"]
+    GW --> Cart["Cart Service (Redis)"]
+    GW --> Order["Order Service (Saga)"]
+    GW --> Inv["Inventory Service (Redis+Postgres)"]
+    Product --> ES["Elasticsearch (Search/Filter)"]
+    Order --> PG["PostgreSQL (Orders, Inventory)"]
+    Inv --> PG
+    Order --> Pay["Payment Service (Stripe)"]
+
+    style Client fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style GW fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style Product fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style Cart fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style Order fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style Inv fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style ES fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style PG fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style Pay fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## Write Flow (Place Order)
 
-\`\`\`
-Client        API Gateway     Order Svc      Inventory       Payment
-  |               |               |               |              |
-  | POST /orders  |               |               |              |
-  |-------------->|               |               |              |
-  |               | Create order  |               |              |
-  |               |-------------->|               |              |
-  |               |               | Reserve stock |              |
-  |               |               |-------------->|              |
-  |               |               |   Confirmed   |              |
-  |               |               |<--------------|              |
-  |               |               | Charge card   |              |
-  |               |               |------------------------------>|
-  |               |               |   Payment OK  |              |
-  |               |               |<------------------------------|
-  |               |               | Commit order  |              |
-  |               |  Order ID     |               |              |
-  |               |<--------------|               |              |
-  |  { orderId }  |               |               |              |
-  |<--------------|               |               |              |
+\`\`\`mermaid
+sequenceDiagram
+    participant Client
+    participant GW as API Gateway
+    participant Order as Order Svc
+    participant Inv as Inventory
+    participant Pay as Payment
+
+    Client->>GW: POST /orders
+    GW->>Order: Create order
+    Order->>Inv: Reserve stock
+    Inv-->>Order: Confirmed
+    Order->>Pay: Charge card
+    Pay-->>Order: Payment OK
+    Note over Order: Commit order
+    Order-->>GW: Order ID
+    GW-->>Client: { orderId }
 \`\`\`
 
 ## Read Flow (Product Search)
 
-\`\`\`
-Client        API Gateway     Product Svc    Elasticsearch    Cache
-  |               |               |               |              |
-  | GET /search   |               |               |              |
-  |-------------->|               |               |              |
-  |               | Search        |               |              |
-  |               |-------------->|               |              |
-  |               |               | Check cache   |              |
-  |               |               |------------------------------>|
-  |               |               |               |   [MISS]     |
-  |               |               | Query ES      |              |
-  |               |               |-------------->|              |
-  |               |               | Results+facets|              |
-  |               |               |<--------------|              |
-  |               |               | Cache results |              |
-  |               |               |------------------------------>|
-  |               | Products[]    |               |              |
-  |               |<--------------|               |              |
-  |  Results      |               |               |              |
-  |<--------------|               |               |              |
+\`\`\`mermaid
+sequenceDiagram
+    participant Client
+    participant GW as API Gateway
+    participant Prod as Product Svc
+    participant ES as Elasticsearch
+    participant Cache
+
+    Client->>GW: GET /search
+    GW->>Prod: Search
+    Prod->>Cache: Check cache
+    Cache-->>Prod: MISS
+    Prod->>ES: Query ES
+    ES-->>Prod: Results + facets
+    Prod->>Cache: Cache results
+    Prod-->>GW: Products[]
+    GW-->>Client: Results
 \`\`\`
 `,
     jsCode: `## Deep Dive: Checkout Saga Pattern
 
 The checkout process spans multiple services. A saga orchestrator coordinates the steps with compensating transactions for failures.
 
-\`\`\`
-+----------------------------------------------------------+
-| Checkout Saga Orchestrator                                |
-|                                                           |
-| Step 1: Reserve Inventory                                 |
-|   Action:  inventory.reserve(sku, qty)                    |
-|   Compensate: inventory.release(sku, qty)                 |
-|                                                           |
-| Step 2: Process Payment                                   |
-|   Action:  payment.charge(amount, idempotencyKey)         |
-|   Compensate: payment.refund(transactionId)               |
-|                                                           |
-| Step 3: Confirm Order                                     |
-|   Action:  order.confirm(orderId)                         |
-|   Compensate: order.cancel(orderId)                       |
-|                                                           |
-| Step 4: Notify (async, no compensate)                     |
-|   Action:  notification.send(orderId, email)              |
-+----------------------------------------------------------+
+\`\`\`mermaid
+graph TD
+    CREATED["CREATED"] -->|"reserve inventory"| INV["INVENTORY_RESERVED"]
+    INV -->|"charge payment"| PAY["PAYMENT_PROCESSED"]
+    PAY -->|"confirm"| CONFIRMED["ORDER_CONFIRMED"]
+    CREATED -->|"failure"| CANCEL1["CANCELLED"]
+    INV -->|"failure"| RELEASE["STOCK_RELEASED"] --> CANCEL2["CANCELLED"]
+    PAY -->|"failure"| REFUND["REFUND_ISSUED"] --> CANCEL3["CANCELLED"]
 
-State Machine:
-  CREATED --> INVENTORY_RESERVED --> PAYMENT_PROCESSED
-     |               |                      |
-     v               v                      v
-  CANCELLED    STOCK_RELEASED         REFUND_ISSUED
-                     |                      |
-                     v                      v
-                 CANCELLED              CANCELLED
+    style CREATED fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style INV fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style PAY fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style CONFIRMED fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style CANCEL1 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style RELEASE fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style CANCEL2 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style REFUND fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style CANCEL3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 Each step is idempotent. If the saga fails at step 2, it calls the compensating action for step 1. The idempotency key ensures retries never double-charge.
@@ -185,28 +164,12 @@ Each step is idempotent. If the saga fails at step 2, it calls the compensating 
 
 During flash sales, thousands of users hit a single SKU simultaneously. A Redis Lua script handles this atomically.
 
-\`\`\`
-+-----------------------------------------------+
-| Redis Lua Script (Atomic)                      |
-|                                                |
-| 1. GET inventory:{sku}                         |
-| 2. IF quantity >= requested THEN               |
-|      DECRBY inventory:{sku} requested          |
-|      SADD reserved:{sku} buyer_id              |
-|      RETURN "RESERVED"                         |
-|    ELSE                                        |
-|      RETURN "SOLD_OUT"                         |
-+-----------------------------------------------+
-             |
-             | async reconciliation (every 30s)
-             v
-+-----------------------------------------------+
-| PostgreSQL                                     |
-| inventory table                                |
-|                                                |
-| sku_id | warehouse | quantity | version        |
-| SKU001 | WH-EAST  | 9,847   | 42             |
-+-----------------------------------------------+
+\`\`\`mermaid
+graph TD
+    Lua["Redis Lua Script (Atomic)<br/>GET → check qty → DECRBY + SADD<br/>Returns RESERVED or SOLD_OUT"] -->|"async reconciliation (30s)"| PG["PostgreSQL (Source of Truth)<br/>inventory table with version"]
+
+    style Lua fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style PG fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 The two-tier approach: Redis handles burst traffic (100K+ ops/sec), PostgreSQL is source of truth. A reconciliation job syncs them periodically.
@@ -215,27 +178,20 @@ The two-tier approach: Redis handles burst traffic (100K+ ops/sec), PostgreSQL i
 
 ## Deep Dive: Search with Faceted Filtering
 
-\`\`\`
-+---------------------------------------------------+
-| Elasticsearch Cluster (10 nodes)                   |
-|                                                    |
-| Index: products                                    |
-| Shards: 20 primary + 20 replicas                  |
-|                                                    |
-| Query Pipeline:                                    |
-| +-----------------------------------------------+ |
-| | 1. Full-text match on name, description       | |
-| | 2. Filter by category, price range, brand     | |
-| | 3. Compute aggregations (facet counts)        | |
-| | 4. Sort by relevance + boost (sponsored)      | |
-| | 5. Return top 20 results + filter counts      | |
-| +-----------------------------------------------+ |
-|                                                    |
-| Response includes:                                 |
-| - results[]: product summaries                     |
-| - facets: { brands: [...], priceRanges: [...] }   |
-| - total: 12,483 matches                           |
-+---------------------------------------------------+
+\`\`\`mermaid
+graph TD
+    Query["Search Query"] --> Match["1. Full-text match (name, desc)"]
+    Match --> Filter["2. Filter (category, price, brand)"]
+    Filter --> Agg["3. Compute facet counts"]
+    Agg --> Sort["4. Sort by relevance + boost"]
+    Sort --> Result["5. Top 20 results + facets"]
+
+    style Query fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style Match fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style Filter fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style Agg fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style Sort fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style Result fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 Search results are cached for 5 minutes by query hash. Booking events invalidate related cache entries via Kafka consumer.
@@ -337,112 +293,86 @@ An **API gateway** with rate limiting and authentication routes payment requests
 `,
     code: `## Architecture Diagram
 
-\`\`\`
-+----------+       +------------------+       +------------------+
-| Merchant |------>| API Gateway      |------>| Payment          |
-| Client   |       | (Auth, Rate      |       | Orchestrator     |
-+----------+       |  Limit, TLS)     |       | (State Machine)  |
-                   +------------------+       +--------+---------+
-                                                       |
-                   +-----------------------------------+---+
-                   |                   |                    |
-          +--------v--------+ +--------v--------+ +--------v--------+
-          | Tokenization    | | Fraud Detection | | Ledger Service  |
-          | Vault           | | Service         | | (Double-Entry)  |
-          | (PCI Isolated)  | | (Rules + ML)    | |                 |
-          |                 | |                 | | Debit + Credit  |
-          | HSM Encryption  | | < 50ms sync    | | for every txn   |
-          +--------+--------+ +--------+--------+ +--------+--------+
-                   |                   |                    |
-          +--------v--------+         |            +--------v--------+
-          | Token DB        |         |            | Ledger DB       |
-          | (Isolated VPC)  |         |            | (Append-only)   |
-          +-----------------+         |            +-----------------+
-                                      |
-                              +-------v---------+
-                              | Payment         |
-                              | Processor       |
-                              | (Visa/MC/ACH)   |
-                              +-----------------+
+\`\`\`mermaid
+graph TD
+    Merchant["Merchant Client"] --> GW["API Gateway (Auth, TLS)"]
+    GW --> Orch["Payment Orchestrator (State Machine)"]
+    Orch --> Token["Tokenization Vault (PCI, HSM)"]
+    Orch --> Fraud["Fraud Detection (Rules + ML)"]
+    Orch --> Ledger["Ledger Service (Double-Entry)"]
+    Token --> TokenDB["Token DB (Isolated VPC)"]
+    Ledger --> LedgerDB["Ledger DB (Append-only)"]
+    Fraud --> Proc["Payment Processor (Visa/MC/ACH)"]
+
+    style Merchant fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style GW fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style Orch fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style Token fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style Fraud fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style Ledger fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style TokenDB fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style LedgerDB fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style Proc fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## Write Flow (Process Payment)
 
-\`\`\`
-Merchant     API Gateway    Orchestrator   Fraud Svc    Processor    Ledger
-  |              |              |              |            |           |
-  | POST /pay   |              |              |            |           |
-  |------------->|              |              |            |           |
-  |              | Check idemp. |              |            |           |
-  |              |------------->|              |            |           |
-  |              |              | Score txn    |            |           |
-  |              |              |------------->|            |           |
-  |              |              | ALLOW        |            |           |
-  |              |              |<-------------|            |           |
-  |              |              | Authorize    |            |           |
-  |              |              |-------------------------->|           |
-  |              |              |   Approved   |            |           |
-  |              |              |<--------------------------|           |
-  |              |              | Record debit+credit       |           |
-  |              |              |---------------------------------------->|
-  |              |              |              |            |   ACK     |
-  |              |  { paymentId, status }      |            |           |
-  |              |<-------------|              |            |           |
-  |  Authorized  |              |              |            |           |
-  |<-------------|              |              |            |           |
+\`\`\`mermaid
+sequenceDiagram
+    participant Merchant
+    participant GW as API Gateway
+    participant Orch as Orchestrator
+    participant Fraud as Fraud Svc
+    participant Proc as Processor
+    participant Ledger
+
+    Merchant->>GW: POST /pay
+    GW->>Orch: Check idempotency
+    Orch->>Fraud: Score transaction
+    Fraud-->>Orch: ALLOW
+    Orch->>Proc: Authorize
+    Proc-->>Orch: Approved
+    Orch->>Ledger: Record debit+credit
+    Orch-->>GW: { paymentId, status }
+    GW-->>Merchant: Authorized
 \`\`\`
 
 ## Read Flow (Payment Status)
 
-\`\`\`
-Merchant     API Gateway    Orchestrator   Payment DB     Ledger DB
-  |              |              |              |              |
-  | GET /pay/:id |              |              |              |
-  |------------->|              |              |              |
-  |              | Lookup       |              |              |
-  |              |------------->|              |              |
-  |              |              | Get payment  |              |
-  |              |              |------------->|              |
-  |              |              | Get entries  |              |
-  |              |              |------------------------------>|
-  |              |              |              |              |
-  |              |  { payment + history }      |              |
-  |              |<-------------|              |              |
-  |  Status      |              |              |              |
-  |<-------------|              |              |              |
+\`\`\`mermaid
+sequenceDiagram
+    participant Merchant
+    participant GW as API Gateway
+    participant Orch as Orchestrator
+    participant PayDB as Payment DB
+    participant LDB as Ledger DB
+
+    Merchant->>GW: GET /pay/:id
+    GW->>Orch: Lookup
+    Orch->>PayDB: Get payment
+    Orch->>LDB: Get ledger entries
+    Orch-->>GW: { payment + history }
+    GW-->>Merchant: Status
 \`\`\`
 `,
     jsCode: `## Deep Dive: Idempotency Implementation
 
 The most critical property of a payment system — ensuring no duplicate charges despite retries.
 
-\`\`\`
-+-------------------------------------------------------+
-| Idempotency Flow                                       |
-|                                                        |
-| Request arrives with idempotency_key: "abc-123"        |
-|                                                        |
-| +---------------------------------------------------+ |
-| | 1. SELECT * FROM idempotency_keys                 | |
-| |    WHERE key = "abc-123"                          | |
-| |                                                   | |
-| | [FOUND] --> Return stored response (HTTP 200)     | |
-| |                                                   | |
-| | [NOT FOUND] --> INSERT key with status "STARTED"  | |
-| |    (unique constraint prevents race condition)    | |
-| +---------------------------------------------------+ |
-|                                                        |
-| +---------------------------------------------------+ |
-| | 2. Process payment normally                       | |
-| |    Authorization -> Capture -> Ledger entry       | |
-| +---------------------------------------------------+ |
-|                                                        |
-| +---------------------------------------------------+ |
-| | 3. UPDATE idempotency_keys                        | |
-| |    SET response = {paymentId, status}, TTL = 24h  | |
-| |    WHERE key = "abc-123"                          | |
-| +---------------------------------------------------+ |
-+-------------------------------------------------------+
+\`\`\`mermaid
+graph TD
+    Req["Request with idempotency_key"] --> Lookup["SELECT from idempotency_keys"]
+    Lookup -->|"FOUND"| Return["Return stored response"]
+    Lookup -->|"NOT FOUND"| Insert["INSERT key (STARTED)"]
+    Insert --> Process["Process payment<br/>Auth → Capture → Ledger"]
+    Process --> Update["UPDATE key with response + 24h TTL"]
+
+    style Req fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style Lookup fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style Return fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style Insert fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style Process fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style Update fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 The idempotency key is a unique constraint in the database. Concurrent duplicate requests: the first INSERT wins, the second gets a constraint violation and waits for the first to complete.
@@ -453,73 +383,50 @@ The idempotency key is a unique constraint in the database. Concurrent duplicate
 
 Every financial movement creates exactly two entries that sum to zero, ensuring the books always balance.
 
-\`\`\`
-Payment of $100 from Customer to Merchant:
+\`\`\`mermaid
+graph TD
+    subgraph Ledger["Double-Entry Ledger (Append-Only)"]
+        Pay["Payment $100: DEBIT customer -$100, CREDIT merchant +$100"]
+        Ref["Refund $30: DEBIT merchant -$30, CREDIT customer +$30"]
+    end
+    IL["Internal Ledger"] --> Match["Three-Way Match (nightly)"]
+    PR["Processor Report (Visa/MC)"] --> Match
+    BS["Bank Statement"] --> Match
+    Match --> Matched["MATCHED (99.9%)"]
+    Match --> Missing["MISSING (alert)"]
+    Match --> Mismatch["MISMATCH (alert)"]
 
-+-----------------------------------------------------+
-| Ledger Entries (Immutable, Append-Only)              |
-|                                                      |
-| Entry 1: DEBIT  customer_account  -$100.00           |
-| Entry 2: CREDIT merchant_account  +$100.00           |
-|          --------------------------------            |
-|          NET:                       $0.00            |
-|                                                      |
-| Refund of $30:                                       |
-|                                                      |
-| Entry 3: DEBIT  merchant_account  -$30.00            |
-| Entry 4: CREDIT customer_account  +$30.00            |
-|          --------------------------------            |
-|          NET:                       $0.00            |
-+-----------------------------------------------------+
-
-Invariant: SUM(all entries) = 0 ALWAYS
-          SUM(debits) = SUM(credits) per transaction
-
-Reconciliation:
-+-------------------+  +-------------------+  +----------------+
-| Internal Ledger   |  | Processor Report  |  | Bank Statement |
-| (our records)     |  | (Visa/MC daily)   |  | (daily)        |
-+--------+----------+  +--------+----------+  +-------+--------+
-         |                       |                     |
-         +-----------+-----------+---------------------+
-                     |
-              +------v------+
-              | Three-Way   |
-              | Match       |
-              | (nightly)   |
-              +------+------+
-                     |
-          +----------+-----------+
-          | MATCHED | MISSING | MISMATCH |
-          | (99.9%) | (alert) | (alert)  |
-          +---------+---------+----------+
+    style Pay fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style Ref fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style IL fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style PR fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style BS fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style Match fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style Matched fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style Missing fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style Mismatch fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ---
 
 ## Deep Dive: Payment State Machine
 
-\`\`\`
-+-----------------------------------------------------------+
-| Payment State Machine                                      |
-|                                                            |
-|   CREATED --------> AUTHORIZED --------> CAPTURED          |
-|     |                   |                    |             |
-|     | (fraud block)     | (void)             | (settle)   |
-|     v                   v                    v             |
-|   DECLINED           VOIDED             SETTLED            |
-|                                              |             |
-|                                    +---------+---------+   |
-|                                    |                   |   |
-|                                    v                   v   |
-|                              PARTIAL_REFUND      FULL_REFUND|
-|                                                            |
-| Rules:                                                     |
-| - Cannot refund AUTHORIZED (must void instead)             |
-| - Cannot capture VOIDED                                    |
-| - Refund amount <= captured amount                         |
-| - State transitions are append-only events                 |
-+-----------------------------------------------------------+
+\`\`\`mermaid
+graph TD
+    CREATED --> AUTHORIZED --> CAPTURED --> SETTLED
+    CREATED -->|"fraud block"| DECLINED
+    AUTHORIZED -->|"void"| VOIDED
+    SETTLED --> PARTIAL["PARTIAL_REFUND"]
+    SETTLED --> FULL["FULL_REFUND"]
+
+    style CREATED fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style AUTHORIZED fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style CAPTURED fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style SETTLED fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style DECLINED fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style VOIDED fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style PARTIAL fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style FULL fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 Each transition is recorded as an immutable event. The current state is derived by replaying events (event sourcing), ensuring a complete audit trail.
@@ -621,128 +528,90 @@ A **Search Service** backed by Elasticsearch handles hotel and room discovery. A
 `,
     code: `## Architecture Diagram
 
-\`\`\`
-+----------+       +------------------+       +------------------+
-| Client   |------>| API Gateway      |------>| Search Service   |
-| (Web/App)|       | (Auth, Rate      |       | (Elasticsearch)  |
-+----------+       |  Limiting)       |       +--------+---------+
-                   +--------+---------+                |
-                            |                  +-------v---------+
-              +-------------+-------------+    | Hotel/Room Data |
-              |             |             |    | (Read Replicas) |
-     +--------v---+ +-------v----+ +------v--+ +----------------+
-     | Booking    | | Avail.     | | Pricing |
-     | Service    | | Service    | | Service |
-     |            | |            | |         |
-     | Saga flow  | | Date-range | | Dynamic |
-     |            | | queries    | | rates   |
-     +--------+---+ +------+-----+ +----+----+
-              |            |             |
-              |     +------v-------------v-----+
-              |     | PostgreSQL                |
-              |     | (Bookings, Availability,  |
-              |     |  Pricing Rules)           |
-              |     +--------------------------+
-              |            |
-              |     +------v-----------+
-              +---->| Payment Service  |
-                    +------------------+
+\`\`\`mermaid
+graph TD
+    Client["Client (Web/App)"] --> GW["API Gateway"]
+    GW --> Search["Search Service (ES)"]
+    GW --> Booking["Booking Service"]
+    GW --> Avail["Availability Service"]
+    GW --> Pricing["Pricing Service"]
+    Search --> ReadDB["Hotel/Room Data (Replicas)"]
+    Booking --> PG["PostgreSQL (Bookings, Availability)"]
+    Avail --> PG
+    Pricing --> PG
+    Booking --> Pay["Payment Service"]
+
+    style Client fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style GW fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style Search fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style Booking fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style Avail fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style Pricing fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style ReadDB fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style PG fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style Pay fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## Write Flow (Make Booking)
 
-\`\`\`
-Client       API Gateway    Booking Svc    Avail. Svc     Payment
-  |              |              |              |              |
-  | POST /book  |              |              |              |
-  |------------->|              |              |              |
-  |              | Create       |              |              |
-  |              |------------->|              |              |
-  |              |              | Check+Lock   |              |
-  |              |              |------------->|              |
-  |              |              |              |              |
-  |              |              | BEGIN TXN    |              |
-  |              |              | SELECT ... WHERE            |
-  |              |              | room_type_id=X AND date     |
-  |              |              | BETWEEN checkin AND checkout |
-  |              |              | AND booked < total          |
-  |              |              | FOR UPDATE                  |
-  |              |              |              |              |
-  |              |              | UPDATE booked_rooms += 1    |
-  |              |              | INSERT booking              |
-  |              |              | COMMIT        |              |
-  |              |              |              |              |
-  |              |              | Charge card  |              |
-  |              |              |------------------------------>|
-  |              |              |   Paid       |              |
-  |              |              |<------------------------------|
-  |              |  Confirmed   |              |              |
-  |              |<-------------|              |              |
-  |  Booking ID  |              |              |              |
-  |<-------------|              |              |              |
+\`\`\`mermaid
+sequenceDiagram
+    participant Client
+    participant GW as API Gateway
+    participant Book as Booking Svc
+    participant Avail as Avail. Svc
+    participant Pay as Payment
+
+    Client->>GW: POST /book
+    GW->>Book: Create
+    Book->>Avail: Check+Lock (FOR UPDATE)
+    Note over Avail: BEGIN TXN, SELECT dates,<br/>UPDATE booked_rooms += 1,<br/>INSERT booking, COMMIT
+    Book->>Pay: Charge card
+    Pay-->>Book: Paid
+    Book-->>GW: Confirmed
+    GW-->>Client: Booking ID
 \`\`\`
 
 ## Read Flow (Search Availability)
 
-\`\`\`
-Client       API Gateway    Search Svc     Cache          Avail. Svc
-  |              |              |              |              |
-  | GET /search  |              |              |              |
-  |------------->|              |              |              |
-  |              | Search       |              |              |
-  |              |------------->|              |              |
-  |              |              | Check cache  |              |
-  |              |              |------------->|              |
-  |              |              | [MISS]       |              |
-  |              |              | Query ES for hotels         |
-  |              |              | Get availability            |
-  |              |              |------------------------------>|
-  |              |              | Room counts per date        |
-  |              |              |<------------------------------|
-  |              |              | Cache 5 min  |              |
-  |              |              |------------->|              |
-  |              | Hotels+rooms |              |              |
-  |              |<-------------|              |              |
-  |  Results     |              |              |              |
-  |<-------------|              |              |              |
+\`\`\`mermaid
+sequenceDiagram
+    participant Client
+    participant GW as API Gateway
+    participant Search as Search Svc
+    participant Cache
+    participant Avail as Avail. Svc
+
+    Client->>GW: GET /search
+    GW->>Search: Search
+    Search->>Cache: Check cache
+    Cache-->>Search: MISS
+    Search->>Avail: Get availability
+    Avail-->>Search: Room counts per date
+    Search->>Cache: Cache 5 min
+    Search-->>GW: Hotels + rooms
+    GW-->>Client: Results
 \`\`\`
 `,
     jsCode: `## Deep Dive: Date-Range Availability Query
 
 The most performance-critical operation — checking room availability across a date range while preventing double-booking.
 
-\`\`\`
-Availability Table (one row per room-type per date):
+\`\`\`mermaid
+graph TD
+    Query["Book RT_101 for July 1-4"] --> Check["Check ALL dates in range"]
+    Check --> Jul1["Jul 1: 7/10 booked ✓"]
+    Check --> Jul2["Jul 2: 8/10 booked ✓"]
+    Check --> Jul3["Jul 3: 10/10 FULL ✗"]
+    Check --> Jul4["Jul 4: 6/10 booked ✓"]
+    Jul3 --> Fail["Booking FAILS<br/>(SELECT...FOR UPDATE locks rows)"]
 
-+---------------+------------+-------------+--------------+---------+
-| room_type_id  | date       | total_rooms | booked_rooms | version |
-+---------------+------------+-------------+--------------+---------+
-| RT_101        | 2025-07-01 | 10          | 7            | 42      |
-| RT_101        | 2025-07-02 | 10          | 8            | 38      |
-| RT_101        | 2025-07-03 | 10          | 10           | 55      |  <-- FULL
-| RT_101        | 2025-07-04 | 10          | 6            | 29      |
-+---------------+------------+-------------+--------------+---------+
-
-Query: "Book RT_101 for July 1-4"
-  Must check ALL dates in range have available rooms.
-  July 3 is full --> booking fails.
-
-SQL (with pessimistic locking):
-  BEGIN;
-  SELECT date, total_rooms, booked_rooms
-    FROM room_availability
-    WHERE room_type_id = 'RT_101'
-      AND date >= '2025-07-01' AND date < '2025-07-04'
-      AND total_rooms > booked_rooms
-    FOR UPDATE;
-
-  -- If COUNT(rows) = number_of_nights, all dates available
-  -- Update all rows in range atomically
-  UPDATE room_availability
-    SET booked_rooms = booked_rooms + 1
-    WHERE room_type_id = 'RT_101'
-      AND date >= '2025-07-01' AND date < '2025-07-04';
-  COMMIT;
+    style Query fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style Jul1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style Jul2 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style Jul3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style Jul4 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style Fail fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 FOR UPDATE locks the rows, preventing concurrent bookings from double-booking the same room-dates.
@@ -751,30 +620,20 @@ FOR UPDATE locks the rows, preventing concurrent bookings from double-booking th
 
 ## Deep Dive: Dynamic Pricing Engine
 
-\`\`\`
-+------------------------------------------------------+
-| Pricing Service                                       |
-|                                                       |
-| Inputs:                                               |
-| +--------------------------------------------------+ |
-| | 1. Base price (room type)              $150       | |
-| | 2. Occupancy multiplier (80% full)     x 1.3     | |
-| | 3. Seasonal factor (summer)            x 1.2     | |
-| | 4. Day-of-week (Saturday)              x 1.1     | |
-| | 5. Demand signal (search volume)       x 1.05    | |
-| +--------------------------------------------------+ |
-|                                                       |
-| Calculation:                                          |
-|   $150 x 1.3 x 1.2 x 1.1 x 1.05 = $270.27          |
-|   Rounded: $270/night                                 |
-|                                                       |
-| +--------------------------------------------------+ |
-| | Price Boundaries:                                 | |
-| | - Floor: base_price x 0.7  ($105 minimum)        | |
-| | - Ceiling: base_price x 3.0 ($450 maximum)       | |
-| | - Rate parity: cannot exceed OTA listed price     | |
-| +--------------------------------------------------+ |
-+------------------------------------------------------+
+\`\`\`mermaid
+graph TD
+    Base["Base: $150"] --> Occ["x1.3 (80% occupancy)"]
+    Occ --> Season["x1.2 (summer)"]
+    Season --> Day["x1.1 (Saturday)"]
+    Day --> Demand["x1.05 (search volume)"]
+    Demand --> Final["= $270/night<br/>Floor: $105 | Ceiling: $450"]
+
+    style Base fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style Occ fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style Season fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style Day fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style Demand fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style Final fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 Prices are pre-computed nightly for the next 365 days and cached. Real-time adjustments happen when occupancy changes by > 5% since last computation.
@@ -783,28 +642,24 @@ Prices are pre-computed nightly for the next 365 days and cached. Real-time adju
 
 ## Deep Dive: Booking Cancellation with Policy Engine
 
-\`\`\`
-+------------------------------------------------------+
-| Cancellation Policy Engine                            |
-|                                                       |
-| Policy (per hotel, stored as config):                 |
-|                                                       |
-|   Days before check-in:                               |
-|   +--------------------------------------------------+|
-|   | > 7 days   | Full refund (100%)                  ||
-|   | 3-7 days   | Partial refund (50%)                ||
-|   | 1-3 days   | No refund (0%)                      ||
-|   | < 1 day    | No refund, no-show fee applied      ||
-|   +--------------------------------------------------+|
-|                                                       |
-| Flow:                                                 |
-|   1. Look up booking -> get hotel cancellation policy |
-|   2. Calculate days until check-in                    |
-|   3. Apply refund percentage                          |
-|   4. Release room availability (booked_rooms -= 1)    |
-|   5. Process refund via payment service               |
-|   6. Notify guest and hotel                           |
-+------------------------------------------------------+
+\`\`\`mermaid
+graph TD
+    Cancel["Cancel Request"] --> Lookup["1. Lookup booking + policy"]
+    Lookup --> Calc["2. Calculate days until check-in"]
+    Calc -->|"> 7 days"| Full["100% refund"]
+    Calc -->|"3-7 days"| Partial["50% refund"]
+    Calc -->|"< 3 days"| None["0% refund"]
+    Full --> Release["Release room + Process refund + Notify"]
+    Partial --> Release
+    None --> Release
+
+    style Cancel fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style Lookup fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style Calc fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style Full fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style Partial fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style None fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style Release fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 `,
     explanation: `## Bottlenecks & Improvements
@@ -904,144 +759,84 @@ A **Virtual Queue Service** manages the waiting room using Redis sorted sets to 
 `,
     code: `## Architecture Diagram
 
-\`\`\`
-+----------+       +------------------+       +------------------+
-| Users    |------>| CDN / Edge       |------>| Virtual Queue    |
-| (5M+)    |       | (Static assets,  |       | Service          |
-+----------+       |  queue page)     |       | (Redis Sorted    |
-                   +------------------+       |  Sets)           |
-                                              +--------+---------+
-                                                       |
-                                              Admitted users only
-                                                       |
-                   +------------------+       +--------v---------+
-                   | WebSocket Server |<------| Seat Inventory   |
-                   | (Real-time seat  |       | Service          |
-                   |  map updates)    |       | (Redis Bitmaps)  |
-                   +------------------+       +--------+---------+
-                                                       |
-                                              +--------v---------+
-                                              | Hold Manager     |
-                                              | (TTL-based holds)|
-                                              | 10-min window    |
-                                              +--------+---------+
-                                                       |
-                                              +--------v---------+
-                                              | Purchase Service |
-                                              | (Payment + QR)   |
-                                              +--------+---------+
-                                                       |
-                                              +--------v---------+
-                                              | PostgreSQL       |
-                                              | (Tickets, Orders)|
-                                              +------------------+
+\`\`\`mermaid
+graph TD
+    Users["Users (5M+)"] --> CDN["CDN / Edge (Static queue page)"]
+    CDN --> Queue["Virtual Queue (Redis Sorted Sets)"]
+    Queue -->|"Admitted only"| Seats["Seat Inventory (Redis Bitmaps)"]
+    Seats --> WS["WebSocket Server (Real-time updates)"]
+    Seats --> Hold["Hold Manager (10-min TTL)"]
+    Hold --> Purchase["Purchase Service (Payment + QR)"]
+    Purchase --> PG["PostgreSQL (Tickets, Orders)"]
+
+    style Users fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style CDN fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style Queue fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style Seats fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style WS fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style Hold fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style Purchase fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style PG fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## Write Flow (Select and Purchase Seats)
 
-\`\`\`
-User         Queue Svc      Seat Svc       Hold Mgr       Purchase
-  |              |              |              |              |
-  | Join queue   |              |              |              |
-  |------------->|              |              |              |
-  | Position: 847|              |              |              |
-  |<-------------|              |              |              |
-  |    ...wait...|              |              |              |
-  | Admitted!    |              |              |              |
-  |<-------------|              |              |              |
-  |              |              |              |              |
-  | GET /seats   |              |              |              |
-  |-------------------------->|              |              |
-  | Seat map bitmap            |              |              |
-  |<--------------------------|              |              |
-  |              |              |              |              |
-  | POST /holds (seatIds)      |              |              |
-  |-------------------------->|              |              |
-  |              |              | Create hold  |              |
-  |              |              |------------->|              |
-  |              |              | TTL: 10 min  |              |
-  |              |              |<-------------|              |
-  | Hold confirmed (10 min)    |              |              |
-  |<--------------------------|              |              |
-  |              |              |              |              |
-  | POST /purchase (holdId)    |              |              |
-  |--------------------------------------------------->|
-  |              |              |              |  Verify hold |
-  |              |              |              |<-------------|
-  |              |              |              |  Valid       |
-  |              |              |              |------------->|
-  |              |              |              |  Mark SOLD   |
-  |  Tickets + QR codes        |              |              |
-  |<---------------------------------------------------|
+\`\`\`mermaid
+sequenceDiagram
+    participant User
+    participant Queue as Queue Svc
+    participant Seat as Seat Svc
+    participant Hold as Hold Mgr
+    participant Buy as Purchase
+
+    User->>Queue: Join queue
+    Queue-->>User: Position: 847
+    Queue-->>User: Admitted!
+    User->>Seat: GET /seats
+    Seat-->>User: Seat map bitmap
+    User->>Seat: POST /holds (seatIds)
+    Seat->>Hold: Create hold (TTL: 10 min)
+    Hold-->>Seat: Confirmed
+    Seat-->>User: Hold confirmed
+    User->>Buy: POST /purchase (holdId)
+    Buy->>Hold: Verify hold
+    Hold-->>Buy: Valid → Mark SOLD
+    Buy-->>User: Tickets + QR codes
 \`\`\`
 
 ## Read Flow (Real-Time Seat Map)
 
-\`\`\`
-User         WebSocket       Seat Svc       Redis Bitmap
-  |              |              |              |
-  | Connect WS   |              |              |
-  |------------->|              |              |
-  |              | Subscribe    |              |
-  |              | event:123    |              |
-  |              |              |              |
-  |              | Initial bitmap              |
-  |              |<-------------|              |
-  | Full seat map|              |              |
-  |<-------------|              |              |
-  |              |              |              |
-  |   (another user holds seat 42)             |
-  |              |              | BIT SET      |
-  |              |              |------------->|
-  |              | Diff: seat 42 -> HELD       |
-  |              |<-------------|              |
-  | Update seat 42              |              |
-  |<-------------|              |              |
+\`\`\`mermaid
+sequenceDiagram
+    participant User
+    participant WS as WebSocket
+    participant Seat as Seat Svc
+    participant Redis as Redis Bitmap
+
+    User->>WS: Connect WS
+    WS->>Seat: Subscribe event:123
+    Seat-->>WS: Initial bitmap
+    WS-->>User: Full seat map
+    Note over Seat,Redis: Another user holds seat 42
+    Seat->>Redis: BIT SET seat 42
+    Seat-->>WS: Diff: seat 42 → HELD
+    WS-->>User: Update seat 42
 \`\`\`
 `,
     jsCode: `## Deep Dive: Virtual Queue for High-Demand Events
 
 When millions of users hit an on-sale simultaneously, the queue absorbs the thundering herd and admits users at a controlled rate.
 
-\`\`\`
-+------------------------------------------------------+
-| Virtual Queue Architecture                            |
-|                                                       |
-| Pre-sale (queue opens 30 min before on-sale):         |
-| +--------------------------------------------------+ |
-| | Redis Sorted Set: queue:{eventId}                | |
-| |                                                  | |
-| | Score = random (shuffled at on-sale time)        | |
-| | Member = session_token                           | |
-| |                                                  | |
-| | session_abc -> 0.142  (position after shuffle)   | |
-| | session_def -> 0.287                             | |
-| | session_ghi -> 0.501                             | |
-| | ...5M entries                                    | |
-| +--------------------------------------------------+ |
-|                                                       |
-| On-sale (admission begins):                           |
-| +--------------------------------------------------+ |
-| | Admission Rate Controller                        | |
-| |                                                  | |
-| | Target: 500 users/second admitted                | |
-| | Based on: checkout capacity, not queue size      | |
-| |                                                  | |
-| | Every 2 seconds:                                 | |
-| |   ZPOPMIN queue:{eventId} 1000                   | |
-| |   Move to admitted:{eventId} set                 | |
-| |   Notify via WebSocket: "You are now admitted"   | |
-| +--------------------------------------------------+ |
-|                                                       |
-| Position Estimator (honest with users):               |
-| +--------------------------------------------------+ |
-| | Position: 50,247 of 2,100,000                    | |
-| | Available seats: 20,000                          | |
-| | Admission rate: 500/sec                          | |
-| | Estimated wait: ~100 seconds                     | |
-| | NOTE: Tickets may sell out before your turn      | |
-| +--------------------------------------------------+ |
-+------------------------------------------------------+
+\`\`\`mermaid
+graph TD
+    PreSale["Pre-sale: Redis Sorted Set<br/>5M entries, random scores"] -->|"On-sale starts"| Admit["Admission Controller<br/>500 users/sec via ZPOPMIN"]
+    Admit --> Notify["Notify via WebSocket:<br/>You are now admitted"]
+    Admit --> Position["Position Estimator<br/>50,247 of 2.1M | ~100s wait"]
+
+    style PreSale fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style Admit fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style Notify fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style Position fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 Queue positions are randomized (not FIFO) to defeat bots that connect milliseconds early. CAPTCHA is required before joining.
@@ -1050,74 +845,30 @@ Queue positions are randomized (not FIFO) to defeat bots that connect millisecon
 
 ## Deep Dive: Seat Inventory with Redis Bitmaps
 
-\`\`\`
-+------------------------------------------------------+
-| Redis Bitmap: seats:{eventId}                         |
-|                                                       |
-| Bit index = seat_id (0 to 79,999 for 80K venue)     |
-| Bit value: 0 = AVAILABLE, 1 = HELD or SOLD          |
-|                                                       |
-| Memory: 80,000 bits = 10 KB per event                |
-|                                                       |
-| +--------------------------------------------------+ |
-| | Operations:                                      | |
-| |                                                  | |
-| | Check seat:  GETBIT seats:123 4502  --> 0 (free) | |
-| | Hold seat:   SETBIT seats:123 4502  --> 1        | |
-| | Release:     SETBIT seats:123 4502  --> 0        | |
-| | Count avail: BITCOUNT seats:123     --> 62,481   | |
-| |                                                  | |
-| | Atomic multi-seat hold (Lua script):             | |
-| | 1. Check all requested bits are 0                | |
-| | 2. If yes, set all bits to 1                     | |
-| | 3. If any bit is 1, return CONFLICT              | |
-| +--------------------------------------------------+ |
-|                                                       |
-| Second bitmap for SOLD vs HELD distinction:           |
-| +--------------------------------------------------+ |
-| | sold:{eventId}   - permanent                     | |
-| | held:{eventId}   - with TTL per seat             | |
-| |                                                  | |
-| | Seat state = held[i] OR sold[i]                  | |
-| | Display: held=yellow, sold=red, neither=green    | |
-| +--------------------------------------------------+ |
-+------------------------------------------------------+
+\`\`\`mermaid
+graph TD
+    Bitmap["Redis Bitmap: seats:eventId<br/>80K bits = 10KB per event<br/>0=AVAILABLE, 1=HELD/SOLD"] --> Ops["Operations:<br/>GETBIT (check), SETBIT (hold/release)<br/>BITCOUNT (available count)"]
+    Ops --> Lua["Atomic Lua: check all bits=0,<br/>set all to 1, else CONFLICT"]
+    Bitmap --> Dual["Dual bitmaps:<br/>held:eventId (TTL) + sold:eventId (permanent)<br/>green/yellow/red display"]
+
+    style Bitmap fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style Ops fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style Lua fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style Dual fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ---
 
 ## Deep Dive: Hold Expiration and Seat Release
 
-\`\`\`
-+------------------------------------------------------+
-| Hold Manager (Belt and Suspenders)                    |
-|                                                       |
-| Layer 1: Redis TTL                                    |
-| +--------------------------------------------------+ |
-| | SET hold:{holdId} {seatIds} EX 600               | |
-| | When key expires -> keyspace notification         | |
-| |                  -> release seats in bitmap       | |
-| +--------------------------------------------------+ |
-|                                                       |
-| Layer 2: Cleanup Job (every 30 seconds)               |
-| +--------------------------------------------------+ |
-| | SELECT * FROM holds                              | |
-| |   WHERE status = 'ACTIVE'                        | |
-| |   AND expires_at < NOW()                         | |
-| |                                                  | |
-| | For each expired hold:                           | |
-| |   1. Clear bits in Redis bitmap                  | |
-| |   2. Update hold status = 'EXPIRED'              | |
-| |   3. Log for auditing                            | |
-| +--------------------------------------------------+ |
-|                                                       |
-| Layer 3: On-access verification                       |
-| +--------------------------------------------------+ |
-| | Before any seat operation:                       | |
-| |   Verify hold is still active in Redis           | |
-| |   If not, release and return error               | |
-| +--------------------------------------------------+ |
-+------------------------------------------------------+
+\`\`\`mermaid
+graph TD
+    L1["Layer 1: Redis TTL<br/>SET hold:id EX 600<br/>Keyspace notification → release"] --> L2["Layer 2: Cleanup Job (30s)<br/>SELECT expired holds<br/>Clear bitmap + mark EXPIRED"]
+    L2 --> L3["Layer 3: On-access verification<br/>Check hold active before any op<br/>Release + error if expired"]
+
+    style L1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style L2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style L3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 Three layers ensure no seat is permanently leaked, even if Redis TTL events are missed.
@@ -1219,137 +970,88 @@ An **Order Service** manages the order lifecycle. A **Dispatch Service** matches
 `,
     code: `## Architecture Diagram
 
-\`\`\`
-+-----------+     +------------------+     +------------------+
-| Customer  |---->| API Gateway      |---->| Order Service    |
-| App       |     |                  |     | (Lifecycle mgmt) |
-+-----------+     +--+---------------+     +--------+---------+
-                     |                              |
-+-----------+        |                     +--------v---------+
-| Restaurant|--------+                     | Dispatch Service |
-| App       |        |                     | (Order-Driver    |
-+-----------+        |                     |  matching)       |
-                     |                     +--------+---------+
-+-----------+        |                              |
-| Driver    |--------+                     +--------v---------+
-| App       |                              | Redis GEO        |
-+-----------+                              | (Driver positions|
-     |                                     |  + matching)     |
-     | GPS updates                         +--------+---------+
-     | (every 4s)                                   |
-     v                                              |
-+------------------+                       +--------v---------+
-| Location Service |---------------------->| ETA Service      |
-| (High-throughput |    location data      | (Prediction      |
-|  ingestion)      |                       |  model)          |
-+--------+---------+                       +------------------+
-         |
-+--------v---------+       +------------------+
-| Redis GEO +      |------>| Tracking Service |
-| Kafka (events)   |       | (WebSocket push  |
-+------------------+       |  to customers)   |
-                           +------------------+
+\`\`\`mermaid
+graph TD
+    Cust["Customer App"] --> GW["API Gateway"]
+    Rest["Restaurant App"] --> GW
+    Driver["Driver App"] --> GW
+    GW --> Order["Order Service"]
+    Order --> Dispatch["Dispatch Service"]
+    Dispatch --> Geo["Redis GEO (Driver positions)"]
+    Driver -->|"GPS every 4s"| Loc["Location Service"]
+    Loc --> Geo
+    Loc --> Kafka["Kafka (events)"]
+    Kafka --> Track["Tracking Service (WebSocket)"]
+    Geo --> ETA["ETA Service"]
+
+    style Cust fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style Rest fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style Driver fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style GW fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style Order fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style Dispatch fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style Geo fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style Loc fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style Kafka fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style Track fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style ETA fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## Write Flow (Place Order and Dispatch)
 
-\`\`\`
-Customer     Order Svc      Dispatch       Redis GEO      Driver
-  |              |              |              |              |
-  | POST /order  |              |              |              |
-  |------------->|              |              |              |
-  |              | Create order |              |              |
-  |              | status=PLACED|              |              |
-  |              |              |              |              |
-  |              | Find driver  |              |              |
-  |              |------------->|              |              |
-  |              |              | GEORADIUS    |              |
-  |              |              | 5km around   |              |
-  |              |              | restaurant   |              |
-  |              |              |------------->|              |
-  |              |              | [driver1,    |              |
-  |              |              |  driver2,..] |              |
-  |              |              |<-------------|              |
-  |              |              |              |              |
-  |              |              | Score & rank |              |
-  |              |              | (distance,   |              |
-  |              |              |  rating,     |              |
-  |              |              |  heading)    |              |
-  |              |              |              |              |
-  |              |              | Push offer   |              |
-  |              |              |------------------------------>|
-  |              |              |   ACCEPT     |              |
-  |              |              |<------------------------------|
-  |              | Driver matched|              |              |
-  |              |<-------------|              |              |
-  |  Confirmed   |              |              |              |
-  |<-------------|              |              |              |
+\`\`\`mermaid
+sequenceDiagram
+    participant Cust as Customer
+    participant Order as Order Svc
+    participant Disp as Dispatch
+    participant Geo as Redis GEO
+    participant Driver
+
+    Cust->>Order: POST /order
+    Note over Order: Create order, status=PLACED
+    Order->>Disp: Find driver
+    Disp->>Geo: GEORADIUS 5km around restaurant
+    Geo-->>Disp: [driver1, driver2, ...]
+    Note over Disp: Score and rank (distance, rating, heading)
+    Disp->>Driver: Push offer
+    Driver-->>Disp: ACCEPT
+    Disp-->>Order: Driver matched
+    Order-->>Cust: Confirmed
 \`\`\`
 
 ## Read Flow (Real-Time Tracking)
 
-\`\`\`
-Driver        Location Svc    Redis GEO     Tracking Svc    Customer
-  |               |              |              |              |
-  | GPS update    |              |              |              |
-  | (lat,lng)     |              |              |              |
-  |-------------->|              |              |              |
-  |               | GEOADD       |              |              |
-  |               |------------->|              |              |
-  |               | Publish to   |              |              |
-  |               | Kafka topic  |              |              |
-  |               |              |              |              |
-  |               |              |    Consume   |              |
-  |               |              |    location  |              |
-  |               |              |------------->|              |
-  |               |              |              | Push via WS  |
-  |               |              |              |------------->|
-  |               |              |              |  {lat, lng,  |
-  |               |              |              |   eta: 8min} |
-  |               |              |              |              |
+\`\`\`mermaid
+sequenceDiagram
+    participant Driver
+    participant Loc as Location Svc
+    participant Geo as Redis GEO
+    participant Track as Tracking Svc
+    participant Cust as Customer
+
+    Driver->>Loc: GPS update (lat, lng)
+    Loc->>Geo: GEOADD
+    Loc->>Loc: Publish to Kafka
+    Geo->>Track: Consume location
+    Track->>Cust: Push via WS {lat, lng, eta: 8min}
 \`\`\`
 `,
     jsCode: `## Deep Dive: Driver Matching Algorithm
 
 The dispatch service must find the best driver for each order, balancing speed, cost, and driver experience.
 
-\`\`\`
-+------------------------------------------------------+
-| Dispatch Service - Matching Flow                      |
-|                                                       |
-| Step 1: Spatial Query                                 |
-| +--------------------------------------------------+ |
-| | GEORADIUS restaurant:location 5km                | |
-| | Returns: [driver_a: 1.2km, driver_b: 3.1km,     | |
-| |           driver_c: 0.8km, driver_d: 4.5km]     | |
-| +--------------------------------------------------+ |
-|                                                       |
-| Step 2: Multi-Factor Scoring                          |
-| +--------------------------------------------------+ |
-| | For each candidate driver:                       | |
-| |                                                  | |
-| | score = w1 * distance_score                      | |
-| |       + w2 * heading_score                       | |
-| |       + w3 * rating_score                        | |
-| |       + w4 * acceptance_rate                     | |
-| |       + w5 * current_load_score                  | |
-| |                                                  | |
-| | driver_c: 0.8km, heading toward, 4.8 rating     | |
-| |   score = 0.4*0.95 + 0.2*0.9 + 0.2*0.96        | |
-| |         + 0.1*0.88 + 0.1*1.0 = 0.94             | |
-| |                                                  | |
-| | driver_a: 1.2km, heading away, 4.5 rating       | |
-| |   score = 0.4*0.85 + 0.2*0.3 + 0.2*0.90        | |
-| |         + 0.1*0.92 + 0.1*0.8 = 0.75             | |
-| +--------------------------------------------------+ |
-|                                                       |
-| Step 3: Offer to Top-Scored Driver                    |
-| +--------------------------------------------------+ |
-| | Send push notification to driver_c               | |
-| | Timeout: 30 seconds to accept                    | |
-| | If declined/timeout: offer to next driver        | |
-| +--------------------------------------------------+ |
-+------------------------------------------------------+
+\`\`\`mermaid
+graph TD
+    Spatial["Step 1: GEORADIUS 5km<br/>driver_a:1.2km, driver_c:0.8km..."] --> Score["Step 2: Multi-Factor Scoring<br/>distance + heading + rating + acceptance + load"]
+    Score --> Best["driver_c: 0.94 (best)<br/>0.8km, heading toward, 4.8 rating"]
+    Score --> Other["driver_a: 0.75<br/>1.2km, heading away"]
+    Best --> Offer["Step 3: Push offer to driver_c<br/>30s timeout, fallback to next"]
+
+    style Spatial fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style Score fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style Best fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style Other fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style Offer fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 Distance alone is insufficient. A driver heading toward the restaurant at speed will arrive faster than a closer driver stuck in traffic heading the other direction.
@@ -1358,47 +1060,18 @@ Distance alone is insufficient. A driver heading toward the restaurant at speed 
 
 ## Deep Dive: ETA Prediction Model
 
-\`\`\`
-+------------------------------------------------------+
-| ETA Service - Three-Component Model                   |
-|                                                       |
-| Component 1: Restaurant Prep Time                     |
-| +--------------------------------------------------+ |
-| | Inputs:                                          | |
-| |   - Restaurant historical avg: 18 min           | |
-| |   - Current active orders: 12 (busy)            | |
-| |   - Order complexity: 5 items (above avg)       | |
-| |   - Time of day: 12:30 PM (lunch rush)          | |
-| |                                                  | |
-| | Model: base_prep * load_factor * complexity      | |
-| | = 18 * 1.3 * 1.1 = 25.7 min                     | |
-| +--------------------------------------------------+ |
-|                                                       |
-| Component 2: Driver-to-Restaurant Travel              |
-| +--------------------------------------------------+ |
-| | Inputs:                                          | |
-| |   - Distance: 2.1 km                            | |
-| |   - Routing API: 8 min (with traffic)           | |
-| |   - Weather: rain (+2 min buffer)               | |
-| |                                                  | |
-| | = 8 + 2 = 10 min                                | |
-| +--------------------------------------------------+ |
-|                                                       |
-| Component 3: Restaurant-to-Customer Travel            |
-| +--------------------------------------------------+ |
-| | Inputs:                                          | |
-| |   - Distance: 3.4 km                            | |
-| |   - Routing API: 12 min (with traffic)          | |
-| |   - Weather: rain (+3 min buffer)               | |
-| |                                                  | |
-| | = 12 + 3 = 15 min                               | |
-| +--------------------------------------------------+ |
-|                                                       |
-| Total ETA: max(prep, driver_to_rest) + rest_to_cust  |
-|          = max(25.7, 10) + 15                         |
-|          = 25.7 + 15 = 40.7 min                      |
-|          Displayed: ~41 min (confidence: 85%)         |
-+------------------------------------------------------+
+\`\`\`mermaid
+graph TD
+    Prep["Prep Time: 18 * 1.3 * 1.1 = 25.7 min"] --> Max["max(prep, driver→rest)"]
+    D2R["Driver→Restaurant: 8 + 2 = 10 min"] --> Max
+    Max --> Total["+ Restaurant→Customer: 12 + 3 = 15 min"]
+    Total --> ETA["Total: 25.7 + 15 = ~41 min (85% confidence)"]
+
+    style Prep fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style D2R fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style Max fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style Total fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style ETA fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 Prep time and driver-to-restaurant overlap (driver waits if food is not ready). The ETA is continuously refined as real data arrives.
@@ -1407,42 +1080,22 @@ Prep time and driver-to-restaurant overlap (driver waits if food is not ready). 
 
 ## Deep Dive: Location Ingestion Pipeline
 
-\`\`\`
-+------------------------------------------------------+
-| Location Service - High-Throughput Pipeline           |
-|                                                       |
-| 500K drivers sending GPS every 4 seconds              |
-| = 125,000 updates/second                              |
-|                                                       |
-| +--------------------------------------------------+ |
-| | Driver App                                       | |
-| |   POST /drivers/location                         | |
-| |   { lat, lng, heading, speed, ts }               | |
-| |   (lightweight endpoint, minimal validation)     | |
-| +--------------------------------------------------+ |
-|         |                                             |
-|         v                                             |
-| +--------------------------------------------------+ |
-| | Location Service (stateless, auto-scaled)        | |
-| |                                                  | |
-| | 1. Write to Redis GEO (for real-time queries)    | |
-| |    GEOADD drivers:active {lng} {lat} {driverId}  | |
-| |                                                  | |
-| | 2. Publish to Kafka topic: driver.locations      | |
-| |    (for downstream consumers)                    | |
-| +--------------------------------------------------+ |
-|         |                       |                     |
-|         v                       v                     |
-| +----------------+    +-------------------------+     |
-| | Redis GEO      |    | Kafka -> Consumers      |    |
-| | (latest pos.)  |    |                         |    |
-| | Used by:       |    | -> Tracking Service     |    |
-| |  - Dispatch    |    |    (push to customers)  |    |
-| |  - ETA Service |    | -> TimescaleDB          |    |
-| |                |    |    (historical storage)  |    |
-| +----------------+    | -> Analytics            |    |
-|                       +-------------------------+     |
-+------------------------------------------------------+
+\`\`\`mermaid
+graph TD
+    App["Driver App (125K updates/sec)"] --> Loc["Location Service (stateless)"]
+    Loc --> Geo["Redis GEO (latest position)<br/>Used by: Dispatch, ETA"]
+    Loc --> Kafka["Kafka: driver.locations"]
+    Kafka --> Track["Tracking Service (push to customers)"]
+    Kafka --> TSDB["TimescaleDB (historical)"]
+    Kafka --> Analytics["Analytics"]
+
+    style App fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style Loc fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style Geo fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style Kafka fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style Track fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style TSDB fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style Analytics fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 Redis GEO holds only the latest position per driver (real-time). Kafka distributes to all consumers. TimescaleDB stores historical data for ETA model training.

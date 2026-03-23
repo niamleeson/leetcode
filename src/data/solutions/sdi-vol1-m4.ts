@@ -111,107 +111,113 @@ We choose a **wide-column store** like Apache Cassandra or HBase. The access pat
 
 ### Overall System Architecture
 
-\`\`\`
-┌─────────┐   ┌─────────┐   ┌─────────┐
-│ Client  │   │ Client  │   │ Client  │
-│  (App)  │   │  (Web)  │   │  (App)  │
-└────┬────┘   └────┬────┘   └────┬────┘
-     │  WebSocket   │  WebSocket  │
-     └──────────────┼─────────────┘
-                    │
-           ┌────────▼────────┐
-           │  Load Balancer  │
-           │  (L4 / Sticky)  │
-           └───┬────┬────┬───┘
-               │    │    │
-     ┌─────────▼┐ ┌─▼────────┐ ┌▼─────────┐
-     │  Chat    │ │  Chat    │ │  Chat    │
-     │  Server  │ │  Server  │ │  Server  │
-     │    #1    │ │    #2    │ │    #3    │
-     └──┬───┬──┘ └──┬───┬──┘ └──┬───┬──┘
-        │   │       │   │       │   │
-        │   └───────┼───┼───────┘   │
-        │           │   │           │
-   ┌────▼───────────▼───▼───────────▼────┐
-   │        Message Queue (Kafka)         │
-   │  [user_A_queue] [user_B_queue] ...   │
-   └────┬──────────────┬─────────────┬───┘
-        │              │             │
-   ┌────▼────┐   ┌─────▼─────┐  ┌───▼──────────┐
-   │   KV    │   │ ZooKeeper │  │    Push       │
-   │  Store  │   │ (Service  │  │ Notification  │
-   │(Cassan- │   │ Discovery)│  │   Service     │
-   │  dra)   │   │           │  │  (APNs/FCM)   │
-   └─────────┘   └───────────┘  └───────────────┘
+\`\`\`mermaid
+graph TD
+    N0["Client (App)"]
+    N1["Client (Web)"]
+    N2["Load Balancer (L4 / Sticky)"]
+    N3["Chat Server"]
+    N4["Message Queue (Kafka)"]
+    N5[("KV Store")]
+    N6["ZooKeeper (Service Discovery)"]
+    N7["Push Notification"]
+    N0 --> N2
+    N1 --> N2
+    N2 --> N3
+    N3 --> N4
+    N3 --> N5
+    N3 --> N6
+    N3 --> N7
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ### 1-on-1 Message Delivery Sequence
 
-\`\`\`
-User A                Chat Server 1           Chat Server 2            User B
-  │                        │                       │                     │
-  │── WS: send msg ──────▶│                       │                     │
-  │                        │                       │                     │
-  │                        │── lookup User B's ───▶│                     │
-  │                        │   server (ZooKeeper)  │                     │
-  │                        │                       │                     │
-  │                        │── persist to KV ─────▶│                     │
-  │                        │   store (async)       │                     │
-  │                        │                       │                     │
-  │                        │── enqueue to ────────▶│                     │
-  │                        │   User B's queue      │                     │
-  │                        │                       │── WS: deliver ────▶│
-  │                        │                       │   msg to User B    │
-  │                        │                       │                     │
-  │◀── WS: ack ───────────│                       │                     │
-  │   (msg delivered)      │                       │                     │
+\`\`\`mermaid
+graph TD
+    N0["Browser / Mobile App"]
+    N1["API Gateway / CDN Edge"]
+    N2["Query Service"]
+    N3["Trie Cache"]
+    N4["Server Cache"]
+    N5["Data Gathering Service"]
+    N6["Analytics Logs"]
+    N7["Trie Builder (weekly)"]
+    N8[("Trie Storage (S3)")]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    N2 --> N4
+    N5 --> N6
+    N6 --> N7
+    N7 --> N8
+    N8 --> N3
+    N8 --> N4
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N8 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ### 1-on-1: User B is Offline
 
-\`\`\`
-User A            Chat Server 1         Message Queue       Push Service
-  │                     │                     │                   │
-  │── WS: send msg ───▶│                     │                   │
-  │                     │                     │                   │
-  │                     │── persist to KV ───▶│                   │
-  │                     │   store             │                   │
-  │                     │                     │                   │
-  │                     │── User B offline ──▶│                   │
-  │                     │   (ZK lookup fails) │                   │
-  │                     │                     │                   │
-  │                     │── enqueue msg ─────▶│                   │
-  │                     │   in User B queue   │                   │
-  │                     │                     │                   │
-  │                     │── trigger push ─────┼──────────────────▶│
-  │                     │   notification      │      (APNs/FCM)   │
-  │                     │                     │                   │
-  │◀── WS: ack ────────│                     │                   │
+\`\`\`mermaid
+graph TD
+    N0["Desktop Client"]
+    N1["File Watcher"]
+    N2["API Gateway / LB"]
+    N3["Block Servers"]
+    N4["Metadata Service"]
+    N5["Notification Service"]
+    N6[("Cloud Storage")]
+    N7[("Metadata Database")]
+    N0 --> N1
+    N0 --> N2
+    N2 --> N3
+    N2 --> N4
+    N2 --> N5
+    N3 --> N6
+    N4 --> N7
+    N5 --> N0
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ### Group Message Fanout
 
-\`\`\`
-Sender              Chat Server         Message Queues           Recipients
-  │                     │                    │                       │
-  │── send to ────────▶│                    │                       │
-  │   group_123        │                    │                       │
-  │                     │                    │                       │
-  │                     │── persist msg ────▶│                       │
-  │                     │   to group table   │                       │
-  │                     │                    │                       │
-  │                     │── fan out to ─────▶│                       │
-  │                     │   each member's    │                       │
-  │                     │   queue            │                       │
-  │                     │                    │                       │
-  │                     │            ┌───────┼───────┐               │
-  │                     │            │       │       │               │
-  │                     │     [queue_B] [queue_C] [queue_D]          │
-  │                     │            │       │       │               │
-  │                     │            ▼       ▼       ▼               │
-  │                     │         User B  User C  User D             │
-  │                     │        (online) (online) (offline          │
-  │                     │                          → push)           │
+\`\`\`mermaid
+sequenceDiagram
+    participant S as Sender
+    participant CS as Chat Server
+    participant MQ as Message Queues
+    participant UB as User B (online)
+    participant UC as User C (online)
+    participant UD as User D (offline)
+
+    S->>CS: Send to group_123
+    CS->>MQ: Persist msg to group table
+    CS->>MQ: Fan out to each member's queue
+    MQ->>UB: Deliver via queue_B
+    MQ->>UC: Deliver via queue_C
+    MQ->>UD: Deliver via queue_D (→ push notification)
 \`\`\`
 `,
     jsCode: `## Deep Dive
@@ -398,128 +404,132 @@ With this optimization, answering a query is simply: walk the trie character by 
 
 ### Overall System Architecture
 
-\`\`\`
-┌──────────────┐
-│   Browser /  │
-│   Mobile App │
-└──────┬───────┘
-       │  GET /autocomplete?prefix=...
-       │
-       │  (1) Check browser cache first
-       │
-┌──────▼────────┐
-│  API Gateway  │
-│  / CDN Edge   │
-└──────┬────────┘
-       │
-┌──────▼────────────────────────────┐
-│          Query Service             │
-│                                    │
-│  ┌──────────┐    ┌──────────────┐ │
-│  │  Trie    │    │   Server     │ │
-│  │  Cache   │◀───│   Cache      │ │
-│  │ (in-mem) │    │  (Redis)     │ │
-│  └──────────┘    └──────────────┘ │
-└───────────────────────────────────┘
+\`\`\`mermaid
+graph TD
+    APP["Browser / Mobile App"]
+    GW["API Gateway / CDN Edge"]
+    QS["Query Service"]
+    TC["Trie Cache (in-mem)"]
+    SC["Server Cache (Redis)"]
+    DGS["Data Gathering Service"]
+    LOGS["Analytics Logs"]
+    MR["MapReduce / Spark Job"]
+    TBuild["Trie Builder (weekly)"]
+    TS["Trie Storage (S3 / DB)"]
 
-                  ▲
-                  │  Periodic trie swap
-                  │  (blue-green deployment)
-                  │
-┌─────────────────┴─────────────────┐
-│       Data Gathering Service       │
-│                                    │
-│  ┌──────────┐    ┌──────────────┐ │
-│  │ Analytics │───▶│  MapReduce / │ │
-│  │   Logs    │    │   Spark Job  │ │
-│  └──────────┘    └──────┬───────┘ │
-│                         │         │
-│                  ┌──────▼───────┐ │
-│                  │ Trie Builder │  │
-│                  │  (weekly)    │  │
-│                  └──────┬───────┘ │
-│                         │         │
-│                  ┌──────▼───────┐ │
-│                  │ Trie Storage │  │
-│                  │  (S3 / DB)  │  │
-│                  └──────────────┘ │
-└───────────────────────────────────┘
+    APP -->|"GET /autocomplete?prefix=..."| GW
+    GW --> QS
+    SC --> TC
+    QS --- TC
+    QS --- SC
+    TS -->|"Periodic trie swap (blue-green)"| QS
+    LOGS --> MR
+    MR --> TBuild
+    TBuild --> TS
+    DGS --- LOGS
+    DGS --- MR
+    DGS --- TBuild
+    DGS --- TS
+
+    style APP fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style GW fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style QS fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style TC fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style SC fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style DGS fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style LOGS fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style MR fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style TBuild fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style TS fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ### Trie Node Structure
 
-\`\`\`
-               (root)
-              /   |   \\
-            b     c     t
-           /      |      \\
-          e      a       r
-         / \\     |      / \\
-        e   s   r     e    i
-        |   |   |     |    |
-        r   t   s    e    p
+\`\`\`mermaid
+graph TD
+    ROOT["(root)"]
+    ROOT --> B["b"]
+    ROOT --> C["c"]
+    ROOT --> T["t"]
+    B --> E["e"]
+    C --> A["a"]
+    T --> R["r"]
+    E --> E2["e → beer"]
+    E --> S["s → best"]
+    A --> R2["r → cars"]
+    R --> E3["e → tree"]
+    R --> I["i → trip"]
 
-  Node "be":
-  ┌──────────────────────────────┐
-  │  children: {e, s}            │
-  │  top_queries:                │
-  │    1. "best buy"     (50K)   │
-  │    2. "best movies"  (42K)   │
-  │    3. "beer near me" (38K)   │
-  │    4. "beats"        (35K)   │
-  │    5. "best pizza"   (31K)   │
-  │  is_end: false               │
-  └──────────────────────────────┘
+    subgraph NodeBE["Node 'be'"]
+        INFO["children: e, s | is_end: false"]
+        Q1["1. best buy (50K)"]
+        Q2["2. best movies (42K)"]
+        Q3["3. beer near me (38K)"]
+        Q4["4. beats (35K)"]
+        Q5["5. best pizza (31K)"]
+    end
+
+    style ROOT fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style B fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style C fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style T fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style E fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style A fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style R fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style E2 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style S fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style R2 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style E3 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style I fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style INFO fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style Q1 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style Q2 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style Q3 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style Q4 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style Q5 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ### Data Gathering Pipeline
 
-\`\`\`
-Search Queries (raw logs)
-       │
-       ▼
-┌──────────────┐     ┌───────────────┐     ┌────────────────┐
-│  Log Stream  │────▶│  Aggregation  │────▶│   Frequency    │
-│   (Kafka)    │     │  (Spark /     │     │   Table (DB)   │
-│              │     │   MapReduce)  │     │                │
-└──────────────┘     └───────────────┘     └───────┬────────┘
-                                                   │
-                                                   ▼
-┌──────────────┐     ┌───────────────┐     ┌───────────────┐
-│  Trie Cache  │◀────│  Trie Swap   │◀────│  Trie Builder │
-│  (Query      │     │  (Blue-Green) │     │  (weekly job) │
-│   Servers)   │     │              │     │               │
-└──────────────┘     └───────────────┘     └───────────────┘
+\`\`\`mermaid
+graph TD
+    N0["Log Stream (Kafka)"]
+    N1["Aggregation (Spark)"]
+    N2[("Frequency Table (DB)")]
+    N3["Trie Cache"]
+    N4["Trie Swap (Blue-Green)"]
+    N5["Weekly Build Job"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N5
+    N5 --> N3
+    N5 --> N4
+    style N0 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ### Query Flow with Caching Layers
 
-\`\`\`
-User types "tr"
-       │
-       ▼
-┌──────────────┐   HIT    ┌─────────────────────┐
-│   Browser    │─────────▶│ Return cached result │
-│   Cache      │          └─────────────────────┘
-└──────┬───────┘
-       │ MISS
-       ▼
-┌──────────────┐   HIT    ┌─────────────────────┐
-│   CDN Edge   │─────────▶│ Return cached result │
-│   Cache      │          └─────────────────────┘
-└──────┬───────┘
-       │ MISS
-       ▼
-┌──────────────┐   HIT    ┌─────────────────────┐
-│   Server     │─────────▶│ Return cached result │
-│   Redis Cache│          └─────────────────────┘
-└──────┬───────┘
-       │ MISS
-       ▼
-┌──────────────┐
-│   Trie       │──────────▶ Return top-5
-│   (in-mem)   │           + populate caches
-└──────────────┘
+\`\`\`mermaid
+graph TD
+    N0["Browser Cache"]
+    N1["Return cached"]
+    N2["CDN Edge Cache"]
+    N3["Server Redis Cache"]
+    N4["Trie (in-mem)"]
+    N0 --> N1
+    N0 --> N2
+    N2 --> N3
+    N3 --> N4
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 `,
     jsCode: `## Deep Dive
@@ -738,125 +748,97 @@ Higher resolutions require significantly more storage and bandwidth. A 4K stream
 
 ### Upload Pipeline
 
-\`\`\`
-Creator                  API Server              Object Storage (S3)
-  │                          │                          │
-  │── POST /upload/url ────▶│                          │
-  │                          │── generate pre-signed ──▶│
-  │◀── pre-signed URL ──────│   upload URL             │
-  │                          │                          │
-  │── PUT (raw video) ──────┼─────────────────────────▶│
-  │   (direct upload)       │                          │
-  │                          │◀── upload complete ──────│
-  │                          │   (S3 event trigger)    │
-  │                          │                          │
-  │                   ┌──────▼──────────┐               │
-  │                   │  Transcoding    │               │
-  │                   │  Pipeline       │               │
-  │                   │  (DAG Engine)   │               │
-  │                   └──────┬──────────┘               │
-  │                          │                          │
-  │                          ▼                          │
-  │              ┌─────────────────────┐                │
-  │              │   Transcoded files  │───────────────▶│
-  │              │   + thumbnails      │  (stored in S3)│
-  │              └─────────┬───────────┘                │
-  │                        │                            │
-  │                        ▼                            │
-  │              ┌─────────────────────┐                │
-  │              │  CDN Distribution   │                │
-  │              │  (push to edges)    │                │
-  │              └─────────────────────┘                │
+\`\`\`mermaid
+sequenceDiagram
+    participant CR as Creator
+    participant API as API Server
+    participant S3 as Object Storage (S3)
+    participant TP as Transcoding Pipeline (DAG)
+    participant CDN as CDN Distribution
+
+    CR->>API: POST /upload/url
+    API->>S3: Generate pre-signed upload URL
+    API-->>CR: Pre-signed URL
+    CR->>S3: PUT raw video (direct upload)
+    S3-->>API: Upload complete (S3 event trigger)
+    API->>TP: Start transcoding pipeline
+    TP->>S3: Store transcoded files + thumbnails
+    TP->>CDN: Push to edge locations
 \`\`\`
 
 ### Streaming Architecture
 
-\`\`\`
-Viewer                CDN Edge              CDN Origin           S3 Origin
-  │                      │                      │                   │
-  │── GET manifest ─────▶│                      │                   │
-  │◀── m3u8/mpd ────────│  (cache HIT)         │                   │
-  │                      │                      │                   │
-  │── GET segment_001 ──▶│                      │                   │
-  │◀── video data ───────│  (cache HIT)         │                   │
-  │                      │                      │                   │
-  │── GET segment_002 ──▶│                      │                   │
-  │                      │── cache MISS ───────▶│                   │
-  │                      │                      │── fetch from ────▶│
-  │                      │                      │   storage         │
-  │                      │◀── video data ───────│                   │
-  │◀── video data ───────│                      │                   │
-  │   (+ cache for next) │                      │                   │
+\`\`\`mermaid
+sequenceDiagram
+    participant V as Viewer
+    participant Edge as CDN Edge
+    participant Origin as CDN Origin
+    participant S3 as S3 Origin
+
+    V->>Edge: GET manifest
+    Edge-->>V: m3u8/mpd (cache HIT)
+    V->>Edge: GET segment_001
+    Edge-->>V: video data (cache HIT)
+    V->>Edge: GET segment_002
+    Edge->>Origin: cache MISS
+    Origin->>S3: Fetch from storage
+    S3-->>Origin: video data
+    Origin-->>Edge: video data
+    Edge-->>V: video data (+ cache for next)
 \`\`\`
 
 ### DAG-Based Transcoding Pipeline
 
-\`\`\`
-                    ┌──────────────┐
-                    │  Raw Video   │
-                    │   (Input)    │
-                    └──────┬───────┘
-                           │
-                    ┌──────▼───────┐
-                    │   Splitter   │
-                    │ (chunk into  │
-                    │  segments)   │
-                    └──┬───┬───┬───┘
-                       │   │   │
-           ┌───────────┘   │   └───────────┐
-           │               │               │
-    ┌──────▼──────┐ ┌──────▼──────┐ ┌──────▼──────┐
-    │ Transcode   │ │ Transcode   │ │ Transcode   │
-    │   360p      │ │   720p      │ │   1080p     │
-    │  (H.264)    │ │  (H.264)    │ │ (H.264+VP9) │
-    └──────┬──────┘ └──────┬──────┘ └──────┬──────┘
-           │               │               │
-           │        ┌──────▼──────┐        │
-           │        │  Thumbnail  │        │
-           │        │  Generator  │        │
-           │        └──────┬──────┘        │
-           │               │               │
-    ┌──────▼──────┐ ┌──────▼──────┐ ┌──────▼──────┐
-    │ Watermark   │ │ Watermark   │ │ Watermark   │
-    │  (optional) │ │  (optional) │ │  (optional) │
-    └──────┬──────┘ └──────┬──────┘ └──────┬──────┘
-           │               │               │
-           └───────────────┼───────────────┘
-                           │
-                    ┌──────▼───────┐
-                    │   Manifest   │
-                    │  Generator   │
-                    │ (HLS/DASH)   │
-                    └──────┬───────┘
-                           │
-                    ┌──────▼───────┐
-                    │  Upload to   │
-                    │  S3 + CDN    │
-                    └──────────────┘
+\`\`\`mermaid
+graph TD
+    N0["Splitter"]
+    N2["Transcode 360p"]
+    N3["Transcode 720p"]
+    N4["Transcode 1080p"]
+    N5["Thumbnail Generator"]
+    N6["Watermark"]
+    N7["Manifest Generator"]
+    N8[("Upload to S3 + CDN")]
+    N0 --> N2
+    N0 --> N3
+    N0 --> N4
+    N0 --> N5
+    N2 --> N6
+    N3 --> N6
+    N4 --> N6
+    N6 --> N7
+    N2 --> N8
+    N3 --> N8
+    N4 --> N8
+    N5 --> N8
+    N7 --> N8
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N8 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ### Pre-Signed Upload Sequence
 
-\`\`\`
-Creator             API Server           Auth Service        S3
-  │                     │                     │              │
-  │── request upload ──▶│                     │              │
-  │   (title, format)  │                     │              │
-  │                     │── verify auth ─────▶│              │
-  │                     │◀── authorized ──────│              │
-  │                     │                     │              │
-  │                     │── generate URL ─────┼─────────────▶│
-  │                     │  (pre-signed, 1hr)  │              │
-  │◀── upload URL ──────│                     │              │
-  │                     │                     │              │
-  │── PUT video file ───┼─────────────────────┼─────────────▶│
-  │   (direct to S3)   │                     │              │
-  │                     │                     │              │
-  │                     │◀── S3 event ────────┼──────────────│
-  │                     │   (upload complete) │              │
-  │                     │                     │              │
-  │                     │── trigger DAG ──────┼──            │
-  │                     │   pipeline          │              │
+\`\`\`mermaid
+sequenceDiagram
+    participant CR as Creator
+    participant API as API Server
+    participant Auth as Auth Service
+    participant S3 as S3
+
+    CR->>API: Request upload (title, format)
+    API->>Auth: Verify auth
+    Auth-->>API: Authorized
+    API->>S3: Generate pre-signed URL (1hr)
+    API-->>CR: Upload URL
+    CR->>S3: PUT video file (direct to S3)
+    S3-->>API: S3 event (upload complete)
+    API->>API: Trigger DAG pipeline
 \`\`\`
 `,
     jsCode: `## Deep Dive
@@ -1123,146 +1105,88 @@ We use **PostgreSQL** for metadata because:
 
 ### Overall System Architecture
 
-\`\`\`
-┌─────────────────────────────────────────────────┐
-│                Desktop Client                    │
-│                                                  │
-│  ┌──────────┐  ┌──────────────┐  ┌────────────┐│
-│  │  File     │  │  Block       │  │   Sync     ││
-│  │  Watcher  │──│  Engine      │──│   Manager  ││
-│  │ (inotify/ │  │ (split/hash/ │  │ (upload/   ││
-│  │  FSEvents)│  │  compress/   │  │  download/ ││
-│  │           │  │  encrypt)    │  │  conflict) ││
-│  └──────────┘  └──────────────┘  └─────┬──────┘│
-└────────────────────────────────────────┬────────┘
-                                         │
-                                    HTTPS│
-                                         │
-┌────────────────────────────────────────▼────────┐
-│                 API Gateway / LB                  │
-└──┬──────────────┬────────────────┬──────────────┘
-   │              │                │
-┌──▼──────┐  ┌───▼──────────┐  ┌──▼──────────────┐
-│  Block  │  │  Metadata    │  │  Notification   │
-│ Servers │  │  Service     │  │  Service        │
-│         │  │              │  │ (long poll /    │
-│         │  │              │  │  WebSocket)     │
-└──┬──────┘  └───┬──────────┘  └─────────────────┘
-   │             │
-┌──▼──────┐  ┌───▼──────────┐
-│  Cloud  │  │  Metadata    │
-│ Storage │  │  Database    │
-│  (S3)   │  │ (PostgreSQL) │
-└─────────┘  └──────────────┘
+\`\`\`mermaid
+graph TD
+    subgraph Client["Desktop Client"]
+        FW["File Watcher (inotify/FSEvents)"]
+        BE["Block Engine (split/hash/compress/encrypt)"]
+        SM["Sync Manager (upload/download/conflict)"]
+        FW --> BE
+        BE --> SM
+    end
+    GW["API Gateway / LB"]
+    BS["Block Servers"]
+    MS["Metadata Service"]
+    NS["Notification Service (long poll / WebSocket)"]
+    S3["Cloud Storage (S3)"]
+    DB["Metadata Database (PostgreSQL)"]
+
+    SM -->|HTTPS| GW
+    GW --> BS
+    GW --> MS
+    GW --> NS
+    BS --> S3
+    MS --> DB
+
+    style FW fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style BE fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style SM fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style GW fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style BS fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style MS fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style NS fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style S3 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style DB fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ### File Upload Flow (Block-Level Delta Sync)
 
-\`\`\`
-File Modified (100 MB file, 2 KB change)
-       │
-       ▼
-┌──────────────────┐
-│   Block Engine   │
-│  Split into 4MB  │
-│     blocks       │
-└──────┬───────────┘
-       │
-       ▼
-Blocks: [B1] [B2] [B3] ... [B12] [B13] ... [B25]
-         │    │    │         │      │          │
-         ▼    ▼    ▼         ▼      ▼          ▼
-Hash:   h1   h2   h3  ...  h12   h13   ...   h25
-         │    │    │         │      │          │
-Compare with server's stored hashes:
-         │    │    │         │      │          │
-        SAME SAME SAME ... DIFF   SAME  ... SAME
-                             │
-                    Only upload B12
-                             │
-                    ┌────────▼─────────┐
-                    │  Compress (LZ4)  │
-                    │  Encrypt (AES)   │
-                    └────────┬─────────┘
-                             │
-                    ┌────────▼─────────┐
-                    │  Upload to S3    │
-                    │  (4 MB instead   │
-                    │   of 100 MB)     │
-                    └────────┬─────────┘
-                             │
-                    ┌────────▼─────────┐
-                    │ Update metadata  │
-                    │ (new version     │
-                    │  with block list │
-                    │  pointing to     │
-                    │  new h12, same   │
-                    │  h1-h11, h13-25) │
-                    └──────────────────┘
+\`\`\`mermaid
+graph TD
+    N0["Block Engine: Split into 4MB blocks"]
+    N1["Compress (LZ4) + Encrypt (AES)"]
+    N2[("Upload to S3")]
+    N3["Update metadata (new version)"]
+    N0 --> N1
+    N1 --> N2
+    N1 --> N3
+    style N0 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ### File Download / Sync Flow
 
-\`\`\`
-Notification: "file X changed"
-       │
-       ▼
-┌──────────────────┐
-│  Fetch new block │
-│  list for file X │
-│  from metadata   │
-│  service         │
-└──────┬───────────┘
-       │
-       ▼
-New blocks: [h1] [h2] [h3] ... [h12_new] [h13] ... [h25]
-Local:      [h1] [h2] [h3] ... [h12_old] [h13] ... [h25]
-             │    │    │          │          │        │
-            SAME SAME SAME      DIFF       SAME    SAME
-                                 │
-                   Only download B12_new
-                                 │
-                   ┌─────────────▼──────────┐
-                   │  Download from S3      │
-                   │  Decrypt (AES)         │
-                   │  Decompress (LZ4)      │
-                   └─────────────┬──────────┘
-                                 │
-                   ┌─────────────▼──────────┐
-                   │  Reconstruct file      │
-                   │  Replace block 12      │
-                   │  with new version      │
-                   └────────────────────────┘
+\`\`\`mermaid
+graph TD
+    N0["Fetch new block list"]
+    N1[("Download from S3 + Decrypt")]
+    N2["Reconstruct file"]
+    N0 --> N1
+    N1 --> N2
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ### Conflict Resolution
 
-\`\`\`
-Device A                    Server                  Device B
-   │                          │                        │
-   │  (offline edit)          │          (offline edit) │
-   │  edit file.txt           │          edit file.txt  │
-   │                          │                        │
-   │── upload v2 ───────────▶│                        │
-   │                          │── accept (first wins)  │
-   │◀── ack v2 ──────────────│                        │
-   │                          │                        │
-   │                          │◀── upload v2 ──────────│
-   │                          │                        │
-   │                          │   CONFLICT DETECTED    │
-   │                          │   (server already at   │
-   │                          │    v2 from Device A)   │
-   │                          │                        │
-   │                          │── save as conflict ───▶│
-   │                          │   copy: file.txt       │
-   │                          │   (conflict).txt       │
-   │                          │                        │
-   │                          │── notify Device B ────▶│
-   │                          │   "merge manually"     │
-   │                          │                        │
-   │◀── sync conflict copy ──│                        │
-   │   (Device A also sees   │                        │
-   │    the conflict copy)   │                        │
+\`\`\`mermaid
+sequenceDiagram
+    participant DA as Device A
+    participant S as Server
+    participant DB as Device B
+
+    Note over DA: Offline edit file.txt
+    Note over DB: Offline edit file.txt
+    DA->>S: Upload v2
+    S-->>DA: ACK v2 (first wins)
+    DB->>S: Upload v2
+    Note over S: CONFLICT DETECTED (server already at v2 from Device A)
+    S->>DB: Save as conflict copy: file.txt (conflict).txt
+    S->>DB: Notify "merge manually"
+    S->>DA: Sync conflict copy (Device A also sees it)
 \`\`\`
 `,
     jsCode: `## Deep Dive

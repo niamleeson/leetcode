@@ -2,8 +2,7 @@ import { useState } from 'react';
 import { solutionMap } from '../data/solutions';
 import { sdiVol1Problems } from '../data/problems-sdi-vol1';
 import { sdiVol2Problems } from '../data/problems-sdi-vol2';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import MarkdownContent from './MarkdownContent';
 
 const allProblems = [...sdiVol1Problems, ...sdiVol2Problems];
 
@@ -45,70 +44,6 @@ const SDI_VOL2_CATEGORIES = [
   },
 ];
 
-function MarkdownContent({ content, className }: { content: string; className?: string }) {
-  return (
-    <div className={className}>
-      <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
-        components={{
-          h1: ({ children }) => <h1 className="text-xl font-bold text-white mt-4 mb-2">{children}</h1>,
-          h2: ({ children }) => <h2 className="text-lg font-semibold text-blue-300 mt-4 mb-2 pb-1 border-b border-gray-800">{children}</h2>,
-          h3: ({ children }) => <h3 className="text-sm font-semibold text-gray-200 mt-3 mb-1">{children}</h3>,
-          p: ({ children }) => <p className="text-sm text-gray-400 leading-relaxed mb-2">{children}</p>,
-          ul: ({ children }) => <ul className="space-y-1 mb-3 ml-1">{children}</ul>,
-          ol: ({ children }) => <ol className="space-y-1 mb-3 ml-1 list-decimal list-inside">{children}</ol>,
-          li: ({ children }) => (
-            <li className="text-sm text-gray-400 flex gap-2">
-              <span className="text-blue-500 mt-0.5 shrink-0">&bull;</span>
-              <span>{children}</span>
-            </li>
-          ),
-          strong: ({ children }) => <strong className="text-gray-200 font-semibold">{children}</strong>,
-          em: ({ children }) => <em className="text-gray-300">{children}</em>,
-          code: ({ className: codeClassName, children, ...props }) => {
-            const hasLang = codeClassName?.startsWith('language-');
-            const content = String(children);
-            const isBlock = hasLang || content.includes('\n');
-            if (isBlock) {
-              const lang = hasLang ? codeClassName!.replace('language-', '') : 'text';
-              return (
-                <pre className="!bg-gray-950 !border !border-gray-800 !rounded-md !p-4 !text-xs overflow-x-auto !leading-relaxed !m-0 mb-3">
-                  <code className={lang !== 'text' ? `language-${lang}` : 'text-gray-300 font-mono whitespace-pre'}>
-                    {content.trim()}
-                  </code>
-                </pre>
-              );
-            }
-            return (
-              <code className="bg-gray-800 text-blue-300 px-1.5 py-0.5 rounded text-xs font-mono">
-                {children}
-              </code>
-            );
-          },
-          pre: ({ children }) => <>{children}</>,
-          blockquote: ({ children }) => (
-            <blockquote className="border-l-2 border-blue-500 pl-3 my-2 text-gray-400 italic text-sm">
-              {children}
-            </blockquote>
-          ),
-          table: ({ children }) => (
-            <div className="overflow-x-auto mb-3">
-              <table className="w-full text-xs text-gray-400 border border-gray-800 rounded">
-                {children}
-              </table>
-            </div>
-          ),
-          thead: ({ children }) => <thead className="bg-gray-800/50">{children}</thead>,
-          th: ({ children }) => <th className="px-3 py-2 text-left text-gray-300 font-semibold border border-gray-800">{children}</th>,
-          td: ({ children }) => <td className="px-3 py-2 border border-gray-800">{children}</td>,
-          hr: () => <hr className="border-gray-800 my-4" />,
-        }}
-      >
-        {content}
-      </ReactMarkdown>
-    </div>
-  );
-}
 
 function StepHeader({ step, title, time }: { step: number; title: string; time: string }) {
   return (

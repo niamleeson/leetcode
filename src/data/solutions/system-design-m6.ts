@@ -59,107 +59,94 @@ A **broker cluster** stores partitions as append-only segment files on local SSD
 `,
     code: `## Architecture Diagram
 
-\`\`\`
-+-------------+     +-------------+     +------------------+
-| Producer A  |---->|             |     |  Controller      |
-+-------------+     |   Load      |     |  (KRaft/ZK)      |
-+-------------+     |   Balancer  |     |                  |
-| Producer B  |---->|             |     | - Leader election|
-+-------------+     +------+------+     | - Metadata mgmt  |
-                           |            +--------+---------+
-              +------------+------------+        |
-              |            |            |        |
-        +-----v----+ +----v-----+ +----v-----+  |
-        | Broker 1 | | Broker 2 | | Broker 3 |<-+
-        | P0-Leader| | P1-Leader| | P2-Leader|
-        | P1-Follow| | P2-Follow| | P0-Follow|
-        | P2-Follow| | P0-Follow| | P1-Follow|
-        +-----+----+ +----+-----+ +----+-----+
-              |            |            |
-        +-----v----+ +----v-----+ +----v-----+
-        | Segments | | Segments | | Segments |
-        | on SSD   | | on SSD   | | on SSD   |
-        +----------+ +----------+ +----------+
-
-              +----+     +----+     +----+
-              | C1 |     | C2 |     | C3 |
-              +----+     +----+     +----+
-              Consumer Group "payments"
-              C1->P0    C2->P1    C3->P2
+\`\`\`mermaid
+graph TD
+    N0["Producer A"]
+    N1["Controller"]
+    N2["Load"]
+    N3["Balancer"]
+    N4["Producer B"]
+    N5["Broker 1"]
+    N6["Broker 2"]
+    N7["Broker 3"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    N3 --> N4
+    N4 --> N5
+    N5 --> N6
+    N6 --> N7
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## Produce Flow
 
-\`\`\`
-Producer         Leader Broker     Follower 1     Follower 2
-  |                   |                |               |
-  | Produce(key,val)  |                |               |
-  |------------------>|                |               |
-  |                   | Append to log  |               |
-  |                   |----+           |               |
-  |                   |    |           |               |
-  |                   |<---+           |               |
-  |                   |   Replicate    |               |
-  |                   |--------------->|               |
-  |                   |------------------------------>|
-  |                   |   ACK          |               |
-  |                   |<---------------|               |
-  |                   |<------------------------------|
-  |  {partition,offset}|               |               |
-  |<------------------|                |               |
+\`\`\`mermaid
+sequenceDiagram
+    participant P0 as Producer
+    participant P1 as Leader Broker
+    participant P2 as Follower 1
+    participant P3 as Follower 2
+    P0->>P1: request
+    P1-->>P0: response
+    P1->>P2: request
+    P2-->>P1: response
+    P2->>P3: request
+    P3-->>P2: response
 \`\`\`
 
 ## Consume Flow
 
-\`\`\`
-Consumer         Leader Broker     Page Cache      Disk
-  |                   |                |              |
-  | Fetch(offset,max) |                |              |
-  |------------------>|                |              |
-  |                   | Read segment   |              |
-  |                   |--------------->|              |
-  |                   |  [HIT] data    |              |
-  |                   |<---------------|              |
-  |                   |                |              |
-  |                   | [MISS]         |              |
-  |                   |------------------------------>|
-  |                   |<------------------------------|
-  |                   | sendfile()     |              |
-  |  messages + next  | (zero-copy)    |              |
-  |<------------------|                |              |
-  |                   |                |              |
-  | Commit offset     |                |              |
-  |------------------>|                |              |
+\`\`\`mermaid
+sequenceDiagram
+    participant P0 as Consumer
+    participant P1 as Leader Broker
+    participant P2 as Page Cache
+    participant P3 as Disk
+    P0->>P1: request
+    P1-->>P0: response
+    P1->>P2: request
+    P2-->>P1: response
+    P2->>P3: request
+    P3-->>P2: response
 \`\`\`
 `,
     jsCode: `## Deep Dive: Partition Replication & ISR
 
 The **In-Sync Replica (ISR)** set tracks which replicas are caught up with the leader. Only ISR members can be elected leader, preventing data loss.
 
-\`\`\`
-+--------------------------------------------------+
-| Partition 0 Replication                           |
-|                                                   |
-|  Leader (Broker 1)        LEO: 1000               |
-|  +------------------------------------------+    |
-|  | offset 0 | 1 | 2 | ... | 998 | 999 |    |    |
-|  +------------------------------------------+    |
-|                                                   |
-|  Follower A (Broker 2)   LEO: 998                 |
-|  +--------------------------------------+         |
-|  | offset 0 | 1 | 2 | ... | 997 |      |         |
-|  +--------------------------------------+         |
-|  Status: IN-SYNC (lag=2, within threshold)        |
-|                                                   |
-|  Follower B (Broker 3)   LEO: 850                 |
-|  +-------------------------------+                |
-|  | offset 0 | 1 | 2 | ... | 849 |                |
-|  +-------------------------------+                |
-|  Status: OUT-OF-SYNC (lag=150 > threshold)        |
-|                                                   |
-|  High Watermark = min(ISR LEOs) = 998             |
-|  Consumers can only read up to HW                 |
-+--------------------------------------------------+
+\`\`\`mermaid
+graph TD
+    N0["Partition 0 Replication"]
+    N1["Leader (Broker 1) LEO: 1000"]
+    N2["Follower A (Broker 2) LEO: 998"]
+    N3["Status: IN-SYNC (lag=2, within threshold)"]
+    N4["Follower B (Broker 3) LEO: 850"]
+    N5["Status: OUT-OF-SYNC (lag=150 > threshold)"]
+    N6["High Watermark = min(ISR LEOs) = 998"]
+    N7["Consumers can only read up to HW"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    N3 --> N4
+    N4 --> N5
+    N5 --> N6
+    N6 --> N7
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 - **High watermark** only advances to the minimum offset across all ISR members
@@ -172,28 +159,16 @@ The **In-Sync Replica (ISR)** set tracks which replicas are caught up with the l
 
 When consumers join or leave a group, partitions must be reassigned. Modern Kafka uses **cooperative sticky rebalancing** to minimize disruption.
 
-\`\`\`
-Before: 3 consumers, 6 partitions
-+--------+--------+--------+
-|  C1    |  C2    |  C3    |
-| P0, P1 | P2, P3 | P4, P5 |
-+--------+--------+--------+
-
-C3 crashes --> Rebalance triggered
-
-Eager Rebalance (old):
-  1. REVOKE ALL partitions from all consumers
-  2. Reassign: C1 gets P0,P1,P4  C2 gets P2,P3,P5
-  3. ALL partitions paused during rebalance
-
-Cooperative Sticky (new):
-  1. Only REVOKE P4,P5 from dead C3
-  2. Reassign orphaned: C1 gets P4, C2 gets P5
-  3. P0-P3 continue processing uninterrupted
-+--------+--------+
-|  C1    |  C2    |
-|P0,P1,P4|P2,P3,P5|
-+--------+--------+
+\`\`\`mermaid
+graph TD
+    N0["P0, P1"]
+    N1["P4, P5"]
+    N2["P0,P1,P4"]
+    N0 --> N1
+    N1 --> N2
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ---
@@ -202,23 +177,31 @@ Cooperative Sticky (new):
 
 Kafka achieves millions of messages/sec by exploiting OS-level optimizations.
 
-\`\`\`
-Traditional Copy Path (4 copies):
-+------+    +--------+    +--------+    +--------+    +-----+
-| Disk |--->| Kernel |--->| User   |--->| Kernel |--->| NIC |
-|      |    | Buffer |    | Space  |    | Socket |    |     |
-+------+    +--------+    +--------+    +--------+    +-----+
-  DMA copy    CPU copy     CPU copy     DMA copy
-
-Zero-Copy Path (2 copies via sendfile):
-+------+    +--------+    +-----+
-| Disk |--->| Kernel |--->| NIC |
-|      |    | Page   |    |     |
-+------+    | Cache  |    +-----+
-  DMA copy  +--------+   DMA copy
-
-Result: 2 fewer CPU copies, no context switches
-Throughput: 500 MB/sec+ per broker with sequential reads
+\`\`\`mermaid
+graph TD
+    N0["Disk"]
+    N1["Kernel"]
+    N2["User"]
+    N3["NIC"]
+    N4["Buffer"]
+    N5["Space"]
+    N6["Socket"]
+    N7["Page"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    N3 --> N4
+    N4 --> N5
+    N5 --> N6
+    N6 --> N7
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 - **Sequential I/O**: Append-only writes and sequential reads maximize SSD throughput
@@ -322,127 +305,103 @@ An **SMTP gateway** accepts inbound connections and performs SPF/DKIM/DMARC chec
 `,
     code: `## Architecture Diagram
 
-\`\`\`
-+----------+     +--------------+     +------------------+
-| Sender   |---->| SMTP Gateway |---->| Spam Filter      |
-| (MTA)    |SMTP | (Inbound)    |     | Pipeline         |
-+----------+     +--------------+     |                  |
-                                      | 1. IP reputation |
-                                      | 2. SPF/DKIM      |
-                                      | 3. Content ML    |
-                                      +--------+---------+
-                                               |
-                                     +---------v----------+
-                                     | Mail Delivery      |
-                                     | Service            |
-                                     +----+-----+----+----+
-                                          |     |    |
-                      +-------------------+     |    +------------------+
-                      |                         |                       |
-               +------v------+          +-------v--------+   +---------v-------+
-               | Mail Store  |          | Search Indexer  |   | Notification    |
-               | (Bigtable)  |          | (Per-user       |   | Service         |
-               |             |          |  inverted index)|   | (WebSocket/Push)|
-               | Partitioned |          +-------+--------+   +-----------------+
-               | by userId   |                  |
-               +------+------+          +-------v--------+
-                      |                 | Search Index    |
-               +------v------+         | (Elasticsearch) |
-               | Blob Store  |         +-----------------+
-               | (Attachments|
-               |  on S3/GCS) |
-               +-------------+
-
-+----------+     +--------------+
-| Client   |---->| API Gateway  |-----> Mail Store / Search
-| (App)    |HTTP | (REST/gRPC)  |
-+----------+     +--------------+
+\`\`\`mermaid
+graph TD
+    N0["Sender"]
+    N1["SMTP Gateway"]
+    N2["Spam Filter"]
+    N3["SMTP"]
+    N4["Pipeline"]
+    N5["Mail Delivery"]
+    N6["Service"]
+    N7["Mail Store"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    N3 --> N4
+    N4 --> N5
+    N5 --> N6
+    N6 --> N7
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## Email Receive Flow
 
-\`\`\`
-Sender MTA     SMTP Gateway    Spam Filter    Mail Store    Search     Notify
-  |                |               |              |            |          |
-  | SMTP EHLO      |               |              |            |          |
-  |--------------->|               |              |            |          |
-  | MAIL FROM, DATA|               |              |            |          |
-  |--------------->|               |              |            |          |
-  |                | SPF/DKIM check|              |            |          |
-  |                |-------------->|              |            |          |
-  |                |               | ML classify  |            |          |
-  |                |               |----+         |            |          |
-  |                |               |<---+         |            |          |
-  |                |               |              |            |          |
-  |                |               | Store email  |            |          |
-  |                |               |------------->|            |          |
-  |                |               | Index email  |            |          |
-  |                |               |---------------------------->|         |
-  |                |               | Push notify  |            |          |
-  |                |               |---------------------------------------->|
-  |  250 OK        |               |              |            |          |
-  |<---------------|               |              |            |          |
+\`\`\`mermaid
+sequenceDiagram
+    participant P0 as Sender MTA
+    participant P1 as SMTP Gateway
+    participant P2 as Spam Filter
+    participant P3 as Mail Store
+    participant P4 as Search
+    participant P5 as Notify
+    P0->>P1: request
+    P1-->>P0: response
+    P1->>P2: request
+    P2-->>P1: response
+    P2->>P3: request
+    P3-->>P2: response
+    P3->>P4: request
+    P4-->>P3: response
+    P4->>P5: request
+    P5-->>P4: response
 \`\`\`
 
 ## Email Send Flow
 
-\`\`\`
-Client        API Gateway     Outbound Queue   SMTP Sender    Recipient MTA
-  |                |               |               |               |
-  | POST /send     |               |               |               |
-  |--------------->|               |               |               |
-  |                | Enqueue       |               |               |
-  |                |-------------->|               |               |
-  | {queued}       |               |               |               |
-  |<---------------|               |               |               |
-  |                |               | Dequeue       |               |
-  |                |               |-------------->|               |
-  |                |               |               | SMTP deliver  |
-  |                |               |               |-------------->|
-  |                |               |               | 250 OK        |
-  |                |               |               |<--------------|
-  |                |               | Update status |               |
-  |                |               |<--------------|               |
+\`\`\`mermaid
+sequenceDiagram
+    participant P0 as Client
+    participant P1 as API Gateway
+    participant P2 as Outbound Queue
+    participant P3 as SMTP Sender
+    participant P4 as Recipient MTA
+    P0->>P1: request
+    P1-->>P0: response
+    P1->>P2: request
+    P2-->>P1: response
+    P2->>P3: request
+    P3-->>P2: response
+    P3->>P4: request
+    P4-->>P3: response
 \`\`\`
 `,
     jsCode: `## Deep Dive: Spam Filtering Pipeline
 
 Spam filtering uses a **funnel approach** — cheap checks first, expensive ML last. This rejects 80%+ of spam at the cheapest stage.
 
-\`\`\`
-Inbound Email (500K/sec)
-         |
-+--------v---------+
-| Stage 1: IP Rep  |  Cost: ~0.1ms
-| Block known spam |  Rejects: ~50%
-| IPs (blacklist)  |
-+--------+---------+
-         | 250K/sec
-+--------v---------+
-| Stage 2: SPF/    |  Cost: ~1ms (DNS lookup)
-| DKIM/DMARC       |  Rejects: ~20%
-| Authentication   |
-+--------+---------+
-         | 200K/sec
-+--------v---------+
-| Stage 3: Header  |  Cost: ~2ms
-| Anomaly Detection|  Rejects: ~10%
-| (forged headers) |
-+--------+---------+
-         | 180K/sec
-+--------v---------+
-| Stage 4: Content |  Cost: ~50ms
-| ML Classifier    |  Rejects: ~15%
-| (NLP + deep      |
-|  learning)       |
-+--------+---------+
-         | 150K/sec
-+--------v---------+
-| Stage 5: User    |  Cost: ~5ms
-| Bayesian Filter  |  Per-user trained
-| (personal prefs) |
-+--------+---------+
-         | Delivered: ~100K/sec legitimate
+\`\`\`mermaid
+graph TD
+    N0["Stage 1: IP Rep"]
+    N1["Block known spam"]
+    N2["IPs (blacklist)"]
+    N3["Stage 2: SPF/"]
+    N4["DKIM/DMARC"]
+    N5["Authentication"]
+    N6["Stage 3: Header"]
+    N7["Anomaly Detection"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    N3 --> N4
+    N4 --> N5
+    N5 --> N6
+    N6 --> N7
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ---
@@ -451,41 +410,16 @@ Inbound Email (500K/sec)
 
 Emails form a DAG via In-Reply-To and References headers. Threading reconstructs conversations.
 
-\`\`\`
-Email A: MessageId=<a@ex.com>
-  Subject: "Project Update"
-
-Email B: MessageId=<b@ex.com>
-  In-Reply-To: <a@ex.com>
-  References: <a@ex.com>
-  Subject: "Re: Project Update"
-
-Email C: MessageId=<c@ex.com>
-  In-Reply-To: <b@ex.com>
-  References: <a@ex.com> <b@ex.com>
-  Subject: "Re: Project Update"
-
-Thread Tree:
-+-------------------+
-| Email A (root)    |
-| "Project Update"  |
-+--------+----------+
-         |
-+--------v----------+
-| Email B (reply)   |
-| "Re: Project..."  |
-+--------+----------+
-         |
-+--------v----------+
-| Email C (reply)   |
-| "Re: Project..."  |
-+--------------------+
-
-Threading Algorithm:
-1. Look up References headers -> find existing thread
-2. Fallback: match subject (strip Re:/Fwd: prefixes)
-3. Assign threadId, update thread metadata
-4. Sort within thread by timestamp for display
+\`\`\`mermaid
+graph TD
+    N0["Email A (root)"]
+    N1["Email B (reply)"]
+    N2["Email C (reply)"]
+    N0 --> N1
+    N1 --> N2
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ---
@@ -494,30 +428,31 @@ Threading Algorithm:
 
 Each user has their own inverted index for fast, isolated search.
 
-\`\`\`
-User "alice" Search Index:
-+---------------------------------------------------+
-| Token         | Posting List                       |
-|---------------+------------------------------------|
-| "invoice"     | [msg-42:subject:0, msg-99:body:15] |
-| "quarterly"   | [msg-42:subject:1, msg-42:body:8]  |
-| "from:bob"    | [msg-42, msg-55, msg-61]           |
-| "has:attach"  | [msg-42, msg-78]                   |
-| "label:inbox" | [msg-42, msg-99, msg-101, ...]     |
-+---------------------------------------------------+
-
-Query: "invoice from:bob has:attachment"
-  1. Intersect posting lists:
-     "invoice"    -> {msg-42, msg-99}
-     "from:bob"   -> {msg-42, msg-55, msg-61}
-     "has:attach" -> {msg-42, msg-78}
-  2. Result: {msg-42}
-  3. Fetch msg-42 metadata for display
-
-Index Updates:
-- On email receive: tokenize + append to posting lists
-- On label change: update label posting lists
-- On delete: mark as deleted, compact during merge
+\`\`\`mermaid
+graph TD
+    N0["Token"]
+    N1["User 'alice' Search Index:"]
+    N2["Token Posting List"]
+    N3["'inoice' [msg42:subject:0, msg99:body:15]"]
+    N4["'quarterly' [msg42:subject:1, msg42:body:8]"]
+    N5["'from:bob' [msg42, msg55, msg61]"]
+    N6["'has:attach' [msg42, msg78]"]
+    N7["'label:inbox' [msg42, msg99, msg101, ...]"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    N3 --> N4
+    N4 --> N5
+    N5 --> N6
+    N6 --> N7
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 `,
     explanation: `## Bottlenecks & Improvements
@@ -615,114 +550,81 @@ An **ingestion layer** (fleet of collectors behind load balancers) accepts event
 `,
     code: `## Architecture Diagram
 
-\`\`\`
-+----------+  +----------+  +----------+
-| Service  |  | Service  |  | Service  |
-| A        |  | B        |  | C        |
-+----+-----+  +----+-----+  +----+-----+
-     |             |             |
-     +------+------+------+------+
-            |             |
-     +------v------+ +----v--------+
-     | Collector   | | Collector   |
-     | Fleet (HTTP/| | Fleet (gRPC)|
-     | gRPC)       | |             |
-     +------+------+ +------+------+
-            |               |
-     +------v---------------v------+
-     | Message Queue (Kafka)        |
-     | Partitioned by service_name  |
-     +------+---------------+------+
-            |               |
-     +------v------+  +----v--------+
-     | Stream      |  | Stream      |
-     | Processor   |  | Processor   |
-     | (Flink)     |  | (Flink)     |
-     | - Parse     |  | - Aggregate |
-     | - Enrich    |  | - Alert     |
-     | - Route     |  | - Detect    |
-     +------+------+  +------+------+
-            |               |
-     +------v---------------v------+
-     | Columnar Store               |
-     | (ClickHouse / S3+Parquet)    |
-     |                              |
-     | Hot: last 30 days (SSD)      |
-     | Warm: 30d-1yr (HDD/S3)      |
-     | Cold: 1yr+ (Glacier)         |
-     +------+-----------+----------+
-            |           |
-     +------v------+  +v-----------+
-     | Query Engine|  | Dashboard  |
-     | (Presto/    |  | (Grafana)  |
-     | Trino)      |  |            |
-     +-------------+  +------------+
+\`\`\`mermaid
+graph TD
+    N0["Service"]
+    N1["Collector"]
+    N2["Fleet (HTTP/"]
+    N3["Fleet (gRPC)"]
+    N4["Message Queue (Kafka)"]
+    N5["Partitioned by service_name"]
+    N6["Stream"]
+    N7["Processor"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    N3 --> N4
+    N4 --> N5
+    N5 --> N6
+    N6 --> N7
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## Event Ingestion Flow
 
-\`\`\`
-Service        Collector      Kafka         Flink          ClickHouse
-  |                |            |              |                |
-  | POST /ingest   |            |              |                |
-  | [batch of 100] |            |              |                |
-  |--------------->|            |              |                |
-  |                | Validate   |              |                |
-  |                | + Batch    |              |                |
-  |                |----------->|              |                |
-  |  200 OK        |            |              |                |
-  |<---------------|            |              |                |
-  |                |            | Consume      |                |
-  |                |            |------------->|                |
-  |                |            |              | Parse + Enrich |
-  |                |            |              |------+         |
-  |                |            |              |<-----+         |
-  |                |            |              |                |
-  |                |            |              | Batch insert   |
-  |                |            |              |--------------->|
-  |                |            |              |     ACK        |
-  |                |            |              |<---------------|
+\`\`\`mermaid
+sequenceDiagram
+    participant P0 as Service
+    participant P1 as Collector
+    participant P2 as Kafka
+    participant P3 as Flink
+    participant P4 as ClickHouse
+    P0->>P1: request
+    P1-->>P0: response
+    P1->>P2: request
+    P2-->>P1: response
+    P2->>P3: request
+    P3-->>P2: response
+    P3->>P4: request
+    P4-->>P3: response
 \`\`\`
 `,
     jsCode: `## Deep Dive: Tiered Storage Architecture
 
 Logs have dramatically different access patterns over time. Tiered storage optimizes cost without sacrificing query capability.
 
-\`\`\`
-+---------------------------------------------------+
-| Storage Tier Architecture                          |
-|                                                    |
-| HOT TIER (0-30 days) - ClickHouse on SSD          |
-| +-----------------------------------------------+ |
-| | Columnar format, fully indexed                 | |
-| | Query latency: < 2 sec                        | |
-| | Cost: $$$  |  Size: 6.5 PB                    | |
-| | Partitioned by (date, service)                 | |
-| +-----------------------------------------------+ |
-|                    | age > 30d                     |
-| WARM TIER (30d-1yr) - Parquet on S3               |
-| +-----------------------------------------------+ |
-| | Compressed columnar (Parquet/ORC)              | |
-| | Query latency: 5-30 sec (via Presto/Trino)    | |
-| | Cost: $$   |  Size: ~20 PB (4x compression)   | |
-| | Partitioned by (year/month/day/service)        | |
-| +-----------------------------------------------+ |
-|                    | age > 1yr                     |
-| COLD TIER (1yr+) - S3 Glacier                     |
-| +-----------------------------------------------+ |
-| | Highly compressed, retrieval takes minutes     | |
-| | Query latency: minutes to hours                | |
-| | Cost: $    |  Size: archive                    | |
-| | Accessed only for compliance/forensics         | |
-| +-----------------------------------------------+ |
-+---------------------------------------------------+
-
-Tier Migration (daily cron):
-1. Identify partitions older than threshold
-2. Export from ClickHouse -> Parquet files
-3. Upload to S3 with partition path
-4. Update metadata catalog
-5. Drop from ClickHouse after verification
+\`\`\`mermaid
+graph TD
+    N0["Storage Tier Architecture"]
+    N1["HOT TIER (0-30 days) - ClickHouse on SSD"]
+    N2["Columnar format, fully indexed"]
+    N3["Query latency: < 2 sec"]
+    N4["Cost: $$$"]
+    N5["Partitioned by (date, service)"]
+    N6["WARM TIER (30d-1yr) - Parquet on S3"]
+    N7["Compressed columnar (Parquet/ORC)"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    N3 --> N4
+    N4 --> N5
+    N5 --> N6
+    N6 --> N7
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ---
@@ -731,70 +633,53 @@ Tier Migration (daily cron):
 
 The Flink pipeline transforms raw events into queryable, enriched records.
 
-\`\`\`
-Raw Event                     Enriched Event
-+-------------------+         +---------------------------+
-| timestamp: epoch  |         | timestamp: ISO-8601       |
-| msg: "err conn    |         | message: "err conn        |
-|   refused 10.0.1" |  --->   |   refused 10.0.1.5"       |
-| level: "E"        |         | level: "ERROR"            |
-| svc: "pay-123"    |         | service: "payment-svc"    |
-+-------------------+         | team: "payments"          |
-                              | region: "us-east-1"       |
-                              | host: "ip-10-0-1-5"       |
-                              | trace_id: "abc-123"       |
-                              +---------------------------+
-
-Processing Pipeline:
-+-------+    +--------+    +--------+    +--------+    +--------+
-| Parse |    | Normal-|    | Enrich |    | Route  |    | Window |
-| (JSON,|--->| ize    |--->| (add   |--->| (by    |--->| Agg    |
-| syslog|    | fields |    | service|    | level/ |    | (1min  |
-| etc.) |    |        |    | meta)  |    | topic) |    | counts)|
-+-------+    +--------+    +--------+    +--------+    +--------+
-                                                            |
-                                                     +------v------+
-                                                     | Alert Engine|
-                                                     | (threshold  |
-                                                     |  breach?)   |
-                                                     +-------------+
+\`\`\`mermaid
+graph TD
+    N0["Parse"]
+    N1["Normal-"]
+    N2["Enrich"]
+    N3["Route"]
+    N4["Window"]
+    N5["Agg"]
+    N6["Alert Engine"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    N3 --> N4
+    N4 --> N5
+    N5 --> N6
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ---
 
 ## Deep Dive: Query Optimization for Log Analytics
 
-\`\`\`
-Query: "Error count by service, last 24 hours"
-
-Unoptimized (full scan):
-+----------------------------------+
-| Scan all rows for last 24h       |
-| Filter level = 'ERROR'           |
-| Group by service                 |
-| Time: 45 seconds (200B rows)     |
-+----------------------------------+
-
-Optimized (materialized view + partition pruning):
-+----------------------------------+
-| 1. Partition prune: only today   |
-|    and yesterday partitions      |
-| 2. Use materialized view:        |
-|    pre-aggregated error counts   |
-|    per (service, minute)         |
-| 3. Sum the 1-min buckets         |
-| Time: 0.3 seconds               |
-+----------------------------------+
-
-Materialized View Structure:
-+--------+----------+--------+-------+
-| minute | service  | level  | count |
-+--------+----------+--------+-------+
-| 10:01  | pay-svc  | ERROR  |  42   |
-| 10:01  | auth-svc | ERROR  |  7    |
-| 10:02  | pay-svc  | ERROR  |  38   |
-+--------+----------+--------+-------+
-Updated every 60 seconds by Flink
+\`\`\`mermaid
+graph TD
+    N0["Scan all rows for last 24h"]
+    N1["Filter level = 'ERROR'"]
+    N2["Group by service"]
+    N3["Time: 45 seconds (200B rows)"]
+    N4["Time: 0.3 seconds"]
+    N5["ERROR"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    N3 --> N4
+    N4 --> N5
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
 \`\`\`
 `,
     explanation: `## Bottlenecks & Improvements
@@ -893,128 +778,72 @@ An **event ingestion pipeline** captures user interactions in real-time. **Offli
 `,
     code: `## Architecture Diagram
 
-\`\`\`
-+----------+     +----------------+     +------------------+
-| Client   |---->| API Gateway /  |---->| Recommendation   |
-| (App)    |<----| Load Balancer  |<----| API Service      |
-+----------+     +----------------+     +--------+---------+
-                                                 |
-                      +--------------------------+--------------------+
-                      |                          |                    |
-              +-------v--------+       +---------v-------+   +-------v-------+
-              | Candidate      |       | Ranking         |   | Business      |
-              | Generation     |       | Service         |   | Rules Engine  |
-              |                |       |                 |   |               |
-              | - Collab Filt. |       | - ML Model      |   | - Diversity   |
-              | - Content-based|       | - Feature combo |   | - Freshness   |
-              | - Popularity   |       | - Score + rank  |   | - Filtering   |
-              +-------+--------+       +--------+--------+   +---------------+
-                      |                         |
-              +-------v--------+       +--------v--------+
-              | ANN Index      |       | Feature Store   |
-              | (FAISS/Milvus) |       | (Redis Cluster) |
-              |                |       |                 |
-              | Item embeddings|       | User features   |
-              | 100M vectors   |       | Item features   |
-              +----------------+       | Real-time stats |
-                                       +--------+--------+
-                                                |
-+------------------+                   +--------v--------+
-| Event Ingestion  |                   | Offline Training|
-| (Kafka)          |------------------>| Pipeline        |
-|                  |                   | (Spark + GPU)   |
-| User actions:    |                   |                 |
-| clicks, views,   |                   | - Matrix factor.|
-| purchases        |                   | - Deep learning |
-+------------------+                   | - Embeddings    |
-                                       +-----------------+
+\`\`\`mermaid
+graph TD
+    N0["Client"]
+    N1["API Gateway /"]
+    N2["Recommendation"]
+    N3["Load Balancer"]
+    N4["API Service"]
+    N5["Candidate"]
+    N6["Ranking"]
+    N7["Business"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    N3 --> N4
+    N4 --> N5
+    N5 --> N6
+    N6 --> N7
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## Recommendation Request Flow
 
-\`\`\`
-Client       API Service    Candidate Gen    Ranking      Feature Store
-  |               |              |              |              |
-  | GET /recs     |              |              |              |
-  |-------------->|              |              |              |
-  |               | Get user     |              |              |
-  |               | features     |              |              |
-  |               |--------------------------------------------->|
-  |               |<---------------------------------------------|
-  |               |              |              |              |
-  |               | Get 500      |              |              |
-  |               | candidates   |              |              |
-  |               |------------->|              |              |
-  |               |              | ANN search   |              |
-  |               |              | (user embed  |              |
-  |               |              |  vs items)   |              |
-  |               | [500 items]  |              |              |
-  |               |<-------------|              |              |
-  |               |              |              |              |
-  |               | Score 500    |              |              |
-  |               | candidates   |              |              |
-  |               |---------------------------->|              |
-  |               |              |              | Fetch item   |
-  |               |              |              | features     |
-  |               |              |              |------------->|
-  |               |              |              |<-------------|
-  |               |              |              | ML score     |
-  |               | [ranked 50]  |              |              |
-  |               |<----------------------------|              |
-  |               |              |              |              |
-  |               | Apply rules  |              |              |
-  |               | (diversity,  |              |              |
-  |               |  filtering)  |              |              |
-  | [top 20]      |              |              |              |
-  |<--------------|              |              |              |
+\`\`\`mermaid
+sequenceDiagram
+    participant P0 as Client
+    participant P1 as API Service
+    participant P2 as Candidate Gen
+    participant P3 as Ranking
+    participant P4 as Feature Store
+    P0->>P1: request
+    P1-->>P0: response
+    P1->>P2: request
+    P2-->>P1: response
+    P2->>P3: request
+    P3-->>P2: response
+    P3->>P4: request
+    P4-->>P3: response
 \`\`\`
 `,
     jsCode: `## Deep Dive: Two-Stage Retrieval Architecture
 
 The two-stage approach solves the "score millions of items in 100ms" problem by narrowing the candidate set quickly.
 
-\`\`\`
-Stage 1: Candidate Generation (~10ms)
-+----------------------------------------------------+
-| Source A: Collaborative Filtering                   |
-| - User embedding x Item embeddings (ANN search)    |
-| - Returns: 200 candidates                          |
-+----------------------------------------------------+
-| Source B: Content-Based                             |
-| - Items similar to user's recent interactions       |
-| - Returns: 200 candidates                          |
-+----------------------------------------------------+
-| Source C: Popularity / Trending                     |
-| - Top items in user's preferred categories          |
-| - Returns: 100 candidates                          |
-+----------------------------------------------------+
-             |
-             v Merge + Deduplicate = ~400 unique
-             |
-Stage 2: Ranking (~20ms)
-+----------------------------------------------------+
-| ML Ranking Model (Gradient Boosted Trees / DNN)     |
-|                                                     |
-| Features per (user, item) pair:                     |
-| - User: age, gender, past categories, recency       |
-| - Item: category, price, rating, freshness          |
-| - Cross: user-item affinity, co-purchase signals    |
-| - Context: time of day, device, session behavior    |
-|                                                     |
-| Output: relevance score per candidate               |
-+----------------------------------------------------+
-             |
-             v Top 50 by score
-             |
-Post-Processing:
-+----------------------------------------------------+
-| - Diversity: ensure category variety in top-N       |
-| - Freshness boost: promote recent items             |
-| - Filter: remove seen, out-of-stock, blacklisted   |
-| - Business rules: promotional slots, sponsorship    |
-+----------------------------------------------------+
-             |
-             v Final 20 recommendations
+\`\`\`mermaid
+graph TD
+    N0["Source A: Collaborative Filtering"]
+    N1["Source B: Content-Based"]
+    N2["Source C: Popularity / Trending"]
+    N3["Features per (user, item) pair:"]
+    N4["Output: relevance score per candidate"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    N3 --> N4
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ---
@@ -1023,45 +852,31 @@ Post-Processing:
 
 User and item embeddings are learned from interaction data, then used for fast similarity search.
 
-\`\`\`
-Training (Offline, daily):
-+-----------------------------------+
-| Interaction Matrix                 |
-| Users x Items (sparse)            |
-|                                   |
-| User1: [0,1,0,0,1,0,1,0,...]     |
-| User2: [1,0,1,0,0,0,0,1,...]     |
-| ...                               |
-+----------------+------------------+
-                 |
-      Matrix Factorization / Two-Tower DNN
-                 |
-      +----------v----------+
-      | User Embeddings     |    Item Embeddings
-      | 500M x 256 dims     |    100M x 256 dims
-      +---------------------+    +------------------+
-                                 | Indexed in FAISS  |
-                                 | (IVF-PQ index)    |
-                                 +------------------+
-
-Serving (Online, ~10ms):
-+------------------+     +-------------------+
-| User Embedding   |     | FAISS ANN Index   |
-| [0.2, -0.5, ...] |---->| Search top-200    |
-| (from feature    |     | nearest neighbors |
-|  store)          |     |                   |
-+------------------+     +-------------------+
-
-ANN Index Structure (IVF-PQ):
-+--------------------------------------------+
-| 1. Partition 100M items into 10K clusters  |
-| 2. Quantize vectors (256 dim -> 32 bytes)  |
-| 3. At query time:                          |
-|    - Find 20 nearest clusters              |
-|    - Search within those clusters only     |
-|    - Return top-200 approximate matches    |
-| 4. Accuracy: ~95% recall vs exact search   |
-+--------------------------------------------+
+\`\`\`mermaid
+graph TD
+    N0["Interaction Matrix"]
+    N1["Users x Items (sparse)"]
+    N2["User1: [0,1,0,0,1,0,1,0,...]"]
+    N3["User2: [1,0,1,0,0,0,0,1,...]"]
+    N4["User Embeddings"]
+    N5["Indexed in FAISS"]
+    N6["User Embedding"]
+    N7["FAISS ANN Index"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    N3 --> N4
+    N4 --> N5
+    N5 --> N6
+    N6 --> N7
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ---
@@ -1070,41 +885,22 @@ ANN Index Structure (IVF-PQ):
 
 New users and new items lack interaction history. Multiple fallback strategies address this.
 
-\`\`\`
-New User (no interaction history):
-+-----------------------------------------------+
-| Strategy 1: Popularity-based                   |
-| -> Show trending items in their region/demo    |
-|                                                |
-| Strategy 2: Content preferences (onboarding)   |
-| -> Ask user to pick categories/interests       |
-| -> Bootstrap embedding from selected items     |
-|                                                |
-| Strategy 3: Session-based                      |
-| -> After first few clicks, build temporary     |
-|    embedding from clicked item embeddings      |
-|    (average of last 5 item embeddings)         |
-+-----------------------------------------------+
-
-New Item (no interaction data):
-+-----------------------------------------------+
-| Strategy 1: Content-based features             |
-| -> Generate embedding from item metadata       |
-|    (title, description, category, images)      |
-|                                                |
-| Strategy 2: Exploration boost                  |
-| -> Add new items to candidate set with a       |
-|    freshness bonus in the ranking score        |
-|                                                |
-| Strategy 3: Bandit exploration                 |
-| -> Show new items to a sample of users         |
-| -> Collect interaction data quickly            |
-| -> Update embedding after sufficient signals   |
-+-----------------------------------------------+
-
-Transition:
-  Interactions: 0      5       50        500+
-  Strategy:   Popular --> Session --> Collab Filtering
+\`\`\`mermaid
+graph TD
+    N0["Strategy 1: Popularity-based"]
+    N1["Strategy 3: Session-based"]
+    N2["Strategy 1: Content-based features"]
+    N3["Strategy 2: Exploration boost"]
+    N4["Strategy 3: Bandit exploration"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    N3 --> N4
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 `,
     explanation: `## Bottlenecks & Improvements
@@ -1205,124 +1001,84 @@ A **webhook receiver** listens for git events and enqueues build requests. A **p
 `,
     code: `## Architecture Diagram
 
-\`\`\`
-+--------+     +-------------+     +------------------+
-| GitHub |---->| Webhook     |---->| Pipeline Parser  |
-| (push/ | POST| Receiver    |     | (YAML -> DAG)    |
-| PR)    |     +-------------+     +--------+---------+
-+--------+                                  |
-                                   +--------v---------+
-                                   | Scheduler        |
-                                   | (DAG executor)   |
-                                   |                  |
-                                   | - Job queue      |
-                                   | - Dependency     |
-                                   |   resolution     |
-                                   | - Runner matching|
-                                   +----+--------+----+
-                                        |        |
-                          +-------------+        +-------------+
-                          |                                    |
-                   +------v-------+                    +-------v------+
-                   | Runner Pool  |                    | Runner Pool  |
-                   | Manager      |                    | Manager      |
-                   | (Region A)   |                    | (Region B)   |
-                   +------+-------+                    +-------+------+
-                          |                                    |
-              +-----------+-----------+            +-----------+----------+
-              |           |           |            |           |          |
-         +----v---+  +---v----+  +---v----+  +----v---+  +---v----+ +---v----+
-         |Runner 1|  |Runner 2|  |Runner 3|  |Runner 4|  |Runner 5| |Runner 6|
-         |(Docker)|  |(Docker)|  |(Docker)|  |(Docker)|  |(Docker)| |(Docker)|
-         +----+---+  +---+----+  +--------+  +--------+  +--------+ +--------+
-              |           |
-              v           v
-         +----------+ +----------+
-         | Log      | | Artifact |
-         | Stream   | | Store    |
-         | Service  | | (S3)     |
-         +----------+ +----------+
+\`\`\`mermaid
+graph TD
+    N0["GitHub"]
+    N1["Webhook"]
+    N2["Pipeline Parser"]
+    N3["POST"]
+    N4["PR)"]
+    N5["Scheduler"]
+    N6["Runner Pool"]
+    N7["Manager"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    N3 --> N4
+    N4 --> N5
+    N5 --> N6
+    N6 --> N7
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## Build Execution Flow
 
-\`\`\`
-GitHub       Webhook Rcvr   Parser     Scheduler    Runner      Artifact Store
-  |              |            |            |           |              |
-  | push event   |            |            |           |              |
-  |------------->|            |            |           |              |
-  |              | Parse YAML |            |           |              |
-  |              |----------->|            |           |              |
-  |              |            | DAG:       |           |              |
-  |              |            | A->B->D    |           |              |
-  |              |            | A->C->D    |           |              |
-  |              |            |----------->|           |              |
-  |              |            |            |           |              |
-  |              |            |            | Run A     |              |
-  |              |            |            |---------->|              |
-  |              |            |            |           | Execute      |
-  |              |            |            |           |----+         |
-  |              |            |            |           |<---+         |
-  |              |            |            |           | Upload art.  |
-  |              |            |            |           |------------->|
-  |              |            |            | A done    |              |
-  |              |            |            |<----------|              |
-  |              |            |            |           |              |
-  |              |            |            | Run B+C   |              |
-  |              |            |            | (parallel)|              |
-  |              |            |            |---------->| (2 runners)  |
-  |              |            |            |           | Download A's |
-  |              |            |            |           | artifact     |
-  |              |            |            |           |<-------------|
-  |              |            |            | B+C done  |              |
-  |              |            |            |<----------|              |
-  |              |            |            |           |              |
-  |              |            |            | Run D     |              |
-  |              |            |            |---------->|              |
+\`\`\`mermaid
+sequenceDiagram
+    participant P0 as GitHub
+    participant P1 as Webhook Rcvr
+    participant P2 as Parser
+    participant P3 as Scheduler
+    participant P4 as Runner
+    participant P5 as Artifact Store
+    P0->>P1: request
+    P1-->>P0: response
+    P1->>P2: request
+    P2-->>P1: response
+    P2->>P3: request
+    P3-->>P2: response
+    P3->>P4: request
+    P4-->>P3: response
+    P4->>P5: request
+    P5-->>P4: response
 \`\`\`
 `,
     jsCode: `## Deep Dive: DAG-Based Job Scheduling
 
 Pipeline jobs form a directed acyclic graph. The scheduler must execute jobs respecting dependencies while maximizing parallelism.
 
-\`\`\`
-Pipeline YAML:
-  jobs:
-    build:    { steps: [...] }
-    test-unit: { needs: [build] }
-    test-e2e:  { needs: [build] }
-    lint:      { steps: [...] }     # no dependencies
-    deploy:    { needs: [test-unit, test-e2e, lint] }
-
-DAG Visualization:
-+-------+     +-----------+
-| build |---->| test-unit |----+
-+-------+     +-----------+    |    +--------+
-    |                          +--->| deploy |
-    |         +-----------+    |    +--------+
-    +-------->| test-e2e  |----+        ^
-              +-----------+             |
-                                        |
-+-------+                              |
-| lint  |-------------------------------+
-+-------+
-
-Execution Timeline:
-t=0    t=1min    t=3min     t=5min      t=8min
-|---------|---------|----------|----------|
-| build   |         |          |          |
-|=========|         |          |          |
-          |test-unit|          |          |
-          |=========|          |          |
-          |test-e2e |          |          |
-          |=========|          |          |
-| lint    |         |          |          |
-|=========|         |          |          |
-                    | deploy   |          |
-                    |==========|          |
-
-Critical Path: build -> test-e2e -> deploy = 5 min
-(lint runs in parallel with build, free)
+\`\`\`mermaid
+graph TD
+    N0["Pipeline YAML:"]
+    N1["jobs:"]
+    N2["build: { steps: [...] }"]
+    N3["testunit: { needs: [build] }"]
+    N4["teste2e: { needs: [build] }"]
+    N5["lint: { steps: [...] } # no dependencies"]
+    N6["deploy: { needs: [testunit, teste2e, lint] }"]
+    N7["DAG Visualization:"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    N3 --> N4
+    N4 --> N5
+    N5 --> N6
+    N6 --> N7
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 Scheduling Algorithm:
@@ -1338,33 +1094,31 @@ Scheduling Algorithm:
 
 Maintaining warm runner pools balances fast start times against cost.
 
-\`\`\`
-Runner Lifecycle:
-+----------+     +-----------+     +-----------+     +-----------+
-| Cold Pool|---->| Warm Pool |---->| Active    |---->| Cleanup   |
-| (images  |     | (booted,  |     | (running  |     | (destroy  |
-|  stored) | boot| idle,     | job | a build   | done|  after    |
-|          | 20s | waiting)  | 1s  | job)      |     |  job)     |
-+----------+     +-----------+     +-----------+     +-----------+
-                       ^                                   |
-                       |  recycle (if clean)                |
-                       +-----------------------------------+
-
-Pool Sizing Strategy:
-+--------------------------------------------------+
-| Time of Day    | Target Warm Pool | Reason        |
-|----------------|------------------|---------------|
-| 00:00-06:00    | 5,000 runners    | Low traffic   |
-| 06:00-09:00    | 30,000 runners   | Ramp up       |
-| 09:00-18:00    | 50,000 runners   | Peak hours    |
-| 18:00-00:00    | 20,000 runners   | Wind down     |
-+--------------------------------------------------+
-
-Auto-scaling signals:
-- Queue depth (jobs waiting for runners)
-- Current utilization (active / total)
-- Historical patterns (same time last week)
-- Burst detection (sudden spike in webhooks)
+\`\`\`mermaid
+graph TD
+    N0["Cold Pool"]
+    N1["Warm Pool"]
+    N2["Active"]
+    N3["Cleanup"]
+    N4["Time of Day"]
+    N5["Reason"]
+    N6["Low traffic"]
+    N7["Ramp up"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    N3 --> N4
+    N4 --> N5
+    N5 --> N6
+    N6 --> N7
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ---
@@ -1373,40 +1127,31 @@ Auto-scaling signals:
 
 Caching build dependencies (node_modules, .m2, pip cache) dramatically speeds up builds.
 
-\`\`\`
-Cache Hierarchy:
-+----------------------------------------------+
-| Layer 1: Runner-local (fastest)              |
-| +------------------------------------------+|
-| | /cache/npm/node_modules.tar.gz            ||
-| | Scope: Same runner, same repo             ||
-| | Hit rate: ~30% (runner reuse)             ||
-| | Latency: 0ms (local disk)                ||
-| +------------------------------------------+|
-|                    | miss                     |
-| Layer 2: Shared cache (S3 + CDN)             |
-| +------------------------------------------+|
-| | s3://cache/{repoId}/{hash}/dep-cache.tar ||
-| | Scope: Same repo, any runner              ||
-| | Hit rate: ~85% (across all builds)        ||
-| | Latency: 2-5 sec download                ||
-| +------------------------------------------+|
-|                    | miss                     |
-| Layer 3: Full install                        |
-| +------------------------------------------+|
-| | npm install / pip install from registry   ||
-| | Scope: N/A (cold build)                   ||
-| | Latency: 30-120 sec                       ||
-| +------------------------------------------+|
-+----------------------------------------------+
-
-Cache Key Strategy:
-  Key = hash(lockfile_contents + runner_os + runtime_version)
-  Example: sha256(package-lock.json) + "ubuntu-22" + "node-18"
-
-  - Lockfile changes -> cache miss (correct: deps changed)
-  - Same lockfile -> cache hit (fast: skip install)
-  - OS/runtime change -> cache miss (correct: binary compat)
+\`\`\`mermaid
+graph TD
+    N0["Layer 1: Runner-local (fastest)"]
+    N1["Scope: Same runner, same repo"]
+    N2["Hit rate: ~30% (runner reuse)"]
+    N3["Latency: 0ms (local disk)"]
+    N4["Layer 2: Shared cache (S3 + CDN)"]
+    N5["Scope: Same repo, any runner"]
+    N6["Hit rate: ~85% (across all builds)"]
+    N7["Latency: 2-5 sec download"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    N3 --> N4
+    N4 --> N5
+    N5 --> N6
+    N6 --> N7
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 `,
     explanation: `## Bottlenecks & Improvements
@@ -1505,158 +1250,103 @@ An **API gateway** routes requests with tenant context (from JWT or subdomain). 
 `,
     code: `## Architecture Diagram
 
-\`\`\`
-+----------+     +-------------------+     +------------------+
-| Tenant A |---->|                   |     | Tenant Config    |
-| (app.    | JWT | API Gateway       |---->| Service          |
-|  saas.io)|     | (Route by tenant) |     | (plan, features, |
-+----------+     |                   |     |  branding)       |
-+----------+     | - Extract tenant  |     +------------------+
-| Tenant B |---->|   from JWT/domain |
-| (b.saas. |     | - Rate limit per  |
-|  io)     |     |   tenant + plan   |
-+----------+     +--------+----------+
-                          |
-                 +--------v----------+
-                 | Application Tier  |
-                 | (Stateless)       |
-                 |                   |
-                 | Tenant context    |
-                 | in every request  |
-                 +----+----+----+---+
-                      |    |    |
-          +-----------+    |    +-----------+
-          |                |                |
-   +------v------+  +-----v------+  +------v------+
-   | Shared DB   |  | Schema per |  | Dedicated   |
-   | Pool        |  | Tenant     |  | DB (Enter-  |
-   | (Small tier)|  | (Med tier) |  |  prise)     |
-   |             |  |            |  |             |
-   | tenant_id   |  | tenant_abc |  | tenant_xyz  |
-   | in every    |  | .users     |  | full DB     |
-   | row (RLS)   |  | .orders    |  | instance    |
-   +------+------+  +-----+------+  +------+------+
-          |                |                |
-          +-------+--------+--------+-------+
-                  |                 |
-           +------v------+  +------v------+
-           | Billing     |  | Provisioning|
-           | Service     |  | Service     |
-           |             |  |             |
-           | - Metering  |  | - Tenant    |
-           | - Invoicing |  |   setup     |
-           | - Plan mgmt |  | - Resource  |
-           +-------------+  |   allocation|
-                            +-------------+
+\`\`\`mermaid
+graph TD
+    N0["Tenant A"]
+    N1["Tenant Config"]
+    N2["JWT"]
+    N3["Service"]
+    N4["Tenant B"]
+    N5["Application Tier"]
+    N6["Tenant context"]
+    N7["Shared DB"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    N3 --> N4
+    N4 --> N5
+    N5 --> N6
+    N6 --> N7
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## Request Flow with Tenant Context
 
-\`\`\`
-Client         API Gateway     Config Svc     App Server     Database
-  |                |               |              |              |
-  | Request +JWT   |               |              |              |
-  |--------------->|               |              |              |
-  |                | Extract       |              |              |
-  |                | tenantId from |              |              |
-  |                | JWT claims    |              |              |
-  |                |               |              |              |
-  |                | Check rate    |              |              |
-  |                | limit for     |              |              |
-  |                | tenant+plan   |              |              |
-  |                |               |              |              |
-  |                | Get config    |              |              |
-  |                |-------------->|              |              |
-  |                |<--------------|              |              |
-  |                |               |              |              |
-  |                | Forward +     |              |              |
-  |                | tenant context|              |              |
-  |                |------------------------------>|              |
-  |                |               |              | Resolve DB   |
-  |                |               |              | connection   |
-  |                |               |              | by tenant    |
-  |                |               |              | tier         |
-  |                |               |              |------------->|
-  |                |               |              |   + RLS or   |
-  |                |               |              |   schema     |
-  |                |               |              |<-------------|
-  |                |               |              |              |
-  | Response       |               |              |              |
-  |<-----------------------------------------------|              |
+\`\`\`mermaid
+sequenceDiagram
+    participant P0 as Client
+    participant P1 as API Gateway
+    participant P2 as Config Svc
+    participant P3 as App Server
+    participant P4 as Database
+    P0->>P1: request
+    P1-->>P0: response
+    P1->>P2: request
+    P2-->>P1: response
+    P2->>P3: request
+    P3-->>P2: response
+    P3->>P4: request
+    P4-->>P3: response
 \`\`\`
 
 ## Tenant Onboarding Flow
 
-\`\`\`
-Admin        API          Provisioning    DB            Billing       Config
-  |            |               |           |               |            |
-  | Sign up    |               |           |               |            |
-  |----------->|               |           |               |            |
-  |            | Create tenant |           |               |            |
-  |            |-------------->|           |               |            |
-  |            |               | Allocate  |               |            |
-  |            |               | DB resources              |            |
-  |            |               |---------->|               |            |
-  |            |               |           |               |            |
-  |            |               | Setup     |               |            |
-  |            |               | billing   |               |            |
-  |            |               |-------------------------->|            |
-  |            |               |           |               |            |
-  |            |               | Init      |               |            |
-  |            |               | config    |               |            |
-  |            |               |---------------------------------------->|
-  |            |               |           |               |            |
-  |            | {tenantId,    |           |               |            |
-  |            |  apiKey}      |           |               |            |
-  |<-----------|               |           |               |            |
+\`\`\`mermaid
+sequenceDiagram
+    participant P0 as Admin
+    participant P1 as API
+    participant P2 as Provisioning
+    participant P3 as DB
+    participant P4 as Billing
+    participant P5 as Config
+    P0->>P1: request
+    P1-->>P0: response
+    P1->>P2: request
+    P2-->>P1: response
+    P2->>P3: request
+    P3-->>P2: response
+    P3->>P4: request
+    P4-->>P3: response
+    P4->>P5: request
+    P5-->>P4: response
 \`\`\`
 `,
     jsCode: `## Deep Dive: Tiered Data Isolation
 
 The isolation strategy depends on tenant size, compliance needs, and willingness to pay.
 
-\`\`\`
-Tier 1: Shared Database with Row-Level Security (90K small tenants)
-+------------------------------------------------+
-| Shared PostgreSQL Cluster                       |
-|                                                 |
-| CREATE POLICY tenant_isolation ON orders        |
-|   USING (tenant_id = current_setting(           |
-|     'app.current_tenant'));                      |
-|                                                 |
-| Every query automatically filtered:             |
-| SELECT * FROM orders                            |
-|   --> WHERE tenant_id = 'tenant_123'            |
-|                                                 |
-| Pros: Cost-efficient, simple management         |
-| Cons: Noisy neighbor risk, shared resources     |
-+------------------------------------------------+
-
-Tier 2: Schema-Per-Tenant (9K medium tenants)
-+------------------------------------------------+
-| Shared PostgreSQL Cluster                       |
-| +--------------------+ +--------------------+   |
-| | schema: tenant_abc | | schema: tenant_def |   |
-| | .users             | | .users             |   |
-| | .orders            | | .orders            |   |
-| | .settings          | | .settings          |   |
-| +--------------------+ +--------------------+   |
-|                                                 |
-| Pros: Better isolation, per-tenant backup       |
-| Cons: Connection pooling complexity, DDL mgmt   |
-+------------------------------------------------+
-
-Tier 3: Dedicated Database (1K enterprise tenants)
-+------------------+ +------------------+
-| DB: tenant_xyz   | | DB: tenant_mega  |
-| (own RDS instance)| | (own RDS instance)|
-|                  | |                  |
-| Full resource    | | Custom config,   |
-| isolation        | | own read replicas|
-+------------------+ +------------------+
-
-Pros: Complete isolation, custom tuning, compliance
-Cons: Expensive, per-tenant ops overhead
+\`\`\`mermaid
+graph TD
+    N0["Shared PostgreSQL Cluster"]
+    N1["CREATE POLICY tenant_isolation ON orders"]
+    N2["USING (tenant_id = current_setting("]
+    N3["Every query automatically filtered:"]
+    N4["SELECT * FROM orders"]
+    N5["Pros: Cost-efficient, simple management"]
+    N6["Pros: Better isolation, per-tenant backup"]
+    N7["DB: tenant_xyz"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    N3 --> N4
+    N4 --> N5
+    N5 --> N6
+    N6 --> N7
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ---
@@ -1665,57 +1355,31 @@ Cons: Expensive, per-tenant ops overhead
 
 Preventing one tenant from degrading others requires multi-layer resource controls.
 
-\`\`\`
-Layer 1: API Gateway Rate Limiting
-+-----------------------------------------------+
-| Plan-based limits:                             |
-| +-------------------+----------+-----------+   |
-| | Plan              | API/min  | Burst     |   |
-| |-------------------+----------+-----------|   |
-| | Starter           | 1,000    | 50/sec    |   |
-| | Professional      | 10,000   | 200/sec   |   |
-| | Enterprise        | 100,000  | 2,000/sec |   |
-| +-------------------+----------+-----------+   |
-|                                                |
-| Token bucket per tenant, refilled per minute   |
-+-----------------------------------------------+
-
-Layer 2: Application-Level Resource Quotas
-+-----------------------------------------------+
-| Per-tenant limits:                             |
-| - Max concurrent DB connections: 10/50/200     |
-| - Max query execution time: 5s/15s/60s         |
-| - Max response payload: 10MB/50MB/200MB        |
-| - Background job concurrency: 2/10/50          |
-+-----------------------------------------------+
-
-Layer 3: Database-Level Isolation
-+-----------------------------------------------+
-| Shared DB tenants:                             |
-| - Connection pool per tenant (pgBouncer)       |
-| - Query timeout enforcement                    |
-| - Statement-level resource limits              |
-|                                                |
-| Schema-per-tenant:                             |
-| - Separate connection pools                    |
-| - Per-schema storage quotas                    |
-|                                                |
-| Dedicated DB tenants:                          |
-| - Independent resources entirely               |
-+-----------------------------------------------+
-
-Layer 4: Monitoring + Auto-Throttle
-+-----------------------------------------------+
-| Monitor per-tenant:                            |
-| - CPU time consumed                            |
-| - DB query count and duration                  |
-| - Storage growth rate                          |
-| - Network bandwidth                            |
-|                                                |
-| Auto-throttle: If tenant exceeds 3x plan       |
-| limits sustained over 5 minutes, reduce to     |
-| 50% of limit until load normalizes             |
-+-----------------------------------------------+
+\`\`\`mermaid
+graph TD
+    N0["Plan-based limits:"]
+    N1["Plan"]
+    N2["Burst"]
+    N3["Starter"]
+    N4["Professional"]
+    N5["Enterprise"]
+    N6["Per-tenant limits:"]
+    N7["Shared DB tenants:"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    N3 --> N4
+    N4 --> N5
+    N5 --> N6
+    N6 --> N7
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ---
@@ -1724,45 +1388,31 @@ Layer 4: Monitoring + Auto-Throttle
 
 Accurate usage metering is critical for usage-based billing.
 
-\`\`\`
-Metering Pipeline:
-+----------+     +--------+     +----------+     +---------+
-| API      |---->| Kafka  |---->| Metering |---->| Timeseries|
-| Gateway  | emit| Topic  |     | Aggregator|    | DB       |
-| (emit    | event|       |     | (Flink)  |     |(Timescale)|
-|  usage   |     |        |     |          |     |          |
-|  event)  |     |        |     | Hourly + |     | Per-tenant|
-+----------+     +--------+     | Monthly  |     | per-metric|
-                                | rollups  |     | aggregates|
-                                +----------+     +-----+-----+
-                                                       |
-                                                 +-----v-----+
-                                                 | Billing    |
-                                                 | Engine     |
-                                                 |            |
-                                                 | - Plan base|
-                                                 | - Overages |
-                                                 | - Prorate  |
-                                                 | - Invoice  |
-                                                 +-----------+
-
-Invoice Generation (monthly):
-+------------------------------------------------+
-| Tenant: Acme Corp                               |
-| Plan: Professional ($99/mo)                     |
-| Period: March 1-31, 2026                        |
-|                                                 |
-| Line Items:                                     |
-| +-------------------------------------------+  |
-| | Item           | Included | Used   | Cost |  |
-| |----------------+----------+--------+------|  |
-| | Base plan      | -        | -      | $99  |  |
-| | API calls      | 100K     | 142K   | $42  |  |
-| | Storage (GB)   | 50       | 48     | $0   |  |
-| | Seats          | 10       | 10     | $0   |  |
-| +-------------------------------------------+  |
-| Total: $141                                     |
-+------------------------------------------------+
+\`\`\`mermaid
+graph TD
+    N0["API"]
+    N1["Kafka"]
+    N2["Metering"]
+    N3["Timeseries"]
+    N4["Gateway"]
+    N5["Topic"]
+    N6["Aggregator"]
+    N7["Hourly +"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    N3 --> N4
+    N4 --> N5
+    N5 --> N6
+    N6 --> N7
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 `,
     explanation: `## Bottlenecks & Improvements

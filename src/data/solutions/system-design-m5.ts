@@ -70,64 +70,50 @@ A **TAO-like cache layer** sits in front of a sharded graph store (MySQL or Rock
 `,
     code: `## Architecture Diagram
 
-\`\`\`
-+----------+       +------------------+       +---------------------+
-|  Client  |------>| Load Balancer    |------>| API Gateway         |
-+----------+       +------------------+       +----------+----------+
-                                                         |
-                          +------------------------------+-----+
-                          |                              |     |
-               +----------v----------+    +--------------v-+  +v----------------+
-               | Graph Query Service |    | Recommendation |  | Search/Traversal|
-               | (friend lists,      |    | Service        |  | Engine          |
-               |  mutual friends)    |    | (PYMK batch)   |  | (BFS, paths)   |
-               +----------+----------+    +-------+--------+  +--------+--------+
-                          |                       |                     |
-               +----------v-----------------------v---------------------v---+
-               |                    TAO Cache Layer                         |
-               |  +-------------------+    +-------------------+            |
-               |  | L1: Per-Region    |    | L2: Cross-Region  |            |
-               |  | 10K servers       |--->| 2K servers        |            |
-               |  | sub-ms reads      |    | fallback layer    |            |
-               |  +-------------------+    +-------------------+            |
-               +----------------------------+-------------------------------+
-                                            |  cache miss
-               +----------------------------v-------------------------------+
-               |              Sharded Graph Store                           |
-               |  +----------+  +----------+  +----------+  +----------+   |
-               |  | Shard 0  |  | Shard 1  |  | Shard 2  |  | Shard N  |   |
-               |  | users    |  | users    |  | users    |  | users    |   |
-               |  | + edges  |  | + edges  |  | + edges  |  | + edges  |   |
-               |  +----------+  +----------+  +----------+  +----------+   |
-               |  Consistent hashing by user_id across 1000+ shards        |
-               +------------------------------------------------------------+
+\`\`\`mermaid
+graph TD
+    N0["Client"]
+    N1["Load Balancer"]
+    N2["API Gateway"]
+    N3["Graph Query Service"]
+    N4["Recommendation"]
+    N5["Search/Traversal"]
+    N6["Service"]
+    N7["Engine"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    N3 --> N4
+    N4 --> N5
+    N5 --> N6
+    N6 --> N7
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## Mutual Friends Query Flow
 
-\`\`\`
-Client        API Gateway     Graph Service     TAO Cache       Graph Store
-  |               |                |                |                |
-  | GET mutual    |                |                |                |
-  | friends(A,B)  |                |                |                |
-  |-------------->|                |                |                |
-  |               |  route         |                |                |
-  |               |--------------->|                |                |
-  |               |                | get friends(A) |                |
-  |               |                |--------------->|                |
-  |               |                | [L1 HIT]       |                |
-  |               |                |<---------------|                |
-  |               |                |                |                |
-  |               |                | get friends(B) |                |
-  |               |                |--------------->|                |
-  |               |                | [L1 HIT]       |                |
-  |               |                |<---------------|                |
-  |               |                |                |                |
-  |               |                | sorted intersection            |
-  |               |                | in memory O(n+m)               |
-  |               |                |                |                |
-  |  mutual friends list           |                |                |
-  |<-------------------------------|                |                |
+\`\`\`mermaid
+sequenceDiagram
+    participant P0 as Client
+    participant P1 as API Gateway
+    participant P2 as Graph Service
+    participant P3 as TAO Cache
+    participant P4 as Graph Store
+    P0->>P1: request
+    P1-->>P0: response
+    P1->>P2: request
+    P2-->>P1: response
+    P2->>P3: request
+    P3-->>P2: response
+    P3->>P4: request
+    P4-->>P3: response
 \`\`\`
 `,
     jsCode: `## Deep Dive: Bidirectional BFS for Shortest Path
@@ -146,26 +132,31 @@ Total explored: 125M               Total explored: ~22K
                                     Reduction: ~5,000x
 \`\`\`
 
-\`\`\`
-+--------+                                          +--------+
-| Source  |                                          | Target |
-|  User   |                                          |  User  |
-+----+----+                                          +----+----+
-     |  expand frontier                    expand frontier  |
-     v                                                      v
-+----+----+                                          +------+--+
-|Frontier |   hop 1: 500 nodes each                  |Frontier |
-|  Set A  |                                          |  Set B  |
-+----+----+                                          +----+----+
-     |                                                    |
-     v  hop 2                                  hop 2      v
-+----+----+                                          +----+----+
-|Frontier |   Check intersection at each level       |Frontier |
-|  Set A' |<---------- OVERLAP FOUND! -------------->|  Set B' |
-+----+----+                                          +---------+
-     |
-     v
-  STOP: path = source -> ... -> overlap node -> ... -> target
+\`\`\`mermaid
+graph TD
+    N0["Source"]
+    N1["Target"]
+    N2["User"]
+    N3["Frontier"]
+    N4["Set A"]
+    N5["Set B"]
+    N6["Set A'"]
+    N7["Set B'"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    N3 --> N4
+    N4 --> N5
+    N5 --> N6
+    N6 --> N7
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 - Use **Bloom filters** at each hop for fast visited-set membership checks
@@ -178,28 +169,28 @@ Total explored: 125M               Total explored: ~22K
 
 Facebook's TAO (The Associations and Objects) is a write-through cache optimized for graph queries.
 
-\`\`\`
-                     Write Path                    Read Path
-                        |                             |
-                        v                             v
-               +--------+--------+           +--------+--------+
-               | Leader Region   |           | Any Region      |
-               | L1 Cache        |           | L1 Cache        |
-               +--------+--------+           +--------+--------+
-                        |                             |
-                   write to DB                   L1 miss?
-                        |                             |
-               +--------v--------+           +--------v--------+
-               | MySQL Primary   |           | L2 Cache        |
-               | (source of truth|           | (aggregator)    |
-               +--------+--------+           +--------+--------+
-                        |                             |
-                   replicate                     L2 miss?
-                        |                             |
-               +--------v--------+           +--------v--------+
-               | MySQL Replicas  |           | MySQL Replica   |
-               | (other regions) |           | (local region)  |
-               +-----------------+           +-----------------+
+\`\`\`mermaid
+graph TD
+    N0["Leader Region"]
+    N1["Any Region"]
+    N2["L1 Cache"]
+    N3["MySQL Primary"]
+    N4["L2 Cache"]
+    N5["MySQL Replicas"]
+    N6["MySQL Replica"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    N3 --> N4
+    N4 --> N5
+    N5 --> N6
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 - **Objects**: nodes (users). Cached by ID.
@@ -211,36 +202,31 @@ Facebook's TAO (The Associations and Objects) is a write-through cache optimized
 
 ## Deep Dive: PYMK Recommendation Pipeline
 
-\`\`\`
-+-------------------------------------------------------------------+
-|                   Daily Batch Pipeline                             |
-|                                                                   |
-|  +-----------+    +--------------+    +------------------+        |
-|  | For each  |--->| Scan friends |    | Score candidates |        |
-|  | user U    |    | of friends   |--->| by signals       |        |
-|  +-----------+    | (2-hop scan) |    +--------+---------+        |
-|                   +--------------+             |                  |
-|                                                v                  |
-|                                   +------------+-------------+    |
-|                                   | Scoring Formula:         |    |
-|                                   | mutual_friends * 0.4     |    |
-|                                   | + same_company * 0.2     |    |
-|                                   | + same_school  * 0.2     |    |
-|                                   | + same_city    * 0.1     |    |
-|                                   | + interaction  * 0.1     |    |
-|                                   +------------+-------------+    |
-|                                                |                  |
-|                   +----------------------------v-+                |
-|                   | Store top 200 candidates     |                |
-|                   | per user in Redis             |                |
-|                   +------------------------------+                |
-+-------------------------------------------------------------------+
-                              |
-              +---------------v----------------+
-              | Real-Time Boost Layer           |
-              | When edge added: re-score       |
-              | affected candidates immediately |
-              +--------------------------------+
+\`\`\`mermaid
+graph TD
+    N0["Daily Batch Pipeline"]
+    N1["For each"]
+    N2["Scan friends"]
+    N3["Score candidates"]
+    N4["Scoring Formula:"]
+    N5["Store top 200 candidates"]
+    N6["Real-Time Boost Layer"]
+    N7["When edge added: re-score"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    N3 --> N4
+    N4 --> N5
+    N5 --> N6
+    N6 --> N7
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 `,
     explanation: `## Bottlenecks & Improvements
@@ -341,113 +327,93 @@ A **Location Service** ingests driver GPS pings into an in-memory **geospatial i
 `,
     code: `## Architecture Diagram
 
-\`\`\`
-+----------+                  +----------+
-| Rider    |                  | Driver   |
-| App      |                  | App      |
-+----+-----+                  +----+-----+
-     |                             |
-     | ride request          location ping (5s)
-     |                             |
-+----v-----------------------------v-----------+
-|              Load Balancer / API Gateway      |
-+----+-----------------------------+-----------+
-     |                             |
-     v                             v
-+----+----------+          +-------+----------+
-| Matching      |          | Location Service |
-| Service       |          |                  |
-| - find nearby |  query   | - ingest GPS     |
-| - rank by ETA |<---------| - update geohash |
-| - dispatch    |          |   index          |
-+----+----------+          +-------+----------+
-     |                             |
-     |                    +--------v----------+
-     |                    | Geospatial Index  |
-     |                    | (In-Memory)       |
-     |                    |                   |
-     |                    | geohash -> [      |
-     |                    |   driver_id,      |
-     |                    |   lat, lng,       |
-     |                    |   status          |
-     |                    | ]                 |
-     |                    +-------------------+
-     |
-+----v----------+          +------------------+
-| Trip Service  |          | Pricing Service  |
-| - state mgmt  |          | - surge calc     |
-| - ride history |          | - fare estimate  |
-+----+----------+          +-------+----------+
-     |                             |
-     v                             v
-+----+-----------------------------+-----------+
-|             Databases                         |
-|  +----------+  +-----------+  +------------+ |
-|  | Rides DB |  | Location  |  | Surge      | |
-|  | (SQL)    |  | Store     |  | Config     | |
-|  |          |  | (time-    |  | (Redis)    | |
-|  |          |  |  series)  |  |            | |
-|  +----------+  +-----------+  +------------+ |
-+-----------------------------------------------+
+\`\`\`mermaid
+graph TD
+    N0["Rider"]
+    N1["Driver"]
+    N2["App"]
+    N3["Load Balancer / API Gateway"]
+    N4["Matching"]
+    N5["Location Service"]
+    N6["Service"]
+    N7["Geospatial Index"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    N3 --> N4
+    N4 --> N5
+    N5 --> N6
+    N6 --> N7
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## Ride Matching Flow
 
-\`\`\`
-Rider App       Matching Svc     Location Svc     Geospatial Idx    Driver App
-  |                 |                 |                 |                |
-  | POST /rides     |                 |                 |                |
-  |---------------->|                 |                 |                |
-  |                 | query nearby    |                 |                |
-  |                 | drivers(pickup) |                 |                |
-  |                 |---------------->|                 |                |
-  |                 |                 | get geohash     |                |
-  |                 |                 | + neighbors     |                |
-  |                 |                 |---------------->|                |
-  |                 |                 | [driver list]   |                |
-  |                 |                 |<----------------|                |
-  |                 | [candidates]    |                 |                |
-  |                 |<----------------|                 |                |
-  |                 |                 |                 |                |
-  |                 | rank by ETA,    |                 |                |
-  |                 | select best     |                 |                |
-  |                 |                 |                 |                |
-  |                 | dispatch to driver ---------------------------->  |
-  |                 |                 |                 |    accept/     |
-  |                 |<----------------------------------------------- reject
-  |                 |                 |                 |                |
-  | { ride_id,      |                 |                 |                |
-  |   driver, eta } |                 |                 |                |
-  |<----------------|                 |                 |                |
+\`\`\`mermaid
+sequenceDiagram
+    participant P0 as Rider App
+    participant P1 as Matching Svc
+    participant P2 as Location Svc
+    participant P3 as Geospatial Idx
+    participant P4 as Driver App
+    P0->>P1: request
+    P1-->>P0: response
+    P1->>P2: request
+    P2-->>P1: response
+    P2->>P3: request
+    P3-->>P2: response
+    P3->>P4: request
+    P4-->>P3: response
 \`\`\`
 `,
     jsCode: `## Deep Dive: Geohash-Based Spatial Indexing
 
 Geohashing converts a 2D coordinate (lat, lng) into a 1D string. Nearby locations share a common prefix, enabling spatial proximity queries with simple prefix lookups.
 
-\`\`\`
-Geohash precision levels:
-+----------+-----------+--------------+
-| Chars    | Cell Size | Use Case     |
-+----------+-----------+--------------+
-| 4 chars  | ~40 km    | Country zoom |
-| 5 chars  | ~5 km     | City zone    |
-| 6 chars  | ~1.2 km   | Matching     |  <-- we use this
-| 7 chars  | ~150 m    | Street level |
-+----------+-----------+--------------+
+\`\`\`mermaid
+graph TD
+    N0["Chars"]
+    N1["Use Case"]
+    N2["Country zoom"]
+    N3["City zone"]
+    N4["Matching"]
+    N5["Street level"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    N3 --> N4
+    N4 --> N5
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
-\`\`\`
-+---------+---------+---------+
-| 9q8yyk  | 9q8yym  | 9q8yyq  |
-|         |         |         |
-+---------+---------+---------+
-| 9q8yyh  | 9q8yyj  | 9q8yyn  |   <-- driver D1 in center cell
-|    D3   |  D1 D2  |         |       query center + 8 neighbors
-+---------+---------+---------+       to avoid edge effects
-| 9q8yy5  | 9q8yy7  | 9q8yye  |
-|         |    D4   |         |
-+---------+---------+---------+
+\`\`\`mermaid
+graph TD
+    N0["9q8yyk 9q8yym 9q8yyq"]
+    N1["9q8yyh 9q8yyj 9q8yyn drier D1 in center cell"]
+    N2["D3 D1 D2 query center 8 neighbors"]
+    N3["to aoid edge effects"]
+    N4["9q8yy5 9q8yy7 9q8yye"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    N3 --> N4
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 - **Index structure**: HashMap of geohash_6 -> list of (driver_id, lat, lng, status)
@@ -459,30 +425,13 @@ Geohash precision levels:
 
 ## Deep Dive: Surge Pricing Engine
 
-\`\`\`
-+----------------------------------------------------------------+
-| Surge Pricing Calculation (per zone, every 30 seconds)         |
-|                                                                |
-|  +------------------+     +------------------+                 |
-|  | Demand Counter   |     | Supply Counter   |                 |
-|  | (ride requests   |     | (available        |                 |
-|  |  in zone/window) |     |  drivers in zone) |                 |
-|  +--------+---------+     +--------+---------+                 |
-|           |                        |                           |
-|           v                        v                           |
-|  +--------+------------------------+---------+                 |
-|  |      demand / supply ratio                |                 |
-|  |                                           |                 |
-|  |  ratio < 1.0  -->  surge = 1.0x (no surge)|                 |
-|  |  ratio 1.0-1.5 --> surge = 1.2x           |                 |
-|  |  ratio 1.5-2.0 --> surge = 1.5x           |                 |
-|  |  ratio 2.0-3.0 --> surge = 2.0x           |                 |
-|  |  ratio > 3.0   --> surge = 3.0x (capped)  |                 |
-|  +-------------------------------------------+                 |
-|                                                                |
-|  Smoothing: new_surge = 0.7 * old_surge + 0.3 * calc_surge    |
-|  (prevents abrupt price jumps)                                 |
-+----------------------------------------------------------------+
+\`\`\`mermaid
+graph TD
+    N0["Demand Counter"]
+    N1["Supply Counter"]
+    N0 --> N1
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 - Zones defined by geohash prefixes (level 5, ~5km cells)
@@ -494,22 +443,19 @@ Geohash precision levels:
 
 ## Deep Dive: ETA Calculation
 
-\`\`\`
-+-------------------+     +-----------------------+
-| Simple ETA        |     | Enhanced ETA          |
-| (straight-line)   |     | (road-network aware)  |
-+-------------------+     +-----------------------+
-|                   |     |                       |
-| distance =        |     | 1. Snap to road graph |
-|  haversine(       |     | 2. Dijkstra / A*     |
-|    driver, pickup)|     |    shortest path      |
-|                   |     | 3. Apply traffic      |
-| eta = distance /  |     |    speed multiplier   |
-|   avg_speed       |     | 4. Add pickup delay   |
-|                   |     |                       |
-| Good enough for   |     | Accurate but needs    |
-| initial matching  |     | routing service       |
-+-------------------+     +-----------------------+
+\`\`\`mermaid
+graph TD
+    N0["Simple ETA"]
+    N1["Enhanced ETA"]
+    N2["Good enough for"]
+    N3["Accurate but needs"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 - **Phase 1 (matching)**: Use haversine distance / avg speed for quick ranking
@@ -614,116 +560,66 @@ A **WebSocket Gateway** maintains persistent connections with browser-based edit
 `,
     code: `## Architecture Diagram
 
-\`\`\`
-+------------+    +------------+    +------------+
-| Browser    |    | Browser    |    | Browser    |
-| IDE (User) |    | IDE (User) |    | IDE (User) |
-+-----+------+    +-----+------+    +-----+------+
-      |                 |                 |
-      | WebSocket       | WebSocket       | WebSocket
-      |                 |                 |
-+-----v-----------------v-----------------v-------+
-|              WebSocket Gateway                   |
-|    (sticky sessions per project, autoscale)      |
-+-----+-----------------+-------------------------+
-      |                 |
-      v                 v
-+-----+------+   +------+----------+
-| Editor     |   | Collaboration   |
-| Service    |   | Service         |
-|            |   | (OT / CRDT)     |
-| - file ops |   | - conflict      |
-| - project  |   |   resolution    |
-|   CRUD     |   | - cursor sync   |
-+-----+------+   +-----------------+
-      |
-      v
-+-----+-----------------------------+
-|         Execution Service          |
-|                                    |
-|  +------------+   +-------------+  |
-|  | Scheduler  |   | Warm Pool   |  |
-|  | - pick VM  |   | Manager     |  |
-|  | - attach   |   |             |  |
-|  |   code     |   | Python: 200 |  |
-|  | - stream   |   | JS:     200 |  |
-|  |   output   |   | Go:     100 |  |
-|  +-----+------+   +------+------+  |
-|        |                  |         |
-|  +-----v------------------v------+  |
-|  |    Sandbox Pool               |  |
-|  |  +--------+ +--------+       |  |
-|  |  |Firecrkr| |Firecrkr|  ...  |  |
-|  |  |  VM 1  | |  VM 2  |       |  |
-|  |  |Python  | |  JS    |       |  |
-|  |  +--------+ +--------+       |  |
-|  +-------------------------------+  |
-+------------------------------------+
-      |                 |
-      v                 v
-+-----+------+   +------+----------+
-| Object     |   | Metadata DB     |
-| Storage    |   | (PostgreSQL)    |
-| (S3)       |   |                 |
-| - files    |   | - projects      |
-| - snapshots|   | - executions    |
-+------------+   +-----------------+
+\`\`\`mermaid
+graph TD
+    N0["Browser"]
+    N1["IDE (User)"]
+    N2["WebSocket"]
+    N3["WebSocket Gateway"]
+    N4["Editor"]
+    N5["Collaboration"]
+    N6["Service"]
+    N7["CRUD"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    N3 --> N4
+    N4 --> N5
+    N5 --> N6
+    N6 --> N7
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## Code Execution Flow
 
-\`\`\`
-Browser          WS Gateway      Execution Svc    Warm Pool        Sandbox VM
-  |                  |                |                |                |
-  | "Run" click      |                |                |                |
-  |----------------->|                |                |                |
-  |                  | exec request   |                |                |
-  |                  |--------------->|                |                |
-  |                  |                | claim VM       |                |
-  |                  |                |--------------->|                |
-  |                  |                | VM assigned    |                |
-  |                  |                |<---------------|                |
-  |                  |                |                |                |
-  |                  |                | mount code,    |                |
-  |                  |                | set limits,    |                |
-  |                  |                | execute        |                |
-  |                  |                |------------------------------->|
-  |                  |                |                |                |
-  |                  |                | stdout stream  |                |
-  |                  |  stream output |<-------------------------------|
-  |  stdout chunks   |<--------------|                |                |
-  |<-----------------|                |                |                |
-  |                  |                |                |                |
-  |                  |                | exit code      |                |
-  |                  |  execution done|<-------------------------------|
-  |  [done, exit: 0] |<--------------|                |                |
-  |<-----------------|                |                |                |
-  |                  |                | recycle VM     |                |
-  |                  |                |--------------->|                |
+\`\`\`mermaid
+sequenceDiagram
+    participant P0 as Browser
+    participant P1 as WS Gateway
+    participant P2 as Execution Svc
+    participant P3 as Warm Pool
+    participant P4 as Sandbox VM
+    P0->>P1: request
+    P1-->>P0: response
+    P1->>P2: request
+    P2-->>P1: response
+    P2->>P3: request
+    P3-->>P2: response
+    P3->>P4: request
+    P4-->>P3: response
 \`\`\`
 `,
     jsCode: `## Deep Dive: Sandbox Isolation Strategies
 
 Untrusted code execution is the highest-risk component. Three isolation approaches with increasing security:
 
-\`\`\`
-+----------------------------------------------------------------+
-| Isolation Spectrum                                              |
-|                                                                 |
-| +-------------------+  +------------------+  +---------------+  |
-| | Docker + seccomp  |  | gVisor (runsc)   |  | Firecracker   |  |
-| |                   |  |                  |  | microVM       |  |
-| | - Shared kernel   |  | - User-space     |  | - Real VM     |  |
-| | - Fast startup    |  |   kernel         |  | - Own kernel  |  |
-| | - Weaker isolation|  | - Good isolation |  | - Strongest   |  |
-| | - ~500ms start    |  | - Some perf cost |  | - ~125ms start|  |
-| |                   |  | - ~800ms start   |  |               |  |
-| +-------------------+  +------------------+  +---------------+  |
-|                                                                 |
-| Security:    LOW ---------> MEDIUM ---------> HIGH              |
-| Startup:     500ms          800ms             125ms (warm)      |
-| Overhead:    ~5%            ~15%              ~3%               |
-+----------------------------------------------------------------+
+\`\`\`mermaid
+graph TD
+    N0["Isolation Spectrum"]
+    N1["Docker + seccomp"]
+    N2["Firecracker"]
+    N0 --> N1
+    N1 --> N2
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 **Recommended: Firecracker microVMs** (used by AWS Lambda, Fly.io)
@@ -733,17 +629,28 @@ Untrusted code execution is the highest-risk component. Three isolation approach
 - Strict resource limits: CPU quota, memory cap, network isolation
 
 Resource limits per sandbox:
-\`\`\`
-+-----------------------------+
-| Sandbox Resource Limits     |
-|-----------------------------|
-| CPU:     1 vCPU max         |
-| Memory:  512 MB default     |
-| Disk:    1 GB ephemeral     |
-| Network: egress filtered    |
-| Time:    30s execution max  |
-| PIDs:    100 max processes  |
-+-----------------------------+
+\`\`\`mermaid
+graph TD
+    N0["Sandbox Resource Limits"]
+    N1["CPU: 1 vCPU max"]
+    N2["Memory: 512 MB default"]
+    N3["Disk: 1 GB ephemeral"]
+    N4["Network: egress filtered"]
+    N5["Time: 30s execution max"]
+    N6["PIDs: 100 max processes"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    N3 --> N4
+    N4 --> N5
+    N5 --> N6
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ---
@@ -752,61 +659,49 @@ Resource limits per sandbox:
 
 Cold-starting a VM for every execution is too slow. A warm pool keeps pre-initialized VMs ready.
 
-\`\`\`
-+----------------------------------------------------------------+
-|                    Warm Pool Architecture                        |
-|                                                                 |
-|  Pool State Machine (per language):                             |
-|                                                                 |
-|  +--------+   claim    +----------+   done    +-----------+     |
-|  |  WARM  |----------->|  ACTIVE  |---------->| RECYCLING |     |
-|  | (idle, |            | (running |           | (cleanup, |     |
-|  |  ready)|            |  user    |           |  reset    |     |
-|  +---+----+            |  code)   |           |  state)   |     |
-|      ^                 +----------+           +-----+-----+     |
-|      |                                              |           |
-|      +----------------------------------------------+           |
-|                   return to pool                                |
-|                                                                 |
-|  Pool Sizing:                                                   |
-|  +--------------------------------------------------+           |
-|  | Language  | Warm Target | Min | Max  | Avg Use   |           |
-|  |-----------|-------------|-----|------|-----------|           |
-|  | Python    | 200         | 50  | 500  | 60%       |           |
-|  | JavaScript| 200         | 50  | 500  | 50%       |           |
-|  | Go        | 100         | 25  | 250  | 40%       |           |
-|  +--------------------------------------------------+           |
-|                                                                 |
-|  Autoscaling: if pool < 30% target, spin up batch               |
-|  Cooldown:    if pool > 150% target, drain excess               |
-+----------------------------------------------------------------+
+\`\`\`mermaid
+graph TD
+    N0["Warm Pool Architecture"]
+    N1["Pool State Machine (per language):"]
+    N2["WARM"]
+    N3["ACTIVE"]
+    N4["RECYCLING"]
+    N5["Pool Sizing:"]
+    N6["Language"]
+    N7["Min"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    N3 --> N4
+    N4 --> N5
+    N5 --> N6
+    N6 --> N7
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ---
 
 ## Deep Dive: Real-Time Output Streaming
 
-\`\`\`
-Sandbox VM         Execution Service       WS Gateway          Browser
-    |                     |                     |                  |
-    | stdout write        |                     |                  |
-    |-------------------->|                     |                  |
-    |                     | buffer (50ms or     |                  |
-    |                     | 4KB, whichever      |                  |
-    | more stdout         | comes first)        |                  |
-    |-------------------->|                     |                  |
-    |                     |                     |                  |
-    |                     | flush buffer        |                  |
-    |                     |-------------------->|                  |
-    |                     |                     | WS message       |
-    |                     |                     |----------------->|
-    |                     |                     |                  |
-    | exit(0)             |                     |                  |
-    |-------------------->|                     |                  |
-    |                     | final flush + done  |                  |
-    |                     |-------------------->|                  |
-    |                     |                     | done event       |
-    |                     |                     |----------------->|
+\`\`\`mermaid
+sequenceDiagram
+    participant P0 as Sandbox VM
+    participant P1 as Execution Service
+    participant P2 as WS Gateway
+    participant P3 as Browser
+    P0->>P1: request
+    P1-->>P0: response
+    P1->>P2: request
+    P2-->>P1: response
+    P2->>P3: request
+    P3-->>P2: response
 \`\`\`
 
 - Buffer output in **50ms windows** or **4KB chunks** to reduce WS message count
@@ -913,127 +808,75 @@ Each client runs a **local editor** that applies edits instantly for zero-latenc
 `,
     code: `## Architecture Diagram
 
-\`\`\`
-+----------+     +----------+     +----------+
-| Client A |     | Client B |     | Client C |
-| (Browser)|     | (Browser)|     | (Browser)|
-+----+-----+     +----+-----+     +----+-----+
-     |                |                |
-     | WebSocket      | WebSocket      | WebSocket
-     |                |                |
-+----v----------------v----------------v--------+
-|             WebSocket Gateway                  |
-|    (sticky by doc_id for session affinity)     |
-+----+----------------+----------------+--------+
-     |                |                |
-     v                v                v
-+----+----------------+-----------------+-------+
-|              Collaboration Server              |
-|                                                |
-|  +------------------------------------------+ |
-|  | Per-Document OT Engine                    | |
-|  |                                           | |
-|  | - Receives ops from all clients           | |
-|  | - Transforms concurrent ops               | |
-|  | - Maintains authoritative op sequence     | |
-|  | - Broadcasts transformed ops              | |
-|  +------------------------------------------+ |
-+-----+-----------------------+-----------------+
-      |                       |
-      v                       v
-+-----+----------+    +-------+---------+
-| Document       |    | Presence        |
-| Service        |    | Service         |
-|                |    |                 |
-| - snapshots    |    | - cursor pos    |
-| - version hist |    | - active users  |
-| - persistence  |    | - in-memory     |
-+-----+----------+    +-----------------+
-      |
-+-----v------------------------------------------+
-|              Storage Layer                       |
-|  +------------+  +------------+  +------------+ |
-|  | Operation  |  | Snapshot   |  | Document   | |
-|  | Log        |  | Store      |  | Metadata   | |
-|  | (append-   |  | (S3 /      |  | (SQL DB)   | |
-|  |  only DB)  |  |  blob)     |  |            | |
-|  +------------+  +------------+  +------------+ |
-+--------------------------------------------------+
+\`\`\`mermaid
+graph TD
+    N0["Client A"]
+    N1["Client B"]
+    N2["Client C"]
+    N3["WebSocket"]
+    N4["WebSocket Gateway"]
+    N5["Collaboration Server"]
+    N6["Per-Document OT Engine"]
+    N7["Document"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    N3 --> N4
+    N4 --> N5
+    N5 --> N6
+    N6 --> N7
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## Operational Transformation Flow
 
-\`\`\`
-Client A             Server              Client B
-(doc v5)             (doc v5)             (doc v5)
-  |                    |                    |
-  | op1: insert "X"    |                    |
-  | at pos 3, v5       |                    |
-  |------------------->|                    |
-  |                    |   op2: insert "Y"  |
-  |                    |   at pos 3, v5     |
-  |                    |<-------------------|
-  |                    |                    |
-  |              Server receives both ops    |
-  |              based on v5. Must transform.|
-  |                    |                    |
-  |              op1 arrived first:          |
-  |              apply op1 -> doc v6         |
-  |                    |                    |
-  |              Transform op2 against op1:  |
-  |              op2' = insert "Y" at pos 4  |
-  |              (shifted right by op1)      |
-  |              apply op2' -> doc v7        |
-  |                    |                    |
-  | receive op2'       |      receive op1   |
-  | (transformed)      |      (as-is)       |
-  |<-------------------|                    |
-  |                    |------------------->|
-  |                    |                    |
-  | apply op2':        |       apply op1:   |
-  | insert "Y" at 4   |       insert "X"   |
-  |                    |       at pos 3     |
-  |                    |                    |
-  | doc v7: "abcXYdef" |  doc v7: "abcXYdef"|
-  | CONVERGED          |       CONVERGED    |
+\`\`\`mermaid
+sequenceDiagram
+    participant P0 as Client A
+    participant P1 as Server
+    participant P2 as Client B
+    P0->>P1: request
+    P1-->>P0: response
+    P1->>P2: request
+    P2-->>P1: response
 \`\`\`
 `,
     jsCode: `## Deep Dive: OT Transform Functions
 
 The heart of OT is the **transform function** T(op1, op2) that takes two concurrent operations and returns transformed versions that can be applied in either order.
 
-\`\`\`
-Transform rules for Insert vs Insert:
-+------------------------------------------------------------+
-| op1 = insert(pos1, text1)                                  |
-| op2 = insert(pos2, text2)                                  |
-|                                                            |
-| if pos1 < pos2:                                            |
-|   op2' = insert(pos2 + len(text1), text2)                  |
-|   op1' = op1 (unchanged)                                   |
-|                                                            |
-| if pos1 > pos2:                                            |
-|   op1' = insert(pos1 + len(text2), text1)                  |
-|   op2' = op2 (unchanged)                                   |
-|                                                            |
-| if pos1 == pos2:                                           |
-|   break tie by user_id (lower ID goes first)               |
-+------------------------------------------------------------+
-
-Transform rules for Insert vs Delete:
-+------------------------------------------------------------+
-| op1 = insert(pos, text)                                    |
-| op2 = delete(pos, len)                                     |
-|                                                            |
-| if insert_pos <= delete_pos:                               |
-|   delete' = delete(delete_pos + len(text), len)            |
-|                                                            |
-| if insert_pos > delete_pos + len:                          |
-|   insert' = insert(insert_pos - len, text)                 |
-|                                                            |
-| if insert_pos within deleted range:                        |
-|   split delete around the insert (complex case)            |
-+------------------------------------------------------------+
+\`\`\`mermaid
+graph TD
+    N0["Transform rules for Insert s Insert:"]
+    N1["op1 insert(pos1, text1)"]
+    N2["op2 insert(pos2, text2)"]
+    N3["if pos1 pos2:"]
+    N4["op2' insert(pos2 len(text1), text2)"]
+    N5["op1' op1 (unchanged)"]
+    N6["op1' insert(pos1 len(text2), text1)"]
+    N7["op2' op2 (unchanged)"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    N3 --> N4
+    N4 --> N5
+    N5 --> N6
+    N6 --> N7
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ---
@@ -1042,70 +885,43 @@ Transform rules for Insert vs Delete:
 
 Each client maintains three states to handle the gap between local edits and server acknowledgment.
 
-\`\`\`
-+----------------------------------------------------------------+
-| Client OT State Machine                                        |
-|                                                                |
-|  +-------------------+                                         |
-|  | SYNCHRONIZED      |   No pending ops. All local state       |
-|  | (idle)            |   matches server state.                 |
-|  +--------+----------+                                         |
-|           | user types                                         |
-|           v                                                    |
-|  +--------+----------+                                         |
-|  | AWAITING_ACK      |   One op sent to server, waiting        |
-|  | (1 op in flight)  |   for acknowledgment.                   |
-|  +--------+----------+                                         |
-|           | user types more                                    |
-|           v                                                    |
-|  +--------+----------+                                         |
-|  | AWAITING_ACK +    |   One op in flight + buffer of          |
-|  | BUFFER            |   new local ops. Buffer is composed     |
-|  | (op + pending)    |   into a single compound op.            |
-|  +-------------------+                                         |
-|                                                                |
-| On server ACK:                                                 |
-|   AWAITING -> SYNCHRONIZED (if no buffer)                      |
-|   AWAITING+BUFFER -> AWAITING (send buffer, clear it)          |
-|                                                                |
-| On receiving remote op:                                        |
-|   Transform remote op against in-flight + buffer               |
-|   Apply transformed remote op to local document                |
-+----------------------------------------------------------------+
+\`\`\`mermaid
+graph TD
+    N0["Client OT State Machine"]
+    N1["SYNCHRONIZED"]
+    N2["AWAITING_ACK"]
+    N3["AWAITING_ACK +"]
+    N4["BUFFER"]
+    N5["On server ACK:"]
+    N6["AWAITING -> SYNCHRONIZED (if no buffer)"]
+    N7["On receiving remote op:"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    N3 --> N4
+    N4 --> N5
+    N5 --> N6
+    N6 --> N7
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ---
 
 ## Deep Dive: Snapshotting and Version History
 
-\`\`\`
-Operation Log:                          Snapshots:
-+------+------+------+------+------+
-| op 1 | op 2 | op 3 | ... | op100|   --> Snapshot v1 (full doc)
-+------+------+------+------+------+
-|op101 |op102 | ...  |     |op200 |   --> Snapshot v2 (full doc)
-+------+------+------+------+------+
-|op201 |op202 | ...  |            |   --> (building toward v3)
-+------+------+------+------------+
-
-To reconstruct doc at any point:
-1. Find nearest prior snapshot
-2. Replay ops from snapshot to target
-
-Snapshot strategy:
-+--------------------------------------------+
-| Trigger         | Action                   |
-|-----------------|--------------------------|
-| Every 100 ops   | Create snapshot          |
-| Every 5 min     | Create snapshot if dirty |
-| On last user    | Create final snapshot    |
-|   disconnect    |                          |
-| Manual save     | Create named checkpoint  |
-+--------------------------------------------+
-
-Storage: snapshots in S3, ops in append-only DB
-Compaction: after 30 days, discard ops between
-            snapshots (keep snapshots forever)
+\`\`\`mermaid
+sequenceDiagram
+    participant P0 as Operation Log:
+    participant P1 as Snapshots:
+    P0->>P1: request
+    P1-->>P0: response
 \`\`\`
 `,
     explanation: `## Bottlenecks & Improvements

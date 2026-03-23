@@ -64,78 +64,60 @@ A **stateless API layer** behind a load balancer handles both creation and redir
 `,
     code: `## Architecture Diagram
 
-\`\`\`
-+------------+        +------------------+
-|  Client    |------->| Load Balancer    |
-|  (Browser) |<-------| (Nginx / ALB)    |
-+------------+  302   +--------+---------+
-                                |
-                       +--------v---------+
-                       | API Servers       |
-                       | (Stateless)       |
-                       |                   |
-                       | POST /api/v1/urls |
-                       | GET /:shortCode   |
-                       +----+---------+----+
-                            |         |
-              +-------------v-+  +----v-----------+
-              | Cache          |  | Key Gen         |
-              | (Redis Cluster)|  | Service (KGS)   |
-              |                |  |                  |
-              | shortCode      |  | Pre-generated    |
-              | -> longUrl     |  | unique keys      |
-              +-------+--------+  +--------+---------+
-                      |                    |
-                      | miss               | allocate batch
-              +-------v--------------------v---------+
-              | Database (NoSQL)                      |
-              | e.g., DynamoDB / Cassandra             |
-              |                                       |
-              | short_code -> long_url, metadata       |
-              | Partitioned by short_code hash         |
-              +---------------------------------------+
+\`\`\`mermaid
+graph TD
+    Client["Client (Browser)"] -->|"Request"| LB["Load Balancer (Nginx/ALB)"]
+    LB -->|"302 Redirect"| Client
+    LB --> API["API Servers (Stateless)"]
+    API --> Cache["Cache (Redis Cluster)"]
+    API --> KGS["Key Gen Service (KGS)"]
+    Cache -->|"miss"| DB["Database (NoSQL - DynamoDB/Cassandra)"]
+    KGS -->|"allocate batch"| DB
+
+    style Client fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style LB fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style API fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style Cache fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style KGS fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style DB fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## Write Flow (URL Creation)
 
-\`\`\`
-Client           API Server          KGS              DB
-  |                  |                 |                |
-  | POST /api/urls   |                 |                |
-  |----------------->|                 |                |
-  |                  | Get key batch   |                |
-  |                  |---------------->|                |
-  |                  | [key1,key2,..]  |                |
-  |                  |<----------------|                |
-  |                  |                 |                |
-  |                  | Store key->url  |                |
-  |                  |--------------------------------->|
-  |                  |                 |     ACK        |
-  |  { shortUrl }    |<---------------------------------|
-  |<-----------------|                 |                |
+\`\`\`mermaid
+sequenceDiagram
+    participant Client
+    participant API as API Server
+    participant KGS
+    participant DB
+
+    Client->>API: POST /api/urls
+    API->>KGS: Get key batch
+    KGS-->>API: [key1, key2, ...]
+    API->>DB: Store key->url
+    DB-->>API: ACK
+    API-->>Client: { shortUrl }
 \`\`\`
 
 ## Read Flow (Redirect)
 
-\`\`\`
-Client           API Server          Cache            DB
-  |                  |                 |                |
-  | GET /abc123      |                 |                |
-  |----------------->|                 |                |
-  |                  | Lookup abc123   |                |
-  |                  |---------------->|                |
-  |                  |                 |                |
-  |                  | [HIT] longUrl   |                |
-  |                  |<----------------|                |
-  |                  |                 |                |
-  |                  | [MISS]          |                |
-  |                  | Query DB ----------------------->|
-  |                  |<------------ return longUrl -----|
-  |                  | Update cache    |                |
-  |                  |---------------->|                |
-  |                  |                 |                |
-  | 302 Redirect     |                 |                |
-  |<-----------------|                 |                |
+\`\`\`mermaid
+sequenceDiagram
+    participant Client
+    participant API as API Server
+    participant Cache
+    participant DB
+
+    Client->>API: GET /abc123
+    API->>Cache: Lookup abc123
+    alt Cache HIT
+        Cache-->>API: longUrl
+    else Cache MISS
+        API->>DB: Query DB
+        DB-->>API: return longUrl
+        API->>Cache: Update cache
+    end
+    API-->>Client: 302 Redirect
 \`\`\`
 `,
     jsCode: `## Deep Dive: ID Generation Strategies
@@ -144,19 +126,12 @@ The most critical component — how do we generate unique short codes at scale?
 
 ### Option A: Base62 Encoding of Auto-Increment ID
 
-\`\`\`
-+--------------------+
-| Auto-Increment     |
-| ID Generator       |
-| (Single DB seq)    |
-+---------+----------+
-          | ID: 11157
-          v
-+--------------------+
-| Base62 Encode      |
-| 11157 -> "2TX"     |
-| chars: [0-9a-zA-Z] |
-+--------------------+
+\`\`\`mermaid
+graph TD
+    IDGen["Auto-Increment ID Generator (Single DB seq)"] -->|"ID: 11157"| Encode["Base62 Encode: 11157 → 2TX (chars: 0-9a-zA-Z)"]
+
+    style IDGen fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style Encode fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 **Pros**: No collisions, simple, sortable by time
@@ -164,28 +139,17 @@ The most critical component — how do we generate unique short codes at scale?
 
 ### Option B: Key Generation Service (KGS) — Recommended
 
-\`\`\`
-+------------------------------------------------+
-| Key Generation Service                          |
-|                                                 |
-|  +---------------+    +---------------------+   |
-|  | Used Keys     |    | Unused Keys         |   |
-|  | DB Table      |    | DB Table            |   |
-|  |               |    |                     |   |
-|  | abc123  [x]   |    | xyz789  (available) |   |
-|  | def456  [x]   |<---| qrs012  (available) |   |
-|  | ghi789  [x]   |move| tuv345  (available) |   |
-|  +---------------+    +----------+----------+   |
-|                                  |              |
-+----------------------------------+--------------+
-                                   |
-                                   | allocate batch
-                    +--------------v--------------+
-                    | API Server (in-memory)       |
-                    | Local batch: [xyz789, qrs012]|
-                    | Use one key per new URL      |
-                    | Request new batch when low   |
-                    +-----------------------------+
+\`\`\`mermaid
+graph TD
+    subgraph KGS["Key Generation Service"]
+        Unused["Unused Keys DB Table"] -->|"move"| Used["Used Keys DB Table"]
+    end
+    Unused -->|"allocate batch"| API["API Server (in-memory batch)"]
+
+    style Used fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style Unused fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style API fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style KGS fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 **Pros**: No collisions, no coordination between servers, fast (in-memory keys)
@@ -195,21 +159,16 @@ The most critical component — how do we generate unique short codes at scale?
 
 ## Deep Dive: Database Partitioning
 
-\`\`\`
-                    Hash(shortCode)
-                         |
-           +-------------+-------------+
-           |             |             |
-           v             v             v
-     +-----------+ +-----------+ +-----------+
-     |Partition 0| |Partition 1| |Partition 2|
-     |           | |           | |           |
-     | a-f range | | g-p range | | q-z range |
-     |           | |           | |           |
-     | Replica 1 | | Replica 1 | | Replica 1 |
-     | Replica 2 | | Replica 2 | | Replica 2 |
-     | Replica 3 | | Replica 3 | | Replica 3 |
-     +-----------+ +-----------+ +-----------+
+\`\`\`mermaid
+graph TD
+    Hash["Hash(shortCode)"] --> P0["Partition 0 (a-f range, 3 replicas)"]
+    Hash --> P1["Partition 1 (g-p range, 3 replicas)"]
+    Hash --> P2["Partition 2 (q-z range, 3 replicas)"]
+
+    style Hash fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style P0 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style P1 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style P2 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 - **Partition key**: Hash of short_code for even distribution
@@ -220,29 +179,15 @@ The most critical component — how do we generate unique short codes at scale?
 
 ## Deep Dive: Cache Strategy
 
-\`\`\`
-+----------------------------------------------+
-| Cache Architecture                            |
-|                                               |
-| +-------------------------------------------+|
-| | Tier 1: Local In-Memory (per server)      ||
-| | - Top 1000 URLs per node                  ||
-| | - ~0.1ms lookup                           ||
-| +---------------------+---------------------+|
-|                       | miss                  |
-| +---------------------v---------------------+|
-| | Tier 2: Redis Cluster (distributed)       ||
-| | - 100GB across shards                     ||
-| | - ~1ms lookup                             ||
-| | - LRU eviction, 24h TTL                  ||
-| +---------------------+---------------------+|
-|                       | miss                  |
-| +---------------------v---------------------+|
-| | Tier 3: Database                          ||
-| | - ~5-10ms lookup                          ||
-| | - Populate cache on read                  ||
-| +-------------------------------------------+|
-+----------------------------------------------+
+\`\`\`mermaid
+graph TD
+    T1["Tier 1: Local In-Memory (~0.1ms)"] -->|"miss"| T2["Tier 2: Redis Cluster (~1ms, 100GB)"]
+    T2 -->|"miss"| T3["Tier 3: Database (~5-10ms)"]
+    T3 -->|"populate cache"| T2
+
+    style T1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style T2 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style T3 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 - **Cache-aside pattern**: Check cache first, on miss read from DB and populate cache
@@ -344,70 +289,48 @@ A **rate limiter middleware** intercepts every request before it reaches the app
 `,
     code: `## Architecture Diagram
 
-\`\`\`
-+----------+      +----------------------+
-| Client   |----->| API Gateway          |
-+----------+      | (Layer 1: IP limits) |
-                  +----------+-----------+
-                             |
-                  +----------v-----------+
-                  | Load Balancer         |
-                  +----+-------+----+----+
-                       |       |    |
-              +--------v-+ +---v--+ +-v--------+
-              | API Srv 1 | |Srv 2| | API Srv 3|
-              |           | |     | |          |
-              | [Rate     | | [RL]| | [Rate    |
-              |  Limiter  | |     | |  Limiter |
-              |  Middle-  | |     | |  Middle- |
-              |  ware]    | |     | |  ware]   |
-              +-----+-----+ +--+--+ +----+----+
-                    |          |          |
-                    +----------+----------+
-                               |
-              +----------------v---------------+
-              | Redis Cluster                   |
-              |                                 |
-              | +----------+ +--------------+   |
-              | | Counters | | Rules Cache  |   |
-              | | per user | | (refresh 30s)|   |
-              | | per key  | |              |   |
-              | +----------+ +--------------+   |
-              |                                 |
-              | Lua scripts for atomic ops      |
-              +----------------+----------------+
-                               |
-              +----------------v----------------+
-              | Rules Config DB                  |
-              | (endpoint, tier, algorithm,      |
-              |  max_requests, window_sec)       |
-              +---------------------------------+
+\`\`\`mermaid
+graph TD
+    Client["Client"] --> GW["API Gateway (Layer 1: IP limits)"]
+    GW --> LB["Load Balancer"]
+    LB --> S1["API Server 1 (Rate Limiter Middleware)"]
+    LB --> S2["API Server 2 (Rate Limiter Middleware)"]
+    LB --> S3["API Server 3 (Rate Limiter Middleware)"]
+    S1 --> Redis["Redis Cluster (Counters + Rules Cache + Lua scripts)"]
+    S2 --> Redis
+    S3 --> Redis
+    Redis --> RulesDB["Rules Config DB"]
+
+    style Client fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style GW fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style LB fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style S1 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style S2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style S3 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style Redis fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style RulesDB fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## Request Flow
 
-\`\`\`
-Client           API Server          Redis            App
-  |                  |                 |                |
-  | GET /api/msgs    |                 |                |
-  |----------------->|                 |                |
-  |                  | Extract key:    |                |
-  |                  | user123:/msgs   |                |
-  |                  |                 |                |
-  |                  | Lua: check+incr |                |
-  |                  |---------------->|                |
-  |                  | {allowed, rem}  |                |
-  |                  |<----------------|                |
-  |                  |                 |                |
-  |                  | [ALLOWED]       |                |
-  |                  | Forward + hdrs  |                |
-  |                  |--------------------------------->|
-  | 200 + headers    |<---------------------------------|
-  |<-----------------|                 |                |
-  |                  |                 |                |
-  |                  | [REJECTED]      |                |
-  | 429 Retry-After  |                 |                |
-  |<-----------------|                 |                |
+\`\`\`mermaid
+sequenceDiagram
+    participant Client
+    participant API as API Server
+    participant Redis
+    participant App
+
+    Client->>API: GET /api/msgs
+    Note over API: Extract key: user123:/msgs
+    API->>Redis: Lua: check+incr
+    Redis-->>API: {allowed, remaining}
+    alt ALLOWED
+        API->>App: Forward + headers
+        App-->>API: Response
+        API-->>Client: 200 + rate limit headers
+    else REJECTED
+        API-->>Client: 429 Retry-After
+    end
 \`\`\``,
     jsCode: `## Deep Dive: Rate Limiting Algorithms
 
@@ -415,17 +338,13 @@ The choice of algorithm is the most important design decision. Here are the four
 
 ### Algorithm 1: Fixed Window Counter
 
-\`\`\`
-  Window 1 (12:00-12:01)     Window 2 (12:01-12:02)
-  +---------------------+    +---------------------+
-  |  ########..  90     |    |  ########..  90     |
-  |  limit: 100         |    |  limit: 100         |
-  +---------------------+    +---------------------+
-                        ^    ^
-                  12:00:50  12:01:10
-                        +--+-+
-                  180 requests in 20 sec!
-                  (boundary burst problem)
+\`\`\`mermaid
+graph LR
+    W1["Window 1 (12:00-12:01)<br/>90 reqs, limit: 100"] --- Boundary["Boundary burst!<br/>180 reqs in 20 sec<br/>(12:00:50 - 12:01:10)"] --- W2["Window 2 (12:01-12:02)<br/>90 reqs, limit: 100"]
+
+    style W1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style Boundary fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style W2 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 **Redis**: \`INCR key\` + \`EXPIRE key window\`
@@ -436,18 +355,14 @@ The choice of algorithm is the most important design decision. Here are the four
 
 ### Algorithm 2: Sliding Window Counter (Recommended for accuracy)
 
-\`\`\`
-  Previous window           Current window
-  (12:00 - 12:01)          (12:01 - 12:02)
-  Total: 80 requests        So far: 30 requests
-  +--------------------+    +--------------------+
-  |  ############      |    |  ######            |
-  +--------------------+    +--------------------+
-                                 ^
-                            12:01:15 (25% into window)
+\`\`\`mermaid
+graph LR
+    Prev["Previous Window (12:00-12:01)<br/>Total: 80 requests"] --> Calc["Weighted Count<br/>80 x 0.75 + 30 = 90<br/>Limit: 100 → ALLOW"]
+    Curr["Current Window (12:01-12:02)<br/>So far: 30 requests<br/>25% into window"] --> Calc
 
-  Weighted count = 80 x 0.75 + 30 = 90
-  Limit: 100 -> 90 < 100 -> ALLOW
+    style Prev fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style Curr fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style Calc fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 **Redis**: 2 counters + 1 timestamp per user
@@ -458,19 +373,15 @@ The choice of algorithm is the most important design decision. Here are the four
 
 ### Algorithm 3: Token Bucket (Industry Standard)
 
-\`\`\`
-  Bucket capacity: 10 tokens, Refill rate: 1 token/sec
+\`\`\`mermaid
+graph LR
+    T0["t=0<br/>10 tokens<br/>10 reqs burst"] --> T0B["t=0 after burst<br/>0 tokens<br/>all OK"]
+    T0B --> T5["t=5<br/>5 tokens<br/>refill +5"] --> T5R["t=5 after req<br/>4 tokens<br/>1 used"]
 
-  t=0       t=0(burst)   t=5          t=5(req)
-  +------+  +------+     +------+     +------+
-  |######|  |      |     |###   |     |##    |
-  |######|  |      |     |###   |     |##    |
-  |######|  |      |     |###   |     |##    |
-  |######|  |      |     |###   |     |##    |
-  |######|  |      |     |###   |     |##    |
-  |10 tkn|  |0 tkn|     |5 tkn |     |4 tkn |
-  +------+  +------+     +------+     +------+
-  10 reqs   all OK    refill +5       1 used
+    style T0 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style T0B fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style T5 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style T5R fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 **Redis**: 2 values per user (\`tokens\` + \`last_refill\`)
@@ -481,18 +392,16 @@ The choice of algorithm is the most important design decision. Here are the four
 
 ### Algorithm 4: Leaky Bucket
 
-\`\`\`
-  Queue capacity: 5       Processing: 1 req/sec
-  +-----+
-  |  5  | <-- reject (queue full)
-  |  4  |
-  |  3  | -->  processed at steady rate
-  |  2  |      regardless of input rate
-  |  1  |
-  +--+--+
-     |
-     v
-  1 req/sec out
+\`\`\`mermaid
+graph TD
+    Input["Incoming Requests"] --> Queue["Queue (capacity: 5)"]
+    Overflow["Overflow"] -.->|"reject"| Input
+    Queue -->|"1 req/sec"| Output["Processed at steady rate"]
+
+    style Input fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style Queue fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style Output fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style Overflow fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 **Pros**: Perfectly smooth output rate
@@ -504,64 +413,43 @@ The choice of algorithm is the most important design decision. Here are the four
 
 The hardest problem — how to prevent race conditions across servers:
 
-\`\`\`
-  WITHOUT atomic operations:
+\`\`\`mermaid
+sequenceDiagram
+    participant SA as Server A
+    participant Redis
+    participant SB as Server B
 
-  Server A           Redis            Server B
-     |                 |                  |
-     | READ count=99   |                  |
-     |<----------------|  READ count=99   |
-     |                 |----------------->|
-     | count<100 ALLOW |                  |
-     | INCR -> 100     |  count<100 ALLOW |
-     |---------------->|  INCR -> 101 !!  |
-     |                 |<-----------------|
-     |                 |                  |
-         !! Both allowed! Limit exceeded!
+    Note over SA,SB: WITHOUT atomic operations (RACE CONDITION)
+    SA->>Redis: READ count=99
+    SB->>Redis: READ count=99
+    Note over SA: count<100 ALLOW
+    Note over SB: count<100 ALLOW
+    SA->>Redis: INCR → 100
+    SB->>Redis: INCR → 101 !!
+    Note over SA,SB: Both allowed! Limit exceeded!
 
-  WITH Lua script (atomic):
-
-  Server A           Redis            Server B
-     |                 |                  |
-     | EVAL lua_script |                  |
-     |---------------->|                  |
-     | check+incr      |                  |
-     | -> allowed,rm=0 |  EVAL lua_script |
-     |<----------------|<-----------------|
-     |                 |  check+incr      |
-     |                 |  -> rejected!    |
-     |                 |----------------->|
-         OK -- Correctly enforced!
+    Note over SA,SB: WITH Lua script (ATOMIC)
+    SA->>Redis: EVAL lua_script (check+incr)
+    Redis-->>SA: allowed, remaining=0
+    SB->>Redis: EVAL lua_script (check+incr)
+    Redis-->>SB: rejected!
+    Note over SA,SB: Correctly enforced!
 \`\`\`
 
 ---
 
 ## Deep Dive: Failover Strategy
 
-\`\`\`
-  +-------------------------------+
-  |       Circuit Breaker         |
-  |                               |
-  |  CLOSED --> OPEN --> HALF-OPEN|
-  |    |        3 fails           |
-  |    |        <100ms            |
-  |    v                          |
-  |  Normal      Fallback         |
-  |  (Redis)     (Local mem)      |
-  +-------------------------------+
+\`\`\`mermaid
+graph TD
+    Closed["CLOSED (Normal → Redis)"] -->|"3 failures in 30s"| Open["OPEN (Fallback → Local memory)"]
+    Open -->|"60s cooldown"| HalfOpen["HALF-OPEN (Test 1 request)"]
+    HalfOpen -->|"success"| Closed
+    HalfOpen -->|"failure"| Open
 
-  Normal mode:
-    All servers -> Redis Cluster (accurate, centralized)
-
-  Degraded mode (Redis down):
-    Each server -> local in-memory counters
-    Local limit = global limit / server count
-    e.g., 1000 req/min / 4 servers = 250/server
-
-  Recovery:
-    Circuit breaker half-opens after 30s
-    Test single request to Redis
-    If OK -> resume centralized mode
+    style Closed fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style Open fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style HalfOpen fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 `,
     explanation: `## Bottlenecks & Improvements
@@ -679,86 +567,70 @@ A **Notification API** receives requests and validates them against user prefere
 `,
     code: `## Architecture Diagram
 
-\`\`\`
-+------------------+     +------------------+
-| Business Service |---->| Notification API |
-| (Order, Auth..)  |     | (Validate +      |
-+------------------+     |  Enqueue)        |
-                          +--------+---------+
-                                   |
-                    +--------------+--------------+
-                    |              |              |
-              +-----v----+  +-----v----+  +------v-----+
-              | Kafka     |  | Kafka     |  | Kafka       |
-              | CRITICAL  |  | HIGH      |  | NORMAL      |
-              | topic     |  | topic     |  | topic       |
-              +-----+-----+ +-----+-----+ +------+------+
-                    |              |              |
-              +-----v----+  +-----v----+  +------v-----+
-              | Workers   |  | Workers   |  | Workers     |
-              | (4x)      |  | (2x)      |  | (1x)        |
-              +-+---+---+-+  +-+---+---+-+  +-+---+---+--+
-                |   |   |     |   |   |      |   |   |
-              +-v-+ | +-v-+ +-v-+ | +-v-+  +-v-+ | +-v-+
-              |FCM| | |SG | |FCM| | |Twl|  |SG | | |App|
-              +---+ | +---+ +---+ | +---+  +---+ | +---+
-                  +-v-+          +-v-+          +-v-+
-                  |APNs|         |APNs|         |FCM|
-                  +----+         +----+         +---+
+\`\`\`mermaid
+graph TD
+    Biz["Business Service (Order, Auth...)"] --> API["Notification API (Validate + Enqueue)"]
+    API --> KC["Kafka CRITICAL topic"]
+    API --> KH["Kafka HIGH topic"]
+    API --> KN["Kafka NORMAL topic"]
+    KC --> WC["Workers (4x)"]
+    KH --> WH["Workers (2x)"]
+    KN --> WN["Workers (1x)"]
+    WC --> FCM["FCM / APNs"]
+    WH --> Twilio["Twilio SMS"]
+    WN --> SG["SendGrid Email"]
+
+    style Biz fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style API fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style KC fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style KH fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style KN fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style WC fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style WH fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style WN fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style FCM fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style Twilio fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style SG fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## Write Flow (Send Notification)
 
-\`\`\`
-Business Svc     API Server       Redis         Kafka          DB
-  |                  |               |              |             |
-  | POST /notify     |               |              |             |
-  |----------------->|               |              |             |
-  |                  | Check idemp.  |              |             |
-  |                  | key           |              |             |
-  |                  |-------------->|              |             |
-  |                  | Not found     |              |             |
-  |                  |<--------------|              |             |
-  |                  |               |              |             |
-  |                  | Check prefs   |              |             |
-  |                  |-------------->|              |             |
-  |                  | push=T,email=T|              |             |
-  |                  |<--------------|              |             |
-  |                  |               |              |             |
-  |                  | Publish msg per channel      |             |
-  |                  |----------------------------->|             |
-  |                  |               |              |             |
-  |                  | Store record  |              |             |
-  |                  |---------------------------------------------->|
-  |                  |               |              |             |
-  |                  | Set idemp key |              |             |
-  |                  |-------------->|              |             |
-  |  { notif_id }   |               |              |             |
-  |<-----------------|               |              |             |
+\`\`\`mermaid
+sequenceDiagram
+    participant Biz as Business Svc
+    participant API as API Server
+    participant Redis
+    participant Kafka
+    participant DB
+
+    Biz->>API: POST /notify
+    API->>Redis: Check idempotency key
+    Redis-->>API: Not found
+    API->>Redis: Check user preferences
+    Redis-->>API: push=T, email=T
+    API->>Kafka: Publish msg per channel
+    API->>DB: Store notification record
+    API->>Redis: Set idempotency key
+    API-->>Biz: { notif_id }
 \`\`\`
 
 ## Read Flow (Worker Processing)
 
-\`\`\`
-Kafka            Worker           Template Svc    Provider       DB
-  |                  |               |              |             |
-  | Consume msg      |               |              |             |
-  |----------------->|               |              |             |
-  |                  | Fetch template |              |             |
-  |                  |-------------->|              |             |
-  |                  | Rendered body  |              |             |
-  |                  |<--------------|              |             |
-  |                  |               |              |             |
-  |                  | Send via adapter             |             |
-  |                  |----------------------------->|             |
-  |                  |               |    ACK       |             |
-  |                  |<-----------------------------|             |
-  |                  |               |              |             |
-  |                  | Update status="sent"         |             |
-  |                  |---------------------------------------------->|
-  |                  |               |              |             |
-  | Commit offset   |               |              |             |
-  |<-----------------|               |              |             |
+\`\`\`mermaid
+sequenceDiagram
+    participant Kafka
+    participant Worker
+    participant Template as Template Svc
+    participant Provider
+    participant DB
+
+    Kafka->>Worker: Consume msg
+    Worker->>Template: Fetch template
+    Template-->>Worker: Rendered body
+    Worker->>Provider: Send via adapter
+    Provider-->>Worker: ACK
+    Worker->>DB: Update status="sent"
+    Worker-->>Kafka: Commit offset
 \`\`\`
 `,
     jsCode: `## Deep Dive: Priority Isolation Architecture
@@ -767,29 +639,18 @@ The most critical design decision — ensuring OTP notifications are never block
 
 ### Separate Kafka Topics by Priority
 
-\`\`\`
-+--------------------------------------------------+
-| Kafka Cluster                                     |
-|                                                   |
-| +----------------------------------------------+ |
-| | Topic: notifications.critical                 | |
-| | Partitions: 8 | Retention: 7d                | |
-| | Dedicated consumer group: 4 workers           | |
-| | Reserved capacity: always available           | |
-| +----------------------------------------------+ |
-|                                                   |
-| +----------------------------------------------+ |
-| | Topic: notifications.high                     | |
-| | Partitions: 4 | Retention: 7d                | |
-| | Consumer group: 2 workers                     | |
-| +----------------------------------------------+ |
-|                                                   |
-| +----------------------------------------------+ |
-| | Topic: notifications.normal                   | |
-| | Partitions: 4 | Retention: 7d                | |
-| | Consumer group: 1 worker (auto-scales)        | |
-| +----------------------------------------------+ |
-+--------------------------------------------------+
+\`\`\`mermaid
+graph TD
+    subgraph Kafka["Kafka Cluster"]
+        Critical["notifications.critical<br/>8 partitions | 4 workers<br/>Reserved capacity"]
+        High["notifications.high<br/>4 partitions | 2 workers"]
+        Normal["notifications.normal<br/>4 partitions | 1 worker (auto-scales)"]
+    end
+
+    style Critical fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style High fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style Normal fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style Kafka fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 **Why separate topics?** A marketing blast of 1M emails creates a 1M-message backlog. With one queue, a critical OTP would wait behind 1M messages. With separate topics and dedicated workers, the OTP bypasses the backlog entirely.
@@ -798,65 +659,39 @@ The most critical design decision — ensuring OTP notifications are never block
 
 ## Deep Dive: Provider Adapter with Circuit Breaker
 
-\`\`\`
-+-----------------------------------------------+
-| Provider Adapter (e.g., FCM)                   |
-|                                                |
-|  +------------------------------------------+ |
-|  | Circuit Breaker                           | |
-|  |                                           | |
-|  | State: CLOSED (normal)                    | |
-|  |   |                                       | |
-|  |   v  5 failures in 30s                    | |
-|  | State: OPEN (reject all)                  | |
-|  |   |                                       | |
-|  |   v  after 60s cooldown                   | |
-|  | State: HALF-OPEN (try 1 request)          | |
-|  |   |           |                           | |
-|  |   v success   v failure                   | |
-|  | CLOSED      OPEN                          | |
-|  +------------------------------------------+ |
-|                                                |
-|  +------------------------------------------+ |
-|  | Rate Limiter (Token Bucket)               | |
-|  | FCM: 1000 req/sec                         | |
-|  | Twilio: 400 msg/sec                       | |
-|  | SendGrid: tier-based                      | |
-|  +------------------------------------------+ |
-|                                                |
-|  +------------------------------------------+ |
-|  | Retry Policy                              | |
-|  | Transient (429, 503): exponential backoff | |
-|  | Permanent (invalid token): fail + cleanup | |
-|  +------------------------------------------+ |
-+-----------------------------------------------+
+\`\`\`mermaid
+graph TD
+    subgraph Adapter["Provider Adapter (e.g., FCM)"]
+        CB_Closed["Circuit Breaker: CLOSED"] -->|"5 failures in 30s"| CB_Open["OPEN (reject all)"]
+        CB_Open -->|"60s cooldown"| CB_Half["HALF-OPEN (try 1)"]
+        CB_Half -->|"success"| CB_Closed
+        CB_Half -->|"failure"| CB_Open
+        RateLim["Rate Limiter: FCM 1000/s, Twilio 400/s"]
+        Retry["Retry: exponential backoff (429,503)"]
+    end
+
+    style CB_Closed fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style CB_Open fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style CB_Half fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style RateLim fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style Retry fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style Adapter fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ---
 
 ## Deep Dive: Idempotency & Deduplication
 
-\`\`\`
-+---------------------------------------------------+
-| Idempotency Flow                                   |
-|                                                    |
-|  Request arrives with idempotency_key              |
-|         |                                          |
-|         v                                          |
-|  +----------------+                                |
-|  | Redis Lookup   |                                |
-|  | GET idemp:{key} |                                |
-|  +-------+--------+                                |
-|          |                                         |
-|    +-----+------+                                  |
-|    |            |                                  |
-|    v            v                                  |
-|  FOUND        NOT FOUND                            |
-|  Return        Process notification                |
-|  cached        SET idemp:{key} with 24h TTL        |
-|  response      Continue pipeline                   |
-|                                                    |
-+---------------------------------------------------+
+\`\`\`mermaid
+graph TD
+    Req["Request with idempotency_key"] --> Lookup["Redis: GET idemp:key"]
+    Lookup -->|"FOUND"| Cached["Return cached response"]
+    Lookup -->|"NOT FOUND"| Process["Process notification<br/>SET idemp:key with 24h TTL"]
+
+    style Req fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style Lookup fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style Cached fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style Process fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 At-least-once delivery means a worker might crash after sending but before committing the Kafka offset. On restart, it re-consumes the message. Without idempotency, the user gets a duplicate. The Redis check (sub-millisecond) prevents this.
@@ -979,88 +814,60 @@ At-least-once delivery means a worker might crash after sending but before commi
 `,
     code: `## Architecture Diagram
 
-\`\`\`
-+-----------+   WebSocket    +------------------+
-|  Client   |<-------------->| Chat Server      |
-|  (Phone,  |                | (Stateful WS)    |
-|   Web)    |                +--------+---------+
-+-----------+                         |
-                                      |
-                            +---------v----------+
-                            | Connection Registry |
-                            | (Redis)             |
-                            | userId -> serverId  |
-                            +----+-------+--------+
-                                 |       |
-                    +------------+       +------------+
-                    |                                 |
-              +-----v-------+                  +------v------+
-              | Message      |                  | Presence     |
-              | Store        |                  | Service      |
-              | (Cassandra)  |                  | (Redis)      |
-              |              |                  |              |
-              | Partitioned  |                  | online/      |
-              | by conv_id   |                  | offline/     |
-              +--------------+                  | last_seen    |
-                                                +--------------+
-                    +------------------+
-                    | Push Notification |
-                    | Service           |
-                    | (for offline)     |
-                    +------------------+
+\`\`\`mermaid
+graph TD
+    Client["Client (Phone, Web)"] <-->|"WebSocket"| Chat["Chat Server (Stateful WS)"]
+    Chat --> Registry["Connection Registry (Redis)<br/>userId → serverId"]
+    Registry --> MsgStore["Message Store (Cassandra)<br/>Partitioned by conv_id"]
+    Registry --> Presence["Presence Service (Redis)<br/>online/offline/last_seen"]
+    Chat --> Push["Push Notification Service"]
+    Chat --> Media["Media Service (S3 + CDN)"]
 
-              +------------------+
-              | Media Service    |
-              | (S3 + CDN)      |
-              | Pre-signed URLs  |
-              +------------------+
+    style Client fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style Chat fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style Registry fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style MsgStore fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style Presence fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style Push fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style Media fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## Write Flow (Send Message — 1:1)
 
-\`\`\`
-Sender           Chat Server A    Redis Registry   Chat Server B    Receiver
-  |                  |                 |                |              |
-  | WS: send msg     |                 |                |              |
-  |----------------->|                 |                |              |
-  |                  | Lookup receiver |                |              |
-  |                  |---------------->|                |              |
-  |                  | serverB         |                |              |
-  |                  |<----------------|                |              |
-  |                  |                 |                |              |
-  |                  | Forward msg     |                |              |
-  |                  |--------------------------------->|              |
-  |                  |                 |                | WS: push msg |
-  |                  |                 |                |------------->|
-  |                  |                 |                |              |
-  |                  |                 |                | ACK          |
-  |                  |                 |                |<-------------|
-  |                  | Delivery ACK    |                |              |
-  |                  |<---------------------------------|              |
-  | Status: delivered|                 |                |              |
-  |<-----------------|                 |                |              |
+\`\`\`mermaid
+sequenceDiagram
+    participant Sender
+    participant CSA as Chat Server A
+    participant Redis as Redis Registry
+    participant CSB as Chat Server B
+    participant Receiver
+
+    Sender->>CSA: WS: send msg
+    CSA->>Redis: Lookup receiver
+    Redis-->>CSA: serverB
+    CSA->>CSB: Forward msg
+    CSB->>Receiver: WS: push msg
+    Receiver-->>CSB: ACK
+    CSB-->>CSA: Delivery ACK
+    CSA-->>Sender: Status: delivered
 \`\`\`
 
 ## Write Flow (Offline Recipient)
 
-\`\`\`
-Sender           Chat Server A    Redis Registry   Msg Store    Push Svc
-  |                  |                 |              |             |
-  | WS: send msg     |                 |              |             |
-  |----------------->|                 |              |             |
-  |                  | Lookup receiver |              |             |
-  |                  |---------------->|              |             |
-  |                  | NOT FOUND       |              |             |
-  |                  |<----------------|              |             |
-  |                  |                 |              |             |
-  |                  | Store offline   |              |             |
-  |                  |------------------------------>|             |
-  |                  |                 |              |             |
-  |                  | Trigger push    |              |             |
-  |                  |-------------------------------------------->|
-  |                  |                 |              |             |
-  | Status: sent     |                 |              |             |
-  |<-----------------|                 |              |             |
+\`\`\`mermaid
+sequenceDiagram
+    participant Sender
+    participant CSA as Chat Server A
+    participant Redis as Redis Registry
+    participant Store as Msg Store
+    participant Push as Push Svc
+
+    Sender->>CSA: WS: send msg
+    CSA->>Redis: Lookup receiver
+    Redis-->>CSA: NOT FOUND (offline)
+    CSA->>Store: Store offline message
+    CSA->>Push: Trigger push notification
+    CSA-->>Sender: Status: sent
 \`\`\`
 `,
     jsCode: `## Deep Dive: WebSocket Connection Management
@@ -1069,28 +876,19 @@ The hardest scaling challenge — maintaining 250 million concurrent persistent 
 
 ### Connection Architecture
 
-\`\`\`
-+----------------------------------------------------------+
-| WebSocket Server Fleet (~25,000 servers)                  |
-|                                                           |
-|  +-------------------+  +-------------------+             |
-|  | Chat Server 1     |  | Chat Server 2     |  ...        |
-|  | 10K connections   |  | 10K connections   |             |
-|  | ~100MB RAM        |  | ~100MB RAM        |             |
-|  +---------+---------+  +---------+---------+             |
-|            |                      |                       |
-+----------------------------------------------------------+
-             |                      |
-    +--------v----------------------v--------+
-    | Connection Registry (Redis Cluster)     |
-    |                                         |
-    | user:alice -> chat-server-1:ws-conn-42  |
-    | user:bob   -> chat-server-2:ws-conn-17  |
-    |                                         |
-    | On connect: SET user:{id} server:{id}   |
-    | On disconnect: DEL user:{id}            |
-    | Heartbeat: EXPIRE user:{id} 30s         |
-    +-----------------------------------------+
+\`\`\`mermaid
+graph TD
+    subgraph Fleet["WebSocket Server Fleet (~25,000 servers)"]
+        CS1["Chat Server 1<br/>10K connections, ~100MB RAM"]
+        CS2["Chat Server 2<br/>10K connections, ~100MB RAM"]
+    end
+    CS1 --> Registry["Connection Registry (Redis Cluster)<br/>user:alice → chat-server-1<br/>SET on connect, DEL on disconnect<br/>EXPIRE 30s heartbeat"]
+    CS2 --> Registry
+
+    style CS1 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style CS2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style Registry fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style Fleet fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 Each server handles ~10K WebSocket connections. When a user connects, their mapping is registered in Redis. On disconnect (or heartbeat timeout), the mapping is removed. Messages are routed by looking up the recipient's server in Redis.
@@ -1099,23 +897,14 @@ Each server handles ~10K WebSocket connections. When a user connects, their mapp
 
 ## Deep Dive: Message Ordering with Snowflake IDs
 
-\`\`\`
-+---------------------------------------------------+
-| Snowflake ID Structure (64 bits)                   |
-|                                                    |
-| +----------+----------+---------+--------+         |
-| | Sign (1) | Timestamp | DC ID  | Seq    |         |
-| | 0        | (41 bits) | (5 bit)| (12bit)|         |
-| |          | ms since  |        | 0-4095 |         |
-| |          | epoch     |        | per ms |         |
-| +----------+----------+---------+--------+         |
-|                                                    |
-| Properties:                                        |
-| - Time-ordered: sort by ID = sort by time          |
-| - Unique across data centers                       |
-| - 4096 IDs per ms per machine                      |
-| - No coordination needed between servers           |
-+---------------------------------------------------+
+\`\`\`mermaid
+graph LR
+    Sign["Sign (1 bit)"] --> TS["Timestamp (41 bits)<br/>ms since epoch"] --> DC["DC ID (5 bits)"] --> Seq["Sequence (12 bits)<br/>0-4095 per ms"]
+
+    style Sign fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style TS fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style DC fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style Seq fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 Messages are stored in Cassandra partitioned by conversation_id and clustered by message_id (Snowflake). This guarantees chronological ordering within each conversation without distributed coordination.
@@ -1124,33 +913,18 @@ Messages are stored in Cassandra partitioned by conversation_id and clustered by
 
 ## Deep Dive: Group Message Fanout
 
-\`\`\`
-+------------------------------------------------------+
-| Group Message Flow (256 members)                      |
-|                                                       |
-|  Sender sends to group G1                             |
-|         |                                             |
-|         v                                             |
-|  +------------------+                                 |
-|  | Chat Server      |                                 |
-|  | 1. Store message  |                                |
-|  |    in msg store   |                                |
-|  | 2. Fetch group    |                                |
-|  |    members (255)  |                                |
-|  +--------+---------+                                 |
-|           |                                           |
-|     +-----+-----+-----+                               |
-|     |     |     |     |                               |
-|     v     v     v     v                               |
-|   Online members:     Offline members:                |
-|   Lookup server       Store in offline                |
-|   in Redis,           queue + push                    |
-|   forward via WS      notification                    |
-|                                                       |
-|  Optimization: Batch Redis lookups                    |
-|  MGET user:m1 user:m2 ... user:m255                   |
-|  Group by target server, send one batch per server    |
-+------------------------------------------------------+
+\`\`\`mermaid
+graph TD
+    Sender["Sender → Group G1"] --> Chat["Chat Server<br/>1. Store in msg store<br/>2. Fetch 255 members"]
+    Chat --> Online["Online members:<br/>MGET Redis lookups<br/>Forward via WS"]
+    Chat --> Offline["Offline members:<br/>Store in offline queue<br/>+ push notification"]
+    Online --> Batch["Batch: Group by target server<br/>send one batch per server"]
+
+    style Sender fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style Chat fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style Online fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style Offline fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style Batch fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 For group messages, batch the Redis lookups (MGET), group recipients by their chat server, and send one batch per server instead of 255 individual forwards.
@@ -1272,95 +1046,68 @@ A **Post Service** stores new posts. A **Fanout Service** distributes posts to f
 `,
     code: `## Architecture Diagram
 
-\`\`\`
-+-----------+        +------------------+
-|  Client   |------->| API Gateway /    |
-|  (App)    |<-------| Load Balancer    |
-+-----------+        +--------+---------+
-                              |
-                +-------------+-------------+
-                |                           |
-        +-------v--------+         +-------v--------+
-        | Post Service    |         | Feed Service    |
-        | (Write path)    |         | (Read path)     |
-        +-------+--------+         +-------+--------+
-                |                           |
-                v                           |
-        +----------------+                  |
-        | Fanout Service  |                 |
-        | (Async workers) |                 |
-        +-------+--------+                 |
-                |                           |
-        +-------v-----------+       +-------v--------+
-        | Feed Cache         |<------| Ranking        |
-        | (Redis Cluster)    |       | Service        |
-        | feed:{userId}      |       | (ML model)     |
-        | = sorted set of    |       +----------------+
-        |   post IDs + score |
-        +--------------------+
+\`\`\`mermaid
+graph TD
+    Client["Client (App)"] --> GW["API Gateway / Load Balancer"]
+    GW --> Post["Post Service (Write path)"]
+    GW --> Feed["Feed Service (Read path)"]
+    Post --> Fanout["Fanout Service (Async workers)"]
+    Fanout --> Cache["Feed Cache (Redis Cluster)"]
+    Feed --> Cache
+    Feed --> Rank["Ranking Service (ML model)"]
+    Post --> PostDB["Post Store (Cassandra)"]
+    Fanout --> Graph["Social Graph (Redis + DB)"]
 
-        +--------------------+       +----------------+
-        | Post Store          |       | Social Graph   |
-        | (DB / Cassandra)    |       | (Redis + DB)   |
-        | Full post content   |       | followers:{}   |
-        +--------------------+       | following:{}   |
-                                      +----------------+
+    style Client fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style GW fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style Post fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style Feed fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style Fanout fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style Cache fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style Rank fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style PostDB fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style Graph fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## Write Flow (New Post — Normal User)
 
-\`\`\`
-Author           Post Service     Fanout Service   Redis Cache      DB
-  |                  |                 |              |              |
-  | POST /posts      |                 |              |              |
-  |----------------->|                 |              |              |
-  |                  | Store post      |              |              |
-  |                  |-------------------------------------------->|
-  |                  |                 |              |              |
-  |                  | Async fanout    |              |              |
-  |                  |---------------->|              |              |
-  | { postId }       |                 |              |              |
-  |<-----------------|                 |              |              |
-  |                  |                 | Get followers |              |
-  |                  |                 |------------->|              |
-  |                  |                 | [f1,f2..f200]|              |
-  |                  |                 |<-------------|              |
-  |                  |                 |              |              |
-  |                  |                 | ZADD feed:f1 |              |
-  |                  |                 | ZADD feed:f2 |              |
-  |                  |                 | ... (200x)   |              |
-  |                  |                 |------------->|              |
+\`\`\`mermaid
+sequenceDiagram
+    participant Author
+    participant Post as Post Service
+    participant Fanout as Fanout Service
+    participant Redis as Redis Cache
+    participant DB
+
+    Author->>Post: POST /posts
+    Post->>DB: Store post
+    Post->>Fanout: Async fanout
+    Post-->>Author: { postId }
+    Fanout->>Redis: Get followers
+    Redis-->>Fanout: [f1, f2, ...f200]
+    Fanout->>Redis: ZADD feed:f1, feed:f2, ... (200x)
 \`\`\`
 
 ## Read Flow (Load Feed)
 
-\`\`\`
-Reader           Feed Service     Redis Cache      Post Store    Ranking Svc
-  |                  |                |               |              |
-  | GET /feed        |                |               |              |
-  |----------------->|                |               |              |
-  |                  | Get cached feed|               |              |
-  |                  |--------------->|               |              |
-  |                  | [postIds]      |               |              |
-  |                  |<---------------|               |              |
-  |                  |                |               |              |
-  |                  | Get celeb posts|               |              |
-  |                  |--------------->|               |              |
-  |                  | [celebPostIds] |               |              |
-  |                  |<---------------|               |              |
-  |                  |                |               |              |
-  |                  | Merge + Rank   |               |              |
-  |                  |---------------------------------------------->|
-  |                  | Ranked IDs     |               |              |
-  |                  |<----------------------------------------------|
-  |                  |                |               |              |
-  |                  | Hydrate posts  |               |              |
-  |                  |------------------------------>|              |
-  |                  | Full post data |               |              |
-  |                  |<------------------------------|              |
-  |                  |                |               |              |
-  | Ranked feed      |                |               |              |
-  |<-----------------|                |               |              |
+\`\`\`mermaid
+sequenceDiagram
+    participant Reader
+    participant Feed as Feed Service
+    participant Redis as Redis Cache
+    participant Store as Post Store
+    participant Rank as Ranking Svc
+
+    Reader->>Feed: GET /feed
+    Feed->>Redis: Get cached feed
+    Redis-->>Feed: [postIds]
+    Feed->>Redis: Get celeb posts
+    Redis-->>Feed: [celebPostIds]
+    Feed->>Rank: Merge + Rank
+    Rank-->>Feed: Ranked IDs
+    Feed->>Store: Hydrate posts
+    Store-->>Feed: Full post data
+    Feed-->>Reader: Ranked feed
 \`\`\`
 `,
     jsCode: `## Deep Dive: Hybrid Fanout Strategy
@@ -1369,30 +1116,14 @@ The most critical design decision — balancing write cost vs read latency.
 
 ### Fan-out-on-Write vs Fan-out-on-Read
 
-\`\`\`
-+-------------------------------------------------------+
-| Fan-out Decision Matrix                                |
-|                                                        |
-|  Author has < 10K followers?                           |
-|       |                |                               |
-|      YES               NO (Celebrity)                  |
-|       |                |                               |
-|       v                v                               |
-|  WRITE FANOUT      READ FANOUT                         |
-|  Push post ID      Store in                            |
-|  to each           celebrity_posts:{id}                |
-|  follower's        Merge at read time                  |
-|  feed cache                                            |
-|                                                        |
-|  Cost: 200 Redis   Cost: 0 at write                    |
-|  writes (fast)     ~10 Redis reads at                  |
-|                    feed load time                       |
-|                                                        |
-|  If 10K+ followers:                                    |
-|  10K Redis writes = too slow                           |
-|  Celebrity with 50M followers =                        |
-|  50M writes per post = IMPOSSIBLE                      |
-+-------------------------------------------------------+
+\`\`\`mermaid
+graph TD
+    Check{"Author has < 10K followers?"} -->|"YES"| Write["WRITE FANOUT<br/>Push post ID to each<br/>follower's feed cache<br/>Cost: 200 Redis writes"]
+    Check -->|"NO (Celebrity)"| Read["READ FANOUT<br/>Store in celebrity_posts<br/>Merge at read time<br/>Cost: ~10 reads at load"]
+
+    style Check fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style Write fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style Read fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 **The threshold** (~10K followers) is tunable. Below it, write fanout keeps reads fast. Above it, read-time merge avoids the massive write amplification.
@@ -1401,80 +1132,32 @@ The most critical design decision — balancing write cost vs read latency.
 
 ## Deep Dive: Feed Ranking
 
-\`\`\`
-+-------------------------------------------------------+
-| Ranking Pipeline                                       |
-|                                                        |
-|  Input: merged post IDs (cache + celebrity)            |
-|         |                                              |
-|         v                                              |
-|  +-------------------+                                 |
-|  | Feature Extraction |                                |
-|  | - Post age         |                                |
-|  | - Author affinity  |                                |
-|  |   (interaction     |                                |
-|  |    frequency)      |                                |
-|  | - Post engagement  |                                |
-|  |   (likes/comments) |                                |
-|  | - Content type     |                                |
-|  |   preference       |                                |
-|  +---------+---------+                                 |
-|            |                                           |
-|            v                                           |
-|  +-------------------+                                 |
-|  | Scoring Model     |                                 |
-|  | score = 0.3*age   |                                 |
-|  |   + 0.3*affinity  |                                 |
-|  |   + 0.2*engage    |                                 |
-|  |   + 0.1*type      |                                 |
-|  |   + 0.1*diversity |                                 |
-|  +---------+---------+                                 |
-|            |                                           |
-|            v                                           |
-|  +-------------------+                                 |
-|  | Re-ranking Rules  |                                 |
-|  | - No 2 posts from |                                 |
-|  |   same author     |                                 |
-|  |   consecutively   |                                 |
-|  | - Mix content      |                                 |
-|  |   types            |                                 |
-|  | - Boost unseen     |                                 |
-|  +-------------------+                                 |
-+-------------------------------------------------------+
+\`\`\`mermaid
+graph TD
+    Input["Merged post IDs (cache + celebrity)"] --> Features["Feature Extraction<br/>Post age, Author affinity,<br/>Engagement, Content type"]
+    Features --> Score["Scoring Model<br/>0.3*age + 0.3*affinity<br/>+ 0.2*engage + 0.1*type + 0.1*diversity"]
+    Score --> Rerank["Re-ranking Rules<br/>No consecutive same-author<br/>Mix content types, Boost unseen"]
+
+    style Input fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style Features fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style Score fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style Rerank fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ---
 
 ## Deep Dive: Feed Cache Structure
 
-\`\`\`
-+-------------------------------------------------------+
-| Redis Sorted Sets for Feed Cache                       |
-|                                                        |
-|  Key: feed:{userId}                                    |
-|  Score: ranking score (higher = more relevant)         |
-|  Member: post_id                                       |
-|                                                        |
-|  +--------------------------------------------------+ |
-|  | feed:alice                                        | |
-|  |   post_9921  score: 0.95  (best friend, recent)  | |
-|  |   post_8834  score: 0.87  (high engagement)      | |
-|  |   post_7712  score: 0.82  (recent, liked author) | |
-|  |   ...                                            | |
-|  |   (max 500 entries, ZREMRANGEBYRANK to trim)      | |
-|  +--------------------------------------------------+ |
-|                                                        |
-|  Key: celebrity_posts:{userId}                         |
-|  Score: timestamp                                      |
-|  Member: post_id                                       |
-|                                                        |
-|  +--------------------------------------------------+ |
-|  | celebrity_posts:taylorswift                        | |
-|  |   post_9950  score: 1711900000                    | |
-|  |   post_9888  score: 1711800000                    | |
-|  |   (max 100 entries, auto-trimmed)                 | |
-|  +--------------------------------------------------+ |
-+-------------------------------------------------------+
+\`\`\`mermaid
+graph TD
+    subgraph FeedCache["Redis Sorted Sets"]
+        Feed["feed:alice (max 500)<br/>post_9921 score:0.95<br/>post_8834 score:0.87<br/>post_7712 score:0.82"]
+        Celeb["celebrity_posts:taylorswift (max 100)<br/>post_9950 score:1711900000<br/>post_9888 score:1711800000"]
+    end
+
+    style Feed fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style Celeb fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style FeedCache fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 On feed load: ZREVRANGEBYSCORE on feed:{userId} + ZREVRANGEBYSCORE on each followed celebrity's posts. Merge, rank, hydrate with full post content from Post Store.

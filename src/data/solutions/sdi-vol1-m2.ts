@@ -101,74 +101,61 @@ Combines fixed window counter with the previous window's count, weighted by the 
 `,
     code: `## Architecture Diagram
 
-\`\`\`
-┌──────────┐       ┌─────────────────────────────┐       ┌──────────────┐
-│  Client   │──────▶│    Load Balancer / CDN       │──────▶│  API Gateway │
-│ (Browser/ │       │                               │       │  + Rate      │
-│  Mobile)  │       └─────────────────────────────┘       │  Limiter     │
-└──────────┘                                              │  Middleware  │
-                                                           └──────┬───────┘
-                                                                  │
-                                         ┌────────────────────────┼────────────────────┐
-                                         │                        │                    │
-                                    ┌────▼─────┐           ┌─────▼────┐         ┌─────▼────┐
-                                    │ API Srv 1│           │ API Srv 2│         │ API Srv N│
-                                    └──────────┘           └──────────┘         └──────────┘
-                                         ▲                        ▲                    ▲
-                                         │                        │                    │
-                                    ┌────┴────────────────────────┴────────────────────┘
-                                    │
-                              ┌─────▼──────┐          ┌──────────────────┐
-                              │   Redis     │◀────────│  Rules Config    │
-                              │   Cluster   │          │  (YAML / DB)    │
-                              │  (Counters) │          └──────────────────┘
-                              └─────┬──────┘
-                                    │
-                         ┌──────────┼──────────┐
-                         │          │          │
-                    ┌────▼───┐ ┌───▼────┐ ┌──▼─────┐
-                    │ Shard 1│ │ Shard 2│ │ Shard N│
-                    └────────┘ └────────┘ └────────┘
+\`\`\`mermaid
+graph TD
+    N0["Client (Browser/App)"]
+    N1["API Srv 1"]
+    N2["API Srv 2"]
+    N3["API Srv N"]
+    N4["Redis Cluster"]
+    N5["Rules Config"]
+    N6[("Shard 1")]
+    N7[("Shard 2")]
+    N8[("Shard N")]
+    N0 --> N1
+    N0 --> N2
+    N0 --> N3
+    N1 --> N4
+    N2 --> N4
+    N3 --> N4
+    N5 --> N1
+    N5 --> N2
+    N5 --> N3
+    N4 --> N6
+    N4 --> N7
+    N4 --> N8
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N8 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## Rate Limiter Request Flow
 
-\`\`\`
-Client Request
-      │
-      ▼
-┌──────────────────┐
-│  Rate Limiter    │
-│  Middleware      │
-│                  │
-│  1. Extract key  │──── key = "user:1234:POST:/api/order"
-│     (user+API)   │
-│                  │
-│  2. Fetch rules  │──── rules: { limit: 10, window: 60s }
-│     from config  │
-│                  │
-│  3. Check Redis  │──── INCR key → current_count
-│     counter      │     EXPIRE key 60  (set TTL if new)
-│                  │
-│  4. Compare      │
-│     count vs     │
-│     limit        │
-└────────┬─────────┘
-         │
-    ┌────┴─────┐
-    │          │
- count ≤ 10  count > 10
-    │          │
-    ▼          ▼
- Forward    Return HTTP 429
- to API     {
- Server       "error": "Rate limit exceeded",
-              "retry_after": 42
-            }
-            Headers:
-              X-Ratelimit-Limit: 10
-              X-Ratelimit-Remaining: 0
-              X-Ratelimit-Retry-After: 42
+\`\`\`mermaid
+graph TD
+    N0["Client Request"]
+    N1["Rate Limiter Middleware"]
+    N2{"Token Available?"}
+    N3["Forward to API Server"]
+    N4["Return 429 Too Many Requests"]
+    N5[("Redis Token Bucket")]
+    N0 --> N1
+    N1 --> N5
+    N5 --> N2
+    N2 -->|Yes| N3
+    N2 -->|No| N4
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## Token Bucket Algorithm Visualization
@@ -416,111 +403,133 @@ With only a few physical servers, the ring distribution can be highly uneven. Vi
 `,
     code: `## Hash Ring Diagram
 
-\`\`\`
-                        0 / 2^32
-                          │
-                    ┌─────┴─────┐
-               S4 ●─┘           └─● S1
-              /                       \\
-             /     Hash Ring            \\
-            │                            │
-            │       k1 ○──────▶ S1       │
-     2^32 ──┤                            ├── 2^32
-     × 0.75 │       k2 ○──┐             │   × 0.25
-            │             │             │
-             \\            ▼            /
-              \\        S2 ●          /
-               S3 ●──┘           └──┘
-                    └─────┬─────┘
-                          │
-                      2^32 × 0.5
+\`\`\`mermaid
+graph TD
+    TOP["0 / 2^32"] --- S1["S1 (2^32 x 0.25)"]
+    S1 --- RIGHT["2^32 x 0.5"]
+    RIGHT --- S2["S2"]
+    S2 --- S3["S3"]
+    S3 --- LEFT["2^32 x 0.75"]
+    LEFT --- S4["S4"]
+    S4 --- TOP
 
-    Key Assignment (clockwise):
-    k1 → walks clockwise → first server is S1
-    k2 → walks clockwise → first server is S2
+    K1["k1"] -->|clockwise| S1
+    K2["k2"] -->|clockwise| S2
+
+    style TOP fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style S1 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style S2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style S3 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style S4 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style RIGHT fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style LEFT fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style K1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style K2 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## Adding a New Server
 
-\`\`\`
-    Before (3 servers):              After adding S_new:
+\`\`\`mermaid
+graph TD
+    subgraph Before["Before (3 servers)"]
+        B_S1["S1"] --- B_S2["S2"]
+        B_S2 --- B_S3["S3"]
+        B_S3 --- B_S1
+    end
+    subgraph After["After adding S_new"]
+        A_S1["S1"] --- A_SN["S_new"]
+        A_SN --- A_S2["S2"]
+        A_S2 --- A_S3["S3"]
+        A_S3 --- A_S1
+    end
+    Before -->|"Only keys in S_new's arc move from S2"| After
+    subgraph Summary["Key Reassignment"]
+        R1["k5, k8 → S_new"]
+        R2["k12, k3 → S2 (stays)"]
+        R3["k1, k7, k9 on S1 → UNCHANGED"]
+        R4["k2, k4, k6 on S3 → UNCHANGED"]
+    end
 
-         S1                               S1
-        / \\                              / \\
-       /   \\                            /   \\
-      /     \\                          /     \\
-    S3──────S2                  S3────S_new───S2
-
-    Keys in this arc ─────▶    Only THESE keys move
-    all belonged to S2         from S2 to S_new
-
-    ┌──────────────────────────────────────────────┐
-    │  Before: k5, k8, k12, k3 → all on S2        │
-    │  After:  k5, k8 → S_new    k12, k3 → S2     │
-    │                                              │
-    │  k1, k7, k9 on S1 → UNCHANGED               │
-    │  k2, k4, k6 on S3 → UNCHANGED               │
-    └──────────────────────────────────────────────┘
+    style B_S1 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style B_S2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style B_S3 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style A_S1 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style A_S2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style A_S3 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style A_SN fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style R1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style R2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style R3 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style R4 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## Virtual Nodes Diagram
 
-\`\`\`
-    Physical servers: A, B, C
+\`\`\`mermaid
+graph TD
+    subgraph Without["Without Virtual Nodes (Uneven)"]
+        W_A["A"] --- W_B["B"]
+        W_B --- W_C["C"]
+        W_C --- W_A
+    end
+    subgraph With["With Virtual Nodes (3 each)"]
+        V_A1["A1"] --- V_A2["A2"]
+        V_B1["B1"] --- V_B2["B2"]
+        V_B2 --- V_B3["B3"]
+        V_C1["C1"] --- V_C2["C2"]
+        V_C2 --- V_C3["C3"]
+    end
+    subgraph Distribution["Ring Distribution"]
+        D1["Server A: 2/8 = 25%"]
+        D2["Server B: 3/8 = 37.5%"]
+        D3["Server C: 3/8 = 37.5%"]
+        D4["With 100+ vnodes → each converges to 33.3%"]
+    end
 
-    Without virtual nodes:        With virtual nodes (3 each):
-
-         A                           A2      B1
-        / \\                         / \\    / \\
-       /   \\                       /   \\  /   \\
-      /     \\                    C1     A1     C3
-    C───────B                    / \\          / \\
-                                /   \\        /   \\
-    Uneven distribution!      B3     C2────B2
-
-                              Much more even distribution!
-
-    Ring positions:
-    ┌────────────────────────────────────────────┐
-    │ Position:  A2  B1  C1  A1  C3  B3  C2  B2 │
-    │ Maps to:   A   B   C   A   C   B   C   B  │
-    │                                            │
-    │ Server A owns: 2/8 of ring = 25%           │
-    │ Server B owns: 3/8 of ring = 37.5%         │
-    │ Server C owns: 3/8 of ring = 37.5%         │
-    │                                            │
-    │ With more virtual nodes (100+), each       │
-    │ server converges to exactly 33.3%          │
-    └────────────────────────────────────────────┘
+    style W_A fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style W_B fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style W_C fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style V_A1 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style V_A2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style V_B1 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style V_B2 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style V_B3 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style V_C1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style V_C2 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style V_C3 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style D1 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style D2 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style D3 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style D4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## Lookup Algorithm
 
-\`\`\`
-    find_server(key):
-    ┌─────────────────────────────┐
-    │ 1. hash = hash_func(key)    │
-    │                             │
-    │ 2. Binary search the sorted │
-    │    ring for the first node  │
-    │    with position ≥ hash     │
-    │                             │
-    │ 3. If no node found (hash   │
-    │    is past the last node),  │
-    │    wrap around to the first │
-    │    node in the ring         │
-    │                             │
-    │ 4. Map virtual node back    │
-    │    to physical server       │
-    └─────────────────────────────┘
+\`\`\`mermaid
+graph TD
+    S1["1. hash = hash_func(key)"]
+    S2["2. Binary search sorted ring for first node with position >= hash"]
+    S3["3. If no node found, wrap around to first node in ring"]
+    S4["4. Map virtual node back to physical server"]
+    S1 --> S2
+    S2 --> S3
+    S3 --> S4
 
-    Ring (sorted array): [1200, 3500, 5800, 7100, 8900, 9600]
-    Virtual→Physical:     A1     B1     C1     A2     B2     C2
+    subgraph Example["Example: hash('user:42') = 6000"]
+        R["Ring: 1200/A1, 3500/B1, 5800/C1, 7100/A2, 8900/B2, 9600/C2"]
+        BS["Binary search → first >= 6000 → 7100 → A2 → Server A"]
+        TC["Time complexity: O(log V)"]
+        R --- BS
+        BS --- TC
+    end
 
-    hash("user:42") = 6000
-    Binary search → first position ≥ 6000 → 7100 → A2 → Server A
-
-    Time complexity: O(log V) where V = total virtual nodes
+    style S1 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style S2 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style S3 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style S4 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style R fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style BS fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style TC fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
 \`\`\`
 `,
     jsCode: `## Deep Dive: Implementation Details
@@ -735,122 +744,70 @@ Configure three values: **N** (replicas), **W** (write quorum), **R** (read quor
 `,
     code: `## Distributed KV Store Architecture
 
-\`\`\`
-┌──────────┐          ┌──────────────────────────────────────────┐
-│  Client   │─────────▶│           Coordinator Node               │
-│           │◀─────────│  (any node can be coordinator)           │
-└──────────┘          │                                          │
-                       │  1. Hash key → find ring position        │
-                       │  2. Identify N replica nodes             │
-                       │  3. Send read/write to replicas          │
-                       │  4. Wait for W or R acknowledgments      │
-                       └──────────────────┬───────────────────────┘
-                                          │
-                    ┌─────────────────────┼─────────────────────┐
-                    │                     │                     │
-              ┌─────▼──────┐       ┌─────▼──────┐       ┌─────▼──────┐
-              │  Node A     │       │  Node B     │       │  Node C     │
-              │  (Replica 1)│       │  (Replica 2)│       │  (Replica 3)│
-              │             │       │             │       │             │
-              │ ┌─────────┐ │       │ ┌─────────┐ │       │ ┌─────────┐ │
-              │ │MemTable │ │       │ │MemTable │ │       │ │MemTable │ │
-              │ └────┬────┘ │       │ └────┬────┘ │       │ └────┬────┘ │
-              │      │      │       │      │      │       │      │      │
-              │ ┌────▼────┐ │       │ ┌────▼────┐ │       │ ┌────▼────┐ │
-              │ │SSTable  │ │       │ │SSTable  │ │       │ │SSTable  │ │
-              │ │ Files   │ │       │ │ Files   │ │       │ │ Files   │ │
-              │ └─────────┘ │       │ └─────────┘ │       │ └─────────┘ │
-              └─────────────┘       └─────────────┘       └─────────────┘
-                    ▲                     ▲                     ▲
-                    │                     │                     │
-                    └─────── Gossip Protocol (failure detection)─┘
+\`\`\`mermaid
+graph TD
+    N0["Client"]
+    N1["Node A (Replica 1)"]
+    N2["MemTable"]
+    N3["SSTable Files"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## Write Path (LSM-Tree)
 
-\`\`\`
-Client: put("user:42", "{name: Jay}")
-              │
-              ▼
-┌─────────────────────────┐
-│ 1. Write to COMMIT LOG  │ ◀── Append-only, sequential I/O (fast)
-│    (Write-Ahead Log)    │     Survives crashes — replay on restart
-└────────────┬────────────┘
-             │
-             ▼
-┌─────────────────────────┐
-│ 2. Write to MEMTABLE    │ ◀── In-memory sorted tree (Red-Black or
-│    (in-memory)          │     Skip List). Serves recent reads.
-└────────────┬────────────┘
-             │
-             │  When MemTable reaches size threshold (e.g., 64 MB):
-             ▼
-┌─────────────────────────┐
-│ 3. Flush to SSTABLE     │ ◀── Sorted String Table on disk
-│    (immutable on disk)  │     Immutable once written.
-└────────────┬────────────┘
-             │
-             │  Background process:
-             ▼
-┌─────────────────────────┐
-│ 4. COMPACTION            │ ◀── Merge multiple SSTables:
-│    (merge SSTables)      │     - Remove deleted keys (tombstones)
-│                          │     - Merge duplicates (keep latest)
-│                          │     - Reduce read amplification
-└──────────────────────────┘
+\`\`\`mermaid
+graph TD
+    N0["1. Write to COMMIT LOG"]
+    N1["2. Write to MEMTABLE"]
+    N2["3. Flush to SSTABLE"]
+    N3["4. COMPACTION"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    style N0 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## Read Path
 
-\`\`\`
-Client: get("user:42")
-              │
-              ▼
-┌─────────────────────────┐
-│ 1. Check MEMTABLE       │──── Found? → Return immediately
-└────────────┬────────────┘
-             │ Not found
-             ▼
-┌─────────────────────────┐
-│ 2. Check BLOOM FILTER   │──── "Definitely not here" → skip SSTable
-│    for each SSTable     │     "Possibly here" → check SSTable
-└────────────┬────────────┘
-             │ Bloom filter says "maybe"
-             ▼
-┌─────────────────────────┐
-│ 3. Check SSTable        │──── Use sparse index to find block,
-│    (newest first)       │     decompress block, binary search
-└────────────┬────────────┘
-             │
-             ▼
-         Return value (or null if not found in any SSTable)
+\`\`\`mermaid
+graph TD
+    N0["1. Check MEMTABLE"]
+    N1["2. Check BLOOM FILTER"]
+    N2["3. Check SSTable"]
+    N0 --> N1
+    N1 --> N2
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## Consistent Hashing Ring with Replication
 
+\`\`\`mermaid
+graph TD
+    K["Key K"]
+    N1["Node 1 (Primary)"]
+    N2["Node 2 (Replica)"]
+    N3["Node 3 (Replica)"]
+    K --> N1
+    K --> N2
+    K --> N3
+    style K fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
-    Replication factor N = 3
 
-              N1
-             /│\\
-            / │ \\
-           /  │  \\
-         N6   │   N2     Key K hashed to position X
-          │   │   │      Walk clockwise: N2, N3, N4
-          │   │   │      K is stored on: N2, N3, N4
-          │   │   │
-         N5   │   N3  ◀── K's primary replica
-           \\  │  /
-            \\ │ /
-             \\│/
-              N4
-
-    If N3 goes down:
-    - Reads: served by N2 or N4 (still 2 replicas available)
-    - Writes: sloppy quorum → temporarily write to N5
-              (hinted handoff: N5 stores it with a hint
-               "this belongs to N3, send it when N3 recovers")
-\`\`\`
+> **Replication factor N = 3**: Each key is replicated to 3 nodes on the consistent hash ring. The coordinator writes to the next N clockwise nodes.
 `,
     jsCode: `## Deep Dive: Distributed Systems Techniques
 
@@ -887,17 +844,17 @@ Initial: D1 = {} (empty)
 
 Each node maintains a **membership list** with heartbeat counters for every other node:
 
-\`\`\`
-Node A's membership table:
-┌────────┬───────────┬──────────────────┐
-│ Node   │ Heartbeat │ Last Updated     │
-├────────┼───────────┼──────────────────┤
-│ A      │ 1042      │ current          │
-│ B      │ 987       │ 2 seconds ago    │
-│ C      │ 1155      │ 1 second ago     │
-│ D      │ 876       │ 45 seconds ago   │ ◀── Possibly down!
-│ E      │ 1201      │ 3 seconds ago    │
-└────────┴───────────┴──────────────────┘
+\`\`\`mermaid
+graph TD
+    A["Node A"]
+    B["Node B"]
+    C["Node C"]
+    A -->|"Gossip {A:10, B:7}"| B
+    B -->|"Gossip {A:10, B:8, C:5}"| C
+    C -->|"Gossip {A:10, B:8, C:6}"| A
+    style A fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style B fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style C fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 **How it works:**
@@ -934,17 +891,44 @@ When a replica has been down for a while and comes back, how do you efficiently 
 3. Parent nodes contain the hash of their children
 4. Two replicas compare trees **top-down**: if the root hashes match, the entire dataset is in sync
 
-\`\`\`
-Comparing replicas A and B:
+\`\`\`mermaid
+graph TD
+    subgraph ReplicaA["Replica A"]
+        RA["Root hash:X"]
+        RA --> A_L["hash:M"]
+        RA --> A_R["hash:N"]
+        A_L --> A_h1["h1"]
+        A_L --> A_h2["h2"]
+        A_R --> A_h3["h3"]
+        A_R --> A_h4["h4"]
+    end
+    subgraph ReplicaB["Replica B"]
+        RB["Root hash:Y"]
+        RB --> B_L["hash:M"]
+        RB --> B_R["hash:P"]
+        B_L --> B_h1["h1"]
+        B_L --> B_h2["h2"]
+        B_R --> B_h3["h3' ← DIFFERS"]
+        B_R --> B_h4["h4"]
+    end
+    RA -.->|"Roots differ → go deeper"| RB
+    A_R -.->|"Right subtree differs"| B_R
+    A_h3 -.->|"Only sync this range!"| B_h3
 
-        Root                Root
-       hash:X              hash:Y         ← Different! Go deeper
-      /      \\            /      \\
-   hash:M   hash:N     hash:M   hash:P   ← Right subtree differs
-   /   \\    /   \\      /   \\    /   \\
-  h1   h2  h3   h4    h1   h2  h3'  h4   ← h3 differs → sync that range
-
-Only the keys in h3's range need to be synchronized!
+    style RA fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style RB fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style A_L fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style A_R fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style B_L fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style B_R fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style A_h1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style A_h2 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style A_h3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style A_h4 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style B_h1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style B_h2 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style B_h3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style B_h4 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 This reduces synchronization from O(K) to O(log K) comparisons in the typical case.
@@ -1114,108 +1098,65 @@ Divide a 64-bit ID into sections, each encoding different information. No coordi
 `,
     code: `## Snowflake ID Bit Layout
 
-\`\`\`
-64-bit ID Structure:
-
- 0                   1                   2                   3
- 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-├─┼─────────────────────────────────────────────────────────────────┤
-│0│                    41-bit Timestamp (ms)                        │
-├─┼───────────────────────────────────────┬─────┬─────┬─────────────┤
-│ │               (continued)             │DC ID│MC ID│  Sequence   │
-│ │                                       │5 bit│5 bit│   12 bit    │
-└─┴───────────────────────────────────────┴─────┴─────┴─────────────┘
-
- ◀──── 1 ────▶◀────────── 41 ──────────▶◀─ 5 ─▶◀─ 5 ─▶◀── 12 ──▶
-
-Example ID:  0 | 10110010101....(41 bits) | 00101 | 01100 | 000000000001
-             ↓         ↓                     ↓       ↓          ↓
-           sign    timestamp=1639852800000  DC=5   MC=12     seq=1
+\`\`\`mermaid
+graph LR
+    Sign["Sign (1 bit)"]
+    Timestamp["Timestamp (41 bits)"]
+    DC["DC ID (5 bits)"]
+    MC["MC ID (5 bits)"]
+    Seq["Sequence (12 bits)"]
+    Sign --> Timestamp
+    Timestamp --> DC
+    DC --> MC
+    MC --> Seq
+    style Sign fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style Timestamp fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style DC fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style MC fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style Seq fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## ID Generation Flow
 
-\`\`\`
-┌──────────────────────────────────────────────────┐
-│                Snowflake ID Generator             │
-│                                                  │
-│  Config: datacenter_id = 5, machine_id = 12      │
-│  State:  last_timestamp = 0, sequence = 0        │
-│                                                  │
-│  generate_id():                                  │
-│  ┌────────────────────────────────────────┐      │
-│  │ 1. current_ts = now() - CUSTOM_EPOCH   │      │
-│  │                                        │      │
-│  │ 2. if current_ts == last_timestamp:    │      │
-│  │       sequence = (sequence + 1) & 4095 │      │
-│  │       if sequence == 0:                │      │
-│  │           wait until next millisecond  │      │
-│  │    else:                               │      │
-│  │       sequence = 0                     │      │
-│  │                                        │      │
-│  │ 3. last_timestamp = current_ts         │      │
-│  │                                        │      │
-│  │ 4. return:                             │      │
-│  │    (current_ts << 22)                  │      │
-│  │    | (datacenter_id << 17)             │      │
-│  │    | (machine_id << 12)               │      │
-│  │    | sequence                          │      │
-│  └────────────────────────────────────────┘      │
-└──────────────────────────────────────────────────┘
+\`\`\`mermaid
+graph TD
+    N0["Snowflake ID Generator"]
+    N1["1. current_ts = now() - CUSTOM_EPOCH"]
+    N0 --> N1
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## System Architecture
 
-\`\`\`
-┌──────────────┐   ┌──────────────┐   ┌──────────────┐
-│  Service A   │   │  Service B   │   │  Service C   │
-│  (Orders)    │   │  (Messages)  │   │  (Events)    │
-└──────┬───────┘   └──────┬───────┘   └──────┬───────┘
-       │                  │                  │
-       │  generateId()    │  generateId()    │  generateId()
-       │                  │                  │
-┌──────▼───────┐   ┌──────▼───────┐   ┌──────▼───────┐
-│ ID Generator │   │ ID Generator │   │ ID Generator │
-│ DC=1, MC=1   │   │ DC=1, MC=2   │   │ DC=2, MC=1   │
-│              │   │              │   │              │
-│ In-process   │   │ In-process   │   │ In-process   │
-│ library      │   │ library      │   │ library      │
-│ (no network  │   │ (no network  │   │ (no network  │
-│  call!)      │   │  call!)      │   │  call!)      │
-└──────────────┘   └──────────────┘   └──────────────┘
-
-Each service has its own embedded ID generator.
-No network calls. No coordination.
-Uniqueness guaranteed by distinct (datacenter_id, machine_id) pairs.
+\`\`\`mermaid
+graph TD
+    N0["Service A (Orders)"]
+    N1["Service B (Messages)"]
+    N2["Service C (Events)"]
+    N3["ID Generator DC=1, MC=1"]
+    N4["ID Generator DC=1, MC=2"]
+    N5["ID Generator DC=2, MC=1"]
+    N0 --> N3
+    N1 --> N4
+    N2 --> N5
+    style N0 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## Clock Skew Handling
 
-\`\`\`
-Normal: time moves forward
-  t=1000ms → t=1001ms → t=1002ms
-  IDs:  [1000|DC|MC|0] [1001|DC|MC|0] [1002|DC|MC|0]
-  ✓ Monotonically increasing
-
-NTP correction: clock jumps backward!
-  t=1002ms → t=1001ms  (NTP adjusted -1ms)
-
-  Strategy 1: REFUSE to generate IDs
-  ┌─────────────────────────────────┐
-  │ if current_ts < last_timestamp: │
-  │   throw ClockMovedBackward      │
-  │   // wait it out or alert       │
-  └─────────────────────────────────┘
-
-  Strategy 2: USE last_timestamp + exhaust sequence
-  ┌──────────────────────────────────────┐
-  │ if current_ts < last_timestamp:      │
-  │   current_ts = last_timestamp        │
-  │   sequence++                         │
-  │   // effectively "borrow" from       │
-  │   // the future until clock catches  │
-  │   // up                              │
-  └──────────────────────────────────────┘
+\`\`\`mermaid
+graph TD
+    N0["Option A: Throw ClockMovedBackward"]
+    N1["Option B: Wait until clock catches up"]
+    N0 --> N1
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 `,
     jsCode: `## Deep Dive: Snowflake Implementation Details

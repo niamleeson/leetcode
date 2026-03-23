@@ -76,106 +76,97 @@ When a single database can't handle the data volume or write throughput, split t
 
 ### Stage 1: Single Server Setup
 
-\`\`\`
-┌──────────────────────────────────┐
-│         Single Server            │
-│                                  │
-│  ┌────────────┐  ┌────────────┐  │
-│  │   Web App   │  │  Database  │  │
-│  │  (Nginx +   │  │  (MySQL /  │  │
-│  │   Node.js)  │  │  Postgres) │  │
-│  └────────────┘  └────────────┘  │
-│                                  │
-│          IP: 1.2.3.4             │
-└──────────────────────────────────┘
-         ▲
-         │  HTTP
-         │
-    ┌────┴─────┐
-    │  Users   │
-    └──────────┘
+\`\`\`mermaid
+graph TD
+    N0["Single Server IP: 1.2.3.4"]
+    N1["Web App (Nginx + Node.js)"]
+    N2["Users"]
+    N2 --> N0
+    N0 --> N1
+    style N0 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ### Stage 2: Load Balanced Architecture with DB Replication
 
-\`\`\`
-                    ┌──────────┐
-                    │  Users   │
-                    └────┬─────┘
-                         │
-                    ┌────▼─────┐
-                    │   Load   │
-                    │ Balancer │
-                    └──┬────┬──┘
-                       │    │
-              ┌────────▼┐  ┌▼────────┐
-              │ Web Srv  │  │ Web Srv  │
-              │    #1    │  │    #2    │
-              └────┬─────┘  └────┬─────┘
-                   │             │
-                   └──────┬──────┘
-                          │
-               ┌──────────▼──────────┐
-               │     Cache (Redis)   │
-               └──────────┬──────────┘
-                          │  (cache miss)
-                          │
-          ┌───────────────┼───────────────┐
-          │               │               │
-    ┌─────▼─────┐  ┌──────▼──────┐ ┌─────▼─────┐
-    │  Primary   │  │  Replica #1 │ │ Replica #2 │
-    │    DB      │──│   (Read)    │ │   (Read)   │
-    │  (Write)   │  │             │ │            │
-    └───────────┘  └─────────────┘ └────────────┘
-         │              ▲               ▲
-         │   replication│    replication │
-         └──────────────┴───────────────┘
+\`\`\`mermaid
+graph TD
+    N0["Load Balancer"]
+    N1["Web Srv #1"]
+    N2["Cache (Redis)"]
+    N3[("Primary DB")]
+    N0 --> N1
+    N1 --> N2
+    N1 --> N3
+    N2 --> N3
+    style N0 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ### Stage 3: Full Production Architecture
 
-\`\`\`
-    ┌────────────────────────────────────────────────────┐
-    │                   CDN (CloudFront)                  │
-    │           Static assets: JS, CSS, images           │
-    └────────────────────────┬───────────────────────────┘
-                             │
-    ┌────────────┐      ┌────▼─────┐      ┌────────────┐
-    │   Users    │─────▶│  GeoDNS  │◀─────│   Users    │
-    │ (Region A) │      └──┬────┬──┘      │ (Region B) │
-    └────────────┘         │    │         └────────────┘
-                           │    │
-         ┌─────────────────┘    └──────────────────┐
-         │                                         │
-    ┌────▼──────────┐                    ┌─────────▼────┐
-    │ Load Balancer │                    │ Load Balancer │
-    │  (Region A)   │                    │  (Region B)   │
-    └──┬─────┬──────┘                    └──┬──────┬────┘
-       │     │                              │      │
-   ┌───▼┐ ┌─▼──┐                       ┌───▼┐  ┌──▼──┐
-   │ W1 │ │ W2 │  (Stateless           │ W3 │  │ W4  │
-   └──┬─┘ └─┬──┘   Web Servers)        └──┬─┘  └──┬──┘
-      │      │                             │       │
-      └──┬───┘                             └───┬───┘
-         │                                     │
-    ┌────▼──────────┐                  ┌───────▼───────┐
-    │  Redis Cache  │                  │  Redis Cache   │
-    │  (Cluster)    │                  │  (Cluster)     │
-    └────┬──────────┘                  └───────┬───────┘
-         │                                     │
-    ┌────▼──────────┐                  ┌───────▼───────┐
-    │  DB Primary   │ ◀── repl ──────▶│  DB Primary    │
-    │  + Replicas   │                  │  + Replicas    │
-    └────┬──────────┘                  └───────────────┘
-         │
-    ┌────▼──────────────────────────────────────────────┐
-    │              Message Queue (Kafka)                 │
-    │                                                   │
-    │  ┌──────────┐  ┌──────────┐  ┌──────────────┐    │
-    │  │ Email    │  │ Thumbnail│  │ Analytics    │    │
-    │  │ Worker   │  │ Worker   │  │ Worker       │    │
-    │  └──────────┘  └──────────┘  └──────────────┘    │
-    └───────────────────────────────────────────────────┘
+\`\`\`mermaid
+graph TD
+    N0["Users (Region A)"]
+    N1["GeoDNS"]
+    N2["Users (Region B)"]
+    N3["Load Balancer (Region A)"]
+    N4["Load Balancer (Region B)"]
+    N5["W1"]
+    N6["W2"]
+    N7["W3"]
+    N8["W4"]
+    N9["Redis Cache (Cluster)"]
+    N10[("DB Primary + Replicas")]
+    N11["+ Replicas"]
+    N12["Message Queue (Kafka)"]
+    N13["Email Worker"]
+    N14["Thumbnail Worker"]
+    N15["Analytics Worker"]
+    N0 --> N1
+    N2 --> N1
+    N1 --> N3
+    N1 --> N4
+    N3 --> N5
+    N3 --> N6
+    N4 --> N7
+    N4 --> N8
+    N5 --> N9
+    N6 --> N9
+    N7 --> N9
+    N8 --> N9
+    N5 --> N10
+    N6 --> N10
+    N7 --> N10
+    N8 --> N10
+    N9 --> N10
+    N10 --> N11
+    N5 --> N12
+    N6 --> N12
+    N7 --> N12
+    N8 --> N12
+    N12 --> N13
+    N12 --> N14
+    N12 --> N15
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N8 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N9 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N10 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N11 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N12 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N13 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N14 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N15 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
 \`\`\`
 `,
     jsCode: `## Vertical vs Horizontal Scaling
@@ -456,25 +447,17 @@ With 3x replication:
 
 ## Quick Reference Anchors
 
-\`\`\`
-┌─────────────────────────────────────────────┐
-│        Single Server Capacity Guide         │
-├─────────────────────────────────────────────┤
-│  Web server (Nginx):     ~50K concurrent    │
-│  Application server:     ~1K-10K QPS        │
-│  MySQL (simple queries): ~10K QPS           │
-│  Redis:                  ~100K QPS          │
-│  Kafka (per broker):     ~100K msgs/sec     │
-│  RAM per server:         64-256 GB          │
-│  SSD per server:         1-10 TB            │
-│  Network:                1-10 Gbps          │
-├─────────────────────────────────────────────┤
-│  Seconds in a day:       ~86,400 ≈ 10^5    │
-│  Seconds in a year:      ~31.5M ≈ 3×10^7   │
-│  Requests in a day at    ~86M               │
-│    1K QPS:                                  │
-└─────────────────────────────────────────────┘
-\`\`\`
+**Single Server Capacity Guide**
+
+| Resource | Capacity |
+|----------|----------|
+| CPU | 64+ cores |
+| Memory | 256-512 GB RAM |
+| Disk | 10-20 TB SSD |
+| Network | 10 Gbps |
+| QPS (web) | ~10K-50K |
+| QPS (cache) | ~100K-1M |
+| Connections | ~10K-50K concurrent |
 `,
     jsCode: `## Worked Estimation Examples
 
@@ -694,82 +677,50 @@ Ask questions in these categories:
 `,
     code: `## Interview Time Allocation
 
-\`\`\`
-┌─────────────────────────────────────────────────────────────┐
-│              45-Minute System Design Interview               │
-├──────────┬──────────────────────┬────────────┬──────────────┤
-│  Step 1  │       Step 2         │   Step 3   │    Step 4    │
-│  Scope   │   High-Level Design  │ Deep Dive  │   Wrap Up    │
-│          │                      │            │              │
-│ 3-10 min │     10-15 min        │ 10-25 min  │   3-5 min    │
-│          │                      │            │              │
-│ Ask Qs   │ Block diagram        │ Dive into  │ Summarize    │
-│ Clarify  │ API design           │ 1-2 key    │ Bottlenecks  │
-│ Scope    │ Data model           │ components │ Future work  │
-│ Estimate │ Data flow            │ Trade-offs │ Monitoring   │
-│          │ Get buy-in           │ Edge cases │              │
-└──────────┴──────────────────────┴────────────┴──────────────┘
+**45-Minute System Design Interview**
 
-◀─── don't rush this ───▶◀── most time here ──▶
-\`\`\`
+| Phase | Time | Focus |
+|-------|------|-------|
+| Step 1: Understand & Scope | 5-10 min | Clarify requirements, constraints, scale |
+| Step 2: High-Level Design | 10-15 min | API design, data model, architecture diagram |
+| Step 3: Deep Dive | 15-20 min | Detailed design of critical components |
+| Step 4: Wrap Up | 5 min | Bottlenecks, improvements, trade-offs |
 
 ## Question Framework for Step 1
 
-\`\`\`
-┌─────────────────────────────────────────────────┐
-│           SCOPE QUESTIONS CHECKLIST              │
-├─────────────────────────────────────────────────┤
-│                                                 │
-│  USERS & SCALE                                  │
-│  ├── Who are the users?                         │
-│  ├── How many DAU / MAU?                        │
-│  ├── Geographic distribution?                   │
-│  └── Growth expectations?                       │
-│                                                 │
-│  FEATURES                                       │
-│  ├── What are the core features?                │
-│  ├── What is explicitly out of scope?           │
-│  ├── Any features we should prioritize?         │
-│  └── Mobile, web, or both?                      │
-│                                                 │
-│  PERFORMANCE & RELIABILITY                      │
-│  ├── Latency requirements?                      │
-│  ├── Availability target (99.9%? 99.99%?)       │
-│  ├── Consistency model (strong? eventual?)      │
-│  └── Is data loss acceptable?                   │
-│                                                 │
-│  CONSTRAINTS                                    │
-│  ├── Existing infrastructure?                   │
-│  ├── Technology preferences?                    │
-│  ├── Budget constraints?                        │
-│  └── Compliance / regulatory requirements?      │
-│                                                 │
-└─────────────────────────────────────────────────┘
-\`\`\`
+**SCOPE QUESTIONS CHECKLIST**
+
+- What are the most important features to build?
+- How many users? DAU / MAU?
+- What is the expected read/write ratio?
+- What scale do we need to handle? (QPS, storage, bandwidth)
+- Are there latency requirements? (p99 < X ms)
+- Is strong consistency required or is eventual consistency OK?
+- What is the expected growth rate over 3-5 years?
+- Any existing infrastructure or tech stack constraints?
 
 ## High-Level Design Template (Step 2)
 
-\`\`\`
-┌──────────┐     ┌──────────────┐     ┌──────────────────┐
-│  Client  │────▶│   API GW /   │────▶│   Service Layer   │
-│  (Web /  │◀────│   Load       │◀────│   (Business       │
-│  Mobile) │     │   Balancer   │     │    Logic)         │
-└──────────┘     └──────────────┘     └─────┬──────┬─────┘
-                                            │      │
-                                    ┌───────▼──┐ ┌─▼───────┐
-                                    │  Cache   │ │ Message  │
-                                    │ (Redis)  │ │  Queue   │
-                                    └───────┬──┘ └─┬───────┘
-                                            │      │
-                                    ┌───────▼──────▼───────┐
-                                    │     Data Layer        │
-                                    │  (SQL / NoSQL / Blob) │
-                                    └───────────────────────┘
-
-For each component, ask yourself:
-  1. WHY is this component here?
-  2. What HAPPENS if it fails?
-  3. How does it SCALE?
+\`\`\`mermaid
+graph TD
+    N0["Client (Web / Mobile)"]
+    N1["API GW / Load Balancer"]
+    N2["Service Layer"]
+    N3["Cache (Redis)"]
+    N4["Message Queue"]
+    N5["Data Layer (SQL / NoSQL / Blob)"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    N2 --> N4
+    N2 --> N5
+    N3 --> N5
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 `,
     jsCode: `## Deep Dive: Mastering Each Step

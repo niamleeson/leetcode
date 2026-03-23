@@ -133,7 +133,7 @@ export default function App() {
           } />
           <Route path="/dsa" element={<DSAReference />} />
           <Route path="/system-design" element={<SystemDesignReference />} />
-          <Route path="/sdi-vol1" element={<SDIVol1Reference />} />
+          <Route path="/sdi-book" element={<SDIVol1Reference />} />
           <Route path="/glossary" element={<GlossaryPage />} />
           <Route path="/topic/:slug" element={
             <TopicRoute store={store} />

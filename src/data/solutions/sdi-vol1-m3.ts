@@ -106,91 +106,80 @@ export const sdiVol1M3: ProblemSolution[] = [
 `,
     code: `## Architecture Diagram
 
-\`\`\`
-┌──────────┐       ┌────────────────┐       ┌──────────────────┐
-│  Client   │──────▶│  Load Balancer  │──────▶│   API Servers    │
-│ (Browser) │       │   (Nginx/ALB)   │       │  (Stateless)     │
-└──────────┘       └────────────────┘       └────────┬─────────┘
-                                                      │
-                                        ┌─────────────┼─────────────┐
-                                        │             │             │
-                                   ┌────▼───┐   ┌────▼───┐   ┌────▼───┐
-                                   │ App 1  │   │ App 2  │   │ App N  │
-                                   └───┬────┘   └───┬────┘   └───┬────┘
-                                       │            │            │
-                                       ▼            ▼            ▼
-                                 ┌──────────────────────────────────┐
-                                 │        Redis Cache Cluster       │
-                                 │   (Hot URLs — 100 GB capacity)   │
-                                 └──────────────┬───────────────────┘
-                                                │ Cache Miss
-                                                ▼
-                                 ┌──────────────────────────────────┐
-                                 │     Database (Sharded by         │
-                                 │     short_code hash)             │
-                                 │  ┌────────┐ ┌────────┐ ┌──────┐ │
-                                 │  │Shard 1 │ │Shard 2 │ │Shard │ │
-                                 │  │ a-j    │ │ k-t    │ │ u-z  │ │
-                                 │  └────────┘ └────────┘ └──────┘ │
-                                 └──────────────────────────────────┘
+\`\`\`mermaid
+graph TD
+    N0["Client (Browser)"]
+    N1["App 1"]
+    N2["App 2"]
+    N3["App N"]
+    N4["Redis Cache Cluster"]
+    N5[("Database (Sharded)")]
+    N6[("Shard 1")]
+    N7[("Shard 2")]
+    N8[("Shard 3")]
+    N0 --> N1
+    N0 --> N2
+    N0 --> N3
+    N1 --> N4
+    N2 --> N4
+    N3 --> N4
+    N1 --> N5
+    N2 --> N5
+    N3 --> N5
+    N4 --> N5
+    N5 --> N6
+    N5 --> N7
+    N5 --> N8
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N8 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## Write Flow (URL Shortening)
 
-\`\`\`
-Client                API Server           ID Generator        Database         Cache
-  │                       │                     │                  │               │
-  │  POST /api/v1/shorten │                     │                  │               │
-  │  { long_url: "..." }  │                     │                  │               │
-  │──────────────────────▶│                     │                  │               │
-  │                       │  Request unique ID  │                  │               │
-  │                       │────────────────────▶│                  │               │
-  │                       │  Return ID: 294713  │                  │               │
-  │                       │◀────────────────────│                  │               │
-  │                       │                     │                  │               │
-  │                       │  Base62(294713)                        │               │
-  │                       │  = "a7Bk3Xq"                          │               │
-  │                       │                                        │               │
-  │                       │  INSERT (a7Bk3Xq, long_url, ...)     │               │
-  │                       │───────────────────────────────────────▶│               │
-  │                       │  OK                                    │               │
-  │                       │◀───────────────────────────────────────│               │
-  │                       │                                        │               │
-  │                       │  SET a7Bk3Xq → long_url (warm cache) │               │
-  │                       │───────────────────────────────────────────────────────▶│
-  │                       │                                                        │
-  │  201: { short_url }   │                                                        │
-  │◀──────────────────────│                                                        │
+\`\`\`mermaid
+sequenceDiagram
+    participant C as Client
+    participant API as API Server
+    participant ID as ID Generator
+    participant DB as Database
+    participant Cache as Cache
+
+    C->>API: POST /api/v1/shorten { long_url }
+    API->>ID: Request unique ID
+    ID-->>API: Return ID: 294713
+    Note over API: Base62(294713) = "a7Bk3Xq"
+    API->>DB: INSERT (a7Bk3Xq, long_url, ...)
+    DB-->>API: OK
+    API->>Cache: SET a7Bk3Xq → long_url (warm cache)
+    API-->>C: 201: { short_url }
 \`\`\`
 
 ## Read Flow (Redirect)
 
-\`\`\`
-Client                API Server              Cache               Database
-  │                       │                     │                    │
-  │  GET /a7Bk3Xq         │                     │                    │
-  │──────────────────────▶│                     │                    │
-  │                       │  GET a7Bk3Xq        │                    │
-  │                       │────────────────────▶│                    │
-  │                       │                     │                    │
-  │              ┌────────┤  Cache HIT?         │                    │
-  │              │  YES   │◀────────────────────│                    │
-  │              │        │  long_url           │                    │
-  │              │        │                     │                    │
-  │              │  NO    │  SELECT long_url    │                    │
-  │              │        │  WHERE short_code   │                    │
-  │              │        │  = 'a7Bk3Xq'       │                    │
-  │              │        │────────────────────────────────────────▶│
-  │              │        │  long_url                                │
-  │              │        │◀────────────────────────────────────────│
-  │              │        │                     │                    │
-  │              │        │  SET cache          │                    │
-  │              │        │────────────────────▶│                    │
-  │              └────────┤                     │                    │
-  │                       │                     │                    │
-  │  302 Redirect         │                     │                    │
-  │  Location: long_url   │                     │                    │
-  │◀──────────────────────│                     │                    │
+\`\`\`mermaid
+sequenceDiagram
+    participant C as Client
+    participant API as API Server
+    participant Cache as Cache
+    participant DB as Database
+
+    C->>API: GET /a7Bk3Xq
+    API->>Cache: GET a7Bk3Xq
+    alt Cache HIT
+        Cache-->>API: long_url
+    else Cache MISS
+        API->>DB: SELECT long_url WHERE short_code = 'a7Bk3Xq'
+        DB-->>API: long_url
+        API->>Cache: SET cache
+    end
+    API-->>C: 302 Redirect (Location: long_url)
 \`\`\`
 
 ## Base-62 Encoding Example
@@ -415,143 +404,74 @@ Many modern websites (SPAs built with React, Angular, Vue) serve an empty HTML s
 `,
     code: `## Full Crawl Loop Architecture
 
-\`\`\`
-                    ┌─────────────┐
-                    │  Seed URLs   │
-                    └──────┬──────┘
-                           │
-                           ▼
-                    ┌─────────────┐
-              ┌────▶│ URL Frontier │◀───────────────────────────────┐
-              │     │ (Priority +  │                                 │
-              │     │  Politeness)  │                                 │
-              │     └──────┬──────┘                                 │
-              │            │                                         │
-              │            ▼                                         │
-              │     ┌─────────────┐     ┌──────────────┐            │
-              │     │    HTML      │────▶│ DNS Resolver  │            │
-              │     │  Downloader  │◀────│ (with cache)  │            │
-              │     └──────┬──────┘     └──────────────┘            │
-              │            │                                         │
-              │            ▼                                         │
-              │     ┌─────────────┐                                  │
-              │     │  Content     │── Duplicate? ──▶ DISCARD        │
-              │     │  Parser +   │                                  │
-              │     │  Dedup      │── Unique? ──┐                   │
-              │     └─────────────┘              │                   │
-              │                                  ▼                   │
-              │                          ┌──────────────┐            │
-              │                          │   Storage     │            │
-              │                          │ (WARC/HDFS)   │            │
-              │                          └──────────────┘            │
-              │                                  │                   │
-              │                                  ▼                   │
-              │                          ┌──────────────┐            │
-              │                          │ URL Extractor │            │
-              │                          └──────┬───────┘            │
-              │                                 │                    │
-              │                                 ▼                    │
-              │                          ┌──────────────┐            │
-              │                          │  URL Filter   │            │
-              │                          │ (blocklist,   │            │
-              │                          │  schemes,     │            │
-              │                          │  extensions)  │            │
-              │                          └──────┬───────┘            │
-              │                                 │                    │
-              │                                 ▼                    │
-              │                          ┌──────────────┐            │
-              │                          │  URL Dedup    │────────────┘
-              │                          │ (Bloom filter)│   New URLs
-              │                          └──────────────┘
-              │                                 │
-              │                            Already seen
-              │                                 │
-              │                                 ▼
-              │                              DISCARD
-              │
-              └──── (loop continues) ────
+\`\`\`mermaid
+graph TD
+    N0["URL Frontier"]
+    N2["HTML Downloader"]
+    N3["Content Parser"]
+    N4[("Storage (WARC/HDFS)")]
+    N5["URL Extractor"]
+    N6["URL Filter"]
+    N7["URL Dedup (Bloom filter)"]
+    N0 --> N2
+    N2 --> N3
+    N3 --> N4
+    N3 --> N5
+    N5 --> N6
+    N6 --> N7
+    N7 --> N0
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## URL Frontier Internal Structure
 
-\`\`\`
-Incoming URLs
-      │
-      ▼
-┌──────────────────────────────────────────────────┐
-│                  URL FRONTIER                      │
-│                                                    │
-│  ┌──────────────────────────────────────────────┐ │
-│  │          PRIORITIZER (Front Queue)            │ │
-│  │                                                │ │
-│  │  ┌──────────┐ ┌──────────┐ ┌──────────────┐  │ │
-│  │  │ Priority │ │ Priority │ │  Priority    │  │ │
-│  │  │ Queue 1  │ │ Queue 2  │ │  Queue N     │  │ │
-│  │  │ (HIGH)   │ │ (MEDIUM) │ │  (LOW)       │  │ │
-│  │  │          │ │          │ │              │  │ │
-│  │  │ cnn.com  │ │ blog.xyz │ │ random.page │  │ │
-│  │  │ bbc.com  │ │ docs.dev │ │ old-site.io │  │ │
-│  │  └────┬─────┘ └────┬─────┘ └──────┬──────┘  │ │
-│  │       │             │              │          │ │
-│  └───────┴─────────────┴──────────────┴──────────┘ │
-│                        │                            │
-│                        ▼                            │
-│  ┌──────────────────────────────────────────────┐  │
-│  │       POLITENESS ROUTER (Back Queue)          │  │
-│  │                                                │  │
-│  │  Maps each host to its own FIFO queue          │  │
-│  │                                                │  │
-│  │  ┌──────────┐ ┌──────────┐ ┌──────────────┐  │  │
-│  │  │cnn.com   │ │bbc.com   │ │ blog.xyz     │  │  │
-│  │  │ Queue    │ │ Queue    │ │ Queue        │  │  │
-│  │  │          │ │          │ │              │  │  │
-│  │  │ /sports  │ │ /news    │ │ /post/1      │  │  │
-│  │  │ /tech    │ │ /world   │ │ /post/2      │  │  │
-│  │  │ /biz     │ │ /science │ │ /post/3      │  │  │
-│  │  └────┬─────┘ └────┬─────┘ └──────┬──────┘  │  │
-│  │       │             │              │          │  │
-│  │  next: 10:01:03  10:01:05     10:01:07       │  │
-│  │  (earliest allowed fetch time per host)       │  │
-│  └───────────────────────────────────────────────┘  │
-│                                                      │
-└──────────────────────────────────────────────────────┘
-                        │
-                        ▼
-              Pick host queue whose
-              "next fetch time" has passed
-                        │
-                        ▼
-                 HTML Downloader
+\`\`\`mermaid
+graph TD
+    N0["URL FRONTIER"]
+    N1["PRIORITIZER (Front Queue)"]
+    N2["Priority Queue 1"]
+    N3["Priority Queue 2"]
+    N4["Priority Queue N"]
+    N5["POLITENESS ROUTER (Back Queue)"]
+    N6["cnn.com Queue"]
+    N7["bbc.com Queue"]
+    N8["blog.xyz Queue"]
+    N0 --> N1
+    N1 --> N2
+    N1 --> N3
+    N1 --> N4
+    N2 --> N5
+    N3 --> N5
+    N4 --> N5
+    N5 --> N6
+    N5 --> N7
+    N5 --> N8
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N8 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## Distributed Multi-Region Setup
 
-\`\`\`
-                    ┌──────────────────┐
-                    │  Coordinator /   │
-                    │  URL Dispatcher   │
-                    └────────┬─────────┘
-                             │
-              ┌──────────────┼──────────────┐
-              │              │              │
-              ▼              ▼              ▼
-    ┌─────────────┐ ┌──────────────┐ ┌──────────────┐
-    │  US Region   │ │  EU Region    │ │ Asia Region   │
-    │              │ │               │ │               │
-    │ Crawlers ×50 │ │ Crawlers ×30  │ │ Crawlers ×30  │
-    │ DNS Cache    │ │ DNS Cache     │ │ DNS Cache     │
-    │ URL Frontier │ │ URL Frontier  │ │ URL Frontier  │
-    │ Local Store  │ │ Local Store   │ │ Local Store   │
-    └──────┬──────┘ └──────┬───────┘ └──────┬───────┘
-           │               │               │
-           └───────────────┼───────────────┘
-                           │
-                           ▼
-                 ┌──────────────────┐
-                 │  Central Storage  │
-                 │  (HDFS / S3)      │
-                 │  Global URL Dedup │
-                 └──────────────────┘
+\`\`\`mermaid
+graph TD
+    N0["US Region Crawlers x50"]
+    N1[("Central Storage (HDFS / S3)")]
+    N0 --> N1
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 `,
     jsCode: `## Deep Dive: URL Frontier (Priority + Politeness)
@@ -799,161 +719,128 @@ The system is organized into three layers:
 `,
     code: `## Full Notification Flow
 
-\`\`\`
-┌────────────┐  ┌────────────┐  ┌────────────┐
-│ Service A  │  │ Service B  │  │ Service C  │
-│ (Orders)   │  │ (Auth)     │  │ (Marketing)│
-└─────┬──────┘  └─────┬──────┘  └─────┬──────┘
-      │               │               │
-      └───────────────┼───────────────┘
-                      │
-                      ▼
-            ┌──────────────────┐
-            │  Notification    │
-            │  Service (API)   │
-            │                  │
-            │  • Validate      │
-            │  • Dedup         │
-            │  • Log (PENDING) │
-            └────────┬─────────┘
-                     │
-                     ▼
-            ┌──────────────────┐
-            │  Queue Router    │
-            │                  │
-            │  • Preferences   │
-            │  • Device lookup │
-            │  • Template      │
-            │  • Rate limit    │
-            └────────┬─────────┘
-                     │
-        ┌────────────┼────────────┬──────────────┐
-        │            │            │              │
-        ▼            ▼            ▼              ▼
-  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐
-  │ iOS Push │ │ Android  │ │   SMS    │ │  Email   │
-  │  Queue   │ │ Push Q   │ │  Queue   │ │  Queue   │
-  └────┬─────┘ └────┬─────┘ └────┬─────┘ └────┬─────┘
-       │            │            │            │
-       ▼            ▼            ▼            ▼
-  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐
-  │  APNs    │ │   FCM    │ │  Twilio  │ │ SendGrid │
-  │ Workers  │ │ Workers  │ │ Workers  │ │ Workers  │
-  └────┬─────┘ └────┬─────┘ └────┬─────┘ └────┬─────┘
-       │            │            │            │
-       ▼            ▼            ▼            ▼
-  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐
-  │  Apple   │ │  Google  │ │  Twilio  │ │ SendGrid │
-  │  APNs   │ │   FCM    │ │   API    │ │   API    │
-  └──────────┘ └──────────┘ └──────────┘ └──────────┘
+\`\`\`mermaid
+graph TD
+    N0["Service A (Orders)"]
+    N1["Service B (Auth)"]
+    N2["Service C (Marketing)"]
+    N3["Notification Service (API)"]
+    N4["Queue Router"]
+    N5["iOS Push Queue"]
+    N6["Android Push Q"]
+    N7["SMS Queue"]
+    N8["Email Queue"]
+    N9["APNs Workers"]
+    N10["FCM Workers"]
+    N11["Twilio Workers"]
+    N12["SendGrid Workers"]
+    N13["Apple APNs"]
+    N14["Google FCM"]
+    N15["Twilio"]
+    N16["SendGrid"]
+    N0 --> N3
+    N1 --> N3
+    N2 --> N3
+    N3 --> N4
+    N4 --> N5
+    N4 --> N6
+    N4 --> N7
+    N4 --> N8
+    N5 --> N9
+    N6 --> N10
+    N7 --> N11
+    N8 --> N12
+    N9 --> N13
+    N10 --> N14
+    N11 --> N15
+    N12 --> N16
+    style N0 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N8 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N9 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N10 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N11 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N12 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N13 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N14 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N15 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N16 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## Internal Processing Pipeline
 
-\`\`\`
-Incoming Request
-      │
-      ▼
-┌──────────────────────────────────────────────┐
-│           NOTIFICATION SERVICE                │
-│                                                │
-│  ┌────────────────┐                            │
-│  │  Rate Limiter   │── Over limit? → 429 ──▶  │
-│  │  (per user)     │                           │
-│  └───────┬────────┘                            │
-│          │ OK                                  │
-│          ▼                                     │
-│  ┌────────────────┐                            │
-│  │  Dedup Check    │── Duplicate? → Skip ──▶  │
-│  │  (event_id in   │                           │
-│  │   Redis)        │                           │
-│  └───────┬────────┘                            │
-│          │ New                                  │
-│          ▼                                     │
-│  ┌────────────────┐                            │
-│  │  Preference     │── Opted out? → Skip ──▶  │
-│  │  Check          │                           │
-│  └───────┬────────┘                            │
-│          │ Opted in                             │
-│          ▼                                     │
-│  ┌────────────────┐                            │
-│  │  Device Lookup  │── No device? → Skip ──▶  │
-│  │  (for push)     │     (or fallback to       │
-│  └───────┬────────┘      email/SMS)            │
-│          │                                     │
-│          ▼                                     │
-│  ┌────────────────┐                            │
-│  │  Template       │                           │
-│  │  Renderer       │                           │
-│  └───────┬────────┘                            │
-│          │                                     │
-│          ▼                                     │
-│  ┌────────────────┐                            │
-│  │  Notification   │                           │
-│  │  Log (DB)       │── Status: PENDING         │
-│  └───────┬────────┘                            │
-│          │                                     │
-│          ▼                                     │
-│  ┌────────────────┐                            │
-│  │  Queue Router   │── Route to correct queue  │
-│  └────────────────┘                            │
-│                                                │
-└──────────────────────────────────────────────┘
+\`\`\`mermaid
+graph TD
+    N0["NOTIFICATION SERVICE"]
+    N1["Rate Limiter"]
+    N2["Dedup Check"]
+    N3["Preference Check"]
+    N4["Device Lookup"]
+    N5["Template Renderer"]
+    N6[("Notification Log (DB)")]
+    N7["Queue Router"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    N3 --> N4
+    N4 --> N5
+    N5 --> N6
+    N5 --> N7
+    style N0 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## Retry Flow
 
-\`\`\`
-Channel Queue (e.g., sms_queue)
-        │
-        ▼
-   ┌─────────┐
-   │ Worker   │
-   │ attempts │
-   │ delivery │
-   └────┬────┘
-        │
-   ┌────┴─────┐
-   │          │
-Success    Failure
-   │          │
-   ▼          ▼
-Update    retry_count < 3?
-status    ┌────┴─────┐
-DELIVERED │          │
-          YES        NO
-          │          │
-          ▼          ▼
-     Re-enqueue   Move to DLQ
-     with         Update status
-     exponential  → FAILED
-     backoff      Alert ops team
-     (1s,5s,30s)
+\`\`\`mermaid
+graph TD
+    N0["Worker attempts delivery"]
+    N1{"Delivery successful?"}
+    N2["Mark as DELIVERED"]
+    N3{"Retries < max?"}
+    N4["Wait with exponential backoff"]
+    N5["Move to Dead Letter Queue"]
+    N0 --> N1
+    N1 -->|Yes| N2
+    N1 -->|No| N3
+    N3 -->|Yes| N4
+    N4 --> N0
+    N3 -->|No| N5
+    style N0 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## Event Tracking Pipeline
 
-\`\`\`
-Workers (on send/deliver/fail)
-        │
-        │  Emit events
-        ▼
-  ┌──────────┐     ┌──────────────┐     ┌──────────────┐
-  │  Kafka   │────▶│  Stream      │────▶│  Analytics   │
-  │  Topic   │     │  Processor   │     │  Dashboard   │
-  │          │     │  (Flink)     │     │  (Grafana)   │
-  └──────────┘     └──────┬───────┘     └──────────────┘
-                          │
-                          ▼
-                   ┌──────────────┐
-                   │  Metrics DB  │
-                   │  (ClickHouse)│
-                   │              │
-                   │  • send rate │
-                   │  • fail rate │
-                   │  • latency   │
-                   │  • by channel│
-                   └──────────────┘
+\`\`\`mermaid
+graph TD
+    N0["Kafka Topic"]
+    N1["Stream Processor"]
+    N2["Analytics Dashboard"]
+    N3[("Metrics DB (ClickHouse)")]
+    N0 --> N1
+    N1 --> N3
+    N3 --> N2
+    style N0 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 `,
     jsCode: `## Deep Dive: Reliability with Persistent Notification Log
@@ -988,18 +875,14 @@ Upstream services may accidentally send the same notification event multiple tim
 
 Preferences are stored as a matrix of (user, channel, notification_type) → enabled/disabled:
 
-\`\`\`
-User 1234 Preferences:
-┌───────────────────┬──────┬──────┬───────┐
-│ Notification Type │ Push │ SMS  │ Email │
-├───────────────────┼──────┼──────┼───────┤
-│ Transactional     │  ✓   │  ✓   │  ✓    │
-│ Security          │  ✓   │  ✓   │  ✓    │
-│ Marketing         │  ✓   │  ✗   │  ✓    │
-│ Social            │  ✓   │  ✗   │  ✗    │
-│ Product Updates   │  ✗   │  ✗   │  ✓    │
-└───────────────────┴──────┴──────┴───────┘
-\`\`\`
+**User 1234 Preferences:**
+
+| Notification Type | Email | SMS | Push |
+|-------------------|-------|-----|------|
+| Security (2FA, password) | Always ON | Always ON | Always ON |
+| Transactional (orders) | ON | OFF | ON |
+| Social (likes, follows) | OFF | OFF | ON |
+| Marketing (promos) | OFF | OFF | OFF |
 
 **Rules:**
 - Security notifications (password reset, 2FA) are always sent regardless of preferences — these are mandatory.
@@ -1182,166 +1065,97 @@ Each user's feed cache holds the top 200-500 post IDs sorted by time/rank. The a
 `,
     code: `## Feed Publishing Flow
 
-\`\`\`
-User publishes post
-        │
-        ▼
-┌────────────────┐
-│  Post Service   │
-│                 │
-│  1. Validate    │
-│  2. Store post  │
-│     in DB       │
-│  3. Store media │
-│     refs in CDN │
-└───────┬────────┘
-        │
-        ├──────────────────────────┐
-        │                          │
-        ▼                          ▼
-┌────────────────┐      ┌──────────────────┐
-│ Fanout Service  │      │ Notification Svc  │
-│                 │      │                   │
-│ Is author a     │      │ Notify close      │
-│ celebrity?      │      │ friends           │
-│                 │      └──────────────────┘
-│ ┌─────┴──────┐ │
-│ │            │ │
-│ NO          YES│
-│ │            │ │
-│ │     Skip fanout
-│ │     (pull at │
-│ │     read time)
-│ │              │
-│ ▼              │
-│ Get follower   │
-│ list           │
-│ │              │
-│ ▼              │
-│ For each       │
-│ follower:      │
-│ ZADD feed:uid  │
-│ timestamp      │
-│ post_id        │
-│ │              │
-│ ▼              │
-│ Trim feed      │
-│ to top 200     │
-└────────────────┘
+\`\`\`mermaid
+graph TD
+    N0["Post Service"]
+    N1["Fanout Service"]
+    N2["(pull at read time)"]
+    N0 --> N1
+    N0 --> N2
+    style N0 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## Feed Retrieval Flow
 
-\`\`\`
-User requests feed
-        │
-        ▼
-┌────────────────────────────────────────────┐
-│              Feed Service                    │
-│                                              │
-│  1. Get pre-computed feed from cache         │
-│     ZREVRANGE feed:{user_id} cursor size     │
-│     ─────────────────────────────────────    │
-│     Result: [post_id_1, post_id_2, ...]      │
-│                                              │
-│  2. Get celebrity posts (pull model)         │
-│     For each celebrity the user follows:     │
-│       GET recent posts from post cache       │
-│     ─────────────────────────────────────    │
-│     Result: [celeb_post_1, celeb_post_2]     │
-│                                              │
-│  3. Merge + Rank                             │
-│     Combine both lists                       │
-│     Apply ranking algorithm                  │
-│     Sort by score                            │
-│     ─────────────────────────────────────    │
-│     Result: [ranked_post_1, ranked_post_2]   │
-│                                              │
-│  4. Hydrate post details                     │
-│     For each post_id, fetch from post cache: │
-│       → author info (name, avatar)           │
-│       → content (text, media URLs)           │
-│       → engagement (likes, comments count)   │
-│     ─────────────────────────────────────    │
-│     Result: full post objects                │
-│                                              │
-│  5. Return paginated response                │
-│     { posts: [...], next_cursor: "..." }     │
-└──────────────────────────────────────────────┘
+\`\`\`mermaid
+graph TD
+    N0["User requests feed"]
+    N1["Feed Service"]
+    N2[("Redis Feed Cache")]
+    N3{"Cache hit?"}
+    N4["Return cached feed"]
+    N5["Query Social Graph + Posts DB"]
+    N6["Rank and assemble feed"]
+    N7["Cache result in Redis"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    N3 -->|Yes| N4
+    N3 -->|No| N5
+    N5 --> N6
+    N6 --> N7
+    N7 --> N4
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## Fanout Service Sequence Diagram
 
-\`\`\`
-Post Service          Message Queue        Fanout Workers       Redis (Feed Cache)
-     │                     │                    │                      │
-     │  Publish event      │                    │                      │
-     │  {post_id, user_id} │                    │                      │
-     │────────────────────▶│                    │                      │
-     │                     │  Consume event     │                      │
-     │                     │───────────────────▶│                      │
-     │                     │                    │                      │
-     │                     │                    │  Get followers        │
-     │                     │                    │  of user_id          │
-     │                     │                    │──────────────────────▶│
-     │                     │                    │  [follower_1, ...,   │
-     │                     │                    │   follower_N]        │
-     │                     │                    │◀──────────────────────│
-     │                     │                    │                      │
-     │                     │                    │  For each follower:  │
-     │                     │                    │  ZADD feed:{fid}     │
-     │                     │                    │  timestamp post_id   │
-     │                     │                    │──────────────────────▶│
-     │                     │                    │                      │
-     │                     │                    │  ZREMRANGEBYRANK     │
-     │                     │                    │  (keep top 200)      │
-     │                     │                    │──────────────────────▶│
-     │                     │                    │                      │
-     │                     │                    │  ACK                 │
-     │                     │                    │──────▶               │
+\`\`\`mermaid
+sequenceDiagram
+    participant PS as Post Service
+    participant MQ as Message Queue
+    participant FW as Fanout Workers
+    participant R as Redis (Feed Cache)
+
+    PS->>MQ: Publish event {post_id, user_id}
+    MQ->>FW: Consume event
+    FW->>R: Get followers of user_id
+    R-->>FW: [follower_1, ..., follower_N]
+    loop For each follower
+        FW->>R: ZADD feed:{fid} timestamp post_id
+        FW->>R: ZREMRANGEBYRANK (keep top 200)
+    end
+    FW-->>MQ: ACK
 \`\`\`
 
 ## Overall System Architecture
 
-\`\`\`
-                    ┌──────────┐
-                    │  Client   │
-                    │ (Mobile/  │
-                    │  Web)     │
-                    └─────┬────┘
-                          │
-                          ▼
-                    ┌──────────┐
-                    │   CDN     │◀─── Static media (images, videos)
-                    └─────┬────┘
-                          │
-                          ▼
-                    ┌───────────┐
-                    │    LB     │
-                    └─────┬─────┘
-                          │
-               ┌──────────┼──────────┐
-               │          │          │
-               ▼          ▼          ▼
-          ┌─────────┐┌─────────┐┌─────────┐
-          │ Post    ││ Feed    ││ User    │
-          │ Service ││ Service ││ Service │
-          └────┬────┘└────┬────┘└─────────┘
-               │          │
-               ▼          ▼
-          ┌─────────┐┌─────────────────┐
-          │ Post DB ││ Feed Cache      │
-          │ (MySQL  ││ (Redis Cluster) │
-          │ sharded)││                 │
-          └─────────┘│ feed:{uid} →    │
-               │     │ sorted set of   │
-               │     │ post_ids        │
-               ▼     └─────────────────┘
-          ┌─────────┐
-          │ Post    │
-          │ Cache   │
-          │ (Redis) │
-          └─────────┘
+\`\`\`mermaid
+graph TD
+    N0["CDN"]
+    N1["LB"]
+    N2["Post Service"]
+    N3["Feed Service"]
+    N4["User Service"]
+    N5[("Post DB (MySQL)")]
+    N6["Feed Cache (Redis Cluster)"]
+    N7["Post Cache"]
+    N0 --> N1
+    N1 --> N2
+    N1 --> N3
+    N1 --> N4
+    N2 --> N5
+    N2 --> N7
+    N3 --> N6
+    N3 --> N7
+    N4 --> N5
+    style N0 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
 \`\`\`
 `,
     jsCode: `## Deep Dive: Push Model (Fanout-on-Write)

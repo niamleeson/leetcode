@@ -66,132 +66,141 @@ A **Trie Serving Layer** holds the prefix trie in memory across sharded nodes. E
 `,
     code: `## Architecture Diagram
 
-\`\`\`
-+----------+       +-----------------+       +--------------------+
-| Client   |------>| Load Balancer   |------>| Trie Serving Nodes |
-| (Browser)|<------| (L7 / CDN)     |<------| (In-Memory Trie)   |
-+----------+  JSON +-----------------+       +---------+----------+
-                                                       |
-                          Trie built offline            |
-                   +-----------------------------------+
-                   |
-          +--------v---------+     +--------------------+
-          | Trie Builder     |---->| Blob Storage       |
-          | (MapReduce Job)  |     | (S3 / GCS)         |
-          |                  |     | Serialized trie     |
-          | Aggregate freqs  |     | snapshots           |
-          | Build trie       |     +----------+---------+
-          +--------+---------+                |
-                   |                          | download
-          +--------v---------+     +----------v----------+
-          | Search Log       |     | Trie Serving Nodes  |
-          | Aggregation      |     | Load new snapshot   |
-          | (Kafka + Spark)  |     | Hot-swap in memory  |
-          +------------------+     +---------------------+
+\`\`\`mermaid
+graph TD
+    N0["Client"]
+    N1["Load Balancer"]
+    N2["Trie Serving Nodes"]
+    N3["Trie Builder"]
+    N4["Blob Storage"]
+    N5["Serialized trie"]
+    N6["Aggregate freqs"]
+    N7["Build trie"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    N3 --> N4
+    N4 --> N5
+    N5 --> N6
+    N6 --> N7
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## Query Flow (Prefix Lookup)
 
-\`\`\`
-Client           LB / CDN        Trie Server
-  |                 |                 |
-  | GET ?prefix=ho  |                 |
-  |---------------->|                 |
-  |                 |  Route by hash  |
-  |                 |---------------->|
-  |                 |                 | Traverse trie
-  |                 |                 | to node "ho"
-  |                 |                 | Return pre-computed
-  |                 |                 | top-k at that node
-  |                 |  [hotel, home,  |
-  |                 |   honda, hot..] |
-  |                 |<----------------|
-  | suggestions     |                 |
-  |<----------------|                 |
+\`\`\`mermaid
+sequenceDiagram
+    participant P0 as Client
+    participant P1 as LB / CDN
+    participant P2 as Trie Server
+    P0->>P1: request
+    P1-->>P0: response
+    P1->>P2: request
+    P2-->>P1: response
 \`\`\`
 
 ## Trie Update Flow (Offline)
 
-\`\`\`
-Search Logs     Kafka       Spark Aggregation     Trie Builder     Serving Nodes
-    |              |               |                   |                 |
-    | user search  |               |                   |                 |
-    |------------->|               |                   |                 |
-    |              | batch (hourly)|                   |                 |
-    |              |-------------->|                   |                 |
-    |              |               | aggregate counts  |                 |
-    |              |               | apply time-decay  |                 |
-    |              |               |------------------>|                 |
-    |              |               |                   | build new trie  |
-    |              |               |                   | serialize to S3 |
-    |              |               |                   |------>          |
-    |              |               |                   |       download  |
-    |              |               |                   |  notification   |
-    |              |               |                   |---------------->|
-    |              |               |                   |                 | hot-swap
+\`\`\`mermaid
+sequenceDiagram
+    participant P0 as Search Logs
+    participant P1 as Kafka
+    participant P2 as Spark Aggregation
+    participant P3 as Trie Builder
+    participant P4 as Serving Nodes
+    P0->>P1: request
+    P1-->>P0: response
+    P1->>P2: request
+    P2-->>P1: response
+    P2->>P3: request
+    P3-->>P2: response
+    P3->>P4: request
+    P4-->>P3: response
 \`\`\`
 `,
     jsCode: `## Deep Dive: Trie Design with Pre-Computed Top-K
 
 The trie stores pre-computed top-k results at every node, eliminating query-time sorting.
 
-\`\`\`
-Root
- |
- +-- h (top5: [hotel, home, honda, how, hello])
- |   |
- |   +-- o (top5: [hotel, home, honda, how, house])
- |   |   |
- |   |   +-- t (top5: [hotel, hot, hotdog, hotmail, hotspot])
- |   |   |   |
- |   |   |   +-- e (top5: [hotel, hotels, hotel.com, ...])
- |   |   |   +-- d (top5: [hotdog, hotdogs, ...])
- |   |   |
- |   |   +-- m (top5: [home, homegoods, homework, ...])
- |   |   +-- n (top5: [honda, honesty, honey, ...])
- |   |
- |   +-- e (top5: [hello, help, health, heart, heat])
- |
- +-- w (top5: [weather, walmart, wiki, ...])
+\`\`\`mermaid
+graph TD
+    N0["Root"]
+    N1["h (top5: [hotel, home, honda, how, hello])"]
+    N2["o (top5: [hotel, home, honda, how, house])"]
+    N3["t (top5: [hotel, hot, hotdog, hotmail, hotspot])"]
+    N4["e (top5: [hotel, hotels, hotel.com, ...])"]
+    N5["d (top5: [hotdog, hotdogs, ...])"]
+    N6["m (top5: [home, homegoods, homework, ...])"]
+    N7["n (top5: [honda, honesty, honey, ...])"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    N3 --> N4
+    N4 --> N5
+    N5 --> N6
+    N6 --> N7
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 **Building top-k at each node**: During trie construction, propagate the top-k results upward. Each leaf has its own frequency. Each internal node merges the top-k lists from its children, keeping only the highest-k. This is a bottom-up O(N * k) pass over the trie.
 
 **Compressed trie (Patricia trie)**: Collapse single-child chains into one node. "hot" becomes a single node instead of h->o->t. Reduces node count by ~60%, saving memory and traversal time.
 
-\`\`\`
-Before compression:          After compression:
-
-  h                            h
-  |                            |
-  o                           "ot" (single node)
-  |                            |
-  t                           +--"el" -> hotel
-  |                           +--"dog" -> hotdog
-  e
-  |
-  l -> hotel
+\`\`\`mermaid
+graph TD
+    N0["Before compression: After compression:"]
+    N1["o 'ot' (single node)"]
+    N2["t 'el' hotel"]
+    N3["'dog' hotdog"]
+    N4["l hotel"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    N3 --> N4
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ---
 
 ## Deep Dive: Sharding Strategy
 
-\`\`\`
-+---------------------------------------------------+
-| Shard Assignment (by prefix range)                 |
-|                                                    |
-|  +----------+  +----------+  +----------+          |
-|  | Shard 0  |  | Shard 1  |  | Shard 2  |   ...   |
-|  | a-f      |  | g-n      |  | o-z      |          |
-|  |          |  |          |  |          |          |
-|  | Replicas:|  | Replicas:|  | Replicas:|          |
-|  |  R1, R2  |  |  R1, R2  |  |  R1, R2  |          |
-|  +----------+  +----------+  +----------+          |
-+---------------------------------------------------+
-
-Client prefix "ho..." -> first char 'h' -> Shard 1
-Client prefix "we..." -> first char 'w' -> Shard 2
+\`\`\`mermaid
+graph TD
+    N0["Shard Assignment (by prefix range)"]
+    N1["Shard 0"]
+    N2["Shard 1"]
+    N3["Shard 2"]
+    N4["Replicas:"]
+    N5["R1, R2"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    N3 --> N4
+    N4 --> N5
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 **Why prefix-range sharding, not hash sharding?**
@@ -205,29 +214,19 @@ Client prefix "we..." -> first char 'w' -> Shard 2
 
 ## Deep Dive: Frequency Aggregation with Time Decay
 
-\`\`\`
-+------------------------------------------------------+
-| Time-Weighted Frequency Calculation                   |
-|                                                       |
-|  Raw search logs:                                     |
-|  [hotel: 50K/hr, home: 30K/hr, honda: 10K/hr]        |
-|                                                       |
-|  Time decay formula:                                  |
-|  score = SUM(count_i * decay^(hours_since_search_i))  |
-|  decay = 0.99 (per hour)                              |
-|                                                       |
-|  +------------------------------------------------+   |
-|  | Hour ago | "hotel" count | weight | contribution|  |
-|  |----------|---------------|--------|-------------|  |
-|  |    0     |    50,000     | 1.00   |   50,000    |  |
-|  |    1     |    48,000     | 0.99   |   47,520    |  |
-|  |    2     |    45,000     | 0.98   |   44,100    |  |
-|  |   24     |    40,000     | 0.79   |   31,450    |  |
-|  |  168     |    35,000     | 0.18   |    6,380    |  |
-|  +------------------------------------------------+   |
-|                                                       |
-|  Recent searches matter more -> trending terms rise   |
-+------------------------------------------------------+
+\`\`\`mermaid
+graph TD
+    N0["Time-Weighted Frequency Calculation"]
+    N1["Raw search logs:"]
+    N2["Time decay formula:"]
+    N3["Hour ago"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
 \`\`\`
 `,
     explanation: `## Bottlenecks & Improvements
@@ -337,124 +336,85 @@ A **Scheduler Service** accepts task submissions and persists them to a **time-i
 `,
     code: `## Architecture Diagram
 
-\`\`\`
-+----------+       +-----------------+       +-------------------+
-| Clients  |------>| API Gateway     |------>| Scheduler Service |
-| (Apps)   |<------| (Rate Limit)    |<------| (Stateless)       |
-+----------+       +-----------------+       +--------+----------+
-                                                      |
-                                             +--------v----------+
-                                             | Task Store         |
-                                             | (Partitioned DB)   |
-                                             | Indexed by         |
-                                             | execute_at + prio  |
-                                             +--------+----------+
-                                                      |
-                                             +--------v----------+
-                                             | Dispatcher         |
-                                             | (Leader-elected)   |
-                                             | Scans for due      |
-                                             | tasks per second   |
-                                             +--------+----------+
-                                                      |
-                          +---------------------------+---------------------------+
-                          |                           |                           |
-                 +--------v--------+        +---------v-------+        +---------v-------+
-                 | Priority Queue  |        | Priority Queue  |        | Priority Queue  |
-                 | CRITICAL / HIGH |        | NORMAL          |        | LOW             |
-                 | (Kafka topic)   |        | (Kafka topic)   |        | (Kafka topic)   |
-                 +--------+--------+        +---------+-------+        +---------+-------+
-                          |                           |                           |
-                 +--------v--------+        +---------v-------+        +---------v-------+
-                 | Worker Pool     |        | Worker Pool     |        | Worker Pool     |
-                 | (High Priority) |        | (Normal)        |        | (Low Priority)  |
-                 +-----------------+        +-----------------+        +-----------------+
+\`\`\`mermaid
+graph TD
+    N0["Clients"]
+    N1["API Gateway"]
+    N2["Scheduler Service"]
+    N3["Task Store"]
+    N4["Indexed by"]
+    N5["Dispatcher"]
+    N6["Scans for due"]
+    N7["Priority Queue"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    N3 --> N4
+    N4 --> N5
+    N5 --> N6
+    N6 --> N7
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## Task Lifecycle Flow
 
-\`\`\`
-Client          Scheduler       Task Store      Dispatcher      Queue       Worker
-  |                |                |               |              |           |
-  | POST /tasks    |                |               |              |           |
-  |--------------->|                |               |              |           |
-  |                | persist task   |               |              |           |
-  |                |--------------->|               |              |           |
-  |                |    ACK         |               |              |           |
-  |  { task_id }   |<--------------|               |              |           |
-  |<---------------|                |               |              |           |
-  |                |                |               |              |           |
-  |                |                | scan due tasks|              |           |
-  |                |                |<--------------|              |           |
-  |                |                | [task1,task2] |              |           |
-  |                |                |-------------->|              |           |
-  |                |                |               | enqueue      |           |
-  |                |                |               |------------->|           |
-  |                |                |               |              | dequeue   |
-  |                |                |               |              |---------->|
-  |                |                |               |              |           | execute
-  |                |                |               |              |           |
-  |                |                | update status |              |  result   |
-  |                |                |<---------------------------------|
+\`\`\`mermaid
+sequenceDiagram
+    participant P0 as Client
+    participant P1 as Scheduler
+    participant P2 as Task Store
+    participant P3 as Dispatcher
+    participant P4 as Queue
+    participant P5 as Worker
+    P0->>P1: request
+    P1-->>P0: response
+    P1->>P2: request
+    P2-->>P1: response
+    P2->>P3: request
+    P3-->>P2: response
+    P3->>P4: request
+    P4-->>P3: response
+    P4->>P5: request
+    P5-->>P4: response
 \`\`\`
 
 ## Lease-Based Failure Recovery
 
-\`\`\`
-Worker A         Task Store        Dispatcher       Worker B
-  |                  |                  |                |
-  | acquire lease    |                  |                |
-  | (5 min timeout)  |                  |                |
-  |----------------->|                  |                |
-  |                  |                  |                |
-  | executing...     |                  |                |
-  |                  |                  |                |
-  | CRASH! (no ack)  |                  |                |
-  X                  |                  |                |
-  |                  | lease expired    |                |
-  |                  |<----- scan ------|                |
-  |                  |                  |                |
-  |                  | re-dispatch      |                |
-  |                  |------ task ----->|                |
-  |                  |                  | assign to B    |
-  |                  |                  |--------------->|
-  |                  |                  |                | execute
-  |                  |  complete + ack  |                |
-  |                  |<---------------------------------|
+\`\`\`mermaid
+sequenceDiagram
+    participant P0 as Worker A
+    participant P1 as Task Store
+    participant P2 as Dispatcher
+    participant P3 as Worker B
+    P0->>P1: request
+    P1-->>P0: response
+    P1->>P2: request
+    P2-->>P1: response
+    P2->>P3: request
+    P3-->>P2: response
 \`\`\`
 `,
     jsCode: `## Deep Dive: Time-Indexed Task Scanning
 
 The dispatcher must efficiently find tasks that are due for execution every second.
 
-\`\`\`
-+-------------------------------------------------------------+
-| Task Store (Partitioned by time bucket)                      |
-|                                                              |
-| Partition: 2024-01-15 14:00                                  |
-| +----------------------------------------------------------+ |
-| | execute_at          | priority | task_id  | status       | |
-| |---------------------|----------|----------|-------------- | |
-| | 2024-01-15 14:00:01 | 0 (crit) | task-a1  | pending      | |
-| | 2024-01-15 14:00:01 | 2 (norm) | task-b3  | pending      | |
-| | 2024-01-15 14:00:02 | 1 (high) | task-c7  | pending      | |
-| | 2024-01-15 14:00:03 | 0 (crit) | task-d2  | pending      | |
-| | ...                 | ...      | ...      | ...          | |
-| +----------------------------------------------------------+ |
-|                                                              |
-| Partition: 2024-01-15 14:01                                  |
-| +----------------------------------------------------------+ |
-| | (next minute's tasks)                                    | |
-| +----------------------------------------------------------+ |
-+-------------------------------------------------------------+
-
-Dispatcher query (every second):
-  SELECT * FROM tasks
-  WHERE execute_at <= NOW()
-    AND status = 'pending'
-  ORDER BY priority ASC, execute_at ASC
-  LIMIT 1000
-  FOR UPDATE SKIP LOCKED
+\`\`\`mermaid
+graph TD
+    N0["Task Store (Partitioned by time bucket)"]
+    N1["Partition: 2024-01-15 14:00"]
+    N2["Partition: 2024-01-15 14:01"]
+    N0 --> N1
+    N1 --> N2
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 **Why time-bucket partitioning?**
@@ -467,34 +427,19 @@ Dispatcher query (every second):
 
 ## Deep Dive: Cron Schedule Evaluation
 
-\`\`\`
-+------------------------------------------------------+
-| Cron Evaluation Service                               |
-|                                                       |
-| Active cron schedules: 10M                            |
-|                                                       |
-| +--------------------------------------------------+ |
-| | Cron entry:                                      | |
-| | schedule_id: cron-123                            | |
-| | expression: "0 */5 * * *" (every 5 min)          | |
-| | timezone: "America/New_York"                      | |
-| | next_fire_at: 2024-01-15 14:05:00 UTC            | |
-| +--------------------------------------------------+ |
-|                                                       |
-| Evaluation loop (every 30 seconds):                   |
-|                                                       |
-|   1. Query: next_fire_at <= NOW() + 60s               |
-|   2. For each due schedule:                           |
-|      a. Create concrete task with execute_at           |
-|      b. Compute and store next_fire_at                 |
-|      c. Insert task into Task Store                    |
-|                                                       |
-| +--------------------------------------------------+ |
-| | Sharding: 10M crons / 100 evaluator instances    | |
-| | = 100K crons per evaluator                       | |
-| | Each evaluator owns a hash range of schedule_ids | |
-| +--------------------------------------------------+ |
-+------------------------------------------------------+
+\`\`\`mermaid
+graph TD
+    N0["Cron Evaluation Service"]
+    N1["Active cron schedules: 10M"]
+    N2["Cron entry:"]
+    N3["Evaluation loop (every 30 seconds):"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 **Idempotent cron expansion**: Each cron firing is identified by (schedule_id, fire_time). If two evaluators try to create the same task, the unique constraint on (schedule_id, fire_time) prevents duplicates.
@@ -503,39 +448,31 @@ Dispatcher query (every second):
 
 ## Deep Dive: Worker Heartbeat and Lease Management
 
-\`\`\`
-+------------------------------------------------------+
-| Lease State Machine                                   |
-|                                                       |
-|  +----------+   dispatch  +------------+              |
-|  | PENDING  |------------>| DISPATCHED |              |
-|  +----------+             +------+-----+              |
-|                                  |                    |
-|                          worker picks up              |
-|                                  |                    |
-|                           +------v-----+              |
-|                           | RUNNING    |              |
-|                           | lease: 5m  |              |
-|                           +--+----+----+              |
-|                              |    |                   |
-|              heartbeat       |    | complete/fail     |
-|              extends lease   |    |                   |
-|              +------+        |    |                   |
-|              |      |        |    |                   |
-|              v      |        |    v                   |
-|           +--+------+-+   +--+----------+             |
-|           | RUNNING   |   | COMPLETED / |             |
-|           | lease+=5m |   | FAILED      |             |
-|           +-----------+   +------+------+             |
-|                                  |                    |
-|           lease expires          | retries exhausted  |
-|           (no heartbeat)         |                    |
-|                                  v                    |
-|           +------------+   +----------+               |
-|           | RE-DISPATCH|   |   DEAD   |               |
-|           | (attempt+1)|   | (DLQ)    |               |
-|           +------------+   +----------+               |
-+------------------------------------------------------+
+\`\`\`mermaid
+graph TD
+    N0["Lease State Machine"]
+    N1["PENDING"]
+    N2["DISPATCHED"]
+    N3["RUNNING"]
+    N4["COMPLETED /"]
+    N5["FAILED"]
+    N6["RE-DISPATCH"]
+    N7["DEAD"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    N3 --> N4
+    N4 --> N5
+    N5 --> N6
+    N6 --> N7
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 `,
     explanation: `## Bottlenecks & Improvements
@@ -642,126 +579,72 @@ A **URL Frontier** manages the queue of URLs to crawl, organized into per-domain
 `,
     code: `## Architecture Diagram
 
-\`\`\`
-+-------------+
-| Seed URLs   |
-+------+------+
-       |
-+------v------------------+       +---------------------+
-| URL Frontier             |       | Robots.txt Cache    |
-|                          |<----->| (Per-domain rules)  |
-| +------+ +------+       |       +---------------------+
-| |Domain| |Domain|  ...  |
-| |Queue | |Queue |       |       +---------------------+
-| |aaa.  | |bbb.  |       |       | DNS Resolver Cache  |
-| |com   | |org   |       |       | (Local + shared)    |
-| +--+---+ +--+---+       |       +---------------------+
-|    |        |            |
-| Priority ordering within |
-| each domain queue        |
-+------+------------------+
-       |
-       | next URL (respecting rate limits)
-       |
-+------v------------------+
-| Fetcher Workers          |
-| (Distributed pool)       |
-|                          |
-| - HTTP GET with timeout  |
-| - Follow redirects       |
-| - Respect crawl-delay    |
-+------+------------------+
-       |
-       | raw HTML + headers
-       |
-+------v------------------+       +---------------------+
-| Content Processor        |------>| Blob Storage (S3)   |
-|                          |       | Raw HTML archive    |
-| - Parse HTML             |       +---------------------+
-| - Extract links          |
-| - Compute content hash   |       +---------------------+
-| - Detect language        |------>| Content Dedup       |
-+------+------------------+       | (Bloom filter +     |
-       |                          |  SimHash for near-   |
-       | discovered URLs          |  duplicates)         |
-       |                          +---------------------+
-+------v------------------+
-| URL Filter               |
-|                          |
-| - Normalize URL          |
-| - Check robots.txt       |
-| - URL dedup (Bloom)      |
-| - Domain blocklist       |
-| - Depth limit check      |
-+------+------------------+
-       |
-       | new URLs
-       |
-       +-----> back to URL Frontier
+\`\`\`mermaid
+graph TD
+    N0["Seed URLs"]
+    N1["URL Frontier"]
+    N2["Robots.txt Cache"]
+    N3["Domain"]
+    N4["Queue"]
+    N5["DNS Resolver Cache"]
+    N6["Priority ordering within"]
+    N7["Fetcher Workers"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    N3 --> N4
+    N4 --> N5
+    N5 --> N6
+    N6 --> N7
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## Crawl Flow (Single Page)
 
-\`\`\`
-Frontier     Fetcher      DNS Cache    Web Server    Processor    URL Filter
-   |            |             |             |             |            |
-   | next URL   |             |             |             |            |
-   |----------->|             |             |             |            |
-   |            | resolve DNS |             |             |            |
-   |            |------------>|             |             |            |
-   |            | IP address  |             |             |            |
-   |            |<------------|             |             |            |
-   |            |             |             |             |            |
-   |            | HTTP GET    |             |             |            |
-   |            |---------------------------->             |            |
-   |            |             |  HTML resp  |             |            |
-   |            |<----------------------------|             |            |
-   |            |             |             |             |            |
-   |            | raw HTML    |             |             |            |
-   |            |------------------------------------->|            |
-   |            |             |             |  extract links          |
-   |            |             |             |  store HTML  |            |
-   |            |             |             |             | new URLs   |
-   |            |             |             |             |----------->|
-   |            |             |             |             |            | filter
-   |            |             |             |             |            | dedup
-   | enqueue    |             |             |             |            |
-   |<----------------------------------------------------------------|
+\`\`\`mermaid
+sequenceDiagram
+    participant P0 as Frontier
+    participant P1 as Fetcher
+    participant P2 as DNS Cache
+    participant P3 as Web Server
+    participant P4 as Processor
+    participant P5 as URL Filter
+    P0->>P1: request
+    P1-->>P0: response
+    P1->>P2: request
+    P2-->>P1: response
+    P2->>P3: request
+    P3-->>P2: response
+    P3->>P4: request
+    P4-->>P3: response
+    P4->>P5: request
+    P5-->>P4: response
 \`\`\`
 `,
     jsCode: `## Deep Dive: URL Frontier Architecture
 
 The frontier is the heart of the crawler -- it determines what gets crawled and in what order.
 
-\`\`\`
-+--------------------------------------------------------------+
-| URL Frontier                                                  |
-|                                                               |
-| Front Queues (Priority-based)                                 |
-| +----------------------------------------------------------+ |
-| | Priority 0 (Critical):  [cnn.com/..., bbc.com/...]      | |
-| | Priority 1 (High):      [github.com/..., wiki/...]      | |
-| | Priority 2 (Normal):    [blog.example.com/...]           | |
-| | Priority 3 (Low):       [archive.example.com/...]       | |
-| +---------------------------+------------------------------+ |
-|                             |                                 |
-|                    select by priority                         |
-|                    (weighted random)                          |
-|                             |                                 |
-| Back Queues (Domain-based)  v                                 |
-| +----------------------------------------------------------+ |
-| | cnn.com:    [/page1, /page2, /page3] last_fetch: 14:00  | |
-| | bbc.com:    [/news, /sport, /world]  last_fetch: 14:01  | |
-| | github.com: [/repo1, /repo2]         last_fetch: 13:59  | |
-| | wiki...:    [/article1, /article2]   last_fetch: 14:00  | |
-| +---------------------------+------------------------------+ |
-|                             |                                 |
-|                    select domain where                        |
-|                    now - last_fetch >= crawl_delay            |
-|                             |                                 |
-|                             v                                 |
-|                       Next URL to fetch                       |
-+--------------------------------------------------------------+
+\`\`\`mermaid
+graph TD
+    N0["URL Frontier"]
+    N1["Front Queues (Priority-based)"]
+    N2["Back Queues (Domain-based) v"]
+    N3["Next URL to fetch"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 **Two-level queue design**:
@@ -774,77 +657,56 @@ A URL enters through the front queue (by priority), then is routed to the approp
 
 ## Deep Dive: URL Deduplication at Scale
 
-\`\`\`
-+--------------------------------------------------------------+
-| URL Dedup Pipeline                                            |
-|                                                               |
-| Stage 1: URL Normalization                                    |
-| +----------------------------------------------------------+ |
-| | Input:  HTTP://WWW.Example.Com:80/path?b=2&a=1#frag      | |
-| | Step 1: Lowercase scheme + host -> http://www.example...  | |
-| | Step 2: Remove default port :80 -> http://www.example...  | |
-| | Step 3: Remove fragment #frag -> http://www.example.../   | |
-| | Step 4: Sort query params -> ?a=1&b=2                     | |
-| | Step 5: Remove trailing slash if no path                  | |
-| | Output: http://www.example.com/path?a=1&b=2              | |
-| +----------------------------------------------------------+ |
-|                                                               |
-| Stage 2: Bloom Filter (fast probabilistic check)              |
-| +----------------------------------------------------------+ |
-| | 10B URLs, 0.1% false positive rate                       | |
-| | Size: ~12 GB (10 bits per URL * 10B)                     | |
-| |                                                           | |
-| | URL hash -> check bloom filter                            | |
-| |   "probably seen" -> skip (or verify in DB)              | |
-| |   "definitely new" -> add to frontier + bloom            | |
-| +----------------------------------------------------------+ |
-|                                                               |
-| Stage 3: Content Dedup (SimHash for near-duplicates)          |
-| +----------------------------------------------------------+ |
-| | After fetching, compute SimHash of page content           | |
-| |                                                           | |
-| | SimHash: 64-bit fingerprint where similar content         | |
-| | produces fingerprints with small Hamming distance         | |
-| |                                                           | |
-| | If Hamming distance(new_hash, existing_hash) < 3:         | |
-| |   -> Near-duplicate, skip storing                        | |
-| +----------------------------------------------------------+ |
-+--------------------------------------------------------------+
+\`\`\`mermaid
+graph TD
+    N0["URL Dedup Pipeline"]
+    N1["Stage 1: URL Normalization"]
+    N2["Step 4: Sort query params -> ?a=1&b=2"]
+    N3["Step 5: Remove trailing slash if no path"]
+    N4["Size: ~12 GB (10 bits per URL * 10B)"]
+    N5["URL hash -> check bloom filter"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    N3 --> N4
+    N4 --> N5
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ---
 
 ## Deep Dive: Politeness and Rate Limiting
 
-\`\`\`
-+--------------------------------------------------------------+
-| Per-Domain Politeness Engine                                  |
-|                                                               |
-| +----------------------------------------------------------+ |
-| | Domain: example.com                                      | |
-| |                                                           | |
-| | robots.txt rules:                                        | |
-| |   User-agent: *                                          | |
-| |   Disallow: /private/                                    | |
-| |   Crawl-delay: 2                                         | |
-| |                                                           | |
-| | Enforced rate: 1 request / 2 seconds                     | |
-| | Last fetch: 14:00:03                                     | |
-| | Next allowed: 14:00:05                                   | |
-| +----------------------------------------------------------+ |
-|                                                               |
-| Rate Limiter (Token Bucket per domain):                       |
-| +----------------------------------------------------------+ |
-| | Domain      | Tokens | Rate      | Last Refill            | |
-| |-------------|--------|-----------|------------------------| |
-| | cnn.com     | 3      | 5/sec     | 14:00:04               | |
-| | example.com | 0      | 0.5/sec   | 14:00:03               | |
-| | github.com  | 1      | 1/sec     | 14:00:04               | |
-| +----------------------------------------------------------+ |
-|                                                               |
-| Default: 1 req/sec per domain if no robots.txt crawl-delay   |
-| Max: 10 req/sec even for domains that allow it               |
-+--------------------------------------------------------------+
+\`\`\`mermaid
+graph TD
+    N0["Per-Domain Politeness Engine"]
+    N1["Domain: example.com"]
+    N2["User-agent: *"]
+    N3["Disallow: /private/"]
+    N4["Crawl-delay: 2"]
+    N5["Enforced rate: 1 request / 2 seconds"]
+    N6["Last fetch: 14:00:03"]
+    N7["Next allowed: 14:00:05"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    N3 --> N4
+    N4 --> N5
+    N5 --> N6
+    N6 --> N7
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 `,
     explanation: `## Bottlenecks & Improvements
@@ -950,128 +812,97 @@ A URL enters through the front queue (by priority), then is routed to the approp
 `,
     code: `## Architecture Diagram
 
-\`\`\`
-+----------+     DNS/Anycast      +-------------------+
-| Users    |--------------------->| Global Routing    |
-| (Global) |                      | (GeoDNS/Anycast)  |
-+----------+                      +--------+----------+
-                                           |
-                    route to nearest PoP   |
-          +--------------------------------+--------------------------------+
-          |                                |                                |
-+---------v---------+            +---------v---------+            +---------v---------+
-| Edge PoP (US-East)|            | Edge PoP (EU-West)|            | Edge PoP (APAC)   |
-|                   |            |                   |            |                   |
-| +---------------+ |            | +---------------+ |            | +---------------+ |
-| | SSD Hot Cache | |            | | SSD Hot Cache | |            | | SSD Hot Cache | |
-| | (Top 20%)     | |            | | (Top 20%)     | |            | | (Top 20%)     | |
-| +-------+-------+ |            | +-------+-------+ |            | +-------+-------+ |
-| | HDD Warm Cache| |            | | HDD Warm Cache| |            | | HDD Warm Cache| |
-| | (Long tail)   | |            | | (Long tail)   | |            | | (Long tail)   | |
-| +-------+-------+ |            | +-------+-------+ |            | +-------+-------+ |
-+---------+---------+            +---------+---------+            +---------+---------+
-          |                                |                                |
-          | cache miss                     | cache miss                     |
-          +--------------------------------+--------------------------------+
-                                           |
-                                  +--------v----------+
-                                  | Origin Shield     |
-                                  | (Regional, 3-5    |
-                                  |  locations)        |
-                                  |                   |
-                                  | Aggregates misses |
-                                  | from nearby PoPs  |
-                                  +--------+----------+
-                                           |
-                                           | shield miss
-                                           |
-                                  +--------v----------+
-                                  | Origin Server(s)  |
-                                  | (Customer infra)  |
-                                  +-------------------+
+\`\`\`mermaid
+graph TD
+    N0["Users"]
+    N1["Global Routing"]
+    N2["Edge PoP (US-East)"]
+    N3["Edge PoP (EU-West)"]
+    N4["Edge PoP (APAC)"]
+    N5["SSD Hot Cache"]
+    N6["HDD Warm Cache"]
+    N7["Origin Shield"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    N3 --> N4
+    N4 --> N5
+    N5 --> N6
+    N6 --> N7
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## Request Flow (Cache Hit vs Miss)
 
-\`\`\`
-Client         Edge PoP       Origin Shield    Origin
-  |               |                |              |
-  | GET /img.jpg  |                |              |
-  |-------------->|                |              |
-  |               |                |              |
-  |  [CACHE HIT]  |                |              |
-  |  content      |                |              |
-  |<--------------|                |              |
-  |               |                |              |
-  |  [CACHE MISS] |                |              |
-  |               | GET /img.jpg   |              |
-  |               |--------------->|              |
-  |               |                |              |
-  |               | [SHIELD HIT]   |              |
-  |               | content        |              |
-  |               |<---------------|              |
-  |               |                |              |
-  |               | [SHIELD MISS]  |              |
-  |               |                | GET /img.jpg |
-  |               |                |------------->|
-  |               |                | content      |
-  |               |                |<-------------|
-  |               |  content       |              |
-  |               |<---------------|              |
-  |  content      |                |              |
-  |<--------------|                |              |
+\`\`\`mermaid
+sequenceDiagram
+    participant P0 as Client
+    participant P1 as Edge PoP
+    participant P2 as Origin Shield
+    participant P3 as Origin
+    P0->>P1: request
+    P1-->>P0: response
+    P1->>P2: request
+    P2-->>P1: response
+    P2->>P3: request
+    P3-->>P2: response
 \`\`\`
 
 ## Cache Invalidation Flow
 
-\`\`\`
-Admin           Control Plane     PoP US-East    PoP EU-West    PoP APAC
-  |                  |                |              |              |
-  | POST /purge      |                |              |              |
-  | {urls:[/img.jpg]}|                |              |              |
-  |----------------->|                |              |              |
-  |                  | invalidate     |              |              |
-  |                  |--------------->|              |              |
-  |                  |----------------------------->|              |
-  |                  |----------------------------------------------->|
-  |                  |                |              |              |
-  |                  |  ACK           |  ACK         |  ACK         |
-  |                  |<---------------|              |              |
-  |                  |<-----------------------------|              |
-  |                  |<-----------------------------------------------|
-  |  { purged: 3 }   |                |              |              |
-  |<-----------------|                |              |              |
+\`\`\`mermaid
+sequenceDiagram
+    participant P0 as Admin
+    participant P1 as Control Plane
+    participant P2 as PoP US-East
+    participant P3 as PoP EU-West
+    participant P4 as PoP APAC
+    P0->>P1: request
+    P1-->>P0: response
+    P1->>P2: request
+    P2-->>P1: response
+    P2->>P3: request
+    P3-->>P2: response
+    P3->>P4: request
+    P4-->>P3: response
 \`\`\`
 `,
     jsCode: `## Deep Dive: Cache Key Design and Vary Headers
 
 Correct cache key construction is critical -- serving the wrong cached variant breaks user experience.
 
-\`\`\`
-+--------------------------------------------------------------+
-| Cache Key Construction                                        |
-|                                                               |
-| Request:                                                      |
-|   URL: https://cdn.example.com/api/products?page=2            |
-|   Accept-Encoding: gzip                                       |
-|   Accept-Language: en-US                                      |
-|   Cookie: session=abc123                                      |
-|                                                               |
-| Origin Response Headers:                                      |
-|   Vary: Accept-Encoding, Accept-Language                      |
-|   Cache-Control: max-age=3600                                 |
-|   Surrogate-Key: product-list page-2                          |
-|                                                               |
-| Cache Key = hash(                                             |
-|   URL: /api/products?page=2                                   |
-|   + Accept-Encoding: gzip                                     |
-|   + Accept-Language: en-US                                    |
-|   // Cookie NOT included (not in Vary)                        |
-| )                                                             |
-|                                                               |
-| Result: cache_key = "a3f8b2c1..."                             |
-| Multiple variants stored per URL (one per Vary combination)   |
-+--------------------------------------------------------------+
+\`\`\`mermaid
+graph TD
+    N0["Cache Key Construction"]
+    N1["Request:"]
+    N2["Accept-Encoding: gzip"]
+    N3["Accept-Language: en-US"]
+    N4["Cookie: session=abc123"]
+    N5["Origin Response Headers:"]
+    N6["Vary: Accept-Encoding, Accept-Language"]
+    N7["Cache-Control: max-age=3600"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    N3 --> N4
+    N4 --> N5
+    N5 --> N6
+    N6 --> N7
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 **Cache key pitfalls**:
@@ -1083,76 +914,70 @@ Correct cache key construction is critical -- serving the wrong cached variant b
 
 ## Deep Dive: Origin Shield and Collapse
 
-\`\`\`
-Without Origin Shield:              With Origin Shield:
-
-200 PoPs, all miss at once          200 PoPs miss -> 5 shields
-
-  PoP 1 ---+                          PoP 1 --+
-  PoP 2 ---+                          PoP 2 --+--> Shield US --+
-  PoP 3 ---+--> Origin (200 req!)     PoP 3 --+               |
-  ...      |                          ...                      +--> Origin
-  PoP 200--+                          PoP 198-+               |     (5 req!)
-                                      PoP 199-+--> Shield AP -+
-                                      PoP 200-+
+\`\`\`mermaid
+graph TD
+    N0["Without Origin Shield: With Origin Shield:"]
+    N1["200 PoPs, all miss at once 200 PoPs miss 5 shields"]
+    N2["PoP 1 PoP 1"]
+    N3["PoP 2 PoP 2 Shield US"]
+    N4["PoP 3 Origin (200 req!) PoP 3"]
+    N5["... ... Origin"]
+    N6["PoP 200 PoP 198 (5 req!)"]
+    N7["PoP 199 Shield AP"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    N3 --> N4
+    N4 --> N5
+    N5 --> N6
+    N6 --> N7
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 **Request Collapsing** (coalescing) at the shield:
 
-\`\`\`
-+--------------------------------------------------------------+
-| Origin Shield - Request Collapsing                            |
-|                                                               |
-| Time 0ms:  PoP-1 requests /img.jpg                           |
-|            -> Shield starts fetch from origin                 |
-|            -> Marks /img.jpg as "in-flight"                   |
-|                                                               |
-| Time 5ms:  PoP-2 requests /img.jpg                           |
-|            -> Shield sees "in-flight" flag                    |
-|            -> PoP-2 added to wait list (no origin request)    |
-|                                                               |
-| Time 8ms:  PoP-3 requests /img.jpg                           |
-|            -> Also added to wait list                         |
-|                                                               |
-| Time 50ms: Origin responds to original request               |
-|            -> Shield caches response                          |
-|            -> Responds to PoP-1, PoP-2, PoP-3 simultaneously |
-|                                                               |
-| Result: 3 edge requests, but only 1 origin request           |
-+--------------------------------------------------------------+
+\`\`\`mermaid
+graph TD
+    N0["Origin Shield - Request Collapsing"]
+    N1["Time 0ms: PoP-1 requests /img.jpg"]
+    N2["Time 5ms: PoP-2 requests /img.jpg"]
+    N3["Time 8ms: PoP-3 requests /img.jpg"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ---
 
 ## Deep Dive: Cache Eviction Strategy
 
-\`\`\`
-+--------------------------------------------------------------+
-| Two-Tier Cache with Promotion/Demotion                        |
-|                                                               |
-| +----------------------------------------------------------+ |
-| | SSD Tier (Hot) - 20% of storage                          | |
-| |                                                           | |
-| | Eviction: LRU with frequency boost                       | |
-| | Objects accessed > 3 times stay longer (LFU hybrid)      | |
-| |                                                           | |
-| | PROMOTE from HDD when access count > threshold           | |
-| +----------------------------+-----------------------------+ |
-|                              |                               |
-|                    demote when SSD full                       |
-|                    (least recently + least frequently used)   |
-|                              |                               |
-| +----------------------------v-----------------------------+ |
-| | HDD Tier (Warm) - 80% of storage                        | |
-| |                                                           | |
-| | Eviction: Pure LRU (large capacity, simpler policy)      | |
-| |                                                           | |
-| | Objects evicted entirely when HDD is full                | |
-| +----------------------------------------------------------+ |
-|                                                               |
-| Admission policy: Objects must be requested at least twice    |
-| before being cached (avoids caching one-hit wonders)          |
-+--------------------------------------------------------------+
+\`\`\`mermaid
+graph TD
+    N0["Two-Tier Cache with Promotion/Demotion"]
+    N1["SSD Tier (Hot) - 20% of storage"]
+    N2["Eviction: LRU with frequency boost"]
+    N3["HDD Tier (Warm) - 80% of storage"]
+    N4["Objects evicted entirely when HDD is full"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    N3 --> N4
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 `,
     explanation: `## Bottlenecks & Improvements
@@ -1259,226 +1084,147 @@ Without Origin Shield:              With Origin Shield:
 `,
     code: `## Architecture Diagram
 
-\`\`\`
-+-----------+  +-----------+  +-----------+
-| Host      |  | Host      |  | Host      |   (500K hosts)
-| Agent     |  | Agent     |  | Agent     |
-+-----+-----+  +-----+-----+  +-----+-----+
-      |              |              |
-      | batch (10s)  |              |
-      +--------------+--------------+
-                     |
-            +--------v---------+
-            | Intake Servers   |
-            | (Stateless, LB)  |
-            | Validate + route |
-            +--------+---------+
-                     |
-            +--------v---------+
-            | Kafka Cluster    |
-            | (Durable buffer) |
-            | 100+ partitions  |
-            +--+----------+----+
-               |          |
-    +----------v--+  +----v-----------+
-    | TSDB Writers |  | Alert Evaluator|
-    | (Consumers)  |  | (Consumers)    |
-    |              |  |                |
-    | Gorilla      |  | Threshold      |
-    | compress     |  | checks on      |
-    | + write      |  | live stream    |
-    +------+-------+  +-------+--------+
-           |                  |
-    +------v-------+   +------v--------+
-    | TSDB Cluster |   | Notification  |
-    | (Sharded)    |   | Service       |
-    |              |   | (Slack/Page/  |
-    | Chunk-based  |   |  Email)       |
-    | storage      |   +---------------+
-    +------+-------+
-           |
-    +------v-------+
-    | Query Engine |
-    | Scatter-     |
-    | gather       |
-    +------+-------+
-           |
-    +------v-------+
-    | Dashboard UI |
-    | (Grafana)    |
-    +--------------+
+\`\`\`mermaid
+graph TD
+    N0["Host"]
+    N1["Agent"]
+    N2["Intake Servers"]
+    N3["Validate + route"]
+    N4["Kafka Cluster"]
+    N5["TSDB Writers"]
+    N6["Alert Evaluator"]
+    N7["Gorilla"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    N3 --> N4
+    N4 --> N5
+    N5 --> N6
+    N6 --> N7
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## Ingestion Flow
 
-\`\`\`
-Agent          Intake         Kafka          TSDB Writer      TSDB
-  |               |              |               |              |
-  | batch of      |              |               |              |
-  | 200 metrics   |              |               |              |
-  | (10s window)  |              |               |              |
-  |-------------->|              |               |              |
-  |               | validate     |               |              |
-  |               | partition by |               |              |
-  |               | series_id    |               |              |
-  |               |------------->|               |              |
-  |               |              | consume batch |              |
-  |               |              |-------------->|              |
-  |               |              |               | compress     |
-  |               |              |               | (Gorilla)    |
-  |               |              |               | append to    |
-  |               |              |               | chunk        |
-  |               |              |               |------------->|
-  |               |              |               |   ACK        |
-  |               |              |               |<-------------|
+\`\`\`mermaid
+sequenceDiagram
+    participant P0 as Agent
+    participant P1 as Intake
+    participant P2 as Kafka
+    participant P3 as TSDB Writer
+    participant P4 as TSDB
+    P0->>P1: request
+    P1-->>P0: response
+    P1->>P2: request
+    P2-->>P1: response
+    P2->>P3: request
+    P3-->>P2: response
+    P3->>P4: request
+    P4-->>P3: response
 \`\`\`
 
 ## Query Flow (Dashboard)
 
-\`\`\`
-Dashboard      Query Engine     TSDB Shard 1    TSDB Shard 2    TSDB Shard 3
-    |               |               |               |               |
-    | cpu.usage     |               |               |               |
-    | region=us     |               |               |               |
-    | last 1 hour   |               |               |               |
-    |-------------->|               |               |               |
-    |               | scatter       |               |               |
-    |               |-------------->|               |               |
-    |               |----------------------------->|               |
-    |               |----------------------------------------------->|
-    |               |               |               |               |
-    |               | partial result|               |               |
-    |               |<--------------|               |               |
-    |               |<-----------------------------|               |
-    |               |<-----------------------------------------------|
-    |               |               |               |               |
-    |               | merge + aggregate             |               |
-    |  time-series  |               |               |               |
-    |  data points  |               |               |               |
-    |<--------------|               |               |               |
+\`\`\`mermaid
+sequenceDiagram
+    participant P0 as Dashboard
+    participant P1 as Query Engine
+    participant P2 as TSDB Shard 1
+    participant P3 as TSDB Shard 2
+    participant P4 as TSDB Shard 3
+    P0->>P1: request
+    P1-->>P0: response
+    P1->>P2: request
+    P2-->>P1: response
+    P2->>P3: request
+    P3-->>P2: response
+    P3->>P4: request
+    P4-->>P3: response
 \`\`\`
 `,
     jsCode: `## Deep Dive: Gorilla Compression for Time-Series Data
 
 Gorilla compression exploits the properties of time-series data: timestamps are regular and values change slowly.
 
-\`\`\`
-+--------------------------------------------------------------+
-| Gorilla Compression (from Facebook's paper)                   |
-|                                                               |
-| Timestamp Compression (Delta-of-Delta):                       |
-| +----------------------------------------------------------+ |
-| | Raw timestamps:   1000, 1010, 1020, 1030, 1040           | |
-| | Deltas:                  10,   10,   10,   10            | |
-| | Delta-of-deltas:               0,    0,    0             | |
-| |                                                           | |
-| | Encoding: delta-of-delta = 0 -> store as 1 bit ("0")    | |
-| | Regular intervals compress to ~1 bit per timestamp!       | |
-| +----------------------------------------------------------+ |
-|                                                               |
-| Value Compression (XOR-based):                                |
-| +----------------------------------------------------------+ |
-| | Raw values:   72.5,  72.8,  72.6,  73.1,  72.9           | |
-| | XOR with prev: --,  bits1, bits2, bits3, bits4           | |
-| |                                                           | |
-| | Similar values produce XOR with mostly zero bits          | |
-| | Store only the position + length of meaningful bits       | |
-| | Typical: 1-3 bytes per value instead of 8 bytes           | |
-| +----------------------------------------------------------+ |
-|                                                               |
-| Compression Result:                                           |
-| +----------------------------------------------------------+ |
-| | Uncompressed: 24 bytes/point (8B ts + 8B val + 8B meta)  | |
-| | Compressed:   ~2 bytes/point (12x compression ratio)      | |
-| |                                                           | |
-| | 2-hour chunk of 720 points (10s interval):                | |
-| | Uncompressed: 17,280 bytes                                | |
-| | Compressed:   ~1,440 bytes                                | |
-| +----------------------------------------------------------+ |
-+--------------------------------------------------------------+
+\`\`\`mermaid
+graph TD
+    N0["Timestamp Compression (Delta-of-Delta):"]
+    N1["Value Compression (XOR-based):"]
+    N2["Compression Result:"]
+    N3["Uncompressed: 17,280 bytes"]
+    N4["Compressed: ~1,440 bytes"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    N3 --> N4
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ---
 
 ## Deep Dive: Inverted Index for Tag-Based Queries
 
-\`\`\`
-+--------------------------------------------------------------+
-| Tag Inverted Index                                            |
-|                                                               |
-| How do we find all series matching:                           |
-|   cpu.usage WHERE region=us-east AND service=api              |
-|                                                               |
-| Inverted Index:                                               |
-| +----------------------------------------------------------+ |
-| | Tag                    | Series IDs (posting list)       | |
-| |------------------------|----------------------------------| |
-| | metric=cpu.usage       | {1, 2, 3, 5, 8, 13, 21, ...}  | |
-| | region=us-east         | {1, 3, 5, 7, 9, 11, 13, ...}  | |
-| | region=eu-west         | {2, 4, 6, 8, 10, 12, ...}     | |
-| | service=api            | {1, 2, 5, 9, 13, ...}         | |
-| | service=web            | {3, 7, 8, 11, 21, ...}        | |
-| | host=web-01            | {1, 5, ...}                    | |
-| +----------------------------------------------------------+ |
-|                                                               |
-| Query resolution:                                             |
-|   metric=cpu.usage  -> {1, 2, 3, 5, 8, 13, 21}              |
-|   region=us-east    -> {1, 3, 5, 7, 9, 11, 13}              |
-|   service=api       -> {1, 2, 5, 9, 13}                     |
-|                                                               |
-|   INTERSECT all three -> {1, 5, 13}                           |
-|                                                               |
-|   Result: 3 matching series (out of millions)                 |
-|   Now fetch data only for series {1, 5, 13} in time range    |
-+--------------------------------------------------------------+
+\`\`\`mermaid
+graph TD
+    N0["Tag Inverted Index"]
+    N1["How do we find all series matching:"]
+    N2["Inverted Index:"]
+    N3["Tag"]
+    N4["Query resolution:"]
+    N5["INTERSECT all three -> {1, 5, 13}"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    N3 --> N4
+    N4 --> N5
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ---
 
 ## Deep Dive: Multi-Resolution Rollup Storage
 
-\`\`\`
-+--------------------------------------------------------------+
-| Data Retention Tiers                                          |
-|                                                               |
-| Tier 1: Raw Data (10-second resolution)                       |
-| Retention: 15 days                                            |
-| +----------------------------------------------------------+ |
-| | ts         | series_id | value                            | |
-| |------------|-----------|----------------------------------| |
-| | 14:00:00   | 42        | 72.5                             | |
-| | 14:00:10   | 42        | 72.8                             | |
-| | 14:00:20   | 42        | 72.6                             | |
-| | ...        | ...       | ...                              | |
-| +----------------------------------------------------------+ |
-|                                                               |
-| Tier 2: Minute Rollups                                        |
-| Retention: 90 days                                            |
-| +----------------------------------------------------------+ |
-| | ts         | series_id | avg  | min  | max  | sum  | cnt | |
-| |------------|-----------|------|------|------|------|-----| |
-| | 14:00      | 42        | 72.6 | 71.2 | 74.1 | 436  | 6   | |
-| | 14:01      | 42        | 73.1 | 72.0 | 74.8 | 439  | 6   | |
-| +----------------------------------------------------------+ |
-|                                                               |
-| Tier 3: Hour Rollups                                          |
-| Retention: 1+ year                                            |
-| +----------------------------------------------------------+ |
-| | ts         | series_id | avg  | min  | max  | sum  | cnt | |
-| |------------|-----------|------|------|------|------|-----| |
-| | 14:00      | 42        | 72.9 | 70.1 | 76.3 | 26244| 360 | |
-| | 15:00      | 42        | 74.2 | 71.5 | 78.0 | 26712| 360 | |
-| +----------------------------------------------------------+ |
-|                                                               |
-| Query auto-resolution:                                        |
-|   Last 1 hour   -> raw data (10s points)                     |
-|   Last 7 days   -> minute rollups                            |
-|   Last 90 days  -> hour rollups                              |
-+--------------------------------------------------------------+
-
-Why store avg, min, max, sum, AND count?
-  avg-of-averages is WRONG when groups have different counts!
-  Correct: total_avg = SUM(sums) / SUM(counts)
+\`\`\`mermaid
+graph TD
+    N0["Data Retention Tiers"]
+    N1["Tier 1: Raw Data (10-second resolution)"]
+    N2["Retention: 15 days"]
+    N3["Tier 2: Minute Rollups"]
+    N4["Retention: 90 days"]
+    N5["Tier 3: Hour Rollups"]
+    N6["Retention: 1+ year"]
+    N7["Query auto-resolution:"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    N3 --> N4
+    N4 --> N5
+    N5 --> N6
+    N6 --> N7
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 `,
     explanation: `## Bottlenecks & Improvements

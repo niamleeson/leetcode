@@ -85,90 +85,102 @@ The game server sends score updates to a **Leaderboard Service** which writes to
 `,
     code: `## Architecture Diagram
 
-\`\`\`
-+----------------+     +-------------------+     +-----------------------+
-|  Game Server   |---->| Load Balancer     |---->| Leaderboard Service   |
-|  (Score Event) |     | (Nginx / ALB)     |     | (Stateless)           |
-+----------------+     +-------------------+     +----+--------+---------+
-                                                      |        |
-                                          +-----------+        +----------+
-                                          |                               |
-                                  +-------v--------+           +---------v---------+
-                                  | Redis Cluster   |           | MySQL / PostgreSQL |
-                                  | (Sorted Sets)   |           | (Persistence DB)   |
-                                  |                  |           |                    |
-                                  | ZADD, ZREVRANK   |           | user_id, score,    |
-                                  | ZREVRANGE        |           | display_name       |
-                                  +------------------+           +--------------------+
+\`\`\`mermaid
+graph TD
+    N0["Game Server (Score Event)"]
+    N1["Load Balancer"]
+    N2["Leaderboard Service"]
+    N3["Redis Cluster (Sorted Sets)"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## Score Update Flow
 
-\`\`\`
-Game Server          Leaderboard Service          Redis              MySQL
-    |                        |                      |                  |
-    |  POST /api/v1/scores   |                      |                  |
-    |  {userId, score}       |                      |                  |
-    |----------------------->|                      |                  |
-    |                        |  ZADD leaderboard    |                  |
-    |                        |  <score> <userId>    |                  |
-    |                        |--------------------->|                  |
-    |                        |       OK             |                  |
-    |                        |<---------------------|                  |
-    |                        |                      |                  |
-    |                        |  UPDATE users SET    |                  |
-    |                        |  score=<score>       |                  |
-    |                        |-------------------------------------------->|
-    |                        |                      |       ACK        |
-    |   200 OK               |<--------------------------------------------|
-    |<-----------------------|                      |                  |
+\`\`\`mermaid
+graph TD
+    N0["Client (Checkout)"]
+    N1["API Gateway"]
+    N2["Payment Service"]
+    N3["Risk Engine"]
+    N4["PSP Integration"]
+    N5["Ledger Service"]
+    N6["PSP (Stripe) External"]
+    N7[("Ledger DB (Append-only)")]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    N2 --> N4
+    N2 --> N5
+    N4 --> N6
+    N5 --> N7
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## Rank Lookup Flow
 
-\`\`\`
-Client               Leaderboard Service          Redis
-  |                        |                        |
-  | GET /leaderboard/rank  |                        |
-  |  /:userId              |                        |
-  |----------------------->|                        |
-  |                        | ZREVRANK               |
-  |                        | leaderboard <userId>   |
-  |                        |----------------------->|
-  |                        |    rank: 4,231         |
-  |                        |<-----------------------|
-  |                        |                        |
-  |                        | ZSCORE                 |
-  |                        | leaderboard <userId>   |
-  |                        |----------------------->|
-  |                        |    score: 98,500       |
-  |                        |<-----------------------|
-  |                        |                        |
-  | { rank: 4232,          |                        |
-  |   score: 98500,        |                        |
-  |   percentile: "top 1%" }                        |
-  |<-----------------------|                        |
+\`\`\`mermaid
+graph TD
+    N0["Client"]
+    N1["API Gateway (Auth, TLS)"]
+    N2["Transfer API"]
+    N3["Command Service"]
+    N4[("Event Store (Append-only)")]
+    N5["Event Processor"]
+    N6["Balance View (Materialized)"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    N3 --> N4
+    N4 --> N5
+    N5 --> N6
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 `,
     jsCode: `## Deep Dive: Redis Sorted Set Internals
 
 Redis Sorted Sets are backed by two data structures working together:
 
-\`\`\`
-+------------------------------------------------------------------+
-|                    Redis Sorted Set Internals                     |
-|                                                                   |
-|  +-----------------------------+  +----------------------------+ |
-|  |     Skip List               |  |     Hash Table             | |
-|  |  (sorted by score)          |  |  (member -> score lookup)  | |
-|  |                             |  |                            | |
-|  |  Level 3:  H -----------------> 98500                       | |
-|  |  Level 2:  H ------> N -------> ...                         | |
-|  |  Level 1:  H -> A -> N -> Z --> ...                         | |
-|  |                             |  |                            | |
-|  |  O(log N) rank/range ops   |  |  O(1) score lookups        | |
-|  +-----------------------------+  +----------------------------+ |
-+------------------------------------------------------------------+
+\`\`\`mermaid
+graph TD
+    N0["Client A (Broker/HFT)"]
+    N1["Gateway (Auth)"]
+    N2["Sequencer"]
+    N3["Client B (Retail)"]
+    N4["Matching Engine (Single-threaded)"]
+    N5["Market Data Publisher"]
+    N6["Reporting"]
+    N0 --> N1
+    N3 --> N1
+    N1 --> N2
+    N2 --> N4
+    N4 --> N5
+    N4 --> N6
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 **Skip list** provides sorted ordering for range queries and rank operations in O(log N). The **hash table** provides O(1) lookups from member to score (used by ZSCORE). This dual-structure design is why Redis sorted sets are ideal for leaderboards.
@@ -181,20 +193,22 @@ When a single Redis instance cannot hold the entire leaderboard, we need to shar
 
 ### Approach A: Score-Range Sharding
 
-\`\`\`
-+------------------------------------------------------------------+
-|                   Score-Range Sharding                            |
-|                                                                   |
-|  Shard 1: scores 0 - 999         [~30M players]                 |
-|  Shard 2: scores 1000 - 4999     [~40M players]                 |
-|  Shard 3: scores 5000 - 19999    [~20M players]                 |
-|  Shard 4: scores 20000+          [~10M players]                 |
-|                                                                   |
-|  To get global rank of user with score 7500:                     |
-|    1. ZREVRANK on Shard 3 -> rank within shard = 5,200           |
-|    2. ZCARD on Shard 4 -> 10M players above this shard           |
-|    3. Global rank = 10,000,000 + 5,200 = 10,005,200             |
-+------------------------------------------------------------------+
+\`\`\`mermaid
+graph TD
+    R["Router"]
+    S1["Shard 1: Scores 0-999"]
+    S2["Shard 2: Scores 1000-4999"]
+    S3["Shard 3: Scores 5000-9999"]
+    S4["Shard 4: Scores 10000+"]
+    R --> S1
+    R --> S2
+    R --> S3
+    R --> S4
+    style R fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style S1 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style S2 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style S3 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style S4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 **Pros**: Global rank can be computed by summing counts from higher shards
@@ -202,25 +216,28 @@ When a single Redis instance cannot hold the entire leaderboard, we need to shar
 
 ### Approach B: Hash Partitioning + Segment Tree
 
-\`\`\`
-+-------------------------------------------------------------------+
-|                 Segment Tree Approach                              |
-|                                                                    |
-|  Divide score range [0, MAX_SCORE] into a segment tree            |
-|                                                                    |
-|                      [0 - 1M]                                      |
-|                     count: 100M                                    |
-|                    /            \\                                   |
-|            [0 - 500K]       [500K - 1M]                            |
-|           count: 70M        count: 30M                             |
-|           /        \\          /       \\                             |
-|     [0-250K]  [250K-500K] [500K-750K] [750K-1M]                   |
-|     cnt: 50M  cnt: 20M   cnt: 18M    cnt: 12M                    |
-|                                                                    |
-|  Rank query: traverse tree from root, summing counts              |
-|  of all nodes to the "right" of the target score                  |
-|  Time: O(log(MAX_SCORE))                                          |
-+-------------------------------------------------------------------+
+\`\`\`mermaid
+graph TD
+    Root["Root: Total count"]
+    L["Left: Scores 0-4999"]
+    R["Right: Scores 5000-9999"]
+    LL["0-2499"]
+    LRng["2500-4999"]
+    RLng["5000-7499"]
+    RR["7500-9999"]
+    Root --> L
+    Root --> R
+    L --> LL
+    L --> LRng
+    R --> RLng
+    R --> RR
+    style Root fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style L fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style R fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style LL fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style LRng fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style RLng fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style RR fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 **Pros**: Even distribution, efficient rank queries O(log S) where S = score range
@@ -248,21 +265,29 @@ This encodes both the score and the tiebreaker into a single float64, keeping al
 
 ## Deep Dive: Seasonal / Time-Bounded Leaderboards
 
-\`\`\`
-+------------------------------------------------------------------+
-|                 Seasonal Leaderboard Lifecycle                    |
-|                                                                   |
-|  Active:   leaderboard:season_42   (Redis - live updates)        |
-|  Previous: leaderboard:season_41   (Redis - read-only, TTL 7d)  |
-|  Archived: season_40 and older     (MySQL/S3 - cold storage)    |
-|                                                                   |
-|  Season Rollover Process:                                        |
-|  1. Create new key: leaderboard:season_43                        |
-|  2. Update config service to point to season_43                  |
-|  3. Persist season_42 final state to MySQL                       |
-|  4. Set TTL on season_42 Redis key (e.g., 7 days)               |
-|  5. Archive season_41 from MySQL to S3                           |
-+------------------------------------------------------------------+
+\`\`\`mermaid
+graph TD
+    N0["Season Starts"]
+    N1["Create new Redis sorted set"]
+    N2["Players submit scores"]
+    N3["Season Ends"]
+    N4["Snapshot final rankings to DB"]
+    N5["Archive Redis key"]
+    N6["New season begins"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    N3 --> N4
+    N4 --> N5
+    N5 --> N6
+    N6 --> N1
+    style N0 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 `,
     explanation: `## Bottlenecks & Improvements
@@ -383,124 +408,102 @@ A **Payment Service** acts as the orchestrator. It receives payment requests, va
 `,
     code: `## Architecture Diagram
 
-\`\`\`
-+-----------+      +-------------------+      +---------------------+
-|  Client   |----->| API Gateway       |----->| Payment Service     |
-| (Checkout)|      | (Auth, Rate Limit)|      | (Orchestrator)      |
-+-----------+      +-------------------+      +----+----+----+------+
-                                                   |    |    |
-                              +--------------------+    |    +------------------+
-                              |                         |                       |
-                     +--------v--------+    +-----------v-----------+   +-------v--------+
-                     | Risk Engine     |    | PSP Integration       |   | Ledger Service |
-                     | (Fraud checks)  |    | (Stripe/PayPal/Adyen) |   | (Double-entry  |
-                     |                 |    |                       |   |  bookkeeping)  |
-                     | - Velocity      |    | - Hosted checkout     |   |                |
-                     | - Geo mismatch  |    | - Tokenization        |   | Every txn has  |
-                     | - ML scoring    |    | - Charge API          |   | a DEBIT and    |
-                     +-----------------+    | - Webhook callbacks   |   | CREDIT entry   |
-                                            +-----------+-----------+   +-------+--------+
-                                                        |                       |
-                                            +-----------v-----------+   +-------v--------+
-                                            | PSP (Stripe, etc.)    |   | Ledger DB      |
-                                            | External service      |   | (Append-only)  |
-                                            +-----------------------+   +----------------+
+\`\`\`mermaid
+graph TD
+    Client["Client (Checkout)"]
+    GW["API Gateway (Auth, Rate Limit)"]
+    Pay["Payment Service (Orchestrator)"]
+    Risk["Risk Engine (Fraud checks)<br/>Velocity, Geo mismatch, ML scoring"]
+    PSPInt["PSP Integration (Stripe/PayPal/Adyen)<br/>Hosted checkout, Tokenization, Charge API, Webhooks"]
+    Ledger["Ledger Service (Double-entry bookkeeping)<br/>Every txn has a DEBIT and CREDIT entry"]
+    PSP["PSP (Stripe, etc.) External service"]
+    LedgerDB["Ledger DB (Append-only)"]
+
+    Client --> GW
+    GW --> Pay
+    Pay --> Risk
+    Pay --> PSPInt
+    Pay --> Ledger
+    PSPInt --> PSP
+    Ledger --> LedgerDB
+
+    style Client fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style GW fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style Pay fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style Risk fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style PSPInt fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style Ledger fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style PSP fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style LedgerDB fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## Payment Processing Flow
 
-\`\`\`
-Client         Payment Service      Risk Engine       PSP           Ledger
-  |                  |                   |              |               |
-  | POST /payments   |                   |              |               |
-  | {idempotencyKey} |                   |              |               |
-  |----------------->|                   |              |               |
-  |                  |                   |              |               |
-  |                  | Check idempotency |              |               |
-  |                  | key in DB         |              |               |
-  |                  |----+              |              |               |
-  |                  |    | (duplicate?  |              |               |
-  |                  |<---+ return prev) |              |               |
-  |                  |                   |              |               |
-  |                  | Risk check        |              |               |
-  |                  |------------------>|              |               |
-  |                  |    APPROVE / DENY |              |               |
-  |                  |<------------------|              |               |
-  |                  |                   |              |               |
-  |                  | Charge card       |              |               |
-  |                  |--------------------------------->|               |
-  |                  |        psp_ref: ch_abc123        |               |
-  |                  |<---------------------------------|               |
-  |                  |                   |              |               |
-  |                  | Record double-entry              |               |
-  |                  |------------------------------------------------>|
-  |                  |                   |              |     ACK       |
-  |                  |<------------------------------------------------|
-  |                  |                   |              |               |
-  | {paymentId,      |                   |              |               |
-  |  status: OK}     |                   |              |               |
-  |<-----------------|                   |              |               |
+\`\`\`mermaid
+sequenceDiagram
+    participant C as Client
+    participant PS as Payment Service
+    participant RE as Risk Engine
+    participant PSP as PSP
+    participant L as Ledger
+
+    C->>PS: POST /payments {idempotencyKey}
+    Note over PS: Check idempotency key in DB<br/>(duplicate? return prev)
+    PS->>RE: Risk check
+    RE-->>PS: APPROVE / DENY
+    PS->>PSP: Charge card
+    PSP-->>PS: psp_ref: ch_abc123
+    PS->>L: Record double-entry
+    L-->>PS: ACK
+    PS-->>C: {paymentId, status: OK}
 \`\`\`
 
 ## Payment State Machine
 
-\`\`\`
-                    +----------+
-                    | CREATED  |
-                    +----+-----+
-                         |
-                    Risk check
-                         |
-               +---------+---------+
-               |                   |
-          +----v----+         +----v----+
-          | PENDING |         | DENIED  |
-          +----+----+         +---------+
-               |
-          PSP charge
-               |
-       +-------+-------+
-       |               |
-  +----v-----+   +-----v------+
-  | COMPLETED|   | FAILED     |
-  +----+-----+   +-----+------+
-       |               |
-  Refund request   Retry (if retryable)
-       |
-  +----v-----+
-  | REFUNDED |
-  +----------+
+\`\`\`mermaid
+graph TD
+    N0["PENDING"]
+    N1["DENIED"]
+    N2["COMPLETED"]
+    N3["FAILED"]
+    N4["REFUNDED"]
+    N0 --> N1
+    N0 --> N2
+    N0 --> N3
+    N2 --> N4
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 `,
     jsCode: `## Deep Dive: Idempotency Implementation
 
 Idempotency is the most critical mechanism in the payment system. The client generates a unique idempotency key per payment attempt and sends it with the request. If the same key is sent again (due to retry, network timeout, user double-click), the system returns the original result without re-processing.
 
-\`\`\`
-+------------------------------------------------------------------+
-|               Idempotency Key Flow                                |
-|                                                                    |
-|  Step 1: Client generates UUID as idempotency_key                 |
-|  Step 2: Payment service checks DB for existing key               |
-|                                                                    |
-|  CASE A: Key not found                                            |
-|    -> Insert row with status=PROCESSING                           |
-|    -> Process payment normally                                    |
-|    -> Update row with final status + result                       |
-|                                                                    |
-|  CASE B: Key found, status=COMPLETED                              |
-|    -> Return cached result immediately (no re-processing)         |
-|                                                                    |
-|  CASE C: Key found, status=PROCESSING                             |
-|    -> Previous attempt still in progress                          |
-|    -> Return 409 Conflict or poll until resolved                  |
-|                                                                    |
-|  Implementation detail:                                           |
-|    INSERT INTO payments (idempotency_key, status)                 |
-|    VALUES ('key-123', 'PROCESSING')                               |
-|    ON CONFLICT (idempotency_key) DO NOTHING;                      |
-|    -- If rowcount=0, key already exists -> lookup + return cached  |
-+------------------------------------------------------------------+
+\`\`\`mermaid
+graph TD
+    N0["Client sends request with idempotency_key"]
+    N1["Payment Service"]
+    N2{"Key exists in DB?"}
+    N3["Return cached result"]
+    N4["Process payment"]
+    N5["Store result with key"]
+    N6["Return new result"]
+    N0 --> N1
+    N1 --> N2
+    N2 -->|Yes| N3
+    N2 -->|No| N4
+    N4 --> N5
+    N5 --> N6
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ---
@@ -509,107 +512,95 @@ Idempotency is the most critical mechanism in the payment system. The client gen
 
 Every payment creates exactly two ledger entries that must sum to zero. This is a fundamental accounting principle that makes errors detectable.
 
-\`\`\`
-+------------------------------------------------------------------+
-|              Double-Entry Ledger Example                          |
-|                                                                    |
-|  Payment: Buyer pays $100 to Merchant                             |
-|                                                                    |
-|  +------------+--------+---------+--------+                       |
-|  | entry_id   | account| type    | amount |                       |
-|  +------------+--------+---------+--------+                       |
-|  | 1001       | buyer  | DEBIT   | 100.00 |   (money out)        |
-|  | 1002       | seller | CREDIT  | 100.00 |   (money in)         |
-|  +------------+--------+---------+--------+                       |
-|                                                                    |
-|  Invariant: SUM(credits) - SUM(debits) = 0  (always!)            |
-|                                                                    |
-|  Refund: Reverse the entries                                      |
-|  +------------+--------+---------+--------+                       |
-|  | 1003       | buyer  | CREDIT  | 100.00 |   (money back in)    |
-|  | 1004       | seller | DEBIT   | 100.00 |   (money back out)   |
-|  +------------+--------+---------+--------+                       |
-|                                                                    |
-|  Why double-entry?                                                |
-|  - Self-validating: any imbalance = bug                           |
-|  - Complete audit trail                                           |
-|  - Reconciliation is just: assert sum = 0 per payment            |
-+------------------------------------------------------------------+
+\`\`\`mermaid
+graph TD
+    N0["Double-Entry Ledger Example"]
+    N1["entry_id"]
+    N2["account"]
+    N3["type"]
+    N4["amount"]
+    N5["1001 1002"]
+    N6["buyer seller"]
+    N7["DEBIT CREDIT"]
+    N8["100.00 100.00"]
+    N0 --> N1
+    N0 --> N2
+    N0 --> N3
+    N0 --> N4
+    N1 --> N5
+    N2 --> N6
+    N3 --> N7
+    N4 --> N8
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N8 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ---
 
 ## Deep Dive: PSP Integration Patterns
 
-\`\`\`
-+------------------------------------------------------------------+
-|              PSP Integration Options                              |
-|                                                                    |
-|  Option A: Hosted Checkout Page (Recommended for PCI)            |
-|  +--------+    +----------+    +-------+                          |
-|  | Client |    | PSP Page |    | PSP   |                          |
-|  |        |--->| (Stripe  |--->| API   |                          |
-|  |        |    | Checkout)|    |       |                          |
-|  +--------+    +----------+    +---+---+                          |
-|       Card data never touches          |                          |
-|       our servers!                     | webhook callback         |
-|                                   +----v---------+               |
-|                                   | Our Payment  |               |
-|                                   | Service      |               |
-|                                   +--------------+               |
-|                                                                    |
-|  Option B: Tokenization API                                      |
-|  +--------+    +-------+    +----------------+                    |
-|  | Client |--->| PSP   |--->| Token: tok_123 |                    |
-|  | (JS SDK)|   | (card |    | (returned to   |                    |
-|  +--------+    | vault)|    |  our backend)  |                    |
-|                +-------+    +-------+--------+                    |
-|                                     |                             |
-|                              +------v---------+                   |
-|                              | Our Payment    |                   |
-|                              | Service uses   |                   |
-|                              | tok_123 to     |                   |
-|                              | charge via API |                   |
-|                              +----------------+                   |
-+------------------------------------------------------------------+
+\`\`\`mermaid
+graph TD
+    N0["PSP Integration Options"]
+    N1["Client"]
+    N2["PSP Page"]
+    N3["PSP API"]
+    N4["Our Payment Service"]
+    N5["Client (JS SDK)"]
+    N6["PSP (card data)"]
+    N7["Token: tok_123"]
+    N8["Our Payment Service uses token"]
+    N0 --> N1
+    N0 --> N5
+    N1 --> N2
+    N2 --> N3
+    N3 --> N4
+    N5 --> N6
+    N6 --> N7
+    N7 --> N8
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N8 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ---
 
 ## Deep Dive: Reconciliation Process
 
-\`\`\`
-+------------------------------------------------------------------+
-|               Daily Reconciliation Flow                           |
-|                                                                    |
-|  +------------------+        +------------------+                 |
-|  | Internal Ledger  |        | PSP Settlement   |                 |
-|  | (Our records)    |        | File (CSV/API)   |                 |
-|  +--------+---------+        +--------+---------+                 |
-|           |                           |                           |
-|           +----------+  +-------------+                           |
-|                      |  |                                         |
-|               +------v--v-------+                                 |
-|               | Reconciliation  |                                 |
-|               | Service         |                                 |
-|               |                 |                                 |
-|               | For each txn:   |                                 |
-|               | Compare amount, |                                 |
-|               | status, ref ID  |                                 |
-|               +------+----------+                                 |
-|                      |                                            |
-|           +----------+-----------+                                |
-|           |          |           |                                 |
-|      +----v---+ +----v----+ +---v------+                          |
-|      | Match  | | Missing | | Mismatch |                          |
-|      | (OK)   | | (Alert) | | (Review) |                          |
-|      +--------+ +---------+ +----------+                          |
-|                                                                    |
-|  Typical discrepancies:                                           |
-|  - Our DB shows COMPLETED but PSP has no record -> possible bug   |
-|  - PSP shows charge but our DB shows FAILED -> crash after charge |
-|  - Amount mismatch -> currency conversion error or tampering      |
-+------------------------------------------------------------------+
+\`\`\`mermaid
+graph TD
+    N0["Daily Reconciliation"]
+    N1["Internal Ledger"]
+    N2["PSP Settlement File"]
+    N3["Reconciliation Service"]
+    N4["Match (OK)"]
+    N5["Missing (Alert)"]
+    N6["Mismatch (Review)"]
+    N1 --> N3
+    N2 --> N3
+    N3 --> N4
+    N3 --> N5
+    N3 --> N6
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 `,
     explanation: `## Bottlenecks & Improvements
@@ -730,191 +721,157 @@ A **Transfer API** receives requests and validates them. A **Command Service** c
 `,
     code: `## Architecture Diagram
 
-\`\`\`
-+-----------+      +-------------------+      +---------------------+
-|  Client   |----->| API Gateway       |----->| Transfer API        |
-|           |      | (Auth, TLS)       |      | (Validate, Dedup)   |
-+-----------+      +-------------------+      +----+----------------+
-                                                    |
-                                           +--------v----------+
-                                           | Command Service    |
-                                           | (Create events)    |
-                                           +--------+----------+
-                                                    |
-                                           +--------v----------+
-                                           | Event Store        |
-                                           | (Append-only log)  |
-                                           | Partitioned by     |
-                                           | wallet_id          |
-                                           +--------+----------+
-                                                    |
-                                           +--------v----------+
-                                           | Event Processor    |
-                                           | (Consumes events,  |
-                                           |  updates balance)  |
-                                           +----+----------+---+
-                                                |          |
-                                    +-----------v--+  +----v-----------+
-                                    | Balance View  |  | Query Service  |
-                                    | (Materialized)|  | (Read balance, |
-                                    | wallet_id ->  |  |  tx history)   |
-                                    | balance       |  +----------------+
-                                    +--------------+
+\`\`\`mermaid
+graph TD
+    Client["Client"]
+    GW["API Gateway (Auth, TLS)"]
+    API["Transfer API (Validate, Dedup)"]
+    Cmd["Command Service (Create events)"]
+    Store["Event Store (Append-only log, partitioned by wallet_id)"]
+    Proc["Event Processor (Consumes events, updates balance)"]
+    Balance["Balance View (Materialized, wallet_id -> balance)"]
+    Query["Query Service (Read balance, tx history)"]
+
+    Client --> GW
+    GW --> API
+    API --> Cmd
+    Cmd --> Store
+    Store --> Proc
+    Proc --> Balance
+    Proc --> Query
+
+    style Client fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style GW fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style API fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style Cmd fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style Store fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style Proc fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style Balance fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style Query fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## Transfer Flow (Event Sourcing)
 
-\`\`\`
-Client        Transfer API      Command Service     Event Store      Event Processor   Balance View
-  |                |                  |                  |                  |               |
-  | POST /transfer |                  |                  |                  |               |
-  | {from, to, amt}|                  |                  |                  |               |
-  |--------------->|                  |                  |                  |               |
-  |                | Validate +       |                  |                  |               |
-  |                | check balance    |                  |                  |               |
-  |                |----------------->|                  |                  |               |
-  |                |                  |                  |                  |               |
-  |                |                  | Append DEBIT     |                  |               |
-  |                |                  | event (wallet A) |                  |               |
-  |                |                  |----------------->|                  |               |
-  |                |                  |                  |                  |               |
-  |                |                  | Append CREDIT    |                  |               |
-  |                |                  | event (wallet B) |                  |               |
-  |                |                  |----------------->|                  |               |
-  |                |                  |       ACK        |                  |               |
-  |                |                  |<-----------------|                  |               |
-  |                |                  |                  |                  |               |
-  |                |                  |                  | Process DEBIT    |               |
-  |                |                  |                  |----------------->|               |
-  |                |                  |                  |                  | A.balance -= amt
-  |                |                  |                  |                  |-------------->|
-  |                |                  |                  | Process CREDIT   |               |
-  |                |                  |                  |----------------->|               |
-  |                |                  |                  |                  | B.balance += amt
-  |                |                  |                  |                  |-------------->|
-  |                |                  |                  |                  |               |
-  | {transferId,   |                  |                  |                  |               |
-  |  status: OK}   |                  |                  |                  |               |
-  |<---------------|                  |                  |                  |               |
+\`\`\`mermaid
+sequenceDiagram
+    participant C as Client
+    participant API as Transfer API
+    participant Cmd as Command Service
+    participant ES as Event Store
+    participant EP as Event Processor
+    participant BV as Balance View
+
+    C->>API: POST /transfer {from, to, amt}
+    API->>Cmd: Validate + check balance
+    Cmd->>ES: Append DEBIT event (wallet A)
+    Cmd->>ES: Append CREDIT event (wallet B)
+    ES-->>Cmd: ACK
+    ES->>EP: Process DEBIT
+    EP->>BV: A.balance -= amt
+    ES->>EP: Process CREDIT
+    EP->>BV: B.balance += amt
+    API-->>C: {transferId, status: OK}
 \`\`\`
 
 ## Saga Pattern for Distributed Transfers
 
-\`\`\`
-+------------------------------------------------------------------+
-|           Saga: Transfer $50 from Wallet A to Wallet B           |
-|                                                                    |
-|  Step 1: DEBIT Wallet A by $50                                    |
-|    -> Success: proceed to Step 2                                  |
-|    -> Failure: abort (no compensation needed)                     |
-|                                                                    |
-|  Step 2: CREDIT Wallet B by $50                                   |
-|    -> Success: transfer complete                                  |
-|    -> Failure: COMPENSATE Step 1 (re-credit Wallet A by $50)      |
-|                                                                    |
-|  Saga Coordinator tracks state:                                   |
-|  +------------+----------+--------------+                         |
-|  | saga_id    | step     | status       |                         |
-|  +------------+----------+--------------+                         |
-|  | saga_001   | DEBIT_A  | COMPLETED    |                         |
-|  | saga_001   | CREDIT_B | COMPLETED    |                         |
-|  +------------+----------+--------------+                         |
-|                                                                    |
-|  If Step 2 fails:                                                 |
-|  +------------+----------+--------------+                         |
-|  | saga_001   | DEBIT_A  | COMPENSATING |                         |
-|  | saga_001   | CREDIT_B | FAILED       |                         |
-|  | saga_001   | REFUND_A | COMPLETED    |                         |
-|  +------------+----------+--------------+                         |
-+------------------------------------------------------------------+
+\`\`\`mermaid
+graph TD
+    N0["Saga: Transfer $50"]
+    N1["saga_id"]
+    N2["step"]
+    N3["status"]
+    N4["saga_001"]
+    N5["DEBIT_A CREDIT_B"]
+    N6["COMPLETED"]
+    N7["COMPENSATING FAILED"]
+    N0 --> N1
+    N0 --> N2
+    N0 --> N3
+    N1 --> N4
+    N2 --> N5
+    N3 --> N6
+    N4 --> N7
+    N5 --> N7
+    N6 --> N7
+    style N0 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 `,
     jsCode: `## Deep Dive: Event Sourcing vs Traditional CRUD
 
-\`\`\`
-+------------------------------------------------------------------+
-|          Traditional CRUD Approach                                |
-|                                                                    |
-|  wallets table:                                                   |
-|  +------------+---------+                                         |
-|  | wallet_id  | balance |                                         |
-|  +------------+---------+                                         |
-|  | A          | 500.00  |  <-- mutable, updated in place          |
-|  | B          | 200.00  |                                         |
-|  +------------+---------+                                         |
-|                                                                    |
-|  Transfer $100 from A to B:                                       |
-|    BEGIN TRANSACTION;                                             |
-|    UPDATE wallets SET balance = balance - 100 WHERE id = 'A';    |
-|    UPDATE wallets SET balance = balance + 100 WHERE id = 'B';    |
-|    INSERT INTO transactions (...) VALUES (...);                   |
-|    COMMIT;                                                        |
-|                                                                    |
-|  Pros: Simple, familiar, ACID guarantees                          |
-|  Cons: No natural audit trail (must add tx log separately),       |
-|        cannot reproduce historical balances,                      |
-|        hard to debug "how did balance get here?"                  |
-+------------------------------------------------------------------+
-
-+------------------------------------------------------------------+
-|          Event Sourcing Approach                                  |
-|                                                                    |
-|  Event log (immutable, append-only):                              |
-|  +----+--------+--------+---------+                               |
-|  | id | wallet | type   | amount  |                               |
-|  +----+--------+--------+---------+                               |
-|  | 1  | A      | CREDIT | 1000.00 |  (initial deposit)           |
-|  | 2  | B      | CREDIT |  500.00 |  (initial deposit)           |
-|  | 3  | A      | DEBIT  |  100.00 |  (transfer to B)             |
-|  | 4  | B      | CREDIT |  100.00 |  (transfer from A)           |
-|  +----+--------+--------+---------+                               |
-|                                                                    |
-|  Balance of A = 1000 - 100 = 900                                  |
-|  Balance of B = 500 + 100 = 600                                   |
-|                                                                    |
-|  Pros: Perfect audit trail, time-travel queries,                  |
-|        can rebuild balance from scratch,                          |
-|        natural fit for financial systems                          |
-|  Cons: Eventual consistency for reads (unless sync),              |
-|        more complex implementation,                               |
-|        event log grows unbounded (need snapshots)                 |
-+------------------------------------------------------------------+
+\`\`\`mermaid
+graph TD
+    N0["Traditional CRUD"]
+    N1["wallet_id"]
+    N2["balance"]
+    N3["A B"]
+    N4["500 200"]
+    N5["Event Sourcing"]
+    N6["id"]
+    N7["wallet"]
+    N8["type"]
+    N9["amount"]
+    N10["1 2"]
+    N11["CREDIT"]
+    N12["1000 500"]
+    N0 --> N1
+    N0 --> N2
+    N0 --> N3
+    N0 --> N4
+    N5 --> N6
+    N5 --> N7
+    N5 --> N8
+    N5 --> N9
+    N3 --> N10
+    N8 --> N11
+    N9 --> N12
+    style N0 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N8 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N9 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N10 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N11 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N12 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ---
 
 ## Deep Dive: CQRS Pattern (Command Query Responsibility Segregation)
 
-\`\`\`
-+------------------------------------------------------------------+
-|                     CQRS Architecture                            |
-|                                                                    |
-|  WRITE PATH (Commands)          READ PATH (Queries)              |
-|                                                                    |
-|  +------------------+           +------------------+              |
-|  | Transfer Request |           | Balance Query    |              |
-|  +--------+---------+           +--------+---------+              |
-|           |                              |                        |
-|  +--------v---------+           +--------v---------+              |
-|  | Command Service  |           | Query Service    |              |
-|  | (Validation,     |           | (Read from       |              |
-|  |  business rules) |           |  materialized    |              |
-|  +--------+---------+           |  view)           |              |
-|           |                     +--------+---------+              |
-|  +--------v---------+                    |                        |
-|  | Event Store      |           +--------v---------+              |
-|  | (Source of truth) +---------->| Balance View     |              |
-|  +------------------+  async    | (Optimized for   |              |
-|                        project  |  fast reads)     |              |
-|                                 +------------------+              |
-|                                                                    |
-|  Why CQRS for wallets?                                           |
-|  - Write model (events) is optimized for append operations        |
-|  - Read model (balance) is optimized for point lookups            |
-|  - Each can scale independently                                  |
-|  - Write path uses strong consistency                             |
-|  - Read path can use eventual consistency (small lag OK)          |
-+------------------------------------------------------------------+
+\`\`\`mermaid
+graph TD
+    N0["CQRS Architecture"]
+    N1["Transfer Request"]
+    N2["Balance Query"]
+    N3["Command Service"]
+    N4["Query Service"]
+    N5[("Event Store")]
+    N6["Materialized View"]
+    N1 --> N3
+    N2 --> N4
+    N3 --> N5
+    N5 --> N6
+    N4 --> N6
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ---
@@ -923,54 +880,51 @@ Client        Transfer API      Command Service     Event Store      Event Proce
 
 Replaying all events from the beginning to compute balance is expensive. Use periodic snapshots to limit replay.
 
-\`\`\`
-+------------------------------------------------------------------+
-|                Snapshot + Event Replay                            |
-|                                                                    |
-|  Event Log:                                                       |
-|  [e1] [e2] [e3] ... [e1000] [SNAPSHOT: bal=4500] [e1001] [e1002]|
-|                                ^                                  |
-|                                |                                  |
-|                         Snapshot every                            |
-|                         1000 events                              |
-|                                                                    |
-|  To compute current balance:                                     |
-|    1. Find latest snapshot: balance = 4500, after event 1000     |
-|    2. Replay events 1001 and 1002                                 |
-|    3. Current balance = 4500 + delta(e1001) + delta(e1002)       |
-|                                                                    |
-|  Without snapshot: replay all 1002 events (slow)                 |
-|  With snapshot: replay only 2 events (fast)                      |
-+------------------------------------------------------------------+
+\`\`\`mermaid
+graph TD
+    N0["Snapshot at Event #1000"]
+    N1["Balance: $500"]
+    N2["Event #1001: +$50"]
+    N3["Event #1002: -$20"]
+    N4["Event #1003: +$100"]
+    N5["Current Balance: $630"]
+    N0 --> N1
+    N1 --> N2
+    N2 --> N3
+    N3 --> N4
+    N4 --> N5
+    style N0 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ---
 
 ## Deep Dive: Concurrent Transfer Safety
 
-\`\`\`
-+------------------------------------------------------------------+
-|          Optimistic Locking for Balance Updates                   |
-|                                                                    |
-|  Balance View Row: { wallet_id: A, balance: 500, version: 7 }   |
-|                                                                    |
-|  Thread 1: Debit $100                                             |
-|    SELECT balance, version FROM balance_view WHERE wallet_id='A' |
-|    -> balance=500, version=7                                      |
-|    UPDATE balance_view SET balance=400, version=8                 |
-|      WHERE wallet_id='A' AND version=7                           |
-|    -> rowcount=1 (SUCCESS)                                        |
-|                                                                    |
-|  Thread 2: Debit $200 (concurrent)                                |
-|    SELECT balance, version FROM balance_view WHERE wallet_id='A' |
-|    -> balance=500, version=7  (stale read!)                       |
-|    UPDATE balance_view SET balance=300, version=8                 |
-|      WHERE wallet_id='A' AND version=7                           |
-|    -> rowcount=0 (CONFLICT - version already changed to 8)       |
-|    -> Retry: re-read balance=400 version=8, then update to 200   |
-|                                                                    |
-|  This prevents lost updates without pessimistic locking.          |
-+------------------------------------------------------------------+
+\`\`\`mermaid
+graph TD
+    N0["Read balance: $500, version=5"]
+    N1["Compute new balance: $400"]
+    N2{"UPDATE WHERE version=5"}
+    N3["Success: version=6"]
+    N4["Conflict: 0 rows affected"]
+    N5["Retry from read"]
+    N0 --> N1
+    N1 --> N2
+    N2 -->|1 row affected| N3
+    N2 -->|0 rows affected| N4
+    N4 --> N5
+    N5 --> N0
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
 \`\`\`
 `,
     explanation: `## Bottlenecks & Improvements
@@ -1096,125 +1050,82 @@ A **Gateway** handles client connections, authentication, and rate limiting. A *
 `,
     code: `## Architecture Diagram
 
-\`\`\`
-+---------------+    +---------------+    +-------------------+
-| Client A      |--->|               |--->|                   |
-| (Broker/HFT)  |    |   Gateway     |    |   Sequencer       |
-+---------------+    |   (Auth,      |    |   (Assigns global |
-+---------------+    |    Validate,  |    |    sequence #)     |
-| Client B      |--->|    Rate Limit)|    |                   |
-| (Retail App)  |    |               |    |   Input: orders   |
-+---------------+    +---------------+    |   Output: ordered |
-                                          |   event stream    |
-                                          +--------+----------+
-                                                   |
-                                          +--------v----------+
-                                          | Matching Engine    |
-                                          | (Single-threaded)  |
-                                          |                    |
-                                          | - Order Book per   |
-                                          |   symbol           |
-                                          | - Price-time       |
-                                          |   priority match   |
-                                          +----+----------+---+
-                                               |          |
-                                    +----------v-+  +-----v-----------+
-                                    | Market Data |  | Reporter        |
-                                    | Publisher   |  | (Trade confirms,|
-                                    |             |  |  regulatory      |
-                                    | L1/L2/L3   |  |  reporting)      |
-                                    | multicast   |  +-----------------+
-                                    +-------------+
+\`\`\`mermaid
+graph TD
+    CA["Client A (Broker/HFT)"]
+    CB["Client B (Retail App)"]
+    GW["Gateway (Auth, Validate, Rate Limit)"]
+    Seq["Sequencer (Assigns global sequence #)<br/>Input: orders, Output: ordered event stream"]
+    ME["Matching Engine (Single-threaded)<br/>Order Book per symbol<br/>Price-time priority match"]
+    MD["Market Data Publisher (L1/L2/L3 multicast)"]
+    Rep["Reporter (Trade confirms, regulatory reporting)"]
+
+    CA --> GW
+    CB --> GW
+    GW --> Seq
+    Seq --> ME
+    ME --> MD
+    ME --> Rep
+
+    style CA fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style CB fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style GW fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style Seq fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style ME fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style MD fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style Rep fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## Order Matching Flow
 
-\`\`\`
-Client        Gateway        Sequencer       Matching Engine    Market Data
-  |              |               |                 |                |
-  | New Limit    |               |                 |                |
-  | BUY AAPL     |               |                 |                |
-  | @150.00 x100 |               |                 |                |
-  |------------->|               |                 |                |
-  |              | Validate +    |                 |                |
-  |              | authenticate  |                 |                |
-  |              |-------------->|                 |                |
-  |              |               | Assign seq #42  |                |
-  |              |               |---------------->|                |
-  |              |               |                 |                |
-  |              |               |                 | Check order book:
-  |              |               |                 | Best ASK = 149.90
-  |              |               |                 | BUY@150 >= ASK@149.90
-  |              |               |                 | -> MATCH! Trade executes
-  |              |               |                 |                |
-  |              |               |                 | Publish trade  |
-  |              |               |                 |--------------->|
-  |              |               |                 |                | Broadcast
-  |              |               |                 |                | to all
-  | Execution    |               |                 |                | subscribers
-  | report       |               |                 |                |
-  |<-------------|<--------------|<----------------|                |
+\`\`\`mermaid
+sequenceDiagram
+    participant C as Client
+    participant GW as Gateway
+    participant Seq as Sequencer
+    participant ME as Matching Engine
+    participant MD as Market Data
+
+    C->>GW: New Limit BUY AAPL @150.00 x100
+    GW->>Seq: Validate + authenticate
+    Seq->>ME: Assign seq #42
+    Note over ME: Check order book:<br/>Best ASK = 149.90<br/>BUY@150 >= ASK@149.90<br/>-> MATCH! Trade executes
+    ME->>MD: Publish trade
+    Note over MD: Broadcast to all subscribers
+    ME-->>C: Execution report
 \`\`\`
 
 ## Order Book Data Structure
 
+**Order Book for AAPL**
+
 \`\`\`
-+------------------------------------------------------------------+
-|                   Order Book for AAPL                             |
-|                                                                    |
-|  BUY SIDE (Bids)              |  SELL SIDE (Asks)                |
-|  Sorted: price DESC           |  Sorted: price ASC               |
-|                                |                                  |
-|  Price   | Qty  | Orders      |  Price   | Qty  | Orders        |
-|  --------|------|-------------|  --------|------|-------------- |
-|  150.10  | 500  | [O1,O2,O3] |  150.20  | 300  | [O7,O8]      |
-|  150.00  | 1200 | [O4,O5]    |  150.25  | 800  | [O9,O10,O11] |
-|  149.95  | 200  | [O6]       |  150.50  | 150  | [O12]        |
-|           |      |            |           |      |              |
-|  Best Bid: 150.10             |  Best Ask: 150.20               |
-|           |      |            |           |      |              |
-|  Spread = Best Ask - Best Bid = 150.20 - 150.10 = $0.10        |
-+------------------------------------------------------------------+
+         BID (Buy)          |         ASK (Sell)
+  Price    | Qty  | Orders  |  Price    | Qty  | Orders
+-----------+------+---------+-----------+------+--------
+  150.10   | 500  |   3     |  150.15   | 200  |   2
+  150.00   | 1200 |   8     |  150.20   | 800  |   5
+  149.95   | 300  |   2     |  150.25   | 450  |   3
+  149.90   | 750  |   4     |  150.30   | 1000 |   6
 
-Each price level is a FIFO queue of orders (time priority).
-
-When a new BUY order arrives at price P:
-  - If P >= Best Ask: match against ask orders at Best Ask
-  - Fill orders in FIFO order within that price level
-  - If quantity remains, move to next ask price level
-  - If P < Best Ask: add to bid side at price level P
+  Spread: $0.05 (150.10 → 150.15)
 \`\`\`
 
 ## Sequencer Architecture (Deterministic Replay)
 
-\`\`\`
-+------------------------------------------------------------------+
-|                    Sequencer Design                               |
-|                                                                    |
-|  Incoming orders:    [BUY AAPL] [SELL GOOG] [CANCEL #42]        |
-|        (unordered,       |          |            |                |
-|         concurrent)      v          v            v                |
-|                    +-----+----------+------------+----+           |
-|                    |         Sequencer                 |           |
-|                    |  Assigns monotonic sequence #     |           |
-|                    |  Writes to durable journal        |           |
-|                    +-----+----------+------------+----+           |
-|                          |          |            |                |
-|  Sequenced stream:  [seq=1]    [seq=2]      [seq=3]              |
-|                          |          |            |                |
-|                    +-----v----------v------------v----+           |
-|                    |      Matching Engine (Primary)    |           |
-|                    +----------------------------------+           |
-|                                                                    |
-|                    +----------------------------------+           |
-|                    |      Matching Engine (Hot Standby)|           |
-|                    |  Replays same sequence            |           |
-|                    |  Identical state as primary       |           |
-|                    +----------------------------------+           |
-|                                                                    |
-|  If primary fails: standby has processed all events               |
-|  up to the same sequence #. Takeover is instant.                  |
-+------------------------------------------------------------------+
+\`\`\`mermaid
+graph TD
+    N0["Incoming orders"]
+    N1["Sequencer"]
+    N2["Matching Engine (Primary)"]
+    N3["Matching Engine (Hot Standby)"]
+    N0 --> N1
+    N1 --> N2
+    N1 --> N3
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
 \`\`\`
 `,
     jsCode: `## Deep Dive: Order Book Implementation
@@ -1225,175 +1136,138 @@ The order book is the most performance-critical data structure. It must support:
 - Find best bid/ask: O(1)
 - Match at a price level: O(1) per fill
 
-\`\`\`
-+------------------------------------------------------------------+
-|           Order Book Internal Structure                           |
-|                                                                    |
-|  Price Level Map (sorted map / tree):                             |
-|                                                                    |
-|  BID SIDE:                                                        |
-|  TreeMap<Price, PriceLevel>  (sorted descending)                  |
-|                                                                    |
-|    150.10 -> PriceLevel {                                         |
-|                totalQty: 500                                      |
-|                orders: LinkedList [O1(200) -> O2(150) -> O3(150)] |
-|              }                                                    |
-|    150.00 -> PriceLevel {                                         |
-|                totalQty: 1200                                     |
-|                orders: LinkedList [O4(700) -> O5(500)]            |
-|              }                                                    |
-|                                                                    |
-|  ASK SIDE:                                                        |
-|  TreeMap<Price, PriceLevel>  (sorted ascending)                   |
-|                                                                    |
-|    150.20 -> PriceLevel {                                         |
-|                totalQty: 300                                      |
-|                orders: LinkedList [O7(200) -> O8(100)]            |
-|              }                                                    |
-|                                                                    |
-|  Order Index (for O(1) cancel):                                   |
-|  HashMap<OrderId, OrderNode>                                      |
-|    O1 -> pointer to node in LinkedList                            |
-|    O7 -> pointer to node in LinkedList                            |
-|                                                                    |
-|  Cancel O1: HashMap lookup -> LinkedList.remove(node) -> O(1)    |
-+------------------------------------------------------------------+
+\`\`\`mermaid
+graph TD
+    OB["Order Book"]
+    BidTree["Bid Tree (Red-Black, descending)"]
+    AT["Ask Tree (Red-Black, ascending)"]
+    PL1["Price Level $150.10"]
+    PL2["Price Level $150.00"]
+    PL3["Price Level $150.15"]
+    PL4["Price Level $150.20"]
+    Q1["Order Queue (FIFO)"]
+    Q2["Order Queue (FIFO)"]
+    OB --> BidTree
+    OB --> AT
+    BidTree --> PL1
+    BidTree --> PL2
+    AT --> PL3
+    AT --> PL4
+    PL1 --> Q1
+    PL3 --> Q2
+    style OB fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style BidTree fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style AT fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style PL1 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style PL2 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style PL3 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style PL4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style Q1 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style Q2 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ---
 
 ## Deep Dive: Matching Algorithm (Price-Time Priority)
 
-\`\`\`
-+------------------------------------------------------------------+
-|        Matching a new BUY LIMIT order: AAPL @150.25 x 400       |
-|                                                                    |
-|  Current ASK side:                                                |
-|    150.20: [O7(200), O8(100)]   total=300                        |
-|    150.25: [O9(500)]            total=500                        |
-|    150.50: [O12(150)]           total=150                        |
-|                                                                    |
-|  Step 1: Best Ask=150.20 <= Buy@150.25 -> MATCH                  |
-|    Fill O7: trade 200 shares @ 150.20                             |
-|    remaining = 400 - 200 = 200                                    |
-|    Fill O8: trade 100 shares @ 150.20                             |
-|    remaining = 200 - 100 = 100                                    |
-|    Price level 150.20 is now empty -> remove it                   |
-|                                                                    |
-|  Step 2: Best Ask=150.25 <= Buy@150.25 -> MATCH                  |
-|    Fill O9: trade 100 shares @ 150.25 (partial fill)              |
-|    remaining = 100 - 100 = 0                                      |
-|    O9 still has 400 remaining -> stays in book                    |
-|                                                                    |
-|  Result: 3 trades generated                                      |
-|    Trade 1: 200 @ 150.20 (BUY vs O7)                             |
-|    Trade 2: 100 @ 150.20 (BUY vs O8)                             |
-|    Trade 3: 100 @ 150.25 (BUY vs O9)                             |
-|                                                                    |
-|  Updated ASK side:                                                |
-|    150.25: [O9(400)]            total=400                        |
-|    150.50: [O12(150)]           total=150                        |
-+------------------------------------------------------------------+
+\`\`\`mermaid
+graph TD
+    N0["New BUY LIMIT order arrives"]
+    N1{"Buy price >= best ask?"}
+    N2["Add to bid book (no match)"]
+    N3["Match against best ask"]
+    N4{"Order fully filled?"}
+    N5["Remove from ask book"]
+    N6["Partial fill: reduce ask qty"]
+    N7{"More ask levels to match?"}
+    N8["Remainder added to bid book"]
+    N0 --> N1
+    N1 -->|No| N2
+    N1 -->|Yes| N3
+    N3 --> N4
+    N4 -->|Yes| N5
+    N4 -->|No| N6
+    N6 --> N7
+    N7 -->|Yes| N3
+    N7 -->|No| N8
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style N8 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ---
 
 ## Deep Dive: Market Data Levels
 
-\`\`\`
-+------------------------------------------------------------------+
-|              Market Data Distribution                             |
-|                                                                    |
-|  Level 1 (L1) - Best Bid/Ask (Top of Book)                      |
-|  +-------+--------+--------+--------+--------+                   |
-|  | Symbol | BidPx  | BidQty | AskPx  | AskQty |                   |
-|  +-------+--------+--------+--------+--------+                   |
-|  | AAPL   | 150.10 | 500    | 150.20 | 300    |                   |
-|  +-------+--------+--------+--------+--------+                   |
-|  Bandwidth: ~50 bytes/update, suitable for retail                 |
-|                                                                    |
-|  Level 2 (L2) - Aggregated Depth (Top N Price Levels)            |
-|  +-------+--------+--------+                                     |
-|  | Level | BidPx  | BidQty |  (and ask side similarly)           |
-|  +-------+--------+--------+                                     |
-|  | 1     | 150.10 | 500    |                                     |
-|  | 2     | 150.00 | 1200   |                                     |
-|  | 3     | 149.95 | 200    |                                     |
-|  +-------+--------+--------+                                     |
-|  Bandwidth: ~500 bytes/update, for active traders                 |
-|                                                                    |
-|  Level 3 (L3) - Full Order Book (Every Individual Order)          |
-|  Shows every order at every price level with order IDs            |
-|  Bandwidth: ~5 KB/update, for market makers and HFT               |
-|                                                                    |
-|  Distribution methods:                                            |
-|  - Multicast UDP: for institutional (low latency, unreliable)     |
-|  - TCP feed: for reliable delivery (slightly higher latency)      |
-|  - WebSocket: for retail apps (highest latency, easiest to use)   |
-+------------------------------------------------------------------+
+\`\`\`mermaid
+graph TD
+    N0["Market Data Distribution"]
+    N1["Symbol"]
+    N2["AAPL"]
+    N3["(ask side)"]
+    N4["Level"]
+    N5["BidPx"]
+    N6["BidQty"]
+    N7["1 2"]
+    N8["150.10 150.00"]
+    N9["500 1200"]
+    N0 --> N1
+    N0 --> N3
+    N0 --> N4
+    N0 --> N5
+    N0 --> N6
+    N1 --> N2
+    N4 --> N7
+    N5 --> N8
+    N6 --> N9
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N4 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N5 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N7 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N8 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N9 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ---
 
 ## Deep Dive: Fault Tolerance via Event Sourcing
 
-\`\`\`
-+------------------------------------------------------------------+
-|            Fault Tolerance Architecture                           |
-|                                                                    |
-|  +------------------+     +------------------+                    |
-|  | Primary Matching |     | Standby Matching |                    |
-|  | Engine           |     | Engine           |                    |
-|  |                  |     |                  |                    |
-|  | Processes events |     | Processes same   |                    |
-|  | from sequencer   |     | events from      |                    |
-|  |                  |     | sequencer        |                    |
-|  | State: current   |     | State: identical |                    |
-|  | order books      |     | order books      |                    |
-|  +--------+---------+     +--------+---------+                    |
-|           |                        |                              |
-|           v                        v                              |
-|  Both produce same outputs (deterministic)                        |
-|  Primary's outputs go to market data + reporter                  |
-|  Standby's outputs are discarded (but verified)                  |
-|                                                                    |
-|  Failover:                                                        |
-|  1. Heartbeat from primary stops                                  |
-|  2. Standby promotes to primary (< 1 second)                     |
-|  3. Standby's outputs are now published                          |
-|  4. No replay needed -- standby already has current state         |
-|                                                                    |
-|  Recovery:                                                        |
-|  1. New standby starts from scratch                               |
-|  2. Replays all events from sequencer journal                    |
-|  3. Catches up to primary's state                                |
-|  4. Enters hot-standby mode                                      |
-+------------------------------------------------------------------+
+\`\`\`mermaid
+graph TD
+    N0["Fault Tolerance Architecture"]
+    N1["Primary Matching Engine"]
+    N2["Standby Matching Engine"]
+    N0 --> N1
+    N1 --> N2
+    style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ---
 
 ## Deep Dive: Hardware and Colocation Optimization
 
-\`\`\`
-+------------------------------------------------------------------+
-|           Performance Optimization Stack                         |
-|                                                                    |
-|  Layer           | Optimization                                  |
-|  ----------------|-----------------------------------------------|
-|  Network         | Kernel bypass (DPDK/RDMA), 10/25 GbE NICs     |
-|  OS              | CPU pinning, NUMA-aware allocation,            |
-|                  | huge pages, disable swap                       |
-|  Language        | C/C++ or Java with off-heap memory,            |
-|                  | no GC pauses (Zing JVM or manual memory)       |
-|  Data structures | Lock-free ring buffers (LMAX Disruptor),       |
-|                  | pre-allocated object pools                     |
-|  I/O             | Memory-mapped files for journal,               |
-|                  | async I/O for non-critical path                |
-|  Colocation      | Exchange servers in same data center as         |
-|                  | matching engine (< 1 microsecond network RTT)  |
-+------------------------------------------------------------------+
-\`\`\`
+**Performance Optimization Stack**
+
+| Layer | Technique | Latency Impact |
+|-------|-----------|----------------|
+| Network | Kernel bypass (DPDK/RDMA) | ~1-5 us |
+| OS | CPU pinning, NUMA-aware allocation | ~2-10 us |
+| Memory | Pre-allocated object pools, no GC | ~1-5 us |
+| Data Structure | Lock-free queues, cache-line aligned | ~0.5-2 us |
+| Protocol | Binary FIX (SBE), zero-copy | ~1-3 us |
+| Colocation | Same datacenter as exchange | ~50-100 us RTT |
 `,
     explanation: `## Bottlenecks & Improvements
 - **Sequencer as single point of failure** → Use a primary-standby pair with shared journal (e.g., on a replicated SSD). Failover in sub-second. The sequencer is simple enough that failures are rare

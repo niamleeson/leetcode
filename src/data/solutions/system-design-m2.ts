@@ -68,108 +68,80 @@ A **sync agent** on each client watches the local filesystem and performs conten
 `,
     code: `## Architecture Diagram
 
-\`\`\`
-+------------------+          +-------------------+
-| Client Device    |          | Client Device     |
-| +----------+     |          |     +----------+  |
-| |File Watch |     |          |     |File Watch|  |
-| |+ Chunker  |     |          |     |+ Chunker |  |
-| +-----+----+     |          |     +----+-----+  |
-+-------|----------+          +----------|--------+
-        |                                |
-        v                                v
-+------------------------------------------------+
-| Load Balancer (Nginx / ALB)                     |
-+---------------------+--------------------------+
-                      |
-         +------------v-----------+
-         | API Servers (Stateless) |
-         | - Upload / Download     |
-         | - Sync / Share          |
-         +---+--------+-------+---+
-             |        |       |
-   +---------v--+ +---v----+  +--v-----------+
-   | Metadata   | | Notif  |  | Block Storage |
-   | Service    | | Service|  | (S3)          |
-   | (MySQL     | | (Long  |  |               |
-   |  sharded)  | |  Poll/ |  | Chunks keyed  |
-   |            | |  WS)   |  | by SHA-256    |
-   | files,     | |        |  | 3x replicated |
-   | versions,  | +--------+  +---------------+
-   | chunks     |
-   +------------+
+\`\`\`mermaid
+graph TD
+    C1["Client Device (File Watch + Chunker)"] --> LB["Load Balancer"]
+    C2["Client Device (File Watch + Chunker)"] --> LB
+    LB --> API["API Servers (Stateless)"]
+    API --> Meta["Metadata Service (MySQL sharded)"]
+    API --> Notif["Notification Service (Long Poll/WS)"]
+    API --> S3["Block Storage (S3, SHA-256 keyed)"]
+
+    style C1 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style C2 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style LB fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style API fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style Meta fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style Notif fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style S3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## Write Flow (File Upload)
 
-\`\`\`
-Client            API Server       Metadata Svc      S3 Storage
-  |                   |                |                 |
-  | Upload init       |                |                 |
-  |------------------>|                |                 |
-  |                   | Check chunks   |                 |
-  |                   |--------------->|                 |
-  |                   | Needed chunks  |                 |
-  |                   |<---------------|                 |
-  | Presigned URLs    |                |                 |
-  |<------------------|                |                 |
-  |                   |                |                 |
-  | PUT chunks directly to S3 ----------------------->  |
-  |                   |                |                 |
-  | Upload complete   |                |                 |
-  |------------------>|                |                 |
-  |                   | Commit version |                 |
-  |                   |--------------->|                 |
-  |                   |    ACK         |                 |
-  |                   |<---------------|                 |
-  | { fileId, ver }   |                |                 |
-  |<------------------|                |                 |
+\`\`\`mermaid
+sequenceDiagram
+    participant Client
+    participant API as API Server
+    participant Meta as Metadata Svc
+    participant S3 as S3 Storage
+
+    Client->>API: Upload init
+    API->>Meta: Check chunks
+    Meta-->>API: Needed chunks
+    API-->>Client: Presigned URLs
+    Client->>S3: PUT chunks directly
+    Client->>API: Upload complete
+    API->>Meta: Commit version
+    Meta-->>API: ACK
+    API-->>Client: { fileId, ver }
 \`\`\`
 
 ## Read Flow (File Sync)
 
-\`\`\`
-Client            API Server       Metadata Svc      S3 / CDN
-  |                   |                |                 |
-  | GET /sync/changes |                |                 |
-  |------------------>|                |                 |
-  |                   | Query events   |                 |
-  |                   |--------------->|                 |
-  |                   | Changed files  |                 |
-  |                   |<---------------|                 |
-  | { changes[] }     |                |                 |
-  |<------------------|                |                 |
-  |                   |                |                 |
-  | GET chunk from CDN ------------------------------>  |
-  | <-- chunk data ----------------------------------- |
-  |                   |                |                 |
-  | (reassemble file locally)         |                 |
+\`\`\`mermaid
+sequenceDiagram
+    participant Client
+    participant API as API Server
+    participant Meta as Metadata Svc
+    participant CDN as S3 / CDN
+
+    Client->>API: GET /sync/changes
+    API->>Meta: Query events
+    Meta-->>API: Changed files
+    API-->>Client: { changes[] }
+    Client->>CDN: GET chunk
+    CDN-->>Client: chunk data
+    Note over Client: Reassemble file locally
 \`\`\`
 `,
     jsCode: `## Deep Dive: Content-Defined Chunking
 
 Content-defined chunking uses a **Rabin fingerprint** (rolling hash) to find natural cut points in a file based on content, not fixed offsets. This is the key to efficient delta sync.
 
-\`\`\`
-+-------- File bytes stream --------+
-| byte byte byte byte byte byte ... |
-+---+---+---+---+---+---+---+------+
-    |<-- 48-byte sliding window -->|
-    |       Rolling Hash           |
-    +----------+-------------------+
-               |
-               v
-    hash % TARGET_SIZE == 0 ?
-         |           |
-        YES          NO
-         |           |
-    CUT HERE     CONTINUE
-         |
-         v
-+--------+--------+---------+
-| Chunk 1| Chunk 2| Chunk 3 |
-| SHA-256| SHA-256| SHA-256  |
-+--------+--------+---------+
+\`\`\`mermaid
+graph TD
+    Stream["File bytes stream"] --> Window["48-byte sliding window<br/>Rolling Hash"]
+    Window --> Check{"hash % TARGET_SIZE == 0?"}
+    Check -->|"YES"| Cut["CUT HERE → New chunk boundary"]
+    Check -->|"NO"| Continue["CONTINUE sliding"]
+    Cut --> Chunks["Chunk 1 (SHA-256) | Chunk 2 (SHA-256) | Chunk 3 (SHA-256)"]
+
+    style Stream fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style Window fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style Check fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style Cut fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style Continue fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style Chunks fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 - Sliding window of 48 bytes computes a polynomial hash
@@ -182,25 +154,18 @@ Content-defined chunking uses a **Rabin fingerprint** (rolling hash) to find nat
 
 ## Deep Dive: Conflict Resolution with Version Vectors
 
-\`\`\`
-Device A                    Server                  Device B
-  |                           |                        |
-  | Edit file (v=1)           |                        |
-  | VA={A:2, B:1}             |                        |
-  |-------------------------->|                        |
-  |                           | Store VA={A:2, B:1}    |
-  |                           |                        |
-  |                           |     Edit file (v=1)    |
-  |                           |     VB={A:1, B:2}      |
-  |                           |<-----------------------|
-  |                           |                        |
-  |                    Compare vectors:                 |
-  |                    VA={A:2,B:1} vs VB={A:1,B:2}    |
-  |                    Neither dominates -> CONFLICT    |
-  |                           |                        |
-  |   Save both versions:     |                        |
-  |   "file.txt"              |                        |
-  |   "file (conflict).txt"   |                        |
+\`\`\`mermaid
+sequenceDiagram
+    participant DA as Device A
+    participant Server
+    participant DB as Device B
+
+    DA->>Server: Edit file VA={A:2, B:1}
+    Note over Server: Store VA={A:2, B:1}
+    DB->>Server: Edit file VB={A:1, B:2}
+    Note over Server: Compare: VA={A:2,B:1} vs VB={A:1,B:2}
+    Note over Server: Neither dominates → CONFLICT
+    Note over Server: Save both: file.txt + file (conflict).txt
 \`\`\`
 
 - Each device maintains a map of \`{ deviceId: counter }\`
@@ -213,24 +178,19 @@ Device A                    Server                  Device B
 
 ## Deep Dive: Notification and Sync Protocol
 
-\`\`\`
-+----------------------------------------------+
-| Notification Service                          |
-|                                               |
-|  +------------------+  +------------------+   |
-|  | Long-Poll Pool   |  | WebSocket Pool   |   |
-|  | (Mobile/Web)     |  | (Desktop)        |   |
-|  |                  |  |                   |   |
-|  | Hold connection  |  | Persistent conn   |   |
-|  | until change or  |  | Push immediately  |   |
-|  | 30s timeout      |  | on change event   |   |
-|  +--------+---------+  +--------+---------+   |
-|           |                      |             |
-|  +--------v----------------------v---------+   |
-|  | Event Bus (Kafka / Redis Pub/Sub)       |   |
-|  | Topic per user_id                       |   |
-|  +-----------------------------------------+   |
-+----------------------------------------------+
+\`\`\`mermaid
+graph TD
+    subgraph NotifSvc["Notification Service"]
+        LP["Long-Poll Pool (Mobile/Web)<br/>Hold until change or 30s timeout"]
+        WS["WebSocket Pool (Desktop)<br/>Push immediately on change"]
+    end
+    EventBus["Event Bus (Kafka / Redis Pub/Sub)<br/>Topic per user_id"] --> LP
+    EventBus --> WS
+
+    style LP fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style WS fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style EventBus fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style NotifSvc fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 - Desktop clients use **WebSockets** for lowest latency push
@@ -338,141 +298,100 @@ An **upload service** accepts raw video and stores it in blob storage. A **trans
 `,
     code: `## Architecture Diagram
 
-\`\`\`
-+-----------+       +-------------------+       +-----------------+
-| Creator   |------>| Upload Service    |------>| Blob Storage    |
-| (Browser) |       | (Presigned URL)   |       | (S3 - raw video)|
-+-----------+       +-------------------+       +--------+--------+
-                                                         |
-                                                         v
-                                                +-----------------+
-                                                | Message Queue   |
-                                                | (SQS / Kafka)   |
-                                                +--------+--------+
-                                                         |
-                              +------------+-------------+----------+
-                              |            |             |           |
-                              v            v             v           v
-                        +----------+ +----------+ +----------+ +----------+
-                        |Transcoder| |Transcoder| |Transcoder| |Transcoder|
-                        |Worker 360| |Worker 720| |Worker1080| |Worker 4K |
-                        +-----+----+ +-----+----+ +-----+----+ +-----+----+
-                              |            |             |           |
-                              v            v             v           v
-                        +--------------------------------------------------+
-                        | Transcoded Storage (S3)                           |
-                        | /video_id/720p/segment_001.ts                    |
-                        | /video_id/720p/segment_002.ts                    |
-                        | /video_id/1080p/segment_001.ts ...               |
-                        +-------------------------+------------------------+
-                                                  |
-                                                  v
-+-----------+       +------------------+    +-----+-------+
-| Viewer    |<----->| CDN Edge PoPs    |<-->| Origin      |
-| (Player)  |       | (CloudFront/     |    | Shield      |
-|           |       |  Akamai)         |    | (Mid-tier   |
-| Adaptive  |       |                  |    |  cache)     |
-| Bitrate   |       | Cache segments   |    +-------------+
-+-----------+       +------------------+
+\`\`\`mermaid
+graph TD
+    Creator["Creator (Browser)"] --> Upload["Upload Service"] --> Blob["Blob Storage (S3)"]
+    Blob --> Queue["Message Queue (SQS/Kafka)"]
+    Queue --> T1["Transcoder 360p"]
+    Queue --> T2["Transcoder 720p"]
+    Queue --> T3["Transcoder 1080p"]
+    Queue --> T4["Transcoder 4K"]
+    T1 --> TS3["Transcoded Storage (S3)"]
+    T2 --> TS3
+    T3 --> TS3
+    T4 --> TS3
+    TS3 --> Shield["Origin Shield"]
+    Shield --> CDN["CDN Edge PoPs"]
+    CDN --> Viewer["Viewer (Adaptive Bitrate Player)"]
+
+    style Creator fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style Upload fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style Blob fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style Queue fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style T1 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style T2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style T3 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style T4 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style TS3 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style Shield fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style CDN fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style Viewer fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## Write Flow (Video Upload + Transcode)
 
-\`\`\`
-Creator        Upload Svc      Blob Store     Queue        Transcoder
-  |                |               |             |              |
-  | Init upload    |               |             |              |
-  |--------------->|               |             |              |
-  | Presigned URL  |               |             |              |
-  |<---------------|               |             |              |
-  |                |               |             |              |
-  | PUT raw video  |               |             |              |
-  |------------------------------->|             |              |
-  |                |               |             |              |
-  | Complete       |               |             |              |
-  |--------------->|               |             |              |
-  |                | Enqueue job   |             |              |
-  |                |----------------------------->|              |
-  |                |               |             | Dequeue      |
-  |                |               |             |------------->|
-  |                |               | Fetch raw   |              |
-  |                |               |<---------------------------|
-  |                |               |             |              |
-  |                |               | Store segments             |
-  |                |               |<---------------------------|
-  |                |               |             |    Done      |
-  |                | Update status |             |<-------------|
-  |                |<--------------------------------------|    |
+\`\`\`mermaid
+sequenceDiagram
+    participant Creator
+    participant Upload as Upload Svc
+    participant Blob as Blob Store
+    participant Queue
+    participant Trans as Transcoder
+
+    Creator->>Upload: Init upload
+    Upload-->>Creator: Presigned URL
+    Creator->>Blob: PUT raw video
+    Creator->>Upload: Complete
+    Upload->>Queue: Enqueue job
+    Queue->>Trans: Dequeue
+    Trans->>Blob: Fetch raw video
+    Trans->>Blob: Store transcoded segments
+    Trans-->>Upload: Done, update status
 \`\`\`
 
 ## Read Flow (Video Streaming)
 
-\`\`\`
-Viewer          CDN Edge        Origin Shield    S3 Storage
-  |                |                |                |
-  | GET manifest   |                |                |
-  |--------------->|                |                |
-  |  (cache miss)  |                |                |
-  |                |--------------->|                |
-  |                |  manifest      |                |
-  |                |<---------------|                |
-  | manifest       |                |                |
-  |<---------------|                |                |
-  |                |                |                |
-  | GET segment_1  |                |                |
-  | (720p)         |                |                |
-  |--------------->|                |                |
-  | [HIT] segment  |                |                |
-  |<---------------|                |                |
-  |                |                |                |
-  | GET segment_2  |                |                |
-  | (1080p - BW up)|                |                |
-  |--------------->|                |                |
-  |  (cache miss)  |--------------->|                |
-  |                |  (miss)        |--------------->|
-  |                |                | segment        |
-  |                |                |<---------------|
-  |                | segment        |                |
-  |                |<---------------|                |
-  | segment        |                |                |
-  |<---------------|                |                |
+\`\`\`mermaid
+sequenceDiagram
+    participant Viewer
+    participant CDN as CDN Edge
+    participant Shield as Origin Shield
+    participant S3 as S3 Storage
+
+    Viewer->>CDN: GET manifest
+    CDN->>Shield: cache miss
+    Shield-->>CDN: manifest
+    CDN-->>Viewer: manifest
+    Viewer->>CDN: GET segment_1 (720p)
+    CDN-->>Viewer: HIT - segment
+    Viewer->>CDN: GET segment_2 (1080p)
+    CDN->>Shield: cache miss
+    Shield->>S3: miss
+    S3-->>Shield: segment
+    Shield-->>CDN: segment
+    CDN-->>Viewer: segment
 \`\`\`
 `,
     jsCode: `## Deep Dive: Transcoding Pipeline
 
 The transcoding pipeline is the most compute-intensive component. Each uploaded video must be converted into multiple resolution/bitrate combinations and segmented for adaptive streaming.
 
-\`\`\`
-+----------------------------------------------------+
-| Transcoding Pipeline                                |
-|                                                     |
-|  Raw Video (1080p, 2GB)                             |
-|       |                                             |
-|       v                                             |
-|  +----------------+                                 |
-|  | Split into     |                                 |
-|  | GOP-aligned    | (Group of Pictures boundary)    |
-|  | chunks         |                                 |
-|  +---+----+---+---+                                 |
-|      |    |   |                                     |
-|      v    v   v                                     |
-|  +------+------+------+                             |
-|  |Chunk1|Chunk2|Chunk3|  (parallel transcode)       |
-|  +--+---+--+---+--+---+                             |
-|     |      |      |                                 |
-|     v      v      v                                 |
-|  +------+------+------+------+------+               |
-|  | 360p | 480p | 720p |1080p | 4K   |              |
-|  | 400k | 800k | 2.5M | 5M   | 15M  | (bitrates)  |
-|  +------+------+------+------+------+               |
-|     |      |      |      |      |                   |
-|     v      v      v      v      v                   |
-|  +--------------------------------------------+     |
-|  | Segment into 4-second .ts files             |     |
-|  | Generate HLS playlist (.m3u8) per quality   |     |
-|  | Generate master playlist (all qualities)    |     |
-|  +--------------------------------------------+     |
-+----------------------------------------------------+
+\`\`\`mermaid
+graph TD
+    Raw["Raw Video (1080p, 2GB)"] --> Split["Split into GOP-aligned chunks"]
+    Split --> C1["Chunk 1"] & C2["Chunk 2"] & C3["Chunk 3"]
+    C1 --> Transcode["Parallel transcode:<br/>360p/400k, 480p/800k, 720p/2.5M,<br/>1080p/5M, 4K/15M"]
+    C2 --> Transcode
+    C3 --> Transcode
+    Transcode --> Segment["Segment into 4s .ts files<br/>Generate HLS .m3u8 playlists"]
+
+    style Raw fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style Split fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style C1 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style C2 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style C3 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style Transcode fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style Segment fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 - Split raw video at **GOP boundaries** so chunks can be transcoded independently
@@ -485,38 +404,16 @@ The transcoding pipeline is the most compute-intensive component. Each uploaded 
 
 ## Deep Dive: Adaptive Bitrate Streaming (ABR)
 
-\`\`\`
-+----------------------------------------------+
-| Client-Side ABR Algorithm                     |
-|                                               |
-|  +------------------+                         |
-|  | Buffer Monitor   |                         |
-|  | Current: 12 sec  |                         |
-|  +--------+---------+                         |
-|           |                                   |
-|  +--------v---------+                         |
-|  | Bandwidth Est.   |                         |
-|  | Last 5 segments: |                         |
-|  | 8, 10, 6, 9, 7   |                         |
-|  | Avg: 8 Mbps      |                         |
-|  +--------+---------+                         |
-|           |                                   |
-|  +--------v---------+                         |
-|  | Quality Selector |                         |
-|  |                  |                         |
-|  | BW=8M > 5M(1080) |  -> Pick 1080p         |
-|  | BW=8M < 15M(4K)  |  -> Skip 4K            |
-|  |                  |                         |
-|  | Buffer < 5s?     |  -> Drop to 720p       |
-|  | Buffer > 20s?    |  -> Try upgrade         |
-|  +--------+---------+                         |
-|           |                                   |
-|  +--------v---------+                         |
-|  | Request next     |                         |
-|  | segment at       |                         |
-|  | chosen quality   |                         |
-|  +------------------+                         |
-+----------------------------------------------+
+\`\`\`mermaid
+graph TD
+    Buffer["Buffer Monitor (12 sec)"] --> BW["Bandwidth Estimation<br/>Last 5: 8,10,6,9,7 Mbps<br/>Avg: 8 Mbps"]
+    BW --> QS["Quality Selector<br/>8M > 5M → Pick 1080p<br/>8M < 15M → Skip 4K"]
+    QS --> Request["Request next segment<br/>at chosen quality"]
+
+    style Buffer fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style BW fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style QS fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style Request fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 - Player estimates bandwidth from **last N segment download times**
@@ -529,30 +426,14 @@ The transcoding pipeline is the most compute-intensive component. Each uploaded 
 
 ## Deep Dive: CDN and Caching Strategy
 
-\`\`\`
-+--------------------------------------------------+
-| CDN Architecture (3-Tier)                         |
-|                                                   |
-|  +---------------------------------------------+ |
-|  | Tier 1: Edge PoPs (200+ locations)           | |
-|  | - Cache popular segments                     | |
-|  | - TTL: 24 hours for segments                 | |
-|  | - 95%+ hit ratio for trending videos         | |
-|  +---------------------+-----------------------+ |
-|                        | miss                     |
-|  +---------------------v-----------------------+ |
-|  | Tier 2: Origin Shield (5-10 locations)       | |
-|  | - Regional mid-tier cache                    | |
-|  | - Collapses duplicate requests from edges    | |
-|  | - Prevents thundering herd on origin         | |
-|  +---------------------+-----------------------+ |
-|                        | miss                     |
-|  +---------------------v-----------------------+ |
-|  | Tier 3: Origin (S3 in 3 regions)             | |
-|  | - Source of truth for all segments           | |
-|  | - Only ~1% of requests reach here            | |
-|  +---------------------------------------------+ |
-+--------------------------------------------------+
+\`\`\`mermaid
+graph TD
+    Edge["Tier 1: Edge PoPs (200+ locations)<br/>95%+ hit ratio, 24h TTL"] -->|"miss"| Shield["Tier 2: Origin Shield (5-10 locations)<br/>Collapses duplicate requests"]
+    Shield -->|"miss"| Origin["Tier 3: Origin (S3, 3 regions)<br/>~1% of requests reach here"]
+
+    style Edge fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style Shield fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style Origin fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 - **Hot videos** (top 1%) are pre-warmed to edge PoPs based on trending signals
@@ -658,116 +539,92 @@ A **coordinator node** receives client requests and routes them to the correct r
 `,
     code: `## Architecture Diagram
 
-\`\`\`
-+------------+       +--------------------+
-| Client SDK |------>| Coordinator Node   |
-| (Any node  |       | (routes by key)    |
-|  can be    |       |                    |
-|  coord.)   |       | 1. Hash(key)       |
-+------------+       | 2. Find N replicas |
-                     | 3. Send to quorum  |
-                     +----+----------+----+
-                          |          |
-              +-----------v--+  +---v-----------+
-              | Hash Ring     |  |               |
-              |               |  |               |
-              |    N1---N2    |  |               |
-              |   /       \\   |  |               |
-              |  N6       N3  |  |               |
-              |   \\       /   |  |               |
-              |    N5---N4    |  |               |
-              |               |  |               |
-              | Virtual nodes |  | Gossip Proto  |
-              | for balance   |  | (membership,  |
-              +--------------+  |  failure det.) |
-                                +---------------+
-                    |
-     +--------------+--------------+
-     |              |              |
-+----v-----+  +----v-----+  +----v-----+
-| Node A   |  | Node B   |  | Node C   |
-| (Replica)|  | (Replica)|  | (Replica)|
-|          |  |          |  |          |
-| LSM-Tree |  | LSM-Tree |  | LSM-Tree |
-| Memtable |  | Memtable |  | Memtable |
-| SSTables |  | SSTables |  | SSTables |
-+----------+  +----------+  +----------+
+\`\`\`mermaid
+graph TD
+    Client["Client SDK"] --> Coord["Coordinator Node<br/>Hash(key) → Find N replicas"]
+    Coord --> Ring["Hash Ring (Virtual nodes)"]
+    Coord --> Gossip["Gossip Protocol<br/>(membership, failure detection)"]
+    Ring --> NA["Node A (LSM-Tree)"]
+    Ring --> NB["Node B (LSM-Tree)"]
+    Ring --> NC["Node C (LSM-Tree)"]
+
+    style Client fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style Coord fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style Ring fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style Gossip fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style NA fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style NB fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style NC fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## Write Flow (Quorum Write)
 
-\`\`\`
-Client          Coordinator       Node A         Node B        Node C
-  |                  |               |              |              |
-  | PUT(key, val)    |               |              |              |
-  |----------------->|               |              |              |
-  |                  | Hash(key)     |              |              |
-  |                  | Replicas:A,B,C|              |              |
-  |                  |               |              |              |
-  |                  | Write ------->|              |              |
-  |                  | Write ---------------------->|              |
-  |                  | Write -------------------------------------->|
-  |                  |               |              |              |
-  |                  | ACK <---------|              |              |
-  |                  | ACK <-----------------------|              |
-  |                  |               |              |   (slow)     |
-  |   W=2 met        |               |              |              |
-  |   { version }   |               |              |              |
-  |<-----------------|               |              |              |
-  |                  |               |              |   ACK        |
-  |                  |               |              |<-------------|
-  |                  | (3rd ACK, already responded) |              |
+\`\`\`mermaid
+sequenceDiagram
+    participant Client
+    participant Coord as Coordinator
+    participant NA as Node A
+    participant NB as Node B
+    participant NC as Node C
+
+    Client->>Coord: PUT(key, val)
+    Note over Coord: Hash(key) → Replicas: A,B,C
+    par Write to all replicas
+        Coord->>NA: Write
+        Coord->>NB: Write
+        Coord->>NC: Write
+    end
+    NA-->>Coord: ACK
+    NB-->>Coord: ACK
+    Note over Coord: W=2 met
+    Coord-->>Client: { version }
+    NC-->>Coord: ACK (already responded)
 \`\`\`
 
 ## Read Flow (Quorum Read + Repair)
 
-\`\`\`
-Client          Coordinator       Node A         Node B        Node C
-  |                  |               |              |              |
-  | GET(key)         |               |              |              |
-  |----------------->|               |              |              |
-  |                  | Read -------->|              |              |
-  |                  | Read ----------------------->|              |
-  |                  | Read ------------------------------------->|
-  |                  |               |              |              |
-  |                  | v=5 <---------|              |              |
-  |                  | v=5 <-----------------------|              |
-  |                  | v=3 <-------------------------------------|
-  |                  |               |              |              |
-  |   R=2 met        |               |              |              |
-  |   { val, v=5 }  |               |              |              |
-  |<-----------------|               |              |              |
-  |                  |               |              |              |
-  |                  | Read repair: send v=5 ------------------>  |
-  |                  |               |              |  (async)     |
+\`\`\`mermaid
+sequenceDiagram
+    participant Client
+    participant Coord as Coordinator
+    participant NA as Node A
+    participant NB as Node B
+    participant NC as Node C
+
+    Client->>Coord: GET(key)
+    par Read from all replicas
+        Coord->>NA: Read
+        Coord->>NB: Read
+        Coord->>NC: Read
+    end
+    NA-->>Coord: v=5
+    NB-->>Coord: v=5
+    NC-->>Coord: v=3 (stale)
+    Note over Coord: R=2 met, return v=5
+    Coord-->>Client: { val, v=5 }
+    Coord->>NC: Read repair: send v=5 (async)
 \`\`\`
 `,
     jsCode: `## Deep Dive: Consistent Hashing with Virtual Nodes
 
 Consistent hashing maps both keys and nodes to positions on a ring. Each key is stored on the first N nodes clockwise from its position. Virtual nodes (vnodes) ensure even distribution.
 
-\`\`\`
-              Hash Ring (0 to 2^128)
+\`\`\`mermaid
+graph TD
+    subgraph Ring["Hash Ring (0 to 2^128)"]
+        N1v1["N1-v1"] --- N3v2["N3-v2"]
+        N3v2 --- N1v2["N1-v2"]
+        N1v2 --- N2v1["N2-v1"]
+        N2v1 --- N1v3["N1-v3"]
+        N1v3 --- N2v2["N2-v2"]
+        N2v2 --- N2v3["N2-v3"]
+        N2v3 --- N3v1["N3-v1"]
+        N3v1 --- N1v1
+    end
+    Key["Key user:42<br/>Replicas: N1, N3, N2<br/>(walk clockwise)"] -.-> Ring
 
-                   0
-                   |
-            N1-v1--+--N3-v2
-           /                \\
-         /                    \\
-       N2-v3                N1-v2
-       |                       |
-       |    Key "user:42"      |
-       |    hash = 0x7A...     |
-       |        *              |
-       N3-v1                N2-v1
-         \\                    /
-           \\                /
-            N1-v3--+--N2-v2
-                   |
-                  2^64
-
-Replicas for "user:42": N1, N3, N2
-(walk clockwise, pick next 3 distinct nodes)
+    style Key fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style Ring fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 - Each physical node owns **100-200 virtual nodes** spread around the ring
@@ -779,37 +636,18 @@ Replicas for "user:42": N1, N3, N2
 
 ## Deep Dive: LSM-Tree Storage Engine
 
-\`\`\`
-+---------------------------------------------+
-| LSM-Tree (per node)                          |
-|                                              |
-|  +-------------------+                       |
-|  | Write-Ahead Log   | (durability)          |
-|  | (append-only)     |                       |
-|  +---------+---------+                       |
-|            |                                 |
-|  +---------v---------+                       |
-|  | Memtable (sorted) | (in-memory, red-black |
-|  | key1: val1        |  tree or skip list)   |
-|  | key2: val2        |                       |
-|  | key3: val3        | Flush when > 64MB     |
-|  +---------+---------+                       |
-|            | flush                           |
-|  +---------v---------+                       |
-|  | Level 0 SSTables  | (immutable, sorted)   |
-|  | [SST1] [SST2]     | May have overlapping  |
-|  +---------+---------+ key ranges            |
-|            | compaction                       |
-|  +---------v---------+                       |
-|  | Level 1 SSTables  | (non-overlapping      |
-|  | [SST-A] [SST-B]   |  key ranges)          |
-|  +---------+---------+                       |
-|            | compaction                       |
-|  +---------v---------+                       |
-|  | Level 2+ SSTables | (10x size each level) |
-|  | [SST-X] [SST-Y]   |                       |
-|  +-------------------+                       |
-+---------------------------------------------+
+\`\`\`mermaid
+graph TD
+    WAL["Write-Ahead Log (append-only)"] --> Mem["Memtable (sorted, in-memory)<br/>Flush when > 64MB"]
+    Mem -->|"flush"| L0["Level 0 SSTables<br/>(may overlap key ranges)"]
+    L0 -->|"compaction"| L1["Level 1 SSTables<br/>(non-overlapping ranges)"]
+    L1 -->|"compaction"| L2["Level 2+ SSTables<br/>(10x size each level)"]
+
+    style WAL fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style Mem fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style L0 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style L1 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style L2 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 - **Writes**: Append to WAL, insert into memtable -> O(log N), very fast
@@ -821,26 +659,19 @@ Replicas for "user:42": N1, N3, N2
 
 ## Deep Dive: Conflict Resolution
 
-\`\`\`
-+------------------------------------------+
-| Vector Clock Conflict Detection           |
-|                                           |
-| Write 1 on Node A: VC = {A:1}            |
-|       |                                   |
-|       v                                   |
-| Write 2 on Node A: VC = {A:2}            |
-|       |                                   |
-|       +-------+                           |
-|       |       |                           |
-|       v       v                           |
-| Node A     Node B                         |
-| {A:3}      {A:2, B:1}                    |
-|       |       |                           |
-|       v       v                           |
-|  Neither dominates -> CONFLICT            |
-|  Return both versions to client           |
-|  Client resolves (e.g., merge, LWW)      |
-+------------------------------------------+
+\`\`\`mermaid
+graph TD
+    W1["Write 1: VC = {A:1}"] --> W2["Write 2: VC = {A:2}"]
+    W2 --> NA["Node A: {A:3}"]
+    W2 --> NB["Node B: {A:2, B:1}"]
+    NA --> Conflict["Neither dominates → CONFLICT<br/>Return both to client for resolution"]
+    NB --> Conflict
+
+    style W1 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style W2 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style NA fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style NB fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style Conflict fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 - **Vector clock**: Map of node -> counter. Each write increments the writer's counter
@@ -946,126 +777,86 @@ A **distributed crawler** fetches web pages respecting robots.txt and politeness
 `,
     code: `## Architecture Diagram
 
-\`\`\`
-+------------------------------------------------------+
-| Crawling Layer                                        |
-|                                                       |
-| +----------+    +---------+    +-------------------+  |
-| | URL       |--->| Crawler |    | DNS Resolver      |  |
-| | Frontier  |    | Workers |<-->| (local cache)     |  |
-| | (Priority |    | (1000s) |    +-------------------+  |
-| |  Queue)   |<---| Respect |    +-------------------+  |
-| +----------+    | robots  |--->| Raw Page Store     |  |
-|                 +---------+    | (Distributed FS)   |  |
-+------------------------------------------------------+
-                       |
-                       v
-+------------------------------------------------------+
-| Indexing Layer                                         |
-|                                                       |
-| +--------------+  +-----------+  +-----------------+  |
-| | Doc Processor|  | Dedup     |  | Index Builder   |  |
-| | - Parse HTML |  | (SimHash) |  | - Tokenize      |  |
-| | - Extract    |  | - Detect  |  | - Build posting |  |
-| |   text       |  |   near-   |  |   lists         |  |
-| | - Extract    |  |   dupes   |  | - Compute TF-IDF|  |
-| |   links      |  +-----------+  +---------+-------+  |
-| +--------------+                           |          |
-+------------------------------------------------------+
-                       |
-                       v
-+------------------------------------------------------+
-| Serving Layer                                         |
-|                                                       |
-|  +----------+     +----------------+    +-----------+ |
-|  | Query    |---->| Index Servers  |--->| Ranker    | |
-|  | Parser   |     | (Sharded by    |    | (PageRank | |
-|  | - Spell  |     |  term hash)    |    |  + TF-IDF | |
-|  |   check  |     |                |    |  + fresh- | |
-|  | - Expand |     | Posting list   |    |   ness)   | |
-|  |   query  |     | intersection   |    +-----------+ |
-|  +----------+     +----------------+                  |
-+------------------------------------------------------+
+\`\`\`mermaid
+graph TD
+    subgraph Crawl["Crawling Layer"]
+        Frontier["URL Frontier (Priority Queue)"] --> Crawlers["Crawler Workers (1000s)"]
+        Crawlers --> PageStore["Raw Page Store"]
+    end
+    subgraph Index["Indexing Layer"]
+        DocProc["Doc Processor (Parse HTML)"] --> Dedup["Dedup (SimHash)"]
+        Dedup --> Builder["Index Builder (Tokenize, TF-IDF)"]
+    end
+    subgraph Serve["Serving Layer"]
+        Parser["Query Parser (Spell check)"] --> IdxSrv["Index Servers (Sharded by term)"]
+        IdxSrv --> Ranker["Ranker (PageRank + TF-IDF)"]
+    end
+    Crawl --> Index --> Serve
+
+    style Frontier fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style Crawlers fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style PageStore fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style DocProc fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style Dedup fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style Builder fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style Parser fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style IdxSrv fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style Ranker fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## Write Flow (Crawl + Index)
 
-\`\`\`
-URL Frontier     Crawler       Doc Processor    Index Builder
-    |               |               |                |
-    | Next URL      |               |                |
-    |-------------->|               |                |
-    |               | Fetch page    |                |
-    |               |---+           |                |
-    |               |   | HTTP GET  |                |
-    |               |<--+           |                |
-    |               |               |                |
-    |               | Raw HTML      |                |
-    |               |-------------->|                |
-    |               |               | Parse, extract |
-    |               |               | text + links   |
-    | New URLs      |               |                |
-    |<------------------------------|                |
-    |               |               | Tokens + meta  |
-    |               |               |--------------->|
-    |               |               |                | Update
-    |               |               |                | posting
-    |               |               |                | lists
+\`\`\`mermaid
+sequenceDiagram
+    participant Frontier as URL Frontier
+    participant Crawler
+    participant DocProc as Doc Processor
+    participant Builder as Index Builder
+
+    Frontier->>Crawler: Next URL
+    Crawler->>Crawler: HTTP GET (fetch page)
+    Crawler->>DocProc: Raw HTML
+    DocProc->>DocProc: Parse, extract text + links
+    DocProc->>Frontier: New discovered URLs
+    DocProc->>Builder: Tokens + metadata
+    Note over Builder: Update posting lists
 \`\`\`
 
 ## Read Flow (Search Query)
 
-\`\`\`
-User             Query Parser    Index Servers     Ranker
-  |                  |               |                |
-  | "best laptops"   |               |                |
-  |----------------->|               |                |
-  |                  | Tokenize,     |                |
-  |                  | spell check   |                |
-  |                  |               |                |
-  |                  | Get postings  |                |
-  |                  | for "best"    |                |
-  |                  |-------------->|                |
-  |                  | Get postings  |                |
-  |                  | for "laptops" |                |
-  |                  |-------------->|                |
-  |                  |               |                |
-  |                  | Intersect     |                |
-  |                  | posting lists |                |
-  |                  |<--------------|                |
-  |                  |               |                |
-  |                  | Rank results  |                |
-  |                  |------------------------------>|
-  |                  |               |  Top K sorted  |
-  |                  |               |<--------------|
-  | Results[]        |               |                |
-  |<-----------------|               |                |
+\`\`\`mermaid
+sequenceDiagram
+    participant User
+    participant Parser as Query Parser
+    participant Idx as Index Servers
+    participant Ranker
+
+    User->>Parser: "best laptops"
+    Note over Parser: Tokenize, spell check
+    Parser->>Idx: Get postings for "best"
+    Parser->>Idx: Get postings for "laptops"
+    Idx-->>Parser: Intersected posting lists
+    Parser->>Ranker: Rank results
+    Ranker-->>Parser: Top K sorted
+    Parser-->>User: Results[]
 \`\`\`
 `,
     jsCode: `## Deep Dive: Inverted Index Structure
 
 The inverted index is the core data structure that makes search fast. It maps every unique term to a sorted list of documents containing that term.
 
-\`\`\`
-+----------------------------------------------------+
-| Inverted Index                                      |
-|                                                     |
-| Term          Posting List                          |
-| --------      --------------------------------      |
-| "apple"  -->  [(doc1, tf=3, pos=[5,12,99]),         |
-|                (doc7, tf=1, pos=[42]),               |
-|                (doc15, tf=5, pos=[1,8,15,22,30])]   |
-|                                                     |
-| "laptop" -->  [(doc1, tf=2, pos=[6,100]),            |
-|                (doc3, tf=4, pos=[1,5,9,20]),         |
-|                (doc7, tf=1, pos=[43])]               |
-|                                                     |
-| Phrase query "apple laptop":                        |
-|   1. Intersect doc lists: {doc1, doc7}              |
-|   2. Check positions: doc1 pos 5,6 -> consecutive!  |
-|   3. doc7 pos 42,43 -> consecutive!                 |
-|   4. Both match the phrase                          |
-+----------------------------------------------------+
+\`\`\`mermaid
+graph LR
+    subgraph InvIdx["Inverted Index"]
+        Apple["apple → doc1(tf=3), doc7(tf=1), doc15(tf=5)"]
+        Laptop["laptop → doc1(tf=2), doc3(tf=4), doc7(tf=1)"]
+    end
+    Phrase["Phrase: apple laptop"] --> Intersect["Intersect: {doc1, doc7}<br/>Check consecutive positions<br/>doc1: pos 5,6 ✓ | doc7: pos 42,43 ✓"]
+
+    style Apple fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style Laptop fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style Phrase fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style Intersect fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 - Each posting stores **document ID, term frequency, and positions**
@@ -1078,37 +869,29 @@ The inverted index is the core data structure that makes search fast. It maps ev
 
 ## Deep Dive: PageRank Computation
 
-\`\`\`
-+----------------------------------------------------+
-| Web Graph -> PageRank                               |
-|                                                     |
-|     Page A (3 outlinks)                             |
-|     PR = 0.5                                        |
-|       |   |   |                                     |
-|       v   v   v                                     |
-|      B    C    D                                    |
-|                                                     |
-|   Page B receives:                                  |
-|     PR(A)/3 from A                                  |
-|     PR(E)/2 from E                                  |
-|     PR(F)/1 from F                                  |
-|                                                     |
-|   PR(B) = 0.15 + 0.85 * (PR(A)/3 + PR(E)/2        |
-|                          + PR(F)/1)                 |
-|                                                     |
-| Iterate 50-100 times until convergence              |
-+----------------------------------------------------+
+\`\`\`mermaid
+graph TD
+    A["Page A (PR=0.5, 3 outlinks)"] --> B["Page B"]
+    A --> C["Page C"]
+    A --> D["Page D"]
+    E["Page E"] --> B
+    F["Page F"] --> B
+    B --> Formula["PR(B) = 0.15 + 0.85 * (PR(A)/3 + PR(E)/2 + PR(F)/1)<br/>Iterate 50-100 times"]
 
-MapReduce Implementation:
-+-------------------+     +-------------------+
-| MAP               |     | REDUCE            |
-|                   |     |                   |
-| For each page P:  |     | For each page P:  |
-|   For each link L:|     |   Sum incoming    |
-|     emit(L,       |     |   contributions   |
-|      PR(P)/out(P))|     |   Apply damping:  |
-+-------------------+     |   0.15+0.85*sum   |
-                          +-------------------+
+    subgraph MR["MapReduce"]
+        Map["MAP: emit(L, PR(P)/out(P))"]
+        Reduce["REDUCE: sum + damping 0.15+0.85*sum"]
+    end
+
+    style A fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style B fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style C fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style D fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style E fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style F fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style Formula fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style Map fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style Reduce fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 - **Damping factor** (0.85): probability of following a link vs. random jump
@@ -1121,31 +904,25 @@ MapReduce Implementation:
 
 ## Deep Dive: Distributed Crawler Architecture
 
-\`\`\`
-+----------------------------------------------+
-| URL Frontier (Priority Queue)                 |
-|                                               |
-| +--------------------+  +------------------+  |
-| | Back Queue         |  | Front Queue      |  |
-| | (per-domain)       |  | (priority-based) |  |
-| |                    |  |                   |  |
-| | google.com: [...] |  | Priority 1: [...]  |  |
-| | amazon.com: [...] |  | Priority 2: [...]  |  |
-| | blog.xyz:   [...] |  | Priority 3: [...]  |  |
-| +--------+-----------+  +--------+----------+  |
-|          |                        |             |
-|   Politeness              Importance            |
-|   (1 req/sec per          (PageRank, freshness, |
-|    domain)                 change frequency)    |
-+----------------------------------------------+
+\`\`\`mermaid
+graph TD
+    subgraph Frontier["URL Frontier"]
+        Front["Front Queue (priority-based)<br/>P1, P2, P3 by PageRank/freshness"]
+        Back["Back Queue (per-domain)<br/>1 req/sec politeness"]
+    end
+    Front --> W1["Worker 1 (*.com domains)"]
+    Front --> W2["Worker 2 (*.org domains)"]
+    Front --> W3["Worker 3 (*.net domains)"]
+    Back --> W1
+    Back --> W2
+    Back --> W3
 
-Politeness enforcement:
-+---------+     +---------+     +---------+
-| Worker 1|     | Worker 2|     | Worker 3|
-| owns:   |     | owns:   |     | owns:   |
-| *.com   |     | *.org   |     | *.net   |
-| domains |     | domains |     | domains |
-+---------+     +---------+     +---------+
+    style Front fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style Back fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style W1 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style W2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style W3 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style Frontier fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 - **Front queue**: prioritizes URLs by importance (PageRank, freshness needs)
@@ -1252,137 +1029,85 @@ A **client library** hashes keys to determine which cache node to contact. **Cac
 `,
     code: `## Architecture Diagram
 
-\`\`\`
-+------------+    +------------+    +------------+
-| App Server |    | App Server |    | App Server |
-| +--------+ |    | +--------+ |    | +--------+ |
-| |Client  | |    | |Client  | |    | |Client  | |
-| |Library | |    | |Library | |    | |Library | |
-| |        | |    | |        | |    | |        | |
-| |Hash key| |    | |Hash key| |    | |Hash key| |
-| |-> node | |    | |-> node | |    | |-> node | |
-| +---+----+ |    | +---+----+ |    | +---+----+ |
-+-----|------+    +-----|------+    +-----|------+
-      |                 |                 |
-      v                 v                 v
-+------------------------------------------------+
-| Consistent Hash Ring                            |
-|                                                 |
-|         N1---N2                                 |
-|        /       \\                                |
-|      N6         N3                              |
-|        \\       /                                |
-|         N5---N4                                 |
-|                                                 |
-+-----+-------+-------+-------+-------+---------+
-      |       |       |       |       |
-+-----v-+ +--v----+ +v------+ +v-----+ +--------+
-| Node 1| | Node 2| | Node 3| |Node 4| | Node N |
-| 128GB | | 128GB | | 128GB | |128GB | | 128GB  |
-|       | |       | |       | |      | |        |
-| Hash  | | Hash  | | Hash  | |Hash  | | Hash   |
-| Table | | Table | | Table | |Table | | Table  |
-| + LRU | | + LRU | | + LRU | |+ LRU| | + LRU  |
-+-------+ +-------+ +-------+ +------+ +--------+
+\`\`\`mermaid
+graph TD
+    AS1["App Server (Client Library)"] --> Ring["Consistent Hash Ring"]
+    AS2["App Server (Client Library)"] --> Ring
+    AS3["App Server (Client Library)"] --> Ring
+    Ring --> N1["Node 1 (128GB, Hash+LRU)"]
+    Ring --> N2["Node 2 (128GB, Hash+LRU)"]
+    Ring --> N3["Node 3 (128GB, Hash+LRU)"]
+    Ring --> NN["Node N (128GB, Hash+LRU)"]
+    ZK["Config Service (ZooKeeper/etcd)<br/>Membership + Health + Ring updates"] --> Ring
 
-+--------------------------------------------------+
-| Config Service (ZooKeeper / etcd)                 |
-| - Cluster membership                              |
-| - Node health monitoring                          |
-| - Consistent hash ring updates                    |
-+--------------------------------------------------+
+    style AS1 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style AS2 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style AS3 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style Ring fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style NN fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style ZK fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 ## Write Flow (Cache SET)
 
-\`\`\`
-App Server        Client Lib       Cache Node
-  |                   |                |
-  | SET(key, val)     |                |
-  |------------------>|                |
-  |                   | Hash(key)      |
-  |                   | -> Node 3      |
-  |                   |                |
-  |                   | SET to Node 3  |
-  |                   |--------------->|
-  |                   |                | Store in hash
-  |                   |                | table, update
-  |                   |                | LRU position,
-  |                   |                | set TTL in
-  |                   |                | timing wheel
-  |                   |                |
-  |                   |                | If memory full:
-  |                   |                | evict LRU tail
-  |                   |                |
-  |                   |    OK          |
-  |                   |<---------------|
-  |   OK              |                |
-  |<------------------|                |
+\`\`\`mermaid
+sequenceDiagram
+    participant App as App Server
+    participant Lib as Client Lib
+    participant Node as Cache Node
+
+    App->>Lib: SET(key, val)
+    Note over Lib: Hash(key) → Node 3
+    Lib->>Node: SET to Node 3
+    Note over Node: Store in hash table<br/>Update LRU position<br/>Set TTL in timing wheel<br/>Evict LRU tail if full
+    Node-->>Lib: OK
+    Lib-->>App: OK
 \`\`\`
 
 ## Read Flow (Cache GET)
 
-\`\`\`
-App Server        Client Lib       Cache Node       Database
-  |                   |                |                |
-  | GET(key)          |                |                |
-  |------------------>|                |                |
-  |                   | Hash(key)      |                |
-  |                   | -> Node 3      |                |
-  |                   |                |                |
-  |                   | GET from Node 3|                |
-  |                   |--------------->|                |
-  |                   |                |                |
-  |                   | [HIT] value    |                |
-  |                   |<---------------|                |
-  |   value           |                |                |
-  |<------------------|                |                |
-  |                   |                |                |
-  |   --- OR (MISS) ---|                |                |
-  |                   |                |                |
-  |                   | [MISS] null    |                |
-  |                   |<---------------|                |
-  |                   |                |                |
-  | Fetch from DB  ---------------------------------------->|
-  | <-- value ------------------------------------------- |
-  |                   |                |                |
-  | SET(key, val)     |                |                |
-  |------------------>| (populate cache)               |
-  |                   |--------------->|                |
-  |   value           |                |                |
-  |<------------------|                |                |
+\`\`\`mermaid
+sequenceDiagram
+    participant App as App Server
+    participant Lib as Client Lib
+    participant Node as Cache Node
+    participant DB as Database
+
+    App->>Lib: GET(key)
+    Note over Lib: Hash(key) → Node 3
+    Lib->>Node: GET from Node 3
+    alt Cache HIT
+        Node-->>Lib: value
+        Lib-->>App: value
+    else Cache MISS
+        Node-->>Lib: null
+        App->>DB: Fetch from DB
+        DB-->>App: value
+        App->>Lib: SET(key, val) - populate cache
+        Lib->>Node: SET
+        Lib-->>App: value
+    end
 \`\`\`
 `,
     jsCode: `## Deep Dive: LRU Eviction with O(1) Operations
 
 The LRU cache combines a hash table with a doubly-linked list to achieve O(1) for all operations: get, set, and eviction.
 
-\`\`\`
-+----------------------------------------------+
-| LRU Cache (per node)                          |
-|                                               |
-| Hash Table:                                   |
-| +--------+-----------+                        |
-| | key    | list_node |                        |
-| +--------+-----------+                        |
-| | "usr1" | -------+  |                        |
-| | "usr2" | ----+  |  |                        |
-| | "usr3" | -+  |  |  |                        |
-| +--------+-|--|--|--+                         |
-|            |  |  |                            |
-| Doubly-Linked List (most recent at head):     |
-|                                               |
-| HEAD                                  TAIL    |
-|  |                                      |     |
-|  v                                      v     |
-| +------+   +------+   +------+   +------+    |
-| | usr3 |<->| usr2 |<->| usr1 |<->| usr0 |    |
-| | val3 |   | val2 |   | val1 |   | val0 |    |
-| +------+   +------+   +------+   +------+    |
-|  (newest)                          (oldest)   |
-|                                    ^ evict    |
-|                                      this     |
-+----------------------------------------------+
+\`\`\`mermaid
+graph LR
+    HT["Hash Table<br/>usr1→node, usr2→node, usr3→node"] --> DLL
+    subgraph DLL["Doubly-Linked List"]
+        HEAD["HEAD: usr3 (newest)"] <--> N2["usr2"] <--> N1["usr1"] <--> TAIL["TAIL: usr0 (oldest, evict)"]
+    end
+
+    style HT fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style HEAD fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style N1 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style TAIL fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 - **GET**: Hash lookup O(1), move node to head O(1)
@@ -1394,29 +1119,19 @@ The LRU cache combines a hash table with a doubly-linked list to achieve O(1) fo
 
 ## Deep Dive: Memory Management with Slab Allocator
 
-\`\`\`
-+----------------------------------------------+
-| Slab Allocator                                |
-|                                               |
-| Memory is pre-divided into slab classes:      |
-|                                               |
-| +------------+  +------------+  +----------+  |
-| | Class 1    |  | Class 2    |  | Class 3  |  |
-| | 64 bytes   |  | 128 bytes  |  | 256 bytes|  |
-| |            |  |            |  |          |  |
-| | [slot]     |  | [slot]     |  | [slot]   |  |
-| | [slot]     |  | [slot]     |  | [slot]   |  |
-| | [slot]     |  | [slot]     |  | [slot]   |  |
-| | [USED]     |  | [USED]     |  | [USED]   |  |
-| | [slot]     |  | [USED]     |  | [slot]   |  |
-| +------------+  +------------+  +----------+  |
-|                                               |
-| A 100-byte value goes into Class 2 (128B)     |
-| Wastes 28 bytes but eliminates fragmentation  |
-|                                               |
-| Classes: 64, 128, 256, 512, 1K, 2K, 4K, 8K,  |
-|          16K, 32K, 64K, 128K, 256K, 512K, 1M  |
-+----------------------------------------------+
+\`\`\`mermaid
+graph LR
+    subgraph Slab["Slab Allocator"]
+        C1["Class 1: 64 bytes<br/>slots + used"]
+        C2["Class 2: 128 bytes<br/>slots + used"]
+        C3["Class 3: 256 bytes<br/>slots + used"]
+    end
+    Val["100-byte value"] -->|"→ Class 2 (128B)<br/>28 bytes waste, no fragmentation"| C2
+
+    style C1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
+    style C2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
+    style C3 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
+    style Val fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 - Pre-allocate memory in **fixed-size classes** (power-of-2 progression)
@@ -1429,44 +1144,31 @@ The LRU cache combines a hash table with a doubly-linked list to achieve O(1) fo
 
 ## Deep Dive: Cache Consistency Patterns
 
-\`\`\`
-+----------------------------------------------+
-| Pattern 1: Cache-Aside (most common)          |
-|                                               |
-|  App ----GET----> Cache                       |
-|   |                 |                         |
-|   |   MISS          |                         |
-|   |<----------------|                         |
-|   |                                           |
-|   |----GET----> Database                      |
-|   |<---value-------|                          |
-|   |                                           |
-|   |----SET----> Cache (populate)              |
-+----------------------------------------------+
+\`\`\`mermaid
+graph TD
+    subgraph P1["Pattern 1: Cache-Aside"]
+        A1["App"] -->|"GET"| CA1["Cache"]
+        CA1 -->|"MISS"| A1
+        A1 -->|"GET"| DB1["Database"]
+        DB1 -->|"value"| A1
+        A1 -->|"SET"| CA1
+    end
+    subgraph P2["Pattern 2: Write-Through"]
+        A2["App"] -->|"SET"| CA2["Cache"] -->|"SET"| DB2["Database"]
+    end
+    subgraph P3["Pattern 3: Write-Behind"]
+        A3["App"] -->|"SET"| CA3["Cache"] -->|"async batch"| DB3["Database"]
+    end
 
-+----------------------------------------------+
-| Pattern 2: Write-Through                      |
-|                                               |
-|  App ----SET----> Cache ----SET----> Database  |
-|   |                 |                  |      |
-|   |<----ACK---------|<-----ACK---------|      |
-|   |                                           |
-|   | Strong consistency but higher write        |
-|   | latency (2 writes per operation)          |
-+----------------------------------------------+
-
-+----------------------------------------------+
-| Pattern 3: Write-Behind (Async)               |
-|                                               |
-|  App ----SET----> Cache                       |
-|   |                 |                         |
-|   |<----ACK---------|                         |
-|   |                 |                         |
-|   |                 |---(async batch)----->DB  |
-|   |                                           |
-|   | Fast writes but risk of data loss if      |
-|   | cache node crashes before flush           |
-+----------------------------------------------+
+    style A1 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style CA1 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style DB1 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style A2 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style CA2 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style DB2 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
+    style A3 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
+    style CA3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
+    style DB3 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
 - **Cache-aside**: Most common. Application controls cache population. Simple but risk of stale data
