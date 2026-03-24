@@ -33,7 +33,7 @@ function MermaidBlock({ chart }: { chart: string }) {
     let cancelled = false;
     mermaid.render(idRef.current, chart.trim()).then(({ svg }) => {
       if (!cancelled) setSvgHtml(svg);
-    }).catch(() => {});
+    }).catch((err) => { console.error('Mermaid render error:', err); });
     return () => { cancelled = true; };
   }, [chart]);
 
