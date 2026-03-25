@@ -121,6 +121,16 @@ graph TD
     style N7 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Mobile Client** — The user-facing app that sends proximity search requests with latitude, longitude, and radius parameters.
+- **Load Balancer (Nginx / ALB)** — Distributes incoming requests across LBS and Business Service instances, providing a single entry point and enabling horizontal scaling.
+- **Location-Based Service (LBS)** — Handles proximity search queries by converting the user's coordinates into a geohash and looking up nearby businesses from the in-memory index.
+- **Business Service** — Manages CRUD operations for business data (create, read, update, delete), serving a separate write path from the read-heavy search path.
+- **Geospatial Index (In-Memory)** — An in-memory hash map of geohash-to-business mappings that enables sub-millisecond spatial lookups without database round-trips.
+- **Business Cache** — Caches frequently accessed business detail records to reduce load on the primary database for read requests.
+- **Business DB** — The primary relational database storing all business information; serves as the source of truth for both the geospatial index and business details.
+- **Search Result Cache (Redis)** — Caches search results keyed by geohash, radius, and category so that repeated queries for the same area are served instantly.
+
 ## Search Flow
 
 \`\`\`mermaid
@@ -143,6 +153,14 @@ graph TD
     style N4 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
     style N5 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Mobile Client** — The user device that sends periodic location updates and receives nearby friend locations over a persistent connection.
+- **WS Servers** — WebSocket servers that maintain bidirectional persistent connections with clients, handling location updates and pushing friend locations in real time.
+- **Location Cache** — A Redis cache storing each active user's latest location with a short TTL, enabling fast lookups without hitting a database.
+- **Pub/Sub (Redis)** — A publish/subscribe messaging layer where each user has a channel; when a user updates their location, the update is broadcast to all subscribing friends' WebSocket servers.
+- **Friend Service** — Provides the friend list for a given user, used at connection time to determine which pub/sub channels to subscribe to.
+- **Location History Service** — Asynchronously persists location data for analytics and historical queries, decoupled from the real-time path to avoid adding latency.
 
 ## Geohash Neighbor Lookup
 
@@ -186,6 +204,20 @@ graph TD
     style N10 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
     style N11 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Mobile Client** — The user device that requests map tiles for rendering and sends API requests for routing, navigation, and geocoding.
+- **CDN** — A content delivery network that caches pre-rendered map tiles at edge locations worldwide, serving the vast majority of tile requests without hitting the origin.
+- **Map Tile Service** — An object store (e.g., S3) holding pre-rendered vector or raster tiles at every zoom level, serving as the origin for the CDN.
+- **Load Balancer** — Distributes API traffic across backend service instances, providing fault tolerance and horizontal scaling.
+- **API Gateway** — Routes incoming API requests to the appropriate backend service (routing, navigation, or geocoding) and handles authentication and rate limiting.
+- **Routing Service** — Computes optimal driving routes using a preprocessed road graph (Contraction Hierarchies), incorporating live traffic data for accurate travel times.
+- **Navigation Service** — Manages active turn-by-turn navigation sessions over WebSocket connections, continuously updating ETAs and directions based on the user's GPS position and live traffic.
+- **Geocoding Service** — Converts human-readable addresses to geographic coordinates (and vice versa) using a full-text search index.
+- **Road Graph Store** — An in-memory representation of the global road network as a weighted graph, preprocessed with Contraction Hierarchies for sub-millisecond shortest-path queries.
+- **Traffic Service** — Stores and serves real-time road segment speeds aggregated from GPS pings, consumed by both the routing and navigation services.
+- **Geocoding Index** — An Elasticsearch-based index that supports fuzzy, prefix, and geo-aware address lookups for the geocoding service.
+- **Traffic Ingestion Pipeline** — A streaming pipeline (Kafka to Flink) that ingests millions of GPS pings per second, map-matches them to road segments, and aggregates speed data into the Traffic Service.
 `,
     jsCode: `## Deep Dive: Geohash vs Quadtree vs Google S2
 
@@ -408,6 +440,13 @@ graph TD
     style N5 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
     style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Producer** — Any application or service that publishes messages to topics, sending data into the message queue for downstream processing.
+- **Partition Router** — Determines which partition a message is routed to by hashing the message key, ensuring messages with the same key always land in the same partition for ordering guarantees.
+- **Broker 1 / Broker 2 (Topic-A Partitions)** — Storage nodes that own partition leaders and followers; each broker appends messages to its local commit log and replicates data to maintain durability.
+- **Coordination Service** — Manages cluster metadata including broker registration, partition leader election, consumer group membership, and topic configuration.
+- **Consumer Group A / Consumer Group B** — Independent groups of consumers that each read the full stream of messages; within a group, partitions are distributed so each message is processed by exactly one consumer.
 
 ## Location Update Flow
 
@@ -674,6 +713,20 @@ graph TD
     style GeoIdx fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
     style Ingest fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Mobile Client** — The user's device that renders map tiles, requests routes, and sends GPS pings during active navigation sessions.
+- **CDN (CloudFront / Akamai)** — Caches and serves pre-rendered map tiles from edge locations globally, absorbing the massive read traffic for tile requests.
+- **Map Tile Service (S3 / Object Store)** — The origin storage for all pre-rendered map tiles across every zoom level, organized as immutable versioned assets.
+- **Load Balancer** — Distributes API requests evenly across backend service instances for routing, navigation, and geocoding.
+- **API Gateway** — A unified entry point that routes requests to the correct backend service, enforces rate limits, and handles authentication.
+- **Routing Service** — Computes optimal routes using Contraction Hierarchies on a preprocessed road graph, adjusting edge weights with live traffic data for accurate ETAs.
+- **Navigation Service** — Maintains WebSocket sessions for active navigation, continuously map-matching GPS positions and recalculating ETAs and turn-by-turn directions.
+- **Geocoding Service** — Translates between human-readable addresses and geographic coordinates using a full-text search index with geo-awareness.
+- **Road Graph Store (In-Memory)** — Holds the entire road network graph in memory with precomputed Contraction Hierarchies shortcuts, enabling sub-millisecond shortest-path queries.
+- **Traffic Service (Live speeds)** — Serves real-time average speeds per road segment, aggregated from GPS pings, used by both routing and navigation to produce traffic-aware results.
+- **Geocoding Index (Elasticsearch)** — A search index optimized for fuzzy and prefix matching of addresses, supporting the geocoding service's forward and reverse lookups.
+- **Traffic Ingestion Pipeline (Kafka -> Flink -> Traffic DB)** — A high-throughput stream processing pipeline that ingests millions of GPS pings per second, map-matches them to road segments, and computes rolling average speeds.
 
 ## Map Tile Rendering Pipeline
 
@@ -980,6 +1033,13 @@ graph TD
     style CGB fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Producer 1 / Producer 2 / Producer 3** — Applications that publish messages to topics; each message includes an optional partition key used for routing.
+- **Partition Router** — Applies a hash function to the message key (hash mod N) to deterministically assign each message to a partition, ensuring key-based ordering.
+- **Broker 1 / Broker 2** — Storage servers that each host partition leaders and followers; they append messages to on-disk segment files and replicate data across the cluster for durability.
+- **Coordination Service (ZooKeeper / Raft)** — Manages all cluster metadata including broker health, partition leader election, consumer group membership, and topic configuration.
+- **Consumer Group A / Consumer Group B** — Independent consumer groups that each receive the full message stream; within a group, partitions are exclusively assigned to individual consumers so each message is processed exactly once per group.
+
 ## Partition Log Structure (On Disk)
 
 \`\`\`mermaid
@@ -1016,6 +1076,13 @@ graph TD
     style N9 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
     style N10 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **segment-000.log** — The first segment file in a partition's commit log, containing messages 0 through N stored contiguously as sequential bytes on disk for maximum write throughput.
+- **msg 0 through msg N** — Individual messages stored in append-only order within a segment; each message has an offset, timestamp, key, value, and checksum.
+- **segment-000.index** — A sparse offset index that maps message offsets to byte positions within the log file, enabling fast binary search to locate any message without scanning the entire segment.
+- **segment-000.timeindex** — A sparse time index that maps timestamps to offsets, allowing consumers to seek to a specific point in time for message replay.
+- **segment-052341.log** — A newer segment file that was created when the previous segment reached its size limit; older segments become immutable and eligible for retention cleanup.
 
 ## Replication Flow
 
@@ -1075,6 +1142,11 @@ graph TD
     style A_P1 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
     style A_P2 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Before (C1, C2 consuming Topic-A)** — The initial state where two consumers share three partitions: C1 handles P0 and P1 while C2 handles P2, with each partition assigned to exactly one consumer in the group.
+- **Rebalance (C3 joins)** — When a new consumer joins (or one leaves/crashes), the coordinator detects the membership change, revokes all current partition assignments, and redistributes partitions using the configured strategy (round-robin, range, or sticky).
+- **After (Reassigned)** — The final state where partitions are evenly distributed: C1 gets P0, C2 gets P1, and the new C3 gets P2, achieving balanced parallelism across all consumers.
 `,
     jsCode: `## Deep Dive: On-Disk Storage Design
 

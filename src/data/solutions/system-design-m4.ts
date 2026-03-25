@@ -93,6 +93,16 @@ graph TD
     style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Client** — The end user's browser or app sending keystrokes to the autocomplete service.
+- **Load Balancer** — Distributes prefix lookup requests across trie serving nodes to balance traffic and provide failover.
+- **Trie Serving Nodes** — Hold the in-memory prefix trie with pre-computed top-k results at each node for O(1) lookups per prefix.
+- **Trie Builder** — Offline process that constructs new trie snapshots from aggregated search frequency data.
+- **Blob Storage** — Stores serialized trie snapshots that serving nodes download during deployment or version swap.
+- **Serialized trie** — The compact binary representation of the trie that can be efficiently loaded into memory by serving nodes.
+- **Aggregate freqs** — Collects and sums search term frequencies with time-decay weighting from raw search logs.
+- **Build trie** — Assembles the trie data structure from aggregated frequencies and computes top-k lists at each node.
+
 ## Query Flow (Prefix Lookup)
 
 \`\`\`mermaid
@@ -228,6 +238,12 @@ graph TD
     style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
     style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Time-Weighted Frequency Calculation** — The overall pipeline that converts raw search logs into popularity scores with recency bias.
+- **Raw search logs** — The input stream of every completed search query with timestamps, used as the basis for frequency counting.
+- **Time decay formula** — An exponential decay function (e.g., 0.99^hours_ago) that weights recent searches more heavily than older ones, so trending terms rise quickly.
+- **Hour ago** — Represents the time granularity at which decay is applied, showing how each log entry's contribution diminishes over time.
 `,
     explanation: `## Bottlenecks & Improvements
 - **Trie memory limits** -> Use compressed (Patricia) tries to reduce node count by 60%. For very large corpora, two-level trie: first level in memory, second level on SSD with mmap
@@ -363,6 +379,16 @@ graph TD
     style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Clients** — External services or users that submit tasks to be executed at a specified time.
+- **API Gateway** — Entry point that authenticates requests, applies rate limiting, and routes task submissions to the scheduler.
+- **Scheduler Service** — Accepts task submissions, validates parameters, and persists tasks to the durable store with their scheduled execution time.
+- **Task Store** — A durable, time-indexed database holding all task metadata, enabling efficient range scans for due tasks.
+- **Indexed by** — Represents the composite index on (execute_at, priority) that makes dispatch scans efficient.
+- **Dispatcher** — Continuously scans the task store for tasks whose execution time has arrived and moves them to the appropriate priority queue.
+- **Scans for due** — The polling mechanism that checks for tasks ready to execute, using time-bucket partitioning for efficiency.
+- **Priority Queue** — Kafka-backed queues separated by priority level (critical/high/normal/low) that feed worker pools.
+
 ## Task Lifecycle Flow
 
 \`\`\`mermaid
@@ -474,6 +500,15 @@ graph TD
     style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
     style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Lease State Machine** — Governs the lifecycle of every task through well-defined states with clear transition rules.
+- **PENDING** — Initial state when a task is submitted but its scheduled execution time has not yet arrived.
+- **DISPATCHED** — The task's execution time has arrived and it has been placed on a priority queue, awaiting worker pickup.
+- **RUNNING** — A worker has acquired a time-limited lease on the task and is actively executing it, sending periodic heartbeats.
+- **COMPLETED / FAILED** — Terminal states indicating whether the task finished successfully or encountered an error.
+- **RE-DISPATCH** — The task is returned to the queue because its lease expired (worker crash or timeout), enabling at-least-once delivery.
+- **DEAD** — The task has exceeded its maximum retry count and is moved to the dead-letter queue for manual inspection.
 `,
     explanation: `## Bottlenecks & Improvements
 - **Dispatcher as bottleneck** -> Run multiple dispatcher instances with leader election. Each dispatcher owns a partition range. Use \`SKIP LOCKED\` for concurrent scanning without conflicts
@@ -606,6 +641,15 @@ graph TD
     style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Seed URLs** — The initial set of known, high-quality URLs that bootstrap the crawl and expand outward through discovered links.
+- **URL Frontier** — The central queue managing billions of pending URLs, organized by priority and domain for orderly crawling.
+- **Robots.txt Cache** — Stores parsed robots.txt rules per domain so the crawler respects disallow directives and crawl-delay without re-fetching the file.
+- **Domain Queue** — Per-domain sub-queues within the frontier that enforce rate limits, ensuring no single site is overwhelmed.
+- **DNS Resolver Cache** — Caches DNS lookups locally to avoid repeated resolution overhead, which would otherwise bottleneck the fetch pipeline.
+- **Priority ordering within** — The mechanism that ranks URLs by importance (e.g., PageRank, freshness) so high-value pages are crawled first.
+- **Fetcher Workers** — Distributed HTTP clients that pull URLs from the frontier, download page content, and pass it to the processing pipeline.
+
 ## Crawl Flow (Single Page)
 
 \`\`\`mermaid
@@ -678,6 +722,14 @@ graph TD
     style N5 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **URL Dedup Pipeline** — The multi-stage process that prevents the crawler from visiting the same content twice, saving bandwidth and compute.
+- **Stage 1: URL Normalization** — Canonicalizes URLs by lowercasing, removing fragments, resolving relative paths, and standardizing encoding so equivalent URLs match.
+- **Sort query params** — Reorders query parameters alphabetically so that \\\`?a=1&b=2\\\` and \\\`?b=2&a=1\\\` are recognized as the same URL.
+- **Remove trailing slash** — Strips trailing slashes when there is no path to further reduce URL variants.
+- **Size: ~12 GB (10 bits per URL * 10B)** — The Bloom filter's memory footprint, providing probabilistic dedup for 10 billion URLs with a 0.1% false positive rate.
+- **URL hash -> check bloom filter** — Each normalized URL is hashed and checked against the Bloom filter; if present, the URL is skipped as already seen.
+
 ---
 
 ## Deep Dive: Politeness and Rate Limiting
@@ -708,6 +760,15 @@ graph TD
     style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
     style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Per-Domain Politeness Engine** — Enforces rate limits per domain to prevent overwhelming any single web server, maintaining ethical crawling behavior.
+- **Domain: example.com** — Represents a specific domain whose robots.txt rules and crawl rate are tracked independently.
+- **User-agent: *** — The robots.txt directive specifying which rules apply to all crawlers (or a specific bot user-agent).
+- **Disallow: /private/** — A robots.txt rule telling the crawler not to access URLs under the /private/ path.
+- **Crawl-delay: 2** — A robots.txt directive requesting a minimum 2-second interval between consecutive requests to this domain.
+- **Enforced rate: 1 request / 2 seconds** — The token bucket rate derived from the crawl-delay directive, governing how frequently the fetcher can request from this domain.
+- **Last fetch / Next allowed** — Tracks when the most recent request was made and calculates when the next request is permitted, ensuring compliance with the rate limit.
 `,
     explanation: `## Bottlenecks & Improvements
 - **DNS resolution bottleneck** -> Local DNS cache per crawler node + shared DNS cache (Redis). Batch DNS prefetching for URLs in the frontier. Custom DNS resolver that bypasses system resolver limits
@@ -839,6 +900,14 @@ graph TD
     style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Users** — End users worldwide making HTTP requests for static or dynamic content.
+- **Global Routing** — DNS-based or Anycast routing layer that directs each user to the geographically nearest or best-performing edge PoP.
+- **Edge PoP (US-East / EU-West / APAC)** — Points of Presence deployed in major regions, each serving cached content directly to nearby users with minimal latency.
+- **SSD Hot Cache** — Fast storage tier holding the most frequently accessed objects for sub-millisecond cache hits.
+- **HDD Warm Cache** — Higher-capacity, lower-cost storage tier for less popular objects that still avoids origin fetches.
+- **Origin Shield** — An intermediate caching layer between edges and the origin server that aggregates cache misses from multiple PoPs, reducing origin load by up to 95%.
+
 ## Request Flow (Cache Hit vs Miss)
 
 \`\`\`mermaid
@@ -958,6 +1027,12 @@ graph TD
     style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Origin Shield - Request Collapsing** — Demonstrates how the shield coalesces multiple simultaneous requests for the same object into a single origin fetch.
+- **Time 0ms: PoP-1 requests /img.jpg** — The first edge PoP triggers a cache miss, and the shield initiates a fetch to the origin.
+- **Time 5ms: PoP-2 requests /img.jpg** — A second PoP requests the same object; the shield queues this request instead of making another origin call.
+- **Time 8ms: PoP-3 requests /img.jpg** — A third PoP also misses; the shield will fan out the single origin response to all three waiting PoPs.
+
 ---
 
 ## Deep Dive: Cache Eviction Strategy
@@ -979,6 +1054,13 @@ graph TD
     style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
     style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Two-Tier Cache with Promotion/Demotion** — A tiered storage strategy that balances performance and capacity by placing hot objects on fast media and warm objects on cheaper media.
+- **SSD Tier (Hot) - 20% of storage** — Fast solid-state storage holding the most frequently accessed objects for the lowest latency cache hits.
+- **Eviction: LRU with frequency boost** — The eviction policy that considers both recency and access frequency, preventing popular objects from being evicted by a burst of one-time requests.
+- **HDD Tier (Warm) - 80% of storage** — High-capacity spinning disk storage for objects evicted from the SSD tier but still worth caching to avoid origin fetches.
+- **Objects evicted entirely when HDD is full** — The final eviction stage where the least valuable objects are purged completely, forcing a cache miss on next access.
 `,
     explanation: `## Bottlenecks & Improvements
 - **Thundering herd on cache expiry** -> Implement stale-while-revalidate: serve stale content while fetching fresh version in background. Add jitter to TTLs to prevent simultaneous expiration across objects
@@ -1111,6 +1193,16 @@ graph TD
     style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Host** — A monitored server or container running application workloads that generates metrics data.
+- **Agent** — A lightweight daemon on each host that collects system and application metrics, batches them locally, and forwards them to intake servers.
+- **Intake Servers** — Stateless servers that receive metric batches from agents, validate the data, and route it into Kafka for durable buffering.
+- **Validate + route** — The intake logic that checks metric format, enforces cardinality limits, and assigns each metric to the correct Kafka partition.
+- **Kafka Cluster** — A durable message buffer that decouples ingestion from storage, absorbs traffic spikes, and feeds both the TSDB writers and alert evaluators.
+- **TSDB Writers** — Consumer processes that read from Kafka and write compressed time-series data into the TSDB using Gorilla encoding.
+- **Alert Evaluator** — A real-time stream processor that reads metrics directly from Kafka to evaluate alerting rules with sub-30-second latency, bypassing the TSDB.
+- **Gorilla** — The compression encoding (delta-of-delta for timestamps, XOR for values) that achieves 12x space savings on time-series data.
+
 ## Ingestion Flow
 
 \`\`\`mermaid
@@ -1171,6 +1263,13 @@ graph TD
     style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Timestamp Compression (Delta-of-Delta)** — Encodes timestamps by storing only the difference between consecutive deltas, which is typically zero for regular intervals and costs just 1 bit.
+- **Value Compression (XOR-based)** — XORs consecutive metric values, exploiting the fact that nearby readings are similar, so the XOR result has mostly zero bits requiring few bits to encode.
+- **Compression Result** — The output comparison showing the effectiveness of Gorilla encoding on a typical 2-hour data chunk.
+- **Uncompressed: 17,280 bytes** — The raw storage cost for a 2-hour chunk at 10-second intervals (720 points x 24 bytes each).
+- **Compressed: ~1,440 bytes** — The actual storage after Gorilla compression, achieving approximately 12x space reduction.
+
 ---
 
 ## Deep Dive: Inverted Index for Tag-Based Queries
@@ -1195,6 +1294,14 @@ graph TD
     style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
     style N5 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Tag Inverted Index** — A data structure mapping each tag key-value pair to a sorted list of series IDs, enabling fast set-intersection queries.
+- **How do we find all series matching** — Frames the problem: given multiple tag filters, identify which time series to read without scanning all 50M series.
+- **Inverted Index** — The core lookup structure where each tag value (e.g., region=us-east) maps to a posting list of matching series IDs.
+- **Tag** — A key-value label attached to a metric (e.g., host=web-01, service=api) used for filtering and grouping in queries.
+- **Query resolution** — The process of intersecting multiple posting lists to find series matching all specified tag filters.
+- **INTERSECT all three** — The set intersection operation that combines posting lists from each tag filter, yielding only the series IDs present in all lists.
 
 ---
 
@@ -1226,6 +1333,16 @@ graph TD
     style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
     style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Data Retention Tiers** — The multi-resolution storage strategy that balances query performance, storage cost, and data retention duration.
+- **Tier 1: Raw Data (10-second resolution)** — Full-fidelity data points at the original collection interval, used for recent debugging and detailed analysis.
+- **Retention: 15 days** — Raw data is kept for only 15 days due to its large size (~26 TB), after which it is replaced by pre-computed rollups.
+- **Tier 2: Minute Rollups** — Pre-aggregated data (avg, min, max, sum, count) at 1-minute granularity, reducing storage by 6x while preserving useful detail.
+- **Retention: 90 days** — Minute-level data covers the medium-term window for capacity planning and trend analysis.
+- **Tier 3: Hour Rollups** — Further aggregated to 1-hour granularity for long-term historical queries and year-over-year comparisons.
+- **Retention: 1+ year** — Hourly rollups are compact enough (~180 GB) to retain indefinitely for long-range trend analysis.
+- **Query auto-resolution** — The query engine automatically selects the appropriate tier based on the requested time range, using raw data for recent queries and rollups for longer spans.
 `,
     explanation: `## Bottlenecks & Improvements
 - **Ingestion spikes overwhelming writers** -> Kafka absorbs bursts as a buffer. Scale writers horizontally with consumer group rebalancing. Implement backpressure signaling to agents (slow down collection interval temporarily)

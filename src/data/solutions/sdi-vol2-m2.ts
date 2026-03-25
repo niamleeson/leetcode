@@ -127,6 +127,19 @@ graph TD
     style N12 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Host A / B / C** — The monitored servers generating raw infrastructure and application metrics such as CPU usage, memory, and request counts.
+- **Metrics Agent** — A lightweight daemon running on each host that collects local metrics and forwards them to the central collection service.
+- **Collection Svc** — A centralized ingestion service that receives metric data from all agents, validates it, and publishes it to the message queue.
+- **Kafka Cluster** — A durable message buffer that decouples ingestion from downstream consumers, absorbs burst traffic, and enables fan-out to multiple consumers.
+- **TSDB Writers** — Consumer processes that read from Kafka and write time-series data points into the persistent time-series database.
+- **Alerting Service** — Consumes the metric stream directly from Kafka to evaluate alert rules with sub-minute latency, independent of the query path.
+- **Stream Aggregator** — Performs real-time rollup computations (e.g., per-region averages) on the metric stream for pre-computed dashboards.
+- **Time-Series DB** — The persistent store optimized for append-only, time-ordered metric data with time-based partitioning and compression.
+- **Pre-computed Rollups** — Materialized aggregate views that speed up common dashboard queries by avoiding fan-out across millions of individual series.
+- **Query Service** — Serves dashboard and ad-hoc queries by reading from both raw TSDB data and pre-computed rollups.
+- **Dashboard UI (Grafana)** — The visualization layer where operators view graphs, heatmaps, and tables of their infrastructure metrics.
+
 ## Data Ingestion Flow
 
 \`\`\`mermaid
@@ -163,6 +176,16 @@ graph TD
     style N9 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Ad Server A / B / C** — Application servers that generate raw click event data whenever a user interacts with an advertisement.
+- **Click events** — The raw event stream capturing each ad click with metadata like ad ID, user ID, timestamp, and device info.
+- **Kafka Cluster** — A durable event bus that buffers click events and enables parallel consumption by both real-time and batch processing paths.
+- **Real-Time Path (Flink)** — A stream processing engine that deduplicates clicks and computes windowed aggregations with low latency for near-real-time dashboards.
+- **Batch Path** — Archives raw events to durable storage (S3) and runs periodic MapReduce jobs to produce ground-truth counts for reconciliation.
+- **Aggregation DB** — An OLAP database (e.g., ClickHouse or Druid) that stores aggregated click counts for fast analytical queries.
+- **Query Service** — Serves aggregated click data to downstream consumers via APIs, supporting filtering by ad, time range, and dimensions.
+- **Advertiser Dashboard** — The front-end interface where advertisers view click counts, campaign performance, and billing summaries.
+
 ## Alerting Evaluation Flow
 
 \`\`\`mermaid
@@ -198,6 +221,18 @@ graph TD
     style N8 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
     style N9 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Browser / Mobile** — The client application through which end users browse hotels, search availability, and make reservations.
+- **CDN** — A content delivery network that caches and serves static assets (images, CSS, JS) from edge locations close to the user for faster page loads.
+- **Static Assets (S3)** — Object storage holding hotel images, listing pages, and other static content that the CDN pulls from.
+- **API Gateway** — The single entry point for all API requests, handling authentication, rate limiting, and routing to the appropriate backend microservice.
+- **Hotel Service** — Manages hotel search, detail pages, and room availability queries, serving the read-heavy browsing workload.
+- **Payment Service** — Handles payment processing, charge authorization, and refund logic by integrating with external payment processors.
+- **Hotel DB** — Stores hotel metadata such as name, location, amenities, and room type information for search and detail queries.
+- **Reservation DB** — A relational database with ACID transactions that stores booking records and room inventory, ensuring no double-booking occurs.
+- **Payment DB** — Stores payment transaction records including charges, refunds, and payment status for audit and reconciliation.
+- **Notification Service** — Sends booking confirmations, cancellation notices, and payment receipts to users via email or SMS.
 `,
     jsCode: `## Deep Dive: Time-Series Database Storage Engine
 
@@ -477,6 +512,16 @@ graph TD
     style Dash fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Ad Server A / B / C** — Application servers handling ad impressions that generate click events whenever users interact with advertisements.
+- **Kafka Cluster (click_events topic)** — A durable, high-throughput message queue that buffers all click events and enables parallel consumption by both the real-time and batch processing paths.
+- **Real-Time Path (Apache Flink)** — A stream processing engine that deduplicates clicks, assigns them to tumbling windows, and produces low-latency aggregated counts with exactly-once semantics via checkpointing.
+- **Batch Path** — Archives raw click events to S3 and runs hourly Spark MapReduce jobs to compute ground-truth counts for billing reconciliation.
+- **Aggregation DB (ClickHouse / Druid)** — A columnar OLAP database optimized for high-volume append writes and fast analytical queries over aggregated click counts.
+- **Reconciliation Service** — Compares real-time streaming counts against batch-computed ground-truth counts and corrects discrepancies to ensure billing accuracy.
+- **Query Service** — Exposes APIs for querying aggregated click data with filtering by ad, time range, country, and device type.
+- **Advertiser Dashboard** — The user-facing interface where advertisers monitor click performance, campaign metrics, and billing summaries in near-real-time.
+
 ## Real-Time Aggregation Flow
 
 \`\`\`mermaid
@@ -596,6 +641,10 @@ graph TD
     style N1 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Bloom Filter (in-memory)** — A probabilistic data structure that provides fast, memory-efficient first-pass deduplication by checking whether a click_id has likely been seen before, with a small false-positive rate.
+- **Redis Exact Check** — A second-level exact deduplication store where click_ids that pass the Bloom filter are checked definitively, ensuring no duplicate clicks are counted for billing.
+
 ### Handling Late-Arriving Events (Watermarking)
 
 Events can arrive out of order due to network delays. Watermarks tell the system "all events up to time T have likely arrived":
@@ -659,6 +708,11 @@ graph TD
     style N1 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
     style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Real-Time Counts** — The aggregated click counts produced by the Flink streaming pipeline, available with low latency but potentially subject to minor inaccuracies from late events or checkpoint recovery.
+- **Batch Counts** — The ground-truth click counts produced by the hourly Spark MapReduce job over the complete raw event log, serving as the authoritative source for billing.
+- **Reconciliation Service** — Compares real-time and batch counts for each ad and time window, automatically correcting the aggregation database when discrepancies exceed a configurable threshold.
 `,
     explanation: `## Wrap Up
 
@@ -838,6 +892,19 @@ graph TD
     style Notif fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Browser / Mobile Client** — The user-facing application where guests search for hotels, view details, and make reservations.
+- **CDN (Images, Listings)** — Caches and serves static hotel images and listing content from edge locations to reduce latency and backend load.
+- **Static Assets (S3 / CloudFront)** — Object storage holding hotel photos, icons, and other static resources that the CDN pulls from origin.
+- **API Gateway (Auth, Rate Limit, Routing)** — The single entry point for all API traffic, handling authentication, rate limiting, and routing requests to the appropriate microservice.
+- **Hotel Service (Search, Detail)** — Serves the read-heavy workload of hotel search queries and detail page requests, backed by caching for performance.
+- **Reservation Service (Book / Cancel, Concurrency Ctrl)** — Handles the critical booking and cancellation logic with concurrency control (optimistic or pessimistic locking) to prevent double-booking.
+- **Payment Service (Charge / Refund via Stripe)** — Integrates with external payment processors to authorize charges at booking time and process refunds on cancellation.
+- **Hotel DB (Read Replica + Redis Cache)** — Stores hotel metadata with read replicas and a Redis cache layer to handle the high read-to-write ratio of search traffic.
+- **Reservation DB (PostgreSQL, ACID, Locking)** — A relational database providing ACID transactions and row-level locking to guarantee that room inventory is never oversold.
+- **Payment DB (PostgreSQL, Txn records)** — Stores payment transaction records for auditing, reconciliation, and refund processing.
+- **Notification Service (Email / SMS)** — Sends booking confirmations, cancellation notices, and payment receipts to guests via email or SMS.
+
 ## Reservation Flow (Optimistic Locking)
 
 \`\`\`mermaid
@@ -963,6 +1030,10 @@ graph TD
     style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
     style N1 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Client sends POST /reserve** — The user initiates a reservation request that includes an idempotency key to ensure the same booking is not created twice on retry.
+- **Reservation Service checks idempotency** — Before processing, the service checks whether a reservation with this idempotency key already exists, returning the cached result if so, or proceeding with the new booking otherwise.
 
 ### Caching Strategy with CDC
 
@@ -1193,6 +1264,22 @@ graph TD
     style ObjStore fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **External Mail Servers** — Remote SMTP servers from other email providers that deliver inbound emails to our system.
+- **SMTP Receiver (MX Records)** — The inbound mail transfer agent that accepts emails via SMTP, discovered by senders through DNS MX record lookups.
+- **Processing Pipeline** — A multi-stage filter that performs spam detection, virus scanning, SPF/DKIM/DMARC authentication, and MIME content parsing before delivery.
+- **Email Body Store (S3 / Blob)** — Object storage for email bodies and attachments, separating large content from queryable metadata for cost-effective petabyte-scale storage.
+- **Email Metadata DB (PostgreSQL, sharded by user_id)** — A sharded relational database storing email metadata (sender, subject, labels, timestamps) for fast mailbox listing and filtering.
+- **Search Index (Elasticsearch)** — A full-text search engine that indexes email subjects, bodies, and attachment content for sub-second search across a user's entire mailbox.
+- **Push / WebSocket Service** — Delivers real-time new-email notifications to connected clients so users see incoming mail without polling.
+- **User (Web / Mobile)** — The end user accessing their email through a web browser or mobile application.
+- **API Server (Compose + Validate)** — Handles outbound email composition, validates recipients and size limits, and enqueues emails for delivery.
+- **Send Queue (Kafka / SQS)** — A persistent message queue that buffers outbound emails for reliable asynchronous delivery with retry capability.
+- **SMTP Sender (Outbound MTA)** — The outbound mail transfer agent that performs DNS MX lookups, establishes TLS connections, and delivers emails to recipient servers with exponential backoff on failure.
+- **API Server (REST / IMAP proxy)** — Serves the user access path, handling mailbox listing, email retrieval, and state management (read/unread, labels) via REST or IMAP.
+- **Metadata DB (folder listing, search)** — Serves folder-based email listing queries and metadata lookups for the user access path.
+- **Object Storage (fetch body + attachments)** — Retrieves full email bodies and attachment files when a user opens a specific email.
+
 ## Inbound Email Flow
 
 \`\`\`mermaid
@@ -1264,6 +1351,14 @@ graph TD
     style N5 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Protocol** — The communication protocol used for email transport or access (SMTP, IMAP, POP3).
+- **Port** — The network port number(s) associated with each protocol for server-to-server and client-to-server communication.
+- **Purpose** — The role each protocol serves in the email system, from server-to-server relay to client mail submission and retrieval.
+- **SMTP** — Simple Mail Transfer Protocol, the standard protocol for sending and relaying emails between mail servers and for client mail submission.
+- **25 587** — Port 25 is used for server-to-server SMTP relay, while port 587 is the designated submission port for authenticated client email sending.
+- **Server-to-server / Client submission** — Describes SMTP's dual role in both relaying mail between mail servers and accepting outbound mail from authenticated user clients.
+
 ### Spam Detection Pipeline
 
 Spam accounts for 60-80% of all email traffic. A multi-layered detection pipeline:
@@ -1290,6 +1385,14 @@ graph TD
     style L4 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
     style Deliver fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Incoming Email** — A raw email arriving at the system that must pass through multiple detection layers before reaching the user's mailbox.
+- **Layer 1: Connection** — The first line of defense, checking the sender's IP reputation against known blacklists and applying rate limiting to block bulk spam sources.
+- **Layer 2: Authentication** — Verifies the sender's identity through SPF (authorized sending IPs), DKIM (cryptographic signature), and DMARC (policy enforcement) checks.
+- **Layer 3: Content** — Analyzes the email body and attachments using Bayesian classifiers, URL reputation checks, attachment virus scanning, and heuristic rule matching.
+- **Layer 4: User Signals** — Incorporates user-specific signals such as spam reports from other recipients and whether the sender is in the user's contact list to personalize filtering.
+- **Deliver to Inbox / Spam folder / Reject** — The final routing decision based on the cumulative score from all layers, placing the email in the inbox, spam folder, or rejecting it outright.
 
 ### Email Deliverability (SPF, DKIM, DMARC)
 
@@ -1328,6 +1431,11 @@ graph TD
     style N2 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Metadata (PostgreSQL)** — A sharded relational database storing lightweight email metadata (sender, subject, labels, timestamps) for fast mailbox queries and folder listing.
+- **Email Bodies (S3)** — Object storage holding the full email body content, fetched on-demand when a user opens a specific email, keeping the metadata DB lean.
+- **Attachments (Blob)** — Blob storage for email attachments, stored separately and deduplicated by content hash to minimize storage costs when the same file is sent to many recipients.
+
 ### Full-Text Search
 
 Users expect to search email by subject, body, sender, and even attachment content:
@@ -1343,6 +1451,11 @@ graph TD
     style N1 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
     style N2 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Email arrives** — A new email enters the system through either the inbound SMTP pipeline or the outbound sent-mail path, triggering the indexing workflow.
+- **Indexing Pipeline** — An asynchronous process that extracts searchable text from the email subject, body, and attachment content, then transforms it into index documents.
+- **Elasticsearch Cluster** — A distributed full-text search engine that stores the inverted index, enabling sub-second keyword and phrase searches across a user's entire mailbox.
 
 ### Email Threading
 
@@ -1553,6 +1666,14 @@ graph TD
     style Node fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Client (SDK / CLI)** — The application or command-line tool that issues object storage requests (PUT, GET, DELETE, LIST) using the S3-compatible API.
+- **API Gateway (Auth, Routing, Rate Limiting)** — The entry point that authenticates requests, enforces rate limits, and orchestrates reads/writes across the metadata and data services.
+- **Metadata Service (Vitess/CockDB)** — A distributed database that maps bucket+key pairs to physical data chunk locations on storage nodes, sharded by bucket hash for scalability.
+- **Data Service (Storage Nodes)** — Manages the physical storage of object bytes across thousands of nodes, using erasure coding to achieve 11-nines durability with minimal overhead.
+- **Garbage Collection Service** — A background process that identifies and reclaims disk space occupied by chunks from deleted or overwritten objects that are no longer referenced by metadata.
+- **Storage Node Detail** — The internal structure of each storage node, using append-only 256 MB segment files with per-chunk checksums to maximize write throughput and detect data corruption.
+
 ## Object Upload Flow (PUT)
 
 \`\`\`mermaid
@@ -1749,6 +1870,9 @@ graph TD
     style N2 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
     style N3 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Part 1 / Part 2 / Part 3 / Part 4** — Individual chunks of a large object uploaded independently and in parallel, each with its own checksum and independently retryable on failure. Parts can vary in size (typically 5 MB to 5 GB each), and the final part may be smaller than the rest.
 
 ### Consistency Guarantees
 

@@ -86,6 +86,12 @@ graph TD
     style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Producer A / Producer B** — Application instances that publish messages to the cluster. They hash message keys to determine which partition receives each message.
+- **Controller** — Manages cluster metadata and leader election (via KRaft or ZooKeeper). Ensures every partition has an active leader broker.
+- **Load Balancer** — Distributes incoming producer connections across brokers to prevent hotspots.
+- **Broker 1 / Broker 2 / Broker 3** — Storage nodes that hold partition segment files on local SSDs. Each broker is the leader for some partitions and a follower for others, providing replication and fault tolerance.
+
 ## Produce Flow
 
 \`\`\`mermaid
@@ -170,6 +176,10 @@ graph TD
     style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
     style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **P0, P1 / P4, P5** — Partitions assigned to individual consumers within the group. Each partition is consumed by exactly one consumer to maintain ordering.
+- **P0,P1,P4** — Represents the reassigned partition set after a consumer joins or leaves, showing how cooperative sticky rebalancing redistributes work with minimal disruption.
 
 ---
 
@@ -332,6 +342,14 @@ graph TD
     style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Sender** — External mail transfer agent or client initiating an email delivery.
+- **SMTP Gateway** — The entry point that accepts inbound SMTP connections and performs initial protocol handling and SPF/DKIM/DMARC verification.
+- **Spam Filter Pipeline** — A multi-stage filter that progressively checks messages from cheap (IP reputation) to expensive (ML classification), rejecting spam early.
+- **SMTP** — The protocol layer handling standards-compliant message transfer between services.
+- **Mail Delivery Service** — Routes validated messages to the correct user mailbox, triggers search indexing, and sends push notifications.
+- **Mail Store** — Per-user partitioned storage (Bigtable-like) that persists email bodies, metadata, and threading information.
+
 ## Email Receive Flow
 
 \`\`\`mermaid
@@ -404,6 +422,11 @@ graph TD
     style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Stage 1: IP Rep / Block known spam IPs (blacklist)** — The cheapest check, rejecting emails from known spam IP addresses using reputation databases. Eliminates the majority of spam at near-zero cost.
+- **Stage 2: SPF/DKIM/DMARC Authentication** — Verifies sender identity through DNS-based authentication protocols, ensuring the sender is authorized to use the claimed domain.
+- **Stage 3: Header Anomaly Detection** — Inspects email headers for suspicious patterns (forged timestamps, unusual routing, malformed fields) before invoking expensive content analysis.
+
 ---
 
 ## Deep Dive: Email Threading
@@ -421,6 +444,11 @@ graph TD
     style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
     style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Email A (root)** — The original message that starts a conversation thread, identified by a unique Message-ID header.
+- **Email B (reply)** — A direct reply to Email A, linked via the In-Reply-To and References headers to reconstruct the thread hierarchy.
+- **Email C (reply)** — A further reply in the chain, forming a DAG structure that allows the UI to display the full conversation in order.
 
 ---
 
@@ -454,6 +482,11 @@ graph TD
     style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
     style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Token / User 'alice' Search Index** — Each user has a dedicated inverted index, ensuring search performance is independent of total system size and providing natural data isolation.
+- **Token Posting List** — Maps each indexed token to a list of (messageId, field, position) tuples, enabling fast full-text search within a user's mailbox.
+- **'from:bob' / 'has:attach' / 'label:inbox'** — Structured search tokens that index metadata fields, allowing efficient filtering by sender, attachment status, or label without scanning message bodies.
 `,
     explanation: `## Bottlenecks & Improvements
 - **SMTP gateway overload** -> Horizontally scale SMTP servers behind DNS round-robin. Rate limit per sender IP. Use connection pooling for outbound delivery
@@ -577,6 +610,12 @@ graph TD
     style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Service** — The upstream application emitting log events via HTTP or gRPC.
+- **Collector Fleet (HTTP/gRPC)** — A horizontally scaled fleet of ingestion servers that accept, validate, and batch log events before forwarding. Provides backpressure via HTTP 429 when downstream is overloaded.
+- **Message Queue (Kafka) / Partitioned by service_name** — A durable buffer that decouples ingestion from processing. Partitioning by service name enables parallel consumption and natural data locality.
+- **Stream Processor** — A Flink/Spark Streaming layer that transforms, enriches, and routes events from Kafka into columnar storage for analytical queries.
+
 ## Event Ingestion Flow
 
 \`\`\`mermaid
@@ -627,6 +666,11 @@ graph TD
     style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **HOT TIER (0-30 days) - ClickHouse on SSD** — Stores recent logs in a columnar database on fast SSDs for sub-2-second query latency. Fully indexed and partitioned by date and service.
+- **WARM TIER (30d-1yr) - Parquet on S3** — Compressed columnar files on object storage for cost-efficient retention of older logs. Query latency is higher (seconds to minutes) but storage cost is 10x lower.
+- **Partitioned by (date, service)** — The partitioning scheme enables efficient partition pruning, so queries scoped to a time range and service skip irrelevant data entirely.
+
 ---
 
 ## Deep Dive: Stream Processing & Enrichment
@@ -657,6 +701,14 @@ graph TD
     style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Parse** — Extracts structured fields from raw log text using format-specific parsers (JSON, Grok patterns) to produce a normalized schema.
+- **Normal- (Normalize)** — Standardizes field names, timestamps, and log levels across heterogeneous sources into a common event format.
+- **Enrich** — Augments events with additional context such as service owner, deployment version, or geo-IP data from lookup tables.
+- **Route** — Directs events to the appropriate storage tier and topic based on log level, service, or custom routing rules.
+- **Window Agg** — Computes windowed aggregations (error counts, latency percentiles) over tumbling or sliding time windows for real-time dashboards.
+- **Alert Engine** — Evaluates streaming aggregates against threshold rules and anomaly detection models, firing alerts when conditions are met.
+
 ---
 
 ## Deep Dive: Query Optimization for Log Analytics
@@ -681,6 +733,10 @@ graph TD
     style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
     style N5 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Scan all rows for last 24h / Filter level = 'ERROR' / Group by service** — Illustrates the naive query path that scans all rows, which is prohibitively slow at scale (45 seconds over 200 billion rows).
+- **Time: 0.3 seconds / ERROR** — Represents the optimized path using columnar storage with partition pruning and materialized views, reducing the same query to sub-second by reading only the relevant column and pre-filtered partitions.
 `,
     explanation: `## Bottlenecks & Improvements
 - **Ingestion spikes** -> Buffer in Kafka with auto-scaling consumer groups. Collectors apply backpressure via HTTP 429 when Kafka lag exceeds threshold. Pre-size partitions for 3x expected peak
@@ -805,6 +861,14 @@ graph TD
     style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Client** — The user-facing application requesting personalized recommendations.
+- **API Gateway / Recommendation Load Balancer** — Routes and distributes recommendation requests across API service instances, handling authentication and rate limiting.
+- **API Service** — Orchestrates the recommendation pipeline by calling candidate generation, ranking, and applying business rules (diversity, filtering) before returning results.
+- **Candidate Generation** — Retrieves hundreds of candidate items from millions using fast approximate nearest neighbor (ANN) search across multiple sources (collaborative filtering, content-based, trending).
+- **Ranking** — Scores each candidate using a trained ML model with rich user-item features to produce a final relevance-ordered list.
+- **Business Rules** — Applies post-ranking filters such as diversity constraints, freshness boosts, and content policy enforcement before serving results.
+
 ## Recommendation Request Flow
 
 \`\`\`mermaid
@@ -846,6 +910,13 @@ graph TD
     style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Source A: Collaborative Filtering** — Retrieves candidates based on "users like you interacted with these items" patterns, using learned user/item embeddings and ANN search.
+- **Source B: Content-Based** — Retrieves candidates similar to items the user has already engaged with, based on item feature embeddings (category, tags, description).
+- **Source C: Popularity / Trending** — Provides globally or category-level popular items as a fallback source, especially useful for cold-start users or supplementing personalized results.
+- **Features per (user, item) pair** — The ranking model input: rich feature vectors combining user history, item attributes, context, and cross-features for precise relevance scoring.
+- **Output: relevance score per candidate** — The ranking model output used to produce the final ordered recommendation list.
+
 ---
 
 ## Deep Dive: Collaborative Filtering with Embeddings
@@ -879,6 +950,12 @@ graph TD
     style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Interaction Matrix (Users x Items)** — A sparse matrix recording which users interacted with which items. This is the raw input for matrix factorization to learn latent embeddings.
+- **User Embeddings / Item Embeddings** — Dense vector representations learned from the interaction matrix that capture user preferences and item characteristics in the same vector space.
+- **Indexed in FAISS** — Item embeddings are loaded into a FAISS approximate nearest neighbor index, enabling sub-millisecond retrieval of the top-K most similar items to a given user embedding.
+- **FAISS ANN Index** — The serving-time lookup structure that trades a small recall loss (~5%) for 100x faster search compared to exact nearest neighbor over 100M item vectors.
+
 ---
 
 ## Deep Dive: Handling Cold Start
@@ -902,6 +979,13 @@ graph TD
     style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
     style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Strategy 1: Popularity-based** — For new users with no history, recommend globally popular or trending items as a safe default until personalization signals accumulate.
+- **Strategy 3: Session-based** — Uses in-session clicks and views to build a temporary preference model, enabling personalization even for anonymous or brand-new users.
+- **Strategy 1: Content-based features (New Items)** — For newly added items with no interaction data, use item metadata (category, description, tags) to match against existing user preferences.
+- **Strategy 2: Exploration boost** — Artificially increases the ranking score of new items to ensure they receive enough impressions to gather interaction data.
+- **Strategy 3: Bandit exploration** — Uses multi-armed bandit algorithms (epsilon-greedy, Thompson sampling) to balance exploiting known good recommendations with exploring uncertain new items.
 `,
     explanation: `## Bottlenecks & Improvements
 - **Feature store latency** -> Co-locate feature store with ranking service. Pre-compute and cache user features on session start. Use Redis Cluster with read replicas in each availability zone
@@ -1028,6 +1112,13 @@ graph TD
     style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **GitHub** — The source code host that emits webhook events (push, PR, tag) to trigger pipeline executions.
+- **Webhook Receiver** — Listens for incoming git events, validates their authenticity, and enqueues build requests for processing.
+- **Pipeline Parser** — Reads the YAML pipeline definition from the repository and constructs a DAG of jobs with their dependencies and resource requirements.
+- **Scheduler** — Assigns ready jobs to available runners based on resource requirements, labels, and priority. Manages the DAG execution order.
+- **Runner Pool Manager** — Maintains warm pools of ephemeral containers or VMs, handles provisioning and teardown, and scales capacity based on demand.
+
 ## Build Execution Flow
 
 \`\`\`mermaid
@@ -1121,6 +1212,12 @@ graph TD
     style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Cold Pool** — Pre-created but not yet booted runner images stored cheaply, ready to be started when warm pool is exhausted. Startup time is slower (~30 seconds) but cost is minimal.
+- **Warm Pool** — Pre-booted containers or microVMs sitting idle and ready to accept jobs immediately (sub-second start). Sized based on predicted demand patterns.
+- **Active** — Runners currently executing build jobs. Once a job completes, the runner is destroyed (ephemeral) or returned to the warm pool after sanitization.
+- **Cleanup** — The teardown phase where runner state is wiped, secrets are purged, and the environment is reset to ensure complete isolation between builds.
+
 ---
 
 ## Deep Dive: Artifact Caching Strategy
@@ -1153,6 +1250,10 @@ graph TD
     style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
     style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Layer 1: Runner-local (fastest)** — Cache stored on the runner's local disk from previous builds. Zero network overhead but only ~30% hit rate since runners are ephemeral and may not be reused.
+- **Layer 2: Shared cache (S3 + CDN)** — A centralized content-addressed cache keyed on lockfile hashes, accessible from any runner. Achieves ~85% hit rate across all builds with 2-5 second download latency.
 `,
     explanation: `## Bottlenecks & Improvements
 - **Runner provisioning latency** -> Warm pool of pre-booted containers. Predictive scaling based on historical webhook patterns. Firecracker microVMs for < 5 second cold starts
@@ -1277,6 +1378,13 @@ graph TD
     style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Tenant A / Tenant B** — Different customer organizations accessing the same platform, each with their own data, configuration, and usage limits.
+- **Tenant Config Service** — Resolves tenant-specific settings (plan limits, feature flags, branding, data routing) from the JWT or subdomain on each request.
+- **JWT** — The authentication token carrying tenant identity, used by every layer to enforce tenant-scoped access without additional lookups.
+- **Application Tier / Tenant context** — Stateless application servers that thread the tenant ID through every operation, ensuring all database queries, cache keys, and audit logs are tenant-scoped.
+- **Shared DB** — The data layer where small tenants share a database with row-level security (RLS) enforcing isolation, while enterprise tenants are routed to dedicated instances.
+
 ## Request Flow with Tenant Context
 
 \`\`\`mermaid
@@ -1349,6 +1457,11 @@ graph TD
     style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Shared PostgreSQL Cluster** — The database tier for small tenants where row-level security (RLS) policies automatically filter every query by tenant_id, making cross-tenant data leakage impossible at the database level.
+- **CREATE POLICY tenant_isolation** — The PostgreSQL RLS policy that transparently appends a tenant_id filter to every query, removing reliance on application-level filtering.
+- **DB: tenant_xyz** — Represents the dedicated database model for enterprise tenants, providing complete physical isolation with independent backup, scaling, and compliance controls.
+
 ---
 
 ## Deep Dive: Noisy Neighbor Prevention
@@ -1382,6 +1495,11 @@ graph TD
     style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Plan-based limits (Starter / Professional / Enterprise)** — Tiered rate limits and quotas defined per pricing plan, controlling API requests/sec, storage, and seats to match the tenant's subscription level.
+- **Per-tenant limits** — Runtime enforcement of individual tenant quotas at the API gateway and database layers, preventing any single tenant from consuming disproportionate shared resources.
+- **Shared DB tenants** — Tenants on shared infrastructure receive additional protections such as connection pool limits and query timeouts to prevent one tenant's heavy workload from degrading others.
+
 ---
 
 ## Deep Dive: Usage Metering & Billing
@@ -1414,6 +1532,12 @@ graph TD
     style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
     style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **API Gateway** — The entry point that emits usage events for every request, capturing tenant ID, endpoint, and resource consumption as lightweight metering records.
+- **Kafka Topic** — A durable event stream that buffers raw usage events, decoupling the high-throughput API layer from the slower aggregation pipeline.
+- **Metering Aggregator** — Consumes events from Kafka and computes per-tenant usage rollups (hourly and daily) with idempotent processing to ensure billing accuracy.
+- **Timeseries (Hourly +)** — A time-series database (TimescaleDB) storing aggregated usage metrics, powering real-time usage dashboards and feeding the billing system for invoice generation.
 `,
     explanation: `## Bottlenecks & Improvements
 - **Tenant config resolution latency** -> Cache tenant config in API gateway with short TTL (60s). Use consistent hashing to route same tenant to same gateway node for warm cache. Pre-load config for active tenants

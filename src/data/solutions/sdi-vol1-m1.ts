@@ -88,6 +88,11 @@ graph TD
     style N2 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Users** — The end users making HTTP requests to your application. At this stage, they connect directly to the server's public IP address.
+- **Single Server** — A single machine hosting everything: the web application, database, and file storage. Simple to set up but becomes a bottleneck quickly as all resources are shared.
+- **Web App (Nginx + Node.js)** — The application layer running on the single server. Nginx serves as a reverse proxy and static file server, while Node.js handles application logic.
+
 ### Stage 2: Load Balanced Architecture with DB Replication
 
 \`\`\`mermaid
@@ -105,6 +110,12 @@ graph TD
     style N2 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
     style N3 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Load Balancer** — Distributes incoming traffic across multiple web servers. Provides a single entry point and eliminates the web tier as a single point of failure.
+- **Web Srv #1** — An application server handling business logic. Sits behind the load balancer in a private subnet so it is not directly exposed to the internet.
+- **Cache (Redis)** — An in-memory data store that sits between the web servers and the database. Reduces database load by serving frequently accessed data in microseconds instead of milliseconds.
+- **Primary DB** — The main relational database handling all write operations and serving as the source of truth for persistent data.
 
 ### Stage 3: Full Production Architecture
 
@@ -168,6 +179,16 @@ graph TD
     style N14 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
     style N15 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Users (Region A / Region B)** — Geographically distributed end users. Separating them by region enables routing to the nearest data center for lower latency.
+- **GeoDNS** — A DNS service that resolves domain names to different IP addresses based on the user's geographic location, directing them to the closest data center.
+- **Load Balancer (Region A / Region B)** — Regional load balancers that distribute traffic across web servers within their respective data centers, providing both load distribution and fault tolerance.
+- **W1, W2, W3, W4** — Stateless web servers spread across two regions. Because they store no session state locally, any server can handle any request, enabling easy horizontal scaling.
+- **Redis Cache (Cluster)** — A distributed in-memory cache shared across web servers. Reduces database load by serving hot data quickly and absorbing read traffic spikes.
+- **DB Primary + Replicas** — The database tier with a primary node for writes and replicas for read scaling. Replicas also serve as failover targets if the primary goes down.
+- **Message Queue (Kafka)** — Decouples time-consuming background tasks from the request path. Web servers publish tasks to the queue instead of processing them synchronously, keeping response times fast.
+- **Email / Thumbnail / Analytics Workers** — Asynchronous consumers that process jobs from the message queue. Each worker type can be scaled independently based on its specific workload demands.
 `,
     jsCode: `## Vertical vs Horizontal Scaling
 
@@ -722,6 +743,14 @@ graph TD
     style N4 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
     style N5 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Client (Web / Mobile)** — The user-facing application that initiates all requests. It communicates exclusively through the API gateway, never directly with backend services.
+- **API GW / Load Balancer** — The single entry point for all client requests. It handles routing, rate limiting, authentication, and distributes traffic across service instances.
+- **Service Layer** — The core business logic tier that processes requests, orchestrates workflows, and coordinates between the cache, queue, and data layer.
+- **Cache (Redis)** — An in-memory store for frequently accessed data. The service layer checks the cache before querying the data layer, dramatically reducing read latency and database load.
+- **Message Queue** — Buffers asynchronous tasks (emails, notifications, heavy processing) so the service layer can return responses quickly without waiting for slow operations to complete.
+- **Data Layer (SQL / NoSQL / Blob)** — The persistent storage tier. The choice of SQL, NoSQL, or blob storage depends on the data's structure, access patterns, and consistency requirements.
 `,
     jsCode: `## Deep Dive: Mastering Each Step
 

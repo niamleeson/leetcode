@@ -86,6 +86,14 @@ graph TD
     style S3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Client Device (File Watch + Chunker)** — Monitors local filesystem for changes and splits modified files into content-defined chunks using Rabin fingerprinting, enabling delta sync and resumable uploads.
+- **Load Balancer** — Distributes incoming requests across stateless API servers to ensure even utilization and high availability.
+- **API Servers (Stateless)** — Handle upload/download orchestration, coordinate with metadata and storage services, and generate presigned URLs for direct-to-S3 uploads.
+- **Metadata Service (MySQL sharded)** — Stores file trees, version histories, and chunk manifests, sharded by user_id for horizontal scalability with strong consistency.
+- **Notification Service (Long Poll/WS)** — Pushes real-time change events to connected clients so other devices learn about file updates within seconds.
+- **Block Storage (S3, SHA-256 keyed)** — Stores actual chunk data keyed by content hash, enabling cross-user deduplication and eleven-nines durability.
+
 ## Write Flow (File Upload)
 
 \`\`\`mermaid
@@ -328,6 +336,17 @@ graph TD
     style Viewer fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Creator (Browser)** — The content uploader's client, which initiates resumable chunked uploads of raw video files.
+- **Upload Service** — Manages upload sessions, generates presigned URLs for direct-to-blob uploads, and triggers the transcoding pipeline on completion.
+- **Blob Storage (S3)** — Stores the original raw video files durably before and during transcoding.
+- **Message Queue (SQS/Kafka)** — Decouples upload from transcoding so the pipeline can process jobs asynchronously at its own pace without blocking uploaders.
+- **Transcoder Workers (360p/720p/1080p/4K)** — Parallel workers that encode the raw video into multiple resolution and bitrate variants for adaptive streaming.
+- **Transcoded Storage (S3)** — Holds the segmented, multi-resolution output files ready for CDN distribution.
+- **Origin Shield** — A mid-tier cache layer that collapses duplicate cache-miss requests from edge PoPs, protecting origin storage from thundering herd on viral videos.
+- **CDN Edge PoPs** — Globally distributed edge servers that cache and serve video segments close to viewers for low-latency playback.
+- **Viewer (Adaptive Bitrate Player)** — The end-user's video player that dynamically selects segment quality based on network conditions and buffer level.
+
 ## Write Flow (Video Upload + Transcode)
 
 \`\`\`mermaid
@@ -556,6 +575,13 @@ graph TD
     style NB fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
     style NC fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Client SDK** — A lightweight library embedded in the application that handles key hashing, node selection, and retry logic, abstracting the distributed nature of the store.
+- **Coordinator Node** — Receives client requests, hashes the key to find the responsible replicas on the ring, and manages quorum reads/writes across those replicas.
+- **Hash Ring (Virtual nodes)** — Maps keys to storage nodes using consistent hashing with virtual nodes, ensuring even data distribution and minimal key movement when nodes join or leave.
+- **Gossip Protocol** — A peer-to-peer protocol where nodes periodically exchange membership and health information, providing decentralized failure detection with no single point of failure.
+- **Node A/B/C (LSM-Tree)** — Storage nodes that each own a range of the hash ring and persist data using an LSM-tree engine optimized for high write throughput with sequential I/O.
 
 ## Write Flow (Quorum Write)
 
@@ -804,6 +830,17 @@ graph TD
     style Ranker fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **URL Frontier (Priority Queue)** — Maintains the queue of URLs to crawl, prioritized by PageRank and freshness requirements, with per-domain politeness constraints.
+- **Crawler Workers** — Thousands of distributed workers that fetch web pages via HTTP, respecting robots.txt and rate limits per domain.
+- **Raw Page Store** — Durable storage for fetched HTML content, serving as input to the indexing pipeline and a historical archive for re-processing.
+- **Doc Processor (Parse HTML)** — Extracts text, links, and metadata from raw HTML pages, feeding discovered URLs back to the frontier and tokens to the index builder.
+- **Dedup (SimHash)** — Detects near-duplicate pages using locality-sensitive hashing to avoid indexing the same content from multiple URLs.
+- **Index Builder (Tokenize, TF-IDF)** — Tokenizes documents, computes term frequencies, and builds the inverted index with positional data for phrase queries.
+- **Query Parser (Spell check)** — Parses user queries, applies spell correction and query expansion, then dispatches to the appropriate index shards.
+- **Index Servers (Sharded by term)** — Store inverted index partitions in memory, retrieve posting lists, and compute intersections for multi-term queries.
+- **Ranker (PageRank + TF-IDF)** — Combines multiple relevance signals to score and sort candidate documents, returning the top K results to the user.
+
 ## Write Flow (Crawl + Index)
 
 \`\`\`mermaid
@@ -1050,6 +1087,12 @@ graph TD
     style NN fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
     style ZK fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **App Server (Client Library)** — Application instances with an embedded client library that hashes keys to determine the target cache node, avoiding a centralized proxy bottleneck.
+- **Consistent Hash Ring** — Maps keys to cache nodes using consistent hashing with virtual nodes, so adding or removing a node only displaces roughly 1/N of cached keys.
+- **Node 1-N (128GB, Hash+LRU)** — Individual cache nodes storing key-value pairs in an in-memory hash table with LRU eviction and a slab allocator to minimize memory fragmentation.
+- **Config Service (ZooKeeper/etcd)** — Maintains authoritative cluster membership, detects node failures, and propagates ring topology changes to all client libraries.
 
 ## Write Flow (Cache SET)
 

@@ -100,6 +100,12 @@ graph TD
     style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Game Server** — The source of score events, emitting updates whenever a player finishes a match or earns points.
+- **Load Balancer** — Distributes incoming score update requests across multiple Leaderboard Service instances to handle peak traffic.
+- **Leaderboard Service** — The application layer that processes score updates and rank queries, translating API calls into Redis commands.
+- **Redis Cluster (Sorted Sets)** — The primary data store using sorted sets for O(log N) score updates and rank lookups, keeping the entire leaderboard in memory for sub-millisecond access.
+
 ## Score Update Flow
 
 \`\`\`mermaid
@@ -129,6 +135,16 @@ graph TD
     style N7 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Client (Checkout)** — The user-facing application initiating a payment during the checkout process.
+- **API Gateway** — Handles authentication, TLS termination, and rate limiting before forwarding requests to internal services.
+- **Payment Service** — The central orchestrator that coordinates fraud checks, PSP charges, and ledger recording for each payment.
+- **Risk Engine** — Evaluates transactions for fraud using velocity checks, geo-mismatch detection, and ML-based scoring before authorizing the charge.
+- **PSP Integration** — An adapter layer that communicates with external payment service providers, handling tokenization, charge APIs, and webhook callbacks.
+- **Ledger Service** — Records every financial transaction using double-entry bookkeeping to maintain a complete, auditable trail of money movement.
+- **PSP (Stripe) External** — The third-party payment service provider that actually processes the card charge and returns a transaction reference.
+- **Ledger DB (Append-only)** — An immutable, append-only database storing all ledger entries, ensuring no financial record can be altered after creation.
+
 ## Rank Lookup Flow
 
 \`\`\`mermaid
@@ -154,6 +170,15 @@ graph TD
     style N5 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
     style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Client** — The end user requesting a rank lookup or leaderboard view.
+- **API Gateway (Auth, TLS)** — Authenticates the request and terminates TLS before routing to internal services.
+- **Transfer API** — Validates the incoming rank query and deduplicates requests using idempotency keys.
+- **Command Service** — Processes write commands by creating domain events and appending them to the event store.
+- **Event Store (Append-only)** — An immutable log of all state-changing events, partitioned by entity ID for ordered replay and audit.
+- **Event Processor** — Consumes events from the store and updates downstream materialized views to keep read models current.
+- **Balance View (Materialized)** — A pre-computed, read-optimized projection of current state derived from replaying events, enabling fast O(1) lookups.
 `,
     jsCode: `## Deep Dive: Redis Sorted Set Internals
 
@@ -437,6 +462,16 @@ graph TD
     style LedgerDB fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Client (Checkout)** — The buyer's application initiating a payment at checkout time.
+- **API Gateway (Auth, Rate Limit)** — Authenticates requests, enforces rate limits, and routes traffic to the payment service.
+- **Payment Service (Orchestrator)** — The central coordinator that drives the payment workflow: validates input, checks for fraud, charges via PSP, and records in the ledger.
+- **Risk Engine** — Runs fraud detection rules (velocity checks, geo-mismatch, ML scoring) and approves or denies the transaction before any charge is made.
+- **PSP Integration** — Abstracts communication with external payment providers, handling hosted checkout, tokenization, charge API calls, and webhook processing.
+- **Ledger Service** — Writes double-entry bookkeeping records so every debit has a matching credit, ensuring the audit trail is always balanced.
+- **PSP (Stripe, etc.)** — The external payment service provider that actually moves money by charging the card and returning a reference ID.
+- **Ledger DB (Append-only)** — Stores immutable ledger entries that can never be modified or deleted, providing a tamper-proof financial record.
+
 ## Payment Processing Flow
 
 \`\`\`mermaid
@@ -602,6 +637,15 @@ graph TD
     style N5 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
     style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Daily Reconciliation** — The scheduled batch process that runs (typically off-peak) to verify internal records match external PSP records.
+- **Internal Ledger** — Our system's double-entry bookkeeping records of all processed payments.
+- **PSP Settlement File** — The external file provided by the payment service provider listing all charges, refunds, and settlements they processed.
+- **Reconciliation Service** — Compares each internal ledger entry against the PSP settlement file to detect discrepancies.
+- **Match (OK)** — Entries that exist in both systems with identical amounts, confirming the payment was processed correctly.
+- **Missing (Alert)** — Entries found in one system but not the other, indicating a lost payment or unrecorded charge that requires immediate investigation.
+- **Mismatch (Review)** — Entries present in both systems but with differing amounts or statuses, flagged for manual review by the finance team.
 `,
     explanation: `## Bottlenecks & Improvements
 - **PSP as single point of failure** → Integrate with multiple PSPs. Route payments through a healthy PSP. Implement circuit breakers with automatic failover
@@ -750,6 +794,16 @@ graph TD
     style Query fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Client** — The end user initiating deposits, withdrawals, transfers, or balance queries.
+- **API Gateway (Auth, TLS)** — Handles authentication, TLS termination, and request routing to protect internal services.
+- **Transfer API (Validate, Dedup)** — Validates transfer requests and deduplicates using idempotency keys to prevent double-processing.
+- **Command Service (Create events)** — Translates validated commands into domain events and appends them to the event store, enforcing business rules like sufficient balance.
+- **Event Store (Append-only log)** — The immutable, append-only source of truth partitioned by wallet_id, storing every credit and debit event for full auditability and replay.
+- **Event Processor** — Asynchronously consumes events from the store and updates the materialized balance view, decoupling writes from reads.
+- **Balance View (Materialized)** — A read-optimized projection mapping wallet_id to current balance, enabling sub-millisecond balance lookups without replaying events.
+- **Query Service** — Serves read requests (balance checks, transaction history) from the materialized view, scaled independently from the write path.
+
 ## Transfer Flow (Event Sourcing)
 
 \`\`\`mermaid
@@ -873,6 +927,14 @@ graph TD
     style N5 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
     style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Transfer Request** — A write operation (deposit, withdraw, or transfer) entering the system through the command side.
+- **Balance Query** — A read operation requesting current balance or transaction history through the query side.
+- **Command Service** — Handles all write operations by validating business rules and appending events to the event store, optimized for write throughput.
+- **Query Service** — Handles all read operations by querying the materialized view, optimized for low-latency reads and scaled independently from writes.
+- **Event Store** — The persistent, append-only log of all domain events that serves as the single source of truth for the system.
+- **Materialized View** — A denormalized, read-optimized projection of current state (balances) derived from the event store, updated asynchronously by the event processor.
 
 ---
 
@@ -1076,6 +1138,15 @@ graph TD
     style Rep fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Client A (Broker/HFT)** — Institutional or high-frequency trading clients that require ultra-low-latency order submission via binary protocols.
+- **Client B (Retail App)** — Retail investors connecting through consumer-facing applications with slightly relaxed latency requirements.
+- **Gateway (Auth, Validate, Rate Limit)** — Authenticates clients, validates order parameters, and enforces rate limits to protect the matching engine from abuse.
+- **Sequencer** — Assigns a monotonically increasing global sequence number to every order, establishing a total ordering that enables deterministic replay and guaranteed fairness.
+- **Matching Engine (Single-threaded)** — Processes orders one at a time against in-memory order books using price-time priority, deliberately single-threaded to eliminate lock contention at microsecond latencies.
+- **Market Data Publisher** — Broadcasts real-time price updates (L1/L2/L3) to all subscribers via multicast after every trade execution and order book change.
+- **Reporter** — Generates trade confirmations for participants and regulatory trade reports required for compliance and audit.
+
 ## Order Matching Flow
 
 \`\`\`mermaid
@@ -1127,6 +1198,12 @@ graph TD
     style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
     style N3 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Incoming orders** — The stream of new orders, cancellations, and modifications arriving from the gateway after authentication and validation.
+- **Sequencer** — Assigns a global sequence number to each event and fans out the ordered stream to both the primary and hot standby, ensuring both process identical event sequences.
+- **Matching Engine (Primary)** — The active engine processing all orders and generating trades, running single-threaded for deterministic behavior.
+- **Matching Engine (Hot Standby)** — A replica that processes the same sequenced event stream in lockstep with the primary, ready to take over instantly if the primary fails with zero data loss.
 `,
     jsCode: `## Deep Dive: Order Book Implementation
 
@@ -1165,6 +1242,13 @@ graph TD
     style Q1 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
     style Q2 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Order Book** — The top-level data structure for a single symbol, containing both the bid and ask sides and providing O(1) access to the best bid/ask.
+- **Bid Tree (Red-Black, descending)** — A self-balancing binary tree storing buy-side price levels in descending order so the highest bid (best buy price) is always accessible in O(1).
+- **Ask Tree (Red-Black, ascending)** — A self-balancing binary tree storing sell-side price levels in ascending order so the lowest ask (best sell price) is always accessible in O(1).
+- **Price Levels** — Individual nodes in the tree representing a specific price point, each containing aggregate quantity and a pointer to the order queue at that price.
+- **Order Queues (FIFO)** — Doubly-linked lists of orders at the same price level, maintaining time priority so earlier orders execute first, with O(1) insertion and removal.
 
 ---
 
@@ -1253,6 +1337,11 @@ graph TD
     style N1 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
     style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Fault Tolerance Architecture** — The overarching design ensuring the exchange can survive hardware failures without losing any orders or trades.
+- **Primary Matching Engine** — The active engine processing all incoming orders and generating trades in real time.
+- **Standby Matching Engine** — A hot replica consuming the same sequenced event stream as the primary, maintaining identical in-memory state so it can take over within sub-second failover time with zero data loss.
 
 ---
 

@@ -141,6 +141,13 @@ graph TD
     style N8 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Client (Browser)** — The end user who submits long URLs for shortening and follows short URLs for redirection. All traffic originates here.
+- **App 1 / App 2 / App N** — Horizontally scaled API servers that handle both URL creation and redirect requests. Multiple instances ensure high availability and distribute load.
+- **Redis Cache Cluster** — An in-memory cache storing the most frequently accessed short-code-to-long-URL mappings. Serves the majority of redirect lookups without hitting the database.
+- **Database (Sharded)** — The persistent source of truth for all URL mappings, partitioned across multiple shards to handle 90+ TB of data over 5 years.
+- **Shard 1 / Shard 2 / Shard 3** — Individual database partitions divided by consistent hashing on the short code, each holding a roughly equal fraction of the keyspace for balanced load.
+
 ## Write Flow (URL Shortening)
 
 \`\`\`mermaid
@@ -429,6 +436,15 @@ graph TD
     style N7 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **URL Frontier** — A priority queue combined with politeness constraints that determines which URL to crawl next. It balances crawl importance against per-host rate limits.
+- **HTML Downloader** — Fetches web pages over HTTP, handling timeouts, retries, redirects, and robots.txt compliance. This is the component that actually makes network requests.
+- **Content Parser** — Extracts structured text, metadata, and links from raw HTML. Feeds parsed content to both storage and the URL extraction pipeline.
+- **Storage (WARC/HDFS)** — Persists crawled page content in compressed WARC format on distributed storage for later indexing or analysis.
+- **URL Extractor** — Pulls all hyperlinks from parsed HTML and normalizes them into canonical form (resolving relative paths, removing fragments).
+- **URL Filter** — Removes unwanted URLs such as blocked domains, non-HTTP schemes, and file extensions like .zip or .exe that are outside the crawl scope.
+- **URL Dedup (Bloom filter)** — A space-efficient probabilistic data structure that tracks which URLs have already been seen, preventing the same URL from being enqueued twice.
+
 ## URL Frontier Internal Structure
 
 \`\`\`mermaid
@@ -463,6 +479,13 @@ graph TD
     style N8 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **URL FRONTIER** — The top-level entry point that receives newly discovered URLs and feeds them into the two-layer prioritization and politeness system.
+- **PRIORITIZER (Front Queue)** — Assigns each URL a priority score based on PageRank, domain authority, freshness, and crawl depth, then routes it to the appropriate priority queue.
+- **Priority Queue 1 / 2 / N** — Multiple priority tiers (e.g., high, medium, low) that hold URLs sorted by importance. A weighted selector draws from higher-priority queues more frequently.
+- **POLITENESS ROUTER (Back Queue)** — Routes prioritized URLs to per-host FIFO queues, ensuring that URLs for the same domain are grouped together for rate-limited fetching.
+- **cnn.com Queue / bbc.com Queue / blog.xyz Queue** — Per-host queues that enforce crawl-delay politeness. Only one request from each host queue is active at a time to avoid overwhelming any single server.
+
 ## Distributed Multi-Region Setup
 
 \`\`\`mermaid
@@ -473,6 +496,10 @@ graph TD
     style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
     style N1 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **US Region Crawlers x50** — A fleet of 50 crawler machines deployed in the US region, working in parallel to maximize crawl throughput while staying geographically close to US-hosted sites.
+- **Central Storage (HDFS / S3)** — A centralized distributed file system where all crawled content from every region is persisted in WARC format for later retrieval and indexing.
 `,
     jsCode: `## Deep Dive: URL Frontier (Priority + Politeness)
 
@@ -773,6 +800,14 @@ graph TD
     style N16 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Service A (Orders) / Service B (Auth) / Service C (Marketing)** — Internal microservices that trigger notifications based on business events such as order confirmations, login alerts, or promotional campaigns.
+- **Notification Service (API)** — The central intake layer that receives notification requests, validates them, deduplicates by event_id, and persists them to the notification log before routing.
+- **Queue Router** — Inspects the notification's target channel and user preferences, then routes the message to the appropriate channel-specific queue.
+- **iOS Push Queue / Android Push Q / SMS Queue / Email Queue** — Channel-specific message queues that buffer notifications and decouple the intake layer from the delivery layer, allowing independent scaling per channel.
+- **APNs Workers / FCM Workers / Twilio Workers / SendGrid Workers** — Consumer pools that read from their respective queues and handle delivery logic including retries, exponential backoff, and circuit breaking.
+- **Apple APNs / Google FCM / Twilio / SendGrid** — Third-party provider APIs that perform the actual delivery of notifications to end-user devices, phone numbers, or email inboxes.
+
 ## Internal Processing Pipeline
 
 \`\`\`mermaid
@@ -802,6 +837,16 @@ graph TD
     style N7 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **NOTIFICATION SERVICE** — The entry point that receives an incoming notification request and kicks off the internal processing pipeline.
+- **Rate Limiter** — Enforces per-user and per-channel rate limits (e.g., max 10 SMS/hour) to prevent notification flooding from upstream bugs or abuse.
+- **Dedup Check** — Looks up the event_id in a Redis cache to reject duplicate notification requests, ensuring idempotent processing.
+- **Preference Check** — Queries the user's notification preferences to determine if they have opted in to this channel and notification type. Mandatory notifications (security alerts) bypass this check.
+- **Device Lookup** — Fetches the user's registered device tokens (for push) or contact info (phone, email) from the user devices table.
+- **Template Renderer** — Loads the notification template and substitutes variables from the event payload to produce the final message content.
+- **Notification Log (DB)** — The persistent record of every notification with its lifecycle status, serving as the source of truth for reliability and audit trails.
+- **Queue Router** — Routes the rendered notification to the correct channel-specific message queue based on the delivery channel.
+
 ## Retry Flow
 
 \`\`\`mermaid
@@ -826,6 +871,14 @@ graph TD
     style N5 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Worker attempts delivery** — The channel-specific worker that picks up a notification from the queue and tries to deliver it via the third-party provider.
+- **Delivery successful?** — A decision point that checks the provider's response to determine if delivery succeeded or failed.
+- **Mark as DELIVERED** — On success, the notification log is updated to DELIVERED status, completing the notification lifecycle.
+- **Retries < max?** — A decision point that checks whether the retry count has been exhausted (typically 3-5 attempts) before giving up.
+- **Wait with exponential backoff** — On retriable failure, the worker waits an increasing interval (1s, 2s, 4s, ...) before re-attempting delivery to avoid hammering a struggling provider.
+- **Move to Dead Letter Queue** — After exhausting all retries, the notification is moved to a DLQ for manual investigation, and its status is set to FAILED.
+
 ## Event Tracking Pipeline
 
 \`\`\`mermaid
@@ -842,6 +895,12 @@ graph TD
     style N2 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
     style N3 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Kafka Topic** — A durable message log that captures every notification delivery event (sent, delivered, failed, clicked) for downstream analytics processing.
+- **Stream Processor** — A real-time processing engine (e.g., Flink or Spark Streaming) that aggregates raw notification events into per-channel and per-type metrics.
+- **Metrics DB (ClickHouse)** — A columnar time-series database optimized for fast analytical queries over large volumes of notification delivery metrics.
+- **Analytics Dashboard** — A read-only UI that displays delivery rates, failure rates, latency distributions, and channel health, enabling operations teams to monitor system performance.
 `,
     jsCode: `## Deep Dive: Reliability with Persistent Notification Log
 
@@ -1077,6 +1136,11 @@ graph TD
     style N2 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Post Service** — Receives new post submissions, persists them to the post database, and triggers the fanout process for normal users.
+- **Fanout Service** — For non-celebrity authors, pushes the new post ID into each follower's Redis feed cache asynchronously via message queue workers.
+- **(pull at read time)** — Represents the pull path for celebrity posts. Instead of fanning out to millions of followers, celebrity posts are fetched on demand when a follower requests their feed.
+
 ## Feed Retrieval Flow
 
 \`\`\`mermaid
@@ -1106,6 +1170,16 @@ graph TD
     style N6 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
     style N7 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **User requests feed** — The client-side trigger when a user opens their app or scrolls to refresh, initiating a feed fetch request.
+- **Feed Service** — The backend service responsible for assembling a personalized feed by coordinating cache lookups, database queries, and ranking logic.
+- **Redis Feed Cache** — A Redis sorted set per user containing pre-computed post IDs from the fanout-on-write pipeline, enabling sub-10ms feed reads for the common case.
+- **Cache hit?** — A decision point that determines whether the user's feed is available in the Redis cache or needs to be computed from scratch.
+- **Return cached feed** — The fast path that returns the pre-computed feed directly from Redis, which handles the majority of feed requests.
+- **Query Social Graph + Posts DB** — The slow path on cache miss, which fetches the user's follow list and recent posts from the database to build the feed from scratch.
+- **Rank and assemble feed** — Applies the ranking algorithm (affinity x weight x decay) to sort candidate posts by predicted engagement rather than pure chronological order.
+- **Cache result in Redis** — Writes the newly computed feed back to Redis so subsequent requests from this user hit the cache.
 
 ## Fanout Service Sequence Diagram
 
@@ -1157,6 +1231,16 @@ graph TD
     style N6 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
     style N7 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **CDN** — A content delivery network that serves static assets (images, videos, JavaScript bundles) from edge locations worldwide, reducing latency for media-heavy feed content.
+- **LB** — A load balancer that distributes incoming requests across multiple service instances, providing high availability and even traffic distribution.
+- **Post Service** — Handles post creation, updates, and deletion. Writes to the post database and triggers the fanout pipeline for feed distribution.
+- **Feed Service** — Assembles personalized feeds by reading from the Redis feed cache, merging celebrity posts via pull, and applying ranking algorithms.
+- **User Service** — Manages user profiles, follow/unfollow relationships, and the social graph. Provides follower lists needed by the fanout service.
+- **Post DB (MySQL)** — The persistent relational database storing all post data, sharded by user_id for efficient per-author queries.
+- **Feed Cache (Redis Cluster)** — A distributed Redis cluster holding per-user sorted sets of post IDs, enabling instant feed retrieval for the push model.
+- **Post Cache** — A separate Redis cache storing full post content (text, metadata, media IDs) to avoid database reads during feed hydration.
 `,
     jsCode: `## Deep Dive: Push Model (Fanout-on-Write)
 

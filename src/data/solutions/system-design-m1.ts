@@ -82,6 +82,14 @@ graph TD
     style DB fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Client (Browser)** — The end user making HTTP requests. Sends short URL requests and receives 302 redirects to the original long URL.
+- **Load Balancer (Nginx/ALB)** — Distributes incoming traffic across multiple API server instances for horizontal scaling and fault tolerance.
+- **API Servers (Stateless)** — Handle URL creation and redirect logic. Stateless design allows easy horizontal scaling behind the load balancer.
+- **Cache (Redis Cluster)** — Stores frequently accessed URL mappings in memory for sub-millisecond reads, absorbing the read-heavy redirect traffic.
+- **Key Gen Service (KGS)** — Pre-generates unique short codes in batches so API servers can assign keys without coordination or collision risk.
+- **Database (NoSQL - DynamoDB/Cassandra)** — Persistent storage for all URL mappings. Serves as the source of truth when cache misses occur.
+
 ## Write Flow (URL Creation)
 
 \`\`\`mermaid
@@ -311,6 +319,14 @@ graph TD
     style RulesDB fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Client** — The end user or application making API requests that need to be rate-limited.
+- **API Gateway (Layer 1: IP limits)** — First line of defense performing coarse-grained IP-based rate limiting to block DDoS and brute-force attacks before traffic reaches application servers.
+- **Load Balancer** — Distributes traffic evenly across API server instances for horizontal scaling.
+- **API Server 1/2/3 (Rate Limiter Middleware)** — Stateless application servers with embedded rate limiter middleware that checks per-user and per-endpoint limits before processing requests.
+- **Redis Cluster (Counters + Rules Cache + Lua scripts)** — Centralized counter store shared by all API servers, ensuring consistent rate enforcement. Lua scripts make check-and-increment atomic to prevent race conditions.
+- **Rules Config DB** — Persistent store for rate limiting rules (limits per tier, per endpoint, time windows). Rules are cached in Redis and refreshed periodically.
+
 ## Request Flow
 
 \`\`\`mermaid
@@ -451,6 +467,11 @@ graph TD
     style Open fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
     style HalfOpen fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **CLOSED (Normal → Redis)** — The healthy state where all rate limit checks go through Redis. The system operates at full accuracy with centralized counters.
+- **OPEN (Fallback → Local memory)** — Activated after repeated Redis failures (3 in 30s). Rate limiting falls back to approximate per-server local counters to maintain availability, accepting slightly less accurate enforcement.
+- **HALF-OPEN (Test 1 request)** — After a cooldown period, a single test request is sent to Redis to check if it has recovered. Success returns to CLOSED; failure re-enters OPEN.
 `,
     explanation: `## Bottlenecks & Improvements
 - **Redis as single dependency** → Redis Cluster with replicas for HA. Circuit breaker falls back to local counters within 100ms. Fail open for user-facing APIs.
@@ -593,6 +614,13 @@ graph TD
     style SG fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Business Service (Order, Auth...)** — Upstream services that trigger notifications when business events occur (e.g., order confirmed, password reset).
+- **Notification API (Validate + Enqueue)** — Validates requests against user preferences, checks idempotency, and routes messages to the correct priority Kafka topic.
+- **Kafka CRITICAL / HIGH / NORMAL topics** — Separate message queues by priority level ensuring critical notifications (OTP, security alerts) are never blocked by lower-priority marketing blasts.
+- **Workers (4x / 2x / 1x)** — Consumer pools sized by priority. Critical gets the most workers for guaranteed low latency; normal scales elastically based on queue depth.
+- **FCM / APNs, Twilio SMS, SendGrid Email** — Third-party delivery providers. Each is accessed through a provider adapter with circuit breakers and rate limiting.
+
 ## Write Flow (Send Notification)
 
 \`\`\`mermaid
@@ -677,6 +705,13 @@ graph TD
     style Retry fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
     style Adapter fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Circuit Breaker: CLOSED** — Normal operating state where requests flow through to the provider. Tracks failure counts within a rolling window.
+- **OPEN (reject all)** — Triggered after 5 failures in 30 seconds. All requests are immediately rejected or queued, preventing cascading failures and giving the provider time to recover.
+- **HALF-OPEN (try 1)** — After a 60-second cooldown, a single test request probes whether the provider has recovered. Success restores normal operation; failure re-enters the open state.
+- **Rate Limiter** — Enforces provider-specific throughput caps (e.g., FCM 1000/s, Twilio 400/s) to avoid triggering provider-side 429 errors.
+- **Retry (exponential backoff)** — Automatically retries transient failures (HTTP 429, 503) with increasing delays to avoid overwhelming a struggling provider.
 
 ---
 
@@ -831,6 +866,15 @@ graph TD
     style Push fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
     style Media fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Client (Phone, Web)** — End-user devices maintaining persistent WebSocket connections for real-time bidirectional messaging.
+- **Chat Server (Stateful WS)** — Maintains WebSocket connections with clients. Stateful because each server holds active connections and must route messages to the correct recipient's server.
+- **Connection Registry (Redis)** — Maps each online user to the chat server holding their WebSocket connection, enabling message routing across the server fleet.
+- **Message Store (Cassandra)** — Persistent storage for all messages, partitioned by conversation ID for efficient history retrieval and ordered by Snowflake message IDs.
+- **Presence Service (Redis)** — Tracks online/offline/last-seen status for each user using heartbeat-based TTL keys.
+- **Push Notification Service** — Sends push notifications to offline users so they know they have unread messages waiting.
+- **Media Service (S3 + CDN)** — Handles image, video, and document uploads via pre-signed URLs, keeping large files off the chat servers.
 
 ## Write Flow (Send Message — 1:1)
 
@@ -1069,6 +1113,17 @@ graph TD
     style Graph fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Client (App)** — The mobile or web application where users create posts and browse their personalized feed.
+- **API Gateway / Load Balancer** — Routes requests to the appropriate service (Post Service for writes, Feed Service for reads) and distributes load.
+- **Post Service (Write path)** — Handles post creation, stores the post in the persistent store, and triggers async fanout to followers.
+- **Feed Service (Read path)** — Assembles a user's feed by merging pre-computed cached posts with on-demand celebrity post fetches, then applies ranking.
+- **Fanout Service (Async workers)** — Asynchronously pushes new post IDs into each follower's feed cache. Only fans out for non-celebrity users (<10K followers).
+- **Feed Cache (Redis Cluster)** — Stores pre-computed feeds as sorted sets (score = ranking score) for each user, enabling sub-millisecond feed reads.
+- **Ranking Service (ML model)** — Scores and orders candidate posts based on signals like recency, author affinity, and engagement to maximize relevance.
+- **Post Store (Cassandra)** — Persistent storage for all post content, used to hydrate post IDs into full post objects at read time.
+- **Social Graph (Redis + DB)** — Maintains follower/following relationships as sorted sets in Redis for fast fanout lookups, backed by a persistent database.
+
 ## Write Flow (New Post — Normal User)
 
 \`\`\`mermaid
@@ -1143,6 +1198,12 @@ graph TD
     style Score fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
     style Rerank fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Merged post IDs (cache + celebrity)** — The raw candidate set combining pre-computed feed cache entries with on-demand celebrity post fetches before any ranking is applied.
+- **Feature Extraction** — Computes scoring signals for each candidate post: how old it is, how often the reader interacts with the author, current engagement metrics, and content type.
+- **Scoring Model** — Applies a weighted formula to produce a single relevance score per post. Weights are tunable and can be replaced with an ML model as the system matures.
+- **Re-ranking Rules** — Applies business logic on top of raw scores to improve feed diversity: prevents consecutive posts from the same author, mixes content types, and boosts unseen content.
 
 ---
 

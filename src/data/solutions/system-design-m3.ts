@@ -90,6 +90,17 @@ graph TD
     style Pay fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Client (Web/App)** — The user-facing frontend that initiates all shopping actions including search, cart management, and checkout.
+- **API Gateway** — Central entry point handling authentication, rate limiting, and request routing to downstream microservices.
+- **Product Service** — Manages the product catalog and delegates search queries to Elasticsearch for fast full-text and faceted lookups.
+- **Cart Service (Redis)** — Stores shopping cart state in Redis for sub-millisecond reads and writes, with a 30-day TTL per cart.
+- **Order Service (Saga)** — Orchestrates the multi-step checkout process using a saga pattern to coordinate inventory, payment, and order creation.
+- **Inventory Service (Redis+Postgres)** — Maintains real-time stock counts in Redis for high-throughput reads while using PostgreSQL as the durable source of truth.
+- **Elasticsearch** — Powers product search with full-text matching and faceted filtering at sub-200ms latency.
+- **PostgreSQL** — Stores orders and inventory with ACID guarantees, serving as the authoritative data store for transactional operations.
+- **Payment Service (Stripe)** — Handles payment authorization and capture through an external payment processor.
+
 ## Write Flow (Place Order)
 
 \`\`\`mermaid
@@ -315,6 +326,17 @@ graph TD
     style Proc fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Merchant Client** — The external merchant application that initiates payment requests on behalf of customers.
+- **API Gateway (Auth, TLS)** — Terminates TLS and authenticates merchant API keys before routing to internal services.
+- **Payment Orchestrator (State Machine)** — Manages the payment lifecycle through defined states (CREATED, AUTHORIZED, CAPTURED, SETTLED), coordinating all downstream calls.
+- **Tokenization Vault (PCI, HSM)** — Stores and retrieves sensitive card data in an isolated PCI-scoped environment using hardware security modules for encryption.
+- **Fraud Detection (Rules + ML)** — Evaluates transactions against rule-based checks and ML models to block fraudulent payments before authorization.
+- **Ledger Service (Double-Entry)** — Records every financial movement as paired debit/credit entries to maintain an auditable, balanced set of books.
+- **Token DB (Isolated VPC)** — Dedicated database in a network-isolated segment that holds encrypted card tokens, minimizing PCI scope.
+- **Ledger DB (Append-only)** — Immutable append-only database for ledger entries, ensuring a complete audit trail that cannot be tampered with.
+- **Payment Processor (Visa/MC/ACH)** — External processor that performs the actual card authorization and settlement with card networks and banks.
+
 ## Write Flow (Process Payment)
 
 \`\`\`mermaid
@@ -406,6 +428,13 @@ graph TD
     style Missing fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
     style Mismatch fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Double-Entry Ledger (Append-Only)** — Contains paired debit/credit entries for every payment and refund, ensuring the books always balance to zero.
+- **Internal Ledger** — The system's own record of all financial transactions, used as one source for the three-way reconciliation.
+- **Processor Report (Visa/MC)** — Settlement reports from card networks detailing what they processed, serving as the second reconciliation source.
+- **Bank Statement** — The actual bank account records showing money movement, serving as the third and final reconciliation source.
+- **Three-Way Match** — Nightly process that compares all three sources to detect discrepancies, flagging missing or mismatched entries for investigation.
 
 ---
 
@@ -552,6 +581,17 @@ graph TD
     style Pay fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Client (Web/App)** — The traveler-facing application for searching hotels, viewing availability, and making reservations.
+- **API Gateway** — Routes requests to the appropriate microservice and handles cross-cutting concerns like authentication and rate limiting.
+- **Search Service (ES)** — Handles hotel discovery using Elasticsearch for geo-based, text, and faceted search queries with sub-300ms latency.
+- **Booking Service** — Orchestrates the reservation flow including availability verification, payment processing, and confirmation.
+- **Availability Service** — Manages room-date inventory with strong consistency guarantees using PostgreSQL row-level locking to prevent double-booking.
+- **Pricing Service** — Computes dynamic room rates based on occupancy, seasonality, day-of-week, and demand signals.
+- **Hotel/Room Data (Replicas)** — Read replicas of hotel and room data used by the search service to avoid loading the primary database with read traffic.
+- **PostgreSQL (Bookings, Availability)** — The source of truth for bookings and room availability, providing ACID guarantees for reservation operations.
+- **Payment Service** — Processes payments for confirmed bookings and handles refunds for cancellations according to hotel policy.
+
 ## Write Flow (Make Booking)
 
 \`\`\`mermaid
@@ -661,6 +701,13 @@ graph TD
     style None fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
     style Release fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Cancel Request** — The user-initiated cancellation that triggers the refund evaluation pipeline.
+- **Lookup booking + policy** — Retrieves the original booking details and the hotel's configured cancellation policy to determine refund eligibility.
+- **Calculate days until check-in** — Computes the time remaining before the stay to determine which refund tier applies.
+- **100% / 50% / 0% refund** — Tiered refund amounts based on how far in advance the cancellation occurs, balancing customer flexibility with hotel revenue protection.
+- **Release room + Process refund + Notify** — The final step that atomically releases the room back to available inventory, initiates the refund, and notifies all parties.
 `,
     explanation: `## Bottlenecks & Improvements
 - **Hot hotel contention** → Popular hotels get many concurrent booking attempts on the same dates. Row-level locking handles this but creates queuing. For very hot properties, use Redis-based optimistic reservation with DB confirmation
@@ -779,6 +826,16 @@ graph TD
     style PG fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Users (5M+)** — Massive concurrent user base that creates a thundering herd problem when popular events go on sale.
+- **CDN / Edge** — Serves the static queue waiting page from edge locations, absorbing the initial traffic surge without hitting backend servers.
+- **Virtual Queue (Redis Sorted Sets)** — Manages a fair ordering of users using randomized scores in a sorted set, admitting them at a controlled rate to prevent system overload.
+- **Seat Inventory (Redis Bitmaps)** — Tracks per-seat availability using bitmaps where each bit represents one seat, enabling O(1) status checks in just 10KB per event.
+- **WebSocket Server** — Pushes real-time seat map updates to connected users so they see seats change status as other users hold or purchase them.
+- **Hold Manager (10-min TTL)** — Temporarily reserves selected seats with a time-limited hold, automatically releasing them if the user does not complete checkout.
+- **Purchase Service** — Processes payment and generates QR code tickets once the hold is validated, converting held seats to sold.
+- **PostgreSQL (Tickets, Orders)** — The durable source of truth for completed purchases and ticket records, used for post-sale operations and auditing.
+
 ## Write Flow (Select and Purchase Seats)
 
 \`\`\`mermaid
@@ -856,6 +913,12 @@ graph TD
     style Lua fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
     style Dual fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Redis Bitmap** — Stores seat availability as a compact bit array (80K seats in 10KB), with 0 for available and 1 for held/sold.
+- **Operations** — The core bitmap commands (GETBIT, SETBIT, BITCOUNT) that provide O(1) per-seat checks and atomic status changes.
+- **Atomic Lua** — A Redis Lua script that checks multiple seat bits and sets them all in a single atomic operation, preventing race conditions when two users select overlapping seats.
+- **Dual bitmaps** — Separate bitmaps for held vs. sold seats, enabling the UI to show three distinct states (available/green, held/yellow, sold/red) for the seat map display.
 
 ---
 
@@ -996,6 +1059,19 @@ graph TD
     style Track fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
     style ETA fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Customer App** — The consumer-facing mobile app for browsing restaurants, placing orders, and tracking deliveries in real-time.
+- **Restaurant App** — The restaurant-facing interface for receiving orders, managing menus, and updating preparation status.
+- **Driver App** — The driver-facing app that receives delivery offers, provides navigation, and transmits GPS location every 4 seconds.
+- **API Gateway** — Central entry point that routes requests from all three client types to the appropriate backend service.
+- **Order Service** — Manages the full order lifecycle from placement through delivery, publishing state transitions as events.
+- **Dispatch Service** — Matches orders to optimal drivers using multi-factor scoring (distance, heading, rating, load) with spatial queries.
+- **Redis GEO** — Stores real-time driver positions using geospatial indexing, enabling fast GEORADIUS queries to find nearby available drivers.
+- **Location Service** — A stateless, high-throughput service that ingests 125K GPS updates per second and distributes them to Redis GEO and Kafka.
+- **Kafka** — Event streaming backbone that decouples location producers from consumers, enabling tracking, analytics, and historical storage independently.
+- **Tracking Service (WebSocket)** — Pushes real-time driver location and ETA updates to customers watching their delivery via persistent WebSocket connections.
+- **ETA Service** — Predicts delivery times using a three-component model (prep time + pickup travel + delivery travel) refined with historical data.
 
 ## Write Flow (Place Order and Dispatch)
 

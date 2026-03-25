@@ -135,6 +135,13 @@ graph TD
     style N8 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Client (Browser/App)** — The external user or application sending API requests. It is the entry point for all traffic that needs to be rate-limited.
+- **API Srv 1 / 2 / N** — The application servers that handle business logic. Each one runs rate limiter middleware that checks Redis before processing a request.
+- **Redis Cluster** — The centralized, in-memory data store that holds rate limit counters for every user/endpoint combination. It provides sub-millisecond atomic operations (INCR, Lua scripts) needed to make accurate, low-latency throttling decisions across all API servers.
+- **Rules Config** — A configuration service (or file) that distributes rate limiting rules (e.g., "5 requests/sec per user") to every API server. Decoupling rules from code allows operators to update limits without redeploying.
+- **Shard 1 / 2 / N** — Individual Redis shards that horizontally partition the counter keyspace. Sharding is necessary because a single Redis instance cannot handle 1M+ operations per second at peak load.
+
 ## Rate Limiter Request Flow
 
 \`\`\`mermaid
@@ -426,6 +433,11 @@ graph TD
     style K1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
     style K2 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **0 / 2^32, 2^32 x 0.5, 2^32 x 0.75** — Position markers on the circular hash ring representing the full output range of the hash function (0 to 2^32). They illustrate how the ring wraps around.
+- **S1 / S2 / S3 / S4** — Physical servers hashed onto the ring. Each server owns all keys in the arc between it and the previous server counter-clockwise.
+- **k1 / k2** — Data keys hashed onto the ring. Each key is assigned to the first server found by walking clockwise from its position, demonstrating the core lookup mechanism of consistent hashing.
 
 ## Adding a New Server
 
@@ -758,6 +770,12 @@ graph TD
     style N2 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
     style N3 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Client** — The application issuing get/put requests. It connects to any node in the cluster, which acts as the coordinator for that request.
+- **Node A (Replica 1)** — One of the replica nodes responsible for storing a partition of the key space. It serves as the coordinator that receives the client request, runs the quorum protocol, and manages the local storage engine.
+- **MemTable** — An in-memory sorted data structure (typically a red-black tree or skip list) where all writes land first. It provides fast writes and serves recent reads without touching disk.
+- **SSTable Files** — Sorted String Table files on disk. When the MemTable reaches a size threshold, it is flushed to an immutable SSTable. SSTables are the persistent storage layer and are periodically merged through compaction.
 
 ## Write Path (LSM-Tree)
 
@@ -1147,6 +1165,10 @@ graph TD
     style N4 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
     style N5 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Service A (Orders) / Service B (Messages) / Service C (Events)** — Application services that need unique IDs for their entities. Each service calls its local ID generator rather than a centralized service, eliminating network overhead and single points of failure.
+- **ID Generator DC=1, MC=1 / DC=1, MC=2 / DC=2, MC=1** — Snowflake ID generator instances, each assigned a unique datacenter + machine ID combination. Because the datacenter and machine bits are embedded in every generated ID, each generator produces IDs in a completely separate partition of the 64-bit ID space, guaranteeing uniqueness with zero cross-machine coordination.
 
 ## Clock Skew Handling
 

@@ -138,6 +138,15 @@ graph TD
     style N7 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Client (App) / Client (Web)** — The end-user devices (mobile app or browser) that establish WebSocket connections for real-time messaging and HTTP connections for non-real-time operations.
+- **Load Balancer (L4 / Sticky)** — Distributes incoming connections across chat servers using sticky sessions so that a user's WebSocket remains bound to the same server for the duration of the session.
+- **Chat Server** — A stateful server that maintains active WebSocket connections and routes messages between users. It is the core of the real-time messaging path.
+- **Message Queue (Kafka)** — Buffers and persists messages for reliable delivery, enabling per-user message queues and decoupling senders from receivers.
+- **KV Store** — A wide-column store (Cassandra) optimized for write-heavy, time-ordered message storage and retrieval by conversation.
+- **ZooKeeper (Service Discovery)** — Maintains the mapping of which user is connected to which chat server, enabling accurate message routing across the server fleet.
+- **Push Notification** — Delivers messages to offline users via platform-specific push services (APNs, FCM) when WebSocket delivery is not possible.
+
 ### 1-on-1 Message Delivery Sequence
 
 \`\`\`mermaid
@@ -171,6 +180,17 @@ graph TD
     style N8 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Browser / Mobile App** — The client device that sends prefix queries as the user types and renders the autocomplete suggestions.
+- **API Gateway / CDN Edge** — Entry point that caches frequent autocomplete responses at the edge, reducing latency and offloading traffic from backend servers.
+- **Query Service** — Receives prefix queries and looks up the top-k suggestions from the in-memory trie or server cache.
+- **Trie Cache** — An in-memory copy of the pre-built trie on each query server, enabling O(prefix_length) lookups without any disk I/O.
+- **Server Cache** — A Redis layer that caches recent query results to avoid repeated trie traversals for popular prefixes.
+- **Data Gathering Service** — The offline pipeline that collects search queries, aggregates frequencies, and orchestrates the trie rebuild process.
+- **Analytics Logs** — Raw search query logs that feed into the aggregation pipeline to compute query frequencies.
+- **Trie Builder (weekly)** — A batch job that reads aggregated frequency data and constructs a new trie with pre-computed top-k results at every node.
+- **Trie Storage (S3)** — Durable storage for serialized trie snapshots, from which query servers load new tries during blue-green swaps.
+
 ### 1-on-1: User B is Offline
 
 \`\`\`mermaid
@@ -200,6 +220,16 @@ graph TD
     style N6 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
     style N7 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Desktop Client** — The user's local application that monitors files and communicates with the server for uploads, downloads, and sync operations.
+- **File Watcher** — An OS-level component that monitors the sync folder for file system events (create, modify, delete) and triggers the sync process.
+- **API Gateway / LB** — Routes client requests to the appropriate backend service and distributes load across server instances.
+- **Block Servers** — Receive uploaded file blocks, verify integrity via hash checks, and store them in cloud object storage.
+- **Metadata Service** — Manages file metadata (paths, versions, block lists, permissions) backed by a relational database for ACID guarantees.
+- **Notification Service** — Pushes change notifications to other connected devices via long polling or WebSocket so they can pull updated files.
+- **Cloud Storage** — Durable object storage (S3) where encrypted, compressed file blocks are persisted using content-addressed keys.
+- **Metadata Database** — A relational store (PostgreSQL) holding file metadata, version history, and sharing records with strong consistency.
 
 ### Group Message Fanout
 
@@ -443,6 +473,18 @@ graph TD
     style TS fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Browser / Mobile App** — The client that sends autocomplete requests on each keystroke (with debouncing) and displays the returned suggestions.
+- **API Gateway / CDN Edge** — Serves cached autocomplete responses from edge locations, absorbing the majority of read traffic before it reaches backend servers.
+- **Query Service** — The latency-critical online service that walks the trie to find top-k suggestions for a given prefix.
+- **Trie Cache (in-mem)** — The full trie loaded into each query server's memory for sub-millisecond lookups without network hops to external caches.
+- **Server Cache (Redis)** — A shared cache layer that stores recently queried prefix results, reducing redundant trie lookups across query server instances.
+- **Data Gathering Service** — The offline subsystem encompassing log ingestion, frequency aggregation, and trie construction.
+- **Analytics Logs** — Raw search query events streamed to Kafka, serving as the source of truth for query frequency computation.
+- **MapReduce / Spark Job** — Batch aggregation job that groups raw queries by string and computes frequency counts with optional time-decay weighting.
+- **Trie Builder (weekly)** — Reads the aggregated frequency table and constructs a new trie with pre-computed top-k lists at every node.
+- **Trie Storage (S3 / DB)** — Persistent storage for serialized trie snapshots, enabling blue-green deployment swaps on query servers.
+
 ### Trie Node Structure
 
 \`\`\`mermaid
@@ -489,6 +531,12 @@ graph TD
     style Q5 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **(root)** — The root node of the trie, representing the empty prefix. All queries begin their traversal here.
+- **Character nodes (b, c, t, e, a, r, etc.)** — Each node represents a single character along a prefix path. Traversing from root through a sequence of nodes spells out the prefix being searched.
+- **Leaf nodes (beer, best, cars, tree, trip)** — Terminal nodes marking the end of a complete query string stored in the trie.
+- **Node 'be' subgraph** — Illustrates the key optimization: each node stores a pre-computed list of the top-k most frequent queries in its subtree, eliminating the need to traverse the entire subtree at query time.
+
 ### Data Gathering Pipeline
 
 \`\`\`mermaid
@@ -512,6 +560,14 @@ graph TD
     style N5 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Log Stream (Kafka)** — Ingests raw search query events in real-time from application servers, providing a durable event stream for downstream processing.
+- **Aggregation (Spark)** — A batch job that reads query logs, groups by query string, and computes frequency counts with time-decay weighting.
+- **Frequency Table (DB)** — A persistent table storing each unique query string and its aggregated frequency, serving as input to the trie builder.
+- **Weekly Build Job** — A scheduled job that reads the frequency table and constructs a new trie with pre-computed top-k results at every node.
+- **Trie Cache** — The in-memory trie on query servers that gets replaced with the newly built trie via an atomic swap.
+- **Trie Swap (Blue-Green)** — The deployment mechanism that loads the new trie onto a standby fleet and atomically switches traffic, ensuring zero downtime and instant rollback capability.
+
 ### Query Flow with Caching Layers
 
 \`\`\`mermaid
@@ -531,6 +587,13 @@ graph TD
     style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
     style N4 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Browser Cache** — The first layer of caching, storing recent autocomplete results locally in the browser so repeated prefixes are served instantly without any network request.
+- **Return cached** — Represents the fast path where a cache hit in the browser returns results immediately to the user with zero latency.
+- **CDN Edge Cache** — The second caching layer at geographically distributed edge servers, serving autocomplete results close to the user when the browser cache misses.
+- **Server Redis Cache** — A shared cache on the backend that stores recently computed prefix results, reducing redundant trie lookups across multiple query servers.
+- **Trie (in-mem)** — The final fallback: the full pre-built trie loaded in query server memory, used only when all upstream caches miss.
 `,
     jsCode: `## Deep Dive
 
@@ -821,6 +884,14 @@ graph TD
     style N7 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
     style N8 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Splitter** — Splits the raw uploaded video into small segments (e.g., 10-second chunks) to enable parallel transcoding across a worker fleet.
+- **Transcode 360p / 720p / 1080p** — Independent transcoding tasks that encode the video segments at different resolutions, running in parallel to minimize total processing time.
+- **Thumbnail Generator** — Extracts representative frames at regular intervals for use as video previews, scrub bar thumbnails, and poster images.
+- **Watermark** — Overlays a creator or platform watermark onto each transcoded resolution variant before final output.
+- **Manifest Generator** — Creates HLS (.m3u8) and DASH (.mpd) manifest files that list all available quality levels and their segment URLs for adaptive bitrate streaming.
+- **Upload to S3 + CDN** — The final stage that stores all transcoded segments, thumbnails, and manifests in object storage and distributes them to CDN edge locations for low-latency viewer access.
 
 ### Pre-Signed Upload Sequence
 
@@ -1139,6 +1210,17 @@ graph TD
     style DB fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **File Watcher (inotify/FSEvents)** — A client-side module that monitors the sync folder using OS-level file system notifications to detect creates, modifies, deletes, and renames in real time.
+- **Block Engine (split/hash/compress/encrypt)** — Splits modified files into 4 MB blocks, computes SHA-256 hashes for delta detection, compresses with LZ4, and encrypts with AES-256 before upload.
+- **Sync Manager (upload/download/conflict)** — Coordinates the sync process by comparing local and remote block lists, uploading only changed blocks, downloading new blocks from other devices, and resolving conflicts.
+- **API Gateway / LB** — Routes and load-balances client requests to the appropriate backend service (block servers, metadata, or notifications).
+- **Block Servers** — Stateless servers that receive uploaded blocks, verify integrity via hash checks, and write them to cloud storage. They also serve block downloads.
+- **Metadata Service** — Manages all file metadata operations (create, move, rename, version, share) backed by PostgreSQL for ACID transaction support.
+- **Notification Service (long poll / WebSocket)** — Notifies other connected devices when files change so they can pull updates, using long polling for broad compatibility.
+- **Cloud Storage (S3)** — Durable object storage where encrypted file blocks are stored using content-addressed keys (SHA-256 hash) for automatic deduplication.
+- **Metadata Database (PostgreSQL)** — Stores file paths, version histories, block lists, sharing permissions, and user data with strong consistency and referential integrity.
+
 ### File Upload Flow (Block-Level Delta Sync)
 
 \`\`\`mermaid
@@ -1156,6 +1238,12 @@ graph TD
     style N3 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Block Engine: Split into 4MB blocks** — Divides the modified file into fixed-size blocks and computes SHA-256 hashes to identify which blocks have changed since the last sync.
+- **Compress (LZ4) + Encrypt (AES)** — Prepares changed blocks for upload by compressing them for bandwidth efficiency and encrypting them so the server never sees plaintext data.
+- **Upload to S3** — Writes the compressed and encrypted blocks to cloud object storage using content-addressed keys for automatic deduplication across files and versions.
+- **Update metadata (new version)** — Creates a new version record in the metadata database listing the updated block hash list, enabling version history and rollback.
+
 ### File Download / Sync Flow
 
 \`\`\`mermaid
@@ -1169,6 +1257,11 @@ graph TD
     style N1 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
     style N2 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Fetch new block list** — The client queries the metadata service for the latest version's block list and compares it against its local block inventory to determine which blocks need downloading.
+- **Download from S3 + Decrypt** — Retrieves only the missing or updated blocks from cloud storage and decrypts them using the user's key to restore the original content.
+- **Reconstruct file** — Assembles the complete file from its ordered block list by concatenating the decrypted, decompressed blocks in sequence.
 
 ### Conflict Resolution
 
