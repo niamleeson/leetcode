@@ -9155,40 +9155,40 @@ Leaves are individual elements. Each parent = combine(left_child, right_child).`
         if self.n > 0:
             self._build(nums, 1, 0, self.n - 1)
 
-    def _build(self, nums, node, start, end):
-        if start == end:
-            self.tree[node] = nums[start]
+    def _build(self, nums, node, lo, hi):  # lo..hi = node's range
+        if lo == hi:
+            self.tree[node] = nums[lo]
             return
-        mid = (start + end) // 2
-        self._build(nums, 2 * node, start, mid)
-        self._build(nums, 2 * node + 1, mid + 1, end)
+        mid = (lo + hi) // 2
+        self._build(nums, 2 * node, lo, mid)
+        self._build(nums, 2 * node + 1, mid + 1, hi)
         self.tree[node] = self.tree[2 * node] + self.tree[2 * node + 1]
 
     def update(self, idx, val):
         self._update(1, 0, self.n - 1, idx, val)
 
-    def _update(self, node, start, end, idx, val):
-        if start == end:
+    def _update(self, node, lo, hi, idx, val):  # lo..hi = node's range
+        if lo == hi:
             self.tree[node] = val
             return
-        mid = (start + end) // 2
+        mid = (lo + hi) // 2
         if idx <= mid:
-            self._update(2 * node, start, mid, idx, val)
+            self._update(2 * node, lo, mid, idx, val)
         else:
-            self._update(2 * node + 1, mid + 1, end, idx, val)
+            self._update(2 * node + 1, mid + 1, hi, idx, val)
         self.tree[node] = self.tree[2 * node] + self.tree[2 * node + 1]
 
-    def query(self, l, r):
-        return self._query(1, 0, self.n - 1, l, r)
+    def query(self, qL, qR):
+        return self._query(1, 0, self.n - 1, qL, qR)
 
-    def _query(self, node, start, end, l, r):
-        if r < start or end < l:
+    def _query(self, node, lo, hi, qL, qR):  # lo..hi = node's range, qL..qR = query range
+        if qR < lo or hi < qL:
             return 0  # no overlap
-        if l <= start and end <= r:
+        if qL <= lo and hi <= qR:
             return self.tree[node]  # full overlap
-        mid = (start + end) // 2
-        return (self._query(2 * node, start, mid, l, r) +
-                self._query(2 * node + 1, mid + 1, end, l, r))`,
+        mid = (lo + hi) // 2
+        return (self._query(2 * node, lo, mid, qL, qR) +
+                self._query(2 * node + 1, mid + 1, hi, qL, qR))`,
     jsTemplate: `// Generic Segment Tree — works for sum, min, max, gcd, etc.
 // Usage:
 //   Range sum:  new SegmentTree(nums, (a, b) => a + b, 0)
@@ -9208,18 +9208,18 @@ class SegmentTree {
     }
 
     // Build the tree recursively; node 0 is the root covering [0, n-1]
-    _build(nums, node, start, end) {
-        if (start === end) {
+    _build(nums, node, lo, hi) {  // lo..hi = node's range
+        if (lo === hi) {
             // Leaf node: store the actual value
-            this.tree[node] = nums[start];
+            this.tree[node] = nums[lo];
             return;
         }
 
-        const mid = Math.floor((start + end) / 2);
+        const mid = Math.floor((lo + hi) / 2);
 
         // Build left child (2*node+1) and right child (2*node+2)
-        this._build(nums, 2 * node + 1, start, mid);
-        this._build(nums, 2 * node + 2, mid + 1, end);
+        this._build(nums, 2 * node + 1, lo, mid);
+        this._build(nums, 2 * node + 2, mid + 1, hi);
 
         // Parent stores combined value of both children
         this.tree[node] = this.merge(this.tree[2 * node + 1], this.tree[2 * node + 2]);
@@ -9230,45 +9230,45 @@ class SegmentTree {
         this._update(0, 0, this.n - 1, idx, val);
     }
 
-    _update(node, start, end, idx, val) {
-        if (start === end) {
+    _update(node, lo, hi, idx, val) {  // lo..hi = node's range
+        if (lo === hi) {
             // Reached the leaf — set the new value
             this.tree[node] = val;
             return;
         }
 
-        const mid = Math.floor((start + end) / 2);
+        const mid = Math.floor((lo + hi) / 2);
 
         if (idx <= mid) {
-            this._update(2 * node + 1, start, mid, idx, val);
+            this._update(2 * node + 1, lo, mid, idx, val);
         } else {
-            this._update(2 * node + 2, mid + 1, end, idx, val);
+            this._update(2 * node + 2, mid + 1, hi, idx, val);
         }
 
         // Recalculate parent from updated children
         this.tree[node] = this.merge(this.tree[2 * node + 1], this.tree[2 * node + 2]);
     }
 
-    // Range query over [l, r] (0-indexed, inclusive)
-    query(l, r) {
-        return this._query(0, 0, this.n - 1, l, r);
+    // Range query over [qL, qR] (0-indexed, inclusive)
+    query(qL, qR) {
+        return this._query(0, 0, this.n - 1, qL, qR);
     }
 
-    _query(node, start, end, l, r) {
+    _query(node, lo, hi, qL, qR) {  // lo..hi = node's range, qL..qR = query range
         // Case 1: No overlap — node range is completely outside query range
-        if (r < start || end < l) {
+        if (qR < lo || hi < qL) {
             return this.identity;
         }
 
         // Case 2: Full overlap — node range is completely inside query range
-        if (l <= start && end <= r) {
+        if (qL <= lo && hi <= qR) {
             return this.tree[node];
         }
 
         // Case 3: Partial overlap — query both children and combine
-        const mid = Math.floor((start + end) / 2);
-        const leftResult = this._query(2 * node + 1, start, mid, l, r);
-        const rightResult = this._query(2 * node + 2, mid + 1, end, l, r);
+        const mid = Math.floor((lo + hi) / 2);
+        const leftResult = this._query(2 * node + 1, lo, mid, qL, qR);
+        const rightResult = this._query(2 * node + 2, mid + 1, hi, qL, qR);
         return this.merge(leftResult, rightResult);
     }
 }`,
@@ -9293,18 +9293,18 @@ class SegmentTree {
     }
 
     // Build the tree recursively; node 0 is the root covering [0, n-1]
-    _build(nums, node, start, end) {
-        if (start === end) {
+    _build(nums, node, lo, hi) {  // lo..hi = node's range
+        if (lo === hi) {
             // Leaf node: store the actual value
-            this.tree[node] = nums[start];
+            this.tree[node] = nums[lo];
             return;
         }
 
-        const mid = Math.floor((start + end) / 2);
+        const mid = Math.floor((lo + hi) / 2);
 
         // Build left child (2*node+1) and right child (2*node+2)
-        this._build(nums, 2 * node + 1, start, mid);
-        this._build(nums, 2 * node + 2, mid + 1, end);
+        this._build(nums, 2 * node + 1, lo, mid);
+        this._build(nums, 2 * node + 2, mid + 1, hi);
 
         // Parent stores combined value of both children
         this.tree[node] = this.merge(this.tree[2 * node + 1], this.tree[2 * node + 2]);
@@ -9315,68 +9315,68 @@ class SegmentTree {
         this._update(0, 0, this.n - 1, idx, val);
     }
 
-    _update(node, start, end, idx, val) {
-        if (start === end) {
+    _update(node, lo, hi, idx, val) {  // lo..hi = node's range
+        if (lo === hi) {
             // Reached the leaf — set the new value
             this.tree[node] = val;
             return;
         }
 
-        const mid = Math.floor((start + end) / 2);
+        const mid = Math.floor((lo + hi) / 2);
 
         if (idx <= mid) {
-            this._update(2 * node + 1, start, mid, idx, val);
+            this._update(2 * node + 1, lo, mid, idx, val);
         } else {
-            this._update(2 * node + 2, mid + 1, end, idx, val);
+            this._update(2 * node + 2, mid + 1, hi, idx, val);
         }
 
         // Recalculate parent from updated children
         this.tree[node] = this.merge(this.tree[2 * node + 1], this.tree[2 * node + 2]);
     }
 
-    // Range query over [l, r] (0-indexed, inclusive)
-    query(l, r) {
-        return this._query(0, 0, this.n - 1, l, r);
+    // Range query over [qL, qR] (0-indexed, inclusive)
+    query(qL, qR) {
+        return this._query(0, 0, this.n - 1, qL, qR);
     }
 
-    _query(node, start, end, l, r) {
+    _query(node, lo, hi, qL, qR) {  // lo..hi = node's range, qL..qR = query range
         // Case 1: No overlap — node range is completely outside query range
-        if (r < start || end < l) {
+        if (qR < lo || hi < qL) {
             return this.identity;
         }
 
         // Case 2: Full overlap — node range is completely inside query range
-        if (l <= start && end <= r) {
+        if (qL <= lo && hi <= qR) {
             return this.tree[node];
         }
 
         // Case 3: Partial overlap — query both children and combine
-        const mid = Math.floor((start + end) / 2);
-        const leftResult = this._query(2 * node + 1, start, mid, l, r);
-        const rightResult = this._query(2 * node + 2, mid + 1, end, l, r);
+        const mid = Math.floor((lo + hi) / 2);
+        const leftResult = this._query(2 * node + 1, lo, mid, qL, qR);
+        const rightResult = this._query(2 * node + 2, mid + 1, hi, qL, qR);
         return this.merge(leftResult, rightResult);
     }
 }`,
     verification: `SegmentTree._build:
-  Promise: 'tree[node] = merge of nums[start..end] after _build(node, start, end)'
-  Base case: start===end (leaf); tree[node] = nums[start] — trivially correct ✓
+  Promise: 'tree[node] = merge of nums[lo..hi] after _build(node, lo, hi)'
+  Base case: lo===hi (leaf); tree[node] = nums[lo] — trivially correct ✓
   Inductive step: assume _build correct for all smaller ranges.
-    Left child built over [start,mid] correct by induction ✓
-    Right child built over [mid+1,end] correct by induction ✓
-    tree[node] = merge(left, right) = merged value of entire [start,end] ✓
+    Left child built over [lo,mid] correct by induction ✓
+    Right child built over [mid+1,hi] correct by induction ✓
+    tree[node] = merge(left, right) = merged value of entire [lo,hi] ✓
   Why nothing missed: every index is covered by exactly one leaf ✓
 
 SegmentTree.update:
-  Promise: 'tree[node] = merge of the updated array over [start,end] after _update'
-  Base case: start===end (leaf); tree[node] set to new val ✓
+  Promise: 'tree[node] = merge of the updated array over [lo,hi] after _update'
+  Base case: lo===hi (leaf); tree[node] set to new val ✓
   Inductive step: recurse into exactly the child containing idx (2*node+1 or 2*node+2); on the way back, tree[node] recalculated as merge(left, right) ✓
   Why only the path is updated: tree nodes not on the path from root to idx are unaffected, and their ranges do not include idx ✓
 
 SegmentTree.query:
-  Promise: '_query returns the merged value of nums[max(l,start)..min(r,end)]'
-  Case 1 (no overlap): query range [l,r] and node range [start,end] are disjoint → returns identity (neutral element) ✓
-  Case 2 (full overlap): node range completely inside [l,r] → return stored value ✓
-  Case 3 (partial overlap): split and merge both children; the ranges together cover exactly [start,end] ∩ [l,r] with no double-counting ✓
+  Promise: '_query returns the merged value of nums[max(qL,lo)..min(qR,hi)]'
+  Case 1 (no overlap): query range [qL,qR] and node range [lo,hi] are disjoint → returns identity (neutral element) ✓
+  Case 2 (full overlap): node range [lo,hi] completely inside [qL,qR] → return stored value ✓
+  Case 3 (partial overlap): split and merge both children; the ranges together cover exactly [lo,hi] ∩ [qL,qR] with no double-counting ✓
   Why O(log n): at each level at most 4 nodes are in partial-overlap; the rest are full or none ✓`,
     jsTemplateWalkthrough: "── Segment Tree Build ──\n" +
 "Input: nums=[1,3,5,7], merge=(a,b)=>a+b, identity=0\n" +
@@ -9393,14 +9393,14 @@ SegmentTree.query:
 "  tree[0] = merge(4,12) = 16\n\n" +
 "── Range Query ──\n" +
 "query(1,2) → merge of indices 1..2 = merge(3,5) = 8\n\n" +
-"_query(0,[0,3],l=1,r=2): partial → split\n" +
-"  _query(1,[0,1],l=1,r=2): partial → split\n" +
-"    _query(3,[0,0],l=1,r=2): end=0 < l=1 → NO OVERLAP → identity=0\n" +
-"    _query(4,[1,1],l=1,r=2): 1<=1 and 1<=2 → FULL → tree[4]=3\n" +
+"_query(0,[0,3],qL=1,qR=2): partial → split\n" +
+"  _query(1,[0,1],qL=1,qR=2): partial → split\n" +
+"    _query(3,[0,0],qL=1,qR=2): hi=0 < qL=1 → NO OVERLAP → identity=0\n" +
+"    _query(4,[1,1],qL=1,qR=2): 1<=1 and 1<=2 → FULL → tree[4]=3\n" +
 "    merge(0, 3) = 3\n" +
-"  _query(2,[2,3],l=1,r=2): partial → split\n" +
-"    _query(5,[2,2],l=1,r=2): FULL → tree[5]=5\n" +
-"    _query(6,[3,3],l=1,r=2): start=3 > r=2 → NO OVERLAP → identity=0\n" +
+"  _query(2,[2,3],qL=1,qR=2): partial → split\n" +
+"    _query(5,[2,2],qL=1,qR=2): FULL → tree[5]=5\n" +
+"    _query(6,[3,3],qL=1,qR=2): lo=3 > qR=2 → NO OVERLAP → identity=0\n" +
 "    merge(5, 0) = 5\n" +
 "  merge(3, 5) = 8 ✓\n\n" +
 "── Point Update ──\n" +
@@ -9425,10 +9425,10 @@ SegmentTree.query:
 The tree has 3 functions: BUILD, UPDATE, QUERY. All recursive with same structure.
 
 Node indexing: node i has children 2i and 2i+1.
-Each node covers a range [start, end].
+Each node covers a range [lo, hi].
 
 BUILD:
-  if leaf (start == end): tree[node] = nums[start]
+  if leaf (lo == hi): tree[node] = nums[lo]
   else: build left, build right, tree[node] = left + right
 
 UPDATE (point):
@@ -9456,7 +9456,7 @@ METHOD MNEMONICS:
     Recurse to the leaf matching index. Set new value.
     Recalculate every parent on the way back: tree[node] = left + right.
   
-  query(l, r): "No overlap? Zero. Full overlap? Return. Partial? Split."
+  query(qL, qR): "No overlap? Zero. Full overlap? Return. Partial? Split."
     Three cases. That is the whole algorithm.
     At most O(log n) nodes are visited.
 

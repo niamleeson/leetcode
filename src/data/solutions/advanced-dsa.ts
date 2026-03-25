@@ -664,38 +664,38 @@ function merge(left, right) {
         self.tree = [0] * (4 * self.n)
         self._build(nums, 1, 0, self.n - 1)
 
-    def _build(self, nums, node, start, end):
-        if start == end:
-            self.tree[node] = nums[start]
+    def _build(self, nums, node, lo, hi):  # lo..hi = node's range
+        if lo == hi:
+            self.tree[node] = nums[lo]
             return
-        mid = (start + end) // 2
-        self._build(nums, 2*node, start, mid)
-        self._build(nums, 2*node+1, mid+1, end)
+        mid = (lo + hi) // 2
+        self._build(nums, 2*node, lo, mid)
+        self._build(nums, 2*node+1, mid+1, hi)
         self.tree[node] = self.tree[2*node] + self.tree[2*node+1]
 
     def update(self, index, val):
         self._update(1, 0, self.n - 1, index, val)
 
-    def _update(self, node, start, end, idx, val):
-        if start == end:
+    def _update(self, node, lo, hi, idx, val):  # lo..hi = node's range
+        if lo == hi:
             self.tree[node] = val
             return
-        mid = (start + end) // 2
+        mid = (lo + hi) // 2
         if idx <= mid:
-            self._update(2*node, start, mid, idx, val)
+            self._update(2*node, lo, mid, idx, val)
         else:
-            self._update(2*node+1, mid+1, end, idx, val)
+            self._update(2*node+1, mid+1, hi, idx, val)
         self.tree[node] = self.tree[2*node] + self.tree[2*node+1]
 
     def sumRange(self, left, right):
         return self._query(1, 0, self.n - 1, left, right)
 
-    def _query(self, node, start, end, l, r):
-        if r < start or end < l: return 0
-        if l <= start and end <= r: return self.tree[node]
-        mid = (start + end) // 2
-        return (self._query(2*node, start, mid, l, r) +
-                self._query(2*node+1, mid+1, end, l, r))`,
+    def _query(self, node, lo, hi, qL, qR):  # lo..hi = node's range, qL..qR = query range
+        if qR < lo or hi < qL: return 0
+        if qL <= lo and hi <= qR: return self.tree[node]
+        mid = (lo + hi) // 2
+        return (self._query(2*node, lo, mid, qL, qR) +
+                self._query(2*node+1, mid+1, hi, qL, qR))`,
     jsCode: `class NumArray {
     constructor(nums) {
         this.n = nums.length;
@@ -705,19 +705,19 @@ function merge(left, right) {
     }
 
     // Recursively build the tree bottom-up
-    _build(nums, node, start, end) {
-        if (start === end) {
+    _build(nums, node, lo, hi) {  // lo..hi = node's range
+        if (lo === hi) {
             // Leaf node: store the actual array value
-            this.tree[node] = nums[start];
+            this.tree[node] = nums[lo];
             return;
         }
 
-        const mid = Math.floor((start + end) / 2);
+        const mid = Math.floor((lo + hi) / 2);
         const leftChild = 2 * node;
         const rightChild = 2 * node + 1;
 
-        this._build(nums, leftChild, start, mid);
-        this._build(nums, rightChild, mid + 1, end);
+        this._build(nums, leftChild, lo, mid);
+        this._build(nums, rightChild, mid + 1, hi);
 
         // Internal node stores sum of its two children
         this.tree[node] = this.tree[leftChild] + this.tree[rightChild];
@@ -727,21 +727,21 @@ function merge(left, right) {
         this._update(1, 0, this.n - 1, index, val);
     }
 
-    _update(node, start, end, idx, val) {
-        if (start === end) {
+    _update(node, lo, hi, idx, val) {  // lo..hi = node's range
+        if (lo === hi) {
             // Found the leaf — update it directly
             this.tree[node] = val;
             return;
         }
 
-        const mid = Math.floor((start + end) / 2);
+        const mid = Math.floor((lo + hi) / 2);
         const leftChild = 2 * node;
         const rightChild = 2 * node + 1;
 
         if (idx <= mid) {
-            this._update(leftChild, start, mid, idx, val);
+            this._update(leftChild, lo, mid, idx, val);
         } else {
-            this._update(rightChild, mid + 1, end, idx, val);
+            this._update(rightChild, mid + 1, hi, idx, val);
         }
 
         // Recalculate this node's sum after the child was updated
@@ -752,21 +752,21 @@ function merge(left, right) {
         return this._query(1, 0, this.n - 1, left, right);
     }
 
-    _query(node, start, end, l, r) {
-        // No overlap: this segment is completely outside the query range
-        if (r < start || end < l) {
+    _query(node, lo, hi, qL, qR) {  // lo..hi = node's range, qL..qR = query range
+        // No overlap: node range is completely outside the query range
+        if (qR < lo || hi < qL) {
             return 0;
         }
 
-        // Full overlap: this segment is completely inside the query range
-        if (l <= start && end <= r) {
+        // Full overlap: node range is completely inside the query range
+        if (qL <= lo && hi <= qR) {
             return this.tree[node];
         }
 
         // Partial overlap: split into left and right children
-        const mid = Math.floor((start + end) / 2);
-        const leftSum = this._query(2 * node, start, mid, l, r);
-        const rightSum = this._query(2 * node + 1, mid + 1, end, l, r);
+        const mid = Math.floor((lo + hi) / 2);
+        const leftSum = this._query(2 * node, lo, mid, qL, qR);
+        const rightSum = this._query(2 * node + 1, mid + 1, hi, qL, qR);
 
         return leftSum + rightSum;
     }
