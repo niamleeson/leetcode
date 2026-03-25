@@ -314,6 +314,15 @@ graph TD
     style N5 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
     style N6 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Season Starts** — The trigger event that initiates a new competitive period, typically on a fixed schedule (e.g., monthly or quarterly).
+- **Create new Redis sorted set** — Provisions a fresh sorted set key (e.g., \\\`leaderboard:season_42\\\`) so the new season starts with a clean slate.
+- **Players submit scores** — The active gameplay phase where score updates flow into the current season's sorted set via ZADD.
+- **Season Ends** — The cutoff event that freezes the leaderboard, preventing further score updates for this season.
+- **Snapshot final rankings to DB** — Persists the complete sorted set to a durable database (MySQL/PostgreSQL) so historical rankings can be queried later.
+- **Archive Redis key** — Deletes or expires the sorted set from Redis to free memory, since the data is now safely stored in the persistence layer.
+- **New season begins** — Loops back to create a fresh sorted set, restarting the cycle for the next competitive period.
 `,
     explanation: `## Bottlenecks & Improvements
 - **Single Redis instance limit** → At ~25M members, a single sorted set works fine (~2.5 GB). Beyond 100M, use score-range sharding or a segment tree approach
@@ -512,6 +521,13 @@ graph TD
     style N3 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
     style N4 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **PENDING** — The initial state when a payment request is received but processing has not yet begun.
+- **DENIED** — The terminal state when the risk engine rejects the transaction due to fraud signals or policy violations.
+- **COMPLETED** — The terminal state when the PSP successfully charges the card and the ledger records the transaction.
+- **FAILED** — The terminal state when the PSP charge fails due to insufficient funds, expired card, or network errors.
+- **REFUNDED** — The terminal state when a completed payment is reversed, either fully or partially, and the ledger records the reversal entries.
 `,
     jsCode: `## Deep Dive: Idempotency Implementation
 
@@ -540,6 +556,15 @@ graph TD
     style N5 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
     style N6 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Client sends request with idempotency_key** — The client generates a unique key (typically a UUID) for each payment attempt and includes it in the request header or body.
+- **Payment Service** — Receives the request and initiates the idempotency check before performing any side effects.
+- **Key exists in DB?** — A decision point that queries the idempotency key store to determine whether this request has been processed before.
+- **Return cached result** — If the key is found, the previously stored response is returned immediately without re-executing the payment, preventing double charges.
+- **Process payment** — If the key is new, the full payment workflow (risk check, PSP charge, ledger entry) executes normally.
+- **Store result with key** — After processing, the response is persisted alongside the idempotency key so future duplicates can be short-circuited.
+- **Return new result** — The freshly computed payment result is sent back to the client.
 
 ---
 
@@ -577,6 +602,17 @@ graph TD
     style N8 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Double-Entry Ledger Example** — The root node representing a single payment transaction recorded using double-entry bookkeeping principles.
+- **entry_id** — The unique identifier column for each ledger row, enabling precise lookups and audit references.
+- **account** — The column identifying which account (buyer or seller) is affected by the entry.
+- **type** — The column indicating whether the entry is a DEBIT (money leaving an account) or CREDIT (money entering an account).
+- **amount** — The column storing the monetary value, which must be identical for both the debit and credit entries to maintain the balanced ledger invariant.
+- **1001 / 1002** — The actual entry IDs for this transaction, showing that one payment always produces exactly two ledger rows.
+- **buyer / seller** — The accounts involved, where the buyer's account is debited and the seller's account is credited.
+- **DEBIT / CREDIT** — The entry types that must always appear in pairs, ensuring every dollar debited from one account is credited to another.
+- **100.00 / 100.00** — The matching amounts confirming the ledger is balanced: the sum of all debits equals the sum of all credits.
+
 ---
 
 ## Deep Dive: PSP Integration Patterns
@@ -610,6 +646,17 @@ graph TD
     style N7 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
     style N8 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **PSP Integration Options** — The root node representing the two primary approaches to integrating with a payment service provider.
+- **Client** — In the hosted checkout flow, the client is redirected away from your site to the PSP's own payment page.
+- **PSP Page** — The PSP's hosted checkout page where the user enters card details directly, keeping your servers out of PCI scope entirely.
+- **PSP API** — The PSP's backend that processes the payment after collecting card details on the hosted page, then notifies your service via callback.
+- **Our Payment Service** — In the hosted flow, your service receives a webhook or redirect callback from the PSP with the payment result.
+- **Client (JS SDK)** — In the tokenization flow, the client uses the PSP's JavaScript SDK to capture card details in-browser without them touching your servers.
+- **PSP (card data)** — The PSP receives raw card data directly from the client-side SDK for tokenization.
+- **Token: tok_123** — The opaque token returned by the PSP representing the card, which can be safely stored and transmitted without PCI implications.
+- **Our Payment Service uses token** — Your backend charges the card by sending the token (not raw card data) to the PSP's charge API.
 
 ---
 
@@ -857,6 +904,16 @@ graph TD
     style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
     style N7 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Saga: Transfer $50** — The root node representing a distributed transfer orchestrated by the saga pattern, which breaks the operation into compensatable steps.
+- **saga_id** — The unique identifier for this saga instance, used to track progress and enable recovery if the process fails midway.
+- **step** — The column tracking which step of the saga is currently executing (e.g., DEBIT_A followed by CREDIT_B).
+- **status** — The column recording the current state of the saga (COMPLETED if all steps succeed, COMPENSATING if a rollback is in progress).
+- **saga_001** — The actual saga instance ID for this specific $50 transfer.
+- **DEBIT_A / CREDIT_B** — The two ordered steps: first debit wallet A, then credit wallet B. If CREDIT_B fails, DEBIT_A is compensated by re-crediting wallet A.
+- **COMPLETED** — The happy-path outcome indicating both the debit and credit steps finished successfully.
+- **COMPENSATING / FAILED** — The failure-path outcomes where a step failed and the saga coordinator is executing compensating actions to undo partial changes.
 `,
     jsCode: `## Deep Dive: Event Sourcing vs Traditional CRUD
 
@@ -900,6 +957,15 @@ graph TD
     style N11 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
     style N12 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Traditional CRUD** — The conventional approach where a mutable balance field is updated in place with each transaction, losing the history of how the balance was derived.
+- **wallet_id / balance** — The CRUD schema columns, storing only the current state (wallet A has $500, wallet B has $200) with no record of past changes.
+- **A / B and 500 / 200** — Example wallet data showing final balances, but providing no way to determine how those balances were reached.
+- **Event Sourcing** — The alternative approach where every state change is stored as an immutable event, and the current balance is derived by replaying all events.
+- **id / wallet / type / amount** — The event store schema columns, capturing every individual transaction with its context (which wallet, what type, how much).
+- **CREDIT** — The event type indicating money was added to a wallet, with each event recorded as an immutable fact that can never be modified.
+- **1000 / 500** — Example event amounts showing the full history: a $1000 credit followed by a $500 credit, which can be replayed to derive the current balance.
 
 ---
 
@@ -963,6 +1029,14 @@ graph TD
     style N5 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Snapshot at Event #1000** — A checkpoint that captures the wallet's computed balance at a specific event, so future replays can start here instead of from event #1.
+- **Balance: $500** — The snapshotted balance value at event #1000, serving as the starting point for incremental replay.
+- **Event #1001: +$50** — The first event after the snapshot, applied incrementally to the snapshotted balance rather than replaying all 1001 events.
+- **Event #1002: -$20** — A subsequent debit event applied on top of the running total.
+- **Event #1003: +$100** — Another credit event, demonstrating that only 3 events need replaying instead of all 1003.
+- **Current Balance: $630** — The final computed balance ($500 + $50 - $20 + $100), derived by replaying only the events since the last snapshot.
+
 ---
 
 ## Deep Dive: Concurrent Transfer Safety
@@ -988,6 +1062,14 @@ graph TD
     style N4 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
     style N5 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Read balance: $500, version=5** — The first step of optimistic locking, where the current balance and its version number are read together.
+- **Compute new balance: $400** — The application calculates the new balance locally (e.g., $500 - $100 transfer) without holding any database locks.
+- **UPDATE WHERE version=5** — The conditional write that only succeeds if no other transaction has modified the row since the read, detected by the version number matching.
+- **Success: version=6** — The happy path where the version matched, the balance is updated, and the version is incremented to 6 for future operations.
+- **Conflict: 0 rows affected** — The contention path where another transaction updated the row first (version is now 6, not 5), so the WHERE clause matches zero rows.
+- **Retry from read** — On conflict, the operation loops back to re-read the current balance and version, then retries the computation and conditional write.
 `,
     explanation: `## Bottlenecks & Improvements
 - **Event log growth** → Use periodic snapshots (every 1000 events per wallet) to limit replay cost. Archive old events to cold storage (S3) after snapshotting
@@ -1285,6 +1367,17 @@ graph TD
     style N8 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **New BUY LIMIT order arrives** — The entry point where a new buy limit order is submitted to the matching engine for processing.
+- **Buy price >= best ask?** — The first decision: does the incoming buy price meet or exceed the lowest sell price? If not, no trade is possible.
+- **Add to bid book (no match)** — When the buy price is below the best ask, the order is inserted into the bid side of the order book to await a future matching sell order.
+- **Match against best ask** — When the buy price meets the best ask, a trade executes at the ask price, filling orders from the front of the ask queue (time priority).
+- **Order fully filled?** — After matching, a check whether the incoming buy order's entire quantity has been satisfied.
+- **Remove from ask book** — If the ask-side order is fully consumed by the match, it is removed from the order book entirely.
+- **Partial fill: reduce ask qty** — If the buy order is fully filled but the ask order has remaining quantity, the ask order stays in the book with its quantity reduced.
+- **More ask levels to match?** — If the buy order still has remaining quantity, the engine checks whether the next ask price level is still within the buy limit price.
+- **Remainder added to bid book** — When no more ask levels can be matched (price exceeds the buy limit), the unfilled portion of the buy order rests on the bid side.
+
 ---
 
 ## Deep Dive: Market Data Levels
@@ -1321,6 +1414,18 @@ graph TD
     style N8 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
     style N9 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Market Data Distribution** — The root node representing the structured market data feed published to subscribers after every order book change or trade.
+- **Symbol** — The column identifying which ticker the data refers to (e.g., AAPL).
+- **AAPL** — An example ticker, showing this market data snapshot is for Apple stock.
+- **(ask side)** — Indicates that corresponding ask-side data (AskPx, AskQty) mirrors the bid-side structure shown here.
+- **Level** — The depth level in the order book, where Level 1 is the best bid/ask and Level 2 is the next best.
+- **BidPx** — The bid price column showing the highest prices buyers are willing to pay at each level.
+- **BidQty** — The bid quantity column showing the total number of shares available at each bid price level.
+- **1 / 2** — The level numbers, with Level 1 representing the national best bid and offer (NBBO) that most retail traders see.
+- **150.10 / 150.00** — The bid prices at each level, showing the best bid is $150.10 and the next level is $150.00.
+- **500 / 1200** — The aggregate quantities at each bid level, indicating market depth and liquidity at those price points.
 
 ---
 

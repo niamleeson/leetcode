@@ -142,6 +142,10 @@ graph TD
     style Encode fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Auto-Increment ID Generator (Single DB seq)** — A centralized database sequence that produces monotonically increasing integers, guaranteeing uniqueness but creating a single point of failure.
+- **Base62 Encode** — Converts the numeric ID into a compact alphanumeric string using characters 0-9, a-z, and A-Z, producing short codes like "2TX" from integer 11157.
+
 **Pros**: No collisions, simple, sortable by time
 **Cons**: Predictable (security risk), single point of failure for ID gen
 
@@ -159,6 +163,11 @@ graph TD
     style API fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
     style KGS fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Unused Keys DB Table** — A pre-populated table of random unique short codes that have not yet been assigned. Keys are moved to the Used table once allocated.
+- **Used Keys DB Table** — Stores all previously allocated short codes to prevent reuse and enable lookup of active mappings.
+- **API Server (in-memory batch)** — Each API server holds a local batch of pre-fetched keys in memory, allowing zero-coordination key assignment at write time.
 
 **Pros**: No collisions, no coordination between servers, fast (in-memory keys)
 **Cons**: Some keys wasted if server dies, slightly more complex
@@ -363,6 +372,10 @@ graph LR
     style W2 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Window 1 / Window 2** — Fixed time intervals (e.g., one minute each) with independent request counters. Each window resets to zero when a new interval begins.
+- **Boundary burst** — Illustrates the key weakness: a client can send the maximum allowed requests at the end of one window and the start of the next, effectively doubling throughput over a short span.
+
 **Redis**: \`INCR key\` + \`EXPIRE key window\`
 **Pros**: O(1) memory, dead simple
 **Cons**: Up to 2x burst at window boundaries
@@ -380,6 +393,11 @@ graph LR
     style Curr fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
     style Calc fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Previous Window** — The fully completed prior time window whose total request count is used as a weighted input to the current calculation.
+- **Current Window** — The active time window tracking requests so far, along with how far into the window we are (e.g., 25%).
+- **Weighted Count** — Combines a proportional share of the previous window's count with the current window's count to approximate a true sliding window without storing individual timestamps.
 
 **Redis**: 2 counters + 1 timestamp per user
 **Pros**: O(1) memory, no boundary burst, 99.9% accurate
@@ -400,6 +418,12 @@ graph LR
     style T5R fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **t=0 (10 tokens)** — The bucket starts full at its maximum capacity, allowing an immediate burst of up to 10 requests.
+- **t=0 after burst (0 tokens)** — All tokens have been consumed by the burst. Subsequent requests are rejected until tokens refill.
+- **t=5 (5 tokens, refill +5)** — Tokens are replenished at a steady rate (1 per second in this example), restoring capacity over time.
+- **t=5 after req (4 tokens)** — A single request consumes one token, leaving the remaining balance available for future requests.
+
 **Redis**: 2 values per user (\`tokens\` + \`last_refill\`)
 **Pros**: Allows controlled bursts, smooth limiting, O(1)
 **Cons**: Slightly more state than fixed window
@@ -419,6 +443,12 @@ graph TD
     style Output fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
     style Overflow fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Incoming Requests** — All arriving API requests that enter the bucket regardless of current load.
+- **Queue (capacity: 5)** — A fixed-size FIFO buffer that holds pending requests. Once full, any additional requests overflow and are rejected.
+- **Overflow** — Requests that arrive when the queue is at capacity are immediately dropped with an HTTP 429 response.
+- **Processed at steady rate** — Requests are drained from the queue at a constant rate (e.g., 1 req/sec), producing perfectly smooth downstream traffic.
 
 **Pros**: Perfectly smooth output rate
 **Cons**: No burst tolerance, adds latency (requests wait)
@@ -1180,6 +1210,11 @@ graph TD
     style Write fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
     style Read fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Author has < 10K followers? (Decision)** — The routing check that determines which fanout strategy to use based on the post author's follower count.
+- **WRITE FANOUT** — For normal users, the post ID is pushed into each follower's pre-computed feed cache at write time, making reads instant but costing O(F) Redis writes per post.
+- **READ FANOUT** — For celebrities, the post is stored once in a per-celebrity sorted set and merged into follower feeds on demand at read time, avoiding millions of cache writes.
 
 **The threshold** (~10K followers) is tunable. Below it, write fanout keeps reads fast. Above it, read-time merge avoids the massive write amplification.
 

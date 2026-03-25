@@ -209,6 +209,15 @@ graph TD
     style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Leader Region** — The primary datacenter region that owns all writes for a given shard, ensuring consistency before fanning out to followers.
+- **Any Region** — A follower datacenter that serves local reads from its own cache and forwards writes to the leader region.
+- **L1 Cache** — A per-region, high-throughput cache tier that handles the hottest read traffic and serves most queries without hitting L2.
+- **MySQL Primary** — The authoritative write-through datastore that persists all graph mutations before they propagate to caches and replicas.
+- **L2 Cache** — A shared, larger cache tier that absorbs L1 misses, reducing direct load on the MySQL layer.
+- **MySQL Replicas** — Read replicas that serve cache-miss queries for follower regions, replicating asynchronously from the primary.
+- **MySQL Replica** — An individual read replica instance within a follower region, handling local database reads.
+
 - **Objects**: nodes (users). Cached by ID.
 - **Associations**: edges (friendships). Cached as sorted lists per source node.
 - **Write-through**: writes go DB first, then update L1, then async invalidate other regions
@@ -457,6 +466,13 @@ graph TD
     style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **9q8yyk 9q8yym 9q8yyq** — The top row of neighboring geohash cells surrounding the query area, checked to avoid missing drivers near cell boundaries.
+- **9q8yyh 9q8yyj 9q8yyn** — The middle row of geohash cells containing the center cell where driver D1 is located and from which the neighbor query originates.
+- **D3 D1 D2 query center 8 neighbors** — The set of candidate drivers found across the center cell and its eight surrounding cells, illustrating the spatial query pattern.
+- **to avoid edge effects** — Explains why all eight neighbors must be queried: a rider near a cell boundary could be closest to a driver in an adjacent cell.
+- **9q8yy5 9q8yy7 9q8yye** — The bottom row of neighboring geohash cells, completing the 3x3 grid of cells searched for nearby drivers.
+
 - **Index structure**: HashMap of geohash_6 -> list of (driver_id, lat, lng, status)
 - **Query**: compute geohash of pickup, fetch center cell + 8 neighbors, filter by distance
 - **Update**: on each driver ping, remove from old cell, insert into new cell -- O(1) per update
@@ -671,6 +687,11 @@ graph TD
     style N1 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
     style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Isolation Spectrum** — Represents the range of sandbox isolation strategies, ordered from lighter-weight (less secure) to heavier-weight (more secure).
+- **Docker + seccomp** — Container-based isolation that uses Linux namespaces and seccomp syscall filtering; fast startup but shares the host kernel, leaving a larger attack surface.
+- **Firecracker** — Lightweight microVM isolation that gives each sandbox its own kernel, providing near-bare-metal security with sub-200ms boot times.
 
 **Recommended: Firecracker microVMs** (used by AWS Lambda, Fly.io)
 - Each user gets a dedicated lightweight VM with its own kernel

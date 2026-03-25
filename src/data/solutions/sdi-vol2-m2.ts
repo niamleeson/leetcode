@@ -285,6 +285,21 @@ graph TD
     style N12 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **External Mail** — Incoming email messages arriving from external senders via the internet.
+- **SMTP Receiver** — Accepts inbound email over SMTP, performs spam/virus checks, and hands messages off to the processing pipeline.
+- **Processing Pipeline** — Parses, indexes, and routes each inbound email to the appropriate stores and notification channels.
+- **Email Body Store** — Persistent storage for the full email body content, optimized for large message payloads.
+- **Search Index (ES)** — An Elasticsearch index that enables full-text search across email subjects, bodies, and metadata.
+- **Push / WS Service** — Delivers real-time new-mail notifications to connected clients over WebSockets or push channels.
+- **User (Web / Mobile)** — The end-user client application used to read, compose, and manage email.
+- **API Server (Compose)** — Handles email composition and sending requests, placing outbound messages onto the send queue.
+- **Send Queue (Kafka)** — A durable message queue that buffers outbound emails for reliable, ordered delivery.
+- **SMTP Sender** — Consumes messages from the send queue and transmits them to external recipients via SMTP.
+- **API Server (REST/IMAP)** — Serves mailbox read operations (listing, fetching, searching) over REST or IMAP protocols.
+- **Metadata DB** — Stores email metadata such as sender, recipient, timestamps, labels, and folder assignments.
+- **Object Storage** — Stores large email attachments separately from the metadata and body stores for cost-efficient retrieval.
+
 The key optimization is **time-based partitioning**: data is sharded into fixed time blocks (e.g., 2-hour blocks). This means queries for a time range only need to open the relevant block files, and old data can be deleted by simply dropping entire block files rather than scanning and deleting individual rows.
 
 ### Compression Techniques for Time-Series
@@ -330,6 +345,15 @@ graph TD
     style N7 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Client (SDK / CLI)** — The application or command-line tool that issues read/write requests to the storage system.
+- **API Gateway** — The entry point that authenticates requests, routes them to the appropriate backend service, and enforces rate limits.
+- **Metadata Service** — Tracks object metadata including chunk locations, versions, and reference counts for garbage collection.
+- **GC Service** — A background process that identifies and reclaims storage from deleted or expired data chunks.
+- **Storage Node** — A physical or virtual server responsible for persisting data chunks on local disks.
+- **Data File 1 / Data File 2** — Individual segment files on the storage node that hold the actual data chunks in append-only format.
+- **Checksum Index** — An on-disk index mapping chunk IDs to their checksums, enabling fast integrity verification on reads.
+
 For each downsampled interval, store multiple aggregates: **min, max, avg, sum, count**. This lets dashboards show accurate graphs at any zoom level. Downsampling runs as a background job after the retention window for the higher-resolution tier expires.
 
 ### Alert Rules Engine
@@ -347,6 +371,11 @@ graph TD
     style N1 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
     style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Rule Evaluator** — Continuously evaluates each alert rule against the incoming metric stream, checking whether threshold conditions are met.
+- **State Machine** — Tracks the current state (OK, PENDING, FIRING, RESOLVED) of each alert per time series, requiring conditions to hold for a configured duration before transitioning to FIRING.
+- **Notification Router** — Dispatches alert notifications to the appropriate channels (email, Slack, PagerDuty) while applying grouping, inhibition, and silencing rules to prevent alert fatigue.
 
 Each alert rule has a finite state machine per matching time series. The **PENDING** state prevents spurious alerts from momentary spikes. The **RESOLVED** state sends a recovery notification. Grouping, inhibition, and silencing are handled by the notification router to prevent alert fatigue.
 
@@ -608,6 +637,11 @@ graph TD
     style SU2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Tumbling Window** — A fixed-size, non-overlapping window where each event belongs to exactly one window. Ideal for billing counts where every event must be counted once.
+- **Sliding Window** — A fixed-size window that advances continuously, so events may appear in multiple overlapping windows. Used for moving averages and trend detection.
+- **Session Window** — A dynamically sized window defined by a gap of inactivity between events. Used for grouping user interactions into logical sessions for analytics.
+
 For ad click billing, **tumbling windows** are the right choice — they produce non-overlapping, deterministic counts that can be reconciled against batch.
 
 ### Exactly-Once Semantics in Flink
@@ -625,6 +659,11 @@ graph TD
     style N1 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
     style N2 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Consumer offsets** — The Kafka consumer positions that track which messages have been read, allowing Flink to replay from the correct point after a failure.
+- **Operator state** — The in-memory state held by each Flink operator (e.g., running click counts per ad), periodically snapshotted to durable storage during checkpoints.
+- **Output records** — The final aggregated results written to the sink, which must use idempotent writes to avoid duplicates during checkpoint recovery and replay.
 
 **How Flink checkpointing works**: Flink periodically injects checkpoint barriers into the data stream. When an operator receives a barrier, it snapshots its current state (e.g., running click counts) to durable storage (S3/HDFS). If a failure occurs, Flink rolls back all operators to the last successful checkpoint and replays events from Kafka starting at the committed offsets. The sink must use **idempotent writes** (UPSERT by \`ad_id + window_start\`) so that replayed events do not produce duplicate counts.
 
@@ -675,6 +714,11 @@ graph LR
     style OC fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **E1, E3, E2, E15, E5** — Individual click events arriving at the stream processor, labeled with their event-time timestamps. Out-of-order arrival is common due to network delays.
+- **Watermark** — A system-generated marker declaring that all events with timestamps up to a certain time have likely arrived, used to trigger window closure and emit results.
+- **Late Policy Options** — Strategies for handling events that arrive after the watermark has passed: drop them, route them to a side output for later batch processing, or retroactively update already-emitted window results.
+
 For billing accuracy, **Option B** is preferred — late events are captured in the batch path which serves as the source of truth.
 
 ### MapReduce Batch Aggregation
@@ -692,6 +736,11 @@ graph TD
     style N1 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
     style N2 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Map Phase: raw events from S3** — Reads the complete raw click event log from S3 and emits key-value pairs of (ad_id, 1) for each click event.
+- **Shuffle Phase: Group by ad_id** — Redistributes the mapped records across reducers so that all clicks for a given ad_id are co-located on the same node.
+- **Reduce Phase: SUM counts** — Aggregates all click counts per ad_id into a single total, producing the authoritative ground-truth count for billing reconciliation.
 
 This produces the ground-truth count because it processes the **complete** dataset, not a stream. The reconciliation service compares batch vs real-time counts and overwrites the real-time result when discrepancies exceed a configurable threshold (e.g., > 0.1% difference).
 
@@ -1053,6 +1102,12 @@ graph TD
     style N2 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
     style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Reservation DB** — The source-of-truth relational database storing hotel reservations and room inventory.
+- **CDC Stream (Debezium)** — A Change Data Capture connector that tails the database transaction log and publishes every insert, update, or delete as an event to a Kafka topic.
+- **Cache Invalidator** — A consumer that reads CDC events and removes or updates the corresponding entries in the cache, ensuring stale data is not served.
+- **Redis Cache** — An in-memory cache storing frequently read hotel details and availability data to reduce load on the database.
 
 This ensures the cache is eventually consistent with the database without requiring application code to manually invalidate — the CDC stream handles it automatically.
 
@@ -1808,6 +1863,14 @@ graph TD
     style N8 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Header 8B** — An 8-byte file header containing the segment format version and metadata needed to validate and parse the segment file.
+- **Chunk A / B / C / D** — Individual data chunks stored sequentially in the segment file, each representing a piece of an uploaded object.
+- **chunk_id 16B** — A 16-byte unique identifier within each chunk record used to locate and reference the chunk during reads and garbage collection.
+- **length 4B** — A 4-byte field recording the size of the chunk data payload, enabling the reader to know exactly how many bytes to read.
+- **checksum 4B** — A 4-byte CRC or hash used to verify data integrity on read and detect silent disk corruption.
+- **data N bytes** — The actual object data payload of variable length stored contiguously after the chunk metadata fields.
+
 **Why append-only?** Sequential writes are much faster than random writes on both HDD and SSD. Append-only also simplifies concurrency — no need for file locks since only one writer appends to the active segment.
 
 ### Garbage Collection
@@ -1828,6 +1891,12 @@ graph TD
     style N2 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
     style N3 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Metadata Service** — Provides the authoritative list of live object references so the GC scanner can determine which chunks are still reachable.
+- **GC Scanner** — Walks the metadata to build a set of live chunk IDs, then compares against the chunks present on each storage node to identify orphaned data.
+- **Storage Node Segments** — The append-only segment files on disk that contain both live and dead chunks, targeted by the sweeper for compaction.
+- **GC Sweeper** — Copies live chunks from old segments into new compacted segments and then deletes the old segment files to reclaim disk space.
 
 GC runs during off-peak hours and is rate-limited to avoid impacting read/write performance.
 

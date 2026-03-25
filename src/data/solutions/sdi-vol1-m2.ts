@@ -165,6 +165,14 @@ graph TD
     style N5 fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Client Request** — An incoming HTTP request from a user or service that needs to be checked against rate limits before proceeding.
+- **Rate Limiter Middleware** — The interception layer that sits between the client and the API server, responsible for evaluating whether the request should be allowed or rejected.
+- **Redis Token Bucket** — The Redis-backed data structure storing the token count and last refill timestamp for each user/endpoint combination.
+- **Token Available?** — The decision point where the middleware checks if at least one token remains in the bucket for this client.
+- **Forward to API Server** — The happy path: the request passes the rate check and is forwarded to the backend for normal processing.
+- **Return 429 Too Many Requests** — The rejection path: the client has exhausted their token budget, and the middleware returns an HTTP 429 response with retry headers.
+
 ## Token Bucket Algorithm Visualization
 
 \`\`\`
@@ -475,6 +483,11 @@ graph TD
     style R4 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Before (3 servers): S1, S2, S3** — The original hash ring with three servers, each owning a contiguous arc of the key space.
+- **After adding S_new: S1, S_new, S2, S3** — The ring after inserting a new server between S1 and S2. Only the keys in S_new's arc (previously owned by S2) need to be reassigned.
+- **Key Reassignment (Summary)** — Shows that only keys k5 and k8 move to S_new, while all keys on S1 and S3 remain completely unchanged, demonstrating the minimal redistribution property of consistent hashing.
+
 ## Virtual Nodes Diagram
 
 \`\`\`mermaid
@@ -515,6 +528,11 @@ graph TD
     style D4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Without Virtual Nodes (A, B, C)** — Three physical servers each placed at a single position on the ring. With so few points, the arcs are highly uneven, leading to skewed key distribution.
+- **With Virtual Nodes (A1, A2, B1, B2, B3, C1, C2, C3)** — Each physical server is assigned multiple positions (virtual nodes) on the ring. The interleaving of virtual nodes produces much more uniform arc sizes.
+- **Distribution (Summary)** — Quantifies the imbalance: without virtual nodes, servers may own 25% vs. 37.5% of keys. With 100+ virtual nodes per server, each server converges toward the ideal equal share (33.3%).
+
 ## Lookup Algorithm
 
 \`\`\`mermaid
@@ -543,6 +561,13 @@ graph TD
     style BS fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
     style TC fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **1. hash = hash_func(key)** — Compute the hash of the requested key to determine its position on the ring.
+- **2. Binary search sorted ring for first node with position >= hash** — Use binary search on the sorted array of virtual node positions to efficiently find the next clockwise node in O(log V) time.
+- **3. If no node found, wrap around to first node in ring** — Handle the edge case where the key's hash is larger than all node positions by wrapping to the beginning of the ring.
+- **4. Map virtual node back to physical server** — Translate the virtual node position to the actual physical server using the position-to-server mapping.
+- **Example** — A concrete walkthrough showing how \\\`hash('user:42') = 6000\\\` is resolved by binary search to position 7100 (virtual node A2), which maps to physical Server A.
 `,
     jsCode: `## Deep Dive: Implementation Details
 
@@ -794,6 +819,12 @@ graph TD
     style N3 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **1. Write to COMMIT LOG** — The write is first appended to a durable, append-only log on disk. This guarantees that data is not lost if the node crashes before the in-memory state is flushed.
+- **2. Write to MEMTABLE** — The key-value pair is inserted into an in-memory sorted data structure (e.g., a red-black tree). This makes writes extremely fast since there is no random disk I/O.
+- **3. Flush to SSTABLE** — When the MemTable reaches a size threshold, it is written to disk as an immutable Sorted String Table file. Because the MemTable is already sorted, the flush is a sequential write.
+- **4. COMPACTION** — A background process periodically merges multiple SSTables to remove duplicate keys, apply deletions, and reduce the number of files that must be checked during reads.
+
 ## Read Path
 
 \`\`\`mermaid
@@ -807,6 +838,11 @@ graph TD
     style N1 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
     style N2 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **1. Check MEMTABLE** — First check the in-memory MemTable for the key, since it holds the most recent writes and can return a result with no disk I/O.
+- **2. Check BLOOM FILTER** — If the key is not in the MemTable, consult a Bloom filter for each SSTable on disk. The Bloom filter quickly eliminates SSTables that definitely do not contain the key, avoiding unnecessary disk reads.
+- **3. Check SSTable** — For any SSTable whose Bloom filter indicates a possible match, perform a disk read (using the SSTable's sparse index) to retrieve the value. SSTables are checked from newest to oldest, and the search stops at the first match.
 
 ## Consistent Hashing Ring with Replication
 
@@ -1134,6 +1170,13 @@ graph LR
     style Seq fill:#1e1e2e,stroke:#cba6f7,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Sign (1 bit)** — Always set to 0 so that the generated ID is a positive 64-bit integer, compatible with languages and databases that use signed longs.
+- **Timestamp (41 bits)** — Milliseconds elapsed since a custom epoch. Occupying the most significant bits ensures IDs are naturally sortable by creation time.
+- **DC ID (5 bits)** — Datacenter identifier (0-31), guaranteeing that IDs generated in different datacenters never collide without any cross-region coordination.
+- **MC ID (5 bits)** — Machine identifier (0-31) within a datacenter, ensuring that each machine within the same datacenter produces IDs in a separate partition of the ID space.
+- **Sequence (12 bits)** — A per-millisecond counter (0-4095) that allows a single machine to generate up to 4,096 unique IDs within the same millisecond.
+
 ## ID Generation Flow
 
 \`\`\`mermaid
@@ -1144,6 +1187,10 @@ graph TD
     style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
     style N1 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Snowflake ID Generator** — The entry point of the ID generation process. It orchestrates reading the current time, checking for clock skew, and assembling the final 64-bit ID from its component parts.
+- **1. current_ts = now() - CUSTOM_EPOCH** — The first step: compute the relative timestamp by subtracting the custom epoch from the current system time. This relative value is what gets encoded into the 41 timestamp bits of the ID.
 
 ## System Architecture
 
@@ -1180,6 +1227,10 @@ graph TD
     style N0 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
     style N1 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Option A: Throw ClockMovedBackward** — Immediately reject ID generation and raise an error when the system clock moves backward. This is the safer option because it prevents any possibility of duplicate IDs, at the cost of temporary unavailability until the clock is corrected.
+- **Option B: Wait until clock catches up** — Pause (spin-wait) the ID generator until the system clock advances past the last recorded timestamp. This preserves availability but introduces latency during the wait period, and is only practical for small clock jumps.
 `,
     jsCode: `## Deep Dive: Snowflake Implementation Details
 

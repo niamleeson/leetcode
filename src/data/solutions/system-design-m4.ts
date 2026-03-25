@@ -166,6 +166,16 @@ graph TD
     style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Root**: The top-level entry point of the trie, from which all prefix paths originate.
+- **h node**: Stores the top-5 most popular completions starting with "h", pre-computed to avoid query-time sorting.
+- **o node**: Narrows to the "ho" prefix, updating the top-5 list to reflect completions like "hotel", "home", and "honda".
+- **t node**: Represents the "hot" prefix, with top-5 results heavily skewed toward hotel and hotdog variants.
+- **e node**: Represents the "hote" prefix, converging on "hotel" and its close variants.
+- **d node**: Represents the "hotd" prefix path, leading to completions like "hotdog".
+- **m node**: Represents the "hom" prefix path, leading to completions like "home" and "homegoods".
+- **n node**: Represents the "hon" prefix path, leading to completions like "honda" and "honey".
+
 **Building top-k at each node**: During trie construction, propagate the top-k results upward. Each leaf has its own frequency. Each internal node merges the top-k lists from its children, keeping only the highest-k. This is a bottom-up O(N * k) pass over the trie.
 
 **Compressed trie (Patricia trie)**: Collapse single-child chains into one node. "hot" becomes a single node instead of h->o->t. Reduces node count by ~60%, saving memory and traversal time.
@@ -187,6 +197,13 @@ graph TD
     style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
     style N4 fill:#1e1e2e,stroke:#f9e2af,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Before compression / After compression**: A header node illustrating the two trie representations side by side.
+- **'ot' (single node)**: In the compressed trie, the single-child chain "o -> t" is collapsed into one node storing the string "ot", saving traversal steps.
+- **'el' / hotel**: Represents the compressed suffix leading to the "hotel" leaf, collapsing intermediate single-child nodes.
+- **'dog' / hotdog**: Represents the compressed suffix "dog" branching off from "hot", leading directly to the "hotdog" completion.
+- **hotel (leaf)**: The final leaf node for the word "hotel" in the uncompressed path.
 
 ---
 
@@ -467,6 +484,12 @@ graph TD
     style N2 fill:#1e1e2e,stroke:#fab387,stroke-width:2px,color:#cdd6f4
     style N3 fill:#1e1e2e,stroke:#f38ba8,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Cron Evaluation Service**: The central service responsible for periodically checking all registered cron schedules and generating tasks when they are due.
+- **Active cron schedules: 10M**: Represents the total pool of registered cron expressions that the service must evaluate, highlighting the scale challenge.
+- **Cron entry**: A single cron schedule record containing the cron expression, associated job metadata, and last-fire timestamp.
+- **Evaluation loop (every 30 seconds)**: The recurring scan cycle where the service checks which cron schedules have a next-fire-time within the current window and creates corresponding tasks.
 
 **Idempotent cron expansion**: Each cron firing is identified by (schedule_id, fire_time). If two evaluators try to create the same task, the unique constraint on (schedule_id, fire_time) prevents duplicates.
 
@@ -974,6 +997,16 @@ graph TD
     style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
 
+**Component Breakdown:**
+- **Cache Key Construction**: The process of building a unique cache key from the request URL and relevant headers to correctly identify cached variants.
+- **Request**: The incoming HTTP request whose attributes feed into the cache key.
+- **Accept-Encoding: gzip**: A request header indicating the client supports gzip compression; included in the cache key when specified by Vary.
+- **Accept-Language: en-US**: A request header specifying the preferred language; included in the cache key to serve locale-appropriate content.
+- **Cookie: session=abc123**: A request header carrying session data; typically excluded from the cache key to avoid per-user cache fragmentation.
+- **Origin Response Headers**: The headers returned by the origin server that instruct the CDN on caching behavior.
+- **Vary: Accept-Encoding, Accept-Language**: Tells the CDN which request headers must be part of the cache key so different variants are stored separately.
+- **Cache-Control: max-age=3600**: Specifies how long the response can be served from cache before it must be revalidated with the origin.
+
 **Cache key pitfalls**:
 - Including too many headers -> low hit rate (too many variants)
 - Missing a Vary header -> serving wrong content to users
@@ -1009,6 +1042,13 @@ graph TD
     style N6 fill:#1e1e2e,stroke:#89b4fa,stroke-width:2px,color:#cdd6f4
     style N7 fill:#1e1e2e,stroke:#a6e3a1,stroke-width:2px,color:#cdd6f4
 \`\`\`
+
+**Component Breakdown:**
+- **Without Origin Shield / With Origin Shield**: A comparison header contrasting two CDN architectures side by side.
+- **200 PoPs, all miss at once / 200 PoPs miss -> 5 shields**: Shows the thundering herd problem without a shield (200 requests hit origin) versus with a shield (only 5 requests reach origin).
+- **PoP 1 through PoP 200**: Individual Points of Presence around the world that serve cached content to nearby users and forward cache misses upstream.
+- **Shield US / Shield AP**: Regional shield nodes that aggregate cache misses from multiple PoPs, serving as an intermediate caching layer before the origin.
+- **Origin (200 req!) / Origin (5 req!)**: The origin server, showing how the shield layer reduces origin load from 200 concurrent requests down to just 5.
 
 **Request Collapsing** (coalescing) at the shield:
 
