@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "node server.mjs & vite",
+    "dev": "ollama serve & node server.mjs & vite",
     "dev:vite": "vite",
     "dev:server": "node server.mjs",
     "build": "tsc -b && vite build",
