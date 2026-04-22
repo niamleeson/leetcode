@@ -1,10 +1,58 @@
 import { useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { lessons, TopicLesson } from '../data/lessons';
 import { templateBlockMeta, splitTemplateByBlocks } from '../data/template-block-meta';
 import { useLocalStorage } from '../hooks/useLocalStorage';
+import { usePersistedOpenSet } from '../hooks/usePersistedOpenSet';
+import { dsaChunks } from '../data/chunks-dsa';
+import { useStudyStore } from '../store/useStudyStore';
 import CodeBlock from './CodeBlock';
 import GlossaryHighlighter from './GlossaryHighlighter';
+
+/**
+ * StudyButton — pill link into /train/dsa with an optional due-count badge.
+ * `scope` matches the filter string parsed by filterDsaByScope().
+ *   - "all" → full DSA reference
+ *   - "cat:<name>" → one category
+ *   - "topic:<name>" → one topic
+ */
+function StudyButton({
+  scope,
+  label,
+  size = 'md',
+  chunkIds,
+}: {
+  scope: string;
+  label: string;
+  size?: 'sm' | 'md';
+  chunkIds: string[];
+}) {
+  const { dueCountForChunks } = useStudyStore();
+  const due = dueCountForChunks(chunkIds);
+  const cls =
+    size === 'sm' ? 'text-[11px] px-2 py-1' : 'text-xs px-3 py-1.5';
+  return (
+    <Link
+      to={`/train/dsa?scope=${encodeURIComponent(scope)}`}
+      className={`inline-flex items-center gap-1.5 rounded-md bg-sky-900/40 hover:bg-sky-800/60 border border-sky-800/50 text-sky-200 font-medium transition-colors ${cls}`}
+    >
+      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+      </svg>
+      <span>{label}</span>
+      {due > 0 && (
+        <span className="text-[10px] bg-amber-900/50 text-amber-300 px-1.5 py-0.5 rounded-full">
+          {due}
+        </span>
+      )}
+    </Link>
+  );
+}
+
+/** Look up the dsa chunk id for a topic name (mirrors chunks-dsa slugify). */
+function dsaChunkIdForTopic(topic: string): string {
+  return `dsa-${topic.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')}`;
+}
 
 const DSA_CATEGORIES = [
   {
@@ -215,14 +263,15 @@ function TemplateBlocks({ lesson, showJs, useReadable, language }: {
   );
 }
 
-function TopicCard({ lesson, language, setLanguage, codeStyle, setCodeStyle }: {
+function TopicCard({ lesson, language, setLanguage, codeStyle, setCodeStyle, expanded, onToggle }: {
   lesson: TopicLesson;
   language: 'python' | 'javascript';
   setLanguage: (lang: 'python' | 'javascript') => void;
   codeStyle: 'readable' | 'original';
   setCodeStyle: (style: 'readable' | 'original') => void;
+  expanded: boolean;
+  onToggle: () => void;
 }) {
-  const [expanded, setExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState<'template' | 'memorization' | 'overview' | 'mindset'>('template');
 
   const showJs = language === 'javascript' && !!lesson.jsTemplate;
@@ -231,7 +280,7 @@ function TopicCard({ lesson, language, setLanguage, codeStyle, setCodeStyle }: {
   return (
     <div className="bg-gray-900 border border-gray-800 rounded-lg overflow-hidden">
       <button
-        onClick={() => setExpanded(!expanded)}
+        onClick={onToggle}
         className="w-full flex items-center justify-between p-4 hover:bg-gray-800/50 transition-colors text-left"
       >
         <h3 className="text-white font-semibold">{lesson.topic}</h3>
@@ -248,6 +297,14 @@ function TopicCard({ lesson, language, setLanguage, codeStyle, setCodeStyle }: {
 
       {expanded && (
         <div className="border-t border-gray-800">
+          <div className="flex justify-end p-2 border-b border-gray-800/50">
+            <StudyButton
+              scope={`topic:${lesson.topic}`}
+              label="Drill this topic"
+              size="sm"
+              chunkIds={[dsaChunkIdForTopic(lesson.topic)]}
+            />
+          </div>
           {/* Tabs */}
           <div className="flex border-b border-gray-800">
             {(['template', 'memorization', 'mindset', 'overview'] as const).map(tab => (
@@ -497,6 +554,7 @@ export default function DSAReference() {
   const [codeStyle, setCodeStyle] = useLocalStorage<'readable' | 'original'>('lc-code-style', 'readable');
   const [searchParams, setSearchParams] = useSearchParams();
   const view = searchParams.get('view') === 'mnemonics' ? 'mnemonics' : 'topics';
+  const dsaTopicsOpen = usePersistedOpenSet<string>('dsa-open-topics');
 
   const setView = (v: 'topics' | 'mnemonics') => {
     if (v === 'mnemonics') {
@@ -523,6 +581,15 @@ export default function DSAReference() {
             <LanguageToggle language={language} setLanguage={setLanguage} />
           )}
         </div>
+        {view === 'topics' && (
+          <div className="mt-3">
+            <StudyButton
+              scope="all"
+              label="Study this reference"
+              chunkIds={dsaChunks.map((c) => c.id)}
+            />
+          </div>
+        )}
         <div className="mt-3 flex gap-2">
           <button
             onClick={() => setView('topics')}
@@ -708,9 +775,19 @@ export default function DSAReference() {
           {/* Categories */}
           {DSA_CATEGORIES.map(category => (
             <div key={category.name}>
-              <h2 className="text-lg font-semibold text-gray-200 mb-3 border-b border-gray-800 pb-2">
-                {category.name}
-              </h2>
+              <div className="flex items-center justify-between mb-3 border-b border-gray-800 pb-2">
+                <h2 className="text-lg font-semibold text-gray-200">
+                  {category.name}
+                </h2>
+                <StudyButton
+                  scope={`cat:${category.name}`}
+                  label="Drill this section"
+                  size="sm"
+                  chunkIds={category.topics
+                    .filter((t) => lessons[t])
+                    .map((t) => dsaChunkIdForTopic(t))}
+                />
+              </div>
               <div className="space-y-3">
                 {category.topics.map(topicName => {
                   const lesson = lessons[topicName];
@@ -723,6 +800,8 @@ export default function DSAReference() {
                       setLanguage={setLanguage}
                       codeStyle={codeStyle}
                       setCodeStyle={setCodeStyle}
+                      expanded={dsaTopicsOpen.isOpen(topicName)}
+                      onToggle={() => dsaTopicsOpen.toggle(topicName)}
                     />
                   );
                 })}

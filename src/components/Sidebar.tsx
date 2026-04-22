@@ -16,6 +16,7 @@ const navItems = [
   { path: '/study', label: 'Study Session', badgeKey: 'due' as const },
   { path: '/problems', label: 'All Problems' },
   { path: '/dsa', label: 'DSA Reference' },
+  { path: '/neetcode', label: 'NeetCode 250' },
   { path: '/system-design', label: 'System Design' },
   { path: '/sdi-book', label: 'SDI Book Notes' },
   { path: '/glossary', label: 'Glossary' },
