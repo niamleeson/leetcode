@@ -17,6 +17,7 @@ const navItems = [
   { path: '/problems', label: 'All Problems' },
   { path: '/dsa', label: 'DSA Reference' },
   { path: '/neetcode', label: 'NeetCode 250' },
+  { path: '/blind75', label: 'NeetCode Blind 75' },
   { path: '/system-design', label: 'System Design' },
   { path: '/sdi-book', label: 'SDI Book Notes' },
   { path: '/glossary', label: 'Glossary' },

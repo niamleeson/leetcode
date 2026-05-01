@@ -10,6 +10,7 @@ import SearchView from './components/SearchView';
 import ProblemPage from './components/ProblemPage';
 import DSAReference from './components/DSAReference';
 import NeetCode250 from './components/NeetCode250';
+import NeetCodeBlind75 from './components/NeetCodeBlind75';
 import SystemDesignReference from './components/SystemDesignReference';
 import SDIVol1Reference from './components/SDIVol1Reference';
 import StudyMode from './components/study/StudyMode';
@@ -135,6 +136,7 @@ export default function App() {
           } />
           <Route path="/dsa" element={<DSAReference />} />
           <Route path="/neetcode" element={<NeetCode250 />} />
+          <Route path="/blind75" element={<NeetCodeBlind75 />} />
           <Route path="/system-design" element={<SystemDesignReference />} />
           <Route path="/sdi-book" element={<SDIVol1Reference />} />
           <Route path="/train/sdi" element={<StudyMode source="sdi" />} />
