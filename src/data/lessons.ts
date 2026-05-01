@@ -58,7 +58,23 @@ def subarray_sum(nums, k):
         curr_sum += num
         count += prefix.get(curr_sum - k, 0)
         prefix[curr_sum] = prefix.get(curr_sum, 0) + 1
-    return count`,
+    return count
+
+# Prefix/Suffix Products (Product of Array Except Self)
+def product_except_self(nums):
+    n = len(nums)
+    result = [1] * n
+    # Build prefix products (left to right)
+    left = 1
+    for i in range(n):
+        result[i] = left
+        left *= nums[i]
+    # Multiply by suffix products (right to left)
+    right = 1
+    for i in range(n - 1, -1, -1):
+        result[i] *= right
+        right *= nums[i]
+    return result`,
     jsTemplate: `// Two Sum pattern - complement lookup
 function twoSum(nums, target) {
     const seen = new Map(); // value -> index
@@ -539,7 +555,31 @@ def remove_duplicates(nums):
         if nums[fast] != nums[slow]:
             slow += 1
             nums[slow] = nums[fast]
-    return slow + 1`,
+    return slow + 1
+
+# Trapping Rain Water (two-pointer approach)
+def trap(height):
+    if not height:
+        return 0
+    left, right = 0, len(height) - 1
+    left_max = right_max = 0
+    water = 0
+    while left < right:
+        if height[left] < height[right]:
+            # Left side is the bottleneck
+            if height[left] >= left_max:
+                left_max = height[left]
+            else:
+                water += left_max - height[left]
+            left += 1
+        else:
+            # Right side is the bottleneck
+            if height[right] >= right_max:
+                right_max = height[right]
+            else:
+                water += right_max - height[right]
+            right -= 1
+    return water`,
     jsTemplate: `// Opposite direction - pair with target sum (sorted)
 function twoSumSorted(nums, target) {
     let left = 0;
@@ -3757,8 +3797,11 @@ class MedianFinder:
 // Here's a minimal MinHeap implementation:
 
 class MinHeap {
-    constructor() {
+    // Optional comparator: returns negative if a should come before b.
+    // Default: numeric ascending (smallest first).
+    constructor(compare = (a, b) => a - b) {
         this.heap = [];
+        this.compare = compare;
     }
 
     push(val) {
@@ -3790,7 +3833,7 @@ class MinHeap {
         while (i > 0) {
             const parent = Math.floor((i - 1) / 2);
 
-            if (this.heap[parent] <= this.heap[i]) {
+            if (this.compare(this.heap[parent], this.heap[i]) <= 0) {
                 break; // heap property satisfied
             }
 
@@ -3808,10 +3851,10 @@ class MinHeap {
             const left = 2 * i + 1;
             const right = 2 * i + 2;
 
-            if (left < n && this.heap[left] < this.heap[smallest]) {
+            if (left < n && this.compare(this.heap[left], this.heap[smallest]) < 0) {
                 smallest = left;
             }
-            if (right < n && this.heap[right] < this.heap[smallest]) {
+            if (right < n && this.compare(this.heap[right], this.heap[smallest]) < 0) {
                 smallest = right;
             }
 
@@ -3822,6 +3865,13 @@ class MinHeap {
             [this.heap[smallest], this.heap[i]] = [this.heap[i], this.heap[smallest]];
             i = smallest;
         }
+    }
+}
+
+// MaxHeap: same shape, opposite comparator.
+class MaxHeap extends MinHeap {
+    constructor(compare = (a, b) => a - b) {
+        super((a, b) => -compare(a, b));
     }
 }
 
@@ -3836,6 +3886,48 @@ function topKFrequent(nums, k) {
     // Step 2: sort entries by frequency descending, take first k
     const sortedEntries = [...frequency.entries()].sort((a, b) => b[1] - a[1]);
     return sortedEntries.slice(0, k).map(([num]) => num);
+}
+
+// Merge K sorted lists (heap of list heads)
+// Assumes a generic MinHeap that accepts a comparator (smaller value first).
+function mergeKLists(lists) {
+    const heap = new MinHeap((a, b) => a.val - b.val);
+    for (const head of lists) {
+        if (head) heap.push(head);
+    }
+    const dummy = { next: null };
+    let curr = dummy;
+    while (heap.size > 0) {
+        const node = heap.pop();
+        curr.next = node;
+        curr = node;
+        if (node.next) heap.push(node.next);
+    }
+    return dummy.next;
+}
+
+// Find median from data stream (two heaps)
+// lo is a max-heap (largest of the smaller half); hi is a min-heap (smallest of the larger half).
+class MedianFinder {
+    constructor() {
+        this.lo = new MaxHeap();   // smaller half
+        this.hi = new MinHeap();   // larger half
+    }
+
+    addNum(num) {
+        // Push to lo, then move lo's max to hi to keep order
+        this.lo.push(num);
+        this.hi.push(this.lo.pop());
+        // Rebalance: lo can have at most one more element than hi
+        if (this.hi.size > this.lo.size) {
+            this.lo.push(this.hi.pop());
+        }
+    }
+
+    findMedian() {
+        if (this.lo.size > this.hi.size) return this.lo.peek();
+        return (this.lo.peek() + this.hi.peek()) / 2;
+    }
 }`,
     jsTemplateReadable: `// (Uses shared helpers defined in Arrays & Hashing)
 
@@ -4689,7 +4781,50 @@ def network_delay(times, n, k):
                 dist[neighbor] = new_dist
                 heapq.heappush(heap, (new_dist, neighbor))
 
-    return max(dist.values()) if len(dist) == n else -1`,
+    return max(dist.values()) if len(dist) == n else -1
+
+# Multi-source BFS (Rotting Oranges pattern)
+def oranges_rotting(grid):
+    rows, cols = len(grid), len(grid[0])
+    queue = deque()
+    fresh = 0
+    # Collect all initial rotten oranges and count fresh ones
+    for r in range(rows):
+        for c in range(cols):
+            if grid[r][c] == 2:
+                queue.append((r, c, 0))  # row, col, minute
+            elif grid[r][c] == 1:
+                fresh += 1
+    minutes = 0
+    # BFS level by level (each level = 1 minute)
+    while queue:
+        r, c, t = queue.popleft()
+        minutes = max(minutes, t)
+        for dr, dc in [(0,1),(0,-1),(1,0),(-1,0)]:
+            nr, nc = r+dr, c+dc
+            if 0 <= nr < rows and 0 <= nc < cols and grid[nr][nc] == 1:
+                grid[nr][nc] = 2
+                fresh -= 1
+                queue.append((nr, nc, t+1))
+    return minutes if fresh == 0 else -1
+
+# Clone Graph (DFS + HashMap)
+def clone_graph(node):
+    if not node:
+        return None
+    # Map from original node to its clone
+    cloned = {}
+    def dfs(n):
+        if n in cloned:
+            return cloned[n]
+        # Create a clone of this node
+        copy = Node(n.val)
+        cloned[n] = copy
+        # Clone all neighbors recursively
+        for neighbor in n.neighbors:
+            copy.neighbors.append(dfs(neighbor))
+        return copy
+    return dfs(node)`,
     jsTemplate: `// BFS - number of islands (grid)
 function numIslands(grid) {
     if (!grid.length) {
@@ -5459,7 +5594,50 @@ def can_partition(nums):
     for num in nums:
         for j in range(target, num - 1, -1):  # reverse to avoid reuse
             dp[j] = dp[j] or dp[j - num]
-    return dp[target]`,
+    return dp[target]
+
+# Kadane's Algorithm - Maximum Subarray Sum
+def max_sub_array(nums):
+    best = current = nums[0]
+    for num in nums[1:]:
+        # If running sum is negative, start fresh
+        current = max(num, current + num)
+        # Track the best sum found so far
+        best = max(best, current)
+    return best
+
+# Edit Distance (2D DP)
+def min_distance(word1, word2):
+    m, n = len(word1), len(word2)
+    dp = [[0] * (n + 1) for _ in range(m + 1)]
+    # Base cases: converting to/from empty string
+    for i in range(m + 1):
+        dp[i][0] = i
+    for j in range(n + 1):
+        dp[0][j] = j
+    for i in range(1, m + 1):
+        for j in range(1, n + 1):
+            if word1[i-1] == word2[j-1]:
+                # Characters match, no edit needed
+                dp[i][j] = dp[i-1][j-1]
+            else:
+                # Take minimum of insert, delete, replace
+                dp[i][j] = 1 + min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1])
+    return dp[m][n]
+
+# Buy/Sell Stock with State Machine (Cooldown)
+def max_profit(prices):
+    # Three states: hold (own stock), sold (just sold), rest (cooldown/no stock)
+    hold, sold, rest = float('-inf'), 0, 0
+    for price in prices:
+        prev_hold, prev_sold, prev_rest = hold, sold, rest
+        # Today I hold: either I held before, or I bought today (from rest)
+        hold = max(prev_hold, prev_rest - price)
+        # Today I sold: I must have held before
+        sold = prev_hold + price
+        # Today I rest: I either rested before, or I was in cooldown (just sold)
+        rest = max(prev_rest, prev_sold)
+    return max(sold, rest)`,
     jsTemplate: `// 1D DP - House Robber
 // dp[i] = max money we can rob from houses 0..i
 // dp with two variables: best from 2-back and 1-back
@@ -11042,6 +11220,15 @@ class BIT {
     }
 }
 
+// Build from array (O(n log n) bulk init using point updates)
+function buildBIT(nums) {
+    const bit = new BIT(nums.length);
+    for (let i = 0; i < nums.length; i++) {
+        bit.update(i + 1, nums[i]);  // 1-indexed
+    }
+    return bit;
+}
+
 // Range Sum Query - Mutable
 // Stores original values to compute delta on update (never store full value directly)
 class NumArray {
@@ -11124,6 +11311,15 @@ class BIT {
     rangeQuery(l, r) {
         return this.query(r) - this.query(l - 1);
     }
+}
+
+// Build from array (O(n log n) bulk init using point updates)
+function buildBIT(nums) {
+    const bit = new BIT(nums.length);
+    forEach(nums, (val, i) => {
+        bit.update(i + 1, val);  // 1-indexed
+    });
+    return bit;
 }
 
 // Range Sum Query - Mutable
@@ -11536,6 +11732,11 @@ function canFinish(numCourses, prerequisites) {
     return order.length === numCourses;
 }
 
+// Course Schedule II (return the order itself, [] if impossible)
+function findOrder(numCourses, prerequisites) {
+    return topologicalSortKahn(numCourses, prerequisites);
+}
+
 // DFS-based topological sort
 // Post-order: add self AFTER all descendants, then reverse the result
 function topologicalSortDFS(numNodes, edges) {
@@ -11631,6 +11832,11 @@ function topologicalSortKahn(numNodes, edges) {
 function canFinish(numCourses, prerequisites) {
     const order = topologicalSortKahn(numCourses, prerequisites);
     return order.length === numCourses;
+}
+
+// Course Schedule II (return the order itself, [] if impossible)
+function findOrder(numCourses, prerequisites) {
+    return topologicalSortKahn(numCourses, prerequisites);
 }
 
 // DFS-based topological sort
