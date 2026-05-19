@@ -4,6 +4,7 @@ import { useLocalStorage } from '../hooks/useLocalStorage';
 import { usePersistedOpenSet } from '../hooks/usePersistedOpenSet';
 import { NeetCodeTopic, NeetCodeTemplate, NeetCodeProblem } from '../data/neetcode250';
 import { uniqueProblems } from '../data/problems';
+import { solutionMap, ProblemSolution } from '../data/solutions';
 import CodeBlock from './CodeBlock';
 
 type Lang = 'python' | 'javascript';
@@ -37,6 +38,77 @@ function difficultyColor(d: NeetCodeProblem['difficulty']) {
   return 'text-red-400';
 }
 
+function InlineSolution({ solution, language }: { solution: ProblemSolution; language: Lang }) {
+  const showJs = language === 'javascript' && !!solution.jsCode;
+  const code = showJs ? solution.jsCode! : solution.code;
+  const codeLang: Lang = showJs ? 'javascript' : 'python';
+
+  return (
+    <div className="space-y-4">
+      {solution.description && (
+        <div>
+          <h4 className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Problem</h4>
+          <p className="text-xs text-gray-300 leading-relaxed whitespace-pre-line">{solution.description}</p>
+        </div>
+      )}
+
+      {solution.examples && (
+        <pre className="bg-gray-950 border border-gray-800 rounded-md p-3 text-[11px] text-gray-300 overflow-x-auto whitespace-pre-wrap font-mono">
+          {solution.examples}
+        </pre>
+      )}
+
+      {solution.intuition && (
+        <div>
+          <h4 className="text-[10px] font-semibold text-cyan-400 uppercase tracking-wider mb-1.5">Intuition</h4>
+          <p className="text-xs text-gray-300 leading-relaxed whitespace-pre-line bg-cyan-950/20 border border-cyan-900/30 rounded-md p-3">
+            {solution.intuition}
+          </p>
+        </div>
+      )}
+
+      {solution.approach && (
+        <div>
+          <h4 className="text-[10px] font-semibold text-blue-400 uppercase tracking-wider mb-1.5">Approach</h4>
+          <p className="text-xs text-gray-400 leading-relaxed whitespace-pre-line">{solution.approach}</p>
+        </div>
+      )}
+
+      <div>
+        <h4 className="text-[10px] font-semibold text-emerald-400 uppercase tracking-wider mb-1.5">
+          {codeLang === 'python' ? 'Python' : 'JavaScript'} Solution
+        </h4>
+        <CodeBlock code={code} language={codeLang} />
+        {language === 'javascript' && !solution.jsCode && (
+          <p className="text-[10px] text-gray-500 mt-1">JavaScript solution not available — showing Python.</p>
+        )}
+      </div>
+
+      {solution.explanation && (
+        <div>
+          <h4 className="text-[10px] font-semibold text-yellow-400 uppercase tracking-wider mb-1.5">Explanation</h4>
+          <p className="text-xs text-gray-400 leading-relaxed whitespace-pre-line">{solution.explanation}</p>
+        </div>
+      )}
+
+      {(solution.timeComplexity || solution.spaceComplexity) && (
+        <div className="flex gap-5 text-[11px] text-gray-500 pt-1">
+          {solution.timeComplexity && (
+            <span>
+              Time: <strong className="text-gray-300">{solution.timeComplexity}</strong>
+            </span>
+          )}
+          {solution.spaceComplexity && (
+            <span>
+              Space: <strong className="text-gray-300">{solution.spaceComplexity}</strong>
+            </span>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ProblemRow({
   problem,
   language,
@@ -50,7 +122,9 @@ function ProblemRow({
   open: boolean;
   onToggle: () => void;
 }) {
-  const hasSolution = !!problem.solution;
+  const externalSolution = solutionMap[problem.id];
+  const inlineSolution = problem.solution;
+  const hasSolution = !!externalSolution || !!inlineSolution;
 
   const titleContent = (
     <span className="text-sm text-gray-200 flex-1 truncate hover:text-blue-300 transition-colors">
@@ -92,15 +166,23 @@ function ProblemRow({
         )}
       </div>
 
-      {hasSolution && open && problem.solution && (
-        <div className="border-t border-gray-800 p-3 space-y-3 bg-gray-950/50">
-          {problem.solution.explanation && (
-            <p className="text-xs text-gray-400 leading-relaxed">{problem.solution.explanation}</p>
+      {open && hasSolution && (
+        <div className="border-t border-gray-800 p-3 bg-gray-950/50">
+          {externalSolution ? (
+            <InlineSolution solution={externalSolution} language={language} />
+          ) : (
+            inlineSolution && (
+              <div className="space-y-3">
+                {inlineSolution.explanation && (
+                  <p className="text-xs text-gray-400 leading-relaxed">{inlineSolution.explanation}</p>
+                )}
+                <CodeBlock
+                  code={language === 'python' ? inlineSolution.python : inlineSolution.javascript}
+                  language={language}
+                />
+              </div>
+            )
           )}
-          <CodeBlock
-            code={language === 'python' ? problem.solution.python : problem.solution.javascript}
-            language={language}
-          />
         </div>
       )}
     </div>
