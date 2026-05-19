@@ -126,23 +126,24 @@ function ProblemRow({
   const inlineSolution = problem.solution;
   const hasSolution = !!externalSolution || !!inlineSolution;
 
-  const titleContent = (
-    <span className="text-sm text-gray-200 flex-1 truncate hover:text-blue-300 transition-colors">
-      {problem.title}
-    </span>
-  );
-
   return (
     <div className="border border-gray-800 rounded-md overflow-hidden">
       <div className="w-full flex items-center gap-3 px-3 py-2">
         <span className="text-xs text-gray-500 font-mono w-10 shrink-0">#{problem.id}</span>
-        {inApp ? (
-          <Link to={`/problem/${problem.id}`} className="flex-1 min-w-0 truncate">
-            {titleContent}
-          </Link>
-        ) : (
-          titleContent
-        )}
+        <button
+          type="button"
+          onClick={hasSolution ? onToggle : undefined}
+          disabled={!hasSolution}
+          aria-expanded={open}
+          aria-label={hasSolution ? (open ? 'Collapse solution' : 'Expand solution') : undefined}
+          className={`flex-1 min-w-0 truncate text-left text-sm transition-colors ${
+            hasSolution
+              ? 'text-gray-200 hover:text-blue-300 cursor-pointer'
+              : 'text-gray-200 cursor-default'
+          }`}
+        >
+          {problem.title}
+        </button>
         <span className={`text-xs font-medium ${difficultyColor(problem.difficulty)}`}>{problem.difficulty}</span>
         <a
           href={problem.url}
@@ -153,14 +154,15 @@ function ProblemRow({
         >
           LC
         </a>
-        {hasSolution ? (
-          <button
-            onClick={onToggle}
-            className="text-gray-500 text-xs w-4 hover:text-gray-300"
-            aria-label={open ? 'Collapse solution' : 'Expand solution'}
+        {inApp ? (
+          <Link
+            to={`/problem/${problem.id}`}
+            className="text-gray-500 hover:text-gray-200 text-xs w-4 text-right"
+            title="Open problem page"
+            aria-label="Open problem page"
           >
-            {open ? '▾' : '▸'}
-          </button>
+            ▸
+          </Link>
         ) : (
           <span className="text-[10px] text-gray-600 italic w-4 text-right">—</span>
         )}
