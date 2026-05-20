@@ -94,15 +94,15 @@ export default function TopicView({ topic, getProgress }: TopicViewProps) {
       <div className="flex items-center gap-3">
         <Link
           to="/"
-          className="text-gray-400 hover:text-white transition-colors"
+          className="text-gray-400 light:text-gray-600 hover:text-white light:hover:text-gray-900 transition-colors"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
         </Link>
         <div className="flex-1">
-          <h2 className="text-xl font-bold text-white">{topic}</h2>
-          <p className="text-sm text-gray-400">{stats.solved}/{stats.total} problems solved</p>
+          <h2 className="text-xl font-bold text-white light:text-gray-900">{topic}</h2>
+          <p className="text-sm text-gray-400 light:text-gray-600">{stats.solved}/{stats.total} problems solved</p>
         </div>
       </div>
 
@@ -113,15 +113,15 @@ export default function TopicView({ topic, getProgress }: TopicViewProps) {
 
       {/* Filters */}
       <div className="flex flex-wrap gap-2 items-center">
-        <div className="flex gap-1 bg-gray-900 rounded-lg p-1">
+        <div className="flex gap-1 bg-gray-900 light:bg-white rounded-lg p-1">
           {VALID_STATUSES.map(s => (
             <button
               key={s}
               onClick={() => setParam('status', s)}
               className={`px-3 py-1 text-xs rounded-md transition-colors ${
                 filterStatus === s
-                  ? 'bg-gray-700 text-white'
-                  : 'text-gray-400 hover:text-white'
+                  ? 'bg-gray-700 light:bg-gray-200 text-white light:text-gray-900'
+                  : 'text-gray-400 light:text-gray-600 hover:text-white light:hover:text-gray-900'
               }`}
             >
               {s.charAt(0).toUpperCase() + s.slice(1)}
@@ -129,15 +129,15 @@ export default function TopicView({ topic, getProgress }: TopicViewProps) {
           ))}
         </div>
 
-        <div className="flex gap-1 bg-gray-900 rounded-lg p-1">
+        <div className="flex gap-1 bg-gray-900 light:bg-white rounded-lg p-1">
           {VALID_DIFFICULTIES.map(d => (
             <button
               key={d}
               onClick={() => setParam('difficulty', d)}
               className={`px-3 py-1 text-xs rounded-md transition-colors ${
                 filterDifficulty === d
-                  ? 'bg-gray-700 text-white'
-                  : 'text-gray-400 hover:text-white'
+                  ? 'bg-gray-700 light:bg-gray-200 text-white light:text-gray-900'
+                  : 'text-gray-400 light:text-gray-600 hover:text-white light:hover:text-gray-900'
               }`}
             >
               {d}
@@ -148,7 +148,7 @@ export default function TopicView({ topic, getProgress }: TopicViewProps) {
         <select
           value={sortBy}
           onChange={e => setParam('sort', e.target.value)}
-          className="bg-gray-900 border border-gray-700 rounded-md px-2 py-1 text-xs text-gray-300 focus:outline-none ml-auto"
+          className="bg-gray-900 light:bg-white border border-gray-700 light:border-gray-300 rounded-md px-2 py-1 text-xs text-gray-300 light:text-gray-700 focus:outline-none ml-auto"
         >
           <option value="difficulty">Sort: Difficulty</option>
           <option value="id">Sort: Problem #</option>
@@ -156,7 +156,7 @@ export default function TopicView({ topic, getProgress }: TopicViewProps) {
         </select>
       </div>
 
-      <p className="text-xs text-gray-500">{filteredProblems.length} problems</p>
+      <p className="text-xs text-gray-500 light:text-gray-500">{filteredProblems.length} problems</p>
 
       {/* Problems list */}
       <div className="space-y-2">
@@ -168,7 +168,7 @@ export default function TopicView({ topic, getProgress }: TopicViewProps) {
           />
         ))}
         {filteredProblems.length === 0 && (
-          <div className="text-center py-12 text-gray-500">
+          <div className="text-center py-12 text-gray-500 light:text-gray-500">
             No problems match your filters
           </div>
         )}

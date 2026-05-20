@@ -11,11 +11,11 @@ type Lang = 'python' | 'javascript';
 
 function LanguageToggle({ language, setLanguage }: { language: Lang; setLanguage: (l: Lang) => void }) {
   return (
-    <div className="inline-flex rounded-md bg-gray-800 p-0.5">
+    <div className="inline-flex rounded-md bg-gray-800 light:bg-gray-100 p-0.5">
       <button
         onClick={() => setLanguage('javascript')}
         className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
-          language === 'javascript' ? 'bg-yellow-600 text-white' : 'text-gray-400 hover:text-gray-200'
+          language === 'javascript' ? 'bg-yellow-600 text-white' : 'text-gray-400 light:text-gray-600 hover:text-gray-200 light:hover:text-gray-800'
         }`}
       >
         JavaScript
@@ -23,7 +23,7 @@ function LanguageToggle({ language, setLanguage }: { language: Lang; setLanguage
       <button
         onClick={() => setLanguage('python')}
         className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
-          language === 'python' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-gray-200'
+          language === 'python' ? 'bg-blue-600 text-white' : 'text-gray-400 light:text-gray-600 hover:text-gray-200 light:hover:text-gray-800'
         }`}
       >
         Python
@@ -33,9 +33,9 @@ function LanguageToggle({ language, setLanguage }: { language: Lang; setLanguage
 }
 
 function difficultyColor(d: NeetCodeProblem['difficulty']) {
-  if (d === 'Easy') return 'text-emerald-400';
-  if (d === 'Medium') return 'text-amber-400';
-  return 'text-red-400';
+  if (d === 'Easy') return 'text-emerald-400 light:text-emerald-700';
+  if (d === 'Medium') return 'text-amber-400 light:text-amber-700';
+  return 'text-red-400 light:text-red-700';
 }
 
 function InlineSolution({ solution, language }: { solution: ProblemSolution; language: Lang }) {
@@ -47,21 +47,21 @@ function InlineSolution({ solution, language }: { solution: ProblemSolution; lan
     <div className="space-y-4">
       {solution.description && (
         <div>
-          <h4 className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Problem</h4>
-          <p className="text-xs text-gray-300 leading-relaxed whitespace-pre-line">{solution.description}</p>
+          <h4 className="text-[10px] font-semibold text-gray-500 light:text-gray-500 uppercase tracking-wider mb-1.5">Problem</h4>
+          <p className="text-xs text-gray-300 light:text-gray-700 leading-relaxed whitespace-pre-line">{solution.description}</p>
         </div>
       )}
 
       {solution.examples && (
-        <pre className="bg-gray-950 border border-gray-800 rounded-md p-3 text-[11px] text-gray-300 overflow-x-auto whitespace-pre-wrap font-mono">
+        <pre className="bg-gray-950 light:bg-gray-50 border border-gray-800 light:border-gray-200 rounded-md p-3 text-[11px] text-gray-300 light:text-gray-700 overflow-x-auto whitespace-pre-wrap font-mono">
           {solution.examples}
         </pre>
       )}
 
       {solution.intuition && (
         <div>
-          <h4 className="text-[10px] font-semibold text-cyan-400 uppercase tracking-wider mb-1.5">Intuition</h4>
-          <p className="text-xs text-gray-300 leading-relaxed whitespace-pre-line bg-cyan-950/20 border border-cyan-900/30 rounded-md p-3">
+          <h4 className="text-[10px] font-semibold text-cyan-400 light:text-cyan-700 uppercase tracking-wider mb-1.5">Intuition</h4>
+          <p className="text-xs text-gray-300 light:text-gray-700 leading-relaxed whitespace-pre-line bg-cyan-950/20 light:bg-cyan-50 border border-cyan-900/30 light:border-cyan-200 rounded-md p-3">
             {solution.intuition}
           </p>
         </div>
@@ -69,38 +69,38 @@ function InlineSolution({ solution, language }: { solution: ProblemSolution; lan
 
       {solution.approach && (
         <div>
-          <h4 className="text-[10px] font-semibold text-blue-400 uppercase tracking-wider mb-1.5">Approach</h4>
-          <p className="text-xs text-gray-400 leading-relaxed whitespace-pre-line">{solution.approach}</p>
+          <h4 className="text-[10px] font-semibold text-blue-400 light:text-blue-700 uppercase tracking-wider mb-1.5">Approach</h4>
+          <p className="text-xs text-gray-400 light:text-gray-600 leading-relaxed whitespace-pre-line">{solution.approach}</p>
         </div>
       )}
 
       <div>
-        <h4 className="text-[10px] font-semibold text-emerald-400 uppercase tracking-wider mb-1.5">
+        <h4 className="text-[10px] font-semibold text-emerald-400 light:text-emerald-700 uppercase tracking-wider mb-1.5">
           {codeLang === 'python' ? 'Python' : 'JavaScript'} Solution
         </h4>
         <CodeBlock code={code} language={codeLang} />
         {language === 'javascript' && !solution.jsCode && (
-          <p className="text-[10px] text-gray-500 mt-1">JavaScript solution not available — showing Python.</p>
+          <p className="text-[10px] text-gray-500 light:text-gray-500 mt-1">JavaScript solution not available — showing Python.</p>
         )}
       </div>
 
       {solution.explanation && (
         <div>
-          <h4 className="text-[10px] font-semibold text-yellow-400 uppercase tracking-wider mb-1.5">Explanation</h4>
-          <p className="text-xs text-gray-400 leading-relaxed whitespace-pre-line">{solution.explanation}</p>
+          <h4 className="text-[10px] font-semibold text-yellow-400 light:text-yellow-700 uppercase tracking-wider mb-1.5">Explanation</h4>
+          <p className="text-xs text-gray-400 light:text-gray-600 leading-relaxed whitespace-pre-line">{solution.explanation}</p>
         </div>
       )}
 
       {(solution.timeComplexity || solution.spaceComplexity) && (
-        <div className="flex gap-5 text-[11px] text-gray-500 pt-1">
+        <div className="flex gap-5 text-[11px] text-gray-500 light:text-gray-500 pt-1">
           {solution.timeComplexity && (
             <span>
-              Time: <strong className="text-gray-300">{solution.timeComplexity}</strong>
+              Time: <strong className="text-gray-300 light:text-gray-700">{solution.timeComplexity}</strong>
             </span>
           )}
           {solution.spaceComplexity && (
             <span>
-              Space: <strong className="text-gray-300">{solution.spaceComplexity}</strong>
+              Space: <strong className="text-gray-300 light:text-gray-700">{solution.spaceComplexity}</strong>
             </span>
           )}
         </div>
@@ -127,9 +127,9 @@ function ProblemRow({
   const hasSolution = !!externalSolution || !!inlineSolution;
 
   return (
-    <div className="border border-gray-800 rounded-md overflow-hidden">
+    <div className="border border-gray-800 light:border-gray-200 rounded-md overflow-hidden">
       <div className="w-full flex items-center gap-3 px-3 py-2">
-        <span className="text-xs text-gray-500 font-mono w-10 shrink-0">#{problem.id}</span>
+        <span className="text-xs text-gray-500 light:text-gray-500 font-mono w-10 shrink-0">#{problem.id}</span>
         <button
           type="button"
           onClick={hasSolution ? onToggle : undefined}
@@ -138,8 +138,8 @@ function ProblemRow({
           aria-label={hasSolution ? (open ? 'Collapse solution' : 'Expand solution') : undefined}
           className={`flex-1 min-w-0 truncate text-left text-sm transition-colors ${
             hasSolution
-              ? 'text-gray-200 hover:text-blue-300 cursor-pointer'
-              : 'text-gray-200 cursor-default'
+              ? 'text-gray-200 light:text-gray-800 hover:text-blue-300 light:hover:text-blue-700 cursor-pointer'
+              : 'text-gray-200 light:text-gray-800 cursor-default'
           }`}
         >
           {problem.title}
@@ -149,7 +149,7 @@ function ProblemRow({
           href={problem.url}
           target="_blank"
           rel="noreferrer"
-          className="text-xs text-blue-400 hover:text-blue-300 underline"
+          className="text-xs text-blue-400 light:text-blue-700 hover:text-blue-300 light:hover:text-blue-600 underline"
           title="Open on LeetCode"
         >
           LC
@@ -157,26 +157,26 @@ function ProblemRow({
         {inApp ? (
           <Link
             to={`/problem/${problem.id}`}
-            className="text-gray-500 hover:text-gray-200 text-xs w-4 text-right"
+            className="text-gray-500 light:text-gray-500 hover:text-gray-200 light:hover:text-gray-800 text-xs w-4 text-right"
             title="Open problem page"
             aria-label="Open problem page"
           >
             ▸
           </Link>
         ) : (
-          <span className="text-[10px] text-gray-600 italic w-4 text-right">—</span>
+          <span className="text-[10px] text-gray-600 light:text-gray-500 italic w-4 text-right">—</span>
         )}
       </div>
 
       {open && hasSolution && (
-        <div className="border-t border-gray-800 p-3 bg-gray-950/50">
+        <div className="border-t border-gray-800 light:border-gray-200 p-3 bg-gray-950/50 light:bg-gray-50">
           {externalSolution ? (
             <InlineSolution solution={externalSolution} language={language} />
           ) : (
             inlineSolution && (
               <div className="space-y-3">
                 {inlineSolution.explanation && (
-                  <p className="text-xs text-gray-400 leading-relaxed">{inlineSolution.explanation}</p>
+                  <p className="text-xs text-gray-400 light:text-gray-600 leading-relaxed">{inlineSolution.explanation}</p>
                 )}
                 <CodeBlock
                   code={language === 'python' ? inlineSolution.python : inlineSolution.javascript}
@@ -212,21 +212,21 @@ function TemplateCard({
     .filter((p): p is NeetCodeProblem => !!p);
 
   return (
-    <div className="border border-gray-800 rounded-lg overflow-hidden bg-gray-900/40">
-      <div className="p-4 border-b border-gray-800">
-        <h3 className="text-base font-semibold text-white">{template.name}</h3>
-        <p className="text-xs text-sky-300 italic mt-1">&ldquo;{template.mnemonic}&rdquo;</p>
+    <div className="border border-gray-800 light:border-gray-200 rounded-lg overflow-hidden bg-gray-900/40 light:bg-gray-50">
+      <div className="p-4 border-b border-gray-800 light:border-gray-200">
+        <h3 className="text-base font-semibold text-white light:text-gray-900">{template.name}</h3>
+        <p className="text-xs text-sky-300 light:text-sky-700 italic mt-1">&ldquo;{template.mnemonic}&rdquo;</p>
       </div>
 
-      <div className="flex border-b border-gray-800">
+      <div className="flex border-b border-gray-800 light:border-gray-200">
         {(['pseudocode', 'code'] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
             className={`flex-1 px-4 py-2 text-xs font-medium capitalize transition-colors ${
               tab === t
-                ? 'text-blue-400 border-b-2 border-blue-400 bg-blue-950/20'
-                : 'text-gray-500 hover:text-gray-300'
+                ? 'text-blue-400 light:text-blue-700 border-b-2 border-blue-400 bg-blue-950/20 light:bg-blue-50'
+                : 'text-gray-500 light:text-gray-500 hover:text-gray-300 light:hover:text-gray-700'
             }`}
           >
             {t === 'pseudocode' ? 'Pseudocode (memorize)' : language === 'python' ? 'Python' : 'JavaScript'}
@@ -236,7 +236,7 @@ function TemplateCard({
 
       <div className="p-4">
         {tab === 'pseudocode' ? (
-          <pre className="text-xs text-gray-300 leading-relaxed whitespace-pre-wrap font-mono bg-gray-950 border border-gray-800 rounded-md p-4">
+          <pre className="text-xs text-gray-300 light:text-gray-700 leading-relaxed whitespace-pre-wrap font-mono bg-gray-950 light:bg-gray-50 border border-gray-800 light:border-gray-200 rounded-md p-4">
             {template.pseudocode}
           </pre>
         ) : (
@@ -247,8 +247,8 @@ function TemplateCard({
         )}
       </div>
 
-      <div className="border-t border-gray-800 p-4">
-        <h4 className="text-xs font-semibold text-blue-300 uppercase tracking-wider mb-3">
+      <div className="border-t border-gray-800 light:border-gray-200 p-4">
+        <h4 className="text-xs font-semibold text-blue-300 light:text-blue-700 uppercase tracking-wider mb-3">
           Questions solved by this template ({templateProblems.length})
         </h4>
         <div className="space-y-1.5">
@@ -286,20 +286,20 @@ function TopicSection({
   onToggleProblem: (id: number) => void;
 }) {
   return (
-    <div className="border border-gray-800 rounded-lg overflow-hidden">
+    <div className="border border-gray-800 light:border-gray-200 rounded-lg overflow-hidden">
       <button
         onClick={onToggle}
-        className="w-full flex items-center justify-between p-4 bg-gray-900 hover:bg-gray-800/50 transition-colors text-left"
+        className="w-full flex items-center justify-between p-4 bg-gray-900 light:bg-white hover:bg-gray-800/50 light:hover:bg-gray-100 transition-colors text-left"
       >
         <div>
-          <h2 className="text-lg font-bold text-white">{topic.name}</h2>
-          <p className="text-xs text-gray-500 mt-1">
+          <h2 className="text-lg font-bold text-white light:text-gray-900">{topic.name}</h2>
+          <p className="text-xs text-gray-500 light:text-gray-500 mt-1">
             {topic.templates.length} template{topic.templates.length === 1 ? '' : 's'} &middot;{' '}
             {topic.problems.length} problem{topic.problems.length === 1 ? '' : 's'}
           </p>
         </div>
         <svg
-          className={`w-4 h-4 text-gray-500 transition-transform ${expanded ? 'rotate-180' : ''}`}
+          className={`w-4 h-4 text-gray-500 light:text-gray-500 transition-transform ${expanded ? 'rotate-180' : ''}`}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -309,7 +309,7 @@ function TopicSection({
       </button>
 
       {expanded && (
-        <div className="p-4 space-y-6 border-t border-gray-800 bg-gray-950/40">
+        <div className="p-4 space-y-6 border-t border-gray-800 light:border-gray-200 bg-gray-950/40 light:bg-gray-50">
           {topic.templates.map((tpl) => (
             <TemplateCard
               key={tpl.id}
@@ -344,8 +344,8 @@ export default function NeetCodeView({ topics, storagePrefix, title, description
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">{title}</h1>
-          <p className="text-gray-400 mt-1 text-sm">{description}</p>
+          <h1 className="text-2xl font-bold text-white light:text-gray-900">{title}</h1>
+          <p className="text-gray-400 light:text-gray-600 mt-1 text-sm">{description}</p>
         </div>
         <LanguageToggle language={language} setLanguage={setLanguage} />
       </div>

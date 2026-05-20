@@ -20,32 +20,32 @@ const BUTTONS: { grade: StudyGrade; label: string; hint: string; color: string }
     grade: 0,
     label: 'Again',
     hint: 'Missed entirely',
-    color: 'bg-red-950/40 hover:bg-red-900/60 border-red-900/50 text-red-300',
+    color: 'bg-red-950/40 light:bg-red-50 hover:bg-red-900/60 light:hover:bg-red-100 border-red-900/50 light:border-red-200 text-red-300 light:text-red-700',
   },
   {
     grade: 1,
     label: 'Hard',
     hint: 'Got it with effort',
-    color: 'bg-orange-950/40 hover:bg-orange-900/60 border-orange-900/50 text-orange-300',
+    color: 'bg-orange-950/40 light:bg-orange-50 hover:bg-orange-900/60 light:hover:bg-orange-100 border-orange-900/50 light:border-orange-200 text-orange-300 light:text-orange-700',
   },
   {
     grade: 2,
     label: 'Good',
     hint: 'Hit the key points',
-    color: 'bg-blue-950/40 hover:bg-blue-900/60 border-blue-900/50 text-blue-300',
+    color: 'bg-blue-950/40 light:bg-blue-50 hover:bg-blue-900/60 light:hover:bg-blue-100 border-blue-900/50 light:border-blue-200 text-blue-300 light:text-blue-700',
   },
   {
     grade: 3,
     label: 'Easy',
     hint: 'Instant, thorough',
-    color: 'bg-emerald-950/40 hover:bg-emerald-900/60 border-emerald-900/50 text-emerald-300',
+    color: 'bg-emerald-950/40 light:bg-emerald-50 hover:bg-emerald-900/60 light:hover:bg-emerald-100 border-emerald-900/50 light:border-emerald-200 text-emerald-300 light:text-emerald-700',
   },
 ];
 
 export default function StudyRubric({ onGrade, disabledReason }: Props) {
   return (
-    <div className="border-t border-gray-800 pt-4 mt-4">
-      <p className="text-xs text-gray-500 mb-2 uppercase tracking-wider">
+    <div className="border-t border-gray-800 light:border-gray-200 pt-4 mt-4">
+      <p className="text-xs text-gray-500 light:text-gray-500 mb-2 uppercase tracking-wider">
         Rate your recall honestly — the schedule depends on it
       </p>
       <div className="grid grid-cols-4 gap-2">
@@ -62,7 +62,7 @@ export default function StudyRubric({ onGrade, disabledReason }: Props) {
         ))}
       </div>
       {disabledReason && (
-        <p className="text-xs text-gray-600 mt-2">{disabledReason}</p>
+        <p className="text-xs text-gray-600 light:text-gray-500 mt-2">{disabledReason}</p>
       )}
     </div>
   );

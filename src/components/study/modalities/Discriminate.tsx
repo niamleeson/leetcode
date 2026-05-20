@@ -28,17 +28,17 @@ export default function Discriminate({ chunk, onGrade, onSkip }: Props) {
 
   if (!disc || !other) {
     return (
-      <div className="space-y-3 text-sm text-gray-400">
-        <div className="text-[11px] font-semibold text-sky-400 uppercase tracking-wider">
+      <div className="space-y-3 text-sm text-gray-400 light:text-gray-600">
+        <div className="text-[11px] font-semibold text-sky-400 light:text-sky-700 uppercase tracking-wider">
           Discriminate
         </div>
         <p>
           No discriminator pair has been authored for{' '}
-          <span className="text-white">{chunk.title}</span> yet. Skipping.
+          <span className="text-white light:text-gray-900">{chunk.title}</span> yet. Skipping.
         </p>
         <button
           onClick={onSkip}
-          className="bg-gray-800 hover:bg-gray-700 text-gray-200 text-sm px-4 py-2 rounded-md"
+          className="bg-gray-800 light:bg-gray-100 hover:bg-gray-700 light:hover:bg-gray-200 text-gray-200 light:text-gray-800 text-sm px-4 py-2 rounded-md"
         >
           Skip
         </button>
@@ -51,12 +51,12 @@ export default function Discriminate({ chunk, onGrade, onSkip }: Props) {
   return (
     <div className="space-y-4">
       <div>
-        <div className="text-[11px] font-semibold text-sky-400 uppercase tracking-wider mb-1">
+        <div className="text-[11px] font-semibold text-sky-400 light:text-sky-700 uppercase tracking-wider mb-1">
           Discriminate · Boundary drill
         </div>
-        <div className="text-sm text-gray-300">
-          In one sentence: how do you tell <span className="text-white font-semibold">{chunk.title}</span> apart
-          from <span className="text-white font-semibold">{other.title}</span>?
+        <div className="text-sm text-gray-300 light:text-gray-700">
+          In one sentence: how do you tell <span className="text-white light:text-gray-900 font-semibold">{chunk.title}</span> apart
+          from <span className="text-white light:text-gray-900 font-semibold">{other.title}</span>?
         </div>
       </div>
 
@@ -65,7 +65,7 @@ export default function Discriminate({ chunk, onGrade, onSkip }: Props) {
         onChange={(e) => setText(e.target.value)}
         placeholder="Describe the distinguishing feature in one sentence."
         disabled={submitted}
-        className="w-full h-24 bg-gray-900/60 border border-gray-800 rounded-md px-3 py-2 text-sm text-gray-200 leading-relaxed resize-y focus:outline-none focus:border-sky-800 disabled:opacity-60"
+        className="w-full h-24 bg-gray-900/60 light:bg-gray-50 border border-gray-800 light:border-gray-200 rounded-md px-3 py-2 text-sm text-gray-200 light:text-gray-800 leading-relaxed resize-y focus:outline-none focus:border-sky-800 disabled:opacity-60"
       />
 
       {!submitted ? (
@@ -73,7 +73,7 @@ export default function Discriminate({ chunk, onGrade, onSkip }: Props) {
           <button
             onClick={() => setSubmitted(true)}
             disabled={!canSubmit}
-            className="bg-sky-900/60 hover:bg-sky-800/80 disabled:opacity-40 border border-sky-800/60 text-sky-100 text-sm px-4 py-2 rounded-md"
+            className="bg-sky-900/60 light:bg-sky-50 hover:bg-sky-800/80 light:hover:bg-sky-100 disabled:opacity-40 border border-sky-800/60 light:border-sky-200 text-sky-100 light:text-sky-700 text-sm px-4 py-2 rounded-md"
           >
             Submit answer
           </button>

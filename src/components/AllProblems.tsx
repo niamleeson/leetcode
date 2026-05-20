@@ -74,41 +74,41 @@ export default function AllProblems({ getProgress, stats }: AllProblemsProps) {
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="text-2xl font-bold text-white">All Problems</h2>
-        <p className="text-sm text-gray-400">{uniqueProblems.length} problems</p>
+        <h2 className="text-2xl font-bold text-white light:text-gray-900">All Problems</h2>
+        <p className="text-sm text-gray-400 light:text-gray-600">{uniqueProblems.length} problems</p>
       </div>
 
       <ProgressBar solved={stats.solved} attempted={stats.attempted} total={stats.total} />
 
       {/* Filters */}
       <div className="flex flex-wrap gap-2 items-center">
-        <div className="flex gap-1 bg-gray-900 rounded-lg p-1">
+        <div className="flex gap-1 bg-gray-900 light:bg-white rounded-lg p-1">
           {VALID_STATUSES.map(s => (
             <button
               key={s}
               onClick={() => setParam('status', s)}
               className={`px-3 py-1 text-xs rounded-md transition-colors ${
-                filterStatus === s ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white'
+                filterStatus === s ? 'bg-gray-700 light:bg-gray-200 text-white light:text-gray-900' : 'text-gray-400 light:text-gray-600 hover:text-white light:hover:text-gray-900'
               }`}
             >
               {s.charAt(0).toUpperCase() + s.slice(1)}
             </button>
           ))}
         </div>
-        <div className="flex gap-1 bg-gray-900 rounded-lg p-1">
+        <div className="flex gap-1 bg-gray-900 light:bg-white rounded-lg p-1">
           {VALID_DIFFICULTIES.map(d => (
             <button
               key={d}
               onClick={() => setParam('difficulty', d)}
               className={`px-3 py-1 text-xs rounded-md transition-colors ${
-                filterDifficulty === d ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white'
+                filterDifficulty === d ? 'bg-gray-700 light:bg-gray-200 text-white light:text-gray-900' : 'text-gray-400 light:text-gray-600 hover:text-white light:hover:text-gray-900'
               }`}
             >
               {d}
             </button>
           ))}
         </div>
-        <span className="text-xs text-gray-500 ml-auto">{filtered.length} results</span>
+        <span className="text-xs text-gray-500 light:text-gray-500 ml-auto">{filtered.length} results</span>
       </div>
 
       {/* Problems */}
@@ -124,17 +124,17 @@ export default function AllProblems({ getProgress, stats }: AllProblemsProps) {
           <button
             onClick={() => setParam('page', String(safePage - 1), false)}
             disabled={safePage === 0}
-            className="bg-gray-800 hover:bg-gray-700 disabled:opacity-30 text-gray-300 px-3 py-1.5 rounded-md text-sm"
+            className="bg-gray-800 light:bg-gray-100 hover:bg-gray-700 light:hover:bg-gray-200 disabled:opacity-30 text-gray-300 light:text-gray-700 px-3 py-1.5 rounded-md text-sm"
           >
             Prev
           </button>
-          <span className="text-sm text-gray-400">
+          <span className="text-sm text-gray-400 light:text-gray-600">
             Page {safePage + 1} of {totalPages}
           </span>
           <button
             onClick={() => setParam('page', String(safePage + 1), false)}
             disabled={safePage >= totalPages - 1}
-            className="bg-gray-800 hover:bg-gray-700 disabled:opacity-30 text-gray-300 px-3 py-1.5 rounded-md text-sm"
+            className="bg-gray-800 light:bg-gray-100 hover:bg-gray-700 light:hover:bg-gray-200 disabled:opacity-30 text-gray-300 light:text-gray-700 px-3 py-1.5 rounded-md text-sm"
           >
             Next
           </button>

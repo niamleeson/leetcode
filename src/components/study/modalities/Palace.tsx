@@ -29,14 +29,14 @@ export default function Palace({ chunk, onGrade, onSkip }: Props) {
 
   if (!probe) {
     return (
-      <div className="space-y-3 text-sm text-gray-400">
-        <div className="text-[11px] font-semibold text-sky-400 uppercase tracking-wider">
+      <div className="space-y-3 text-sm text-gray-400 light:text-gray-600">
+        <div className="text-[11px] font-semibold text-sky-400 light:text-sky-700 uppercase tracking-wider">
           Palace walk
         </div>
         <p>No probe questions authored for this chapter yet. Skipping.</p>
         <button
           onClick={onSkip}
-          className="bg-gray-800 hover:bg-gray-700 text-gray-200 text-sm px-4 py-2 rounded-md"
+          className="bg-gray-800 light:bg-gray-100 hover:bg-gray-700 light:hover:bg-gray-200 text-gray-200 light:text-gray-800 text-sm px-4 py-2 rounded-md"
         >
           Skip
         </button>
@@ -49,17 +49,17 @@ export default function Palace({ chunk, onGrade, onSkip }: Props) {
   return (
     <div className="space-y-4">
       <div>
-        <div className="text-[11px] font-semibold text-sky-400 uppercase tracking-wider mb-1">
+        <div className="text-[11px] font-semibold text-sky-400 light:text-sky-700 uppercase tracking-wider mb-1">
           Palace walk · One probe
         </div>
-        <div className="text-xs text-gray-500 mb-2">
-          Context: <span className="text-gray-300">{chunk.title}</span>
+        <div className="text-xs text-gray-500 light:text-gray-500 mb-2">
+          Context: <span className="text-gray-300 light:text-gray-700">{chunk.title}</span>
         </div>
-        <div className="bg-indigo-950/30 border border-indigo-900/40 rounded-md p-4">
-          <div className="text-xs text-indigo-300 uppercase tracking-wider mb-1">
+        <div className="bg-indigo-950/30 light:bg-indigo-50 border border-indigo-900/40 light:border-indigo-200 rounded-md p-4">
+          <div className="text-xs text-indigo-300 light:text-indigo-700 uppercase tracking-wider mb-1">
             Probe
           </div>
-          <div className="text-gray-100 text-sm leading-relaxed">{probe}</div>
+          <div className="text-gray-100 light:text-gray-900 text-sm leading-relaxed">{probe}</div>
         </div>
       </div>
 
@@ -68,7 +68,7 @@ export default function Palace({ chunk, onGrade, onSkip }: Props) {
         onChange={(e) => setText(e.target.value)}
         placeholder="Answer out loud or here. Don't search — pull it from memory."
         disabled={submitted}
-        className="w-full h-28 bg-gray-900/60 border border-gray-800 rounded-md px-3 py-2 text-sm text-gray-200 leading-relaxed resize-y focus:outline-none focus:border-sky-800 disabled:opacity-60"
+        className="w-full h-28 bg-gray-900/60 light:bg-gray-50 border border-gray-800 light:border-gray-200 rounded-md px-3 py-2 text-sm text-gray-200 light:text-gray-800 leading-relaxed resize-y focus:outline-none focus:border-sky-800 disabled:opacity-60"
       />
 
       {!submitted ? (
@@ -76,7 +76,7 @@ export default function Palace({ chunk, onGrade, onSkip }: Props) {
           <button
             onClick={() => setSubmitted(true)}
             disabled={!canSubmit}
-            className="bg-sky-900/60 hover:bg-sky-800/80 disabled:opacity-40 border border-sky-800/60 text-sky-100 text-sm px-4 py-2 rounded-md"
+            className="bg-sky-900/60 light:bg-sky-50 hover:bg-sky-800/80 light:hover:bg-sky-100 disabled:opacity-40 border border-sky-800/60 light:border-sky-200 text-sky-100 light:text-sky-700 text-sm px-4 py-2 rounded-md"
           >
             Submit answer
           </button>

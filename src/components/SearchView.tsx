@@ -30,19 +30,19 @@ export default function SearchView({ getProgress }: SearchViewProps) {
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="text-2xl font-bold text-white mb-3">Search</h2>
+        <h2 className="text-2xl font-bold text-white light:text-gray-900 mb-3">Search</h2>
         <input
           type="text"
           value={query}
           onChange={e => setQuery(e.target.value)}
           placeholder="Search by problem name, number, topic, or difficulty..."
-          className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none text-sm"
+          className="w-full bg-gray-900 light:bg-white border border-gray-700 light:border-gray-300 rounded-lg px-4 py-3 text-white light:text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:outline-none text-sm"
           autoFocus
         />
       </div>
 
       {query.trim() && (
-        <p className="text-xs text-gray-500">{results.length} results</p>
+        <p className="text-xs text-gray-500 light:text-gray-500">{results.length} results</p>
       )}
 
       <div className="space-y-2">
@@ -50,12 +50,12 @@ export default function SearchView({ getProgress }: SearchViewProps) {
           <ProblemCard key={p.id} problem={p} progress={getProgress(p.id)} />
         ))}
         {query.trim() && results.length === 0 && (
-          <div className="text-center py-12 text-gray-500">
+          <div className="text-center py-12 text-gray-500 light:text-gray-500">
             No problems found for "{query}"
           </div>
         )}
         {!query.trim() && (
-          <div className="text-center py-12 text-gray-500">
+          <div className="text-center py-12 text-gray-500 light:text-gray-500">
             Type to search across all problems
           </div>
         )}

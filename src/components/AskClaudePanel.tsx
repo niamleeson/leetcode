@@ -106,16 +106,16 @@ export default function AskClaudePanel({ highlighted, position, onClose, onLoadi
   return (
     <div
       ref={panelRef}
-      className="fixed z-50 w-96 max-w-[calc(100vw-2rem)] bg-gray-900 border border-gray-700 rounded-lg shadow-2xl shadow-black/50"
+      className="fixed z-50 w-96 max-w-[calc(100vw-2rem)] bg-gray-900 light:bg-white border border-gray-700 light:border-gray-300 rounded-lg shadow-2xl shadow-black/50"
       style={{
         top: `${position.top}px`,
         left: `${position.left}px`,
       }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-gray-800">
+      <div className="flex items-center justify-between px-3 py-2 border-b border-gray-800 light:border-gray-200">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-medium text-gray-400">Ask Claude</span>
+          <span className="text-xs font-medium text-gray-400 light:text-gray-600">Ask Claude</span>
           {loading && (
             <span className="inline-block w-2 h-2 bg-blue-400 rounded-full animate-pulse" />
           )}
@@ -123,16 +123,16 @@ export default function AskClaudePanel({ highlighted, position, onClose, onLoadi
         <button
           onClick={safeClose}
           disabled={loading}
-          className="text-gray-500 hover:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed text-sm"
+          className="text-gray-500 light:text-gray-500 hover:text-gray-300 light:hover:text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed text-sm"
         >
           &times;
         </button>
       </div>
 
       {/* Highlighted text */}
-      <div className="px-3 py-2 border-b border-gray-800">
-        <p className="text-xs text-gray-500 mb-1">Selected text:</p>
-        <p className="text-sm text-blue-300 line-clamp-3 italic">"{highlighted}"</p>
+      <div className="px-3 py-2 border-b border-gray-800 light:border-gray-200">
+        <p className="text-xs text-gray-500 light:text-gray-500 mb-1">Selected text:</p>
+        <p className="text-sm text-blue-300 light:text-blue-700 line-clamp-3 italic">"{highlighted}"</p>
       </div>
 
       {/* Question input */}
@@ -143,12 +143,12 @@ export default function AskClaudePanel({ highlighted, position, onClose, onLoadi
           onChange={e => setQuestion(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Ask a question about this text..."
-          className="w-full bg-gray-800 text-sm text-gray-200 rounded-md border border-gray-700 px-3 py-2 resize-none focus:outline-none focus:border-blue-500 placeholder-gray-600"
+          className="w-full bg-gray-800 light:bg-gray-100 text-sm text-gray-200 light:text-gray-800 rounded-md border border-gray-700 light:border-gray-300 px-3 py-2 resize-none focus:outline-none focus:border-blue-500 placeholder-gray-600"
           rows={2}
           disabled={loading}
         />
         <div className="flex items-center justify-between mt-2">
-          <span className="text-xs text-gray-600">
+          <span className="text-xs text-gray-600 light:text-gray-500">
             {loading ? 'Waiting for Claude...' : 'Cmd+Enter to submit'}
           </span>
           <button
@@ -164,13 +164,13 @@ export default function AskClaudePanel({ highlighted, position, onClose, onLoadi
       {/* Loading indicator */}
       {loading && (
         <div className="px-3 pb-3">
-          <div className="bg-gray-800/60 border border-gray-700/50 rounded-md p-3 flex items-center gap-2">
+          <div className="bg-gray-800/60 light:bg-gray-100 border border-gray-700/50 light:border-gray-300 rounded-md p-3 flex items-center gap-2">
             <div className="flex gap-1">
               <span className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
               <span className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
               <span className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
             </div>
-            <span className="text-xs text-gray-500">Claude is thinking...</span>
+            <span className="text-xs text-gray-500 light:text-gray-500">Claude is thinking...</span>
           </div>
         </div>
       )}
@@ -178,20 +178,20 @@ export default function AskClaudePanel({ highlighted, position, onClose, onLoadi
       {/* Answer */}
       {answer && (
         <div className="px-3 pb-3">
-          <div className="bg-gray-800/60 border border-gray-700/50 rounded-md p-3">
-            <p className="text-xs font-medium text-emerald-400 mb-1">Claude's answer:</p>
-            <div className="text-sm text-gray-300 leading-relaxed prose prose-invert prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-code:text-blue-300 prose-code:bg-gray-800 prose-code:px-1 prose-code:rounded prose-pre:bg-gray-950 prose-pre:border prose-pre:border-gray-800">
+          <div className="bg-gray-800/60 light:bg-gray-100 border border-gray-700/50 light:border-gray-300 rounded-md p-3">
+            <p className="text-xs font-medium text-emerald-400 light:text-emerald-700 mb-1">Claude's answer:</p>
+            <div className="text-sm text-gray-300 light:text-gray-700 leading-relaxed prose prose-invert prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-code:text-blue-300 prose-code:bg-gray-800 prose-code:px-1 prose-code:rounded prose-pre:bg-gray-950 prose-pre:border prose-pre:border-gray-800">
               <Markdown>{answer}</Markdown>
             </div>
           </div>
-          <p className="text-xs text-gray-600 mt-1">Saved to glossary</p>
+          <p className="text-xs text-gray-600 light:text-gray-500 mt-1">Saved to glossary</p>
         </div>
       )}
 
       {/* Error */}
       {error && (
         <div className="px-3 pb-3">
-          <p className="text-xs text-red-400">{error}</p>
+          <p className="text-xs text-red-400 light:text-red-700">{error}</p>
         </div>
       )}
     </div>

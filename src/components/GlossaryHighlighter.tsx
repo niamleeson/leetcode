@@ -58,15 +58,15 @@ function GlossaryTooltip({ entry, anchorRect, onClose }: {
   return createPortal(
     <div
       ref={tooltipRef}
-      className="fixed z-[9999] w-80 max-h-[60vh] overflow-y-auto bg-gray-900 border border-gray-700 rounded-lg shadow-2xl shadow-black/60 p-3"
+      className="fixed z-[9999] w-80 max-h-[60vh] overflow-y-auto bg-gray-900 light:bg-white border border-gray-700 light:border-gray-300 rounded-lg shadow-2xl shadow-black/60 p-3"
       style={{ top: `${pos.top}px`, left: `${pos.left}px` }}
     >
       <div className="flex items-center justify-between mb-2">
-        <span className="text-xs font-medium text-blue-400">Glossary: {entry.term}</span>
-        <button onClick={onClose} className="text-gray-500 hover:text-gray-300 text-sm leading-none">&times;</button>
+        <span className="text-xs font-medium text-blue-400 light:text-blue-700">Glossary: {entry.term}</span>
+        <button onClick={onClose} className="text-gray-500 light:text-gray-500 hover:text-gray-300 light:hover:text-gray-700 text-sm leading-none">&times;</button>
       </div>
-      <p className="text-xs text-gray-500 mb-1 italic">Q: {entry.question}</p>
-      <div className="text-sm text-gray-300 leading-relaxed prose prose-invert prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-code:text-blue-300 prose-code:bg-gray-800 prose-code:px-1 prose-code:rounded">
+      <p className="text-xs text-gray-500 light:text-gray-500 mb-1 italic">Q: {entry.question}</p>
+      <div className="text-sm text-gray-300 light:text-gray-700 leading-relaxed prose prose-invert prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-code:text-blue-300 prose-code:bg-gray-800 prose-code:px-1 prose-code:rounded">
         <Markdown>{entry.answer}</Markdown>
       </div>
     </div>,
@@ -110,7 +110,7 @@ export default function GlossaryHighlighter({ text, className }: { text: string;
           return (
             <span
               key={i}
-              className="border-b border-dashed border-blue-500/50 text-blue-300 cursor-pointer hover:border-blue-400 hover:text-blue-200 transition-colors"
+              className="border-b border-dashed border-blue-500/50 text-blue-300 light:text-blue-700 cursor-pointer hover:border-blue-400 hover:text-blue-200 light:hover:text-blue-600 transition-colors"
               onClick={(e) => {
                 e.stopPropagation();
                 const rect = (e.target as HTMLElement).getBoundingClientRect();

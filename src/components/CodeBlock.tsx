@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import Prism from 'prismjs';
 import 'prismjs/components/prism-python';
 import 'prismjs/components/prism-javascript';
-import 'prismjs/themes/prism-tomorrow.css';
+import '../styles/prism-themes.css';
 
 interface CodeBlockProps {
   code: string;
@@ -19,7 +19,7 @@ export default function CodeBlock({ code, language = 'python' }: CodeBlockProps)
   }, [code, language]);
 
   return (
-    <pre className="!bg-gray-950 !border !border-gray-800 !rounded-md !p-4 !text-xs overflow-x-auto !leading-relaxed !m-0">
+    <pre className="!bg-gray-950 light:!bg-gray-50 !border !border-gray-800 light:!border-gray-200 !rounded-md !p-4 !text-xs overflow-x-auto !leading-relaxed !m-0">
       <code ref={codeRef} className={`language-${language}`}>
         {code}
       </code>

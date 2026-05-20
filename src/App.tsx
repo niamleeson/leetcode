@@ -97,7 +97,7 @@ export default function App() {
   }, []);
 
   return (
-    <div className="relative min-h-screen bg-gray-950">
+    <div className="relative min-h-screen bg-gray-950 light:bg-white">
       <Sidebar
         dueCount={store.dueProblems.length}
         solvedToday={store.solvedToday}

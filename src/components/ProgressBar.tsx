@@ -12,7 +12,7 @@ export default function ProgressBar({ solved, attempted, total, showLabels = tru
 
   return (
     <div>
-      <div className={`w-full bg-gray-800 rounded-full ${height} overflow-hidden`}>
+      <div className={`w-full bg-gray-800 light:bg-gray-100 rounded-full ${height} overflow-hidden`}>
         <div className="h-full flex">
           <div
             className="bg-emerald-500 transition-all duration-500"
@@ -25,7 +25,7 @@ export default function ProgressBar({ solved, attempted, total, showLabels = tru
         </div>
       </div>
       {showLabels && (
-        <div className="flex gap-4 mt-1 text-xs text-gray-400">
+        <div className="flex gap-4 mt-1 text-xs text-gray-400 light:text-gray-600">
           <span className="flex items-center gap-1">
             <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
             {solved} solved
@@ -35,7 +35,7 @@ export default function ProgressBar({ solved, attempted, total, showLabels = tru
             {attempted} attempted
           </span>
           <span className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-gray-800 inline-block border border-gray-700" />
+            <span className="w-2 h-2 rounded-full bg-gray-800 light:bg-gray-100 inline-block border border-gray-700 light:border-gray-300" />
             {total - solved - attempted} remaining
           </span>
         </div>

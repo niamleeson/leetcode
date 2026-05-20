@@ -15,9 +15,9 @@ interface ProblemPageProps {
 }
 
 const difficultyColors = {
-  Easy: 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20',
-  Medium: 'text-yellow-400 bg-yellow-400/10 border-yellow-400/20',
-  Hard: 'text-red-400 bg-red-400/10 border-red-400/20',
+  Easy: 'text-emerald-400 light:text-emerald-700 bg-emerald-400/10 border-emerald-400/20',
+  Medium: 'text-yellow-400 light:text-yellow-700 bg-yellow-400/10 border-yellow-400/20',
+  Hard: 'text-red-400 light:text-red-700 bg-red-400/10 border-red-400/20',
 };
 
 const qualityLabels = [
@@ -113,7 +113,7 @@ export default function ProblemPage({ getProgress, onRate, onUpdateNotes, onRese
       <div className="flex items-start gap-3">
         <button
           onClick={() => window.history.back()}
-          className="text-gray-400 hover:text-white transition-colors mt-1"
+          className="text-gray-400 light:text-gray-600 hover:text-white light:hover:text-gray-900 transition-colors mt-1"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -121,15 +121,15 @@ export default function ProblemPage({ getProgress, onRate, onUpdateNotes, onRese
         </button>
         <div className="flex-1">
           <div className="flex items-center gap-3 flex-wrap">
-            <span className="text-gray-500 text-sm font-mono">#{problem.id}</span>
-            <h1 className="text-2xl font-bold text-white">{problem.title}</h1>
+            <span className="text-gray-500 light:text-gray-500 text-sm font-mono">#{problem.id}</span>
+            <h1 className="text-2xl font-bold text-white light:text-gray-900">{problem.title}</h1>
             <span className={`text-xs px-2 py-0.5 rounded border ${difficultyColors[problem.difficulty]}`}>
               {problem.difficulty}
             </span>
           </div>
           <div className="flex gap-1.5 flex-wrap mt-2">
             {problem.topics.map(t => (
-              <span key={t} className="text-xs px-2 py-1 bg-gray-800 text-gray-300 rounded-md">{t}</span>
+              <span key={t} className="text-xs px-2 py-1 bg-gray-800 light:bg-gray-100 text-gray-300 light:text-gray-700 rounded-md">{t}</span>
             ))}
           </div>
         </div>
@@ -139,9 +139,9 @@ export default function ProblemPage({ getProgress, onRate, onUpdateNotes, onRese
         <>
           {/* ── Problem Description ── */}
           <section className="space-y-3">
-            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Problem</h2>
-            <GlossaryHighlighter text={solution.description} className="text-sm text-gray-300 leading-relaxed whitespace-pre-line" />
-            <pre className="bg-gray-950 border border-gray-800 rounded-md p-3 text-xs text-gray-300 overflow-x-auto whitespace-pre-wrap font-mono">
+            <h2 className="text-xs font-semibold text-gray-500 light:text-gray-500 uppercase tracking-wider">Problem</h2>
+            <GlossaryHighlighter text={solution.description} className="text-sm text-gray-300 light:text-gray-700 leading-relaxed whitespace-pre-line" />
+            <pre className="bg-gray-950 light:bg-white border border-gray-800 light:border-gray-200 rounded-md p-3 text-xs text-gray-300 light:text-gray-700 overflow-x-auto whitespace-pre-wrap font-mono">
               {solution.examples}
             </pre>
           </section>
@@ -149,32 +149,32 @@ export default function ProblemPage({ getProgress, onRate, onUpdateNotes, onRese
           {/* ── Intuition ── */}
           {solution.intuition && (
             <section>
-              <h2 className="text-xs font-semibold text-cyan-400 uppercase tracking-wider mb-2">Intuition</h2>
-              <div className="text-sm text-gray-300 leading-relaxed whitespace-pre-line bg-cyan-950/20 border border-cyan-900/30 rounded-md p-4"><GlossaryHighlighter text={solution.intuition} /></div>
+              <h2 className="text-xs font-semibold text-cyan-400 light:text-cyan-700 uppercase tracking-wider mb-2">Intuition</h2>
+              <div className="text-sm text-gray-300 light:text-gray-700 leading-relaxed whitespace-pre-line bg-cyan-950/20 light:bg-cyan-50 border border-cyan-900/30 light:border-cyan-200 rounded-md p-4"><GlossaryHighlighter text={solution.intuition} /></div>
             </section>
           )}
 
           {/* ── Approach ── */}
           <section>
-            <h2 className="text-xs font-semibold text-blue-400 uppercase tracking-wider mb-2">Approach</h2>
-            <GlossaryHighlighter text={solution.approach} className="text-sm text-gray-400 leading-relaxed" />
+            <h2 className="text-xs font-semibold text-blue-400 light:text-blue-700 uppercase tracking-wider mb-2">Approach</h2>
+            <GlossaryHighlighter text={solution.approach} className="text-sm text-gray-400 light:text-gray-600 leading-relaxed" />
           </section>
 
           {/* ── Hints ── */}
           {solution.hints.length > 0 && (
             <section className="space-y-2">
-              <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Hints</h2>
+              <h2 className="text-xs font-semibold text-gray-500 light:text-gray-500 uppercase tracking-wider">Hints</h2>
               {solution.hints.map((hint, i) => (
                 <div key={i}>
                   {i < revealedHints ? (
-                    <div className="bg-gray-800 border border-gray-700 rounded-md p-3 text-sm text-gray-300">
-                      <span className="text-blue-400 font-semibold mr-2">Hint {i + 1}:</span>
+                    <div className="bg-gray-800 light:bg-gray-100 border border-gray-700 light:border-gray-300 rounded-md p-3 text-sm text-gray-300 light:text-gray-700">
+                      <span className="text-blue-400 light:text-blue-700 font-semibold mr-2">Hint {i + 1}:</span>
                       {hint}
                     </div>
                   ) : i === revealedHints ? (
                     <button
                       onClick={() => setRevealedHints(prev => prev + 1)}
-                      className="bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-md px-3 py-2 text-sm text-blue-400 transition-colors w-full text-left"
+                      className="bg-gray-800 light:bg-gray-100 hover:bg-gray-700 light:hover:bg-gray-200 border border-gray-700 light:border-gray-300 rounded-md px-3 py-2 text-sm text-blue-400 light:text-blue-700 transition-colors w-full text-left"
                     >
                       Reveal Hint {i + 1}
                     </button>
@@ -187,16 +187,16 @@ export default function ProblemPage({ getProgress, onRate, onUpdateNotes, onRese
           {/* ── Solution ── */}
           <section>
             <div className="flex items-center justify-between mb-2">
-              <h2 className="text-xs font-semibold text-emerald-400 uppercase tracking-wider">
+              <h2 className="text-xs font-semibold text-emerald-400 light:text-emerald-700 uppercase tracking-wider">
                 {language === 'python' ? 'Python' : 'JavaScript'} Solution
               </h2>
-              <div className="flex items-center bg-gray-800 rounded-md p-0.5 text-xs">
+              <div className="flex items-center bg-gray-800 light:bg-gray-100 rounded-md p-0.5 text-xs">
                 <button
                   onClick={() => setLanguage('javascript')}
                   className={`px-2.5 py-1 rounded transition-colors ${
                     language === 'javascript'
-                      ? 'bg-gray-600 text-white'
-                      : 'text-gray-400 hover:text-gray-200'
+                      ? 'bg-gray-600 light:bg-gray-200 text-white light:text-gray-900'
+                      : 'text-gray-400 light:text-gray-600 hover:text-gray-200 light:hover:text-gray-800'
                   }`}
                 >
                   JavaScript
@@ -205,8 +205,8 @@ export default function ProblemPage({ getProgress, onRate, onUpdateNotes, onRese
                   onClick={() => setLanguage('python')}
                   className={`px-2.5 py-1 rounded transition-colors ${
                     language === 'python'
-                      ? 'bg-gray-600 text-white'
-                      : 'text-gray-400 hover:text-gray-200'
+                      ? 'bg-gray-600 light:bg-gray-200 text-white light:text-gray-900'
+                      : 'text-gray-400 light:text-gray-600 hover:text-gray-200 light:hover:text-gray-800'
                   }`}
                 >
                   Python
@@ -218,12 +218,12 @@ export default function ProblemPage({ getProgress, onRate, onUpdateNotes, onRese
               language={language === 'javascript' && solution.jsCode ? 'javascript' : 'python'}
             />
             {language === 'javascript' && !solution.jsCode && (
-              <p className="text-xs text-gray-500 mt-1">JavaScript solution not available, showing Python.</p>
+              <p className="text-xs text-gray-500 light:text-gray-500 mt-1">JavaScript solution not available, showing Python.</p>
             )}
             {language === 'javascript' && solution.jsWalkthrough && (
-              <div className="mt-3 bg-gray-950 border border-sky-900/30 rounded-md p-4 text-sm leading-relaxed">
-                <h3 className="text-xs font-semibold text-sky-400 uppercase tracking-wider mb-3">Step-by-Step Walkthrough</h3>
-                <pre className="text-sky-200/90 whitespace-pre-wrap font-mono text-xs leading-relaxed">{solution.jsWalkthrough}</pre>
+              <div className="mt-3 bg-gray-950 light:bg-sky-50 border border-sky-900/30 light:border-sky-200 rounded-md p-4 text-sm leading-relaxed">
+                <h3 className="text-xs font-semibold text-sky-400 light:text-sky-700 uppercase tracking-wider mb-3">Step-by-Step Walkthrough</h3>
+                <pre className="text-sky-200/90 light:text-sky-700 whitespace-pre-wrap font-mono text-xs leading-relaxed">{solution.jsWalkthrough}</pre>
               </div>
             )}
           </section>
@@ -233,10 +233,10 @@ export default function ProblemPage({ getProgress, onRate, onUpdateNotes, onRese
             const pseudo = buildPseudocode(solution.approach, solution.explanation);
             return (
               <section>
-                <h2 className="text-xs font-semibold text-purple-400 uppercase tracking-wider mb-2">Pseudocode (for memorization)</h2>
-                <div className="bg-gray-950 border border-purple-900/30 rounded-md p-4 text-sm leading-relaxed">
-                  <p className="text-purple-300 font-semibold mb-3">{pseudo.concept}</p>
-                  <ol className="space-y-1 text-purple-200/90 list-decimal list-inside">
+                <h2 className="text-xs font-semibold text-purple-400 light:text-purple-700 uppercase tracking-wider mb-2">Pseudocode (for memorization)</h2>
+                <div className="bg-gray-950 light:bg-purple-50 border border-purple-900/30 light:border-purple-200 rounded-md p-4 text-sm leading-relaxed">
+                  <p className="text-purple-300 light:text-purple-700 font-semibold mb-3">{pseudo.concept}</p>
+                  <ol className="space-y-1 text-purple-200/90 light:text-purple-700 list-decimal list-inside">
                     {pseudo.steps.map((step, i) => (
                       <li key={i}>{step}</li>
                     ))}
@@ -248,28 +248,28 @@ export default function ProblemPage({ getProgress, onRate, onUpdateNotes, onRese
 
           {/* ── Explanation ── */}
           <section>
-            <h2 className="text-xs font-semibold text-yellow-400 uppercase tracking-wider mb-2">Explanation</h2>
-            <GlossaryHighlighter text={solution.explanation} className="text-sm text-gray-400 leading-relaxed whitespace-pre-line" />
+            <h2 className="text-xs font-semibold text-yellow-400 light:text-yellow-700 uppercase tracking-wider mb-2">Explanation</h2>
+            <GlossaryHighlighter text={solution.explanation} className="text-sm text-gray-400 light:text-gray-600 leading-relaxed whitespace-pre-line" />
           </section>
 
           {/* ── Complexity ── */}
-          <div className="flex gap-6 text-sm text-gray-500">
-            <span>Time: <strong className="text-gray-300">{solution.timeComplexity}</strong></span>
-            <span>Space: <strong className="text-gray-300">{solution.spaceComplexity}</strong></span>
+          <div className="flex gap-6 text-sm text-gray-500 light:text-gray-500">
+            <span>Time: <strong className="text-gray-300 light:text-gray-700">{solution.timeComplexity}</strong></span>
+            <span>Space: <strong className="text-gray-300 light:text-gray-700">{solution.spaceComplexity}</strong></span>
           </div>
         </>
       ) : (
-        <div className="text-sm text-gray-500">
+        <div className="text-sm text-gray-500 light:text-gray-500">
           <p>Solution content not yet available for this problem.</p>
-          <a href={problem.url} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">
+          <a href={problem.url} target="_blank" rel="noopener noreferrer" className="text-blue-400 light:text-blue-700 hover:underline">
             View on LeetCode
           </a>
         </div>
       )}
 
       {/* ── Rating ── */}
-      <section className="pt-4 border-t border-gray-800">
-        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Rate your confidence</h2>
+      <section className="pt-4 border-t border-gray-800 light:border-gray-200">
+        <h2 className="text-xs font-semibold text-gray-500 light:text-gray-500 uppercase tracking-wider mb-3">Rate your confidence</h2>
         <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
           {qualityLabels.map(q => (
             <button
@@ -284,7 +284,7 @@ export default function ProblemPage({ getProgress, onRate, onUpdateNotes, onRese
           ))}
         </div>
         {progress.lastReviewed && (
-          <p className="text-xs text-gray-600 mt-2">
+          <p className="text-xs text-gray-600 light:text-gray-500 mt-2">
             Last reviewed: {progress.lastReviewed} &middot; Interval: {progress.interval}d &middot; Ease: {progress.easeFactor.toFixed(2)}
           </p>
         )}
@@ -294,13 +294,13 @@ export default function ProblemPage({ getProgress, onRate, onUpdateNotes, onRese
       <section>
         <button
           onClick={() => setShowNotes(!showNotes)}
-          className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
+          className="text-xs text-gray-500 light:text-gray-500 hover:text-gray-300 light:hover:text-gray-700 transition-colors"
         >
           {showNotes ? 'Hide notes' : 'Add notes...'}
         </button>
         {showNotes && (
           <textarea
-            className="w-full mt-2 bg-gray-800 border border-gray-700 rounded-md p-3 text-sm text-gray-200 placeholder-gray-500 focus:border-blue-500 focus:outline-none resize-y"
+            className="w-full mt-2 bg-gray-800 light:bg-gray-100 border border-gray-700 light:border-gray-300 rounded-md p-3 text-sm text-gray-200 light:text-gray-800 placeholder-gray-500 focus:border-blue-500 focus:outline-none resize-y"
             placeholder="Your notes (patterns, approach, key insight)..."
             value={progress.notes}
             onChange={e => onUpdateNotes(problem.id, e.target.value)}
@@ -315,14 +315,14 @@ export default function ProblemPage({ getProgress, onRate, onUpdateNotes, onRese
           href={problem.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-xs bg-gray-700 hover:bg-gray-600 text-gray-200 px-3 py-1.5 rounded-md transition-colors"
+          className="text-xs bg-gray-700 light:bg-gray-200 hover:bg-gray-600 light:hover:bg-gray-300 text-gray-200 light:text-gray-800 px-3 py-1.5 rounded-md transition-colors"
         >
           Open on LeetCode
         </a>
         {progress.status !== 'unseen' && (
           <button
             onClick={() => onReset(problem.id)}
-            className="text-xs bg-gray-800 hover:bg-red-900/50 text-gray-400 hover:text-red-400 px-3 py-1.5 rounded-md transition-colors ml-auto"
+            className="text-xs bg-gray-800 light:bg-gray-100 hover:bg-red-900/50 light:hover:bg-red-50 text-gray-400 light:text-gray-600 hover:text-red-400 light:hover:text-red-700 px-3 py-1.5 rounded-md transition-colors ml-auto"
           >
             Reset Progress
           </button>
