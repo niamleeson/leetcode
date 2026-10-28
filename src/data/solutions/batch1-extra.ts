@@ -96,61 +96,42 @@ export const solutions: ProblemSolution[] = [
       'Input: x = 123\nOutput: 321',
     intuition:
       'Think of pulling digits off the end of a number like popping beads off a string and stacking them in reverse order. The tricky part is not the reversal itself but checking for overflow before it happens - you must verify before multiplying, not after.',
-    approach:
-      'Extract digits one by one from the end using modulo and division. Build the reversed number by multiplying by 10 and adding the extracted digit. Check for overflow before each multiplication.',
+    approach: `Extract signed digits using division truncated toward zero. Keep the original number signed, and check both 32-bit limits before multiplying the result by 10 and adding the next digit.`,
     code: `class Solution:
-    def reverse(self, x: int) -> int:
-        INT_MAX, INT_MIN = 2**31 - 1, -(2**31)
-        res = 0
-        sign = 1 if x >= 0 else -1
-        x = abs(x)
-        while x:
-            digit = x % 10
-            x //= 10
-            if res > (INT_MAX - digit) // 10:
+    def reverse(self, number: int) -> int:
+        result = 0
+        while number != 0:
+            remaining = (number + 9) // 10 if number < 0 else number // 10
+            digit = number - remaining * 10
+            number = remaining
+            if result > 214748364 or (result == 214748364 and digit > 7):
                 return 0
-            res = res * 10 + digit
-        return res * sign`,
-    jsCode: `var reverse = function(x) {
-    const INT_MAX = 2147483647;
-    const INT_MIN = -2147483648;
-
-    let res = 0;
-    // Record the sign and work with the absolute value
-    const sign = x >= 0 ? 1 : -1;
-    x = Math.abs(x);
-
-    while (x > 0) {
-        // Extract the last digit
-        const digit = x % 10;
-        // Remove the last digit from x
-        x = Math.floor(x / 10);
-
-        // Check for overflow before updating res
-        if (res > Math.floor((INT_MAX - digit) / 10)) {
-            return 0;
-        }
-
-        // Append the digit to the reversed number
-        res = res * 10 + digit;
+            if result < -214748364 or (result == -214748364 and digit < -8):
+                return 0
+            result = result * 10 + digit
+        return result`,
+    jsCode: `var reverse = function(number) {
+    let result = 0;
+    while (number !== 0) {
+        const digit = number % 10;
+        number = Math.trunc(number / 10);
+        if (result > 214748364 || (result === 214748364 && digit > 7)) return 0;
+        if (result < -214748364 || (result === -214748364 && digit < -8)) return 0;
+        result = result * 10 + digit;
     }
-
-    return res * sign;
+    return result;
 };`,
-    jsWalkthrough:
-      'Input: x = 123\n\n' +
-      'sign = 1, x = 123, res = 0\n\n' +
-      'Iteration 1: digit = 123 % 10 = 3, x = 12, overflow check passes, res = 0*10+3 = 3\n' +
-      'Iteration 2: digit = 12 % 10 = 2, x = 1, overflow check passes, res = 3*10+2 = 32\n' +
-      'Iteration 3: digit = 1 % 10 = 1, x = 0, overflow check passes, res = 32*10+1 = 321\n\n' +
-      'Loop ends (x = 0)\n' +
-      'Return 321 * 1 = 321',
-    explanation:
-      '1. Record the sign and work with the absolute value.\n' +
-      '2. Extract the last digit with x % 10, remove it with x //= 10.\n' +
-      '3. Before updating res, check if res * 10 + digit would overflow 32-bit range.\n' +
-      '4. Build the reversed number digit by digit.\n' +
-      '5. Restore the original sign and return.',
+    jsWalkthrough: `number = -123, result = 0
+Extract -3; remaining number = -12; result = -3.
+Extract -2; remaining number = -1; result = -32.
+Extract -1; remaining number = 0; result = -321.
+Return -321.
+For -2147483648, never take its absolute value: 2147483648 is outside signed 32-bit range. Check each update before it can overflow.`,
+    explanation: `1. Keep the input signed, including -2147483648.
+2. Truncate division toward zero and extract a digit with the same sign.
+3. Reject results above 214748364 with final digit greater than 7, or below -214748364 with final digit less than -8.
+4. Only then multiply by 10 and add the digit.
+5. Return the signed result without using an out-of-range absolute value or a wider intermediate integer.`,
     timeComplexity: 'O(log x)',
     spaceComplexity: 'O(1)',
     hints: [
@@ -9288,14 +9269,93 @@ def rising_temperature(weather: pd.DataFrame) -> pd.DataFrame:
   {
     id: 225,
     description:
-      'Implement a last-in-first-out (LIFO) stack using only two queues. The implemented stack should support push, top, pop, and empty operations.',
+      'Implement a last-in-first-out (LIFO) stack using only two queues. Support push(x), pop(), top(), and empty().\n\n' +
+      'Allowed queue operations: add at the back, inspect or remove the front, read the size, and check whether it is empty. A list or deque may simulate a queue, but may only be used through these operations.\n\n' +
+      'Constraints: values are integers from 1 to 9, with at most 100 method calls. Calls to pop() and top() always have an element available.\n\n' +
+      'Follow-up: implement the same stack with just one queue. Both the two-queue solution and the one-queue follow-up are shown below.',
     examples:
-      'Input: ["MyStack","push","push","top","pop","empty"]\nOutput: [null,null,null,2,2,false]',
+      'Operations: ["MyStack","push","push","top","pop","empty"]\nArguments: [[],[1],[2],[],[],[]]\nOutput: [null,null,null,2,2,false]',
     intuition:
-      'A queue is FIFO, but a stack needs LIFO. The trick: after pushing an element, rotate the entire queue so the new element ends up at the front. Now pop and peek just use the queue\'s front. Push is O(n), but pop and peek become O(1).',
+      'A queue removes the oldest value first, while a stack needs the newest. Keep the newest value at the front of the active queue. To push, place the new value into an empty helper queue, then move all the older values behind it. Swap the queue roles so the helper becomes the active queue.',
+    solutionTitle: 'Two queues',
     approach:
-      'Use a single queue. On push, add the element, then rotate the queue so the new element is at the front. This makes pop and top O(1) while push is O(n).',
+      'Use an active queue and a helper queue. On push, enqueue the new value into the empty helper, transfer every active element from front to helper back, then swap the queues. The helper is empty again. Pop and top use the active queue’s front; empty checks its size.',
     code: `from collections import deque
+
+class MyStack:
+    def __init__(self):
+        self.active = deque()
+        self.helper = deque()
+
+    def push(self, value: int) -> None:
+        self.helper.append(value)
+        while self.active:
+            self.helper.append(self.active.popleft())
+        self.active, self.helper = self.helper, self.active
+
+    def pop(self) -> int:
+        return self.active.popleft()
+
+    def top(self) -> int:
+        return self.active[0]
+
+    def empty(self) -> bool:
+        return len(self.active) == 0`,
+    jsCode: `var MyStack = function() {
+    this.active = [];
+    this.helper = [];
+};
+
+MyStack.prototype.push = function(value) {
+    this.helper.push(value);
+    while (this.active.length > 0) {
+        this.helper.push(this.active.shift());
+    }
+    [this.active, this.helper] = [this.helper, this.active];
+};
+
+MyStack.prototype.pop = function() {
+    return this.active.shift();
+};
+
+MyStack.prototype.top = function() {
+    return this.active[0];
+};
+
+MyStack.prototype.empty = function() {
+    return this.active.length === 0;
+};`,
+    jsWalkthrough:
+      'Queue contents are shown front to back.\n\n' +
+      'Start: active=[], helper=[]\n\n' +
+      'push(1): enqueue 1 into helper -> helper=[1]\n' +
+      '  Nothing to transfer. Swap -> active=[1], helper=[]\n\n' +
+      'push(2): enqueue 2 into helper -> helper=[2]\n' +
+      '  Transfer front 1 -> active=[], helper=[2,1]\n' +
+      '  Swap -> active=[2,1], helper=[]\n\n' +
+      'top(): return 2; active stays [2,1]\n' +
+      'pop(): return 2; active becomes [1]\n' +
+      'empty(): return false\n\n' +
+      'Output: [null, null, null, 2, 2, false]',
+    explanation:
+      '1. Maintain two queues: active stores the stack order; helper starts empty.\n' +
+      '2. Enqueue the new value into helper before transferring the old values behind it.\n' +
+      '3. Dequeue each active front and enqueue it at helper’s back, preserving the old stack order.\n' +
+      '4. Swap the queue references. The newest value is now at active’s front, and helper is empty.\n' +
+      '5. Pop dequeues the active front; top peeks without removal; empty checks active’s size.\n' +
+      '6. Only queue operations are used. Python deque gives O(n) push and O(1) pop/top/empty. JavaScript array shift() can cost O(n), giving O(n²) push and O(n) pop in the worst case.',
+    timeComplexity: 'Python deque: O(n) push, O(1) pop/top/empty. JavaScript arrays: O(n²) push, O(n) pop, O(1) top/empty (worst case).',
+    spaceComplexity: 'O(n) total across both queues',
+    hints: [
+      'Keep the newest value at the front of the active queue.',
+      'Enqueue the new value into an empty helper before moving the old values into it.',
+      'After transferring all old values, swap the active and helper queue references.',
+    ],
+    followUp: {
+      title: 'One queue',
+      approach:
+        'Replace the helper queue with rotation. Enqueue the new value, then move exactly size - 1 older values from front to back. The new value reaches the front, with the previous stack order behind it. Pop, top, and empty still use only standard queue operations.',
+      code: `from collections import deque
 
 class MyStack:
     def __init__(self):
@@ -9314,7 +9374,7 @@ class MyStack:
 
     def empty(self) -> bool:
         return len(self.q) == 0`,
-    jsCode: `var MyStack = function() {
+      jsCode: `var MyStack = function() {
     // We use a single array as a queue
     this.queue = [];
 };
@@ -9343,38 +9403,35 @@ MyStack.prototype.top = function() {
 MyStack.prototype.empty = function() {
     return this.queue.length === 0;
 };`,
-    jsWalkthrough:
-      'Operations: push(1), push(2), top(), pop(), empty()\n\n' +
-      'push(1):\n' +
-      '  queue = [1]\n' +
-      '  rotations = 1-1 = 0 -> no rotations\n' +
-      '  queue = [1]\n\n' +
-      'push(2):\n' +
-      '  queue = [1, 2] after push\n' +
-      '  rotations = 2-1 = 1\n' +
-      '  Rotation 1: shift front=1, push to back -> queue=[2,1]\n' +
-      '  queue = [2, 1] (newest element 2 is at front)\n\n' +
-      'top():\n' +
-      '  return queue[0] = 2\n\n' +
-      'pop():\n' +
-      '  return queue.shift() = 2\n' +
-      '  queue = [1]\n\n' +
-      'empty():\n' +
-      '  queue.length = 1 -> return false\n\n' +
-      'Output: [null, null, null, 2, 2, false]',
-    explanation:
-      '1. Use a single deque (queue).\n' +
-      '2. On push: add element, then rotate all previous elements to the back.\n' +
-      '3. This puts the newest element at the front (LIFO order).\n' +
-      '4. Pop and top simply access the front of the queue.\n' +
-      '5. Push is O(n), all other operations are O(1).',
-    timeComplexity: 'O(n) for push, O(1) for pop/top',
-    spaceComplexity: 'O(n)',
-    hints: [
-      'After pushing, rotate the queue to put the new element at the front.',
-      'This makes pop and top trivial.',
-      'One queue is sufficient with this rotation approach.',
-    ],
+      jsWalkthrough:
+        'Operations: push(1), push(2), top(), pop(), empty()\n\n' +
+        'push(1):\n' +
+        '  queue = [1]\n' +
+        '  rotations = 1-1 = 0 -> no rotations\n' +
+        '  queue = [1]\n\n' +
+        'push(2):\n' +
+        '  queue = [1, 2] after push\n' +
+        '  rotations = 2-1 = 1\n' +
+        '  Rotation 1: shift front=1, push to back -> queue=[2,1]\n' +
+        '  queue = [2, 1] (newest element 2 is at front)\n\n' +
+        'top():\n' +
+        '  return queue[0] = 2\n\n' +
+        'pop():\n' +
+        '  return queue.shift() = 2\n' +
+        '  queue = [1]\n\n' +
+        'empty():\n' +
+        '  queue.length = 1 -> return false\n\n' +
+        'Output: [null, null, null, 2, 2, false]',
+      explanation:
+        '1. Solve the explicitly allowed one-queue follow-up using a deque in Python or an array in JavaScript.\n' +
+        '2. On push: add element, then rotate all previous elements to the back.\n' +
+        '3. This puts the newest element at the front (LIFO order).\n' +
+        '4. Pop and top simply access the front of the queue.\n' +
+        '5. With Python deque, push is O(n) and pop, top, and empty are O(1).\n' +
+        '6. JavaScript array shift() can move O(n) elements: push is O(n²) and pop is O(n) in the worst case; top and empty remain O(1).',
+      timeComplexity: 'Python deque: O(n) push, O(1) pop/top/empty. JavaScript array: O(n²) push, O(n) pop, O(1) top/empty (worst case).',
+      spaceComplexity: 'O(n)',
+    },
   },
 
   // ---------------------------------------------------------------------------

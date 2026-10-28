@@ -2755,17 +2755,12 @@ export const solutions: ProblemSolution[] = [
     approach:
       'Bit Manipulation: Use XOR for sum without carry, AND + left shift for carry. Repeat until carry is zero. Handle negative numbers with a 32-bit mask for Python.',
     code: `class Solution:
-    def getSum(self, a: int, b: int) -> int:
-        MASK = 0xFFFFFFFF
-        MAX_INT = 0x7FFFFFFF
-
-        while b & MASK:
-            carry = (a & b) << 1
-            a = a ^ b
-            b = carry
-
-        # If b is 0 (within 32-bit), return a masked or as-is
-        return (a & MASK) if a > MAX_INT else a`,
+    def getSum(self, first: int, second: int) -> int:
+        mask = 0xFFFFFFFF
+        signed_max = 0x7FFFFFFF
+        while second:
+            first, second = (first ^ second) & mask, ((first & second) << 1) & mask
+        return first if first <= signed_max else ~(first ^ mask)`,
     jsCode: `var getSum = function(a, b) {
     while (b !== 0) {
         // carry: bits where BOTH a and b are 1 — these generate a carry to the next position
@@ -2794,8 +2789,11 @@ export const solutions: ProblemSolution[] = [
       'step 4: carry = (000 & 1000) << 1 = 0. a = 000 ^ 1000 = 1000 (8). b = 0\n' +
       'step 5: b === 0 → loop ends\n' +
       'result: 8 (3 + 5 = 8)',
-    explanation:
-      "1. Python integers have arbitrary precision, so we use a 32-bit mask (0xFFFFFFFF) to simulate 32-bit overflow.\n2. While there is a carry (b & MASK != 0):\n   - carry = (a & b) << 1: bits where both a and b are 1 produce a carry to the next position.\n   - a = a ^ b: XOR gives the sum ignoring carries.\n   - b = carry: the new b is the carry to be added in the next iteration.\n3. After the loop, check if a exceeds MAX_INT (0x7FFFFFFF). If so, mask it to get the correct negative 32-bit representation.\n4. Return a.",
+    explanation: `1. XOR combines the bits without carrying.
+2. AND followed by a left shift computes the carry.
+3. In Python, mask both intermediate values to 32 bits after every iteration so negative inputs terminate correctly.
+4. Repeat until the carry is zero.
+5. Convert a Python result with the sign bit set back to a negative integer using bitwise complement. No addition or subtraction operators are needed.`,
     timeComplexity: 'O(1) (at most 32 iterations)',
     spaceComplexity: 'O(1)',
     hints: [

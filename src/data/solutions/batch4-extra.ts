@@ -1,4 +1,5 @@
 import { ProblemSolution } from './types';
+import { minHeapJavascript } from './heap-code';
 
 export const solutions: ProblemSolution[] = [
   // ---------------------------------------------------------------------------
@@ -6720,34 +6721,22 @@ TimeMap.prototype.get = function(key, timestamp) {
             if first != second:
                 heapq.heappush(heap, -(first - second))
         return -heap[0] if heap else 0`,
-    jsCode: `var lastStoneWeight = function(stones) {
-    // Repeatedly smash the two heaviest stones
-    // Sorting before each smash keeps it simple (O(n^2 log n) but works for small inputs)
-    while (stones.length > 1) {
-        // Sort descending so stones[0] and stones[1] are the two heaviest
-        stones.sort((a, b) => b - a);
-
-        const heaviest = stones.shift();      // Remove the heaviest
-        const secondHeaviest = stones.shift(); // Remove the second heaviest
-
-        if (heaviest !== secondHeaviest) {
-            // The difference remains as a new stone
-            const remainder = heaviest - secondHeaviest;
-            stones.push(remainder);
-        }
-        // If equal, both are destroyed — no push needed
+    jsCode: minHeapJavascript + `var lastStoneWeight = function(stones) {
+    const heap = new MinHeap((left, right) => right - left);
+    for (const weight of stones) heap.enqueue(weight);
+    while (heap.size() > 1) {
+        const heaviest = heap.dequeue();
+        const second = heap.dequeue();
+        if (heaviest !== second) heap.enqueue(heaviest - second);
     }
-
-    return stones.length ? stones[0] : 0;
+    return heap.isEmpty() ? 0 : heap.front();
 };`,
-    jsWalkthrough:
-      'Example: stones = [2,7,4,1,8,1]\n' +
-      'Round 1: sort desc → [8,7,4,2,1,1]. Smash 8 and 7 → remainder=1. stones=[4,2,1,1,1].\n' +
-      'Round 2: sort desc → [4,2,1,1,1]. Smash 4 and 2 → remainder=2. stones=[2,1,1,1].\n' +
-      'Round 3: sort desc → [2,1,1,1]. Smash 2 and 1 → remainder=1. stones=[1,1,1].\n' +
-      'Round 4: sort desc → [1,1,1]. Smash 1 and 1 → equal, both destroyed. stones=[1].\n' +
-      'stones.length=1. Return stones[0]=1.\n' +
-      'Result: 1',
+    jsWalkthrough: `stones = [2,7,4,1,8,1]
+Remove 8 and 7; insert 1.
+Remove 4 and 2; insert 2.
+Remove 2 and 1; insert 1.
+Remove 1 and 1; both disappear.
+Return the remaining 1. A max-heap supplies each pair without repeated sorting.`,
     explanation:
       '1. Use a max-heap (negate values for Python min-heap).\n' +
       '2. Pop the two heaviest stones.\n' +

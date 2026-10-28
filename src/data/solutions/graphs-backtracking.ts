@@ -1908,116 +1908,76 @@ Output: [[0,4],[1,3],[1,4],[2,2],[3,0],[3,1],[4,0]]
 Explanation: These cells can reach both the Pacific (top/left) and Atlantic (bottom/right) oceans.`,
     intuition:
       "Checking from every cell whether water can flow to both oceans is expensive. Instead, reverse the flow: start from each ocean's border and flow uphill to find all cells that can drain into that ocean. Cells that appear in both the Pacific-reachable and Atlantic-reachable sets are your answer. Reversing the direction turns a hard problem into two simple flood fills.",
-    approach:
-      "Run DFS/BFS from each ocean's border cells in reverse (flow uphill). Start from Pacific-adjacent cells and mark all cells reachable by flowing uphill from the Pacific. Do the same from Atlantic-adjacent cells. The answer is the intersection of both reachable sets.",
+    approach: `Traverse uphill from each ocean boundary using an explicit stack. A neighboring cell is reachable when its height is at least the current height. Return the cells reached by both traversals. Iteration avoids overflowing the call stack on large flat grids.`,
     code: `class Solution:
     def pacificAtlantic(self, heights: list[list[int]]) -> list[list[int]]:
-        if not heights:
-            return []
-
         rows, cols = len(heights), len(heights[0])
-        pacific = set()
-        atlantic = set()
 
-        def dfs(r: int, c: int, reachable: set, prev_height: int) -> None:
-            if (
-                r < 0 or r >= rows or c < 0 or c >= cols
-                or (r, c) in reachable
-                or heights[r][c] < prev_height
-            ):
-                return
-            reachable.add((r, c))
-            for dr, dc in [(1, 0), (-1, 0), (0, 1), (0, -1)]:
-                dfs(r + dr, c + dc, reachable, heights[r][c])
+        def traverse(starts):
+            reachable = set(starts)
+            pending = list(reachable)
+            while pending:
+                row, col = pending.pop()
+                for delta_row, delta_col in [(1, 0), (-1, 0), (0, 1), (0, -1)]:
+                    next_row, next_col = row + delta_row, col + delta_col
+                    if not (0 <= next_row < rows and 0 <= next_col < cols):
+                        continue
+                    neighbor = (next_row, next_col)
+                    if neighbor not in reachable and heights[next_row][next_col] >= heights[row][col]:
+                        reachable.add(neighbor)
+                        pending.append(neighbor)
+            return reachable
 
-        for c in range(cols):
-            dfs(0, c, pacific, 0)
-            dfs(rows - 1, c, atlantic, 0)
-
-        for r in range(rows):
-            dfs(r, 0, pacific, 0)
-            dfs(r, cols - 1, atlantic, 0)
-
-        return [[r, c] for r, c in pacific & atlantic]`,
+        pacific = traverse([(0, col) for col in range(cols)] + [(row, 0) for row in range(rows)])
+        atlantic = traverse([(rows - 1, col) for col in range(cols)] + [(row, cols - 1) for row in range(rows)])
+        return [[row, col] for row, col in pacific & atlantic]`,
     jsCode: `var pacificAtlantic = function(heights) {
-    if (!heights.length) return [];
-
     const rows = heights.length;
     const cols = heights[0].length;
-
-    // Sets of "row,col" strings for cells reachable by each ocean (flowing uphill)
-    const pacific = new Set();
-    const atlantic = new Set();
-
-    const directions = [[1, 0], [-1, 0], [0, 1], [0, -1]];
-
-    // DFS flowing uphill from an ocean border
-    // A cell is reachable if its height >= the previous cell's height
-    const dfs = (r, c, reachable, prevHeight) => {
-        const cellKey = r + "," + c;
-
-        const outOfBounds = r < 0 || r >= rows || c < 0 || c >= cols;
-        const alreadyVisited = reachable.has(cellKey);
-        const flowsDownhill = heights[r][c] < prevHeight;
-
-        if (outOfBounds || alreadyVisited || flowsDownhill) {
-            return;
+    function traverse(starts) {
+        const reachable = new Set(starts.map(([row, col]) => row * cols + col));
+        const pending = [...reachable];
+        while (pending.length > 0) {
+            const cell = pending.pop();
+            const row = Math.floor(cell / cols);
+            const col = cell % cols;
+            for (const [deltaRow, deltaCol] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+                const nextRow = row + deltaRow;
+                const nextCol = col + deltaCol;
+                if (nextRow < 0 || nextRow >= rows || nextCol < 0 || nextCol >= cols) continue;
+                const neighbor = nextRow * cols + nextCol;
+                if (!reachable.has(neighbor) && heights[nextRow][nextCol] >= heights[row][col]) {
+                    reachable.add(neighbor);
+                    pending.push(neighbor);
+                }
+            }
         }
-
-        // Mark this cell as reachable from this ocean
-        reachable.add(cellKey);
-
-        const currentHeight = heights[r][c];
-        for (const [dr, dc] of directions) {
-            dfs(r + dr, c + dc, reachable, currentHeight);
-        }
-    };
-
-    // Start DFS from top row and bottom row (Pacific top, Atlantic bottom)
-    for (let c = 0; c < cols; c++) {
-        dfs(0, c, pacific, 0);
-        dfs(rows - 1, c, atlantic, 0);
+        return reachable;
     }
-
-    // Start DFS from left column and right column (Pacific left, Atlantic right)
-    for (let r = 0; r < rows; r++) {
-        dfs(r, 0, pacific, 0);
-        dfs(r, cols - 1, atlantic, 0);
+    const pacificStarts = [];
+    const atlanticStarts = [];
+    for (let row = 0; row < rows; row++) {
+        pacificStarts.push([row, 0]);
+        atlanticStarts.push([row, cols - 1]);
     }
-
-    // Collect cells that can reach BOTH oceans
-    const result = [];
-    for (const key of pacific) {
-        if (atlantic.has(key)) {
-            const [r, c] = key.split(",").map(Number);
-            result.push([r, c]);
-        }
+    for (let col = 0; col < cols; col++) {
+        pacificStarts.push([0, col]);
+        atlanticStarts.push([rows - 1, col]);
     }
-    return result;
+    const pacific = traverse(pacificStarts);
+    const atlantic = traverse(atlanticStarts);
+    return [...pacific].filter(cell => atlantic.has(cell)).map(cell => [Math.floor(cell / cols), cell % cols]);
 };`,
-    jsWalkthrough:
-      'heights = [[1,2,2,3,5],\n' +
-      '            [3,2,3,4,4],\n' +
-      '            [2,4,5,3,1],\n' +
-      '            [6,7,1,4,5],\n' +
-      '            [5,1,1,2,4]]\n\n' +
-      'Pacific border (top row + left col):\n' +
-      '  dfs from (0,0)→(0,1)→...→(0,4) and (1,0)→...→(4,0)\n' +
-      '  Flowing uphill: from (0,4) height=5, can reach (1,4)=4? No (4<5)\n' +
-      '  From (0,3) height=3, can go to (1,3)=4 (4>=3) → pacific includes (1,3)\n' +
-      '    From (1,3)=4, can reach (2,3)=3? No. (1,4)=4? Yes → pacific includes (1,4)\n' +
-      '    From (1,4)=4, (0,4)=5? Yes → (0,4) in pacific\n\n' +
-      'Atlantic border (bottom row + right col):\n' +
-      '  dfs from (4,0)→...→(4,4) and (0,4)→...→(4,4)\n' +
-      '  From (4,0)=5, go to (3,0)=6 (6>=5) → atlantic includes (3,0)\n' +
-      '    From (3,0)=6, go to (3,1)=7 → atlantic includes (3,1) etc.\n\n' +
-      'Intersection (pacific ∩ atlantic) = [[0,4],[1,3],[1,4],[2,2],[3,0],[3,1],[4,0]]',
-    explanation: `- Reverse the problem: instead of flowing downhill from each cell, flow uphill from the ocean borders.
-- pacific set: cells that can reach the Pacific (top and left edges).
-- atlantic set: cells that can reach the Atlantic (bottom and right edges).
-- DFS explores neighbors with height >= current (flowing uphill in reverse).
-- Start DFS from all top/left border cells for Pacific, all bottom/right for Atlantic.
-- The answer is the intersection: cells reachable from both oceans.`,
+    jsWalkthrough: `heights = [[1,2],[4,3]]
+Pacific starts: top row and left column. Uphill traversal reaches all four cells.
+Atlantic starts: bottom row and right column. Uphill traversal reaches (0,1), (1,0), (1,1).
+Intersection: [[0,1],[1,0],[1,1]] (any order).
+Neighbor bounds are checked before reading the grid; an explicit stack handles long paths.`,
+    explanation: `1. Reverse the flow: start from ocean boundaries and move only to equal or higher cells.
+2. Maintain one visited set and work stack per traversal.
+3. Check row and column bounds before accessing a neighbor.
+4. Mark cells before adding them to the stack, so each is processed at most once per ocean.
+5. Intersect the two visited sets. Time and space are O(rows × cols).`,
     timeComplexity: "O(m * n) where m and n are the matrix dimensions",
     spaceComplexity: "O(m * n) for the two reachable sets",
     hints: [

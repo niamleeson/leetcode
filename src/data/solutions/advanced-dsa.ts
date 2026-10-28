@@ -264,59 +264,35 @@ def maxSlidingWindow(nums, k):
             result.append(nums[dq[0]])
     return result`,
     jsCode: `var maxSlidingWindow = function(nums, k) {
-    // Deque stores indices; the corresponding values are always decreasing
-    // so dq[0] is always the index of the current window's maximum
-    const dq = [];
+    const deque = new Array(k);
     const result = [];
-
-    for (let i = 0; i < nums.length; i++) {
-        // Step 1: Remove the front index if it has slid out of the window
-        const leftBoundary = i - k + 1;
-        if (dq.length > 0 && dq[0] < leftBoundary) {
-            dq.shift();
+    let head = 0;
+    let size = 0;
+    for (let index = 0; index < nums.length; index++) {
+        if (size > 0 && deque[head] <= index - k) {
+            head = (head + 1) % k;
+            size--;
         }
-
-        // Step 2: Remove indices from the back whose values are <= nums[i]
-        // Those elements can never be the window max (current is newer AND larger)
-        while (dq.length > 0 && nums[dq[dq.length - 1]] <= nums[i]) {
-            dq.pop();
+        while (size > 0 && nums[deque[(head + size - 1) % k]] <= nums[index]) {
+            size--;
         }
-
-        // Step 3: Add current index to the back
-        dq.push(i);
-
-        // Step 4: Once the first full window is formed, record the max (front of dq)
-        if (i >= k - 1) {
-            result.push(nums[dq[0]]);
-        }
+        deque[(head + size) % k] = index;
+        size++;
+        if (index >= k - 1) result.push(nums[deque[head]]);
     }
-
     return result;
 };`,
-    jsWalkthrough:
-      'nums = [1,3,-1,-3,5,3,6,7], k = 3\n\n' +
-      'i=0 (val=1): dq=[] → push 0 → dq=[0]       window not full yet\n' +
-      'i=1 (val=3): back val nums[0]=1 <= 3 → pop; push 1 → dq=[1]  not full\n' +
-      'i=2 (val=-1): back val nums[1]=3 > -1 → keep; push 2 → dq=[1,2]\n' +
-      '  i>=k-1: result=[nums[1]]=[3]\n\n' +
-      'i=3 (val=-3): front dq[0]=1 >= leftBoundary=1 → keep\n' +
-      '  back val nums[2]=-1 > -3 → keep; push 3 → dq=[1,2,3]\n' +
-      '  result=[3, nums[1]]=[3,3]\n\n' +
-      'i=4 (val=5): front dq[0]=1 < leftBoundary=2 → shift; dq=[2,3]\n' +
-      '  nums[3]=-3<=5 → pop; nums[2]=-1<=5 → pop; push 4 → dq=[4]\n' +
-      '  result=[3,3,5]\n\n' +
-      'i=5 (val=3): front 4>=3 → keep; nums[4]=5>3 → keep; push 5 → dq=[4,5]\n' +
-      '  result=[3,3,5,5]\n\n' +
-      'i=6 (val=6): front 4<4? No (4>=4); nums[5]=3<=6→pop; nums[4]=5<=6→pop; push 6 → dq=[6]\n' +
-      '  result=[3,3,5,5,6]\n\n' +
-      'i=7 (val=7): front 6>=5→keep; nums[6]=6<=7→pop; push 7 → dq=[7]\n' +
-      '  result=[3,3,5,5,6,7]  ✓',
-    explanation:
-      '1. The deque stores indices in decreasing order of their values.\n' +
-      '2. Front removal: if dq[0] < i - k + 1, that element left the window.\n' +
-      '3. Back removal: if nums[back] <= nums[i], the back element can never be a future max (current is newer AND larger).\n' +
-      '4. After cleanup, append i. The front is always the max of the current window.\n' +
-      '5. Each element enters and leaves the deque at most once → O(n) total.',
+    jsWalkthrough: `nums = [1,3,-1,-3,5,3,6,7], k = 3
+Logical deque contents are indices; head and size locate them in a circular buffer.
+After index 2: [1,2], maximum = nums[1] = 3.
+After index 3: [1,2,3], maximum = 3.
+At index 4: advance head to expire index 1, remove dominated indices 3 and 2 from the back, then append 4. Maximum = 5.
+Final maxima: [3,3,5,5,6,7]. No array shift or copying is needed.`,
+    explanation: `1. Keep candidate indices in decreasing order of their values.
+2. Expire indices from the front when they leave the window.
+3. Remove smaller or equal values from the back before appending the new index.
+4. Read the maximum from the front once the window is full.
+5. Python uses deque; JavaScript uses a circular buffer of capacity k so both ends take O(1) time. Each index is added and removed at most once.`,
     timeComplexity: 'O(n)',
     spaceComplexity: 'O(k)',
     hints: [
@@ -442,205 +418,136 @@ def longestSubarray(nums, limit):
   // 215. Kth Largest Element in an Array
   {
     id: 215,
-    description:
-      'Given an integer array nums and an integer k, return the kth largest element. Note that it is the kth largest element in sorted order, not the kth distinct element.',
+    description: `Return the kth largest element of nums, counting duplicates separately. Solve it without sorting the entire array.`,
     examples:
       'Input: nums = [3,2,1,5,6,4], k = 2\nOutput: 5\n\nInput: nums = [3,2,3,1,2,4,5,5,6], k = 4\nOutput: 4',
-    intuition:
-      'Sorting gives O(n log n) but we only need ONE element, not all of them sorted. Quickselect is like quicksort but only recurses into the side containing the target index. On average, this is O(n) because each step halves the search space: n + n/2 + n/4 + ... = 2n.',
-    approach:
-      'Use Quickselect (Hoare\'s algorithm). Partition around a pivot. If the pivot lands at the target index, done. If target is left of pivot, recurse left. Otherwise, recurse right. The kth largest is the (n-k)th smallest.',
+    intuition: `Only the rank of one element matters. Partition around a pivot into smaller, equal, and larger values. If the desired rank lies in the equal range, return immediately, even when many values are duplicates.`,
+    approach: `Use iterative randomized quickselect with a three-way partition. The desired sorted index is nums.length - k. Narrow the search to the smaller or larger partition until that index falls in the equal partition.`,
     code: `import random
 
-def findKthLargest(nums, k):
-    target = len(nums) - k  # convert to 0-indexed kth smallest
-
-    def quickselect(left, right):
-        pivot_idx = random.randint(left, right)
-        nums[pivot_idx], nums[right] = nums[right], nums[pivot_idx]
-        pivot = nums[right]
-        store = left
-        for i in range(left, right):
-            if nums[i] <= pivot:
-                nums[store], nums[i] = nums[i], nums[store]
-                store += 1
-        nums[store], nums[right] = nums[right], nums[store]
-
-        if store == target:
-            return nums[store]
-        elif store < target:
-            return quickselect(store + 1, right)
-        else:
-            return quickselect(left, store - 1)
-
-    return quickselect(0, len(nums) - 1)`,
+class Solution:
+    def findKthLargest(self, nums: list[int], k: int) -> int:
+        target = len(nums) - k
+        left, right = 0, len(nums) - 1
+        while left <= right:
+            pivot = nums[random.randint(left, right)]
+            smaller, current, larger = left, left, right
+            while current <= larger:
+                if nums[current] < pivot:
+                    nums[smaller], nums[current] = nums[current], nums[smaller]
+                    smaller += 1
+                    current += 1
+                elif nums[current] > pivot:
+                    nums[current], nums[larger] = nums[larger], nums[current]
+                    larger -= 1
+                else:
+                    current += 1
+            if target < smaller:
+                right = smaller - 1
+            elif target > larger:
+                left = larger + 1
+            else:
+                return pivot`,
     jsCode: `var findKthLargest = function(nums, k) {
-    // We want the kth largest, which is the (n-k)th smallest (0-indexed)
-    const targetIndex = nums.length - k;
-
-    function quickselect(left, right) {
-        // Pick a random pivot index to avoid worst-case O(n^2)
-        const randomOffset = Math.floor(Math.random() * (right - left + 1));
-        const pivotIdx = left + randomOffset;
-
-        // Move pivot to the end so it's out of the way during partitioning
-        [nums[pivotIdx], nums[right]] = [nums[right], nums[pivotIdx]];
-        const pivotValue = nums[right];
-
-        // Partition: move all elements <= pivot to the left of store pointer
-        let storeIdx = left;
-        for (let i = left; i < right; i++) {
-            if (nums[i] <= pivotValue) {
-                [nums[storeIdx], nums[i]] = [nums[i], nums[storeIdx]];
-                storeIdx++;
+    const target = nums.length - k;
+    let left = 0;
+    let right = nums.length - 1;
+    while (left <= right) {
+        const pivot = nums[left + Math.floor(Math.random() * (right - left + 1))];
+        let smaller = left;
+        let current = left;
+        let larger = right;
+        while (current <= larger) {
+            if (nums[current] < pivot) {
+                [nums[smaller], nums[current]] = [nums[current], nums[smaller]];
+                smaller++;
+                current++;
+            } else if (nums[current] > pivot) {
+                [nums[current], nums[larger]] = [nums[larger], nums[current]];
+                larger--;
+            } else {
+                current++;
             }
         }
-
-        // Place the pivot in its final sorted position
-        [nums[storeIdx], nums[right]] = [nums[right], nums[storeIdx]];
-
-        // Decide which side to recurse into
-        if (storeIdx === targetIndex) {
-            // Pivot landed exactly at the target position
-            return nums[storeIdx];
-        } else if (storeIdx < targetIndex) {
-            // Target is to the right of the pivot
-            return quickselect(storeIdx + 1, right);
-        } else {
-            // Target is to the left of the pivot
-            return quickselect(left, storeIdx - 1);
-        }
+        if (target < smaller) right = smaller - 1;
+        else if (target > larger) left = larger + 1;
+        else return pivot;
     }
-
-    return quickselect(0, nums.length - 1);
 };`,
-    jsWalkthrough:
-      'nums = [3,2,1,5,6,4], k = 2\n' +
-      'targetIndex = 6 - 2 = 4  (4th smallest = 2nd largest)\n\n' +
-      'quickselect(0, 5): say pivot lands on index 3 (val=5)\n' +
-      '  Move 5 to end: [3,2,1,4,6,5]\n' +
-      '  Partition around 5: elements <=5 → [3,2,1,4,5,6], storeIdx=4\n' +
-      '  storeIdx=4 === targetIndex=4 → return nums[4] = 5  ✓\n\n' +
-      '(If pivot had been 6 at storeIdx=5: 5<4? No. 5>4? Yes → recurse left)\n' +
-      '(If pivot had been 1 at storeIdx=0: 0<4? Yes → recurse right)',
-    explanation:
-      '1. Convert "kth largest" to "target = n-k" (0-indexed position in sorted order).\n' +
-      '2. Pick a random pivot, partition array: smaller elements left, larger right.\n' +
-      '3. If pivot lands at target index, return it.\n' +
-      '4. Otherwise recurse into the side containing target.\n' +
-      '5. Random pivot avoids worst-case O(n^2) in practice.',
-    timeComplexity: 'O(n) average, O(n^2) worst case',
-    spaceComplexity: 'O(1) iterative, O(log n) recursive',
-    hints: [
-      'Quickselect = quicksort that only recurses into one side.',
-      'Random pivot selection prevents worst-case behavior.',
-      'kth largest = (n-k)th smallest in 0-indexed.',
-    ],
+    jsWalkthrough: `nums = [3,2,1,5,6,4], k = 2
+target = 6 - 2 = 4 (zero-based sorted index)
+If pivot = 5, partition into [values < 5], [5], [6].
+The equal range is index 4, which contains target. Return 5.
+If all values are equal, the equal range covers the entire input and finishes in one pass.`,
+    explanation: `1. Convert kth largest into sorted index n - k.
+2. Choose a random pivot and partition in place into three ranges.
+3. Return when the target is inside the equal range.
+4. Otherwise narrow the bounds and repeat without recursion.
+5. Expected time is O(n); unlucky pivots can still cause O(n²) time. The equal range prevents duplicate values from forcing one-element progress.`,
+    timeComplexity: `O(n) expected, O(n²) worst case`,
+    spaceComplexity: `O(1) auxiliary space`,
+    hints: ["Select a rank instead of sorting every element.","Group values equal to the pivot together.","Use a loop to avoid recursive stack overflow."],
   },
 
-  // 912. Sort an Array (Merge Sort)
+  // 912. Sort an Array (Heapsort)
   {
     id: 912,
-    description:
-      'Given an array of integers nums, sort the array in ascending order and return it. You must solve it in O(n log n) time and with the smallest space possible.',
+    description: `Sort nums in ascending order without built-in sorting functions. The required time is O(n log n), with the smallest possible auxiliary space. This implementation uses in-place heapsort with O(1) extra space.`,
     examples:
       'Input: nums = [5,2,3,1]\nOutput: [1,2,3,5]',
-    intuition:
-      'Merge sort is the canonical divide-and-conquer sort. Split the array in half, recursively sort each half, then merge the two sorted halves. The key insight: merging two sorted arrays is O(n) and we do O(log n) levels of splitting, giving O(n log n) total.',
-    approach:
-      'Recursively split array at midpoint. Base case: array of length 0 or 1 is sorted. Merge step: use two pointers to merge two sorted arrays into one.',
-    code: `def sortArray(nums):
-    if len(nums) <= 1:
-        return nums
-    mid = len(nums) // 2
-    left = sortArray(nums[:mid])
-    right = sortArray(nums[mid:])
-    return merge(left, right)
+    intuition: `A max-heap puts the largest remaining value at the root. Swap it into the last unsorted position, shrink the heap, and restore the heap property. The input array itself stores the heap.`,
+    approach: `Build a max-heap in place from the last parent toward the root. Repeatedly swap the root with the end of the unsorted prefix and sift the new root down inside that prefix.`,
+    code: `class Solution:
+    def sortArray(self, nums: list[int]) -> list[int]:
+        def sift_down(root: int, end: int) -> None:
+            while root * 2 + 1 < end:
+                child = root * 2 + 1
+                if child + 1 < end and nums[child + 1] > nums[child]:
+                    child += 1
+                if nums[root] >= nums[child]:
+                    return
+                nums[root], nums[child] = nums[child], nums[root]
+                root = child
 
-def merge(left, right):
-    result = []
-    i = j = 0
-    while i < len(left) and j < len(right):
-        if left[i] <= right[j]:
-            result.append(left[i]); i += 1
-        else:
-            result.append(right[j]); j += 1
-    result.extend(left[i:])
-    result.extend(right[j:])
-    return result`,
+        for root in range(len(nums) // 2 - 1, -1, -1):
+            sift_down(root, len(nums))
+        for end in range(len(nums) - 1, 0, -1):
+            nums[0], nums[end] = nums[end], nums[0]
+            sift_down(0, end)
+        return nums`,
     jsCode: `var sortArray = function(nums) {
-    // Base case: a single element or empty array is already sorted
-    if (nums.length <= 1) {
-        return nums;
-    }
-
-    // Split at midpoint into two halves
-    const mid = Math.floor(nums.length / 2);
-    const leftHalf = sortArray(nums.slice(0, mid));
-    const rightHalf = sortArray(nums.slice(mid));
-
-    // Merge the two sorted halves and return the result
-    return merge(leftHalf, rightHalf);
-};
-
-function merge(left, right) {
-    const result = [];
-    let leftPtr = 0;
-    let rightPtr = 0;
-
-    // Compare front elements of each half; take the smaller one
-    while (leftPtr < left.length && rightPtr < right.length) {
-        if (left[leftPtr] <= right[rightPtr]) {
-            result.push(left[leftPtr]);
-            leftPtr++;
-        } else {
-            result.push(right[rightPtr]);
-            rightPtr++;
+    function siftDown(root, end) {
+        while (root * 2 + 1 < end) {
+            let child = root * 2 + 1;
+            if (child + 1 < end && nums[child + 1] > nums[child]) child++;
+            if (nums[root] >= nums[child]) return;
+            [nums[root], nums[child]] = [nums[child], nums[root]];
+            root = child;
         }
     }
-
-    // Drain any remaining elements from left half
-    while (leftPtr < left.length) {
-        result.push(left[leftPtr]);
-        leftPtr++;
+    for (let root = Math.floor(nums.length / 2) - 1; root >= 0; root--) {
+        siftDown(root, nums.length);
     }
-
-    // Drain any remaining elements from right half
-    while (rightPtr < right.length) {
-        result.push(right[rightPtr]);
-        rightPtr++;
+    for (let end = nums.length - 1; end > 0; end--) {
+        [nums[0], nums[end]] = [nums[end], nums[0]];
+        siftDown(0, end);
     }
-
-    return result;
-}`,
-    jsWalkthrough:
-      'nums = [5,2,3,1]\n\n' +
-      'sortArray([5,2,3,1]):\n' +
-      '  mid=2 → left=[5,2], right=[3,1]\n\n' +
-      '  sortArray([5,2]):\n' +
-      '    mid=1 → left=[5], right=[2]\n' +
-      '    sortArray([5]) → [5]  (base case)\n' +
-      '    sortArray([2]) → [2]  (base case)\n' +
-      '    merge([5],[2]): 2<5 → [2,5]\n\n' +
-      '  sortArray([3,1]):\n' +
-      '    mid=1 → left=[3], right=[1]\n' +
-      '    merge([3],[1]): 1<3 → [1,3]\n\n' +
-      '  merge([2,5],[1,3]):\n' +
-      '    1<2 → [1]; 2<3 → [1,2]; 3<5 → [1,2,3]; drain [5] → [1,2,3,5]\n\n' +
-      'Return [1,2,3,5]  ✓',
-    explanation:
-      '1. Split: Divide array at midpoint into two halves.\n' +
-      '2. Conquer: Recursively sort each half (base case: length <= 1).\n' +
-      '3. Combine: Merge two sorted halves with two pointers.\n' +
-      '4. The merge step is O(n) per level, and there are O(log n) levels.\n' +
-      '5. Merge sort is stable (preserves relative order of equal elements).',
-    timeComplexity: 'O(n log n)',
-    spaceComplexity: 'O(n)',
-    hints: [
-      'Split in half, sort each half, merge. That\'s the entire algorithm.',
-      'The merge step uses two pointers on two sorted arrays.',
-      'Merge sort is preferred when stability matters or for linked lists.',
-    ],
+    return nums;
+};`,
+    jsWalkthrough: `nums = [5,2,3,1]
+Already a max-heap.
+Move 5 to the end, restore heap: [3,2,1 | 5]
+Move 3 to the end, restore heap: [2,1 | 3,5]
+Move 2 to the end: [1 | 2,3,5]
+Return the same array: [1,2,3,5].`,
+    explanation: `1. Treat the input array as a binary max-heap.
+2. Build the heap bottom-up in O(n) time.
+3. Move the largest element to the end of the unsorted prefix.
+4. Restore the heap with an iterative sift-down in O(log n).
+5. Repeat until sorted. No built-in sort, copied subarrays, or recursive call stack is needed.`,
+    timeComplexity: `O(n log n) worst case`,
+    spaceComplexity: `O(1) auxiliary space`,
+    hints: ["Store a binary heap inside the input array.","A max-heap exposes the next largest element at index 0.","Shrink the heap after moving its root into the sorted suffix."],
   },
 
   // ===========================================================================

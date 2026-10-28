@@ -6,6 +6,7 @@ import { ProblemProgress } from '../types';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import CodeBlock from './CodeBlock';
 import GlossaryHighlighter from './GlossaryHighlighter';
+import FollowUpSolution from './FollowUpSolution';
 
 interface ProblemPageProps {
   getProgress: (id: number) => ProblemProgress;
@@ -188,6 +189,7 @@ export default function ProblemPage({ getProgress, onRate, onUpdateNotes, onRese
           <section>
             <div className="flex items-center justify-between mb-2">
               <h2 className="text-xs font-semibold text-emerald-400 light:text-emerald-700 uppercase tracking-wider">
+                {solution.solutionTitle && `${solution.solutionTitle} · `}
                 {language === 'python' ? 'Python' : 'JavaScript'} Solution
               </h2>
               <div className="flex items-center bg-gray-800 light:bg-gray-100 rounded-md p-0.5 text-xs">
@@ -257,6 +259,7 @@ export default function ProblemPage({ getProgress, onRate, onUpdateNotes, onRese
             <span>Time: <strong className="text-gray-300 light:text-gray-700">{solution.timeComplexity}</strong></span>
             <span>Space: <strong className="text-gray-300 light:text-gray-700">{solution.spaceComplexity}</strong></span>
           </div>
+          {solution.followUp && <FollowUpSolution solution={solution.followUp} language={language} />}
         </>
       ) : (
         <div className="text-sm text-gray-500 light:text-gray-500">

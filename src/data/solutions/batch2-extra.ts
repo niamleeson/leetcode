@@ -1,4 +1,5 @@
 import { ProblemSolution } from './types';
+import { minHeapJavascript } from './heap-code';
 
 export const solutions: ProblemSolution[] = [
   // ---------------------------------------------------------------------------
@@ -325,38 +326,23 @@ class Solution:
             else:
                 heapq.heappush(heap, end)
         return len(heap)`,
-    jsCode: `var minMeetingRooms = function(intervals) {
-    if (!intervals.length) return 0;
-
-    // Sort meetings by start time
-    intervals.sort((a, b) => a[0] - b[0]);
-
-    // Track end times of all currently occupied rooms (min-heap substitute)
-    const roomEndTimes = [];
-
+    jsCode: minHeapJavascript + `var minMeetingRooms = function(intervals) {
+    intervals.sort((left, right) => left[0] - right[0]);
+    const roomEndTimes = new MinHeap();
     for (const [start, end] of intervals) {
-        // If the earliest-ending room is free before this meeting starts, reuse it
-        const earliestEndingRoom = roomEndTimes[0];
-        if (roomEndTimes.length > 0 && earliestEndingRoom <= start) {
-            roomEndTimes.shift(); // free that room
+        if (!roomEndTimes.isEmpty() && roomEndTimes.front() <= start) {
+            roomEndTimes.dequeue();
         }
-
-        // Assign this meeting to a room (reused or new)
-        roomEndTimes.push(end);
-
-        // Keep sorted so roomEndTimes[0] is always the earliest end time
-        roomEndTimes.sort((a, b) => a - b);
+        roomEndTimes.enqueue(end);
     }
-
-    // Number of rooms still in use = number of rooms needed
-    return roomEndTimes.length;
+    return roomEndTimes.size();
 };`,
     jsWalkthrough:
       'Example: intervals = [[0,30],[5,10],[15,20]]\n' +
       'After sort: [[0,30],[5,10],[15,20]]\n' +
       '[0,30]: roomEndTimes=[] → push 30 → [30]\n' +
-      '[5,10]: ends[0]=30 > 5 → no reuse → push 10, sort → [10,30]\n' +
-      '[15,20]: ends[0]=10 ≤ 15 → reuse → shift, push 20, sort → [20,30]\n' +
+      '[5,10]: heap front=30 > 5 → allocate a room; enqueue 10 → heap root=10\n' +
+      '[15,20]: heap front=10 ≤ 15 → reuse a room; dequeue 10, enqueue 20 → heap root=20\n' +
       'Result: 2 rooms needed',
     explanation:
       '1. Sort meetings by start time.\n' +

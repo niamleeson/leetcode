@@ -1,4 +1,5 @@
 import { ProblemSolution } from './types';
+import { minHeapJavascript } from './heap-code';
 
 export const solutions: ProblemSolution[] = [
   // ---------------------------------------------------------------------------
@@ -6805,46 +6806,24 @@ class KthLargest:
         if len(self.heap) > self.k:
             heapq.heappop(self.heap)
         return self.heap[0]`,
-    jsCode: `var KthLargest = function(k, nums) {
+    jsCode: minHeapJavascript + `var KthLargest = function(k, nums) {
     this.k = k;
-    // Simulated min-heap: keeps only the top k largest values seen
-    // (JS has no built-in heap, so we use a sorted array)
-    this.minHeap = [];
-
-    // Initialize: add all given numbers using the add method
-    for (const num of nums) {
-        this.add(num);
-    }
+    this.heap = new MinHeap();
+    for (const value of nums) this.add(value);
 };
 
-KthLargest.prototype.add = function(val) {
-    // Add the new value to the heap
-    this.minHeap.push(val);
-
-    // Sort ascending so the smallest (kth largest) is at index 0
-    this.minHeap.sort((a, b) => a - b);
-
-    // Trim the heap to at most k elements (remove elements smaller than kth largest)
-    while (this.minHeap.length > this.k) {
-        this.minHeap.shift(); // Remove the smallest element
-    }
-
-    // The smallest element in the heap IS the kth largest overall
-    return this.minHeap[0];
+KthLargest.prototype.add = function(value) {
+    this.heap.enqueue(value);
+    if (this.heap.size() > this.k) this.heap.dequeue();
+    return this.heap.front();
 };`,
-    jsWalkthrough:
-      'Example: KthLargest(3, [4,5,8,2])\n\n' +
-      'Init (add each initial number):\n' +
-      '  add(4): heap=[4]\n' +
-      '  add(5): heap=[4,5]\n' +
-      '  add(8): heap=[4,5,8]\n' +
-      '  add(2): heap=[2,4,5,8], trim to k=3 → remove 2 → heap=[4,5,8]\n' +
-      '  (kth largest is 4)\n\n' +
-      'add(3): heap=[3,4,5,8], trim → remove 3 → heap=[4,5,8], return 4\n' +
-      'add(5): heap=[4,5,5,8], trim → remove 4 → heap=[5,5,8], return 5\n' +
-      'add(10): heap=[5,5,8,10], trim → remove 5 → heap=[5,8,10], return 5\n' +
-      'add(9): heap=[5,8,9,10], trim → remove 5 → heap=[8,9,10], return 8\n' +
-      'add(4): heap=[4,8,9,10], trim → remove 4 → heap=[8,9,10], return 8',
+    jsWalkthrough: `KthLargest(3, [4,5,8,2]) retains values {4,5,8}; heap root is 4.
+add(3): discard 3, return 4.
+add(5): discard 4, return 5.
+add(10): discard one 5, return 5.
+add(9): discard 5, return 8.
+add(4): discard 4, return 8.
+Enqueue and dequeue restore heap order in O(log k); no full-array sorting is needed.`,
     explanation:
       '1. Maintain a min-heap of size k.\n' +
       '2. The smallest element in the heap is the kth largest overall.\n' +

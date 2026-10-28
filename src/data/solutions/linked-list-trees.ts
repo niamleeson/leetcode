@@ -1,4 +1,5 @@
 import { ProblemSolution } from './types';
+import { minHeapJavascript } from './heap-code';
 
 export const solutions: ProblemSolution[] = [
   // ============================================================
@@ -283,13 +284,12 @@ class Solution:
                 heapq.heappush(heap, (node.next.val, i, node.next))
 
         return dummy.next`,
-    jsCode: `var mergeKLists = function(lists) {
+    jsCode: minHeapJavascript + `var mergeKLists = function(lists) {
     const dummy = new ListNode(0);
     let current = dummy;
 
-    // MinPriorityQueue from datastructures-js (available on LeetCode)
     // It always gives us the node with the smallest val in O(log k)
-    const pq = new MinPriorityQueue({ priority: (node) => node.val });
+    const pq = new MinHeap((left, right) => left.val - right.val);
 
     // Seed the heap with the head of each non-empty list
     for (const headNode of lists) {
@@ -300,7 +300,7 @@ class Solution:
 
     while (!pq.isEmpty()) {
         // Extract the globally smallest node across all list heads
-        const smallestNode = pq.dequeue().element;
+        const smallestNode = pq.dequeue();
 
         // Attach it to the result list
         current.next = smallestNode;

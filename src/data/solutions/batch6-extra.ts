@@ -1,4 +1,5 @@
 import { ProblemSolution } from './types';
+import { minHeapJavascript } from './heap-code';
 
 export const solutions: ProblemSolution[] = [
   // ---------------------------------------------------------------------------
@@ -1783,14 +1784,12 @@ class Solution:
             time += proc_time
             result.append(idx)
         return result`,
-    jsCode: `var getOrder = function(tasks) {
+    jsCode: minHeapJavascript + `var getOrder = function(tasks) {
     // Attach original indices before sorting, then sort by enqueue time
     const indexed = tasks.map((t, i) => [i, t[0], t[1]]).sort((a, b) => a[1] - b[1]);
 
     // Min-heap sorted by (processingTime, originalIndex) to pick the shortest available task
-    const pq = new MinPriorityQueue({
-        compare: (a, b) => a[0] !== b[0] ? a[0] - b[0] : a[1] - b[1]
-    });
+    const pq = new MinHeap((a, b) => a[0] !== b[0] ? a[0] - b[0] : a[1] - b[1]);
 
     const result = [];
     let time = 0;
@@ -2167,7 +2166,7 @@ class Solution:
             if heap:
                 result[qi] = heap[0][0]
         return result`,
-    jsCode: `var minInterval = function(intervals, queries) {
+    jsCode: minHeapJavascript + `var minInterval = function(intervals, queries) {
     // Sort intervals by left endpoint so we can add them as the query increases
     intervals.sort((a, b) => a[0] - b[0]);
 
@@ -2176,9 +2175,7 @@ class Solution:
 
     // Min-heap: stores [intervalSize, rightEndpoint]
     // Sorted by size first (we want smallest covering interval)
-    const pq = new MinPriorityQueue({
-        compare: (a, b) => a[0] !== b[0] ? a[0] - b[0] : a[1] - b[1]
-    });
+    const pq = new MinHeap((a, b) => a[0] !== b[0] ? a[0] - b[0] : a[1] - b[1]);
 
     const result = new Array(queries.length).fill(-1);
     let i = 0;
@@ -6710,19 +6707,17 @@ class Solution:
                 heapq.heappush(busy, (earliest_end + end - start, room))
             count[room] += 1
         return count.index(max(count))`,
-    jsCode: `var mostBooked = function(n, meetings) {
+    jsCode: minHeapJavascript + `var mostBooked = function(n, meetings) {
     // Sort meetings by start time
     meetings.sort((a, b) => a[0] - b[0]);
 
     // available: min-heap of free room numbers (sorted by room number)
-    const available = new MinPriorityQueue();
+    const available = new MinHeap();
     for (let i = 0; i < n; i++) available.enqueue(i);
 
     // busy: min-heap of [endTime, roomNumber] for currently occupied rooms
     // Primary sort: end time, secondary sort: room number (for ties)
-    const busy = new MinPriorityQueue({
-        compare: (a, b) => a[0] !== b[0] ? a[0] - b[0] : a[1] - b[1]
-    });
+    const busy = new MinHeap((a, b) => a[0] !== b[0] ? a[0] - b[0] : a[1] - b[1]);
 
     // count[i] = number of meetings held in room i
     const count = new Array(n).fill(0);
@@ -6736,7 +6731,7 @@ class Solution:
         let room;
         if (!available.isEmpty()) {
             // Assign the lowest-numbered available room
-            room = available.dequeue().element;
+            room = available.dequeue();
             busy.enqueue([end, room]);
         } else {
             // No room available: wait for the earliest-ending room

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { usePersistedOpenSet } from '../hooks/usePersistedOpenSet';
@@ -6,8 +6,10 @@ import { NeetCodeTopic, NeetCodeTemplate, NeetCodeProblem } from '../data/neetco
 import { uniqueProblems } from '../data/problems';
 import { solutionMap, ProblemSolution } from '../data/solutions';
 import CodeBlock from './CodeBlock';
+import FollowUpSolution from './FollowUpSolution';
 
 type Lang = 'python' | 'javascript';
+type TemplateTab = 'pseudocode' | 'code';
 
 function LanguageToggle({ language, setLanguage }: { language: Lang; setLanguage: (l: Lang) => void }) {
   return (
@@ -76,6 +78,7 @@ function InlineSolution({ solution, language }: { solution: ProblemSolution; lan
 
       <div>
         <h4 className="text-[10px] font-semibold text-emerald-400 light:text-emerald-700 uppercase tracking-wider mb-1.5">
+          {solution.solutionTitle && `${solution.solutionTitle} · `}
           {codeLang === 'python' ? 'Python' : 'JavaScript'} Solution
         </h4>
         <CodeBlock code={code} language={codeLang} />
@@ -105,6 +108,7 @@ function InlineSolution({ solution, language }: { solution: ProblemSolution; lan
           )}
         </div>
       )}
+      {solution.followUp && <FollowUpSolution solution={solution.followUp} language={language} />}
     </div>
   );
 }
@@ -195,6 +199,8 @@ function TemplateCard({
   template,
   problems,
   language,
+  tab,
+  setTab,
   inAppIds,
   isProblemOpen,
   onToggleProblem,
@@ -202,11 +208,12 @@ function TemplateCard({
   template: NeetCodeTemplate;
   problems: NeetCodeProblem[];
   language: Lang;
+  tab: TemplateTab;
+  setTab: (tab: TemplateTab) => void;
   inAppIds: Set<number>;
   isProblemOpen: (id: number) => boolean;
   onToggleProblem: (id: number) => void;
 }) {
-  const [tab, setTab] = useState<'pseudocode' | 'code'>('pseudocode');
   const templateProblems = template.problemIds
     .map((id) => problems.find((p) => p.id === id))
     .filter((p): p is NeetCodeProblem => !!p);
@@ -223,6 +230,7 @@ function TemplateCard({
           <button
             key={t}
             onClick={() => setTab(t)}
+            aria-pressed={tab === t}
             className={`flex-1 px-4 py-2 text-xs font-medium capitalize transition-colors ${
               tab === t
                 ? 'text-blue-400 light:text-blue-700 border-b-2 border-blue-400 bg-blue-950/20 light:bg-blue-50'
@@ -271,6 +279,8 @@ function TemplateCard({
 function TopicSection({
   topic,
   language,
+  tab,
+  setTab,
   inAppIds,
   expanded,
   onToggle,
@@ -279,6 +289,8 @@ function TopicSection({
 }: {
   topic: NeetCodeTopic;
   language: Lang;
+  tab: TemplateTab;
+  setTab: (tab: TemplateTab) => void;
   inAppIds: Set<number>;
   expanded: boolean;
   onToggle: () => void;
@@ -316,6 +328,8 @@ function TopicSection({
               template={tpl}
               problems={topic.problems}
               language={language}
+              tab={tab}
+              setTab={setTab}
               inAppIds={inAppIds}
               isProblemOpen={isProblemOpen}
               onToggleProblem={onToggleProblem}
@@ -336,6 +350,7 @@ export interface NeetCodeViewProps {
 
 export default function NeetCodeView({ topics, storagePrefix, title, description }: NeetCodeViewProps) {
   const [language, setLanguage] = useLocalStorage<Lang>(`${storagePrefix}-language`, 'javascript');
+  const [tab, setTab] = useLocalStorage<TemplateTab>(`${storagePrefix}-template-tab`, 'pseudocode');
   const inAppIds = useMemo(() => new Set(uniqueProblems.map((p) => p.id)), []);
   const topicsOpen = usePersistedOpenSet<string>(`${storagePrefix}-open-topics`);
   const problemsOpen = usePersistedOpenSet<number>(`${storagePrefix}-open-problems`);
@@ -356,6 +371,8 @@ export default function NeetCodeView({ topics, storagePrefix, title, description
             key={topic.name}
             topic={topic}
             language={language}
+            tab={tab === 'code' ? 'code' : 'pseudocode'}
+            setTab={setTab}
             inAppIds={inAppIds}
             expanded={topicsOpen.isOpen(topic.name)}
             onToggle={() => topicsOpen.toggle(topic.name)}
