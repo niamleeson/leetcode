@@ -26,15 +26,23 @@ Random choices use a fixed per-example seed, so quickselect pivots and recording
 remain reproducible without changing the displayed algorithm.
 
 Recorded steps include initialization, each loop iteration and termination check,
-short-circuit conditions, failed guards, mutation operations, function calls,
+compound conditions, failed guards, mutation operations, function calls,
 returns, break, and continue. A pop/shift is recorded before its result is assigned
 to a variable. Native operations such as sorting and allocation are atomic;
 concise callbacks passed directly to them are part of that operation. Algorithm
 helper functions, including recursive helpers and heap methods, are stepped into.
+Standalone mutations are recorded once; their enclosing expression statement
+does not create a duplicate frame. Compound conditions produce one decision, and
+boolean initializers produce one statement, while preserving JavaScript's actual
+short-circuit behavior. Statements that happen to leave values unchanged still
+execute and remain available as code steps, without artificial NOOP labels.
 
 Snapshots preserve object identity, cycles, Maps, Sets, undefined, non-finite
 numbers, and BigInt. Heap changes are stored as immutable deltas. Playback shows
-the state **after** the highlighted action. Returning through a `finally` hook
+the state **after** the highlighted action. The data view keeps its last change
+markers while code advances through an unchanged check, and updates on the next
+data change. New variables display `name = value`; existing values display
+`name old → new`. Real `undefined` values stay explicit. Returning through a `finally` hook
 keeps recursive call stacks accurate.
 
 The generated JSON files are loaded individually when a problem is expanded.
@@ -45,7 +53,7 @@ with fresh execution, so a stale or manually edited recording fails verification
 
 The runtime tests exercise intermediate states independently of the example
 outputs. Component tests render every player at its first, middle, and final step,
-and cover highlight persistence, source lines, no-op checks, reset, and examples.
+and cover highlight persistence, source lines, unchanged checks, reset, and examples.
 These checks verify the supplied cases and recording semantics, not every possible
 input to all 250 algorithms. Add a regression fixture whenever a new edge case is
 found; never change an expected answer merely to match the implementation.

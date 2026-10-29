@@ -35,4 +35,15 @@ describe('data markers follow source indexing',()=>{
     expect(screen.getAllByRole('listitem')).toHaveLength(4);
     expect(screen.getByText('right').parentElement?.textContent).toContain('"b"');
   });
+  it('labels initial grid values without a missing-value dash or transition arrow',()=>{
+    const heap:TraceHeap={grid:{kind:'array',items:[{$ref:'row'}]},row:{kind:'array',items:[1,2]}};
+    render(<ExecutionValues value={{$ref:'grid'}} heap={heap} previousHeap={{}} path="grid"/>);
+    expect(screen.getAllByRole('cell').map(e=>e.title)).toEqual(['[0][0] = 1','[0][1] = 2']);
+  });
+  it('uses before/after values only for existing grid cells',()=>{
+    const heap:TraceHeap={grid:{kind:'array',items:[{$ref:'row'}]},row:{kind:'array',items:[2,1]}};
+    const previousHeap:TraceHeap={...heap,row:{kind:'array',items:[1,1]}};
+    render(<ExecutionValues value={{$ref:'grid'}} before={{$ref:'grid'}} heap={heap} previousHeap={previousHeap} path="grid"/>);
+    expect(screen.getAllByRole('cell').map(e=>e.title)).toEqual(['[0][0]: 1 → 2','[0][1]']);
+  });
 });

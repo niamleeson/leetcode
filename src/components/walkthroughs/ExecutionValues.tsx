@@ -38,7 +38,7 @@ export default function ExecutionValues({ value, before, heap, previousHeap, poi
         const oldCell = objectFor(oldRow, previousHeap)?.items?.[c];
         const marked = changed(oldCell, cell);
         const pointed=cells.findIndex(([row,col])=>pointers[row]===r&&pointers[col]===c);
-        return <span role="cell" key={c} className={`execution-cell ${variant?`${variant}-value-${cell}`:''} ${marked ? 'is-changed' : ''} ${pointed===0?'is-pointed':pointed>0?'is-checked':''}`} title={`[${r}][${c}]${marked ? `: ${formatValue(oldCell, previousHeap)} → ${formatValue(cell, heap)}` : ''}`}>
+        return <span role="cell" key={c} className={`execution-cell ${variant?`${variant}-value-${cell}`:''} ${marked ? 'is-changed' : ''} ${pointed===0?'is-pointed':pointed>0?'is-checked':''}`} title={`[${r}][${c}]${marked ? oldCell===undefined ? ` = ${formatValue(cell, heap)}` : `: ${formatValue(oldCell, previousHeap)} → ${formatValue(cell, heap)}` : ''}`}>
           <small>{c}</small>{formatValue(cell, heap)}
         </span>;
       })}</div>)}

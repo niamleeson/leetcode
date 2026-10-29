@@ -67,8 +67,8 @@ function audit() {
   const stats={problems:0,examples:0,steps:0,sourceSpans:0,conditions:0,initializers:0,mutations:0,errors:[]};
   for(const problem of problems) {
     const trace=JSON.parse(fs.readFileSync(path.join(root,'src/data/walkthroughs/generated',`${problem.id}.json`),'utf8'));
-    const nodes=new Map();
-    traverse(parser.parse(trace.code),{enter({node}){nodes.set(`${node.start}:${node.end}`,node);}});
+    const nodes=new Map(),parents=new Map();
+    traverse(parser.parse(trace.code),{enter({node,parent}){nodes.set(`${node.start}:${node.end}`,node);parents.set(node,parent);}});
     stats.problems++;
     for(const [exampleIndex,example] of trace.examples.entries()) {
       stats.examples++;let heap={},previousHeap={},previous;
@@ -84,6 +84,12 @@ function audit() {
           assert.deepEqual(step.lines,expectedLines,'Highlighted range does not match the original action');
           if(!['call','iterate','loop-end'].includes(step.kind))assert.equal(step.label,trace.code.slice(step.start,step.end).replace(/\s+/g,' ').trim(),'Label does not match highlighted source');
           stats.sourceSpans++;
+          // A standalone mutating call is already the whole statement. Ensure
+          // none of the shipped examples advances to an artificial second step.
+          if(step.kind==='operation' && t.isExpressionStatement(parents.get(sourceNode))) {
+            const parent=parents.get(sourceNode),next=example.steps[index+1];
+            assert(!(next?.kind==='statement'&&next.start===parent.start&&next.end===parent.end), 'Mutation is followed by a duplicate enclosing statement');
+          }
           const decode=decoder(heap);
           // Check all references and reconstructed values, not only what the UI chooses to show.
           Object.values(step.state).forEach(decode);Object.values(step.input).forEach(decode);decode(step.value);

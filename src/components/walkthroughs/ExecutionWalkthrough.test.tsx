@@ -65,5 +65,50 @@ describe('execution walkthroughs',()=>{
     const index=data.examples[0].steps.findIndex(s=>s.kind==='check'&&s.value===false);
     fireEvent.change(screen.getByRole('slider'),{target:{value:index}});
     expect(within(screen.getByRole('status')).getByText(/false/)).toBeTruthy();
+    expect(screen.getByRole('status').textContent).toContain('CHECK');
+    expect(screen.getByRole('status').textContent).not.toMatch(/NOOP|No data changed/);
+  });
+  it('shows new variables with equals and real changes with before/after values',()=>{
+    const data=trace(84);render(<ExecutionPlayer trace={data}/>);
+    const steps=data.examples[0].steps;
+    const index=steps.findIndex(s=>s.kind==='statement'&&s.label.startsWith('const [topLeft, topHeight]'));
+    fireEvent.change(screen.getByRole('slider'),{target:{value:index}});
+    const row=()=>[...document.querySelectorAll('.execution-change')].find(e=>e.querySelector('.execution-variable-name')?.textContent==='topHeight');
+    expect(row()?.textContent).toBe(`topHeight=${steps[index].state.topHeight}`);
+    expect(row()?.textContent).not.toMatch(/—|→/);
+    const update=steps.findIndex(s=>s.kind==='statement'&&s.label.startsWith('maxArea =')&&s.state.maxArea!==steps[index].state.maxArea);
+    fireEvent.change(screen.getByRole('slider'),{target:{value:update}});
+    const change=[...document.querySelectorAll('.execution-change')].find(e=>e.querySelector('.execution-variable-name')?.textContent==='maxArea');
+    expect(change?.textContent).toBe(`maxArea${steps[update-1].state.maxArea}→${steps[update].state.maxArea}`);
+  });
+  it('keeps real undefined values explicit rather than treating them as absent variables',()=>{
+    const data=trace(150);render(<ExecutionPlayer trace={data}/>);
+    const index=data.examples[0].steps.findIndex(s=>s.label==='result = leftOperand + rightOperand;');
+    fireEvent.change(screen.getByRole('slider'),{target:{value:index}});
+    const row=[...document.querySelectorAll('.execution-change')].find(e=>e.querySelector('.execution-variable-name')?.textContent==='result');
+    expect(row?.textContent).toBe('resultundefined→3');
+  });
+  it('keeps data and change markers steady through an unchanged check while code advances',()=>{
+    const data=trace(150);render(<ExecutionPlayer trace={data}/>);
+    const steps=data.examples[0].steps,index=steps.findIndex(s=>s.label==='const isOperator = operators.has(token);');
+    fireEvent.change(screen.getByRole('slider'),{target:{value:index}});
+    const before=document.querySelector('.execution-data')!.innerHTML;
+    fireEvent.click(screen.getByRole('button',{name:'Next →'}));
+    expect(screen.getByRole('status').textContent).toContain('isOperator → false');
+    expect(document.querySelector('[aria-current="step"]')?.getAttribute('data-line')).toBe(String(steps[index+1].line));
+    expect(document.querySelector('.execution-data')!.innerHTML).toBe(before);
+    fireEvent.click(screen.getByRole('button',{name:'Next →'}));
+    expect(document.querySelector('.execution-data')!.innerHTML).not.toBe(before);
+    fireEvent.click(screen.getByRole('button',{name:'Back'}));
+    expect(document.querySelector('.execution-data')!.innerHTML).toBe(before);
+  });
+  it('shows a push once without mistaking its returned length for the pushed value',()=>{
+    const data=trace(150);render(<ExecutionPlayer trace={data}/>);
+    const steps=data.examples[0].steps,index=steps.findIndex(s=>s.kind==='operation'&&s.label.startsWith('stack.push'));
+    fireEvent.change(screen.getByRole('slider'),{target:{value:index}});
+    expect(screen.getByRole('status').textContent).toBe('STEPstack.push(parseInt(token))');
+    fireEvent.click(screen.getByRole('button',{name:'Next →'}));
+    expect(steps[index+1].kind).toBe('iterate');
+    expect(screen.getByRole('status').textContent).not.toMatch(/push|NOOP/);
   });
 });

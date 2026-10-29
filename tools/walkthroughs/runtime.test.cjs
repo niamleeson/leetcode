@@ -26,7 +26,7 @@ test('pop is recorded after removal and before the destination variable is assig
   assert.deepEqual(pops[1].fullHeap[pops[1].state.stack.$ref].items,[]);
   assert.equal(steps.at(-1).value,3);
 });
-test('false guards, short-circuit checks, loop exits and continue steps are retained',()=>{
+test('compound guards are single decisions; false checks, loop exits and continue are retained',()=>{
   const steps=frames(`function solve(values) {
     let total = 0;
     for (const value of values) {
@@ -38,8 +38,54 @@ test('false guards, short-circuit checks, loop exits and continue steps are reta
   assert.equal(steps.filter(s=>s.kind==='iterate').length,4);
   assert.equal(steps.filter(s=>s.kind==='continue').length,1);
   assert.equal(steps.filter(s=>s.kind==='loop-end').length,1);
-  assert(steps.some(s=>s.kind==='check'&&s.label==='value > 0'&&s.value===false));
+  assert.deepEqual(steps.filter(s=>s.kind==='check'&&s.label==='value > 0 && value < 3').map(s=>s.value),[false,true,false]);
+  assert(!steps.some(s=>s.kind==='check'&&s.label==='value > 0'));
   assert.equal(steps.at(-1).value,2);
+});
+test('standalone mutations are recorded once, with the next frame advancing to actual code',()=>{
+  const steps=frames(`function solve() {
+    const stack = [];
+    stack.push(1);
+    stack.push(2);
+    stack.pop();
+    const seen = new Set();
+    seen.add(1);
+    seen.add(1);
+    const counts = new Map();
+    counts.set(1, 2);
+    counts.delete(1);
+    return stack;
+  }`,[]);
+  for(const line of [3,4,5,7,8,10,11]) {
+    const records=steps.filter(s=>s.line===line);
+    assert.equal(records.length,1,`Extra step on line ${line}`);
+    assert.equal(records[0].kind,'operation');
+  }
+  assert.deepEqual(steps.filter(s=>s.kind==='operation').slice(0,3).map(s=>s.fullHeap[s.state.stack.$ref].items),[[1],[1,2],[1]]);
+});
+test('real statements remain even when they assign the same value',()=>{
+  const steps=frames(`function solve() {
+    let value = 1;
+    value = 1;
+    value = 1;
+    return value;
+  }`,[]);
+  assert.deepEqual(steps.filter(s=>s.kind==='statement').map(s=>s.line),[2,3,4]);
+});
+test('boolean initializers are one statement and preserve short-circuit side effects',()=>{
+  const source=`function solve(value) {
+    const stack = [];
+    const inside = value >= 0 && value < 3;
+    if (inside && stack.push(value)) stack.push(10);
+    return stack;
+  }`;
+  for(const value of [-1,2]) {
+    const steps=frames(source,[value]);
+    assert.equal(steps.filter(s=>s.line===3).length,1);
+    assert.deepEqual(execute(source,{entry:'solve',args:[value]},0).result,execute(source,{entry:'solve',args:[value]},0,false).result);
+    assert.equal(steps.filter(s=>s.kind==='check').length,1);
+    assert.equal(steps.filter(s=>s.kind==='operation').length,value===2?2:0);
+  }
 });
 test('recursive returns restore the calling frame and preserve closure data',()=>{
   const steps=frames(`function solve(n) {

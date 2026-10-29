@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ExecutionTrace, ExecutionStep, formatValue, hasNodes, materialize, objectFor, truthy, valueChanged } from '../../data/walkthroughs/execution';
+import { ExecutionTrace, ExecutionStep, dataStepIndex, formatValue, hasNodes, materialize, objectFor, truthy, valueChanged } from '../../data/walkthroughs/execution';
 import { useWalkthroughHighlight } from '../../hooks/useWalkthroughHighlight';
 import WalkthroughCode from './WalkthroughCode';
 import ExecutionValues from './ExecutionValues';
@@ -37,7 +37,9 @@ function stepTitle(step: ExecutionStep, heap: ReturnType<typeof materialize>['he
   if(step.kind==='call') return `Call ${step.label}`;
   if(step.kind==='return') return `Return → ${formatValue(step.value,heap)}`;
   if(step.kind==='check') return `${step.label} → ${truthy(step.value) ? 'true' : 'false'}`;
-  if(step.kind==='operation') return `${step.label} → ${formatValue(step.value,heap)}`;
+  // Show what was removed; a push's return value is the new length, which can
+  // otherwise look like the value that was pushed.
+  if(step.kind==='operation' && /\.\s*(pop|shift)\(\s*\)$/.test(step.label)) return `${step.label} → ${formatValue(step.value,heap)}`;
   return step.label;
 }
 
@@ -47,10 +49,11 @@ export function ExecutionPlayer({ trace }: { trace: ExecutionTrace }) {
   const [highlight,setHighlight]=useWalkthroughHighlight();
   const example=trace.examples[exampleIndex];
   const step=example.steps[index];
-  const previous=example.steps[index-1];
-  const {heap,previousHeap}=useMemo(()=>materialize(example.steps,index),[example,index]);
-  const changed=Object.keys(step.state).filter(name=>valueChanged(previous?.state[name],step.state[name],previousHeap,heap));
-  const noop=index>0 && changed.length===0 && !Object.keys(step.heap).length && !['call','return'].includes(step.kind);
+  const dataIndex=dataStepIndex(example.steps,index);
+  const data=example.steps[dataIndex];
+  const previous=example.steps[dataIndex-1];
+  const {heap,previousHeap}=useMemo(()=>materialize(example.steps,dataIndex),[example,dataIndex]);
+  const changed=Object.keys(data.state).filter(name=>valueChanged(previous?.state[name],data.state[name],previousHeap,heap));
   const nodeInput=hasNodes(Object.values(step.input),heap);
   const nodeState=hasNodes(Object.values(step.state),heap);
   const mainInputs=Object.entries(step.input).filter(([name,value])=>name!=='instance'&&!['tree','graph','list','quad'].includes(objectFor(value,heap)?.kind || ''));
@@ -67,7 +70,7 @@ export function ExecutionPlayer({ trace }: { trace: ExecutionTrace }) {
     </div>
     <label className="traversal-highlight-toggle"><input type="checkbox" checked={highlight} onChange={event=>setHighlight(event.target.checked)}/>Highlight code</label>
     <div className="traversal-columns">
-      <WalkthroughCode code={trace.code} lines={step.lines || [step.line]} enabled={highlight} noop={noop}/>
+      <WalkthroughCode code={trace.code} lines={step.lines || [step.line]} enabled={highlight}/>
       <div className="traversal-live">
         <div className="execution-navigation traversal-controls">
           <input type="range" min={0} max={count-1} value={index} aria-label={`${trace.title} step`} aria-valuetext={`Step ${index+1} of ${count}`} onChange={event=>setIndex(Number(event.target.value))}/>
@@ -76,9 +79,8 @@ export function ExecutionPlayer({ trace }: { trace: ExecutionTrace }) {
             <div className="traversal-control-group"><button type="button" disabled={index===0} onClick={()=>setIndex(i=>i-1)}>Back</button><button type="button" className="traversal-next" disabled={done} onClick={()=>setIndex(i=>i+1)}>Next →</button></div>
           </div>
         </div>
-        <div className={`traversal-status ${noop?'is-noop':''}`} role="status" aria-live="polite" aria-atomic="true">
-          <div className="traversal-action"><span className="traversal-badge">{noop?'NOOP':step.kind==='check'?'CHECK':step.kind==='return'?'RETURN':'STEP'}</span><strong>{stepTitle(step,heap)}</strong></div>
-          <p>{noop?'No data changed.':step.kind==='check'?'Condition evaluated; the next step follows its result.':'State after this step.'}</p>
+        <div className="traversal-status" role="status" aria-live="polite" aria-atomic="true">
+          <div className="traversal-action"><span className="traversal-badge">{step.kind==='check'?'CHECK':step.kind==='return'?'RETURN':step.kind==='call'?'CALL':['iterate','loop-end'].includes(step.kind)?'LOOP':step.kind==='break'?'BREAK':step.kind==='continue'?'CONTINUE':'STEP'}</span><strong>{stepTitle(step,heap)}</strong></div>
         </div>
         {step.stack.length>1 && <div className="execution-call-stack" aria-label="Call stack">{step.stack.map((name,i)=><span key={i} className={i===step.stack.length-1?'is-current':''}>{name}</span>)}</div>}
         <div className="execution-data">
@@ -87,7 +89,9 @@ export function ExecutionPlayer({ trace }: { trace: ExecutionTrace }) {
           {mainInputs.length>0&&<details className="execution-input" open={!nodeInput&&!nodeState}><summary>Input</summary>{mainInputs.map(([name,value])=><div className="execution-value-block" key={name}><h5>{name}</h5><ExecutionValues value={value} before={previous?.input[name]} heap={heap} previousHeap={previousHeap} pointers={step.state} path={name} indexing={trace.indexing} variant={name==='grid'?(trace.id===994?'oranges':[200,695].includes(trace.id)?'islands':undefined):undefined}/></div>)}</details>}
           {changedNames.length>0&&<div className="traversal-panel execution-changes"><h5>Changes</h5>{changedNames.map(name=><div className="execution-change" key={name}>
             <span className="execution-variable-name">{name}</span>
-            <span className="execution-before">{formatValue(previous?.state[name],previousHeap)}</span><span aria-hidden="true">→</span>
+            {previous && Object.prototype.hasOwnProperty.call(previous.state,name)
+              ? <><span className="execution-before">{formatValue(previous.state[name],previousHeap)}</span><span>→</span></>
+              : <span>=</span>}
             <strong>{formatValue(step.state[name],heap)}</strong>
           </div>)}</div>}
           {collections.map(([name,value])=><div className="traversal-panel" key={name}><h5>{name}</h5><ExecutionValues value={value} before={previous?.state[name]} heap={heap} previousHeap={previousHeap} pointers={step.state} path={name} indexing={trace.indexing}/></div>)}

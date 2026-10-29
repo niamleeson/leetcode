@@ -41,13 +41,13 @@ export function objectFor(value: TraceValue | undefined, heap: TraceHeap) {
   return isReference(value) ? heap[value.$ref] : undefined;
 }
 export function formatValue(value: TraceValue | undefined, heap: TraceHeap, depth = 0, seen = new Set<string>()): string {
-  if (value === undefined) return '—';
+  if (value === undefined) return 'undefined';
   if (value === null) return 'null';
   if (typeof value === 'string') return JSON.stringify(value);
   if (typeof value !== 'object') return String(value);
   if ('$scalar' in value) return value.$scalar;
   const object = heap[value.$ref];
-  if (!object) return '—';
+  if (!object) return 'unavailable';
   if (['tree','graph','list','quad'].includes(object.kind)) return `${formatValue(object.fields?.val, heap)} · ${value.$ref}`;
   if (seen.has(value.$ref) || depth > 2) return object.kind === 'array' ? `[${object.items?.length ?? 0} items]` : object.kind;
   const nextSeen = new Set(seen).add(value.$ref);
@@ -73,6 +73,19 @@ export function materialize(steps: ExecutionStep[], index: number): { heap: Trac
   const previousHeap = { ...heap };
   Object.assign(heap, steps[index].heap);
   return { heap, previousHeap };
+}
+// Keep the data view and its change markers steady while code advances through
+// checks with the same state. Back, Reset and seeking derive the same frame.
+export function dataStepIndex(steps: ExecutionStep[], index: number): number {
+  const sameBindings = (before: Record<string, TraceValue>, after: Record<string, TraceValue>) =>
+    Object.keys(before).length === Object.keys(after).length &&
+    Object.keys(after).every(name => JSON.stringify(before[name]) === JSON.stringify(after[name]));
+  while (index > 0) {
+    const current = steps[index], previous = steps[index - 1];
+    if (Object.keys(current.heap).length || !sameBindings(previous.state, current.state) || !sameBindings(previous.input, current.input)) break;
+    index--;
+  }
+  return index;
 }
 export function truthy(value: TraceValue) {
   if (value && typeof value === 'object' && '$scalar' in value) return !['undefined', 'NaN', '0n', '-0'].includes(value.$scalar);

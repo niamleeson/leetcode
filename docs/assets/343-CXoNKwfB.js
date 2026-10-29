@@ -1,0 +1,18 @@
+const d=343,e="Integer Break",n="1-D Dynamic Programming",t=`var integerBreak = function(n) {
+    // Special cases: 2 and 3 must be split but the pieces are smaller than the whole
+    if (n === 2) return 1; // 1 + 1 = 2, product = 1
+    if (n === 3) return 2; // 1 + 2 = 3, product = 2 (best: don't split the 2)
+
+    // For n >= 4, greedily break off 3s
+    // Stop at n <= 4 because:
+    //   - n=4: 2*2=4, best to keep as-is (not break into 3+1=3)
+    //   - n=3: already handled as remainder
+    let product = 1;
+    while (n > 4) {
+        product *= 3;
+        n -= 3;
+    }
+
+    // Multiply by remaining n (could be 2, 3, or 4 — all optimal as-is)
+    return product * n;
+};`,a="b617be3811bc5a3d3d2323a49078956a039d73d50da9484d405a9361831778d4",s="346a6be1776236e10a13a085800eed1d82b9ee73c013d4ee06a9045e463e80ed",i="7f4c33a75fc6b0a87d0327107794faffa6423356ac276dcdf279095f9158999a",r={},l=[{name:"Example",input:[10],expected:36,result:36,steps:[{site:9,line:1,lines:[1],start:19,end:618,kind:"call",label:"integerBreak",state:{n:10},input:{n:10},heap:{},value:{$scalar:"undefined"},stack:["integerBreak"]},{site:1,line:3,lines:[3],start:127,end:134,kind:"check",label:"n === 2",state:{n:10},input:{n:10},heap:{},value:!1,stack:["integerBreak"]},{site:3,line:4,lines:[4],start:180,end:187,kind:"check",label:"n === 3",state:{n:10},input:{n:10},heap:{},value:!1,stack:["integerBreak"]},{site:4,line:10,lines:[10],start:438,end:454,kind:"statement",label:"let product = 1;",state:{n:10,product:1},input:{n:10},heap:{},value:{$scalar:"undefined"},stack:["integerBreak"]},{site:7,line:11,lines:[11],start:466,end:471,kind:"check",label:"n > 4",state:{n:10,product:1},input:{n:10},heap:{},value:!0,stack:["integerBreak"]},{site:5,line:12,lines:[12],start:483,end:496,kind:"statement",label:"product *= 3;",state:{n:10,product:3},input:{n:10},heap:{},value:{$scalar:"undefined"},stack:["integerBreak"]},{site:6,line:13,lines:[13],start:505,end:512,kind:"statement",label:"n -= 3;",state:{n:7,product:3},input:{n:10},heap:{},value:{$scalar:"undefined"},stack:["integerBreak"]},{site:7,line:11,lines:[11],start:466,end:471,kind:"check",label:"n > 4",state:{n:7,product:3},input:{n:10},heap:{},value:!0,stack:["integerBreak"]},{site:5,line:12,lines:[12],start:483,end:496,kind:"statement",label:"product *= 3;",state:{n:7,product:9},input:{n:10},heap:{},value:{$scalar:"undefined"},stack:["integerBreak"]},{site:6,line:13,lines:[13],start:505,end:512,kind:"statement",label:"n -= 3;",state:{n:4,product:9},input:{n:10},heap:{},value:{$scalar:"undefined"},stack:["integerBreak"]},{site:7,line:11,lines:[11],start:466,end:471,kind:"check",label:"n > 4",state:{n:4,product:9},input:{n:10},heap:{},value:!1,stack:["integerBreak"]},{site:8,line:17,lines:[17],start:597,end:616,kind:"return",label:"return product * n;",state:{n:4,product:9},input:{n:10},heap:{},value:36,stack:["integerBreak"]}]},{name:"Edge case",input:[2],expected:1,result:1,steps:[{site:9,line:1,lines:[1],start:19,end:618,kind:"call",label:"integerBreak",state:{n:2},input:{n:2},heap:{},value:{$scalar:"undefined"},stack:["integerBreak"]},{site:1,line:3,lines:[3],start:127,end:134,kind:"check",label:"n === 2",state:{n:2},input:{n:2},heap:{},value:!0,stack:["integerBreak"]},{site:0,line:3,lines:[3],start:136,end:145,kind:"return",label:"return 1;",state:{n:2},input:{n:2},heap:{},value:1,stack:["integerBreak"]}]}],c={id:343,title:e,topic:n,code:t,sourceHash:a,generatorHash:s,fixtureHash:i,indexing:r,examples:l};export{t as code,c as default,l as examples,i as fixtureHash,s as generatorHash,d as id,r as indexing,a as sourceHash,e as title,n as topic};

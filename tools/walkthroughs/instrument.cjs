@@ -8,6 +8,7 @@ function instrument(source) {
   const ast = parser.parse(source);
   const sites = [];
   const originalNodes = new WeakSet();
+  const recordedOperations = new WeakSet();
   traverse(ast, { enter(path) {
     // A concise callback passed to a built-in (Array.from, sort, map...) is part
     // of that expression. Record its result at the caller, rather than thousands
@@ -37,7 +38,9 @@ function instrument(source) {
   }
   function wrap(path, kind, label) {
     const original = path.node;
-    path.replaceWith(call(path, kind, original, original, label));
+    const recorded = call(path, kind, original, original, label);
+    if (kind === 'operation') recordedOperations.add(recorded);
+    path.replaceWith(recorded);
     path.skip();
   }
   // Normalize bodies so one-line statements can receive a following snapshot without
@@ -77,8 +80,15 @@ function instrument(source) {
         const test = path.get('test');
         test.replaceWith(call(test, 'check', test.node, test.node));
       } else if (path.isLogicalExpression()) {
-        const left = path.get('left');
-        left.replaceWith(call(left, 'check', left.node, left.node));
+        // A compound predicate is one decision at its if/while/ternary test.
+        // Plain boolean calculations belong to their enclosing statement.
+        // Standalone short-circuit guards still need their own decision step.
+        let parent = path.parentPath;
+        while (parent.isLogicalExpression()) parent = parent.parentPath;
+        if (parent.isExpressionStatement()) {
+          const left = path.get('left');
+          left.replaceWith(call(left, 'check', left.node, left.node));
+        }
       } else if (path.isForOfStatement() || path.isForInStatement()) {
         const body = path.get('body');
         body.unshiftContainer('body', t.expressionStatement(call(body, 'iterate', node, undefined, text(node.left) + ' ← next')));
@@ -89,7 +99,11 @@ function instrument(source) {
         if (!path.getFunctionParent()) return;
         path.insertAfter(t.expressionStatement(call(path, 'statement', node)));
       } else if (path.isExpressionStatement()) {
-        if (path.getFunctionParent()) path.insertAfter(t.expressionStatement(call(path, 'statement', node)));
+        // A standalone stack.push(x), for example, already records the whole
+        // statement. A second snapshot would manufacture an unchanged step.
+        if (path.getFunctionParent() && !recordedOperations.has(node.expression)) {
+          path.insertAfter(t.expressionStatement(call(path, 'statement', node)));
+        }
       } else if (path.isReturnStatement()) {
         node.argument = call(path, 'return', node, node.argument);
       } else if (path.isBreakStatement() || path.isContinueStatement()) {
