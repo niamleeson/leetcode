@@ -2625,7 +2625,7 @@ class Solution:
     description:
       'Given a binary string s and integers minJump and maxJump, starting at index 0, you can jump to index i+x where minJump <= x <= maxJump, but only if s[i+x] == "0". Return true if you can reach the last index.',
     examples:
-      'Input: s = "011010", minJump = 2, maxJump = 3\nOutput: true\nExplanation: Jump from 0 -> 2 -> 5.',
+      'Input: s = "011010", minJump = 2, maxJump = 3\nOutput: true\nExplanation: Jump from 0 -> 3 -> 5.',
     intuition:
       'Instead of BFS which could be slow, use a sliding window count of reachable positions. For each position i, it is reachable if any position in [i-maxJump, i-minJump] is reachable and s[i] is \'0\'. A running count avoids re-scanning the window each time.',
     approach:
@@ -3391,7 +3391,7 @@ class Solution:
     description:
       'Design a data structure that supports adding points on a 2D plane and counting the number of axis-aligned squares that can be formed with a given query point as one corner.',
     examples:
-      'Input: ["DetectSquares","add","add","add","count"]\n[[],[[3,10]],[[11,1]],[[3,1]],[[11,10]]]\nOutput: [null,null,null,null,1]',
+      'Input: ["DetectSquares","add","add","add","count"]\n[[],[[3,10]],[[11,2]],[[3,2]],[[11,10]]]\nOutput: [null,null,null,null,1]',
     intuition:
       'For each query point, fix one side of the square along the same row. The side length determines exactly where to look for the other two corners. Multiplying point counts handles duplicates correctly.',
     approach:
@@ -3472,16 +3472,14 @@ DetectSquares.prototype.count = function(point) {
     return result;
 };`,
     jsWalkthrough:
-      'Example: add([3,10]), add([11,1]), add([3,1]), count([11,10])\n' +
-      'After adds: points={3,10:1, 11,1:1, 3,1:1}. yMap={10:[3], 1:[11,3]}\n' +
+      'Example: add([3,10]), add([11,2]), add([3,2]), count([11,10])\n' +
+      'After adds: points={3,10:1, 11,2:1, 3,2:1}. yMap={10:[3], 2:[11,3]}\n' +
       'count([11,10]): qx=11, qy=10\n' +
       'xList = yMap.get(10) = [3]\n' +
       '  px=3: side=|3-11|=8\n' +
       '    dy=8: (qy+dy=18) c1=pts[3,10]=1, c2=pts[11,18]=0, c3=pts[3,18]=0 -> 0\n' +
-      '    dy=-8: (qy+dy=2) c1=pts[3,10]=1, c2=pts[11,2]=0 -> 0\n' +
-      '  Wait, let\'s try qy=10, dy=-9: no, side=8.\n' +
-      '  Actually 10-8=2, not 1. But 3,1 is the point. Need side=9? No. This example gives 0.\n' +
-      'For the actual example [[3,10],[11,1],[3,1]] with query [11,10]: side=8, but 10-8=2 not 1, so result=0... the provided example gives 1 via a full 5-point add sequence. Pattern verified via simpler add.',
+      '    dy=-8: (qy+dy=2) c1=pts[3,10]=1, c2=pts[11,2]=1, c3=pts[3,2]=1 -> 1\n' +
+      'Return 1. All four corners form an 8-by-8 square.',
     explanation:
       '1. Store count of each point and a map from y-coordinate to list of x-coordinates.\n' +
       '2. For query (qx, qy), find all points (px, qy) on the same row.\n' +

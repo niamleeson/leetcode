@@ -1,0 +1,12560 @@
+{
+  "1": [
+    {
+      "name": "Example",
+      "entry": "twoSum",
+      "params": [
+        "nums",
+        "target"
+      ],
+      "args": [
+        [
+          2,
+          7,
+          11,
+          15
+        ],
+        9
+      ],
+      "expected": [
+        0,
+        1
+      ]
+    },
+    {
+      "entry": "twoSum",
+      "params": [
+        "nums",
+        "target"
+      ],
+      "args": [
+        [
+          3,
+          2,
+          4
+        ],
+        6
+      ],
+      "expected": [
+        1,
+        2
+      ],
+      "name": "Edge case"
+    }
+  ],
+  "2": [
+    {
+      "name": "Example",
+      "entry": "addTwoNumbers",
+      "params": [
+        "l1",
+        "l2"
+      ],
+      "args": [
+        {
+          "$list": [
+            2,
+            4,
+            3
+          ]
+        },
+        {
+          "$list": [
+            5,
+            6,
+            4
+          ]
+        }
+      ],
+      "expected": [
+        7,
+        0,
+        8
+      ],
+      "output": "list"
+    },
+    {
+      "entry": "addTwoNumbers",
+      "params": [
+        "l1",
+        "l2"
+      ],
+      "output": "list",
+      "args": [
+        {
+          "$list": [
+            9,
+            9
+          ]
+        },
+        {
+          "$list": [
+            1
+          ]
+        }
+      ],
+      "expected": [
+        0,
+        0,
+        1
+      ],
+      "name": "Edge case"
+    }
+  ],
+  "3": [
+    {
+      "name": "Example",
+      "entry": "lengthOfLongestSubstring",
+      "params": [
+        "s"
+      ],
+      "args": [
+        "abcabcbb"
+      ],
+      "expected": 3
+    },
+    {
+      "entry": "lengthOfLongestSubstring",
+      "params": [
+        "s"
+      ],
+      "args": [
+        "abba"
+      ],
+      "expected": 2,
+      "name": "Edge case"
+    }
+  ],
+  "4": [
+    {
+      "name": "Example",
+      "entry": "findMedianSortedArrays",
+      "params": [
+        "nums1",
+        "nums2"
+      ],
+      "args": [
+        [
+          1,
+          3
+        ],
+        [
+          2
+        ]
+      ],
+      "expected": 2
+    },
+    {
+      "entry": "findMedianSortedArrays",
+      "params": [
+        "nums1",
+        "nums2"
+      ],
+      "args": [
+        [
+          1,
+          2
+        ],
+        [
+          3,
+          4
+        ]
+      ],
+      "expected": 2.5,
+      "name": "Edge case"
+    }
+  ],
+  "5": [
+    {
+      "name": "Example",
+      "entry": "longestPalindrome",
+      "params": [
+        "s"
+      ],
+      "args": [
+        "babad"
+      ],
+      "expected": "bab",
+      "compare": "longestPalindrome"
+    },
+    {
+      "name": "Another example",
+      "entry": "longestPalindrome",
+      "params": [
+        "s"
+      ],
+      "args": [
+        "cbbd"
+      ],
+      "expected": "bb",
+      "compare": "longestPalindrome"
+    },
+    {
+      "entry": "longestPalindrome",
+      "params": [
+        "s"
+      ],
+      "compare": "longestPalindrome",
+      "args": [
+        "cbbd"
+      ],
+      "expected": "bb",
+      "name": "Edge case"
+    }
+  ],
+  "7": [
+    {
+      "name": "Example",
+      "entry": "reverse",
+      "params": [
+        "number"
+      ],
+      "args": [
+        123
+      ],
+      "expected": 321
+    },
+    {
+      "entry": "reverse",
+      "params": [
+        "number"
+      ],
+      "args": [
+        -120
+      ],
+      "expected": -21,
+      "name": "Edge case"
+    }
+  ],
+  "10": [
+    {
+      "name": "Example",
+      "entry": "isMatch",
+      "params": [
+        "s",
+        "p"
+      ],
+      "args": [
+        "aa",
+        "a*"
+      ],
+      "expected": true
+    },
+    {
+      "entry": "isMatch",
+      "params": [
+        "s",
+        "p"
+      ],
+      "args": [
+        "ab",
+        ".*"
+      ],
+      "expected": true,
+      "name": "Edge case"
+    }
+  ],
+  "11": [
+    {
+      "name": "Example",
+      "entry": "maxArea",
+      "params": [
+        "height"
+      ],
+      "args": [
+        [
+          1,
+          8,
+          6,
+          2,
+          5,
+          4,
+          8,
+          3,
+          7
+        ]
+      ],
+      "expected": 49
+    },
+    {
+      "entry": "maxArea",
+      "params": [
+        "height"
+      ],
+      "args": [
+        [
+          1,
+          1
+        ]
+      ],
+      "expected": 1,
+      "name": "Edge case"
+    }
+  ],
+  "13": [
+    {
+      "name": "Example",
+      "entry": "romanToInt",
+      "params": [
+        "s"
+      ],
+      "args": [
+        "MCMXCIV"
+      ],
+      "expected": 1994
+    },
+    {
+      "entry": "romanToInt",
+      "params": [
+        "s"
+      ],
+      "args": [
+        "IV"
+      ],
+      "expected": 4,
+      "name": "Edge case"
+    }
+  ],
+  "14": [
+    {
+      "name": "Example",
+      "entry": "longestCommonPrefix",
+      "params": [
+        "strs"
+      ],
+      "args": [
+        [
+          "flower",
+          "flow",
+          "flight"
+        ]
+      ],
+      "expected": "fl"
+    },
+    {
+      "entry": "longestCommonPrefix",
+      "params": [
+        "strs"
+      ],
+      "args": [
+        [
+          "dog",
+          "racecar",
+          "car"
+        ]
+      ],
+      "expected": "",
+      "name": "Edge case"
+    }
+  ],
+  "15": [
+    {
+      "name": "Example",
+      "entry": "threeSum",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          -1,
+          0,
+          1,
+          2,
+          -1,
+          -4
+        ]
+      ],
+      "expected": [
+        [
+          -1,
+          -1,
+          2
+        ],
+        [
+          -1,
+          0,
+          1
+        ]
+      ],
+      "compare": "unordered"
+    },
+    {
+      "entry": "threeSum",
+      "params": [
+        "nums"
+      ],
+      "compare": "unordered",
+      "args": [
+        [
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "expected": [
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "name": "Edge case"
+    }
+  ],
+  "17": [
+    {
+      "name": "Example",
+      "entry": "letterCombinations",
+      "params": [
+        "digits"
+      ],
+      "args": [
+        "23"
+      ],
+      "expected": [
+        "ad",
+        "ae",
+        "af",
+        "bd",
+        "be",
+        "bf",
+        "cd",
+        "ce",
+        "cf"
+      ],
+      "compare": "unordered"
+    },
+    {
+      "entry": "letterCombinations",
+      "params": [
+        "digits"
+      ],
+      "compare": "unordered",
+      "args": [
+        ""
+      ],
+      "expected": [],
+      "name": "Edge case"
+    }
+  ],
+  "18": [
+    {
+      "name": "Example",
+      "entry": "fourSum",
+      "params": [
+        "nums",
+        "target"
+      ],
+      "args": [
+        [
+          1,
+          0,
+          -1,
+          0,
+          -2,
+          2
+        ],
+        0
+      ],
+      "expected": [
+        [
+          -2,
+          -1,
+          1,
+          2
+        ],
+        [
+          -2,
+          0,
+          0,
+          2
+        ],
+        [
+          -1,
+          0,
+          0,
+          1
+        ]
+      ],
+      "compare": "unordered"
+    },
+    {
+      "entry": "fourSum",
+      "params": [
+        "nums",
+        "target"
+      ],
+      "compare": "unordered",
+      "args": [
+        [
+          2,
+          2,
+          2,
+          2,
+          2
+        ],
+        8
+      ],
+      "expected": [
+        [
+          2,
+          2,
+          2,
+          2
+        ]
+      ],
+      "name": "Edge case"
+    }
+  ],
+  "19": [
+    {
+      "name": "Example",
+      "entry": "removeNthFromEnd",
+      "params": [
+        "head",
+        "n"
+      ],
+      "args": [
+        {
+          "$list": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ]
+        },
+        2
+      ],
+      "expected": [
+        1,
+        2,
+        3,
+        5
+      ],
+      "output": "list"
+    },
+    {
+      "entry": "removeNthFromEnd",
+      "params": [
+        "head",
+        "n"
+      ],
+      "output": "list",
+      "args": [
+        {
+          "$list": [
+            1
+          ]
+        },
+        1
+      ],
+      "expected": [],
+      "name": "Edge case"
+    }
+  ],
+  "20": [
+    {
+      "name": "Example",
+      "entry": "isValid",
+      "params": [
+        "s"
+      ],
+      "args": [
+        "([{}])"
+      ],
+      "expected": true
+    },
+    {
+      "name": "Another example",
+      "entry": "isValid",
+      "params": [
+        "s"
+      ],
+      "args": [
+        "(]"
+      ],
+      "expected": false
+    },
+    {
+      "entry": "isValid",
+      "params": [
+        "s"
+      ],
+      "args": [
+        "(]"
+      ],
+      "expected": false,
+      "name": "Edge case"
+    }
+  ],
+  "21": [
+    {
+      "name": "Example",
+      "entry": "mergeTwoLists",
+      "params": [
+        "list1",
+        "list2"
+      ],
+      "args": [
+        {
+          "$list": [
+            1,
+            2,
+            4
+          ]
+        },
+        {
+          "$list": [
+            1,
+            3,
+            4
+          ]
+        }
+      ],
+      "expected": [
+        1,
+        1,
+        2,
+        3,
+        4,
+        4
+      ],
+      "output": "list"
+    },
+    {
+      "entry": "mergeTwoLists",
+      "params": [
+        "list1",
+        "list2"
+      ],
+      "output": "list",
+      "args": [
+        {
+          "$list": []
+        },
+        {
+          "$list": [
+            1
+          ]
+        }
+      ],
+      "expected": [
+        1
+      ],
+      "name": "Edge case"
+    }
+  ],
+  "22": [
+    {
+      "name": "Example",
+      "entry": "generateParenthesis",
+      "params": [
+        "n"
+      ],
+      "args": [
+        3
+      ],
+      "expected": [
+        "((()))",
+        "(()())",
+        "(())()",
+        "()(())",
+        "()()()"
+      ],
+      "compare": "unordered"
+    },
+    {
+      "entry": "generateParenthesis",
+      "params": [
+        "n"
+      ],
+      "compare": "unordered",
+      "args": [
+        1
+      ],
+      "expected": [
+        "()"
+      ],
+      "name": "Edge case"
+    }
+  ],
+  "23": [
+    {
+      "name": "Example",
+      "entry": "mergeKLists",
+      "params": [
+        "lists"
+      ],
+      "args": [
+        [
+          {
+            "$list": [
+              1,
+              4,
+              5
+            ]
+          },
+          {
+            "$list": [
+              1,
+              3,
+              4
+            ]
+          },
+          {
+            "$list": [
+              2,
+              6
+            ]
+          }
+        ]
+      ],
+      "expected": [
+        1,
+        1,
+        2,
+        3,
+        4,
+        4,
+        5,
+        6
+      ],
+      "output": "list"
+    },
+    {
+      "entry": "mergeKLists",
+      "params": [
+        "lists"
+      ],
+      "output": "list",
+      "args": [
+        [
+          {
+            "$list": []
+          },
+          {
+            "$list": [
+              1
+            ]
+          }
+        ]
+      ],
+      "expected": [
+        1
+      ],
+      "name": "Edge case"
+    }
+  ],
+  "25": [
+    {
+      "name": "Example",
+      "entry": "reverseKGroup",
+      "params": [
+        "head",
+        "k"
+      ],
+      "args": [
+        {
+          "$list": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ]
+        },
+        2
+      ],
+      "expected": [
+        2,
+        1,
+        4,
+        3,
+        5
+      ],
+      "output": "list"
+    },
+    {
+      "entry": "reverseKGroup",
+      "params": [
+        "head",
+        "k"
+      ],
+      "output": "list",
+      "args": [
+        {
+          "$list": [
+            1,
+            2,
+            3
+          ]
+        },
+        3
+      ],
+      "expected": [
+        3,
+        2,
+        1
+      ],
+      "name": "Edge case"
+    }
+  ],
+  "26": [
+    {
+      "name": "Example",
+      "entry": "removeDuplicates",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          1,
+          1,
+          2
+        ]
+      ],
+      "expected": 2,
+      "prefix": [
+        1,
+        2
+      ]
+    },
+    {
+      "entry": "removeDuplicates",
+      "params": [
+        "nums"
+      ],
+      "prefix": [
+        1,
+        2,
+        3
+      ],
+      "args": [
+        [
+          1,
+          2,
+          3
+        ]
+      ],
+      "expected": 3,
+      "name": "Edge case"
+    }
+  ],
+  "27": [
+    {
+      "name": "Example",
+      "entry": "removeElement",
+      "params": [
+        "nums",
+        "val"
+      ],
+      "args": [
+        [
+          3,
+          2,
+          2,
+          3
+        ],
+        3
+      ],
+      "expected": 2,
+      "prefix": [
+        2,
+        2
+      ]
+    },
+    {
+      "entry": "removeElement",
+      "params": [
+        "nums",
+        "val"
+      ],
+      "prefix": [
+        1,
+        2,
+        3
+      ],
+      "args": [
+        [
+          1,
+          2,
+          3
+        ],
+        4
+      ],
+      "expected": 3,
+      "name": "Edge case"
+    }
+  ],
+  "33": [
+    {
+      "name": "Example",
+      "entry": "search",
+      "params": [
+        "nums",
+        "target"
+      ],
+      "args": [
+        [
+          4,
+          5,
+          6,
+          7,
+          0,
+          1,
+          2
+        ],
+        0
+      ],
+      "expected": 4
+    },
+    {
+      "entry": "search",
+      "params": [
+        "nums",
+        "target"
+      ],
+      "args": [
+        [
+          1
+        ],
+        0
+      ],
+      "expected": -1,
+      "name": "Edge case"
+    }
+  ],
+  "35": [
+    {
+      "name": "Example",
+      "entry": "searchInsert",
+      "params": [
+        "nums",
+        "target"
+      ],
+      "args": [
+        [
+          1,
+          3,
+          5,
+          6
+        ],
+        5
+      ],
+      "expected": 2
+    },
+    {
+      "entry": "searchInsert",
+      "params": [
+        "nums",
+        "target"
+      ],
+      "args": [
+        [
+          1,
+          3,
+          5
+        ],
+        2
+      ],
+      "expected": 1,
+      "name": "Edge case"
+    }
+  ],
+  "36": [
+    {
+      "name": "Example",
+      "entry": "isValidSudoku",
+      "args": [
+        [
+          [
+            "5",
+            "3",
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            "."
+          ],
+          [
+            "6",
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            "."
+          ],
+          [
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            "."
+          ],
+          [
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            "."
+          ],
+          [
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            "."
+          ],
+          [
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            "."
+          ],
+          [
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            "."
+          ],
+          [
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            "."
+          ],
+          [
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            "."
+          ]
+        ]
+      ],
+      "expected": true,
+      "params": [
+        "board"
+      ]
+    },
+    {
+      "entry": "isValidSudoku",
+      "params": [
+        "board"
+      ],
+      "args": [
+        [
+          [
+            "1",
+            "1",
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            "."
+          ],
+          [
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            "."
+          ],
+          [
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            "."
+          ],
+          [
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            "."
+          ],
+          [
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            "."
+          ],
+          [
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            "."
+          ],
+          [
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            "."
+          ],
+          [
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            "."
+          ],
+          [
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            ".",
+            "."
+          ]
+        ]
+      ],
+      "expected": false,
+      "name": "Edge case"
+    }
+  ],
+  "39": [
+    {
+      "name": "Example",
+      "entry": "combinationSum",
+      "params": [
+        "candidates",
+        "target"
+      ],
+      "args": [
+        [
+          2,
+          3,
+          6,
+          7
+        ],
+        7
+      ],
+      "expected": [
+        [
+          2,
+          2,
+          3
+        ],
+        [
+          7
+        ]
+      ],
+      "compare": "unordered"
+    },
+    {
+      "entry": "combinationSum",
+      "params": [
+        "candidates",
+        "target"
+      ],
+      "compare": "unordered",
+      "args": [
+        [
+          2
+        ],
+        1
+      ],
+      "expected": [],
+      "name": "Edge case"
+    }
+  ],
+  "40": [
+    {
+      "name": "Example",
+      "entry": "combinationSum2",
+      "params": [
+        "candidates",
+        "target"
+      ],
+      "args": [
+        [
+          10,
+          1,
+          2,
+          7,
+          6,
+          1,
+          5
+        ],
+        8
+      ],
+      "expected": [
+        [
+          1,
+          1,
+          6
+        ],
+        [
+          1,
+          2,
+          5
+        ],
+        [
+          1,
+          7
+        ],
+        [
+          2,
+          6
+        ]
+      ],
+      "compare": "unordered"
+    },
+    {
+      "entry": "combinationSum2",
+      "params": [
+        "candidates",
+        "target"
+      ],
+      "compare": "unordered",
+      "args": [
+        [
+          1,
+          1,
+          1
+        ],
+        2
+      ],
+      "expected": [
+        [
+          1,
+          1
+        ]
+      ],
+      "name": "Edge case"
+    }
+  ],
+  "41": [
+    {
+      "name": "Example",
+      "entry": "firstMissingPositive",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          3,
+          4,
+          -1,
+          1
+        ]
+      ],
+      "expected": 2
+    },
+    {
+      "entry": "firstMissingPositive",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          1,
+          2,
+          0
+        ]
+      ],
+      "expected": 3,
+      "name": "Edge case"
+    }
+  ],
+  "42": [
+    {
+      "name": "Example",
+      "entry": "trap",
+      "params": [
+        "height"
+      ],
+      "args": [
+        [
+          0,
+          1,
+          0,
+          2,
+          1,
+          0,
+          1,
+          3,
+          2,
+          1,
+          2,
+          1
+        ]
+      ],
+      "expected": 6
+    },
+    {
+      "entry": "trap",
+      "params": [
+        "height"
+      ],
+      "args": [
+        [
+          2,
+          0,
+          2
+        ]
+      ],
+      "expected": 2,
+      "name": "Edge case"
+    }
+  ],
+  "43": [
+    {
+      "name": "Example",
+      "entry": "multiply",
+      "params": [
+        "num1",
+        "num2"
+      ],
+      "args": [
+        "123",
+        "456"
+      ],
+      "expected": "56088"
+    },
+    {
+      "entry": "multiply",
+      "params": [
+        "num1",
+        "num2"
+      ],
+      "args": [
+        "0",
+        "123"
+      ],
+      "expected": "0",
+      "name": "Edge case"
+    }
+  ],
+  "45": [
+    {
+      "name": "Example",
+      "entry": "jump",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          2,
+          3,
+          1,
+          1,
+          4
+        ]
+      ],
+      "expected": 2
+    },
+    {
+      "entry": "jump",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          0
+        ]
+      ],
+      "expected": 0,
+      "name": "Edge case"
+    }
+  ],
+  "46": [
+    {
+      "name": "Example",
+      "entry": "permute",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          1,
+          2,
+          3
+        ]
+      ],
+      "expected": [
+        [
+          1,
+          2,
+          3
+        ],
+        [
+          1,
+          3,
+          2
+        ],
+        [
+          2,
+          1,
+          3
+        ],
+        [
+          2,
+          3,
+          1
+        ],
+        [
+          3,
+          1,
+          2
+        ],
+        [
+          3,
+          2,
+          1
+        ]
+      ],
+      "compare": "unordered"
+    },
+    {
+      "entry": "permute",
+      "params": [
+        "nums"
+      ],
+      "compare": "unordered",
+      "args": [
+        [
+          1
+        ]
+      ],
+      "expected": [
+        [
+          1
+        ]
+      ],
+      "name": "Edge case"
+    }
+  ],
+  "47": [
+    {
+      "name": "Example",
+      "entry": "permuteUnique",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          1,
+          1,
+          2
+        ]
+      ],
+      "expected": [
+        [
+          1,
+          1,
+          2
+        ],
+        [
+          1,
+          2,
+          1
+        ],
+        [
+          2,
+          1,
+          1
+        ]
+      ],
+      "compare": "unordered"
+    },
+    {
+      "entry": "permuteUnique",
+      "params": [
+        "nums"
+      ],
+      "compare": "unordered",
+      "args": [
+        [
+          1,
+          1
+        ]
+      ],
+      "expected": [
+        [
+          1,
+          1
+        ]
+      ],
+      "name": "Edge case"
+    }
+  ],
+  "48": [
+    {
+      "name": "Example",
+      "entry": "rotate",
+      "params": [
+        "matrix"
+      ],
+      "args": [
+        [
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            4,
+            5,
+            6
+          ],
+          [
+            7,
+            8,
+            9
+          ]
+        ]
+      ],
+      "expected": [
+        [
+          7,
+          4,
+          1
+        ],
+        [
+          8,
+          5,
+          2
+        ],
+        [
+          9,
+          6,
+          3
+        ]
+      ],
+      "resultArg": 0
+    },
+    {
+      "entry": "rotate",
+      "params": [
+        "matrix"
+      ],
+      "resultArg": 0,
+      "args": [
+        [
+          [
+            1
+          ]
+        ]
+      ],
+      "expected": [
+        [
+          1
+        ]
+      ],
+      "name": "Edge case"
+    }
+  ],
+  "49": [
+    {
+      "name": "Example",
+      "entry": "groupAnagrams",
+      "params": [
+        "strs"
+      ],
+      "args": [
+        [
+          "eat",
+          "tea",
+          "tan",
+          "ate",
+          "nat",
+          "bat"
+        ]
+      ],
+      "expected": [
+        [
+          "bat"
+        ],
+        [
+          "nat",
+          "tan"
+        ],
+        [
+          "ate",
+          "eat",
+          "tea"
+        ]
+      ],
+      "compare": "groups"
+    },
+    {
+      "entry": "groupAnagrams",
+      "params": [
+        "strs"
+      ],
+      "compare": "groups",
+      "args": [
+        [
+          "",
+          "a",
+          ""
+        ]
+      ],
+      "expected": [
+        [
+          "",
+          ""
+        ],
+        [
+          "a"
+        ]
+      ],
+      "name": "Edge case"
+    }
+  ],
+  "50": [
+    {
+      "name": "Example",
+      "entry": "myPow",
+      "params": [
+        "x",
+        "n"
+      ],
+      "args": [
+        2,
+        10
+      ],
+      "expected": 1024
+    },
+    {
+      "entry": "myPow",
+      "params": [
+        "x",
+        "n"
+      ],
+      "args": [
+        2,
+        -2
+      ],
+      "expected": 0.25,
+      "name": "Edge case"
+    }
+  ],
+  "51": [
+    {
+      "name": "Example",
+      "entry": "solveNQueens",
+      "params": [
+        "n"
+      ],
+      "args": [
+        4
+      ],
+      "expected": [
+        [
+          ".Q..",
+          "...Q",
+          "Q...",
+          "..Q."
+        ],
+        [
+          "..Q.",
+          "Q...",
+          "...Q",
+          ".Q.."
+        ]
+      ],
+      "compare": "unordered"
+    },
+    {
+      "entry": "solveNQueens",
+      "params": [
+        "n"
+      ],
+      "compare": "unordered",
+      "args": [
+        1
+      ],
+      "expected": [
+        [
+          "Q"
+        ]
+      ],
+      "name": "Edge case"
+    }
+  ],
+  "52": [
+    {
+      "name": "Example",
+      "entry": "totalNQueens",
+      "params": [
+        "n"
+      ],
+      "args": [
+        4
+      ],
+      "expected": 2
+    },
+    {
+      "entry": "totalNQueens",
+      "params": [
+        "n"
+      ],
+      "args": [
+        1
+      ],
+      "expected": 1,
+      "name": "Edge case"
+    }
+  ],
+  "53": [
+    {
+      "name": "Example",
+      "entry": "maxSubArray",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          -2,
+          1,
+          -3,
+          4,
+          -1,
+          2,
+          1,
+          -5,
+          4
+        ]
+      ],
+      "expected": 6
+    },
+    {
+      "name": "Another example",
+      "entry": "maxSubArray",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          1
+        ]
+      ],
+      "expected": 1
+    },
+    {
+      "entry": "maxSubArray",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          -3,
+          -2,
+          -1
+        ]
+      ],
+      "expected": -1,
+      "name": "Edge case"
+    }
+  ],
+  "54": [
+    {
+      "name": "Example",
+      "entry": "spiralOrder",
+      "params": [
+        "matrix"
+      ],
+      "args": [
+        [
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            4,
+            5,
+            6
+          ],
+          [
+            7,
+            8,
+            9
+          ]
+        ]
+      ],
+      "expected": [
+        1,
+        2,
+        3,
+        6,
+        9,
+        8,
+        7,
+        4,
+        5
+      ]
+    },
+    {
+      "name": "Another example",
+      "entry": "spiralOrder",
+      "params": [
+        "matrix"
+      ],
+      "args": [
+        [
+          [
+            1,
+            2,
+            3,
+            4
+          ],
+          [
+            5,
+            6,
+            7,
+            8
+          ],
+          [
+            9,
+            10,
+            11,
+            12
+          ]
+        ]
+      ],
+      "expected": [
+        1,
+        2,
+        3,
+        4,
+        8,
+        12,
+        11,
+        10,
+        9,
+        5,
+        6,
+        7
+      ]
+    },
+    {
+      "entry": "spiralOrder",
+      "params": [
+        "matrix"
+      ],
+      "args": [
+        [
+          [
+            1,
+            2,
+            3
+          ]
+        ]
+      ],
+      "expected": [
+        1,
+        2,
+        3
+      ],
+      "name": "Edge case"
+    }
+  ],
+  "55": [
+    {
+      "name": "Example",
+      "entry": "canJump",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          2,
+          3,
+          1,
+          1,
+          4
+        ]
+      ],
+      "expected": true
+    },
+    {
+      "name": "Another example",
+      "entry": "canJump",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          3,
+          2,
+          1,
+          0,
+          4
+        ]
+      ],
+      "expected": false
+    },
+    {
+      "entry": "canJump",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          0
+        ]
+      ],
+      "expected": true,
+      "name": "Edge case"
+    }
+  ],
+  "56": [
+    {
+      "name": "Example",
+      "entry": "merge",
+      "params": [
+        "intervals"
+      ],
+      "args": [
+        [
+          [
+            1,
+            3
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            8,
+            10
+          ],
+          [
+            15,
+            18
+          ]
+        ]
+      ],
+      "expected": [
+        [
+          1,
+          6
+        ],
+        [
+          8,
+          10
+        ],
+        [
+          15,
+          18
+        ]
+      ]
+    },
+    {
+      "name": "Another example",
+      "entry": "merge",
+      "params": [
+        "intervals"
+      ],
+      "args": [
+        [
+          [
+            1,
+            4
+          ],
+          [
+            4,
+            5
+          ]
+        ]
+      ],
+      "expected": [
+        [
+          1,
+          5
+        ]
+      ]
+    },
+    {
+      "entry": "merge",
+      "params": [
+        "intervals"
+      ],
+      "args": [
+        [
+          [
+            1,
+            4
+          ],
+          [
+            4,
+            5
+          ]
+        ]
+      ],
+      "expected": [
+        [
+          1,
+          5
+        ]
+      ],
+      "name": "Edge case"
+    }
+  ],
+  "57": [
+    {
+      "name": "Example",
+      "entry": "insert",
+      "params": [
+        "intervals",
+        "newInterval"
+      ],
+      "args": [
+        [
+          [
+            1,
+            3
+          ],
+          [
+            6,
+            9
+          ]
+        ],
+        [
+          2,
+          5
+        ]
+      ],
+      "expected": [
+        [
+          1,
+          5
+        ],
+        [
+          6,
+          9
+        ]
+      ]
+    },
+    {
+      "name": "Another example",
+      "entry": "insert",
+      "params": [
+        "intervals",
+        "newInterval"
+      ],
+      "args": [
+        [
+          [
+            1,
+            2
+          ],
+          [
+            3,
+            5
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            8,
+            10
+          ],
+          [
+            12,
+            16
+          ]
+        ],
+        [
+          4,
+          8
+        ]
+      ],
+      "expected": [
+        [
+          1,
+          2
+        ],
+        [
+          3,
+          10
+        ],
+        [
+          12,
+          16
+        ]
+      ]
+    },
+    {
+      "entry": "insert",
+      "params": [
+        "intervals",
+        "newInterval"
+      ],
+      "args": [
+        [],
+        [
+          2,
+          3
+        ]
+      ],
+      "expected": [
+        [
+          2,
+          3
+        ]
+      ],
+      "name": "Edge case"
+    }
+  ],
+  "62": [
+    {
+      "name": "Example",
+      "entry": "uniquePaths",
+      "params": [
+        "m",
+        "n"
+      ],
+      "args": [
+        3,
+        7
+      ],
+      "expected": 28
+    },
+    {
+      "name": "Another example",
+      "entry": "uniquePaths",
+      "params": [
+        "m",
+        "n"
+      ],
+      "args": [
+        3,
+        2
+      ],
+      "expected": 3
+    },
+    {
+      "entry": "uniquePaths",
+      "params": [
+        "m",
+        "n"
+      ],
+      "args": [
+        1,
+        3
+      ],
+      "expected": 1,
+      "name": "Edge case"
+    }
+  ],
+  "63": [
+    {
+      "name": "Example",
+      "entry": "uniquePathsWithObstacles",
+      "params": [
+        "obstacleGrid"
+      ],
+      "args": [
+        [
+          [
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            0
+          ]
+        ]
+      ],
+      "expected": 2
+    },
+    {
+      "entry": "uniquePathsWithObstacles",
+      "params": [
+        "obstacleGrid"
+      ],
+      "args": [
+        [
+          [
+            1
+          ]
+        ]
+      ],
+      "expected": 0,
+      "name": "Edge case"
+    }
+  ],
+  "64": [
+    {
+      "name": "Example",
+      "entry": "minPathSum",
+      "params": [
+        "grid"
+      ],
+      "args": [
+        [
+          [
+            1,
+            3,
+            1
+          ],
+          [
+            1,
+            5,
+            1
+          ],
+          [
+            4,
+            2,
+            1
+          ]
+        ]
+      ],
+      "expected": 7
+    },
+    {
+      "entry": "minPathSum",
+      "params": [
+        "grid"
+      ],
+      "args": [
+        [
+          [
+            1,
+            2
+          ],
+          [
+            1,
+            1
+          ]
+        ]
+      ],
+      "expected": 3,
+      "name": "Edge case"
+    }
+  ],
+  "66": [
+    {
+      "name": "Example",
+      "entry": "plusOne",
+      "params": [
+        "digits"
+      ],
+      "args": [
+        [
+          1,
+          2,
+          3
+        ]
+      ],
+      "expected": [
+        1,
+        2,
+        4
+      ]
+    },
+    {
+      "entry": "plusOne",
+      "params": [
+        "digits"
+      ],
+      "args": [
+        [
+          9,
+          9
+        ]
+      ],
+      "expected": [
+        1,
+        0,
+        0
+      ],
+      "name": "Edge case"
+    }
+  ],
+  "67": [
+    {
+      "name": "Example",
+      "entry": "addBinary",
+      "params": [
+        "a",
+        "b"
+      ],
+      "args": [
+        "11",
+        "1"
+      ],
+      "expected": "100"
+    },
+    {
+      "entry": "addBinary",
+      "params": [
+        "a",
+        "b"
+      ],
+      "args": [
+        "0",
+        "0"
+      ],
+      "expected": "0",
+      "name": "Edge case"
+    }
+  ],
+  "69": [
+    {
+      "name": "Example",
+      "entry": "mySqrt",
+      "params": [
+        "x"
+      ],
+      "args": [
+        8
+      ],
+      "expected": 2
+    },
+    {
+      "entry": "mySqrt",
+      "params": [
+        "x"
+      ],
+      "args": [
+        1
+      ],
+      "expected": 1,
+      "name": "Edge case"
+    }
+  ],
+  "70": [
+    {
+      "name": "Example",
+      "entry": "climbStairs",
+      "params": [
+        "n"
+      ],
+      "args": [
+        2
+      ],
+      "expected": 2
+    },
+    {
+      "name": "Another example",
+      "entry": "climbStairs",
+      "params": [
+        "n"
+      ],
+      "args": [
+        3
+      ],
+      "expected": 3
+    },
+    {
+      "entry": "climbStairs",
+      "params": [
+        "n"
+      ],
+      "args": [
+        1
+      ],
+      "expected": 1,
+      "name": "Edge case"
+    }
+  ],
+  "71": [
+    {
+      "name": "Example",
+      "entry": "simplifyPath",
+      "params": [
+        "path"
+      ],
+      "args": [
+        "/home//foo/"
+      ],
+      "expected": "/home/foo"
+    },
+    {
+      "entry": "simplifyPath",
+      "params": [
+        "path"
+      ],
+      "args": [
+        "/../"
+      ],
+      "expected": "/",
+      "name": "Edge case"
+    }
+  ],
+  "72": [
+    {
+      "name": "Example",
+      "entry": "minDistance",
+      "params": [
+        "word1",
+        "word2"
+      ],
+      "args": [
+        "horse",
+        "ros"
+      ],
+      "expected": 3
+    },
+    {
+      "name": "Another example",
+      "entry": "minDistance",
+      "params": [
+        "word1",
+        "word2"
+      ],
+      "args": [
+        "intention",
+        "execution"
+      ],
+      "expected": 5
+    },
+    {
+      "entry": "minDistance",
+      "params": [
+        "word1",
+        "word2"
+      ],
+      "args": [
+        "",
+        "abc"
+      ],
+      "expected": 3,
+      "name": "Edge case"
+    }
+  ],
+  "73": [
+    {
+      "name": "Example",
+      "entry": "setZeroes",
+      "params": [
+        "matrix"
+      ],
+      "args": [
+        [
+          [
+            1,
+            1,
+            1
+          ],
+          [
+            1,
+            0,
+            1
+          ],
+          [
+            1,
+            1,
+            1
+          ]
+        ]
+      ],
+      "expected": [
+        [
+          1,
+          0,
+          1
+        ],
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          0,
+          1
+        ]
+      ],
+      "resultArg": 0
+    },
+    {
+      "name": "Another example",
+      "entry": "setZeroes",
+      "params": [
+        "matrix"
+      ],
+      "args": [
+        [
+          [
+            0,
+            1,
+            2,
+            0
+          ],
+          [
+            3,
+            4,
+            5,
+            2
+          ],
+          [
+            1,
+            3,
+            1,
+            5
+          ]
+        ]
+      ],
+      "expected": [
+        [
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          4,
+          5,
+          0
+        ],
+        [
+          0,
+          3,
+          1,
+          0
+        ]
+      ],
+      "resultArg": 0
+    },
+    {
+      "entry": "setZeroes",
+      "params": [
+        "matrix"
+      ],
+      "resultArg": 0,
+      "args": [
+        [
+          [
+            0,
+            1
+          ]
+        ]
+      ],
+      "expected": [
+        [
+          0,
+          0
+        ]
+      ],
+      "name": "Edge case"
+    }
+  ],
+  "74": [
+    {
+      "name": "Example",
+      "entry": "searchMatrix",
+      "params": [
+        "matrix",
+        "target"
+      ],
+      "args": [
+        [
+          [
+            1,
+            3,
+            5,
+            7
+          ],
+          [
+            10,
+            11,
+            16,
+            20
+          ],
+          [
+            23,
+            30,
+            34,
+            60
+          ]
+        ],
+        3
+      ],
+      "expected": true
+    },
+    {
+      "entry": "searchMatrix",
+      "params": [
+        "matrix",
+        "target"
+      ],
+      "args": [
+        [
+          [
+            1
+          ]
+        ],
+        2
+      ],
+      "expected": false,
+      "name": "Edge case"
+    }
+  ],
+  "75": [
+    {
+      "name": "Example",
+      "entry": "sortColors",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          2,
+          0,
+          2,
+          1,
+          1,
+          0
+        ]
+      ],
+      "expected": [
+        0,
+        0,
+        1,
+        1,
+        2,
+        2
+      ],
+      "resultArg": 0
+    },
+    {
+      "entry": "sortColors",
+      "params": [
+        "nums"
+      ],
+      "resultArg": 0,
+      "args": [
+        [
+          2,
+          0,
+          1
+        ]
+      ],
+      "expected": [
+        0,
+        1,
+        2
+      ],
+      "name": "Edge case"
+    }
+  ],
+  "76": [
+    {
+      "name": "Example",
+      "entry": "minWindow",
+      "params": [
+        "s",
+        "t"
+      ],
+      "args": [
+        "ADOBECODEBANC",
+        "ABC"
+      ],
+      "expected": "BANC"
+    },
+    {
+      "entry": "minWindow",
+      "params": [
+        "s",
+        "t"
+      ],
+      "args": [
+        "a",
+        "aa"
+      ],
+      "expected": "",
+      "name": "Edge case"
+    }
+  ],
+  "77": [
+    {
+      "name": "Example",
+      "entry": "combine",
+      "params": [
+        "n",
+        "k"
+      ],
+      "args": [
+        4,
+        2
+      ],
+      "expected": [
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          1,
+          4
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          3,
+          4
+        ]
+      ],
+      "compare": "unordered"
+    },
+    {
+      "entry": "combine",
+      "params": [
+        "n",
+        "k"
+      ],
+      "compare": "unordered",
+      "args": [
+        1,
+        1
+      ],
+      "expected": [
+        [
+          1
+        ]
+      ],
+      "name": "Edge case"
+    }
+  ],
+  "78": [
+    {
+      "name": "Example",
+      "entry": "subsets",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          1,
+          2,
+          3
+        ]
+      ],
+      "expected": [
+        [],
+        [
+          1
+        ],
+        [
+          2
+        ],
+        [
+          3
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          1,
+          2,
+          3
+        ]
+      ],
+      "compare": "unordered"
+    },
+    {
+      "entry": "subsets",
+      "params": [
+        "nums"
+      ],
+      "compare": "unordered",
+      "args": [
+        [
+          0
+        ]
+      ],
+      "expected": [
+        [],
+        [
+          0
+        ]
+      ],
+      "name": "Edge case"
+    }
+  ],
+  "79": [
+    {
+      "name": "Example",
+      "entry": "exist",
+      "params": [
+        "board",
+        "word"
+      ],
+      "args": [
+        [
+          [
+            "A",
+            "B",
+            "C",
+            "E"
+          ],
+          [
+            "S",
+            "F",
+            "C",
+            "S"
+          ],
+          [
+            "A",
+            "D",
+            "E",
+            "E"
+          ]
+        ],
+        "ABCCED"
+      ],
+      "expected": true
+    },
+    {
+      "entry": "exist",
+      "params": [
+        "board",
+        "word"
+      ],
+      "args": [
+        [
+          [
+            "A",
+            "B"
+          ]
+        ],
+        "ABA"
+      ],
+      "expected": false,
+      "name": "Edge case"
+    }
+  ],
+  "81": [
+    {
+      "name": "Example",
+      "entry": "search",
+      "params": [
+        "nums",
+        "target"
+      ],
+      "args": [
+        [
+          2,
+          5,
+          6,
+          0,
+          0,
+          1,
+          2
+        ],
+        0
+      ],
+      "expected": true
+    },
+    {
+      "entry": "search",
+      "params": [
+        "nums",
+        "target"
+      ],
+      "args": [
+        [
+          1,
+          1,
+          1,
+          1
+        ],
+        2
+      ],
+      "expected": false,
+      "name": "Edge case"
+    }
+  ],
+  "84": [
+    {
+      "name": "Example",
+      "entry": "largestRectangleArea",
+      "params": [
+        "heights"
+      ],
+      "args": [
+        [
+          2,
+          1,
+          5,
+          6,
+          2,
+          3
+        ]
+      ],
+      "expected": 10
+    },
+    {
+      "entry": "largestRectangleArea",
+      "params": [
+        "heights"
+      ],
+      "args": [
+        [
+          2,
+          2
+        ]
+      ],
+      "expected": 4,
+      "name": "Edge case"
+    }
+  ],
+  "88": [
+    {
+      "name": "Example",
+      "entry": "merge",
+      "params": [
+        "nums1",
+        "m",
+        "nums2",
+        "n"
+      ],
+      "args": [
+        [
+          1,
+          2,
+          3,
+          0,
+          0,
+          0
+        ],
+        3,
+        [
+          2,
+          5,
+          6
+        ],
+        3
+      ],
+      "expected": [
+        1,
+        2,
+        2,
+        3,
+        5,
+        6
+      ],
+      "resultArg": 0
+    },
+    {
+      "entry": "merge",
+      "params": [
+        "nums1",
+        "m",
+        "nums2",
+        "n"
+      ],
+      "resultArg": 0,
+      "args": [
+        [
+          0
+        ],
+        0,
+        [
+          1
+        ],
+        1
+      ],
+      "expected": [
+        1
+      ],
+      "name": "Edge case"
+    }
+  ],
+  "90": [
+    {
+      "name": "Example",
+      "entry": "subsetsWithDup",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          1,
+          2,
+          2
+        ]
+      ],
+      "expected": [
+        [],
+        [
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          2,
+          2
+        ],
+        [
+          2
+        ],
+        [
+          2,
+          2
+        ]
+      ],
+      "compare": "unordered"
+    },
+    {
+      "entry": "subsetsWithDup",
+      "params": [
+        "nums"
+      ],
+      "compare": "unordered",
+      "args": [
+        [
+          0
+        ]
+      ],
+      "expected": [
+        [],
+        [
+          0
+        ]
+      ],
+      "name": "Edge case"
+    }
+  ],
+  "91": [
+    {
+      "name": "Example",
+      "entry": "numDecodings",
+      "params": [
+        "s"
+      ],
+      "args": [
+        "12"
+      ],
+      "expected": 2
+    },
+    {
+      "name": "Another example",
+      "entry": "numDecodings",
+      "params": [
+        "s"
+      ],
+      "args": [
+        "226"
+      ],
+      "expected": 3
+    },
+    {
+      "name": "Another example",
+      "entry": "numDecodings",
+      "params": [
+        "s"
+      ],
+      "args": [
+        "06"
+      ],
+      "expected": 0
+    },
+    {
+      "entry": "numDecodings",
+      "params": [
+        "s"
+      ],
+      "args": [
+        "06"
+      ],
+      "expected": 0,
+      "name": "Edge case"
+    }
+  ],
+  "92": [
+    {
+      "name": "Example",
+      "entry": "reverseBetween",
+      "params": [
+        "head",
+        "left",
+        "right"
+      ],
+      "args": [
+        {
+          "$list": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ]
+        },
+        2,
+        4
+      ],
+      "expected": [
+        1,
+        4,
+        3,
+        2,
+        5
+      ],
+      "output": "list"
+    },
+    {
+      "entry": "reverseBetween",
+      "params": [
+        "head",
+        "left",
+        "right"
+      ],
+      "output": "list",
+      "args": [
+        {
+          "$list": [
+            1,
+            2
+          ]
+        },
+        1,
+        2
+      ],
+      "expected": [
+        2,
+        1
+      ],
+      "name": "Edge case"
+    }
+  ],
+  "94": [
+    {
+      "name": "Example",
+      "entry": "inorderTraversal",
+      "params": [
+        "root"
+      ],
+      "args": [
+        {
+          "$tree": [
+            1,
+            null,
+            2,
+            3
+          ]
+        }
+      ],
+      "expected": [
+        1,
+        3,
+        2
+      ]
+    },
+    {
+      "entry": "inorderTraversal",
+      "params": [
+        "root"
+      ],
+      "args": [
+        {
+          "$tree": []
+        }
+      ],
+      "expected": [],
+      "name": "Edge case"
+    }
+  ],
+  "97": [
+    {
+      "name": "Example",
+      "entry": "isInterleave",
+      "params": [
+        "s1",
+        "s2",
+        "s3"
+      ],
+      "args": [
+        "aabcc",
+        "dbbca",
+        "aadbbcbcac"
+      ],
+      "expected": true
+    },
+    {
+      "entry": "isInterleave",
+      "params": [
+        "s1",
+        "s2",
+        "s3"
+      ],
+      "args": [
+        "a",
+        "b",
+        "aa"
+      ],
+      "expected": false,
+      "name": "Edge case"
+    }
+  ],
+  "98": [
+    {
+      "name": "Example",
+      "entry": "isValidBST",
+      "params": [
+        "root"
+      ],
+      "args": [
+        {
+          "$tree": [
+            5,
+            1,
+            4,
+            null,
+            null,
+            3,
+            6
+          ]
+        }
+      ],
+      "expected": false
+    },
+    {
+      "entry": "isValidBST",
+      "params": [
+        "root"
+      ],
+      "args": [
+        {
+          "$tree": [
+            2,
+            2,
+            3
+          ]
+        }
+      ],
+      "expected": false,
+      "name": "Edge case"
+    }
+  ],
+  "100": [
+    {
+      "name": "Example",
+      "entry": "isSameTree",
+      "params": [
+        "p",
+        "q"
+      ],
+      "args": [
+        {
+          "$tree": [
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "$tree": [
+            1,
+            2,
+            3
+          ]
+        }
+      ],
+      "expected": true
+    },
+    {
+      "entry": "isSameTree",
+      "params": [
+        "p",
+        "q"
+      ],
+      "args": [
+        {
+          "$tree": [
+            1
+          ]
+        },
+        {
+          "$tree": [
+            2
+          ]
+        }
+      ],
+      "expected": false,
+      "name": "Edge case"
+    }
+  ],
+  "102": [
+    {
+      "name": "Example",
+      "entry": "levelOrder",
+      "params": [
+        "root"
+      ],
+      "args": [
+        {
+          "$tree": [
+            3,
+            9,
+            20,
+            null,
+            null,
+            15,
+            7
+          ]
+        }
+      ],
+      "expected": [
+        [
+          3
+        ],
+        [
+          9,
+          20
+        ],
+        [
+          15,
+          7
+        ]
+      ]
+    },
+    {
+      "entry": "levelOrder",
+      "params": [
+        "root"
+      ],
+      "args": [
+        {
+          "$tree": []
+        }
+      ],
+      "expected": [],
+      "name": "Edge case"
+    }
+  ],
+  "104": [
+    {
+      "name": "Example",
+      "entry": "maxDepth",
+      "params": [
+        "root"
+      ],
+      "args": [
+        {
+          "$tree": [
+            3,
+            9,
+            20,
+            null,
+            null,
+            15,
+            7
+          ]
+        }
+      ],
+      "expected": 3
+    },
+    {
+      "entry": "maxDepth",
+      "params": [
+        "root"
+      ],
+      "args": [
+        {
+          "$tree": []
+        }
+      ],
+      "expected": 0,
+      "name": "Edge case"
+    }
+  ],
+  "105": [
+    {
+      "name": "Example",
+      "entry": "buildTree",
+      "params": [
+        "preorder",
+        "inorder"
+      ],
+      "args": [
+        [
+          3,
+          9,
+          20,
+          15,
+          7
+        ],
+        [
+          9,
+          3,
+          15,
+          20,
+          7
+        ]
+      ],
+      "expected": [
+        3,
+        9,
+        20,
+        null,
+        null,
+        15,
+        7
+      ],
+      "output": "tree"
+    },
+    {
+      "entry": "buildTree",
+      "params": [
+        "preorder",
+        "inorder"
+      ],
+      "output": "tree",
+      "args": [
+        [
+          1
+        ],
+        [
+          1
+        ]
+      ],
+      "expected": [
+        1
+      ],
+      "name": "Edge case"
+    }
+  ],
+  "110": [
+    {
+      "name": "Example",
+      "entry": "isBalanced",
+      "params": [
+        "root"
+      ],
+      "args": [
+        {
+          "$tree": [
+            3,
+            9,
+            20,
+            null,
+            null,
+            15,
+            7
+          ]
+        }
+      ],
+      "expected": true
+    },
+    {
+      "entry": "isBalanced",
+      "params": [
+        "root"
+      ],
+      "args": [
+        {
+          "$tree": [
+            1,
+            2,
+            null,
+            3
+          ]
+        }
+      ],
+      "expected": false,
+      "name": "Edge case"
+    }
+  ],
+  "115": [
+    {
+      "name": "Example",
+      "entry": "numDistinct",
+      "params": [
+        "s",
+        "t"
+      ],
+      "args": [
+        "rabbbit",
+        "rabbit"
+      ],
+      "expected": 3
+    },
+    {
+      "entry": "numDistinct",
+      "params": [
+        "s",
+        "t"
+      ],
+      "args": [
+        "abc",
+        "abcd"
+      ],
+      "expected": 0,
+      "name": "Edge case"
+    }
+  ],
+  "121": [
+    {
+      "name": "Example",
+      "entry": "maxProfit",
+      "params": [
+        "prices"
+      ],
+      "args": [
+        [
+          7,
+          1,
+          5,
+          3,
+          6,
+          4
+        ]
+      ],
+      "expected": 5
+    },
+    {
+      "entry": "maxProfit",
+      "params": [
+        "prices"
+      ],
+      "args": [
+        [
+          7,
+          6,
+          4,
+          3,
+          1
+        ]
+      ],
+      "expected": 0,
+      "name": "Edge case"
+    }
+  ],
+  "122": [
+    {
+      "name": "Example",
+      "entry": "maxProfit",
+      "params": [
+        "prices"
+      ],
+      "args": [
+        [
+          7,
+          1,
+          5,
+          3,
+          6,
+          4
+        ]
+      ],
+      "expected": 7
+    },
+    {
+      "entry": "maxProfit",
+      "params": [
+        "prices"
+      ],
+      "args": [
+        [
+          5,
+          4,
+          3
+        ]
+      ],
+      "expected": 0,
+      "name": "Edge case"
+    }
+  ],
+  "124": [
+    {
+      "name": "Example",
+      "entry": "maxPathSum",
+      "params": [
+        "root"
+      ],
+      "args": [
+        {
+          "$tree": [
+            -10,
+            9,
+            20,
+            null,
+            null,
+            15,
+            7
+          ]
+        }
+      ],
+      "expected": 42
+    },
+    {
+      "entry": "maxPathSum",
+      "params": [
+        "root"
+      ],
+      "args": [
+        {
+          "$tree": [
+            -3
+          ]
+        }
+      ],
+      "expected": -3,
+      "name": "Edge case"
+    }
+  ],
+  "125": [
+    {
+      "name": "Example",
+      "entry": "isPalindrome",
+      "params": [
+        "s"
+      ],
+      "args": [
+        "A man, a plan, a canal: Panama"
+      ],
+      "expected": true
+    },
+    {
+      "entry": "isPalindrome",
+      "params": [
+        "s"
+      ],
+      "args": [
+        "0P"
+      ],
+      "expected": false,
+      "name": "Edge case"
+    }
+  ],
+  "127": [
+    {
+      "name": "Example",
+      "entry": "ladderLength",
+      "params": [
+        "beginWord",
+        "endWord",
+        "wordList"
+      ],
+      "args": [
+        "hit",
+        "cog",
+        [
+          "hot",
+          "dot",
+          "dog",
+          "lot",
+          "log",
+          "cog"
+        ]
+      ],
+      "expected": 5
+    },
+    {
+      "entry": "ladderLength",
+      "params": [
+        "beginWord",
+        "endWord",
+        "wordList"
+      ],
+      "args": [
+        "a",
+        "c",
+        [
+          "a",
+          "b",
+          "c"
+        ]
+      ],
+      "expected": 2,
+      "name": "Edge case"
+    }
+  ],
+  "128": [
+    {
+      "name": "Example",
+      "entry": "longestConsecutive",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          100,
+          4,
+          200,
+          1,
+          3,
+          2
+        ]
+      ],
+      "expected": 4
+    },
+    {
+      "entry": "longestConsecutive",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          1,
+          1,
+          2
+        ]
+      ],
+      "expected": 2,
+      "name": "Edge case"
+    }
+  ],
+  "130": [
+    {
+      "name": "Example",
+      "entry": "solve",
+      "params": [
+        "board"
+      ],
+      "args": [
+        [
+          [
+            "X",
+            "X",
+            "X",
+            "X"
+          ],
+          [
+            "X",
+            "O",
+            "O",
+            "X"
+          ],
+          [
+            "X",
+            "X",
+            "O",
+            "X"
+          ],
+          [
+            "X",
+            "O",
+            "X",
+            "X"
+          ]
+        ]
+      ],
+      "expected": [
+        [
+          "X",
+          "X",
+          "X",
+          "X"
+        ],
+        [
+          "X",
+          "X",
+          "X",
+          "X"
+        ],
+        [
+          "X",
+          "X",
+          "X",
+          "X"
+        ],
+        [
+          "X",
+          "O",
+          "X",
+          "X"
+        ]
+      ],
+      "resultArg": 0
+    },
+    {
+      "entry": "solve",
+      "params": [
+        "board"
+      ],
+      "resultArg": 0,
+      "args": [
+        [
+          [
+            "O"
+          ]
+        ]
+      ],
+      "expected": [
+        [
+          "O"
+        ]
+      ],
+      "name": "Edge case"
+    }
+  ],
+  "131": [
+    {
+      "name": "Example",
+      "entry": "partition",
+      "params": [
+        "s"
+      ],
+      "args": [
+        "aab"
+      ],
+      "expected": [
+        [
+          "a",
+          "a",
+          "b"
+        ],
+        [
+          "aa",
+          "b"
+        ]
+      ],
+      "compare": "unordered"
+    },
+    {
+      "entry": "partition",
+      "params": [
+        "s"
+      ],
+      "compare": "unordered",
+      "args": [
+        "a"
+      ],
+      "expected": [
+        [
+          "a"
+        ]
+      ],
+      "name": "Edge case"
+    }
+  ],
+  "133": [
+    {
+      "name": "Example",
+      "entry": "cloneGraph",
+      "args": [
+        {
+          "$graph": [
+            [
+              2,
+              4
+            ],
+            [
+              1,
+              3
+            ],
+            [
+              2,
+              4
+            ],
+            [
+              1,
+              3
+            ]
+          ]
+        }
+      ],
+      "expected": [
+        [
+          2,
+          4
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          1,
+          3
+        ]
+      ],
+      "params": [
+        "node"
+      ],
+      "output": "graph",
+      "distinctClone": true
+    },
+    {
+      "entry": "cloneGraph",
+      "params": [
+        "node"
+      ],
+      "output": "graph",
+      "distinctClone": true,
+      "args": [
+        {
+          "$graph": []
+        }
+      ],
+      "expected": [],
+      "name": "Edge case"
+    }
+  ],
+  "134": [
+    {
+      "name": "Example",
+      "entry": "canCompleteCircuit",
+      "params": [
+        "gas",
+        "cost"
+      ],
+      "args": [
+        [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        [
+          3,
+          4,
+          5,
+          1,
+          2
+        ]
+      ],
+      "expected": 3
+    },
+    {
+      "name": "Another example",
+      "entry": "canCompleteCircuit",
+      "params": [
+        "gas",
+        "cost"
+      ],
+      "args": [
+        [
+          2,
+          3,
+          4
+        ],
+        [
+          3,
+          4,
+          3
+        ]
+      ],
+      "expected": -1
+    },
+    {
+      "entry": "canCompleteCircuit",
+      "params": [
+        "gas",
+        "cost"
+      ],
+      "args": [
+        [
+          2,
+          3,
+          4
+        ],
+        [
+          3,
+          4,
+          3
+        ]
+      ],
+      "expected": -1,
+      "name": "Edge case"
+    }
+  ],
+  "135": [
+    {
+      "name": "Example",
+      "entry": "candy",
+      "params": [
+        "ratings"
+      ],
+      "args": [
+        [
+          1,
+          0,
+          2
+        ]
+      ],
+      "expected": 5
+    },
+    {
+      "entry": "candy",
+      "params": [
+        "ratings"
+      ],
+      "args": [
+        [
+          1,
+          2,
+          2
+        ]
+      ],
+      "expected": 4,
+      "name": "Edge case"
+    }
+  ],
+  "136": [
+    {
+      "name": "Example",
+      "entry": "singleNumber",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          2,
+          2,
+          1
+        ]
+      ],
+      "expected": 1
+    },
+    {
+      "name": "Another example",
+      "entry": "singleNumber",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          4,
+          1,
+          2,
+          1,
+          2
+        ]
+      ],
+      "expected": 4
+    },
+    {
+      "entry": "singleNumber",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          7
+        ]
+      ],
+      "expected": 7,
+      "name": "Edge case"
+    }
+  ],
+  "138": [
+    {
+      "name": "Example",
+      "entry": "copyRandomList",
+      "params": [
+        "head"
+      ],
+      "args": [
+        {
+          "$randomList": [
+            [
+              7,
+              null
+            ],
+            [
+              13,
+              0
+            ],
+            [
+              11,
+              4
+            ],
+            [
+              10,
+              2
+            ],
+            [
+              1,
+              0
+            ]
+          ]
+        }
+      ],
+      "expected": [
+        [
+          7,
+          null
+        ],
+        [
+          13,
+          0
+        ],
+        [
+          11,
+          4
+        ],
+        [
+          10,
+          2
+        ],
+        [
+          1,
+          0
+        ]
+      ],
+      "output": "randomList",
+      "distinctClone": true
+    },
+    {
+      "entry": "copyRandomList",
+      "params": [
+        "head"
+      ],
+      "output": "randomList",
+      "args": [
+        {
+          "$randomList": [
+            [
+              1,
+              0
+            ]
+          ]
+        }
+      ],
+      "expected": [
+        [
+          1,
+          0
+        ]
+      ],
+      "name": "Edge case",
+      "distinctClone": true
+    }
+  ],
+  "139": [
+    {
+      "name": "Example",
+      "entry": "wordBreak",
+      "params": [
+        "s",
+        "wordDict"
+      ],
+      "args": [
+        "leetcode",
+        [
+          "leet",
+          "code"
+        ]
+      ],
+      "expected": true
+    },
+    {
+      "name": "Another example",
+      "entry": "wordBreak",
+      "params": [
+        "s",
+        "wordDict"
+      ],
+      "args": [
+        "applepenapple",
+        [
+          "apple",
+          "pen"
+        ]
+      ],
+      "expected": true
+    },
+    {
+      "name": "Another example",
+      "entry": "wordBreak",
+      "params": [
+        "s",
+        "wordDict"
+      ],
+      "args": [
+        "catsandog",
+        [
+          "cats",
+          "dog",
+          "sand",
+          "and",
+          "cat"
+        ]
+      ],
+      "expected": false
+    },
+    {
+      "entry": "wordBreak",
+      "params": [
+        "s",
+        "wordDict"
+      ],
+      "args": [
+        "catsandog",
+        [
+          "cats",
+          "dog",
+          "sand",
+          "and",
+          "cat"
+        ]
+      ],
+      "expected": false,
+      "name": "Edge case"
+    }
+  ],
+  "140": [
+    {
+      "name": "Example",
+      "entry": "wordBreak",
+      "params": [
+        "s",
+        "wordDict"
+      ],
+      "args": [
+        "catsanddog",
+        [
+          "cat",
+          "cats",
+          "and",
+          "sand",
+          "dog"
+        ]
+      ],
+      "expected": [
+        "cats and dog",
+        "cat sand dog"
+      ],
+      "compare": "unordered"
+    },
+    {
+      "entry": "wordBreak",
+      "params": [
+        "s",
+        "wordDict"
+      ],
+      "compare": "unordered",
+      "args": [
+        "catsandog",
+        [
+          "cats",
+          "dog",
+          "sand",
+          "and",
+          "cat"
+        ]
+      ],
+      "expected": [],
+      "name": "Edge case"
+    }
+  ],
+  "141": [
+    {
+      "name": "Example",
+      "entry": "hasCycle",
+      "params": [
+        "head"
+      ],
+      "args": [
+        {
+          "$list": [
+            3,
+            2,
+            0,
+            -4
+          ],
+          "cycle": 1
+        }
+      ],
+      "expected": true
+    },
+    {
+      "entry": "hasCycle",
+      "params": [
+        "head"
+      ],
+      "args": [
+        {
+          "$list": [
+            1
+          ],
+          "cycle": -1
+        }
+      ],
+      "expected": false,
+      "name": "Edge case"
+    }
+  ],
+  "143": [
+    {
+      "name": "Example",
+      "entry": "reorderList",
+      "params": [
+        "head"
+      ],
+      "args": [
+        {
+          "$list": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ]
+        }
+      ],
+      "expected": [
+        1,
+        5,
+        2,
+        4,
+        3
+      ],
+      "output": "list",
+      "resultArg": 0
+    },
+    {
+      "entry": "reorderList",
+      "params": [
+        "head"
+      ],
+      "output": "list",
+      "resultArg": 0,
+      "args": [
+        {
+          "$list": [
+            1,
+            2
+          ]
+        }
+      ],
+      "expected": [
+        1,
+        2
+      ],
+      "name": "Edge case"
+    }
+  ],
+  "144": [
+    {
+      "name": "Example",
+      "entry": "preorderTraversal",
+      "params": [
+        "root"
+      ],
+      "args": [
+        {
+          "$tree": [
+            1,
+            null,
+            2,
+            3
+          ]
+        }
+      ],
+      "expected": [
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "entry": "preorderTraversal",
+      "params": [
+        "root"
+      ],
+      "args": [
+        {
+          "$tree": [
+            1
+          ]
+        }
+      ],
+      "expected": [
+        1
+      ],
+      "name": "Edge case"
+    }
+  ],
+  "145": [
+    {
+      "name": "Example",
+      "entry": "postorderTraversal",
+      "params": [
+        "root"
+      ],
+      "args": [
+        {
+          "$tree": [
+            1,
+            null,
+            2,
+            3
+          ]
+        }
+      ],
+      "expected": [
+        3,
+        2,
+        1
+      ]
+    },
+    {
+      "entry": "postorderTraversal",
+      "params": [
+        "root"
+      ],
+      "args": [
+        {
+          "$tree": [
+            1
+          ]
+        }
+      ],
+      "expected": [
+        1
+      ],
+      "name": "Edge case"
+    }
+  ],
+  "146": [
+    {
+      "name": "Example",
+      "entry": "LRUCache",
+      "args": [
+        2
+      ],
+      "expected": [
+        null,
+        null,
+        null,
+        1,
+        null,
+        -1
+      ],
+      "operations": [
+        [
+          "put",
+          [
+            1,
+            1
+          ]
+        ],
+        [
+          "put",
+          [
+            2,
+            2
+          ]
+        ],
+        [
+          "get",
+          [
+            1
+          ]
+        ],
+        [
+          "put",
+          [
+            3,
+            3
+          ]
+        ],
+        [
+          "get",
+          [
+            2
+          ]
+        ]
+      ]
+    },
+    {
+      "entry": "LRUCache",
+      "args": [
+        1
+      ],
+      "expected": [
+        null,
+        null,
+        null,
+        -1,
+        2
+      ],
+      "name": "Edge case",
+      "operations": [
+        [
+          "put",
+          [
+            1,
+            1
+          ]
+        ],
+        [
+          "put",
+          [
+            2,
+            2
+          ]
+        ],
+        [
+          "get",
+          [
+            1
+          ]
+        ],
+        [
+          "get",
+          [
+            2
+          ]
+        ]
+      ]
+    }
+  ],
+  "150": [
+    {
+      "name": "Example",
+      "entry": "evalRPN",
+      "params": [
+        "tokens"
+      ],
+      "args": [
+        [
+          "2",
+          "1",
+          "+",
+          "3",
+          "*"
+        ]
+      ],
+      "expected": 9
+    },
+    {
+      "entry": "evalRPN",
+      "params": [
+        "tokens"
+      ],
+      "args": [
+        [
+          "4",
+          "13",
+          "5",
+          "/",
+          "+"
+        ]
+      ],
+      "expected": 6,
+      "name": "Edge case"
+    }
+  ],
+  "152": [
+    {
+      "name": "Example",
+      "entry": "maxProduct",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          2,
+          3,
+          -2,
+          4
+        ]
+      ],
+      "expected": 6
+    },
+    {
+      "name": "Another example",
+      "entry": "maxProduct",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          -2,
+          0,
+          -1
+        ]
+      ],
+      "expected": 0
+    },
+    {
+      "entry": "maxProduct",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          -2,
+          0,
+          -1
+        ]
+      ],
+      "expected": 0,
+      "name": "Edge case"
+    }
+  ],
+  "153": [
+    {
+      "name": "Example",
+      "entry": "findMin",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          3,
+          4,
+          5,
+          1,
+          2
+        ]
+      ],
+      "expected": 1
+    },
+    {
+      "entry": "findMin",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          1,
+          2,
+          3
+        ]
+      ],
+      "expected": 1,
+      "name": "Edge case"
+    }
+  ],
+  "155": [
+    {
+      "name": "Example",
+      "entry": "MinStack",
+      "args": [],
+      "operations": [
+        [
+          "push",
+          [
+            -2
+          ]
+        ],
+        [
+          "push",
+          [
+            0
+          ]
+        ],
+        [
+          "push",
+          [
+            -3
+          ]
+        ],
+        [
+          "getMin",
+          []
+        ],
+        [
+          "pop",
+          []
+        ],
+        [
+          "top",
+          []
+        ],
+        [
+          "getMin",
+          []
+        ]
+      ],
+      "expected": [
+        null,
+        null,
+        null,
+        null,
+        -3,
+        null,
+        0,
+        -2
+      ]
+    },
+    {
+      "entry": "MinStack",
+      "args": [],
+      "expected": [
+        null,
+        null,
+        null,
+        null,
+        2
+      ],
+      "name": "Edge case",
+      "operations": [
+        [
+          "push",
+          [
+            2
+          ]
+        ],
+        [
+          "push",
+          [
+            2
+          ]
+        ],
+        [
+          "pop",
+          []
+        ],
+        [
+          "getMin",
+          []
+        ]
+      ]
+    }
+  ],
+  "167": [
+    {
+      "name": "Example",
+      "entry": "twoSum",
+      "params": [
+        "numbers",
+        "target"
+      ],
+      "args": [
+        [
+          2,
+          7,
+          11,
+          15
+        ],
+        9
+      ],
+      "expected": [
+        1,
+        2
+      ]
+    },
+    {
+      "entry": "twoSum",
+      "params": [
+        "numbers",
+        "target"
+      ],
+      "args": [
+        [
+          2,
+          3,
+          4
+        ],
+        6
+      ],
+      "expected": [
+        1,
+        3
+      ],
+      "name": "Edge case"
+    }
+  ],
+  "168": [
+    {
+      "name": "Example",
+      "entry": "convertToTitle",
+      "params": [
+        "columnNumber"
+      ],
+      "args": [
+        701
+      ],
+      "expected": "ZY"
+    },
+    {
+      "entry": "convertToTitle",
+      "params": [
+        "columnNumber"
+      ],
+      "args": [
+        26
+      ],
+      "expected": "Z",
+      "name": "Edge case"
+    }
+  ],
+  "169": [
+    {
+      "name": "Example",
+      "entry": "majorityElement",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          2,
+          2,
+          1,
+          1,
+          1,
+          2,
+          2
+        ]
+      ],
+      "expected": 2
+    },
+    {
+      "entry": "majorityElement",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          1
+        ]
+      ],
+      "expected": 1,
+      "name": "Edge case"
+    }
+  ],
+  "189": [
+    {
+      "name": "Example",
+      "entry": "rotate",
+      "params": [
+        "nums",
+        "k"
+      ],
+      "args": [
+        [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        3
+      ],
+      "expected": [
+        5,
+        6,
+        7,
+        1,
+        2,
+        3,
+        4
+      ],
+      "resultArg": 0
+    },
+    {
+      "entry": "rotate",
+      "params": [
+        "nums",
+        "k"
+      ],
+      "resultArg": 0,
+      "args": [
+        [
+          1,
+          2,
+          3
+        ],
+        4
+      ],
+      "expected": [
+        3,
+        1,
+        2
+      ],
+      "name": "Edge case"
+    }
+  ],
+  "190": [
+    {
+      "name": "Example",
+      "entry": "reverseBits",
+      "params": [
+        "n"
+      ],
+      "args": [
+        43261596
+      ],
+      "expected": 964176192
+    },
+    {
+      "entry": "reverseBits",
+      "params": [
+        "n"
+      ],
+      "args": [
+        0
+      ],
+      "expected": 0,
+      "name": "Edge case"
+    }
+  ],
+  "191": [
+    {
+      "name": "Example",
+      "entry": "hammingWeight",
+      "params": [
+        "n"
+      ],
+      "args": [
+        11
+      ],
+      "expected": 3
+    },
+    {
+      "name": "Another example",
+      "entry": "hammingWeight",
+      "params": [
+        "n"
+      ],
+      "args": [
+        128
+      ],
+      "expected": 1
+    },
+    {
+      "entry": "hammingWeight",
+      "params": [
+        "n"
+      ],
+      "args": [
+        128
+      ],
+      "expected": 1,
+      "name": "Edge case"
+    }
+  ],
+  "198": [
+    {
+      "name": "Example",
+      "entry": "rob",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          1,
+          2,
+          3,
+          1
+        ]
+      ],
+      "expected": 4
+    },
+    {
+      "name": "Another example",
+      "entry": "rob",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          2,
+          7,
+          9,
+          3,
+          1
+        ]
+      ],
+      "expected": 12
+    },
+    {
+      "entry": "rob",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          2
+        ]
+      ],
+      "expected": 2,
+      "name": "Edge case"
+    }
+  ],
+  "199": [
+    {
+      "name": "Example",
+      "entry": "rightSideView",
+      "params": [
+        "root"
+      ],
+      "args": [
+        {
+          "$tree": [
+            1,
+            2,
+            3,
+            null,
+            5,
+            null,
+            4
+          ]
+        }
+      ],
+      "expected": [
+        1,
+        3,
+        4
+      ]
+    },
+    {
+      "entry": "rightSideView",
+      "params": [
+        "root"
+      ],
+      "args": [
+        {
+          "$tree": []
+        }
+      ],
+      "expected": [],
+      "name": "Edge case"
+    }
+  ],
+  "200": [
+    {
+      "name": "Example",
+      "entry": "numIslands",
+      "params": [
+        "grid"
+      ],
+      "args": [
+        [
+          [
+            "1",
+            "1",
+            "0",
+            "0",
+            "0"
+          ],
+          [
+            "1",
+            "1",
+            "0",
+            "0",
+            "0"
+          ],
+          [
+            "0",
+            "0",
+            "1",
+            "0",
+            "0"
+          ],
+          [
+            "0",
+            "0",
+            "0",
+            "1",
+            "1"
+          ]
+        ]
+      ],
+      "expected": 3
+    },
+    {
+      "entry": "numIslands",
+      "params": [
+        "grid"
+      ],
+      "args": [
+        [
+          [
+            "0",
+            "0"
+          ],
+          [
+            "0",
+            "0"
+          ]
+        ]
+      ],
+      "expected": 0,
+      "name": "Edge case"
+    }
+  ],
+  "201": [
+    {
+      "name": "Example",
+      "entry": "rangeBitwiseAnd",
+      "params": [
+        "left",
+        "right"
+      ],
+      "args": [
+        5,
+        7
+      ],
+      "expected": 4
+    },
+    {
+      "entry": "rangeBitwiseAnd",
+      "params": [
+        "left",
+        "right"
+      ],
+      "args": [
+        0,
+        1
+      ],
+      "expected": 0,
+      "name": "Edge case"
+    }
+  ],
+  "202": [
+    {
+      "name": "Example",
+      "entry": "isHappy",
+      "params": [
+        "n"
+      ],
+      "args": [
+        19
+      ],
+      "expected": true
+    },
+    {
+      "name": "Another example",
+      "entry": "isHappy",
+      "params": [
+        "n"
+      ],
+      "args": [
+        2
+      ],
+      "expected": false
+    },
+    {
+      "entry": "isHappy",
+      "params": [
+        "n"
+      ],
+      "args": [
+        2
+      ],
+      "expected": false,
+      "name": "Edge case"
+    }
+  ],
+  "206": [
+    {
+      "name": "Example",
+      "entry": "reverseList",
+      "params": [
+        "head"
+      ],
+      "args": [
+        {
+          "$list": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ]
+        }
+      ],
+      "expected": [
+        5,
+        4,
+        3,
+        2,
+        1
+      ],
+      "output": "list"
+    },
+    {
+      "entry": "reverseList",
+      "params": [
+        "head"
+      ],
+      "output": "list",
+      "args": [
+        {
+          "$list": []
+        }
+      ],
+      "expected": [],
+      "name": "Edge case"
+    }
+  ],
+  "207": [
+    {
+      "name": "Example",
+      "entry": "canFinish",
+      "params": [
+        "numCourses",
+        "prerequisites"
+      ],
+      "args": [
+        2,
+        [
+          [
+            1,
+            0
+          ]
+        ]
+      ],
+      "expected": true
+    },
+    {
+      "name": "Another example",
+      "entry": "canFinish",
+      "params": [
+        "numCourses",
+        "prerequisites"
+      ],
+      "args": [
+        2,
+        [
+          [
+            1,
+            0
+          ],
+          [
+            0,
+            1
+          ]
+        ]
+      ],
+      "expected": false
+    },
+    {
+      "entry": "canFinish",
+      "params": [
+        "numCourses",
+        "prerequisites"
+      ],
+      "args": [
+        2,
+        [
+          [
+            1,
+            0
+          ],
+          [
+            0,
+            1
+          ]
+        ]
+      ],
+      "expected": false,
+      "name": "Edge case"
+    }
+  ],
+  "208": [
+    {
+      "name": "Example",
+      "entry": "Trie",
+      "args": [],
+      "operations": [
+        [
+          "insert",
+          [
+            "apple"
+          ]
+        ],
+        [
+          "search",
+          [
+            "apple"
+          ]
+        ],
+        [
+          "search",
+          [
+            "app"
+          ]
+        ],
+        [
+          "startsWith",
+          [
+            "app"
+          ]
+        ],
+        [
+          "insert",
+          [
+            "app"
+          ]
+        ],
+        [
+          "search",
+          [
+            "app"
+          ]
+        ]
+      ],
+      "expected": [
+        null,
+        null,
+        true,
+        false,
+        true,
+        null,
+        true
+      ]
+    },
+    {
+      "entry": "Trie",
+      "args": [],
+      "expected": [
+        null,
+        null,
+        true,
+        false,
+        true
+      ],
+      "name": "Edge case",
+      "operations": [
+        [
+          "insert",
+          [
+            "a"
+          ]
+        ],
+        [
+          "search",
+          [
+            "a"
+          ]
+        ],
+        [
+          "search",
+          [
+            "ab"
+          ]
+        ],
+        [
+          "startsWith",
+          [
+            "a"
+          ]
+        ]
+      ]
+    }
+  ],
+  "209": [
+    {
+      "name": "Example",
+      "entry": "minSubArrayLen",
+      "params": [
+        "target",
+        "nums"
+      ],
+      "args": [
+        7,
+        [
+          2,
+          3,
+          1,
+          2,
+          4,
+          3
+        ]
+      ],
+      "expected": 2
+    },
+    {
+      "entry": "minSubArrayLen",
+      "params": [
+        "target",
+        "nums"
+      ],
+      "args": [
+        100,
+        [
+          1,
+          2,
+          3
+        ]
+      ],
+      "expected": 0,
+      "name": "Edge case"
+    }
+  ],
+  "210": [
+    {
+      "name": "Example",
+      "entry": "findOrder",
+      "params": [
+        "numCourses",
+        "prerequisites"
+      ],
+      "args": [
+        4,
+        [
+          [
+            1,
+            0
+          ],
+          [
+            2,
+            0
+          ],
+          [
+            3,
+            1
+          ],
+          [
+            3,
+            2
+          ]
+        ]
+      ],
+      "expected": [
+        0,
+        2,
+        1,
+        3
+      ],
+      "compare": "topological"
+    },
+    {
+      "entry": "findOrder",
+      "params": [
+        "numCourses",
+        "prerequisites"
+      ],
+      "compare": "topological",
+      "args": [
+        2,
+        [
+          [
+            1,
+            0
+          ],
+          [
+            0,
+            1
+          ]
+        ]
+      ],
+      "expected": [],
+      "name": "Edge case"
+    }
+  ],
+  "211": [
+    {
+      "name": "Example",
+      "entry": "WordDictionary",
+      "args": [],
+      "operations": [
+        [
+          "addWord",
+          [
+            "bad"
+          ]
+        ],
+        [
+          "addWord",
+          [
+            "dad"
+          ]
+        ],
+        [
+          "addWord",
+          [
+            "mad"
+          ]
+        ],
+        [
+          "search",
+          [
+            "pad"
+          ]
+        ],
+        [
+          "search",
+          [
+            "bad"
+          ]
+        ],
+        [
+          "search",
+          [
+            ".ad"
+          ]
+        ],
+        [
+          "search",
+          [
+            "b.."
+          ]
+        ]
+      ],
+      "expected": [
+        null,
+        null,
+        null,
+        null,
+        false,
+        true,
+        true,
+        true
+      ]
+    },
+    {
+      "entry": "WordDictionary",
+      "args": [],
+      "expected": [
+        null,
+        null,
+        true,
+        false
+      ],
+      "name": "Edge case",
+      "operations": [
+        [
+          "addWord",
+          [
+            "a"
+          ]
+        ],
+        [
+          "search",
+          [
+            "."
+          ]
+        ],
+        [
+          "search",
+          [
+            ".."
+          ]
+        ]
+      ]
+    }
+  ],
+  "212": [
+    {
+      "name": "Example",
+      "entry": "findWords",
+      "params": [
+        "board",
+        "words"
+      ],
+      "args": [
+        [
+          [
+            "o",
+            "a",
+            "a",
+            "n"
+          ],
+          [
+            "e",
+            "t",
+            "a",
+            "e"
+          ],
+          [
+            "i",
+            "h",
+            "k",
+            "r"
+          ],
+          [
+            "i",
+            "f",
+            "l",
+            "v"
+          ]
+        ],
+        [
+          "oath",
+          "pea",
+          "eat",
+          "rain"
+        ]
+      ],
+      "expected": [
+        "eat",
+        "oath"
+      ],
+      "compare": "unordered"
+    },
+    {
+      "entry": "findWords",
+      "params": [
+        "board",
+        "words"
+      ],
+      "compare": "unordered",
+      "args": [
+        [
+          [
+            "a",
+            "b"
+          ]
+        ],
+        [
+          "ab",
+          "aba",
+          "a"
+        ]
+      ],
+      "expected": [
+        "a",
+        "ab"
+      ],
+      "name": "Edge case"
+    }
+  ],
+  "213": [
+    {
+      "name": "Example",
+      "entry": "rob",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          2,
+          3,
+          2
+        ]
+      ],
+      "expected": 3
+    },
+    {
+      "name": "Another example",
+      "entry": "rob",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          1,
+          2,
+          3,
+          1
+        ]
+      ],
+      "expected": 4
+    },
+    {
+      "entry": "rob",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          1
+        ]
+      ],
+      "expected": 1,
+      "name": "Edge case"
+    }
+  ],
+  "215": [
+    {
+      "name": "Example",
+      "entry": "findKthLargest",
+      "params": [
+        "nums",
+        "k"
+      ],
+      "args": [
+        [
+          3,
+          2,
+          1,
+          5,
+          6,
+          4
+        ],
+        2
+      ],
+      "expected": 5
+    },
+    {
+      "name": "Another example",
+      "entry": "findKthLargest",
+      "params": [
+        "nums",
+        "k"
+      ],
+      "args": [
+        [
+          3,
+          2,
+          3,
+          1,
+          2,
+          4,
+          5,
+          5,
+          6
+        ],
+        4
+      ],
+      "expected": 4
+    },
+    {
+      "entry": "findKthLargest",
+      "params": [
+        "nums",
+        "k"
+      ],
+      "args": [
+        [
+          2,
+          2,
+          1
+        ],
+        2
+      ],
+      "expected": 2,
+      "name": "Edge case"
+    }
+  ],
+  "217": [
+    {
+      "name": "Example",
+      "entry": "containsDuplicate",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          1,
+          2,
+          3,
+          1
+        ]
+      ],
+      "expected": true
+    },
+    {
+      "entry": "containsDuplicate",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          1,
+          2,
+          3
+        ]
+      ],
+      "expected": false,
+      "name": "Edge case"
+    }
+  ],
+  "219": [
+    {
+      "name": "Example",
+      "entry": "containsNearbyDuplicate",
+      "params": [
+        "nums",
+        "k"
+      ],
+      "args": [
+        [
+          1,
+          2,
+          3,
+          1
+        ],
+        3
+      ],
+      "expected": true
+    },
+    {
+      "entry": "containsNearbyDuplicate",
+      "params": [
+        "nums",
+        "k"
+      ],
+      "args": [
+        [
+          1,
+          2,
+          3,
+          1
+        ],
+        2
+      ],
+      "expected": false,
+      "name": "Edge case"
+    }
+  ],
+  "225": [
+    {
+      "name": "Example",
+      "entry": "MyStack",
+      "args": [],
+      "operations": [
+        [
+          "push",
+          [
+            1
+          ]
+        ],
+        [
+          "push",
+          [
+            2
+          ]
+        ],
+        [
+          "top",
+          []
+        ],
+        [
+          "pop",
+          []
+        ],
+        [
+          "empty",
+          []
+        ]
+      ],
+      "expected": [
+        null,
+        null,
+        null,
+        2,
+        2,
+        false
+      ]
+    },
+    {
+      "entry": "MyStack",
+      "args": [],
+      "expected": [
+        null,
+        true,
+        null,
+        1,
+        true
+      ],
+      "name": "Edge case",
+      "operations": [
+        [
+          "empty",
+          []
+        ],
+        [
+          "push",
+          [
+            1
+          ]
+        ],
+        [
+          "pop",
+          []
+        ],
+        [
+          "empty",
+          []
+        ]
+      ]
+    }
+  ],
+  "226": [
+    {
+      "name": "Example",
+      "entry": "invertTree",
+      "params": [
+        "root"
+      ],
+      "args": [
+        {
+          "$tree": [
+            4,
+            2,
+            7,
+            1,
+            3,
+            6,
+            9
+          ]
+        }
+      ],
+      "expected": [
+        4,
+        7,
+        2,
+        9,
+        6,
+        3,
+        1
+      ],
+      "output": "tree"
+    },
+    {
+      "entry": "invertTree",
+      "params": [
+        "root"
+      ],
+      "output": "tree",
+      "args": [
+        {
+          "$tree": []
+        }
+      ],
+      "expected": [],
+      "name": "Edge case"
+    }
+  ],
+  "229": [
+    {
+      "name": "Example",
+      "entry": "majorityElement",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          3,
+          2,
+          3
+        ]
+      ],
+      "expected": [
+        3
+      ],
+      "compare": "unordered"
+    },
+    {
+      "entry": "majorityElement",
+      "params": [
+        "nums"
+      ],
+      "compare": "unordered",
+      "args": [
+        [
+          1,
+          2,
+          3
+        ]
+      ],
+      "expected": [],
+      "name": "Edge case"
+    }
+  ],
+  "230": [
+    {
+      "name": "Example",
+      "entry": "kthSmallest",
+      "params": [
+        "root",
+        "k"
+      ],
+      "args": [
+        {
+          "$tree": [
+            3,
+            1,
+            4,
+            null,
+            2
+          ]
+        },
+        1
+      ],
+      "expected": 1
+    },
+    {
+      "entry": "kthSmallest",
+      "params": [
+        "root",
+        "k"
+      ],
+      "args": [
+        {
+          "$tree": [
+            1
+          ]
+        },
+        1
+      ],
+      "expected": 1,
+      "name": "Edge case"
+    }
+  ],
+  "232": [
+    {
+      "name": "Example",
+      "entry": "MyQueue",
+      "args": [],
+      "operations": [
+        [
+          "push",
+          [
+            1
+          ]
+        ],
+        [
+          "push",
+          [
+            2
+          ]
+        ],
+        [
+          "peek",
+          []
+        ],
+        [
+          "pop",
+          []
+        ],
+        [
+          "empty",
+          []
+        ]
+      ],
+      "expected": [
+        null,
+        null,
+        null,
+        1,
+        1,
+        false
+      ]
+    },
+    {
+      "entry": "MyQueue",
+      "args": [],
+      "expected": [
+        null,
+        null,
+        1,
+        null,
+        2,
+        false
+      ],
+      "name": "Edge case",
+      "operations": [
+        [
+          "push",
+          [
+            1
+          ]
+        ],
+        [
+          "pop",
+          []
+        ],
+        [
+          "push",
+          [
+            2
+          ]
+        ],
+        [
+          "peek",
+          []
+        ],
+        [
+          "empty",
+          []
+        ]
+      ]
+    }
+  ],
+  "235": [
+    {
+      "name": "Example",
+      "entry": "lowestCommonAncestor",
+      "params": [
+        "root",
+        "p",
+        "q"
+      ],
+      "args": [
+        {
+          "$tree": [
+            6,
+            2,
+            8,
+            0,
+            4,
+            7,
+            9,
+            null,
+            null,
+            3,
+            5
+          ]
+        },
+        2,
+        8
+      ],
+      "expected": 6,
+      "nodeArgs": [
+        1,
+        2
+      ],
+      "output": "node"
+    },
+    {
+      "entry": "lowestCommonAncestor",
+      "params": [
+        "root",
+        "p",
+        "q"
+      ],
+      "nodeArgs": [
+        1,
+        2
+      ],
+      "output": "node",
+      "args": [
+        {
+          "$tree": [
+            2,
+            1,
+            3
+          ]
+        },
+        1,
+        2
+      ],
+      "expected": 2,
+      "name": "Edge case"
+    }
+  ],
+  "238": [
+    {
+      "name": "Example",
+      "entry": "productExceptSelf",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          1,
+          2,
+          3,
+          4
+        ]
+      ],
+      "expected": [
+        24,
+        12,
+        8,
+        6
+      ]
+    },
+    {
+      "entry": "productExceptSelf",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          0,
+          2,
+          0
+        ]
+      ],
+      "expected": [
+        0,
+        0,
+        0
+      ],
+      "name": "Edge case"
+    }
+  ],
+  "239": [
+    {
+      "name": "Example",
+      "entry": "maxSlidingWindow",
+      "params": [
+        "nums",
+        "k"
+      ],
+      "args": [
+        [
+          1,
+          3,
+          -1,
+          -3,
+          5,
+          3,
+          6,
+          7
+        ],
+        3
+      ],
+      "expected": [
+        3,
+        3,
+        5,
+        5,
+        6,
+        7
+      ]
+    },
+    {
+      "entry": "maxSlidingWindow",
+      "params": [
+        "nums",
+        "k"
+      ],
+      "args": [
+        [
+          4,
+          4,
+          4
+        ],
+        2
+      ],
+      "expected": [
+        4,
+        4
+      ],
+      "name": "Edge case"
+    }
+  ],
+  "242": [
+    {
+      "name": "Example",
+      "entry": "isAnagram",
+      "params": [
+        "s",
+        "t"
+      ],
+      "args": [
+        "anagram",
+        "nagaram"
+      ],
+      "expected": true
+    },
+    {
+      "entry": "isAnagram",
+      "params": [
+        "s",
+        "t"
+      ],
+      "args": [
+        "ab",
+        "aa"
+      ],
+      "expected": false,
+      "name": "Edge case"
+    }
+  ],
+  "252": [
+    {
+      "name": "Example",
+      "entry": "canAttendMeetings",
+      "params": [
+        "intervals"
+      ],
+      "args": [
+        [
+          [
+            0,
+            30
+          ],
+          [
+            5,
+            10
+          ],
+          [
+            15,
+            20
+          ]
+        ]
+      ],
+      "expected": false
+    },
+    {
+      "entry": "canAttendMeetings",
+      "params": [
+        "intervals"
+      ],
+      "args": [
+        [
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ]
+        ]
+      ],
+      "expected": true,
+      "name": "Edge case"
+    }
+  ],
+  "253": [
+    {
+      "name": "Example",
+      "entry": "minMeetingRooms",
+      "params": [
+        "intervals"
+      ],
+      "args": [
+        [
+          [
+            0,
+            30
+          ],
+          [
+            5,
+            10
+          ],
+          [
+            15,
+            20
+          ]
+        ]
+      ],
+      "expected": 2
+    },
+    {
+      "entry": "minMeetingRooms",
+      "params": [
+        "intervals"
+      ],
+      "args": [
+        [
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ]
+        ]
+      ],
+      "expected": 1,
+      "name": "Edge case"
+    }
+  ],
+  "261": [
+    {
+      "name": "Example",
+      "entry": "validTree",
+      "params": [
+        "n",
+        "edges"
+      ],
+      "args": [
+        5,
+        [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            1,
+            4
+          ]
+        ]
+      ],
+      "expected": true
+    },
+    {
+      "entry": "validTree",
+      "params": [
+        "n",
+        "edges"
+      ],
+      "args": [
+        3,
+        [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            0
+          ]
+        ]
+      ],
+      "expected": false,
+      "name": "Edge case"
+    }
+  ],
+  "268": [
+    {
+      "name": "Example",
+      "entry": "missingNumber",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          3,
+          0,
+          1
+        ]
+      ],
+      "expected": 2
+    },
+    {
+      "name": "Another example",
+      "entry": "missingNumber",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          0,
+          1
+        ]
+      ],
+      "expected": 2
+    },
+    {
+      "name": "Another example",
+      "entry": "missingNumber",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          9,
+          6,
+          4,
+          2,
+          3,
+          5,
+          7,
+          0,
+          1
+        ]
+      ],
+      "expected": 8
+    },
+    {
+      "entry": "missingNumber",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          0
+        ]
+      ],
+      "expected": 1,
+      "name": "Edge case"
+    }
+  ],
+  "269": [
+    {
+      "name": "Example",
+      "entry": "alienOrder",
+      "params": [
+        "words"
+      ],
+      "args": [
+        [
+          "wrt",
+          "wrf",
+          "er",
+          "ett",
+          "rftt"
+        ]
+      ],
+      "expected": "wertf"
+    },
+    {
+      "entry": "alienOrder",
+      "params": [
+        "words"
+      ],
+      "args": [
+        [
+          "abc",
+          "ab"
+        ]
+      ],
+      "expected": "",
+      "name": "Edge case"
+    }
+  ],
+  "271": [
+    {
+      "name": "Example",
+      "entry": "encode",
+      "args": [
+        [
+          "Hello",
+          "World"
+        ]
+      ],
+      "expected": [
+        "Hello",
+        "World"
+      ],
+      "params": [
+        "strs"
+      ],
+      "roundtrip": "decode"
+    },
+    {
+      "entry": "encode",
+      "params": [
+        "strs"
+      ],
+      "roundtrip": "decode",
+      "args": [
+        [
+          "",
+          "a#b",
+          "12"
+        ]
+      ],
+      "expected": [
+        "",
+        "a#b",
+        "12"
+      ],
+      "name": "Edge case"
+    }
+  ],
+  "279": [
+    {
+      "name": "Example",
+      "entry": "numSquares",
+      "params": [
+        "n"
+      ],
+      "args": [
+        12
+      ],
+      "expected": 3
+    },
+    {
+      "name": "Another example",
+      "entry": "numSquares",
+      "params": [
+        "n"
+      ],
+      "args": [
+        13
+      ],
+      "expected": 2
+    },
+    {
+      "entry": "numSquares",
+      "params": [
+        "n"
+      ],
+      "args": [
+        1
+      ],
+      "expected": 1,
+      "name": "Edge case"
+    }
+  ],
+  "286": [
+    {
+      "name": "Example",
+      "entry": "wallsAndGates",
+      "params": [
+        "rooms"
+      ],
+      "args": [
+        [
+          [
+            2147483647,
+            -1,
+            0,
+            2147483647
+          ],
+          [
+            2147483647,
+            2147483647,
+            2147483647,
+            -1
+          ],
+          [
+            2147483647,
+            -1,
+            2147483647,
+            -1
+          ],
+          [
+            0,
+            -1,
+            2147483647,
+            2147483647
+          ]
+        ]
+      ],
+      "expected": [
+        [
+          3,
+          -1,
+          0,
+          1
+        ],
+        [
+          2,
+          2,
+          1,
+          -1
+        ],
+        [
+          1,
+          -1,
+          2,
+          -1
+        ],
+        [
+          0,
+          -1,
+          3,
+          4
+        ]
+      ],
+      "resultArg": 0
+    },
+    {
+      "entry": "wallsAndGates",
+      "params": [
+        "rooms"
+      ],
+      "resultArg": 0,
+      "args": [
+        [
+          [
+            2147483647,
+            0
+          ]
+        ]
+      ],
+      "expected": [
+        [
+          1,
+          0
+        ]
+      ],
+      "name": "Edge case"
+    }
+  ],
+  "287": [
+    {
+      "name": "Example",
+      "entry": "findDuplicate",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          1,
+          3,
+          4,
+          2,
+          2
+        ]
+      ],
+      "expected": 2
+    },
+    {
+      "entry": "findDuplicate",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          3,
+          1,
+          3,
+          4,
+          2
+        ]
+      ],
+      "expected": 3,
+      "name": "Edge case"
+    }
+  ],
+  "295": [
+    {
+      "name": "Example",
+      "entry": "MedianFinder",
+      "args": [],
+      "operations": [
+        [
+          "addNum",
+          [
+            1
+          ]
+        ],
+        [
+          "addNum",
+          [
+            2
+          ]
+        ],
+        [
+          "findMedian",
+          []
+        ],
+        [
+          "addNum",
+          [
+            3
+          ]
+        ],
+        [
+          "findMedian",
+          []
+        ]
+      ],
+      "expected": [
+        null,
+        null,
+        null,
+        1.5,
+        null,
+        2
+      ]
+    },
+    {
+      "entry": "MedianFinder",
+      "args": [],
+      "expected": [
+        null,
+        null,
+        -1,
+        null,
+        0
+      ],
+      "name": "Edge case",
+      "operations": [
+        [
+          "addNum",
+          [
+            -1
+          ]
+        ],
+        [
+          "findMedian",
+          []
+        ],
+        [
+          "addNum",
+          [
+            1
+          ]
+        ],
+        [
+          "findMedian",
+          []
+        ]
+      ]
+    }
+  ],
+  "297": [
+    {
+      "name": "Example",
+      "entry": "serialize",
+      "params": [
+        "root"
+      ],
+      "args": [
+        {
+          "$tree": [
+            1,
+            2,
+            3,
+            null,
+            null,
+            4,
+            5
+          ]
+        }
+      ],
+      "expected": [
+        1,
+        2,
+        3,
+        null,
+        null,
+        4,
+        5
+      ],
+      "output": "tree",
+      "roundtrip": "deserialize"
+    },
+    {
+      "entry": "serialize",
+      "params": [
+        "root"
+      ],
+      "output": "tree",
+      "roundtrip": "deserialize",
+      "args": [
+        {
+          "$tree": []
+        }
+      ],
+      "expected": [],
+      "name": "Edge case"
+    }
+  ],
+  "300": [
+    {
+      "name": "Example",
+      "entry": "lengthOfLIS",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          10,
+          9,
+          2,
+          5,
+          3,
+          7,
+          101,
+          18
+        ]
+      ],
+      "expected": 4
+    },
+    {
+      "name": "Another example",
+      "entry": "lengthOfLIS",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          0,
+          1,
+          0,
+          3,
+          2,
+          3
+        ]
+      ],
+      "expected": 4
+    },
+    {
+      "entry": "lengthOfLIS",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          2,
+          2,
+          2
+        ]
+      ],
+      "expected": 1,
+      "name": "Edge case"
+    }
+  ],
+  "304": [
+    {
+      "name": "Example",
+      "entry": "NumMatrix",
+      "args": [
+        [
+          [
+            1,
+            2
+          ],
+          [
+            3,
+            4
+          ]
+        ]
+      ],
+      "expected": [
+        null,
+        10,
+        4
+      ],
+      "operations": [
+        [
+          "sumRegion",
+          [
+            0,
+            0,
+            1,
+            1
+          ]
+        ],
+        [
+          "sumRegion",
+          [
+            1,
+            1,
+            1,
+            1
+          ]
+        ]
+      ]
+    },
+    {
+      "entry": "NumMatrix",
+      "args": [
+        [
+          [
+            5
+          ]
+        ]
+      ],
+      "expected": [
+        null,
+        5
+      ],
+      "name": "Edge case",
+      "operations": [
+        [
+          "sumRegion",
+          [
+            0,
+            0,
+            0,
+            0
+          ]
+        ]
+      ]
+    }
+  ],
+  "309": [
+    {
+      "name": "Example",
+      "entry": "maxProfit",
+      "params": [
+        "prices"
+      ],
+      "args": [
+        [
+          1,
+          2,
+          3,
+          0,
+          2
+        ]
+      ],
+      "expected": 3
+    },
+    {
+      "entry": "maxProfit",
+      "params": [
+        "prices"
+      ],
+      "args": [
+        [
+          1
+        ]
+      ],
+      "expected": 0,
+      "name": "Edge case"
+    }
+  ],
+  "310": [
+    {
+      "name": "Example",
+      "entry": "findMinHeightTrees",
+      "params": [
+        "n",
+        "edges"
+      ],
+      "args": [
+        4,
+        [
+          [
+            1,
+            0
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            1,
+            3
+          ]
+        ]
+      ],
+      "expected": [
+        1
+      ],
+      "compare": "unordered"
+    },
+    {
+      "entry": "findMinHeightTrees",
+      "params": [
+        "n",
+        "edges"
+      ],
+      "compare": "unordered",
+      "args": [
+        1,
+        []
+      ],
+      "expected": [
+        0
+      ],
+      "name": "Edge case"
+    }
+  ],
+  "312": [
+    {
+      "name": "Example",
+      "entry": "maxCoins",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          3,
+          1,
+          5,
+          8
+        ]
+      ],
+      "expected": 167
+    },
+    {
+      "entry": "maxCoins",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          1,
+          5
+        ]
+      ],
+      "expected": 10,
+      "name": "Edge case"
+    }
+  ],
+  "322": [
+    {
+      "name": "Example",
+      "entry": "coinChange",
+      "params": [
+        "coins",
+        "amount"
+      ],
+      "args": [
+        [
+          1,
+          5,
+          10,
+          25
+        ],
+        30
+      ],
+      "expected": 2
+    },
+    {
+      "name": "Another example",
+      "entry": "coinChange",
+      "params": [
+        "coins",
+        "amount"
+      ],
+      "args": [
+        [
+          2
+        ],
+        3
+      ],
+      "expected": -1
+    },
+    {
+      "entry": "coinChange",
+      "params": [
+        "coins",
+        "amount"
+      ],
+      "args": [
+        [
+          2
+        ],
+        3
+      ],
+      "expected": -1,
+      "name": "Edge case"
+    }
+  ],
+  "323": [
+    {
+      "name": "Example",
+      "entry": "countComponents",
+      "params": [
+        "n",
+        "edges"
+      ],
+      "args": [
+        5,
+        [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            3,
+            4
+          ]
+        ]
+      ],
+      "expected": 2
+    },
+    {
+      "entry": "countComponents",
+      "params": [
+        "n",
+        "edges"
+      ],
+      "args": [
+        3,
+        []
+      ],
+      "expected": 3,
+      "name": "Edge case"
+    }
+  ],
+  "329": [
+    {
+      "name": "Example",
+      "entry": "longestIncreasingPath",
+      "params": [
+        "matrix"
+      ],
+      "args": [
+        [
+          [
+            9,
+            9,
+            4
+          ],
+          [
+            6,
+            6,
+            8
+          ],
+          [
+            2,
+            1,
+            1
+          ]
+        ]
+      ],
+      "expected": 4
+    },
+    {
+      "entry": "longestIncreasingPath",
+      "params": [
+        "matrix"
+      ],
+      "args": [
+        [
+          [
+            1,
+            1
+          ],
+          [
+            1,
+            1
+          ]
+        ]
+      ],
+      "expected": 1,
+      "name": "Edge case"
+    }
+  ],
+  "332": [
+    {
+      "name": "Example",
+      "entry": "findItinerary",
+      "params": [
+        "tickets"
+      ],
+      "args": [
+        [
+          [
+            "MUC",
+            "LHR"
+          ],
+          [
+            "JFK",
+            "MUC"
+          ],
+          [
+            "SFO",
+            "SJC"
+          ],
+          [
+            "LHR",
+            "SFO"
+          ]
+        ]
+      ],
+      "expected": [
+        "JFK",
+        "MUC",
+        "LHR",
+        "SFO",
+        "SJC"
+      ]
+    },
+    {
+      "entry": "findItinerary",
+      "params": [
+        "tickets"
+      ],
+      "args": [
+        [
+          [
+            "JFK",
+            "KUL"
+          ],
+          [
+            "JFK",
+            "NRT"
+          ],
+          [
+            "NRT",
+            "JFK"
+          ]
+        ]
+      ],
+      "expected": [
+        "JFK",
+        "NRT",
+        "JFK",
+        "KUL"
+      ],
+      "name": "Edge case"
+    }
+  ],
+  "337": [
+    {
+      "name": "Example",
+      "entry": "rob",
+      "params": [
+        "root"
+      ],
+      "args": [
+        {
+          "$tree": [
+            3,
+            2,
+            3,
+            null,
+            3,
+            null,
+            1
+          ]
+        }
+      ],
+      "expected": 7
+    },
+    {
+      "entry": "rob",
+      "params": [
+        "root"
+      ],
+      "args": [
+        {
+          "$tree": [
+            4,
+            1,
+            null,
+            2,
+            null,
+            3
+          ]
+        }
+      ],
+      "expected": 7,
+      "name": "Edge case"
+    }
+  ],
+  "338": [
+    {
+      "name": "Example",
+      "entry": "countBits",
+      "params": [
+        "n"
+      ],
+      "args": [
+        2
+      ],
+      "expected": [
+        0,
+        1,
+        1
+      ]
+    },
+    {
+      "name": "Another example",
+      "entry": "countBits",
+      "params": [
+        "n"
+      ],
+      "args": [
+        5
+      ],
+      "expected": [
+        0,
+        1,
+        1,
+        2,
+        1,
+        2
+      ]
+    },
+    {
+      "entry": "countBits",
+      "params": [
+        "n"
+      ],
+      "args": [
+        0
+      ],
+      "expected": [
+        0
+      ],
+      "name": "Edge case"
+    }
+  ],
+  "343": [
+    {
+      "name": "Example",
+      "entry": "integerBreak",
+      "params": [
+        "n"
+      ],
+      "args": [
+        10
+      ],
+      "expected": 36
+    },
+    {
+      "entry": "integerBreak",
+      "params": [
+        "n"
+      ],
+      "args": [
+        2
+      ],
+      "expected": 1,
+      "name": "Edge case"
+    }
+  ],
+  "344": [
+    {
+      "name": "Example",
+      "entry": "reverseString",
+      "params": [
+        "s"
+      ],
+      "args": [
+        [
+          "h",
+          "e",
+          "l",
+          "l",
+          "o"
+        ]
+      ],
+      "expected": [
+        "o",
+        "l",
+        "l",
+        "e",
+        "h"
+      ],
+      "resultArg": 0
+    },
+    {
+      "entry": "reverseString",
+      "params": [
+        "s"
+      ],
+      "resultArg": 0,
+      "args": [
+        [
+          "a"
+        ]
+      ],
+      "expected": [
+        "a"
+      ],
+      "name": "Edge case"
+    }
+  ],
+  "347": [
+    {
+      "name": "Example",
+      "entry": "topKFrequent",
+      "params": [
+        "nums",
+        "k"
+      ],
+      "args": [
+        [
+          1,
+          1,
+          1,
+          2,
+          2,
+          3
+        ],
+        2
+      ],
+      "expected": [
+        1,
+        2
+      ],
+      "compare": "unordered"
+    },
+    {
+      "entry": "topKFrequent",
+      "params": [
+        "nums",
+        "k"
+      ],
+      "compare": "unordered",
+      "args": [
+        [
+          4,
+          4,
+          2
+        ],
+        1
+      ],
+      "expected": [
+        4
+      ],
+      "name": "Edge case"
+    }
+  ],
+  "355": [
+    {
+      "name": "Example",
+      "entry": "Twitter",
+      "args": [],
+      "operations": [
+        [
+          "postTweet",
+          [
+            1,
+            5
+          ]
+        ],
+        [
+          "getNewsFeed",
+          [
+            1
+          ]
+        ],
+        [
+          "follow",
+          [
+            1,
+            2
+          ]
+        ],
+        [
+          "postTweet",
+          [
+            2,
+            6
+          ]
+        ],
+        [
+          "getNewsFeed",
+          [
+            1
+          ]
+        ],
+        [
+          "unfollow",
+          [
+            1,
+            2
+          ]
+        ],
+        [
+          "getNewsFeed",
+          [
+            1
+          ]
+        ]
+      ],
+      "expected": [
+        null,
+        null,
+        [
+          5
+        ],
+        null,
+        null,
+        [
+          6,
+          5
+        ],
+        null,
+        [
+          5
+        ]
+      ]
+    },
+    {
+      "entry": "Twitter",
+      "args": [],
+      "expected": [
+        null,
+        [],
+        null,
+        null,
+        [
+          5
+        ]
+      ],
+      "name": "Edge case",
+      "operations": [
+        [
+          "getNewsFeed",
+          [
+            1
+          ]
+        ],
+        [
+          "postTweet",
+          [
+            1,
+            5
+          ]
+        ],
+        [
+          "follow",
+          [
+            1,
+            1
+          ]
+        ],
+        [
+          "getNewsFeed",
+          [
+            1
+          ]
+        ]
+      ]
+    }
+  ],
+  "371": [
+    {
+      "name": "Example",
+      "entry": "getSum",
+      "params": [
+        "a",
+        "b"
+      ],
+      "args": [
+        1,
+        2
+      ],
+      "expected": 3
+    },
+    {
+      "name": "Another example",
+      "entry": "getSum",
+      "params": [
+        "a",
+        "b"
+      ],
+      "args": [
+        2,
+        3
+      ],
+      "expected": 5
+    },
+    {
+      "entry": "getSum",
+      "params": [
+        "a",
+        "b"
+      ],
+      "args": [
+        -2,
+        3
+      ],
+      "expected": 1,
+      "name": "Edge case"
+    }
+  ],
+  "374": [
+    {
+      "name": "Example",
+      "entry": "guessNumber",
+      "params": [
+        "n"
+      ],
+      "args": [
+        10
+      ],
+      "expected": 6,
+      "pick": 6
+    },
+    {
+      "entry": "guessNumber",
+      "params": [
+        "n"
+      ],
+      "pick": 1,
+      "args": [
+        1
+      ],
+      "expected": 1,
+      "name": "Edge case"
+    }
+  ],
+  "377": [
+    {
+      "name": "Example",
+      "entry": "combinationSum4",
+      "params": [
+        "nums",
+        "target"
+      ],
+      "args": [
+        [
+          1,
+          2,
+          3
+        ],
+        4
+      ],
+      "expected": 7
+    },
+    {
+      "entry": "combinationSum4",
+      "params": [
+        "nums",
+        "target"
+      ],
+      "args": [
+        [
+          2
+        ],
+        3
+      ],
+      "expected": 0,
+      "name": "Edge case"
+    }
+  ],
+  "394": [
+    {
+      "name": "Example",
+      "entry": "decodeString",
+      "params": [
+        "s"
+      ],
+      "args": [
+        "3[a2[c]]"
+      ],
+      "expected": "accaccacc"
+    },
+    {
+      "entry": "decodeString",
+      "params": [
+        "s"
+      ],
+      "args": [
+        "2[a]3[b]"
+      ],
+      "expected": "aabbb",
+      "name": "Edge case"
+    }
+  ],
+  "399": [
+    {
+      "name": "Example",
+      "entry": "calcEquation",
+      "params": [
+        "equations",
+        "values",
+        "queries"
+      ],
+      "args": [
+        [
+          [
+            "a",
+            "b"
+          ],
+          [
+            "b",
+            "c"
+          ]
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          [
+            "a",
+            "c"
+          ],
+          [
+            "b",
+            "a"
+          ],
+          [
+            "a",
+            "e"
+          ]
+        ]
+      ],
+      "expected": [
+        6,
+        0.5,
+        -1
+      ]
+    },
+    {
+      "entry": "calcEquation",
+      "params": [
+        "equations",
+        "values",
+        "queries"
+      ],
+      "args": [
+        [
+          [
+            "a",
+            "b"
+          ]
+        ],
+        [
+          2
+        ],
+        [
+          [
+            "a",
+            "a"
+          ],
+          [
+            "b",
+            "a"
+          ],
+          [
+            "x",
+            "x"
+          ]
+        ]
+      ],
+      "expected": [
+        1,
+        0.5,
+        -1
+      ],
+      "name": "Edge case"
+    }
+  ],
+  "410": [
+    {
+      "name": "Example",
+      "entry": "splitArray",
+      "params": [
+        "nums",
+        "k"
+      ],
+      "args": [
+        [
+          7,
+          2,
+          5,
+          10,
+          8
+        ],
+        2
+      ],
+      "expected": 18
+    },
+    {
+      "entry": "splitArray",
+      "params": [
+        "nums",
+        "k"
+      ],
+      "args": [
+        [
+          1,
+          2,
+          3
+        ],
+        1
+      ],
+      "expected": 6,
+      "name": "Edge case"
+    }
+  ],
+  "416": [
+    {
+      "name": "Example",
+      "entry": "canPartition",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          1,
+          5,
+          11,
+          5
+        ]
+      ],
+      "expected": true
+    },
+    {
+      "name": "Another example",
+      "entry": "canPartition",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          1,
+          2,
+          3,
+          5
+        ]
+      ],
+      "expected": false
+    },
+    {
+      "entry": "canPartition",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          1,
+          2,
+          5
+        ]
+      ],
+      "expected": false,
+      "name": "Edge case"
+    }
+  ],
+  "417": [
+    {
+      "name": "Example",
+      "entry": "pacificAtlantic",
+      "args": [
+        [
+          [
+            1,
+            2
+          ],
+          [
+            4,
+            3
+          ]
+        ]
+      ],
+      "expected": [
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ]
+      ],
+      "params": [
+        "heights"
+      ],
+      "compare": "unordered"
+    },
+    {
+      "entry": "pacificAtlantic",
+      "params": [
+        "heights"
+      ],
+      "compare": "unordered",
+      "args": [
+        [
+          [
+            1
+          ]
+        ]
+      ],
+      "expected": [
+        [
+          0,
+          0
+        ]
+      ],
+      "name": "Edge case"
+    }
+  ],
+  "424": [
+    {
+      "name": "Example",
+      "entry": "characterReplacement",
+      "params": [
+        "s",
+        "k"
+      ],
+      "args": [
+        "AABABBA",
+        1
+      ],
+      "expected": 4
+    },
+    {
+      "entry": "characterReplacement",
+      "params": [
+        "s",
+        "k"
+      ],
+      "args": [
+        "ABAB",
+        2
+      ],
+      "expected": 4,
+      "name": "Edge case"
+    }
+  ],
+  "427": [
+    {
+      "name": "Example",
+      "entry": "construct",
+      "args": [
+        [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            0
+          ]
+        ]
+      ],
+      "expected": [
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          0
+        ]
+      ],
+      "params": [
+        "grid"
+      ],
+      "output": "quad"
+    },
+    {
+      "entry": "construct",
+      "params": [
+        "grid"
+      ],
+      "output": "quad",
+      "args": [
+        [
+          [
+            1,
+            1
+          ],
+          [
+            1,
+            1
+          ]
+        ]
+      ],
+      "expected": [
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ]
+      ],
+      "name": "Edge case"
+    }
+  ],
+  "435": [
+    {
+      "name": "Example",
+      "entry": "eraseOverlapIntervals",
+      "params": [
+        "intervals"
+      ],
+      "args": [
+        [
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            1,
+            3
+          ]
+        ]
+      ],
+      "expected": 1
+    },
+    {
+      "name": "Another example",
+      "entry": "eraseOverlapIntervals",
+      "params": [
+        "intervals"
+      ],
+      "args": [
+        [
+          [
+            1,
+            2
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            1,
+            2
+          ]
+        ]
+      ],
+      "expected": 2
+    },
+    {
+      "entry": "eraseOverlapIntervals",
+      "params": [
+        "intervals"
+      ],
+      "args": [
+        [
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ]
+        ]
+      ],
+      "expected": 0,
+      "name": "Edge case"
+    }
+  ],
+  "450": [
+    {
+      "name": "Example",
+      "entry": "deleteNode",
+      "params": [
+        "root",
+        "key"
+      ],
+      "args": [
+        {
+          "$tree": [
+            5,
+            3,
+            6,
+            2,
+            4,
+            null,
+            7
+          ]
+        },
+        3
+      ],
+      "expected": [
+        5,
+        4,
+        6,
+        2,
+        null,
+        null,
+        7
+      ],
+      "output": "tree"
+    },
+    {
+      "entry": "deleteNode",
+      "params": [
+        "root",
+        "key"
+      ],
+      "output": "tree",
+      "args": [
+        {
+          "$tree": [
+            1
+          ]
+        },
+        1
+      ],
+      "expected": [],
+      "name": "Edge case"
+    }
+  ],
+  "460": [
+    {
+      "name": "Example",
+      "entry": "LFUCache",
+      "args": [
+        2
+      ],
+      "operations": [
+        [
+          "put",
+          [
+            1,
+            1
+          ]
+        ],
+        [
+          "put",
+          [
+            2,
+            2
+          ]
+        ],
+        [
+          "get",
+          [
+            1
+          ]
+        ],
+        [
+          "put",
+          [
+            3,
+            3
+          ]
+        ],
+        [
+          "get",
+          [
+            2
+          ]
+        ],
+        [
+          "get",
+          [
+            3
+          ]
+        ],
+        [
+          "put",
+          [
+            4,
+            4
+          ]
+        ],
+        [
+          "get",
+          [
+            1
+          ]
+        ],
+        [
+          "get",
+          [
+            3
+          ]
+        ],
+        [
+          "get",
+          [
+            4
+          ]
+        ]
+      ],
+      "expected": [
+        null,
+        null,
+        null,
+        1,
+        null,
+        -1,
+        3,
+        null,
+        -1,
+        3,
+        4
+      ]
+    },
+    {
+      "entry": "LFUCache",
+      "args": [
+        0
+      ],
+      "expected": [
+        null,
+        null,
+        -1
+      ],
+      "name": "Edge case",
+      "operations": [
+        [
+          "put",
+          [
+            1,
+            1
+          ]
+        ],
+        [
+          "get",
+          [
+            1
+          ]
+        ]
+      ]
+    }
+  ],
+  "463": [
+    {
+      "name": "Example",
+      "entry": "islandPerimeter",
+      "params": [
+        "grid"
+      ],
+      "args": [
+        [
+          [
+            0,
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            1,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            1,
+            0,
+            0
+          ]
+        ]
+      ],
+      "expected": 16
+    },
+    {
+      "entry": "islandPerimeter",
+      "params": [
+        "grid"
+      ],
+      "args": [
+        [
+          [
+            1
+          ]
+        ]
+      ],
+      "expected": 4,
+      "name": "Edge case"
+    }
+  ],
+  "473": [
+    {
+      "name": "Example",
+      "entry": "makesquare",
+      "params": [
+        "matchsticks"
+      ],
+      "args": [
+        [
+          1,
+          1,
+          2,
+          2,
+          2
+        ]
+      ],
+      "expected": true
+    },
+    {
+      "entry": "makesquare",
+      "params": [
+        "matchsticks"
+      ],
+      "args": [
+        [
+          3,
+          3,
+          3,
+          3,
+          4
+        ]
+      ],
+      "expected": false,
+      "name": "Edge case"
+    }
+  ],
+  "494": [
+    {
+      "name": "Example",
+      "entry": "findTargetSumWays",
+      "params": [
+        "nums",
+        "target"
+      ],
+      "args": [
+        [
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        3
+      ],
+      "expected": 5
+    },
+    {
+      "name": "Another example",
+      "entry": "findTargetSumWays",
+      "params": [
+        "nums",
+        "target"
+      ],
+      "args": [
+        [
+          1
+        ],
+        1
+      ],
+      "expected": 1
+    },
+    {
+      "entry": "findTargetSumWays",
+      "params": [
+        "nums",
+        "target"
+      ],
+      "args": [
+        [
+          0,
+          0,
+          1
+        ],
+        1
+      ],
+      "expected": 4,
+      "name": "Edge case"
+    }
+  ],
+  "502": [
+    {
+      "name": "Example",
+      "entry": "findMaximizedCapital",
+      "params": [
+        "k",
+        "w",
+        "profits",
+        "capital"
+      ],
+      "args": [
+        2,
+        0,
+        [
+          1,
+          2,
+          3
+        ],
+        [
+          0,
+          1,
+          1
+        ]
+      ],
+      "expected": 4
+    },
+    {
+      "entry": "findMaximizedCapital",
+      "params": [
+        "k",
+        "w",
+        "profits",
+        "capital"
+      ],
+      "args": [
+        2,
+        0,
+        [
+          1
+        ],
+        [
+          1
+        ]
+      ],
+      "expected": 0,
+      "name": "Edge case"
+    }
+  ],
+  "518": [
+    {
+      "name": "Example",
+      "entry": "change",
+      "params": [
+        "amount",
+        "coins"
+      ],
+      "args": [
+        5,
+        [
+          1,
+          2,
+          5
+        ]
+      ],
+      "expected": 4
+    },
+    {
+      "name": "Another example",
+      "entry": "change",
+      "params": [
+        "amount",
+        "coins"
+      ],
+      "args": [
+        3,
+        [
+          2
+        ]
+      ],
+      "expected": 0
+    },
+    {
+      "entry": "change",
+      "params": [
+        "amount",
+        "coins"
+      ],
+      "args": [
+        0,
+        [
+          1,
+          2
+        ]
+      ],
+      "expected": 1,
+      "name": "Edge case"
+    }
+  ],
+  "543": [
+    {
+      "name": "Example",
+      "entry": "diameterOfBinaryTree",
+      "params": [
+        "root"
+      ],
+      "args": [
+        {
+          "$tree": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ]
+        }
+      ],
+      "expected": 3
+    },
+    {
+      "entry": "diameterOfBinaryTree",
+      "params": [
+        "root"
+      ],
+      "args": [
+        {
+          "$tree": [
+            1
+          ]
+        }
+      ],
+      "expected": 0,
+      "name": "Edge case"
+    }
+  ],
+  "560": [
+    {
+      "name": "Example",
+      "entry": "subarraySum",
+      "params": [
+        "nums",
+        "k"
+      ],
+      "args": [
+        [
+          1,
+          1,
+          1
+        ],
+        2
+      ],
+      "expected": 2
+    },
+    {
+      "entry": "subarraySum",
+      "params": [
+        "nums",
+        "k"
+      ],
+      "args": [
+        [
+          1,
+          -1,
+          0
+        ],
+        0
+      ],
+      "expected": 3,
+      "name": "Edge case"
+    }
+  ],
+  "567": [
+    {
+      "name": "Example",
+      "entry": "checkInclusion",
+      "params": [
+        "s1",
+        "s2"
+      ],
+      "args": [
+        "ab",
+        "eidbaooo"
+      ],
+      "expected": true
+    },
+    {
+      "entry": "checkInclusion",
+      "params": [
+        "s1",
+        "s2"
+      ],
+      "args": [
+        "ab",
+        "eidboaoo"
+      ],
+      "expected": false,
+      "name": "Edge case"
+    }
+  ],
+  "572": [
+    {
+      "name": "Example",
+      "entry": "isSubtree",
+      "params": [
+        "root",
+        "subRoot"
+      ],
+      "args": [
+        {
+          "$tree": [
+            3,
+            4,
+            5,
+            1,
+            2
+          ]
+        },
+        {
+          "$tree": [
+            4,
+            1,
+            2
+          ]
+        }
+      ],
+      "expected": true
+    },
+    {
+      "entry": "isSubtree",
+      "params": [
+        "root",
+        "subRoot"
+      ],
+      "args": [
+        {
+          "$tree": [
+            1,
+            1
+          ]
+        },
+        {
+          "$tree": [
+            1
+          ]
+        }
+      ],
+      "expected": true,
+      "name": "Edge case"
+    }
+  ],
+  "621": [
+    {
+      "name": "Example",
+      "entry": "leastInterval",
+      "params": [
+        "tasks",
+        "n"
+      ],
+      "args": [
+        [
+          "A",
+          "A",
+          "A",
+          "B",
+          "B",
+          "B"
+        ],
+        2
+      ],
+      "expected": 8
+    },
+    {
+      "entry": "leastInterval",
+      "params": [
+        "tasks",
+        "n"
+      ],
+      "args": [
+        [
+          "A",
+          "A",
+          "B"
+        ],
+        0
+      ],
+      "expected": 3,
+      "name": "Edge case"
+    }
+  ],
+  "622": [
+    {
+      "name": "Example",
+      "entry": "MyCircularQueue",
+      "args": [
+        3
+      ],
+      "operations": [
+        [
+          "enQueue",
+          [
+            1
+          ]
+        ],
+        [
+          "enQueue",
+          [
+            2
+          ]
+        ],
+        [
+          "deQueue",
+          []
+        ],
+        [
+          "enQueue",
+          [
+            3
+          ]
+        ],
+        [
+          "Rear",
+          []
+        ],
+        [
+          "isFull",
+          []
+        ],
+        [
+          "Front",
+          []
+        ]
+      ],
+      "expected": [
+        null,
+        true,
+        true,
+        true,
+        true,
+        3,
+        false,
+        2
+      ]
+    },
+    {
+      "entry": "MyCircularQueue",
+      "args": [
+        1
+      ],
+      "expected": [
+        null,
+        true,
+        false,
+        1,
+        true,
+        -1
+      ],
+      "name": "Edge case",
+      "operations": [
+        [
+          "enQueue",
+          [
+            1
+          ]
+        ],
+        [
+          "enQueue",
+          [
+            2
+          ]
+        ],
+        [
+          "Front",
+          []
+        ],
+        [
+          "deQueue",
+          []
+        ],
+        [
+          "Front",
+          []
+        ]
+      ]
+    }
+  ],
+  "647": [
+    {
+      "name": "Example",
+      "entry": "countSubstrings",
+      "params": [
+        "s"
+      ],
+      "args": [
+        "abc"
+      ],
+      "expected": 3
+    },
+    {
+      "name": "Another example",
+      "entry": "countSubstrings",
+      "params": [
+        "s"
+      ],
+      "args": [
+        "aaa"
+      ],
+      "expected": 6
+    },
+    {
+      "entry": "countSubstrings",
+      "params": [
+        "s"
+      ],
+      "args": [
+        "aaa"
+      ],
+      "expected": 6,
+      "name": "Edge case"
+    }
+  ],
+  "649": [
+    {
+      "name": "Example",
+      "entry": "predictPartyVictory",
+      "params": [
+        "senate"
+      ],
+      "args": [
+        "RDD"
+      ],
+      "expected": "Dire"
+    },
+    {
+      "entry": "predictPartyVictory",
+      "params": [
+        "senate"
+      ],
+      "args": [
+        "RD"
+      ],
+      "expected": "Radiant",
+      "name": "Edge case"
+    }
+  ],
+  "658": [
+    {
+      "name": "Example",
+      "entry": "findClosestElements",
+      "params": [
+        "arr",
+        "k",
+        "x"
+      ],
+      "args": [
+        [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        4,
+        3
+      ],
+      "expected": [
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "entry": "findClosestElements",
+      "params": [
+        "arr",
+        "k",
+        "x"
+      ],
+      "args": [
+        [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        4,
+        -1
+      ],
+      "expected": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "name": "Edge case"
+    }
+  ],
+  "678": [
+    {
+      "name": "Example",
+      "entry": "checkValidString",
+      "params": [
+        "s"
+      ],
+      "args": [
+        "()"
+      ],
+      "expected": true
+    },
+    {
+      "name": "Another example",
+      "entry": "checkValidString",
+      "params": [
+        "s"
+      ],
+      "args": [
+        "(*)"
+      ],
+      "expected": true
+    },
+    {
+      "name": "Another example",
+      "entry": "checkValidString",
+      "params": [
+        "s"
+      ],
+      "args": [
+        "(*))"
+      ],
+      "expected": true
+    },
+    {
+      "entry": "checkValidString",
+      "params": [
+        "s"
+      ],
+      "args": [
+        "(*))"
+      ],
+      "expected": true,
+      "name": "Edge case"
+    }
+  ],
+  "680": [
+    {
+      "name": "Example",
+      "entry": "validPalindrome",
+      "params": [
+        "s"
+      ],
+      "args": [
+        "abca"
+      ],
+      "expected": true
+    },
+    {
+      "entry": "validPalindrome",
+      "params": [
+        "s"
+      ],
+      "args": [
+        "abc"
+      ],
+      "expected": false,
+      "name": "Edge case"
+    }
+  ],
+  "682": [
+    {
+      "name": "Example",
+      "entry": "calPoints",
+      "params": [
+        "operations"
+      ],
+      "args": [
+        [
+          "5",
+          "2",
+          "C",
+          "D",
+          "+"
+        ]
+      ],
+      "expected": 30
+    },
+    {
+      "entry": "calPoints",
+      "params": [
+        "operations"
+      ],
+      "args": [
+        [
+          "5",
+          "-2",
+          "4",
+          "C",
+          "D",
+          "9",
+          "+",
+          "+"
+        ]
+      ],
+      "expected": 27,
+      "name": "Edge case"
+    }
+  ],
+  "684": [
+    {
+      "name": "Example",
+      "entry": "findRedundantConnection",
+      "params": [
+        "edges"
+      ],
+      "args": [
+        [
+          [
+            1,
+            2
+          ],
+          [
+            1,
+            3
+          ],
+          [
+            2,
+            3
+          ]
+        ]
+      ],
+      "expected": [
+        2,
+        3
+      ]
+    },
+    {
+      "entry": "findRedundantConnection",
+      "params": [
+        "edges"
+      ],
+      "args": [
+        [
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            1,
+            3
+          ]
+        ]
+      ],
+      "expected": [
+        1,
+        3
+      ],
+      "name": "Edge case"
+    }
+  ],
+  "695": [
+    {
+      "name": "Example",
+      "entry": "maxAreaOfIsland",
+      "params": [
+        "grid"
+      ],
+      "args": [
+        [
+          [
+            0,
+            0,
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            1,
+            0,
+            1
+          ],
+          [
+            0,
+            1,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            1,
+            1,
+            1,
+            1
+          ]
+        ]
+      ],
+      "expected": 9
+    },
+    {
+      "entry": "maxAreaOfIsland",
+      "params": [
+        "grid"
+      ],
+      "args": [
+        [
+          [
+            1,
+            1
+          ],
+          [
+            1,
+            0
+          ]
+        ]
+      ],
+      "expected": 3,
+      "name": "Edge case"
+    }
+  ],
+  "698": [
+    {
+      "name": "Example",
+      "entry": "canPartitionKSubsets",
+      "params": [
+        "nums",
+        "k"
+      ],
+      "args": [
+        [
+          4,
+          3,
+          2,
+          3,
+          5,
+          2,
+          1
+        ],
+        4
+      ],
+      "expected": true
+    },
+    {
+      "entry": "canPartitionKSubsets",
+      "params": [
+        "nums",
+        "k"
+      ],
+      "args": [
+        [
+          1,
+          2,
+          3,
+          4
+        ],
+        3
+      ],
+      "expected": false,
+      "name": "Edge case"
+    }
+  ],
+  "701": [
+    {
+      "name": "Example",
+      "entry": "insertIntoBST",
+      "params": [
+        "root",
+        "val"
+      ],
+      "args": [
+        {
+          "$tree": [
+            4,
+            2,
+            7,
+            1,
+            3
+          ]
+        },
+        5
+      ],
+      "expected": [
+        4,
+        2,
+        7,
+        1,
+        3,
+        5
+      ],
+      "output": "tree"
+    },
+    {
+      "entry": "insertIntoBST",
+      "params": [
+        "root",
+        "val"
+      ],
+      "output": "tree",
+      "args": [
+        {
+          "$tree": []
+        },
+        1
+      ],
+      "expected": [
+        1
+      ],
+      "name": "Edge case"
+    }
+  ],
+  "703": [
+    {
+      "name": "Example",
+      "entry": "KthLargest",
+      "args": [
+        3,
+        [
+          4,
+          5,
+          8,
+          2
+        ]
+      ],
+      "operations": [
+        [
+          "add",
+          [
+            3
+          ]
+        ],
+        [
+          "add",
+          [
+            5
+          ]
+        ],
+        [
+          "add",
+          [
+            10
+          ]
+        ],
+        [
+          "add",
+          [
+            9
+          ]
+        ],
+        [
+          "add",
+          [
+            4
+          ]
+        ]
+      ],
+      "expected": [
+        null,
+        4,
+        5,
+        5,
+        8,
+        8
+      ]
+    },
+    {
+      "entry": "KthLargest",
+      "args": [
+        1,
+        []
+      ],
+      "expected": [
+        null,
+        -1,
+        2,
+        2
+      ],
+      "name": "Edge case",
+      "operations": [
+        [
+          "add",
+          [
+            -1
+          ]
+        ],
+        [
+          "add",
+          [
+            2
+          ]
+        ],
+        [
+          "add",
+          [
+            0
+          ]
+        ]
+      ]
+    }
+  ],
+  "704": [
+    {
+      "name": "Example",
+      "entry": "search",
+      "params": [
+        "nums",
+        "target"
+      ],
+      "args": [
+        [
+          -1,
+          0,
+          3,
+          5,
+          9,
+          12
+        ],
+        9
+      ],
+      "expected": 4
+    },
+    {
+      "entry": "search",
+      "params": [
+        "nums",
+        "target"
+      ],
+      "args": [
+        [
+          1,
+          3,
+          5
+        ],
+        2
+      ],
+      "expected": -1,
+      "name": "Edge case"
+    }
+  ],
+  "705": [
+    {
+      "name": "Example",
+      "entry": "MyHashSet",
+      "args": [],
+      "operations": [
+        [
+          "add",
+          [
+            1
+          ]
+        ],
+        [
+          "add",
+          [
+            2
+          ]
+        ],
+        [
+          "contains",
+          [
+            1
+          ]
+        ],
+        [
+          "contains",
+          [
+            3
+          ]
+        ],
+        [
+          "add",
+          [
+            2
+          ]
+        ],
+        [
+          "contains",
+          [
+            2
+          ]
+        ],
+        [
+          "remove",
+          [
+            2
+          ]
+        ],
+        [
+          "contains",
+          [
+            2
+          ]
+        ]
+      ],
+      "expected": [
+        null,
+        null,
+        null,
+        true,
+        false,
+        null,
+        true,
+        null,
+        false
+      ]
+    },
+    {
+      "entry": "MyHashSet",
+      "args": [],
+      "expected": [
+        null,
+        null,
+        null,
+        false
+      ],
+      "name": "Edge case",
+      "operations": [
+        [
+          "add",
+          [
+            0
+          ]
+        ],
+        [
+          "remove",
+          [
+            0
+          ]
+        ],
+        [
+          "contains",
+          [
+            0
+          ]
+        ]
+      ]
+    }
+  ],
+  "706": [
+    {
+      "name": "Example",
+      "entry": "MyHashMap",
+      "args": [],
+      "operations": [
+        [
+          "put",
+          [
+            1,
+            1
+          ]
+        ],
+        [
+          "put",
+          [
+            2,
+            2
+          ]
+        ],
+        [
+          "get",
+          [
+            1
+          ]
+        ],
+        [
+          "get",
+          [
+            3
+          ]
+        ],
+        [
+          "put",
+          [
+            2,
+            1
+          ]
+        ],
+        [
+          "get",
+          [
+            2
+          ]
+        ],
+        [
+          "remove",
+          [
+            2
+          ]
+        ],
+        [
+          "get",
+          [
+            2
+          ]
+        ]
+      ],
+      "expected": [
+        null,
+        null,
+        null,
+        1,
+        -1,
+        null,
+        1,
+        null,
+        -1
+      ]
+    },
+    {
+      "entry": "MyHashMap",
+      "args": [],
+      "expected": [
+        null,
+        null,
+        null,
+        3,
+        null,
+        -1
+      ],
+      "name": "Edge case",
+      "operations": [
+        [
+          "put",
+          [
+            1,
+            2
+          ]
+        ],
+        [
+          "put",
+          [
+            1,
+            3
+          ]
+        ],
+        [
+          "get",
+          [
+            1
+          ]
+        ],
+        [
+          "remove",
+          [
+            1
+          ]
+        ],
+        [
+          "get",
+          [
+            1
+          ]
+        ]
+      ]
+    }
+  ],
+  "721": [
+    {
+      "name": "Example",
+      "entry": "accountsMerge",
+      "params": [
+        "accounts"
+      ],
+      "args": [
+        [
+          [
+            "John",
+            "john@mail.com",
+            "john_newyork@mail.com"
+          ],
+          [
+            "John",
+            "john@mail.com",
+            "john00@mail.com"
+          ],
+          [
+            "Mary",
+            "mary@cool.com"
+          ],
+          [
+            "John",
+            "johnnybravo@mail.com"
+          ]
+        ]
+      ],
+      "expected": [
+        [
+          "John",
+          "john00@mail.com",
+          "john@mail.com",
+          "john_newyork@mail.com"
+        ],
+        [
+          "Mary",
+          "mary@cool.com"
+        ],
+        [
+          "John",
+          "johnnybravo@mail.com"
+        ]
+      ],
+      "compare": "accounts"
+    },
+    {
+      "entry": "accountsMerge",
+      "params": [
+        "accounts"
+      ],
+      "compare": "accounts",
+      "args": [
+        [
+          [
+            "A",
+            "a@x"
+          ],
+          [
+            "A",
+            "a@x",
+            "b@x"
+          ]
+        ]
+      ],
+      "expected": [
+        [
+          "A",
+          "a@x",
+          "b@x"
+        ]
+      ],
+      "name": "Edge case"
+    }
+  ],
+  "735": [
+    {
+      "name": "Example",
+      "entry": "asteroidCollision",
+      "params": [
+        "asteroids"
+      ],
+      "args": [
+        [
+          5,
+          10,
+          -5
+        ]
+      ],
+      "expected": [
+        5,
+        10
+      ]
+    },
+    {
+      "entry": "asteroidCollision",
+      "params": [
+        "asteroids"
+      ],
+      "args": [
+        [
+          8,
+          -8
+        ]
+      ],
+      "expected": [],
+      "name": "Edge case"
+    }
+  ],
+  "739": [
+    {
+      "name": "Example",
+      "entry": "dailyTemperatures",
+      "params": [
+        "temperatures"
+      ],
+      "args": [
+        [
+          73,
+          74,
+          75,
+          71,
+          69,
+          72,
+          76,
+          73
+        ]
+      ],
+      "expected": [
+        1,
+        1,
+        4,
+        2,
+        1,
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "entry": "dailyTemperatures",
+      "params": [
+        "temperatures"
+      ],
+      "args": [
+        [
+          30,
+          30,
+          20
+        ]
+      ],
+      "expected": [
+        0,
+        0,
+        0
+      ],
+      "name": "Edge case"
+    }
+  ],
+  "743": [
+    {
+      "name": "Example",
+      "entry": "networkDelayTime",
+      "params": [
+        "times",
+        "n",
+        "k"
+      ],
+      "args": [
+        [
+          [
+            2,
+            1,
+            1
+          ],
+          [
+            2,
+            3,
+            1
+          ],
+          [
+            3,
+            4,
+            1
+          ]
+        ],
+        4,
+        2
+      ],
+      "expected": 2
+    },
+    {
+      "entry": "networkDelayTime",
+      "params": [
+        "times",
+        "n",
+        "k"
+      ],
+      "args": [
+        [
+          [
+            1,
+            2,
+            1
+          ]
+        ],
+        2,
+        2
+      ],
+      "expected": -1,
+      "name": "Edge case"
+    }
+  ],
+  "746": [
+    {
+      "name": "Example",
+      "entry": "minCostClimbingStairs",
+      "params": [
+        "cost"
+      ],
+      "args": [
+        [
+          10,
+          15,
+          20
+        ]
+      ],
+      "expected": 15
+    },
+    {
+      "name": "Another example",
+      "entry": "minCostClimbingStairs",
+      "params": [
+        "cost"
+      ],
+      "args": [
+        [
+          1,
+          100,
+          1,
+          1,
+          1,
+          100,
+          1,
+          1,
+          100,
+          1
+        ]
+      ],
+      "expected": 6
+    },
+    {
+      "entry": "minCostClimbingStairs",
+      "params": [
+        "cost"
+      ],
+      "args": [
+        [
+          0,
+          0
+        ]
+      ],
+      "expected": 0,
+      "name": "Edge case"
+    }
+  ],
+  "752": [
+    {
+      "name": "Example",
+      "entry": "openLock",
+      "args": [
+        [
+          "0001"
+        ],
+        "0009"
+      ],
+      "expected": 1,
+      "params": [
+        "deadends",
+        "target"
+      ]
+    },
+    {
+      "entry": "openLock",
+      "params": [
+        "deadends",
+        "target"
+      ],
+      "args": [
+        [
+          "0000"
+        ],
+        "0009"
+      ],
+      "expected": -1,
+      "name": "Edge case"
+    }
+  ],
+  "763": [
+    {
+      "name": "Example",
+      "entry": "partitionLabels",
+      "params": [
+        "s"
+      ],
+      "args": [
+        "ababcbacadefegdehijhklij"
+      ],
+      "expected": [
+        9,
+        7,
+        8
+      ]
+    },
+    {
+      "entry": "partitionLabels",
+      "params": [
+        "s"
+      ],
+      "args": [
+        "abc"
+      ],
+      "expected": [
+        1,
+        1,
+        1
+      ],
+      "name": "Edge case"
+    }
+  ],
+  "767": [
+    {
+      "name": "Example",
+      "entry": "reorganizeString",
+      "params": [
+        "s"
+      ],
+      "args": [
+        "aab"
+      ],
+      "expected": "aba",
+      "compare": "reorganized"
+    },
+    {
+      "entry": "reorganizeString",
+      "params": [
+        "s"
+      ],
+      "compare": "reorganized",
+      "args": [
+        "aaab"
+      ],
+      "expected": "",
+      "name": "Edge case"
+    }
+  ],
+  "778": [
+    {
+      "name": "Example",
+      "entry": "swimInWater",
+      "params": [
+        "grid"
+      ],
+      "args": [
+        [
+          [
+            0,
+            2
+          ],
+          [
+            1,
+            3
+          ]
+        ]
+      ],
+      "expected": 3
+    },
+    {
+      "entry": "swimInWater",
+      "params": [
+        "grid"
+      ],
+      "args": [
+        [
+          [
+            0
+          ]
+        ]
+      ],
+      "expected": 0,
+      "name": "Edge case"
+    }
+  ],
+  "787": [
+    {
+      "name": "Example",
+      "entry": "findCheapestPrice",
+      "params": [
+        "n",
+        "flights",
+        "src",
+        "dst",
+        "k"
+      ],
+      "args": [
+        4,
+        [
+          [
+            0,
+            1,
+            100
+          ],
+          [
+            1,
+            2,
+            100
+          ],
+          [
+            2,
+            0,
+            100
+          ],
+          [
+            1,
+            3,
+            600
+          ],
+          [
+            2,
+            3,
+            200
+          ]
+        ],
+        0,
+        3,
+        1
+      ],
+      "expected": 700
+    },
+    {
+      "entry": "findCheapestPrice",
+      "params": [
+        "n",
+        "flights",
+        "src",
+        "dst",
+        "k"
+      ],
+      "args": [
+        3,
+        [
+          [
+            0,
+            1,
+            100
+          ],
+          [
+            1,
+            2,
+            100
+          ],
+          [
+            0,
+            2,
+            500
+          ]
+        ],
+        0,
+        2,
+        0
+      ],
+      "expected": 500,
+      "name": "Edge case"
+    }
+  ],
+  "846": [
+    {
+      "name": "Example",
+      "entry": "isNStraightHand",
+      "params": [
+        "hand",
+        "groupSize"
+      ],
+      "args": [
+        [
+          1,
+          2,
+          3,
+          6,
+          2,
+          3,
+          4,
+          7,
+          8
+        ],
+        3
+      ],
+      "expected": true
+    },
+    {
+      "entry": "isNStraightHand",
+      "params": [
+        "hand",
+        "groupSize"
+      ],
+      "args": [
+        [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        4
+      ],
+      "expected": false,
+      "name": "Edge case"
+    }
+  ],
+  "853": [
+    {
+      "name": "Example",
+      "entry": "carFleet",
+      "params": [
+        "target",
+        "position",
+        "speed"
+      ],
+      "args": [
+        12,
+        [
+          10,
+          8,
+          0,
+          5,
+          3
+        ],
+        [
+          2,
+          4,
+          1,
+          1,
+          3
+        ]
+      ],
+      "expected": 3
+    },
+    {
+      "entry": "carFleet",
+      "params": [
+        "target",
+        "position",
+        "speed"
+      ],
+      "args": [
+        10,
+        [
+          0,
+          4
+        ],
+        [
+          2,
+          1
+        ]
+      ],
+      "expected": 1,
+      "name": "Edge case"
+    }
+  ],
+  "860": [
+    {
+      "name": "Example",
+      "entry": "lemonadeChange",
+      "params": [
+        "bills"
+      ],
+      "args": [
+        [
+          5,
+          5,
+          5,
+          10,
+          20
+        ]
+      ],
+      "expected": true
+    },
+    {
+      "entry": "lemonadeChange",
+      "params": [
+        "bills"
+      ],
+      "args": [
+        [
+          5,
+          5,
+          10,
+          10,
+          20
+        ]
+      ],
+      "expected": false,
+      "name": "Edge case"
+    }
+  ],
+  "867": [
+    {
+      "name": "Example",
+      "entry": "transpose",
+      "params": [
+        "matrix"
+      ],
+      "args": [
+        [
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            4,
+            5,
+            6
+          ],
+          [
+            7,
+            8,
+            9
+          ]
+        ]
+      ],
+      "expected": [
+        [
+          1,
+          4,
+          7
+        ],
+        [
+          2,
+          5,
+          8
+        ],
+        [
+          3,
+          6,
+          9
+        ]
+      ]
+    },
+    {
+      "entry": "transpose",
+      "params": [
+        "matrix"
+      ],
+      "args": [
+        [
+          [
+            1,
+            2,
+            3
+          ]
+        ]
+      ],
+      "expected": [
+        [
+          1
+        ],
+        [
+          2
+        ],
+        [
+          3
+        ]
+      ],
+      "name": "Edge case"
+    }
+  ],
+  "875": [
+    {
+      "name": "Example",
+      "entry": "minEatingSpeed",
+      "params": [
+        "piles",
+        "h"
+      ],
+      "args": [
+        [
+          3,
+          6,
+          7,
+          11
+        ],
+        8
+      ],
+      "expected": 4
+    },
+    {
+      "entry": "minEatingSpeed",
+      "params": [
+        "piles",
+        "h"
+      ],
+      "args": [
+        [
+          30,
+          11,
+          23,
+          4,
+          20
+        ],
+        5
+      ],
+      "expected": 30,
+      "name": "Edge case"
+    }
+  ],
+  "877": [
+    {
+      "name": "Example",
+      "entry": "stoneGame",
+      "params": [
+        "piles"
+      ],
+      "args": [
+        [
+          5,
+          3,
+          4,
+          5
+        ]
+      ],
+      "expected": true
+    },
+    {
+      "entry": "stoneGame",
+      "params": [
+        "piles"
+      ],
+      "args": [
+        [
+          1,
+          2
+        ]
+      ],
+      "expected": true,
+      "name": "Edge case"
+    }
+  ],
+  "881": [
+    {
+      "name": "Example",
+      "entry": "numRescueBoats",
+      "params": [
+        "people",
+        "limit"
+      ],
+      "args": [
+        [
+          3,
+          2,
+          2,
+          1
+        ],
+        3
+      ],
+      "expected": 3
+    },
+    {
+      "entry": "numRescueBoats",
+      "params": [
+        "people",
+        "limit"
+      ],
+      "args": [
+        [
+          3,
+          3
+        ],
+        3
+      ],
+      "expected": 2,
+      "name": "Edge case"
+    }
+  ],
+  "895": [
+    {
+      "name": "Example",
+      "entry": "FreqStack",
+      "args": [],
+      "operations": [
+        [
+          "push",
+          [
+            5
+          ]
+        ],
+        [
+          "push",
+          [
+            7
+          ]
+        ],
+        [
+          "push",
+          [
+            5
+          ]
+        ],
+        [
+          "push",
+          [
+            7
+          ]
+        ],
+        [
+          "push",
+          [
+            4
+          ]
+        ],
+        [
+          "push",
+          [
+            5
+          ]
+        ],
+        [
+          "pop",
+          []
+        ],
+        [
+          "pop",
+          []
+        ],
+        [
+          "pop",
+          []
+        ],
+        [
+          "pop",
+          []
+        ]
+      ],
+      "expected": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        5,
+        7,
+        5,
+        4
+      ]
+    },
+    {
+      "entry": "FreqStack",
+      "args": [],
+      "expected": [
+        null,
+        null,
+        null,
+        2,
+        1
+      ],
+      "name": "Edge case",
+      "operations": [
+        [
+          "push",
+          [
+            1
+          ]
+        ],
+        [
+          "push",
+          [
+            2
+          ]
+        ],
+        [
+          "pop",
+          []
+        ],
+        [
+          "pop",
+          []
+        ]
+      ]
+    }
+  ],
+  "901": [
+    {
+      "name": "Example",
+      "entry": "StockSpanner",
+      "args": [],
+      "operations": [
+        [
+          "next",
+          [
+            100
+          ]
+        ],
+        [
+          "next",
+          [
+            80
+          ]
+        ],
+        [
+          "next",
+          [
+            60
+          ]
+        ],
+        [
+          "next",
+          [
+            70
+          ]
+        ],
+        [
+          "next",
+          [
+            60
+          ]
+        ],
+        [
+          "next",
+          [
+            75
+          ]
+        ],
+        [
+          "next",
+          [
+            85
+          ]
+        ]
+      ],
+      "expected": [
+        null,
+        1,
+        1,
+        1,
+        2,
+        1,
+        4,
+        6
+      ]
+    },
+    {
+      "entry": "StockSpanner",
+      "args": [],
+      "expected": [
+        null,
+        1,
+        2,
+        3
+      ],
+      "name": "Edge case",
+      "operations": [
+        [
+          "next",
+          [
+            10
+          ]
+        ],
+        [
+          "next",
+          [
+            10
+          ]
+        ],
+        [
+          "next",
+          [
+            11
+          ]
+        ]
+      ]
+    }
+  ],
+  "912": [
+    {
+      "name": "Example",
+      "entry": "sortArray",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          5,
+          2,
+          3,
+          1
+        ]
+      ],
+      "expected": [
+        1,
+        2,
+        3,
+        5
+      ]
+    },
+    {
+      "entry": "sortArray",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          2,
+          -1,
+          2,
+          0
+        ]
+      ],
+      "expected": [
+        -1,
+        0,
+        2,
+        2
+      ],
+      "name": "Edge case"
+    }
+  ],
+  "918": [
+    {
+      "name": "Example",
+      "entry": "maxSubarraySumCircular",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          1,
+          -2,
+          3,
+          -2
+        ]
+      ],
+      "expected": 3
+    },
+    {
+      "entry": "maxSubarraySumCircular",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          5,
+          -3,
+          5
+        ]
+      ],
+      "expected": 10,
+      "name": "Edge case"
+    }
+  ],
+  "953": [
+    {
+      "name": "Example",
+      "entry": "isAlienSorted",
+      "params": [
+        "words",
+        "order"
+      ],
+      "args": [
+        [
+          "hello",
+          "leetcode"
+        ],
+        "hlabcdefgijkmnopqrstuvwxyz"
+      ],
+      "expected": true
+    },
+    {
+      "entry": "isAlienSorted",
+      "params": [
+        "words",
+        "order"
+      ],
+      "args": [
+        [
+          "apple",
+          "app"
+        ],
+        "abcdefghijklmnopqrstuvwxyz"
+      ],
+      "expected": false,
+      "name": "Edge case"
+    }
+  ],
+  "973": [
+    {
+      "name": "Example",
+      "entry": "kClosest",
+      "params": [
+        "points",
+        "k"
+      ],
+      "args": [
+        [
+          [
+            1,
+            3
+          ],
+          [
+            -2,
+            2
+          ]
+        ],
+        1
+      ],
+      "expected": [
+        [
+          -2,
+          2
+        ]
+      ],
+      "compare": "unordered"
+    },
+    {
+      "name": "Another example",
+      "entry": "kClosest",
+      "params": [
+        "points",
+        "k"
+      ],
+      "args": [
+        [
+          [
+            3,
+            3
+          ],
+          [
+            5,
+            -1
+          ],
+          [
+            -2,
+            4
+          ]
+        ],
+        2
+      ],
+      "expected": [
+        [
+          3,
+          3
+        ],
+        [
+          -2,
+          4
+        ]
+      ],
+      "compare": "unordered"
+    },
+    {
+      "entry": "kClosest",
+      "params": [
+        "points",
+        "k"
+      ],
+      "compare": "unordered",
+      "args": [
+        [
+          [
+            1,
+            1
+          ],
+          [
+            0,
+            1
+          ]
+        ],
+        1
+      ],
+      "expected": [
+        [
+          0,
+          1
+        ]
+      ],
+      "name": "Edge case"
+    }
+  ],
+  "978": [
+    {
+      "name": "Example",
+      "entry": "maxTurbulenceSize",
+      "params": [
+        "arr"
+      ],
+      "args": [
+        [
+          9,
+          4,
+          2,
+          10,
+          7,
+          8,
+          8,
+          1,
+          9
+        ]
+      ],
+      "expected": 5
+    },
+    {
+      "entry": "maxTurbulenceSize",
+      "params": [
+        "arr"
+      ],
+      "args": [
+        [
+          4,
+          4,
+          4
+        ]
+      ],
+      "expected": 1,
+      "name": "Edge case"
+    }
+  ],
+  "981": [
+    {
+      "name": "Example",
+      "entry": "TimeMap",
+      "args": [],
+      "operations": [
+        [
+          "set",
+          [
+            "foo",
+            "bar",
+            1
+          ]
+        ],
+        [
+          "get",
+          [
+            "foo",
+            1
+          ]
+        ],
+        [
+          "get",
+          [
+            "foo",
+            3
+          ]
+        ],
+        [
+          "set",
+          [
+            "foo",
+            "bar2",
+            4
+          ]
+        ],
+        [
+          "get",
+          [
+            "foo",
+            4
+          ]
+        ],
+        [
+          "get",
+          [
+            "foo",
+            5
+          ]
+        ]
+      ],
+      "expected": [
+        null,
+        null,
+        "bar",
+        "bar",
+        null,
+        "bar2",
+        "bar2"
+      ]
+    },
+    {
+      "entry": "TimeMap",
+      "args": [],
+      "expected": [
+        null,
+        "",
+        null,
+        "",
+        "a"
+      ],
+      "name": "Edge case",
+      "operations": [
+        [
+          "get",
+          [
+            "x",
+            1
+          ]
+        ],
+        [
+          "set",
+          [
+            "x",
+            "a",
+            2
+          ]
+        ],
+        [
+          "get",
+          [
+            "x",
+            1
+          ]
+        ],
+        [
+          "get",
+          [
+            "x",
+            2
+          ]
+        ]
+      ]
+    }
+  ],
+  "994": [
+    {
+      "name": "Example",
+      "entry": "orangesRotting",
+      "params": [
+        "grid"
+      ],
+      "args": [
+        [
+          [
+            2,
+            1,
+            1
+          ],
+          [
+            1,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            1
+          ]
+        ]
+      ],
+      "expected": 4
+    },
+    {
+      "entry": "orangesRotting",
+      "params": [
+        "grid"
+      ],
+      "args": [
+        [
+          [
+            2,
+            0,
+            1
+          ]
+        ]
+      ],
+      "expected": -1,
+      "name": "Edge case"
+    }
+  ],
+  "997": [
+    {
+      "name": "Example",
+      "entry": "findJudge",
+      "params": [
+        "n",
+        "trust"
+      ],
+      "args": [
+        2,
+        [
+          [
+            1,
+            2
+          ]
+        ]
+      ],
+      "expected": 2
+    },
+    {
+      "entry": "findJudge",
+      "params": [
+        "n",
+        "trust"
+      ],
+      "args": [
+        3,
+        [
+          [
+            1,
+            3
+          ],
+          [
+            2,
+            3
+          ]
+        ]
+      ],
+      "expected": 3,
+      "name": "Edge case"
+    }
+  ],
+  "1011": [
+    {
+      "name": "Example",
+      "entry": "shipWithinDays",
+      "params": [
+        "weights",
+        "days"
+      ],
+      "args": [
+        [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        5
+      ],
+      "expected": 15
+    },
+    {
+      "entry": "shipWithinDays",
+      "params": [
+        "weights",
+        "days"
+      ],
+      "args": [
+        [
+          1,
+          2,
+          3,
+          1,
+          1
+        ],
+        4
+      ],
+      "expected": 3,
+      "name": "Edge case"
+    }
+  ],
+  "1046": [
+    {
+      "name": "Example",
+      "entry": "lastStoneWeight",
+      "params": [
+        "stones"
+      ],
+      "args": [
+        [
+          2,
+          7,
+          4,
+          1,
+          8,
+          1
+        ]
+      ],
+      "expected": 1
+    },
+    {
+      "entry": "lastStoneWeight",
+      "params": [
+        "stones"
+      ],
+      "args": [
+        [
+          2,
+          2
+        ]
+      ],
+      "expected": 0,
+      "name": "Edge case"
+    }
+  ],
+  "1049": [
+    {
+      "name": "Example",
+      "entry": "lastStoneWeightII",
+      "params": [
+        "stones"
+      ],
+      "args": [
+        [
+          2,
+          7,
+          4,
+          1,
+          8,
+          1
+        ]
+      ],
+      "expected": 1
+    },
+    {
+      "entry": "lastStoneWeightII",
+      "params": [
+        "stones"
+      ],
+      "args": [
+        [
+          1,
+          1
+        ]
+      ],
+      "expected": 0,
+      "name": "Edge case"
+    }
+  ],
+  "1071": [
+    {
+      "name": "Example",
+      "entry": "gcdOfStrings",
+      "params": [
+        "str1",
+        "str2"
+      ],
+      "args": [
+        "ABCABC",
+        "ABC"
+      ],
+      "expected": "ABC"
+    },
+    {
+      "entry": "gcdOfStrings",
+      "params": [
+        "str1",
+        "str2"
+      ],
+      "args": [
+        "LEET",
+        "CODE"
+      ],
+      "expected": "",
+      "name": "Edge case"
+    }
+  ],
+  "1094": [
+    {
+      "name": "Example",
+      "entry": "carPooling",
+      "params": [
+        "trips",
+        "capacity"
+      ],
+      "args": [
+        [
+          [
+            2,
+            1,
+            5
+          ],
+          [
+            3,
+            3,
+            7
+          ]
+        ],
+        4
+      ],
+      "expected": false
+    },
+    {
+      "entry": "carPooling",
+      "params": [
+        "trips",
+        "capacity"
+      ],
+      "args": [
+        [
+          [
+            2,
+            1,
+            5
+          ],
+          [
+            3,
+            5,
+            7
+          ]
+        ],
+        3
+      ],
+      "expected": true,
+      "name": "Edge case"
+    }
+  ],
+  "1095": [
+    {
+      "name": "Example",
+      "entry": "findInMountainArray",
+      "args": [
+        3,
+        {
+          "$mountain": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            3,
+            1
+          ]
+        }
+      ],
+      "expected": 2,
+      "params": [
+        "target",
+        "mountainArr"
+      ]
+    },
+    {
+      "entry": "findInMountainArray",
+      "params": [
+        "target",
+        "mountainArr"
+      ],
+      "args": [
+        4,
+        {
+          "$mountain": [
+            1,
+            3,
+            2
+          ]
+        }
+      ],
+      "expected": -1,
+      "name": "Edge case"
+    }
+  ],
+  "1137": [
+    {
+      "name": "Example",
+      "entry": "tribonacci",
+      "params": [
+        "n"
+      ],
+      "args": [
+        4
+      ],
+      "expected": 4
+    },
+    {
+      "entry": "tribonacci",
+      "params": [
+        "n"
+      ],
+      "args": [
+        0
+      ],
+      "expected": 0,
+      "name": "Edge case"
+    }
+  ],
+  "1140": [
+    {
+      "name": "Example",
+      "entry": "stoneGameII",
+      "params": [
+        "piles"
+      ],
+      "args": [
+        [
+          2,
+          7,
+          9,
+          4,
+          4
+        ]
+      ],
+      "expected": 10
+    },
+    {
+      "entry": "stoneGameII",
+      "params": [
+        "piles"
+      ],
+      "args": [
+        [
+          1
+        ]
+      ],
+      "expected": 1,
+      "name": "Edge case"
+    }
+  ],
+  "1143": [
+    {
+      "name": "Example",
+      "entry": "longestCommonSubsequence",
+      "params": [
+        "text1",
+        "text2"
+      ],
+      "args": [
+        "abcde",
+        "ace"
+      ],
+      "expected": 3
+    },
+    {
+      "name": "Another example",
+      "entry": "longestCommonSubsequence",
+      "params": [
+        "text1",
+        "text2"
+      ],
+      "args": [
+        "abc",
+        "def"
+      ],
+      "expected": 0
+    },
+    {
+      "entry": "longestCommonSubsequence",
+      "params": [
+        "text1",
+        "text2"
+      ],
+      "args": [
+        "abc",
+        "def"
+      ],
+      "expected": 0,
+      "name": "Edge case"
+    }
+  ],
+  "1325": [
+    {
+      "name": "Example",
+      "entry": "removeLeafNodes",
+      "params": [
+        "root",
+        "target"
+      ],
+      "args": [
+        {
+          "$tree": [
+            1,
+            2,
+            3,
+            2,
+            null,
+            2,
+            4
+          ]
+        },
+        2
+      ],
+      "expected": [
+        1,
+        null,
+        3,
+        null,
+        4
+      ],
+      "output": "tree"
+    },
+    {
+      "entry": "removeLeafNodes",
+      "params": [
+        "root",
+        "target"
+      ],
+      "output": "tree",
+      "args": [
+        {
+          "$tree": [
+            2,
+            2,
+            2
+          ]
+        },
+        2
+      ],
+      "expected": [],
+      "name": "Edge case"
+    }
+  ],
+  "1405": [
+    {
+      "name": "Example",
+      "entry": "longestDiverseString",
+      "params": [
+        "a",
+        "b",
+        "c"
+      ],
+      "args": [
+        1,
+        1,
+        7
+      ],
+      "expected": "ccaccbcc",
+      "compare": "happyString"
+    },
+    {
+      "entry": "longestDiverseString",
+      "params": [
+        "a",
+        "b",
+        "c"
+      ],
+      "compare": "happyString",
+      "args": [
+        1,
+        1,
+        1
+      ],
+      "expected": "abc",
+      "name": "Edge case"
+    }
+  ],
+  "1406": [
+    {
+      "name": "Example",
+      "entry": "stoneGameIII",
+      "params": [
+        "stoneValue"
+      ],
+      "args": [
+        [
+          1,
+          2,
+          3,
+          7
+        ]
+      ],
+      "expected": "Bob"
+    },
+    {
+      "entry": "stoneGameIII",
+      "params": [
+        "stoneValue"
+      ],
+      "args": [
+        [
+          1,
+          2,
+          3,
+          -9
+        ]
+      ],
+      "expected": "Alice",
+      "name": "Edge case"
+    }
+  ],
+  "1448": [
+    {
+      "name": "Example",
+      "entry": "goodNodes",
+      "params": [
+        "root"
+      ],
+      "args": [
+        {
+          "$tree": [
+            3,
+            1,
+            4,
+            3,
+            null,
+            1,
+            5
+          ]
+        }
+      ],
+      "expected": 4
+    },
+    {
+      "entry": "goodNodes",
+      "params": [
+        "root"
+      ],
+      "args": [
+        {
+          "$tree": [
+            1,
+            1,
+            1
+          ]
+        }
+      ],
+      "expected": 3,
+      "name": "Edge case"
+    }
+  ],
+  "1462": [
+    {
+      "name": "Example",
+      "entry": "checkIfPrerequisite",
+      "params": [
+        "numCourses",
+        "prerequisites",
+        "queries"
+      ],
+      "args": [
+        2,
+        [
+          [
+            1,
+            0
+          ]
+        ],
+        [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            0
+          ]
+        ]
+      ],
+      "expected": [
+        false,
+        true
+      ]
+    },
+    {
+      "entry": "checkIfPrerequisite",
+      "params": [
+        "numCourses",
+        "prerequisites",
+        "queries"
+      ],
+      "args": [
+        3,
+        [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            2
+          ]
+        ],
+        [
+          [
+            0,
+            2
+          ],
+          [
+            2,
+            0
+          ]
+        ]
+      ],
+      "expected": [
+        true,
+        false
+      ],
+      "name": "Edge case"
+    }
+  ],
+  "1489": [
+    {
+      "name": "Example",
+      "entry": "findCriticalAndPseudoCriticalEdges",
+      "params": [
+        "n",
+        "edges"
+      ],
+      "args": [
+        5,
+        [
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            2,
+            1
+          ],
+          [
+            2,
+            3,
+            2
+          ],
+          [
+            0,
+            3,
+            2
+          ],
+          [
+            0,
+            4,
+            3
+          ],
+          [
+            3,
+            4,
+            3
+          ],
+          [
+            1,
+            4,
+            6
+          ]
+        ]
+      ],
+      "expected": [
+        [
+          0,
+          1
+        ],
+        [
+          2,
+          3,
+          4,
+          5
+        ]
+      ]
+    },
+    {
+      "entry": "findCriticalAndPseudoCriticalEdges",
+      "params": [
+        "n",
+        "edges"
+      ],
+      "args": [
+        3,
+        [
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            2,
+            1
+          ],
+          [
+            0,
+            2,
+            1
+          ]
+        ]
+      ],
+      "expected": [
+        [],
+        [
+          0,
+          1,
+          2
+        ]
+      ],
+      "name": "Edge case"
+    }
+  ],
+  "1584": [
+    {
+      "name": "Example",
+      "entry": "minCostConnectPoints",
+      "params": [
+        "points"
+      ],
+      "args": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            10
+          ],
+          [
+            5,
+            2
+          ],
+          [
+            7,
+            0
+          ]
+        ]
+      ],
+      "expected": 20
+    },
+    {
+      "entry": "minCostConnectPoints",
+      "params": [
+        "points"
+      ],
+      "args": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ]
+        ]
+      ],
+      "expected": 2,
+      "name": "Edge case"
+    }
+  ],
+  "1631": [
+    {
+      "name": "Example",
+      "entry": "minimumEffortPath",
+      "params": [
+        "heights"
+      ],
+      "args": [
+        [
+          [
+            1,
+            2,
+            2
+          ],
+          [
+            3,
+            8,
+            2
+          ],
+          [
+            5,
+            3,
+            5
+          ]
+        ]
+      ],
+      "expected": 2
+    },
+    {
+      "entry": "minimumEffortPath",
+      "params": [
+        "heights"
+      ],
+      "args": [
+        [
+          [
+            1
+          ]
+        ]
+      ],
+      "expected": 0,
+      "name": "Edge case"
+    }
+  ],
+  "1768": [
+    {
+      "name": "Example",
+      "entry": "mergeAlternately",
+      "params": [
+        "word1",
+        "word2"
+      ],
+      "args": [
+        "abc",
+        "pqr"
+      ],
+      "expected": "apbqcr"
+    },
+    {
+      "entry": "mergeAlternately",
+      "params": [
+        "word1",
+        "word2"
+      ],
+      "args": [
+        "ab",
+        "pqrs"
+      ],
+      "expected": "apbqrs",
+      "name": "Edge case"
+    }
+  ],
+  "1834": [
+    {
+      "name": "Example",
+      "entry": "getOrder",
+      "params": [
+        "tasks"
+      ],
+      "args": [
+        [
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            4,
+            1
+          ]
+        ]
+      ],
+      "expected": [
+        0,
+        2,
+        3,
+        1
+      ]
+    },
+    {
+      "entry": "getOrder",
+      "params": [
+        "tasks"
+      ],
+      "args": [
+        [
+          [
+            7,
+            10
+          ],
+          [
+            7,
+            12
+          ],
+          [
+            7,
+            5
+          ],
+          [
+            7,
+            4
+          ],
+          [
+            7,
+            2
+          ]
+        ]
+      ],
+      "expected": [
+        4,
+        3,
+        2,
+        0,
+        1
+      ],
+      "name": "Edge case"
+    }
+  ],
+  "1851": [
+    {
+      "name": "Example",
+      "entry": "minInterval",
+      "params": [
+        "intervals",
+        "queries"
+      ],
+      "args": [
+        [
+          [
+            1,
+            4
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            3,
+            6
+          ],
+          [
+            4,
+            4
+          ]
+        ],
+        [
+          2,
+          3,
+          4,
+          5
+        ]
+      ],
+      "expected": [
+        3,
+        3,
+        1,
+        4
+      ]
+    },
+    {
+      "entry": "minInterval",
+      "params": [
+        "intervals",
+        "queries"
+      ],
+      "args": [
+        [
+          [
+            1,
+            2
+          ]
+        ],
+        [
+          3
+        ]
+      ],
+      "expected": [
+        -1
+      ],
+      "name": "Edge case"
+    }
+  ],
+  "1863": [
+    {
+      "name": "Example",
+      "entry": "subsetXORSum",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          1,
+          3
+        ]
+      ],
+      "expected": 6
+    },
+    {
+      "entry": "subsetXORSum",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          5
+        ]
+      ],
+      "expected": 5,
+      "name": "Edge case"
+    }
+  ],
+  "1871": [
+    {
+      "name": "Example",
+      "entry": "canReach",
+      "params": [
+        "s",
+        "minJump",
+        "maxJump"
+      ],
+      "args": [
+        "011010",
+        2,
+        3
+      ],
+      "expected": true
+    },
+    {
+      "entry": "canReach",
+      "params": [
+        "s",
+        "minJump",
+        "maxJump"
+      ],
+      "args": [
+        "01101110",
+        2,
+        3
+      ],
+      "expected": false,
+      "name": "Edge case"
+    }
+  ],
+  "1899": [
+    {
+      "name": "Example",
+      "entry": "mergeTriplets",
+      "params": [
+        "triplets",
+        "target"
+      ],
+      "args": [
+        [
+          [
+            2,
+            5,
+            3
+          ],
+          [
+            1,
+            8,
+            4
+          ],
+          [
+            1,
+            7,
+            5
+          ]
+        ],
+        [
+          2,
+          7,
+          5
+        ]
+      ],
+      "expected": true
+    },
+    {
+      "entry": "mergeTriplets",
+      "params": [
+        "triplets",
+        "target"
+      ],
+      "args": [
+        [
+          [
+            1,
+            1,
+            1
+          ]
+        ],
+        [
+          2,
+          2,
+          2
+        ]
+      ],
+      "expected": false,
+      "name": "Edge case"
+    }
+  ],
+  "1929": [
+    {
+      "name": "Example",
+      "entry": "getConcatenation",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          1,
+          2,
+          1
+        ]
+      ],
+      "expected": [
+        1,
+        2,
+        1,
+        1,
+        2,
+        1
+      ]
+    },
+    {
+      "entry": "getConcatenation",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          4
+        ]
+      ],
+      "expected": [
+        4,
+        4
+      ],
+      "name": "Edge case"
+    }
+  ],
+  "2013": [
+    {
+      "name": "Example",
+      "entry": "DetectSquares",
+      "args": [],
+      "operations": [
+        [
+          "add",
+          [
+            [
+              3,
+              10
+            ]
+          ]
+        ],
+        [
+          "add",
+          [
+            [
+              11,
+              2
+            ]
+          ]
+        ],
+        [
+          "add",
+          [
+            [
+              3,
+              2
+            ]
+          ]
+        ],
+        [
+          "count",
+          [
+            [
+              11,
+              10
+            ]
+          ]
+        ]
+      ],
+      "expected": [
+        null,
+        null,
+        null,
+        null,
+        1
+      ]
+    },
+    {
+      "entry": "DetectSquares",
+      "args": [],
+      "expected": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        2
+      ],
+      "name": "Edge case",
+      "operations": [
+        [
+          "add",
+          [
+            [
+              0,
+              0
+            ]
+          ]
+        ],
+        [
+          "add",
+          [
+            [
+              1,
+              0
+            ]
+          ]
+        ],
+        [
+          "add",
+          [
+            [
+              0,
+              1
+            ]
+          ]
+        ],
+        [
+          "add",
+          [
+            [
+              0,
+              1
+            ]
+          ]
+        ],
+        [
+          "count",
+          [
+            [
+              1,
+              1
+            ]
+          ]
+        ]
+      ]
+    }
+  ],
+  "2392": [
+    {
+      "name": "Example",
+      "entry": "buildMatrix",
+      "params": [
+        "k",
+        "rowConditions",
+        "colConditions"
+      ],
+      "args": [
+        3,
+        [
+          [
+            1,
+            2
+          ],
+          [
+            3,
+            2
+          ]
+        ],
+        [
+          [
+            2,
+            1
+          ],
+          [
+            3,
+            2
+          ]
+        ]
+      ],
+      "expected": [
+        [
+          0,
+          0,
+          1
+        ],
+        [
+          3,
+          0,
+          0
+        ],
+        [
+          0,
+          2,
+          0
+        ]
+      ],
+      "compare": "matrixConditions"
+    },
+    {
+      "entry": "buildMatrix",
+      "params": [
+        "k",
+        "rowConditions",
+        "colConditions"
+      ],
+      "compare": "matrixConditions",
+      "args": [
+        2,
+        [
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            1
+          ]
+        ],
+        [
+          [
+            1,
+            2
+          ]
+        ]
+      ],
+      "expected": [],
+      "name": "Edge case"
+    }
+  ],
+  "2402": [
+    {
+      "name": "Example",
+      "entry": "mostBooked",
+      "params": [
+        "n",
+        "meetings"
+      ],
+      "args": [
+        2,
+        [
+          [
+            0,
+            10
+          ],
+          [
+            1,
+            5
+          ],
+          [
+            2,
+            7
+          ],
+          [
+            3,
+            4
+          ]
+        ]
+      ],
+      "expected": 0
+    },
+    {
+      "entry": "mostBooked",
+      "params": [
+        "n",
+        "meetings"
+      ],
+      "args": [
+        3,
+        [
+          [
+            1,
+            20
+          ],
+          [
+            2,
+            10
+          ],
+          [
+            3,
+            5
+          ],
+          [
+            4,
+            9
+          ],
+          [
+            6,
+            8
+          ]
+        ]
+      ],
+      "expected": 1,
+      "name": "Edge case"
+    }
+  ],
+  "2707": [
+    {
+      "name": "Example",
+      "entry": "minExtraChar",
+      "params": [
+        "s",
+        "dictionary"
+      ],
+      "args": [
+        "leetscode",
+        [
+          "leet",
+          "code",
+          "leetcode"
+        ]
+      ],
+      "expected": 1
+    },
+    {
+      "entry": "minExtraChar",
+      "params": [
+        "s",
+        "dictionary"
+      ],
+      "args": [
+        "abc",
+        [
+          "a",
+          "c"
+        ]
+      ],
+      "expected": 1,
+      "name": "Edge case"
+    }
+  ],
+  "2709": [
+    {
+      "name": "Example",
+      "entry": "canTraverseAllPairs",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          2,
+          3,
+          6
+        ]
+      ],
+      "expected": true
+    },
+    {
+      "entry": "canTraverseAllPairs",
+      "params": [
+        "nums"
+      ],
+      "args": [
+        [
+          2,
+          3
+        ]
+      ],
+      "expected": false,
+      "name": "Edge case"
+    }
+  ],
+  "2807": [
+    {
+      "name": "Example",
+      "entry": "insertGreatestCommonDivisors",
+      "params": [
+        "head"
+      ],
+      "args": [
+        {
+          "$list": [
+            18,
+            6,
+            10,
+            3
+          ]
+        }
+      ],
+      "expected": [
+        18,
+        6,
+        6,
+        2,
+        10,
+        1,
+        3
+      ],
+      "output": "list"
+    },
+    {
+      "entry": "insertGreatestCommonDivisors",
+      "params": [
+        "head"
+      ],
+      "output": "list",
+      "args": [
+        {
+          "$list": [
+            7
+          ]
+        }
+      ],
+      "expected": [
+        7
+      ],
+      "name": "Edge case"
+    }
+  ],
+  "3133": [
+    {
+      "name": "Example",
+      "entry": "minEnd",
+      "params": [
+        "n",
+        "x"
+      ],
+      "args": [
+        3,
+        4
+      ],
+      "expected": 6
+    },
+    {
+      "entry": "minEnd",
+      "params": [
+        "n",
+        "x"
+      ],
+      "args": [
+        2,
+        7
+      ],
+      "expected": 15,
+      "name": "Edge case"
+    }
+  ]
+}

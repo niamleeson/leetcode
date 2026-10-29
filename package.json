@@ -7,8 +7,11 @@
     "dev": "ollama serve & node server.mjs & vite",
     "dev:vite": "vite",
     "dev:server": "node server.mjs",
-    "build": "tsc -b && vite build",
-    "preview": "vite preview"
+    "build": "node tools/walkthroughs/check-artifacts.cjs && tsc -b && vite build",
+    "preview": "vite preview",
+    "walkthroughs:generate": "node tools/walkthroughs/verify.cjs --write",
+    "walkthroughs:verify": "node --test tools/walkthroughs/runtime.test.cjs && node tools/walkthroughs/verify.cjs && node tools/walkthroughs/check-artifacts.cjs",
+    "walkthroughs:test": "vitest run --config vitest.walkthrough.config.ts"
   },
   "dependencies": {
     "@excalidraw/excalidraw": "^0.18.0",
@@ -37,6 +40,10 @@
     "tailwindcss": "^3.4.16",
     "typescript": "^5.6.3",
     "vite": "^6.0.3",
-    "vitest": "^4.1.0"
+    "vitest": "^4.1.0",
+    "@babel/parser": "^7.29.0",
+    "@babel/traverse": "^7.29.0",
+    "@babel/generator": "^7.29.1",
+    "@babel/types": "^7.29.0"
   }
 }

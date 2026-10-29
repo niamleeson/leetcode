@@ -2113,8 +2113,8 @@ Explanation: Removing edge [2,3] leaves a valid tree. It is the last edge that, 
     description:
       "Given a binary matrix grid where 1 represents land and 0 represents water, return the maximum area of an island in grid. An island is a group of 1's connected 4-directionally. If there is no island, return 0.",
     examples: `Input: grid = [[0,0,1,0,0],[0,0,0,0,0],[0,1,1,0,1],[0,1,0,0,1],[0,1,1,1,1]]
-Output: 6
-Explanation: The largest island consists of the six 1's connected in the bottom-right area.`,
+Output: 9
+Explanation: All nine 1s in the bottom three rows are connected through the bottom row.`,
     intuition:
       "This is Number of Islands with a twist: instead of counting islands, measure each one. DFS naturally computes area by returning 1 for the current cell plus the areas of all four recursive calls. Sinking cells to 0 as you visit them prevents double-counting and eliminates the need for a separate visited set.",
     approach:

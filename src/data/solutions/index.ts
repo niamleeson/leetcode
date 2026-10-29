@@ -17,6 +17,7 @@ import { solutions as batch5Extra } from './batch5-extra';
 import { solutions as batch6Extra } from './batch6-extra';
 import { solutions as concurrency } from './concurrency';
 import { solutions as advancedDsa } from './advanced-dsa';
+import { solutions as neetcode250Missing } from './neetcode250-missing';
 import { solutionsM1 as sdM1 } from './system-design-m1';
 import { solutionsM2 as sdM2 } from './system-design-m2';
 import { solutionsM3 as sdM3 } from './system-design-m3';
@@ -46,6 +47,7 @@ const allSolutions: ProblemSolution[] = [
   ...batch6Extra,
   ...concurrency,
   ...advancedDsa,
+  ...neetcode250Missing,
   ...sdM1,
   ...sdM2,
   ...sdM3,

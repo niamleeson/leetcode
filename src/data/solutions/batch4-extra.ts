@@ -4721,7 +4721,7 @@ StockSpanner.prototype.next = function(price) {
     description:
       'Given an integer array arr, return the length of a maximum size turbulent subarray. A subarray is turbulent if the comparison sign flips between each pair of adjacent elements (alternating > and < or < and >).',
     examples:
-      'Input: arr = [9,4,2,10,7,8,8,1,9]\nOutput: 5\nExplanation: arr[1..4] = [4,2,10,7,8] is turbulent.',
+      'Input: arr = [9,4,2,10,7,8,8,1,9]\nOutput: 5\nExplanation: arr[1..5] = [4,2,10,7,8] is turbulent.',
     intuition:
       'A turbulent subarray alternates between increasing and decreasing. Scan the array once, extending the current turbulent window when the alternating pattern continues, and resetting when it breaks.',
     approach:
