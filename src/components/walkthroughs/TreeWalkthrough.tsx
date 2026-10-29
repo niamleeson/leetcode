@@ -1,4 +1,6 @@
 import { TreeStep, TreeTraceNode, treeTraceExamples } from '../../data/walkthroughs/traversals';
+import { treeCodeLines } from '../../data/walkthroughs/traversal-code';
+import { solutionMap } from '../../data/solutions';
 import WalkthroughPlayer, { TraceQueue } from './WalkthroughPlayer';
 
 function TreePicture({ nodes, step }: { nodes: TreeTraceNode[]; step: TreeStep }) {
@@ -48,7 +50,7 @@ function TreePicture({ nodes, step }: { nodes: TreeTraceNode[]; step: TreeStep }
 }
 
 export default function TreeWalkthrough() {
-  return <WalkthroughPlayer name="Level order traversal" examples={treeTraceExamples}>
+  return <WalkthroughPlayer name="Level order traversal" examples={treeTraceExamples} code={solutionMap[102].jsCode!} codeLines={treeCodeLines}>
     {(step, exampleIndex) => {
       const nodes = treeTraceExamples[exampleIndex].nodes;
       return <div className="traversal-layout">

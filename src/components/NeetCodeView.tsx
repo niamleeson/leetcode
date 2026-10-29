@@ -84,7 +84,7 @@ function InlineSolution({ solution, language }: { solution: ProblemSolution; lan
           {solution.solutionTitle && `${solution.solutionTitle} · `}
           {codeLang === 'python' ? 'Python' : 'JavaScript'} Solution
         </h4>
-        <CodeBlock code={code} language={codeLang} />
+        {!(showJs && (solution.id === 102 || solution.id === 994)) && <CodeBlock code={code} language={codeLang} />}
         {language === 'javascript' && !solution.jsCode && (
           <p className="text-[10px] text-gray-500 light:text-gray-500 mt-1">JavaScript solution not available — showing Python.</p>
         )}

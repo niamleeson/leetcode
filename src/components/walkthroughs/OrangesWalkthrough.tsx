@@ -1,5 +1,7 @@
 import { useId } from 'react';
 import { CellPosition, OrangeStep, cellLabel, orangeTraceExamples } from '../../data/walkthroughs/traversals';
+import { orangeCodeLines } from '../../data/walkthroughs/traversal-code';
+import { solutionMap } from '../../data/solutions';
 import WalkthroughPlayer, { TraceQueue } from './WalkthroughPlayer';
 
 function sameCell(first: CellPosition | undefined, second: CellPosition | undefined) {
@@ -40,7 +42,7 @@ function OrangeGrid({ step }: { step: OrangeStep }) {
 }
 
 export default function OrangesWalkthrough() {
-  return <WalkthroughPlayer name="Rotting oranges" examples={orangeTraceExamples}>
+  return <WalkthroughPlayer name="Rotting oranges" examples={orangeTraceExamples} code={solutionMap[994].jsCode!} codeLines={orangeCodeLines}>
     {step => <div className="traversal-layout">
       <div className="traversal-picture-panel">
         <span className="traversal-picture-label">Grid · (row, column)</span>

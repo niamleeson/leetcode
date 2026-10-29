@@ -1,19 +1,24 @@
 import { ReactNode, useId, useState } from 'react';
 import { TraversalStep } from '../../data/walkthroughs/traversals';
+import { useWalkthroughHighlight } from '../../hooks/useWalkthroughHighlight';
+import WalkthroughCode from './WalkthroughCode';
 import './traversalWalkthrough.css';
 
 interface PlayerProps<Step extends TraversalStep> {
   name: string;
   examples: Array<{ name: string; steps: Step[] }>;
+  code: string;
+  codeLines: (step: Step, code: string) => number[];
   children: (step: Step, exampleIndex: number) => ReactNode;
 }
 
-export default function WalkthroughPlayer<Step extends TraversalStep>({ name, examples, children }: PlayerProps<Step>) {
+export default function WalkthroughPlayer<Step extends TraversalStep>({ name, examples, code, codeLines, children }: PlayerProps<Step>) {
   const headingId = useId();
   const [exampleIndex, setExampleIndex] = useState(0);
   const [stepIndex, setStepIndex] = useState(0);
   const steps = examples[exampleIndex].steps;
   const step = steps[stepIndex];
+  const [highlightCode, setHighlightCode] = useWalkthroughHighlight();
 
   return (
     <section className="traversal-walkthrough" aria-label={`${name} walkthrough`}>
@@ -27,10 +32,17 @@ export default function WalkthroughPlayer<Step extends TraversalStep>({ name, ex
         </select>
       </div>
 
+      <label className="traversal-highlight-toggle">
+        <input type="checkbox" checked={highlightCode} onChange={event => setHighlightCode(event.target.checked)} />
+        Highlight code
+      </label>
+
       <div className={`traversal-status ${step.noop ? 'is-noop' : ''}`} role="status" aria-live="polite" aria-atomic="true">
         <div className="traversal-action"><span className="traversal-badge">{step.noop ? 'NOOP' : 'STEP'}</span><strong>{step.title}</strong></div>
         <p>{step.detail}</p>
       </div>
+
+      <WalkthroughCode code={code} lines={codeLines(step, code)} enabled={highlightCode} noop={step.noop} />
 
       {children(step, exampleIndex)}
 
