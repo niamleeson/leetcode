@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAppStore } from './store/useStore';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
@@ -35,6 +35,8 @@ const ENABLE_ASK_CLAUDE = false;
 
 export default function App() {
   const store = useAppStore();
+  const { pathname } = useLocation();
+  const isNeetCodePage = ['/neetcode', '/neetcode150', '/blind75'].includes(pathname.replace(/\/+$/, ''));
   const [highlighted, setHighlighted] = useState('');
   const [panelPos, setPanelPos] = useState<{ top: number; left: number } | null>(null);
   const panelLockedRef = useRef(false);
@@ -104,7 +106,7 @@ export default function App() {
         dailyGoal={store.dailyGoal}
         getTopicStats={store.getTopicStats}
       />
-      <main className="p-2 md:p-6 pt-14 overflow-y-auto max-w-5xl mx-auto">
+      <main className={`p-2 md:p-6 pt-14 overflow-y-auto mx-auto ${isNeetCodePage ? 'max-w-[1600px]' : 'max-w-5xl'}`}>
         <Routes>
           <Route path="/" element={
             <Dashboard
