@@ -8,6 +8,8 @@ import { solutionMap, ProblemSolution } from '../data/solutions';
 import CodeBlock from './CodeBlock';
 import FollowUpSolution from './FollowUpSolution';
 import RpnWalkthrough from './RpnWalkthrough';
+import TreeWalkthrough from './walkthroughs/TreeWalkthrough';
+import OrangesWalkthrough from './walkthroughs/OrangesWalkthrough';
 
 type Lang = 'python' | 'javascript';
 type TemplateTab = 'pseudocode' | 'code';
@@ -86,7 +88,10 @@ function InlineSolution({ solution, language }: { solution: ProblemSolution; lan
         {language === 'javascript' && !solution.jsCode && (
           <p className="text-[10px] text-gray-500 light:text-gray-500 mt-1">JavaScript solution not available — showing Python.</p>
         )}
-        {showJs && solution.id === 150 ? <RpnWalkthrough /> : showJs && solution.jsWalkthrough && (
+        {showJs && solution.id === 150 ? <RpnWalkthrough />
+          : showJs && solution.id === 102 ? <TreeWalkthrough />
+          : showJs && solution.id === 994 ? <OrangesWalkthrough />
+          : showJs && solution.jsWalkthrough && (
           <div className="mt-3 bg-gray-950 light:bg-sky-50 border border-sky-900/30 light:border-sky-200 rounded-md p-3">
             <h4 className="text-[10px] font-semibold text-sky-400 light:text-sky-700 uppercase tracking-wider mb-2">Step-by-Step Walkthrough</h4>
             <pre className="text-sky-200/90 light:text-sky-700 whitespace-pre-wrap overflow-x-auto font-mono text-xs leading-relaxed">{solution.jsWalkthrough}</pre>
