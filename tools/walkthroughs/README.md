@@ -10,6 +10,7 @@ Run these commands with Node 22 or newer:
 ```sh
 npm run walkthroughs:generate
 npm run walkthroughs:verify
+npm run walkthroughs:audit
 npm run walkthroughs:test
 npm run build
 ```
@@ -48,6 +49,22 @@ and cover highlight persistence, source lines, no-op checks, reset, and examples
 These checks verify the supplied cases and recording semantics, not every possible
 input to all 250 algorithms. Add a regression fixture whenever a new edge case is
 found; never change an expected answer merely to match the implementation.
+
+`walkthroughs:audit` adds two independent checks. It parses the original sources
+again to check every highlighted range, reconstructs recorded values, and
+recalculates side-effect-free conditions, initializers, and native mutations.
+It also runs representative original solutions under V8's debugger, with
+breakpoints handled on a separate worker thread, and compares intermediate
+snapshots against the recordings. The debugger check covers stack pops, sliding
+windows, tree levels, graph cloning/BFS, grid mutation, dynamic programming, and
+quickselect; it does not insert recording calls into those executions.
+
+Array markers come from actual indexing expressions in the source. A variable
+named `k` is therefore only shown at an array position if that array is indexed
+by `k`. Matrix cell markers follow both source indices, and coordinate queues
+remain lists. Multiline expressions highlight all their source lines; function
+entry and iteration steps highlight only their headers. Special numeric states,
+including JavaScript's negative zero, are preserved in the recordings.
 
 The eleven newly filled solution entries were checked against the corresponding
 official problem statements: [1929](https://leetcode.com/problems/concatenation-of-array/),

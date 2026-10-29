@@ -26,8 +26,11 @@ function instrument(source) {
   }
   function call(path, kind, node, value, label = text(node)) {
     const line = node.loc.start.line;
+    const lastLine = kind==='call' ? node.body.loc?.start.line ?? line : ['iterate','loop-end'].includes(kind) ? line : node.loc.end.line;
+    const lines = Array.from({length:lastLine-line+1},(_,index)=>line+index)
+      .filter(number=>source.split('\n')[number-1].trim()&&!source.split('\n')[number-1].trim().startsWith('//'));
     const site = sites.length;
-    sites.push({ line, kind, label, start: node.start, end: node.end });
+    sites.push({ line, lines, kind, label, start: node.start, end: node.end });
     return t.callExpression(t.memberExpression(t.identifier('__trace'), t.identifier('record')), [
       t.numericLiteral(site), state(path), value || t.unaryExpression('void', t.numericLiteral(0)),
     ]);

@@ -67,7 +67,7 @@ export function ExecutionPlayer({ trace }: { trace: ExecutionTrace }) {
     </div>
     <label className="traversal-highlight-toggle"><input type="checkbox" checked={highlight} onChange={event=>setHighlight(event.target.checked)}/>Highlight code</label>
     <div className="traversal-columns">
-      <WalkthroughCode code={trace.code} lines={[step.line]} enabled={highlight} noop={noop}/>
+      <WalkthroughCode code={trace.code} lines={step.lines || [step.line]} enabled={highlight} noop={noop}/>
       <div className="traversal-live">
         <div className="execution-navigation traversal-controls">
           <input type="range" min={0} max={count-1} value={index} aria-label={`${trace.title} step`} aria-valuetext={`Step ${index+1} of ${count}`} onChange={event=>setIndex(Number(event.target.value))}/>
@@ -84,14 +84,14 @@ export function ExecutionPlayer({ trace }: { trace: ExecutionTrace }) {
         <div className="execution-data">
           {(nodeInput||nodeState)&&<div className="traversal-panel"><h5>Structure & pointers</h5><ExecutionDiagram roots={step.input} state={step.state} heap={heap} previousHeap={previousHeap}/></div>}
           <ExecutionGraph id={trace.id} input={step.input} state={step.state} heap={heap}/>
-          {mainInputs.length>0&&<details className="execution-input" open={!nodeInput&&!nodeState}><summary>Input</summary>{mainInputs.map(([name,value])=><div className="execution-value-block" key={name}><h5>{name}</h5><ExecutionValues value={value} before={previous?.input[name]} heap={heap} previousHeap={previousHeap} pointers={step.state} variant={name==='grid'?(trace.id===994?'oranges':[200,695].includes(trace.id)?'islands':undefined):undefined}/></div>)}</details>}
+          {mainInputs.length>0&&<details className="execution-input" open={!nodeInput&&!nodeState}><summary>Input</summary>{mainInputs.map(([name,value])=><div className="execution-value-block" key={name}><h5>{name}</h5><ExecutionValues value={value} before={previous?.input[name]} heap={heap} previousHeap={previousHeap} pointers={step.state} path={name} indexing={trace.indexing} variant={name==='grid'?(trace.id===994?'oranges':[200,695].includes(trace.id)?'islands':undefined):undefined}/></div>)}</details>}
           {changedNames.length>0&&<div className="traversal-panel execution-changes"><h5>Changes</h5>{changedNames.map(name=><div className="execution-change" key={name}>
             <span className="execution-variable-name">{name}</span>
             <span className="execution-before">{formatValue(previous?.state[name],previousHeap)}</span><span aria-hidden="true">→</span>
             <strong>{formatValue(step.state[name],heap)}</strong>
           </div>)}</div>}
-          {collections.map(([name,value])=><div className="traversal-panel" key={name}><h5>{name}</h5><ExecutionValues value={value} before={previous?.state[name]} heap={heap} previousHeap={previousHeap} pointers={step.state}/></div>)}
-          <details className="execution-variables"><summary>All variables ({Object.keys(step.state).length})</summary>{Object.entries(step.state).map(([name,value])=><div className="execution-value-block" key={name}><h5>{name}</h5><ExecutionValues value={value} before={previous?.state[name]} heap={heap} previousHeap={previousHeap} pointers={step.state}/></div>)}</details>
+          {collections.map(([name,value])=><div className="traversal-panel" key={name}><h5>{name}</h5><ExecutionValues value={value} before={previous?.state[name]} heap={heap} previousHeap={previousHeap} pointers={step.state} path={name} indexing={trace.indexing}/></div>)}
+          <details className="execution-variables"><summary>All variables ({Object.keys(step.state).length})</summary>{Object.entries(step.state).map(([name,value])=><div className="execution-value-block" key={name}><h5>{name}</h5><ExecutionValues value={value} before={previous?.state[name]} heap={heap} previousHeap={previousHeap} pointers={step.state} path={name} indexing={trace.indexing}/></div>)}</details>
           {done&&<div className="traversal-panel traversal-answer" aria-label="Final result"><h5>Result</h5><pre className="execution-result">{JSON.stringify(example.result)}</pre></div>}
         </div>
       </div>

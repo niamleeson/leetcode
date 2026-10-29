@@ -9,6 +9,9 @@ export type TraceHeap = Record<string, TraceObject>;
 export interface ExecutionStep {
   site: number;
   line: number;
+  lines?: number[];
+  start?: number;
+  end?: number;
   kind: 'call' | 'return' | 'statement' | 'operation' | 'check' | 'update' | 'iterate' | 'loop-end' | 'break' | 'continue';
   label: string;
   state: Record<string, TraceValue>;
@@ -30,6 +33,7 @@ export interface ExecutionTrace {
   topic: string;
   code: string;
   sourceHash: string;
+  indexing?: Record<string,{indices:string[];cells:[string,string][]}>;
   examples: ExecutionExample[];
 }
 export const isReference = (value: TraceValue | undefined): value is { $ref: string } => !!value && typeof value === 'object' && '$ref' in value;
@@ -71,7 +75,7 @@ export function materialize(steps: ExecutionStep[], index: number): { heap: Trac
   return { heap, previousHeap };
 }
 export function truthy(value: TraceValue) {
-  if (value && typeof value === 'object' && '$scalar' in value) return !['undefined', 'NaN', '0n'].includes(value.$scalar);
+  if (value && typeof value === 'object' && '$scalar' in value) return !['undefined', 'NaN', '0n', '-0'].includes(value.$scalar);
   return !!value;
 }
 export function hasNodes(values: TraceValue[], heap: TraceHeap): boolean {

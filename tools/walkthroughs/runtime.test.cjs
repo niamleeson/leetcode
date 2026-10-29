@@ -1,6 +1,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { execute } = require('./runtime.cjs');
+const {indexingFor}=require('./source-analysis.cjs');
 
 function frames(source,args) {
   const trace=execute(source,{entry:'solve',args},0);
@@ -94,4 +95,26 @@ test('randomized solutions use reproducible choices in ordinary and recorded exe
   const first=execute(source,fixture,0),second=execute(source,fixture,0);
   assert.deepEqual(first,second);
   assert.deepEqual(first.result,execute(source,fixture,0,false).result);
+});
+test('preserves negative zero and BigInt zero in intermediate states',()=>{
+  const steps=frames(`function solve(number) { const digit = number % 10; const zero = 0n; if (digit) return 1; if (zero) return 2; return 0; }`,[-120]);
+  const digit=steps.find(s=>s.kind==='statement'&&s.label.startsWith('const digit'));
+  assert.deepEqual(digit.state.digit,{$scalar:'-0'});
+  assert(steps.some(s=>s.kind==='check'&&s.label==='digit'&&s.value.$scalar==='-0'));
+  assert(steps.some(s=>s.kind==='check'&&s.label==='zero'&&s.value.$scalar==='0n'));
+});
+test('highlights a whole multiline expression without highlighting a function body on entry',()=>{
+  const source=`function solve(a, b) {
+    const inside = a >= 0 &&
+                   b >= 0;
+    return inside;
+  }`;
+  const trace=execute(source,{entry:'solve',args:[1,-1]},0);
+  assert.deepEqual(trace.steps.find(s=>s.kind==='call').lines,[1]);
+  assert.deepEqual(trace.steps.find(s=>s.kind==='statement').lines,[2,3]);
+});
+test('derives pointers from indexing operations rather than variable names',()=>{
+  assert.deepEqual(indexingFor(`function solve(nums,k,grid) { const value=nums[left]+nums[right]; return grid[r][c]+k+this.buckets[index][0]; }`),{
+    nums:{indices:['left','right'],cells:[]},grid:{indices:['r'],cells:[['r','c']]},'this.buckets':{indices:['index'],cells:[]},
+  });
 });

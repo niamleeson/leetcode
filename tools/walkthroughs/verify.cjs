@@ -5,6 +5,7 @@ const crypto = require('node:crypto');
 const { root, problems, solutionMap } = require('./load.cjs');
 const { execute } = require('./runtime.cjs');
 const fixtures = require('./fixtures.json');
+const {indexingFor}=require('./source-analysis.cjs');
 const generatorHash=crypto.createHash('sha256').update(fs.readFileSync(path.join(__dirname,'instrument.cjs'))).update(fs.readFileSync(path.join(__dirname,'runtime.cjs'))).digest('hex');
 
 const ordered = value => [...value].sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b)));
@@ -77,7 +78,7 @@ function verify({ write = false, ids } = {}) {
         examples.push({name:fixture.name, input:fixture.args, expected:fixture.expected, result:traced.result, steps:traced.steps});
       } catch(error) {errors.push(`${problem.id} ${problem.title} [${index}]: ${error.message}`);}
     }
-    const artifact={id:problem.id,title:problem.title,topic:problem.topic,code:source,sourceHash:crypto.createHash('sha256').update(source).digest('hex'),generatorHash,fixtureHash:crypto.createHash('sha256').update(JSON.stringify(fixtures[problem.id])).digest('hex'),examples};
+    const artifact={id:problem.id,title:problem.title,topic:problem.topic,code:source,sourceHash:crypto.createHash('sha256').update(source).digest('hex'),generatorHash,fixtureHash:crypto.createHash('sha256').update(JSON.stringify(fixtures[problem.id])).digest('hex'),indexing:indexingFor(source),examples};
     const json=JSON.stringify(artifact);
     if(!write && !errors.some(error=>error.startsWith(`${problem.id} `))) {
       const file=path.join(root,'src/data/walkthroughs/generated',`${problem.id}.json`);

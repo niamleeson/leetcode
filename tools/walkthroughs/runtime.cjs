@@ -108,6 +108,7 @@ function execute(source, fixture, id, traced = true) {
     function encode(value) {
       if (value === undefined) return { $scalar: 'undefined' };
       if (typeof value === 'bigint') return { $scalar: value + 'n' };
+      if (Object.is(value, -0)) return { $scalar: '-0' };
       if (typeof value === 'number' && !Number.isFinite(value)) return { $scalar: String(value) };
       if (!value || typeof value !== 'object') return typeof value === 'function' ? { $scalar: 'function' } : value;
       if (!ids.has(value)) ids.set(value, 'o' + nextId++);
@@ -148,7 +149,7 @@ function execute(source, fixture, id, traced = true) {
       const json = JSON.stringify(entry);
       if (priorHeap.get(key) !== json) { heap[key] = entry; priorHeap.set(key, json); }
     }
-    steps.push({ site, line: meta.line, kind: meta.kind, label: meta.label, state: snap.state, input: snap.input, heap, value: result, stack: [...stack] });
+    steps.push({ site, line: meta.line, lines: meta.lines, start: meta.start, end: meta.end, kind: meta.kind, label: meta.label, state: snap.state, input: snap.input, heap, value: result, stack: [...stack] });
     return value;
   }
   const context = vm.createContext({ __problemId: id, __case: JSON.parse(JSON.stringify(fixture)), __trace: {

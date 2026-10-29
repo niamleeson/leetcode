@@ -11,7 +11,8 @@
     "preview": "vite preview",
     "walkthroughs:generate": "node tools/walkthroughs/verify.cjs --write",
     "walkthroughs:verify": "node --test tools/walkthroughs/runtime.test.cjs && node tools/walkthroughs/verify.cjs && node tools/walkthroughs/check-artifacts.cjs",
-    "walkthroughs:test": "vitest run --config vitest.walkthrough.config.ts"
+    "walkthroughs:test": "vitest run --config vitest.walkthrough.config.ts",
+    "walkthroughs:audit": "node tools/walkthroughs/audit-recordings.cjs && node tools/walkthroughs/debugger-audit.cjs"
   },
   "dependencies": {
     "@excalidraw/excalidraw": "^0.18.0",

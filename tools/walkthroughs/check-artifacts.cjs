@@ -4,6 +4,7 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const { root, problems, solutionMap } = require('./load.cjs');
 const fixtures = require('./fixtures.json');
+const {indexingFor}=require('./source-analysis.cjs');
 const generatorHash=crypto.createHash('sha256').update(fs.readFileSync(path.join(__dirname,'instrument.cjs'))).update(fs.readFileSync(path.join(__dirname,'runtime.cjs'))).digest('hex');
 let examples=0,steps=0;
 for (const problem of problems) {
@@ -15,6 +16,7 @@ for (const problem of problems) {
   assert.equal(artifact.sourceHash,crypto.createHash('sha256').update(code).digest('hex'));
   assert.equal(artifact.generatorHash,generatorHash,`${problem.id}: recorder changed; regenerate walkthroughs`);
   assert.equal(artifact.fixtureHash,crypto.createHash('sha256').update(JSON.stringify(fixtures[problem.id])).digest('hex'),`${problem.id}: examples changed; regenerate walkthroughs`);
+  assert.deepEqual(artifact.indexing,indexingFor(code),`${problem.id}: indexing markers changed; regenerate walkthroughs`);
   assert(artifact.examples.length>=2,`${problem.id}: needs normal and edge cases`);
   assert.equal(artifact.examples.length,fixtures[problem.id].length);
   artifact.examples.forEach((example,index)=>{

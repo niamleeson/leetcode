@@ -15,6 +15,7 @@ describe('execution walkthroughs',()=>{
     for(const index of [0,Math.floor(steps.length/2),steps.length-1]) {
       fireEvent.change(screen.getByRole('slider'),{target:{value:index}});
       expect(document.querySelector('[aria-current="step"]')?.getAttribute('data-line')).toBe(String(steps[index].line));
+      expect([...document.querySelectorAll('[aria-current="step"]')].map(element=>Number(element.getAttribute('data-line')))).toEqual(steps[index].lines||[steps[index].line]);
       expect(screen.getByRole('status').textContent?.length).toBeGreaterThan(0);
     }
     expect(screen.getByLabelText('Final result').textContent).toContain(JSON.stringify(data.examples[0].result));
