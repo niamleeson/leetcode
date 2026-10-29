@@ -37,29 +37,33 @@ export default function WalkthroughPlayer<Step extends TraversalStep>({ name, ex
         Highlight code
       </label>
 
-      <div className={`traversal-status ${step.noop ? 'is-noop' : ''}`} role="status" aria-live="polite" aria-atomic="true">
-        <div className="traversal-action"><span className="traversal-badge">{step.noop ? 'NOOP' : 'STEP'}</span><strong>{step.title}</strong></div>
-        <p>{step.detail}</p>
-      </div>
+      <div className="traversal-columns">
+        <WalkthroughCode code={code} lines={codeLines(step, code)} enabled={highlightCode} noop={step.noop} />
 
-      <WalkthroughCode code={code} lines={codeLines(step, code)} enabled={highlightCode} noop={step.noop} />
-
-      {children(step, exampleIndex)}
-
-      <div className="traversal-controls">
-        <input
-          type="range" min={0} max={steps.length - 1} value={stepIndex}
-          aria-label={`${name} step`} aria-valuetext={`Step ${stepIndex} of ${steps.length - 1}: ${step.title}`}
-          onChange={event => setStepIndex(Number(event.target.value))}
-        />
-        <div className="traversal-control-row">
-          <div className="traversal-control-group">
-            <button type="button" className="traversal-reset" disabled={stepIndex === 0} onClick={() => setStepIndex(0)}>Reset</button>
-            <span className="traversal-step-count">{stepIndex === 0 ? 'Ready' : `Step ${stepIndex} of ${steps.length - 1}`}</span>
+        <div className="traversal-live">
+          <div className={`traversal-status ${step.noop ? 'is-noop' : ''}`} role="status" aria-live="polite" aria-atomic="true">
+            <div className="traversal-action"><span className="traversal-badge">{step.noop ? 'NOOP' : 'STEP'}</span><strong>{step.title}</strong></div>
+            <p>{step.detail}</p>
           </div>
-          <div className="traversal-control-group">
-            <button type="button" disabled={stepIndex === 0} onClick={() => setStepIndex(index => Math.max(0, index - 1))}>Back</button>
-            <button type="button" className="traversal-next" disabled={stepIndex === steps.length - 1} onClick={() => setStepIndex(index => Math.min(steps.length - 1, index + 1))}>Next →</button>
+
+          {children(step, exampleIndex)}
+
+          <div className="traversal-controls">
+            <input
+              type="range" min={0} max={steps.length - 1} value={stepIndex}
+              aria-label={`${name} step`} aria-valuetext={`Step ${stepIndex} of ${steps.length - 1}: ${step.title}`}
+              onChange={event => setStepIndex(Number(event.target.value))}
+            />
+            <div className="traversal-control-row">
+              <div className="traversal-control-group">
+                <button type="button" className="traversal-reset" disabled={stepIndex === 0} onClick={() => setStepIndex(0)}>Reset</button>
+                <span className="traversal-step-count">{stepIndex === 0 ? 'Ready' : `Step ${stepIndex} of ${steps.length - 1}`}</span>
+              </div>
+              <div className="traversal-control-group">
+                <button type="button" disabled={stepIndex === 0} onClick={() => setStepIndex(index => Math.max(0, index - 1))}>Back</button>
+                <button type="button" className="traversal-next" disabled={stepIndex === steps.length - 1} onClick={() => setStepIndex(index => Math.min(steps.length - 1, index + 1))}>Next →</button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
