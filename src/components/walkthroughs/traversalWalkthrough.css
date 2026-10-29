@@ -38,9 +38,10 @@
 .traversal-highlight-toggle input { accent-color: #0284c7; }
 .traversal-source { margin-bottom: 16px; border: 1px solid var(--trace-border); border-radius: 8px; overflow: hidden; background: var(--trace-panel); }
 .traversal-source-heading { display: flex; justify-content: space-between; gap: 12px; padding: 8px 12px; border-bottom: 1px solid var(--trace-border); color: var(--trace-muted); font-size: 11px; }
-.traversal-source-scroll { position: relative; max-height: 168px; overflow: auto; margin: 0; padding: 8px 0; font-size: 11px; line-height: 20px; overscroll-behavior: contain; }
-.traversal-source-scroll code { display: block; min-width: max-content; line-height: 20px; }
-.traversal-source-line { display: block; min-height: 20px; border-left: 3px solid transparent; padding-right: 12px; }
+.traversal-source-code { margin: 0; padding: 8px 0; font-size: 12px; line-height: 20px; }
+.traversal-source-code code { display: block; line-height: 20px; }
+.traversal-source-line { display: grid; grid-template-columns: 38px minmax(0, 1fr); min-height: 20px; border-left: 3px solid transparent; padding-right: 12px; }
+.traversal-line-content { min-width: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 .traversal-source-line.is-active { background: var(--trace-highlight); border-left-color: var(--trace-accent); }
 .traversal-source-line.is-noop { background: var(--trace-noop-bg); border-left-color: var(--trace-noop); }
 .traversal-line-number { display: inline-block; width: 38px; padding-right: 12px; text-align: right; user-select: none; color: var(--trace-muted); font-size: 10px; }

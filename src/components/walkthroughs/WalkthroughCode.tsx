@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useMemo, useRef } from 'react';
+import { ReactNode, useMemo } from 'react';
 import Prism from 'prismjs';
 import 'prismjs/components/prism-javascript';
 import '../../styles/prism-themes.css';
@@ -27,28 +27,11 @@ function renderSyntax(tokens: SyntaxToken[]): ReactNode {
 }
 
 export default function WalkthroughCode({ code, lines, enabled, noop }: { code: string; lines: number[]; enabled: boolean; noop?: boolean }) {
-  const panelRef = useRef<HTMLPreElement>(null);
   const syntaxLines = useMemo(() => splitSyntaxLines(Prism.tokenize(code, Prism.languages.javascript)), [code]);
-  const lineKey = lines.join(',');
-
-  useEffect(() => {
-    if (!enabled) return;
-    const panel = panelRef.current;
-    if (!panel) return;
-    const active = panel.querySelectorAll<HTMLElement>('[aria-current="step"]');
-    const first = active[0];
-    const last = active[active.length - 1];
-    if (!first || !last) return;
-    const top = first.offsetTop;
-    const bottom = last.offsetTop + last.offsetHeight;
-    if (top < panel.scrollTop || bottom > panel.scrollTop + panel.clientHeight) {
-      panel.scrollTop = Math.max(0, top - Math.max(0, (panel.clientHeight - (bottom - top)) / 2));
-    }
-  }, [code, enabled, lineKey]);
 
   return <div className="traversal-source">
     <div className="traversal-source-heading"><span>JavaScript</span><span>{enabled && lines.length > 0 ? `${lines.length === 1 ? 'Line' : 'Lines'} ${lines.join(', ')}` : ''}</span></div>
-    <pre ref={panelRef} tabIndex={0} aria-label="Walkthrough JavaScript code" className="traversal-source-scroll">
+    <pre aria-label="Walkthrough JavaScript code" className="traversal-source-code">
       <code className="language-javascript">{syntaxLines.map((tokens, index) => {
         const active = enabled && lines.includes(index + 1);
         return <span key={index} data-line={index + 1} aria-current={active ? 'step' : undefined} className={`traversal-source-line ${active ? noop ? 'is-noop' : 'is-active' : ''}`}>
