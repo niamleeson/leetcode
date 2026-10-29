@@ -70,6 +70,7 @@ export default function ExecutionValues({ value, before, heap, previousHeap, poi
     })}
   </div>;
   if (object?.fields && object.kind === 'object' && depth < 2) return <div className="execution-fields">
+    {!Object.keys(object.fields).length&&<span className="execution-empty">{'{}'}</span>}
     {Object.entries(object.fields).map(([name,v])=><div key={name}><span className="execution-variable-name">{name}</span><ExecutionValues value={v} before={old?.fields?.[name]} heap={heap} previousHeap={previousHeap} depth={depth+1} pointers={pointers} path={`${path}.${name}`} indexing={indexing}/></div>)}
   </div>;
   return <span className="execution-scalar">{formatValue(value,heap)}{isReference(value) && object?.kind === 'list' && <span className="execution-empty"> → {formatValue(object.fields?.next, heap)}</span>}</span>;

@@ -20,19 +20,20 @@
 .execution-matrix-row { display: flex; gap: 4px; align-items: center; }
 .execution-matrix-row .execution-cell { flex: 1; min-width: 0; padding: 5px 2px; font-size: 12px; }
 .execution-index { color: var(--trace-muted); font: 9px ui-monospace, monospace; min-width: 10px; }
-.execution-change { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 10px; padding: 7px 0; font: 12px/1.6 ui-monospace, monospace; overflow-wrap: anywhere; }
-.execution-change strong { color: var(--trace-accent); font-weight: 500; }
+.execution-variable-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); gap: 5px; }
+.execution-change { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 7px; padding: 6px 8px; min-width: 0; border-radius: 4px; font: 12px/1.6 ui-monospace, monospace; overflow-wrap: anywhere; }
+.execution-change strong { color: var(--trace-text); font-weight: 500; }
+.execution-change.is-changed { background: var(--trace-highlight); }
+.execution-change.is-changed strong { color: var(--trace-accent); }
 .execution-before { color: var(--trace-muted); }
 .execution-variable-name { font: 12px ui-monospace, monospace; color: var(--trace-text); }
-.execution-change .execution-variable-name { min-width: 64px; }
+.execution-change .execution-variable-name { margin-right: auto; }
 .execution-empty { color: var(--trace-muted); font-size: 11px; }
 .execution-scalar { font: 13px/1.6 ui-monospace, monospace; overflow-wrap: anywhere; }
 .execution-map { display: flex; flex-wrap: wrap; gap: 6px; }
 .execution-map-entry { display: flex; gap: 8px; border: 1px solid var(--trace-border); padding: 7px; border-radius: 5px; font: 12px ui-monospace, monospace; overflow-wrap: anywhere; }
 .execution-fields { display: grid; gap: 10px; }
 .execution-fields > div > .execution-variable-name { display: block; margin-bottom: 7px; }
-.execution-input,.execution-variables { min-width: 0; border: 1px solid var(--trace-border); border-radius: 8px; padding: 12px; }
-.execution-input summary,.execution-variables summary { cursor: pointer; color: var(--trace-muted); font-size: 12px; }
 .execution-value-block { padding-top: 12px; }
 .execution-expand { font-size: 11px; color: var(--trace-accent); margin-top: 10px; text-align: left; }
 .execution-call-stack { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }

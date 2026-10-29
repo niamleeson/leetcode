@@ -40,6 +40,51 @@ export const isReference = (value: TraceValue | undefined): value is { $ref: str
 export function objectFor(value: TraceValue | undefined, heap: TraceHeap) {
   return isReference(value) ? heap[value.$ref] : undefined;
 }
+export interface VariableGroup {
+  names: string[];
+  value: TraceValue;
+}
+// Show every live binding. Classification depends on its value, never on a
+// whitelist of variable names or whether it changed during the current step.
+export function groupVariables(step: ExecutionStep, heap: TraceHeap, order: string[]) {
+  const nodes = new Set(['tree', 'graph', 'list', 'quad']);
+  const inputs: VariableGroup[] = [];
+  const collections: VariableGroup[] = [];
+  const variables: [string, TraceValue][] = [];
+  const groups = new Map<string, VariableGroup>();
+  for (const [name, input] of Object.entries(step.input)) {
+    // A parameter may be reassigned (for example nums = [1, ...nums, 1]).
+    // Its visible panel must follow the current binding, not the original input.
+    const value = Object.prototype.hasOwnProperty.call(step.state, name) ? step.state[name] : input;
+    if (name === 'instance' || nodes.has(objectFor(value, heap)?.kind || '')) continue;
+    // Scalar parameters already have a compact variable row. Input strings
+    // retain their character cells so source index markers remain visible.
+    if (!isReference(value) && !(typeof value === 'string' && value.length > 1) &&
+        JSON.stringify(step.state[name]) === JSON.stringify(value)) continue;
+    const existing = isReference(value) ? groups.get(value.$ref) : undefined;
+    if (existing) { existing.names.push(name); continue; }
+    const group = { names: [name], value };
+    inputs.push(group);
+    if (isReference(value)) groups.set(value.$ref, group);
+  }
+  for (const name of order) {
+    if (!Object.prototype.hasOwnProperty.call(step.state, name)) continue;
+    const value = step.state[name], object = objectFor(value, heap);
+    if (!isReference(value) || !object || nodes.has(object.kind)) {
+      variables.push([name, value]);
+      continue;
+    }
+    const existing = groups.get(value.$ref);
+    if (existing) {
+      if (!existing.names.includes(name)) existing.names.push(name);
+    } else {
+      const group = { names: [name], value };
+      groups.set(value.$ref, group);
+      collections.push(group);
+    }
+  }
+  return { variables, inputs, collections };
+}
 export function formatValue(value: TraceValue | undefined, heap: TraceHeap, depth = 0, seen = new Set<string>()): string {
   if (value === undefined) return 'undefined';
   if (value === null) return 'null';

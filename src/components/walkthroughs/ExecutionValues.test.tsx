@@ -46,4 +46,8 @@ describe('data markers follow source indexing',()=>{
     render(<ExecutionValues value={{$ref:'grid'}} before={{$ref:'grid'}} heap={heap} previousHeap={previousHeap} path="grid"/>);
     expect(screen.getAllByRole('cell').map(e=>e.title)).toEqual(['[0][0]: 1 → 2','[0][1]']);
   });
+  it('shows an empty object explicitly instead of a blank data panel',()=>{
+    render(<ExecutionValues value={{$ref:'graph'}} heap={{graph:{kind:'object',fields:{}}}} previousHeap={{}}/>);
+    expect(screen.getByText('{}')).toBeTruthy();
+  });
 });

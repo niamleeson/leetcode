@@ -17,6 +17,9 @@ describe('execution walkthroughs',()=>{
       expect(document.querySelector('[aria-current="step"]')?.getAttribute('data-line')).toBe(String(steps[index].line));
       expect([...document.querySelectorAll('[aria-current="step"]')].map(element=>Number(element.getAttribute('data-line')))).toEqual(steps[index].lines||[steps[index].line]);
       expect(screen.getByRole('status').textContent?.length).toBeGreaterThan(0);
+      const displayed=new Set([...document.querySelectorAll('[data-variable-names]')].flatMap(element=>JSON.parse(element.getAttribute('data-variable-names')!)));
+      for(const name of Object.keys(steps[index].state)) expect(displayed.has(name),`#${id} step ${index}: ${name} must stay visible`).toBe(true);
+      expect(document.querySelector('.execution-data details:not([open])')).toBeNull();
     }
     expect(screen.getByLabelText('Final result').textContent).toContain(JSON.stringify(data.examples[0].result));
   });
@@ -110,5 +113,70 @@ describe('execution walkthroughs',()=>{
     fireEvent.click(screen.getByRole('button',{name:'Next →'}));
     expect(steps[index+1].kind).toBe('iterate');
     expect(screen.getByRole('status').textContent).not.toMatch(/push|NOOP/);
+  });
+  it('keeps maxArea visible at every step after initialization, including unrelated changes and Back',()=>{
+    const data=trace(84);render(<ExecutionPlayer trace={data}/>);
+    for(const [index,step] of data.examples[0].steps.entries()) {
+      fireEvent.change(screen.getByRole('slider'),{target:{value:index}});
+      if(!('maxArea' in step.state)) {
+        expect(screen.queryByRole('group',{name:'maxArea'})).toBeNull();
+      } else {
+        const row=screen.getByRole('group',{name:'maxArea'});
+        expect(row.querySelector('strong')?.textContent).toBe(String(step.state.maxArea));
+        expect(row.closest('details')).toBeNull();
+      }
+    }
+    fireEvent.click(screen.getByRole('button',{name:'Back'}));
+    expect(screen.getByRole('group',{name:'maxArea'}).querySelector('strong')?.textContent).toBe('10');
+    fireEvent.click(screen.getByRole('button',{name:'Reset'}));
+    expect(screen.queryByRole('group',{name:'maxArea'})).toBeNull();
+  });
+  it.each([
+    [11,'maxWater'],[121,'maxProfit'],[3,'maxLen'],[53,'maxSum'],
+    [76,'formed'],[994,'freshCount'],[994,'minutesElapsed'],[207,'processedCount'],
+  ] as const)('keeps #%i %s visible after another variable changes',(id,name)=>{
+    const data=trace(id),steps=data.examples[0].steps;
+    const index=steps.findIndex((step,i)=>i>0&&name in step.state&&name in steps[i-1].state&&step.state[name]===steps[i-1].state[name]&&Object.keys(step.state).some(other=>other!==name&&JSON.stringify(step.state[other])!==JSON.stringify(steps[i-1].state[other])));
+    expect(index).toBeGreaterThan(0);
+    render(<ExecutionPlayer trace={data}/>);
+    fireEvent.change(screen.getByRole('slider'),{target:{value:index}});
+    const row=screen.getByRole('group',{name});
+    expect(row.querySelector('strong')?.textContent).toBe(String(steps[index].state[name]));
+    expect(row.classList.contains('is-changed')).toBe(false);
+    expect(row.closest('details')).toBeNull();
+  });
+  it.each([[1,'seen'],[3,'charSet'],[207,'inDegree'],[394,'countStack'],[682,'scoreStack']] as const)('shows #%i collection %s without depending on its name',(id,name)=>{
+    const data=trace(id),steps=data.examples[0].steps;
+    const index=steps.findIndex((step,i)=>i>0&&name in step.state&&name in steps[i-1].state&&JSON.stringify(step.state[name])===JSON.stringify(steps[i-1].state[name]));
+    expect(index).toBeGreaterThan(0);
+    render(<ExecutionPlayer trace={data}/>);
+    fireEvent.change(screen.getByRole('slider'),{target:{value:index}});
+    const panel=screen.getByRole('group',{name});
+    expect(panel.closest('details')).toBeNull();
+    expect(panel.textContent!.length).toBeGreaterThan(name.length);
+  });
+  it('keeps variable order stable and removes values when their scope ends',()=>{
+    const data=trace(84),steps=data.examples[0].steps;render(<ExecutionPlayer trace={data}/>);
+    const start=steps.findIndex(step=>'topHeight' in step.state);
+    fireEvent.change(screen.getByRole('slider'),{target:{value:start}});
+    const names=()=>[...screen.getByRole('region',{name:'Current variables'}).querySelectorAll('[role="group"]')].map(e=>e.getAttribute('aria-label'));
+    const before=names();
+    const end=steps.findIndex((step,i)=>i>start&&!('topHeight' in step.state));
+    fireEvent.change(screen.getByRole('slider'),{target:{value:end}});
+    expect(screen.queryByRole('group',{name:'topHeight'})).toBeNull();
+    expect(names()).toEqual(before.filter(name=>name!==null&&name in steps[end].state));
+    expect(screen.getByRole('group',{name:'maxArea'})).toBeTruthy();
+  });
+  it('shares one array panel between aliases and preserves the helper index marker',()=>{
+    const data=trace(300),steps=data.examples[0].steps;
+    const index=steps.findIndex(step=>'arr' in step.state&&'tails' in step.state&&'mid' in step.state);
+    expect(index).toBeGreaterThan(0);
+    render(<ExecutionPlayer trace={data}/>);
+    fireEvent.change(screen.getByRole('slider'),{target:{value:index}});
+    const panels=[...document.querySelectorAll('[data-variable-names]')].filter(e=>JSON.parse(e.getAttribute('data-variable-names')!).includes('tails'));
+    expect(panels).toHaveLength(1);
+    expect(panels[0].getAttribute('aria-label')).toBe('tails, arr');
+    expect(panels[0].querySelector('.execution-pointer')?.textContent).toBe('mid');
+    expect(screen.getByRole('group',{name:'mid'}).querySelector('strong')?.textContent).toBe('0');
   });
 });

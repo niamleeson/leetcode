@@ -45,6 +45,14 @@ data change. New variables display `name = value`; existing values display
 `name old → new`. Real `undefined` values stay explicit. Returning through a `finally` hook
 keeps recursive call stacks accurate.
 
+All live variables stay visible, including unchanged accumulators, counters,
+pointer indices, and condition values. Compact variable rows keep a stable order
+and disappear only when the binding leaves scope. Collections are displayed by
+their runtime type rather than a whitelist of names; aliases share one data
+panel with all their names and source index markers. This keeps values such as
+`maxArea`, `maxProfit`, `freshCount`, `charSet`, and `inDegree` available throughout
+the relevant code steps, without repeating them in a collapsed variables list.
+
 The generated JSON files are loaded individually when a problem is expanded.
 No solution code is evaluated in the browser. The source displayed by the player
 is checked against the current solution; the production build also checks source,

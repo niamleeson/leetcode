@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ExecutionTrace, ExecutionStep, dataStepIndex, formatValue, hasNodes, materialize, objectFor, truthy, valueChanged } from '../../data/walkthroughs/execution';
+import { ExecutionTrace, ExecutionStep, VariableGroup, dataStepIndex, formatValue, groupVariables, hasNodes, isReference, materialize, truthy, valueChanged } from '../../data/walkthroughs/execution';
 import { useWalkthroughHighlight } from '../../hooks/useWalkthroughHighlight';
 import WalkthroughCode from './WalkthroughCode';
 import ExecutionValues from './ExecutionValues';
@@ -50,17 +50,24 @@ export function ExecutionPlayer({ trace }: { trace: ExecutionTrace }) {
   const example=trace.examples[exampleIndex];
   const step=example.steps[index];
   const dataIndex=dataStepIndex(example.steps,index);
-  const data=example.steps[dataIndex];
   const previous=example.steps[dataIndex-1];
   const {heap,previousHeap}=useMemo(()=>materialize(example.steps,dataIndex),[example,dataIndex]);
-  const changed=Object.keys(data.state).filter(name=>valueChanged(previous?.state[name],data.state[name],previousHeap,heap));
+  const variableOrder=useMemo(()=>[...new Set(example.steps.flatMap(frame=>Object.keys(frame.state)))],[example]);
+  const {variables,inputs,collections}=groupVariables(step,heap,variableOrder);
   const nodeInput=hasNodes(Object.values(step.input),heap);
   const nodeState=hasNodes(Object.values(step.state),heap);
-  const mainInputs=Object.entries(step.input).filter(([name,value])=>name!=='instance'&&!['tree','graph','list','quad'].includes(objectFor(value,heap)?.kind || ''));
-  const collections=Object.entries(step.state).filter(([name,value])=>/^(stack|queue|deque|result|answer|path|currentLevel|dp|visited|cloned|sides|this|heap|window)$/.test(name) && objectFor(value,heap));
-  const changedNames=changed.filter(name=>!collections.some(([n])=>n===name));
   const done=index===example.steps.length-1;
   const count=example.steps.length;
+  function collectionValues(group: VariableGroup, input = false) {
+    const {names,value}=group, name=names[0];
+    const accesses=names.flatMap(alias=>trace.indexing?.[alias]?[trace.indexing[alias]]:[]);
+    const indexing={...trace.indexing,[name]:{
+      indices:[...new Set(accesses.flatMap(access=>access.indices))],
+      cells:accesses.flatMap(access=>access.cells).filter((pair,i,all)=>all.findIndex(other=>other[0]===pair[0]&&other[1]===pair[1])===i),
+    }};
+    const before=input&&previous&&!Object.prototype.hasOwnProperty.call(previous.state,name)?previous.input[name]:previous?.state[name];
+    return <ExecutionValues value={value} before={before} heap={heap} previousHeap={previousHeap} pointers={step.state} path={name} indexing={indexing} variant={names.includes('grid')?(trace.id===994?'oranges':[200,695].includes(trace.id)?'islands':undefined):undefined}/>;
+  }
   return <section className="traversal-walkthrough execution-walkthrough" aria-label={`${trace.title} walkthrough`}>
     <div className="traversal-header">
       <h4>Step-by-Step Walkthrough</h4>
@@ -84,18 +91,20 @@ export function ExecutionPlayer({ trace }: { trace: ExecutionTrace }) {
         </div>
         {step.stack.length>1 && <div className="execution-call-stack" aria-label="Call stack">{step.stack.map((name,i)=><span key={i} className={i===step.stack.length-1?'is-current':''}>{name}</span>)}</div>}
         <div className="execution-data">
+          {variables.length>0&&<section className="traversal-panel execution-state" aria-label="Current variables"><h5>Variables</h5><div className="execution-variable-grid">{variables.map(([name,value])=>{
+            const changed=valueChanged(previous?.state[name],value,previousHeap,heap);
+            const before=formatValue(previous?.state[name],previousHeap),after=formatValue(value,heap);
+            const showBefore=changed&&previous&&Object.prototype.hasOwnProperty.call(previous.state,name)&&before!==after;
+            return <div className={`execution-change ${changed?'is-changed':''}`} role="group" aria-label={name} data-variable-names={JSON.stringify([name])} key={name}>
+              <span className="execution-variable-name">{name}</span>
+              {showBefore?<><span className="execution-before">{before}</span><span>→</span></>:<span>=</span>}
+              <strong>{after}</strong>
+            </div>;
+          })}</div></section>}
           {(nodeInput||nodeState)&&<div className="traversal-panel"><h5>Structure & pointers</h5><ExecutionDiagram roots={step.input} state={step.state} heap={heap} previousHeap={previousHeap}/></div>}
           <ExecutionGraph id={trace.id} input={step.input} state={step.state} heap={heap}/>
-          {mainInputs.length>0&&<details className="execution-input" open={!nodeInput&&!nodeState}><summary>Input</summary>{mainInputs.map(([name,value])=><div className="execution-value-block" key={name}><h5>{name}</h5><ExecutionValues value={value} before={previous?.input[name]} heap={heap} previousHeap={previousHeap} pointers={step.state} path={name} indexing={trace.indexing} variant={name==='grid'?(trace.id===994?'oranges':[200,695].includes(trace.id)?'islands':undefined):undefined}/></div>)}</details>}
-          {changedNames.length>0&&<div className="traversal-panel execution-changes"><h5>Changes</h5>{changedNames.map(name=><div className="execution-change" key={name}>
-            <span className="execution-variable-name">{name}</span>
-            {previous && Object.prototype.hasOwnProperty.call(previous.state,name)
-              ? <><span className="execution-before">{formatValue(previous.state[name],previousHeap)}</span><span>→</span></>
-              : <span>=</span>}
-            <strong>{formatValue(step.state[name],heap)}</strong>
-          </div>)}</div>}
-          {collections.map(([name,value])=><div className="traversal-panel" key={name}><h5>{name}</h5><ExecutionValues value={value} before={previous?.state[name]} heap={heap} previousHeap={previousHeap} pointers={step.state} path={name} indexing={trace.indexing}/></div>)}
-          <details className="execution-variables"><summary>All variables ({Object.keys(step.state).length})</summary>{Object.entries(step.state).map(([name,value])=><div className="execution-value-block" key={name}><h5>{name}</h5><ExecutionValues value={value} before={previous?.state[name]} heap={heap} previousHeap={previousHeap} pointers={step.state} path={name} indexing={trace.indexing}/></div>)}</details>
+          {inputs.length>0&&<section className="traversal-panel execution-input" aria-label="Input values"><h5>Input</h5>{inputs.map(group=><div className="execution-value-block" role="group" aria-label={group.names.join(', ')} data-variable-names={JSON.stringify(group.names)} key={isReference(group.value)?group.value.$ref:group.names[0]}><h5>{group.names.join(' · ')}</h5>{collectionValues(group,true)}</div>)}</section>}
+          {collections.map(group=><section className="traversal-panel" role="group" aria-label={group.names.join(', ')} data-variable-names={JSON.stringify(group.names)} key={isReference(group.value)?group.value.$ref:group.names[0]}><h5>{group.names.join(' · ')}</h5>{collectionValues(group)}</section>)}
           {done&&<div className="traversal-panel traversal-answer" aria-label="Final result"><h5>Result</h5><pre className="execution-result">{JSON.stringify(example.result)}</pre></div>}
         </div>
       </div>
