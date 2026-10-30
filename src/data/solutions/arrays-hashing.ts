@@ -374,7 +374,9 @@ def topKFrequent(nums: list[int], k: int) -> list[int]:
 
     // Step 2: Create buckets where index = frequency
     // buckets[3] will hold all numbers that appeared 3 times
-    const buckets = Array.from({ length: nums.length + 1 }, () => []);
+    const buckets = Array(nums.length + 1)
+        .fill(null)
+        .map(() => []);
     for (const [num, freq] of count) {
         buckets[freq].push(num);
     }
@@ -537,9 +539,15 @@ def topKFrequent(nums: list[int], k: int) -> list[int]:
     return True`,
     jsCode: `var isValidSudoku = function(board) {
     // One set per row, column, and 3x3 box to track seen digits
-    const rows = Array.from({ length: 9 }, () => new Set());
-    const cols = Array.from({ length: 9 }, () => new Set());
-    const boxes = Array.from({ length: 9 }, () => new Set());
+    const rows = Array(9)
+        .fill(null)
+        .map(() => new Set());
+    const cols = Array(9)
+        .fill(null)
+        .map(() => new Set());
+    const boxes = Array(9)
+        .fill(null)
+        .map(() => new Set());
 
     for (let r = 0; r < 9; r++) {
         for (let c = 0; c < 9; c++) {
@@ -1141,7 +1149,9 @@ RandomizedSet.prototype.getRandom = function() {
                 return`,
     jsCode: `var MyHashMap = function() {
     this.size = 1009;  // prime number reduces collision clustering
-    this.buckets = Array.from({ length: this.size }, () => []);
+    this.buckets = Array(this.size)
+        .fill(null)
+        .map(() => []);
 };
 
 MyHashMap.prototype._hash = function(key) {

@@ -1404,7 +1404,9 @@ class Solution:
     const n = isWater[0].length;
 
     // Initialize height grid: -1 means unvisited
-    const height = Array.from({length: m}, () => new Array(n).fill(-1));
+    const height = Array(m)
+        .fill(null)
+        .map(() => new Array(n).fill(-1));
 
     // BFS queue — use array with index pointer for O(1) dequeue
     const queue = [];
@@ -2786,9 +2788,13 @@ class Solution:
         }
 
         // Rotate 90 degrees clockwise: new[i][j] = old[n-1-j][i]
-        mat = Array.from({length: n}, (_, i) =>
-            Array.from({length: n}, (_, j) => mat[n - 1 - j][i])
-        );
+        mat = Array(n)
+            .fill(null)
+            .map((_, i) =>
+                Array(n)
+                    .fill(null)
+                    .map((_, j) => mat[n - 1 - j][i])
+            );
     }
 
     // After 4 rotations we are back to the original — no match found
@@ -3148,7 +3154,9 @@ class Solution:
     }
 
     // Build an adjacency list for the undirected graph
-    const graph = Array.from({length: n}, () => []);
+    const graph = Array(n)
+        .fill(null)
+        .map(() => []);
     for (const [u, v] of edges) {
         graph[u].push(v);
         graph[v].push(u);
@@ -3243,7 +3251,9 @@ class Solution:
     const MOD = 1e9 + 7;
 
     // Build adjacency list
-    const graph = Array.from({length: n}, () => []);
+    const graph = Array(n)
+        .fill(null)
+        .map(() => []);
     for (const [u, v, t] of roads) {
         graph[u].push([v, t]);
         graph[v].push([u, t]);
@@ -4165,7 +4175,9 @@ class Solution:
         return result`,
     jsCode: `var friendRequests = function(n, restrictions, requests) {
     // Union-Find: each person starts as their own group
-    const parent = Array.from({length: n}, (_, i) => i);
+    const parent = Array(n)
+        .fill(null)
+        .map((_, i) => i);
 
     function find(x) {
         // Path compression: flatten the tree while finding the root
@@ -4350,7 +4362,9 @@ class Solution:
     const n = bombs.length;
 
     // Build a directed graph: edge i->j means bomb i's blast reaches bomb j
-    const graph = Array.from({length: n}, () => []);
+    const graph = Array(n)
+        .fill(null)
+        .map(() => []);
     for (let i = 0; i < n; i++) {
         for (let j = 0; j < n; j++) {
             if (i === j) continue;
@@ -5688,7 +5702,9 @@ class Solution:
         return sum(1 for r in range(m) for c in range(n) if grid[r][c] == 0)`,
     jsCode: `var countUnguarded = function(m, n, guards, walls) {
     // Grid states: 0=empty, 1=guard, 2=wall, 3=guarded (can be seen by a guard)
-    const grid = Array.from({length: m}, () => new Array(n).fill(0));
+    const grid = Array(m)
+        .fill(null)
+        .map(() => new Array(n).fill(0));
 
     // Mark guard positions as 1
     for (const [r, c] of guards) {
@@ -6041,7 +6057,9 @@ class Solution:
         return result`,
     jsCode: `var countPairs = function(n, edges) {
     // Union-Find setup: each node is its own parent initially
-    const parent = Array.from({length: n}, (_, i) => i);
+    const parent = Array(n)
+        .fill(null)
+        .map((_, i) => i);
     const size = new Array(n).fill(1);
 
     // Find root of x with path compression (halving)
@@ -6999,7 +7017,9 @@ class Solution:
     const n = vals.length;
 
     // Union-Find with path compression and union by rank
-    const parent = Array.from({length: n}, (_, i) => i);
+    const parent = Array(n)
+        .fill(null)
+        .map((_, i) => i);
     const rank = new Array(n).fill(0);
 
     function find(x) {
@@ -7020,7 +7040,9 @@ class Solution:
     }
 
     // Build adjacency list
-    const adj = Array.from({length: n}, () => []);
+    const adj = Array(n)
+        .fill(null)
+        .map(() => []);
     for (const [u, v] of edges) {
         adj[u].push(v);
         adj[v].push(u);
@@ -7495,7 +7517,9 @@ class Solution:
     const n = amount.length;
 
     // Build undirected adjacency list
-    const graph = Array.from({length: n}, () => []);
+    const graph = Array(n)
+        .fill(null)
+        .map(() => []);
     for (const [u, v] of edges) {
         graph[u].push(v);
         graph[v].push(u);
@@ -7619,9 +7643,13 @@ class Solution:
     // diff[i][j] = onesRow + onesCol - zerosRow - zerosCol
     //            = onesRow + onesCol - (n - onesRow) - (m - onesCol)
     //            = 2*onesRow + 2*onesCol - n - m
-    return Array.from({length: m}, (_, i) =>
-        Array.from({length: n}, (_, j) => 2 * rowOnes[i] + 2 * colOnes[j] - m - n)
-    );
+    return Array(m)
+        .fill(null)
+        .map((_, i) =>
+            Array(n)
+                .fill(null)
+                .map((_, j) => 2 * rowOnes[i] + 2 * colOnes[j] - m - n)
+        );
 };`,
     jsWalkthrough:
       'Example: grid = [[0,1,1],[1,0,1],[0,0,1]]\n' +
@@ -8189,7 +8217,9 @@ class Graph:
         return -1`,
     jsCode: `var Graph = function(n, edges) {
     // Adjacency list: graph[u] = [[v, cost], ...]
-    this.graph = Array.from({length: n}, () => []);
+    this.graph = Array(n)
+        .fill(null)
+        .map(() => []);
     for (const [u, v, cost] of edges) {
         this.graph[u].push([v, cost]);
     }
@@ -8315,7 +8345,9 @@ Graph.prototype.shortestPath = function(node1, node2) {
     if (nums.includes(1)) return false;   // 1 has no common prime with anyone (gcd=1 always)
 
     // Union-Find
-    const parent = Array.from({length: n}, (_, i) => i);
+    const parent = Array(n)
+        .fill(null)
+        .map((_, i) => i);
 
     function find(x) {
         while (parent[x] !== x) {

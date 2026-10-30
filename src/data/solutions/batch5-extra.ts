@@ -217,7 +217,9 @@ class Solution:
     const n = matrix[0].length;
 
     // dp[i][j] = side length of largest square with bottom-right corner at (i, j)
-    const dp = Array.from({length: m}, () => new Array(n).fill(0));
+    const dp = Array(m)
+        .fill(null)
+        .map(() => new Array(n).fill(0));
 
     let total = 0;
 
@@ -1248,7 +1250,9 @@ class Solution:
     }
 
     // Union-Find: each computer starts as its own component
-    const parent = Array.from({length: n}, (_, i) => i);
+    const parent = Array(n)
+        .fill(null)
+        .map((_, i) => i);
 
     const find = (x) => {
         // Path compression: flatten tree while finding root
@@ -1579,7 +1583,9 @@ class Solution:
         return best_city`,
     jsCode: `var findTheCity = function(n, edges, distanceThreshold) {
     // Initialize distance matrix: Infinity everywhere except self-loops = 0
-    const dist = Array.from({length: n}, () => new Array(n).fill(Infinity));
+    const dist = Array(n)
+        .fill(null)
+        .map(() => new Array(n).fill(Infinity));
     for (let i = 0; i < n; i++) {
         dist[i][i] = 0;
     }
@@ -1688,7 +1694,9 @@ class Solution:
     }
 
     // dp[i][k] = min difficulty to schedule first i jobs in k days
-    const dp = Array.from({length: n + 1}, () => new Array(d + 1).fill(Infinity));
+    const dp = Array(n + 1)
+        .fill(null)
+        .map(() => new Array(d + 1).fill(Infinity));
     dp[0][0] = 0; // base case: 0 jobs in 0 days
 
     for (let i = 1; i <= n; i++) {
@@ -4892,7 +4900,9 @@ class Solution:
         return [reach[u][v] for u, v in queries]`,
     jsCode: `var checkIfPrerequisite = function(numCourses, prerequisites, queries) {
     // reach[i][j] = true means course i is a prerequisite (direct or indirect) of course j
-    const reach = Array.from({length: numCourses}, () => new Array(numCourses).fill(false));
+    const reach = Array(numCourses)
+        .fill(null)
+        .map(() => new Array(numCourses).fill(false));
 
     // Seed direct prerequisites
     for (const [u, v] of prerequisites) {
@@ -5530,7 +5540,9 @@ BrowserHistory.prototype.forward = function(steps) {
 
     // Compute MST weight using Kruskal's; optionally force-include or exclude one edge
     const mstWeight = (n, edges, include, exclude) => {
-        const parent = Array.from({length: n}, (_, i) => i);
+        const parent = Array(n)
+            .fill(null)
+            .map((_, i) => i);
         let weight = 0;
         let count  = 0; // edges added to MST
 
@@ -6008,7 +6020,9 @@ BrowserHistory.prototype.forward = function(steps) {
     if (k <= 0 || !num) return num;
 
     // queues[d] = sorted list of original positions where digit d appears
-    const queues = Array.from({length: 10}, () => []);
+    const queues = Array(10)
+        .fill(null)
+        .map(() => []);
     for (let i = 0; i < num.length; i++) {
         queues[Number(num[i])].push(i);
     }
@@ -7109,7 +7123,9 @@ class Solution:
     const m = cuts.length;
 
     // dp[i][j] = minimum cost to make all cuts between cuts[i] and cuts[j]
-    const dp = Array.from({length: m}, () => new Array(m).fill(0));
+    const dp = Array(m)
+        .fill(null)
+        .map(() => new Array(m).fill(0));
 
     // Process by interval length (bottom-up)
     for (let length = 2; length < m; length++) {
@@ -7364,7 +7380,9 @@ class Solution:
     const n = grid[0].length;
 
     // Flatten 2D grid to 1D for Union-Find
-    const parent = Array.from({length: m * n}, (_, i) => i);
+    const parent = Array(m * n)
+        .fill(null)
+        .map((_, i) => i);
 
     const find = (x) => {
         while (parent[x] !== x) {
@@ -7626,7 +7644,9 @@ class Solution:
 
     // Count islands using DFS
     const countIslands = (g) => {
-        const visited = Array.from({length: m}, () => new Array(n).fill(false));
+        const visited = Array(m)
+            .fill(null)
+            .map(() => new Array(n).fill(false));
         let count = 0;
         const dfs = (r, c) => {
             if (r < 0 || r >= m || c < 0 || c >= n || visited[r][c] || g[r][c] === 0) return;
@@ -7723,7 +7743,9 @@ class Solution:
     const maxN = nums.length;
 
     // Precompute Pascal's triangle for binomial coefficients
-    const C = Array.from({length: maxN}, () => new Array(maxN).fill(0n));
+    const C = Array(maxN)
+        .fill(null)
+        .map(() => new Array(maxN).fill(0n));
     for (let i = 0; i < maxN; i++) {
         C[i][0] = 1n;
         for (let j = 1; j <= i; j++) {
@@ -8193,7 +8215,9 @@ class Solution:
     jsCode: `var restoreMatrix = function(rowSum, colSum) {
     const m = rowSum.length;
     const n = colSum.length;
-    const matrix = Array.from({length: m}, () => new Array(n).fill(0));
+    const matrix = Array(m)
+        .fill(null)
+        .map(() => new Array(n).fill(0));
 
     for (let i = 0; i < m; i++) {
         for (let j = 0; j < n; j++) {
@@ -8275,7 +8299,9 @@ class Solution:
         return [i for i in range(k) if count[i] == max_count]`,
     jsCode: `var busiestServers = function(k, arrival, load) {
     // Sorted array of available server IDs (maintained in order for binary search)
-    const available = Array.from({length: k}, (_, i) => i);
+    const available = Array(k)
+        .fill(null)
+        .map((_, i) => i);
     const busy  = []; // min-heap of [endTime, serverId]
     const count = new Array(k).fill(0);
 
@@ -8667,7 +8693,9 @@ class Solution:
         return [find(a) == find(b) for a, b in queries]`,
     jsCode: `var areConnected = function(n, threshold, queries) {
     // Union-Find for cities 1..n
-    const parent = Array.from({length: n + 1}, (_, i) => i);
+    const parent = Array(n + 1)
+        .fill(null)
+        .map((_, i) => i);
 
     const find = (x) => {
         while (parent[x] !== x) {
@@ -8761,7 +8789,9 @@ class Solution:
     const n = heights[0].length;
 
     // effort[r][c] = minimum max-height-diff effort to reach (r,c) from (0,0)
-    const effort = Array.from({length: m}, () => new Array(n).fill(Infinity));
+    const effort = Array(m)
+        .fill(null)
+        .map(() => new Array(n).fill(Infinity));
     effort[0][0] = 0;
 
     // Min-heap: [effort, row, col]
@@ -8885,7 +8915,9 @@ class Solution:
     const n = target.length;
 
     // freq[col][charCode] = how many words have this character at this column
-    const freq = Array.from({length: m}, () => new Array(26).fill(0));
+    const freq = Array(m)
+        .fill(null)
+        .map(() => new Array(26).fill(0));
     for (const word of words) {
         for (let i = 0; i < m; i++) {
             freq[i][word.charCodeAt(i) - 97]++;

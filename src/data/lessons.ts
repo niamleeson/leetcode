@@ -104,7 +104,9 @@ function topKFrequent(nums, k) {
     }
 
     // Step 2: Create buckets where index = frequency
-    const buckets = Array.from({ length: nums.length + 1 }, () => []);
+    const buckets = Array(nums.length + 1)
+        .fill(null)
+        .map(() => []);
     for (const [num, freq] of count) {
         buckets[freq].push(num);
     }
@@ -235,7 +237,9 @@ function topKFrequent(nums, k) {
     });
 
     // Step 2: Create buckets where index = frequency
-    const buckets = Array.from({ length: nums.length + 1 }, () => []);
+    const buckets = Array(nums.length + 1)
+        .fill(null)
+        .map(() => []);
     for (const [num, freq] of count) {
         buckets[freq].push(num);
     }
@@ -4366,7 +4370,9 @@ function solveNQueens(n) {
         }
     }
 
-    const board = Array.from({ length: n }, () => new Array(n).fill('.'));
+    const board = Array(n)
+        .fill(null)
+        .map(() => new Array(n).fill('.'));
     backtrack(0, board);
     return result;
 }`,
@@ -4482,7 +4488,9 @@ function solveNQueens(n) {
         });
     }
 
-    const board = Array.from({ length: n }, () => new Array(n).fill('.'));
+    const board = Array(n)
+        .fill(null)
+        .map(() => new Array(n).fill('.'));
     backtrack(0, board);
     return result;
 }`,
@@ -4868,7 +4876,9 @@ function numIslands(grid) {
 // Topological sort (Kahn's algorithm)
 function topologicalSort(numCourses, prerequisites) {
     // Build adjacency list and in-degree array
-    const graph = Array.from({ length: numCourses }, () => []);
+    const graph = Array(numCourses)
+        .fill(null)
+        .map(() => []);
     const inDegree = new Array(numCourses).fill(0); // inDegree[i] = number of prerequisites for node i
 
     for (const [course, prereq] of prerequisites) {
@@ -5068,7 +5078,9 @@ function numIslands(grid) {
 // Topological sort (Kahn's algorithm)
 function topologicalSort(numCourses, prerequisites) {
     // Build adjacency list and in-degree array
-    const graph = Array.from({ length: numCourses }, () => []);
+    const graph = Array(numCourses)
+        .fill(null)
+        .map(() => []);
     const inDegree = new Array(numCourses).fill(0); // inDegree[i] = number of prerequisites for node i
 
     forEach(prerequisites, ([course, prereq]) => {
@@ -5666,7 +5678,9 @@ function rob(nums) {
 function longestCommonSubsequence(text1, text2) {
     const m = text1.length;
     const n = text2.length;
-    const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+    const dp = Array(m + 1)
+        .fill(null)
+        .map(() => new Array(n + 1).fill(0));
 
     for (let i = 1; i <= m; i++) {
         for (let j = 1; j <= n; j++) {
@@ -5749,7 +5763,9 @@ function minDistance(word1, word2) {
     const n = word2.length;
 
     // dp[i][j] = min edits to convert word1[0..i-1] to word2[0..j-1]
-    const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+    const dp = Array(m + 1)
+        .fill(null)
+        .map(() => new Array(n + 1).fill(0));
 
     // Base cases: converting to/from empty string
     for (let i = 0; i <= m; i++) {
@@ -5855,7 +5871,9 @@ function rob(nums) {
 function longestCommonSubsequence(text1, text2) {
     const m = text1.length;
     const n = text2.length;
-    const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+    const dp = Array(m + 1)
+        .fill(null)
+        .map(() => new Array(n + 1).fill(0));
 
     forEachBetween(1, m + 1, (i) => {
         forEachBetween(1, n + 1, (j) => {
@@ -5940,7 +5958,9 @@ function minDistance(word1, word2) {
     const n = word2.length;
 
     // dp[i][j] = min edits to convert word1[0..i-1] to word2[0..j-1]
-    const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+    const dp = Array(m + 1)
+        .fill(null)
+        .map(() => new Array(n + 1).fill(0));
 
     // Base cases: converting to/from empty string
     forEachBetween(0, m + 1, (i) => { dp[i][0] = i; });
@@ -7970,7 +7990,9 @@ def has_cycle(n, edges):
     jsTemplate: `class UnionFind {
     constructor(n) {
         // Each node starts as its own parent (its own component)
-        this.parent = Array.from({ length: n }, (_, i) => i);
+        this.parent = Array(n)
+            .fill(null)
+            .map((_, i) => i);
         // Rank tracks approximate tree height for union-by-rank
         this.rank = new Array(n).fill(0);
         // Track number of distinct components
@@ -8051,7 +8073,9 @@ function hasCycle(n, edges) {
 class UnionFind {
     constructor(n) {
         // Each node starts as its own parent (its own component)
-        this.parent = Array.from({ length: n }, (_, i) => i);
+        this.parent = Array(n)
+            .fill(null)
+            .map((_, i) => i);
         // Rank tracks approximate tree height for union-by-rank
         this.rank = new Array(n).fill(0);
         // Track number of distinct components
@@ -10189,7 +10213,9 @@ def prim(n, adj):
 // Uses Union-Find to detect cycles; greedily picks cheapest edges
 class UnionFind {
     constructor(n) {
-        this.parent = Array.from({ length: n }, (_, i) => i);
+        this.parent = Array(n)
+            .fill(null)
+            .map((_, i) => i);
         this.rank = new Array(n).fill(0);
     }
 
@@ -10295,7 +10321,9 @@ function prim(n, adj) {
 // Uses Union-Find to detect cycles; greedily picks cheapest edges
 class UnionFind {
     constructor(n) {
-        this.parent = Array.from({ length: n }, (_, i) => i);
+        this.parent = Array(n)
+            .fill(null)
+            .map((_, i) => i);
         this.rank = new Array(n).fill(0);
     }
 
@@ -11691,7 +11719,9 @@ def topological_sort_dfs(num_nodes, edges):
 // Key idea: repeatedly remove nodes with no remaining dependencies
 function topologicalSortKahn(numNodes, edges) {
     // Build adjacency list and count prerequisites for each node
-    const graph = Array.from({ length: numNodes }, () => []);
+    const graph = Array(numNodes)
+        .fill(null)
+        .map(() => []);
     const inDegree = new Array(numNodes).fill(0); // inDegree[i] = number of prerequisites for node i
 
     for (const [u, v] of edges) {
@@ -11740,7 +11770,9 @@ function findOrder(numCourses, prerequisites) {
 // DFS-based topological sort
 // Post-order: add self AFTER all descendants, then reverse the result
 function topologicalSortDFS(numNodes, edges) {
-    const graph = Array.from({ length: numNodes }, () => []);
+    const graph = Array(numNodes)
+        .fill(null)
+        .map(() => []);
 
     for (const [u, v] of edges) {
         graph[u].push(v);
@@ -11790,7 +11822,9 @@ function topologicalSortDFS(numNodes, edges) {
 // Key idea: repeatedly remove nodes with no remaining dependencies
 function topologicalSortKahn(numNodes, edges) {
     // Build adjacency list and count prerequisites for each node
-    const graph = Array.from({ length: numNodes }, () => []);
+    const graph = Array(numNodes)
+        .fill(null)
+        .map(() => []);
     const inDegree = new Array(numNodes).fill(0); // inDegree[i] = number of prerequisites for node i
 
     forEach(edges, ([u, v]) => {
@@ -11842,7 +11876,9 @@ function findOrder(numCourses, prerequisites) {
 // DFS-based topological sort
 // Post-order: add self AFTER all descendants, then reverse the result
 function topologicalSortDFS(numNodes, edges) {
-    const graph = Array.from({ length: numNodes }, () => []);
+    const graph = Array(numNodes)
+        .fill(null)
+        .map(() => []);
 
     forEach(edges, ([u, v]) => {
         graph[u].push(v);
@@ -12410,7 +12446,9 @@ class H2O {
 // Limit concurrency to 4 to prevent deadlock with 5 forks
 class DiningPhilosophers {
     constructor() {
-        this.forks = Array.from({ length: 5 }, () => ({ locked: false, waiters: [] }));
+        this.forks = Array(5)
+            .fill(null)
+            .map(() => ({ locked: false, waiters: [] }));
         this.seats = 4;
         this.seatedCount = 0;
         this.seatWaiters = [];
@@ -12668,7 +12706,9 @@ class H2O {
 // Limit concurrency to 4 to prevent deadlock with 5 forks
 class DiningPhilosophers {
     constructor() {
-        this.forks = Array.from({ length: 5 }, () => ({ locked: false, waiters: [] }));
+        this.forks = Array(5)
+            .fill(null)
+            .map(() => ({ locked: false, waiters: [] }));
         this.seats = 4;
         this.seatedCount = 0;
         this.seatWaiters = [];

@@ -371,7 +371,9 @@ export const solutions: ProblemSolution[] = [
     const n = word2.length;
 
     // dp[i][j] = min edits to convert word1[0..i-1] into word2[0..j-1]
-    const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+    const dp = Array(m + 1)
+        .fill(null)
+        .map(() => new Array(n + 1).fill(0));
 
     // Base case: converting to/from an empty string costs i or j deletions/insertions
     for (let i = 0; i <= m; i++) {
@@ -819,7 +821,9 @@ export const solutions: ProblemSolution[] = [
 
     // dp[i][j] = side length of the largest square with bottom-right corner at (i-1, j-1)
     // The extra row/column of zeros acts as padding to simplify boundary handling
-    const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+    const dp = Array(m + 1)
+        .fill(null)
+        .map(() => new Array(n + 1).fill(0));
     let maxSide = 0;
 
     for (let i = 1; i <= m; i++) {
@@ -1547,7 +1551,9 @@ export const solutions: ProblemSolution[] = [
 
     // dp[i][j] = length of LCS of text1[0..i-1] and text2[0..j-1]
     // Extra row/column of zeros handles the empty-string base case
-    const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+    const dp = Array(m + 1)
+        .fill(null)
+        .map(() => new Array(n + 1).fill(0));
 
     for (let i = 1; i <= m; i++) {
         for (let j = 1; j <= n; j++) {

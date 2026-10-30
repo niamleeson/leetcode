@@ -46,7 +46,9 @@ export const solutions: ProblemSolution[] = [
     const n = isConnected.length;
 
     // Each city starts as its own parent (its own province)
-    const parent = Array.from({ length: n }, (_, i) => i);
+    const parent = Array(n)
+        .fill(null)
+        .map((_, i) => i);
     const rank = new Array(n).fill(0);
 
     // Find root of x with path compression (halve path each time)
@@ -162,7 +164,9 @@ export const solutions: ProblemSolution[] = [
     const n = edges.length;
 
     // 1-indexed nodes: parent[i] = i means i is its own root
-    const parent = Array.from({ length: n + 1 }, (_, i) => i);
+    const parent = Array(n + 1)
+        .fill(null)
+        .map((_, i) => i);
     const rank = new Array(n + 1).fill(0);
 
     // Follow parent pointers up to the root, compressing the path
@@ -973,7 +977,9 @@ Return the same array: [1,2,3,5].`,
     const n = points.length;
 
     // Union-Find setup: each point starts as its own component
-    const parent = Array.from({ length: n }, (_, i) => i);
+    const parent = Array(n)
+        .fill(null)
+        .map((_, i) => i);
     const rank = new Array(n).fill(0);
 
     function find(x) {
@@ -1275,7 +1281,9 @@ def canFinish(numCourses, prerequisites):
     return count == numCourses`,
     jsCode: `var canFinish = function(numCourses, prerequisites) {
     // Build adjacency list: graph[prereq] = list of courses that depend on prereq
-    const graph = Array.from({ length: numCourses }, () => []);
+    const graph = Array(numCourses)
+        .fill(null)
+        .map(() => []);
     const inDegree = new Array(numCourses).fill(0);
 
     for (const [course, prereq] of prerequisites) {
@@ -1374,7 +1382,9 @@ def findOrder(numCourses, prerequisites):
     return order if len(order) == numCourses else []`,
     jsCode: `var findOrder = function(numCourses, prerequisites) {
     // Build adjacency list: graph[prereq] = list of courses unlocked by taking prereq
-    const graph = Array.from({ length: numCourses }, () => []);
+    const graph = Array(numCourses)
+        .fill(null)
+        .map(() => []);
     const inDegree = new Array(numCourses).fill(0);
 
     for (const [course, prereq] of prerequisites) {

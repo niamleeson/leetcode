@@ -547,7 +547,9 @@ Explanation: There are exactly two ways to place 4 queens on a 4x4 board so none
     const negDiag = new Set(); // cells on same negative diagonal share row - col
 
     // Initialize an n×n board of empty cells
-    const board = Array.from({ length: n }, () => Array(n).fill("."));
+    const board = Array(n)
+        .fill(null)
+        .map(() => Array(n).fill("."));
 
     const backtrack = (row) => {
         // Base case: placed a queen in every row — record the solution
@@ -2170,7 +2172,9 @@ Explanation: Removing edge [2,3] leaves a valid tree. It is the last edge that, 
     const nodeCount = edges.length + 1;
 
     // parent[i] = i initially (each node is its own root)
-    const parent = Array.from({ length: nodeCount }, (_, i) => i);
+    const parent = Array(nodeCount)
+        .fill(null)
+        .map((_, i) => i);
 
     // rank[i] helps keep the tree shallow during union
     const rank = new Array(nodeCount).fill(0);

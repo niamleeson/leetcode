@@ -164,7 +164,9 @@ class Solution:
     'Topologically sort row conditions and column conditions separately. A cycle in either makes the task impossible. Otherwise place each number at its position in the two orders.',
 `var buildMatrix = function(k, rowConditions, colConditions) {
     function order(conditions) {
-        const graph = Array.from({ length: k + 1 }, () => []);
+        const graph = Array(k + 1)
+            .fill(null)
+            .map(() => []);
         const indegree = new Array(k + 1).fill(0);
         for (const [before, after] of conditions) {
             graph[before].push(after);
@@ -190,7 +192,9 @@ class Solution:
     if (rows.length !== k || columns.length !== k) return [];
     const columnIndex = new Array(k + 1);
     for (let i = 0; i < k; i++) columnIndex[columns[i]] = i;
-    const matrix = Array.from({ length: k }, () => new Array(k).fill(0));
+    const matrix = Array(k)
+        .fill(null)
+        .map(() => new Array(k).fill(0));
     for (let row = 0; row < k; row++) matrix[row][columnIndex[rows[row]]] = rows[row];
     return matrix;
 };`,

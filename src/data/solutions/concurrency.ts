@@ -770,10 +770,12 @@ class DiningPhilosophers:
 class DiningPhilosophers {
     constructor() {
         // 5 forks, each modeled as a simple async mutex
-        this.forks = Array.from({ length: 5 }, () => ({
-            locked: false,
-            waiters: [],   // resolvers of Promises waiting to acquire this fork
-        }));
+        this.forks = Array(5)
+            .fill(null)
+            .map(() => ({
+                locked: false,
+                waiters: [],   // resolvers of Promises waiting to acquire this fork
+            }));
     }
 
     // Acquire a fork — waits until the fork is not locked

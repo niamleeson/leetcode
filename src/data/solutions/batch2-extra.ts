@@ -749,7 +749,9 @@ class Solution:
     if (edges.length !== n - 1) return false;
 
     // Initialize Union-Find: each node is its own parent
-    const parent = Array.from({length: n}, (_, i) => i);
+    const parent = Array(n)
+        .fill(null)
+        .map((_, i) => i);
 
     // Find root with path compression
     const find = (x) => {
@@ -2609,7 +2611,9 @@ NumArray.prototype.sumRange = function(left, right) {
 
     // prefix[i][j] = sum of all elements in matrix[0..i-1][0..j-1]
     // Extra row and column of zeros simplify boundary conditions
-    this.prefix = Array.from({length: numRows + 1}, () => new Array(numCols + 1).fill(0));
+    this.prefix = Array(numRows + 1)
+        .fill(null)
+        .map(() => new Array(numCols + 1).fill(0));
 
     for (let row = 1; row <= numRows; row++) {
         for (let col = 1; col <= numCols; col++) {
@@ -2942,10 +2946,14 @@ NumArray.prototype.sumRange = function(left, right) {
     this.numCols = matrix[0].length;
 
     // Original matrix values (used for delta computation during updates)
-    this.matrix = Array.from({length: this.numRows}, () => new Array(this.numCols).fill(0));
+    this.matrix = Array(this.numRows)
+        .fill(null)
+        .map(() => new Array(this.numCols).fill(0));
 
     // 2D Fenwick tree (1-indexed)
-    this.tree = Array.from({length: this.numRows + 1}, () => new Array(this.numCols + 1).fill(0));
+    this.tree = Array(this.numRows + 1)
+        .fill(null)
+        .map(() => new Array(this.numCols + 1).fill(0));
 
     // Build the tree by inserting all initial values
     for (let row = 0; row < this.numRows; row++) {
@@ -3053,7 +3061,9 @@ NumMatrix.prototype.sumRegion = function(row1, col1, row2, col2) {
     if (n === 1) return [0];
 
     // Build adjacency list
-    const adj = Array.from({length: n}, () => new Set());
+    const adj = Array(n)
+        .fill(null)
+        .map(() => new Set());
     for (const [u, v] of edges) {
         adj[u].add(v);
         adj[v].add(u);
@@ -3149,7 +3159,9 @@ NumMatrix.prototype.sumRegion = function(row1, col1, row2, col2) {
     const numColsMat2 = mat2[0].length;
 
     // Initialize result matrix with zeros
-    const result = Array.from({length: numRowsMat1}, () => new Array(numColsMat2).fill(0));
+    const result = Array(numRowsMat1)
+        .fill(null)
+        .map(() => new Array(numColsMat2).fill(0));
 
     for (let row = 0; row < numRowsMat1; row++) {
         for (let mid = 0; mid < sharedDim; mid++) {
@@ -3224,7 +3236,9 @@ NumMatrix.prototype.sumRegion = function(row1, col1, row2, col2) {
     const n = nums.length;
 
     // dp[i][j] = max coins from bursting all balloons strictly between i and j
-    const dp = Array.from({length: n}, () => new Array(n).fill(0));
+    const dp = Array(n)
+        .fill(null)
+        .map(() => new Array(n).fill(0));
 
     // Fill by increasing interval length
     for (let length = 2; length < n; length++) {
@@ -3404,7 +3418,9 @@ NumMatrix.prototype.sumRegion = function(row1, col1, row2, col2) {
     const counts = new Array(nums.length).fill(0);
 
     // Track original indices so we can update the correct counts
-    const indices = Array.from({length: nums.length}, (_, i) => i);
+    const indices = Array(nums.length)
+        .fill(null)
+        .map((_, i) => i);
 
     const mergeSort = (lo, hi) => {
         if (hi - lo <= 1) return;
@@ -3612,8 +3628,12 @@ NumMatrix.prototype.sumRegion = function(row1, col1, row2, col2) {
     const dirs = [[0,1],[0,-1],[1,0],[-1,0]];
 
     // Accumulate total distances and count how many buildings can reach each empty cell
-    const totalDist = Array.from({length: numRows}, () => new Array(numCols).fill(0));
-    const reachCount = Array.from({length: numRows}, () => new Array(numCols).fill(0));
+    const totalDist = Array(numRows)
+        .fill(null)
+        .map(() => new Array(numCols).fill(0));
+    const reachCount = Array(numRows)
+        .fill(null)
+        .map(() => new Array(numCols).fill(0));
     let buildingCount = 0;
 
     // BFS from each building to all reachable empty cells
@@ -3623,7 +3643,9 @@ NumMatrix.prototype.sumRegion = function(row1, col1, row2, col2) {
 
             buildingCount++;
 
-            const visited = Array.from({length: numRows}, () => new Array(numCols).fill(false));
+            const visited = Array(numRows)
+                .fill(null)
+                .map(() => new Array(numCols).fill(false));
             const queue = [[startRow, startCol, 0]]; // [row, col, distance]
             visited[startRow][startCol] = true;
 
@@ -3793,7 +3815,9 @@ NumMatrix.prototype.sumRegion = function(row1, col1, row2, col2) {
         return components`,
     jsCode: `var countComponents = function(n, edges) {
     // Initialize Union-Find: each node is its own root
-    const parent = Array.from({length: n}, (_, i) => i);
+    const parent = Array(n)
+        .fill(null)
+        .map((_, i) => i);
 
     // Find root with path compression (flattens tree for speed)
     const find = (x) => {
@@ -4250,7 +4274,9 @@ NumMatrix.prototype.sumRegion = function(row1, col1, row2, col2) {
 
     // memo[i][j] = length of longest increasing path starting at (i,j)
     // 0 means not yet computed
-    const memo = Array.from({length: numRows}, () => new Array(numCols).fill(0));
+    const memo = Array(numRows)
+        .fill(null)
+        .map(() => new Array(numCols).fill(0));
 
     const dfs = (row, col) => {
         // Return cached result if already computed
@@ -7321,7 +7347,9 @@ class Solution:
 
     const numRows = heightMap.length;
     const numCols = heightMap[0].length;
-    const visited = Array.from({length: numRows}, () => new Array(numCols).fill(false));
+    const visited = Array(numRows)
+        .fill(null)
+        .map(() => new Array(numCols).fill(false));
 
     // Simulated min-heap (sorted array of [waterLevel, row, col])
     const heap = [];

@@ -842,7 +842,9 @@ LFUCache.prototype._updateFreq = function(key) {
         return dp[m][n]`,
     jsCode: `var findMaxForm = function(strs, m, n) {
     // dp[i][j] = max subset size using at most i zeros and j ones
-    const dp = Array.from({length: m + 1}, () => new Array(n + 1).fill(0));
+    const dp = Array(m + 1)
+        .fill(null)
+        .map(() => new Array(n + 1).fill(0));
 
     for (const str of strs) {
         // Count zeros and ones in this string
@@ -1234,7 +1236,9 @@ class Solution:
     const n = nums.length;
 
     // dp[i][j] = max score advantage the current player can achieve from subarray [i..j]
-    const dp = Array.from({length: n}, () => new Array(n).fill(0));
+    const dp = Array(n)
+        .fill(null)
+        .map(() => new Array(n).fill(0));
 
     // Base case: single element, current player picks it all
     for (let i = 0; i < n; i++) {
@@ -1511,7 +1515,9 @@ class Solution:
     const totalDiagonals = numRows + numCols - 1;
 
     // Group elements by their diagonal index (row + col)
-    const diagonals = Array.from({length: totalDiagonals}, () => []);
+    const diagonals = Array(totalDiagonals)
+        .fill(null)
+        .map(() => []);
 
     for (let row = 0; row < numRows; row++) {
         for (let col = 0; col < numCols; col++) {
@@ -1605,7 +1611,9 @@ class Solution:
     const cols = maze[0].length;
 
     // dist[r][c] = minimum steps to reach stopping position (r,c)
-    const dist = Array.from({length: rows}, () => new Array(cols).fill(Infinity));
+    const dist = Array(rows)
+        .fill(null)
+        .map(() => new Array(cols).fill(Infinity));
     dist[start[0]][start[1]] = 0;
 
     // Min-heap: [distanceSoFar, row, col]
@@ -1770,7 +1778,9 @@ class Solution:
     const n = s.length;
 
     // dp[i][j] = length of longest palindromic subsequence in s[i..j]
-    const dp = Array.from({length: n}, () => new Array(n).fill(0));
+    const dp = Array(n)
+        .fill(null)
+        .map(() => new Array(n).fill(0));
 
     // Base case: every single character is a palindrome of length 1
     for (let i = n - 1; i >= 0; i--) {
@@ -2608,7 +2618,9 @@ class Solution:
     const numCols = mat[0].length;
 
     // Initialize distances: 0 for zero-cells, Infinity for one-cells
-    const dist = Array.from({length: numRows}, () => new Array(numCols).fill(Infinity));
+    const dist = Array(numRows)
+        .fill(null)
+        .map(() => new Array(numCols).fill(Infinity));
     const queue = [];
 
     // Seed the BFS queue with all zero-cells (they are distance 0 from themselves)
@@ -3308,7 +3320,9 @@ class Solution:
     const n = word2.length;
 
     // dp[i][j] = length of LCS of word1[0..i-1] and word2[0..j-1]
-    const dp = Array.from({length: m + 1}, () => new Array(n + 1).fill(0));
+    const dp = Array(m + 1)
+        .fill(null)
+        .map(() => new Array(n + 1).fill(0));
 
     for (let i = 1; i <= m; i++) {
         for (let j = 1; j <= n; j++) {
@@ -5196,7 +5210,9 @@ class Solution:
 
     // Matrix has treeHeight rows and (2^treeHeight - 1) columns
     const numCols = (1 << treeHeight) - 1;
-    const result = Array.from({ length: treeHeight }, () => new Array(numCols).fill(''));
+    const result = Array(treeHeight)
+        .fill(null)
+        .map(() => new Array(numCols).fill(''));
 
     // Step 2: Fill in node values using DFS
     // Each node occupies the midpoint of its current column range
@@ -6143,7 +6159,9 @@ MapSum.prototype.sum = function(prefix) {
         return sum(dp[r][c] for r in range(n) for c in range(n))`,
     jsCode: `var knightProbability = function(n, k, row, column) {
     // dp[r][c] = probability of the knight being at cell (r,c) after the current step
-    let dp = Array.from({ length: n }, () => new Array(n).fill(0));
+    let dp = Array(n)
+        .fill(null)
+        .map(() => new Array(n).fill(0));
     dp[row][column] = 1.0; // Start here with probability 1
 
     // All 8 possible knight moves
@@ -6156,7 +6174,9 @@ MapSum.prototype.sum = function(prefix) {
 
     for (let step = 0; step < k; step++) {
         // Build the new probability distribution for after this step
-        const nextDp = Array.from({ length: n }, () => new Array(n).fill(0));
+        const nextDp = Array(n)
+            .fill(null)
+            .map(() => new Array(n).fill(0));
 
         for (let r = 0; r < n; r++) {
             for (let c = 0; c < n; c++) {
@@ -6874,7 +6894,9 @@ Enqueue and dequeue restore heap order in O(log k); no full-array sorting is nee
     this.bucketCount = 10007;
 
     // Each bucket is a list (separate chaining to handle collisions)
-    this.buckets = Array.from({ length: this.bucketCount }, () => []);
+    this.buckets = Array(this.bucketCount)
+        .fill(null)
+        .map(() => []);
 };
 
 // Hash function: maps key to a bucket index
@@ -7059,7 +7081,9 @@ MyHashSet.prototype.contains = function(key) {
     const n = s2.length;
 
     // dp[i][j] = minimum ASCII delete sum to make s1[0..i-1] equal to s2[0..j-1]
-    const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+    const dp = Array(m + 1)
+        .fill(null)
+        .map(() => new Array(n + 1).fill(0));
 
     // Base case: delete all of s1 (cost = sum of ASCII values in s1)
     for (let i = 1; i <= m; i++) {
@@ -9628,7 +9652,9 @@ class Solution:
     const n = grid.length;
 
     // Track visited cells to avoid reprocessing
-    const visited = Array.from({length: n}, () => new Array(n).fill(false));
+    const visited = Array(n)
+        .fill(null)
+        .map(() => new Array(n).fill(false));
 
     // Min-heap: each entry is [time, row, col]
     // time = max elevation seen along path so far (Dijkstra-like minimax)

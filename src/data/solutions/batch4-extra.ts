@@ -3454,7 +3454,9 @@ StockSpanner.prototype.next = function(price) {
         return -1`,
     jsCode: `var shortestBridge = function(grid) {
     const n = grid.length;
-    const visited = Array.from({length: n}, () => new Array(n).fill(false));
+    const visited = Array(n)
+        .fill(null)
+        .map(() => new Array(n).fill(false));
     const queue = []; // BFS queue starting with all cells of island 1
 
     // DFS to find and mark all cells of the first island
@@ -5373,7 +5375,9 @@ TimeMap.prototype.get = function(key, timestamp) {
         return True`,
     jsCode: `var equationsPossible = function(equations) {
     // parent[i] = representative for variable with char code 97+i (a=0, b=1, ...)
-    const parent = Array.from({ length: 26 }, (_, i) => i);
+    const parent = Array(26)
+        .fill(null)
+        .map((_, i) => i);
 
     // Find with path compression (iterative)
     const find = (x) => {
@@ -6339,7 +6343,9 @@ TimeMap.prototype.get = function(key, timestamp) {
     const n = nums.length;
 
     // dp[i] maps: common difference → length of longest AP ending at index i with that difference
-    const dp = Array.from({ length: n }, () => ({}));
+    const dp = Array(n)
+        .fill(null)
+        .map(() => ({}));
     let maxLength = 2; // Any two elements form an AP of length 2
 
     for (let i = 1; i < n; i++) {
@@ -7091,7 +7097,9 @@ Return the remaining 1. A max-heap supplies each pair without repeated sorting.`
         return ''.join(chr(find(ord(c) - ord('a')) + ord('a')) for c in baseStr)`,
     jsCode: `var smallestEquivalentString = function(s1, s2, baseStr) {
     // parent[i] = representative for character with index i (a=0, b=1, ..., z=25)
-    const parent = Array.from({ length: 26 }, (_, i) => i);
+    const parent = Array(26)
+        .fill(null)
+        .map((_, i) => i);
 
     // Find with path compression
     const find = (x) => {
@@ -8029,7 +8037,9 @@ Return the remaining 1. A max-heap supplies each pair without repeated sorting.`
     jsCode: `var SnapshotArray = function(length) {
     // For each index, store a list of [snapId, value] pairs representing changes over time
     // Initialize each index with [0, 0] (at snap 0, value is 0)
-    this.snaps = Array.from({ length }, () => [[0, 0]]);
+    this.snaps = Array(length)
+        .fill(null)
+        .map(() => [[0, 0]]);
     this.snapId = 0;
 };
 
@@ -8531,7 +8541,9 @@ SnapshotArray.prototype.get = function(index, snap_id) {
         return result`,
     jsCode: `var criticalConnections = function(n, connections) {
     // Build undirected adjacency list
-    const graph = Array.from({ length: n }, () => []);
+    const graph = Array(n)
+        .fill(null)
+        .map(() => []);
     for (const [u, v] of connections) {
         graph[u].push(v);
         graph[v].push(u);

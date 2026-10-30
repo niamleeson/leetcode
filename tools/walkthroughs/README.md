@@ -78,6 +78,10 @@ template, solution, and walkthrough. Code keeps its original line breaks and
 full height, with horizontal scrolling inside the code block on narrow screens.
 Wide layouts give additional width to the code alongside the walkthrough.
 
+Displayed JavaScript uses `Array(length).fill(null).map(...)` for length-based
+initializers in solutions, lessons, and templates. Construct each mutable row,
+bucket, Set, or object inside the callback so entries remain independent.
+
 Tree layouts reserve left and right child slots, including a missing sibling,
 and check node separation and edge direction against every recorded tree state.
 Suspended recursive calls retain their partially constructed nodes; returned

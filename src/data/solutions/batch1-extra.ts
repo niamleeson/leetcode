@@ -334,7 +334,9 @@ For -2147483648, never take its absolute value: 2147483648 is outside signed 32-
     const n = p.length;
 
     // dp[i][j] = true if s[0..i-1] matches p[0..j-1]
-    const dp = Array.from({length: m + 1}, () => Array(n + 1).fill(false));
+    const dp = Array(m + 1)
+        .fill(null)
+        .map(() => Array(n + 1).fill(false));
 
     // Empty string matches empty pattern
     dp[0][0] = true;
@@ -1457,9 +1459,15 @@ For -2147483648, never take its absolute value: 2147483648 is outside signed 32-
         backtrack(0)`,
     jsCode: `var solveSudoku = function(board) {
     // Track which digits are used in each row, column, and 3x3 box
-    const rows = Array.from({length: 9}, () => new Set());
-    const cols = Array.from({length: 9}, () => new Set());
-    const boxes = Array.from({length: 9}, () => new Set());
+    const rows = Array(9)
+        .fill(null)
+        .map(() => new Set());
+    const cols = Array(9)
+        .fill(null)
+        .map(() => new Set());
+    const boxes = Array(9)
+        .fill(null)
+        .map(() => new Set());
 
     // Collect empty cells and pre-fill constraint sets with existing digits
     const emptyCells = [];
@@ -1747,7 +1755,9 @@ For -2147483648, never take its absolute value: 2147483648 is outside signed 32-
     const n = p.length;
 
     // dp[i][j] = true if s[0..i-1] matches p[0..j-1]
-    const dp = Array.from({length: m + 1}, () => Array(n + 1).fill(false));
+    const dp = Array(m + 1)
+        .fill(null)
+        .map(() => Array(n + 1).fill(false));
 
     // Empty string matches empty pattern
     dp[0][0] = true;
@@ -2154,7 +2164,9 @@ For -2147483648, never take its absolute value: 2147483648 is outside signed 32-
             left += 1
         return matrix`,
     jsCode: `var generateMatrix = function(n) {
-    const matrix = Array.from({length: n}, () => Array(n).fill(0));
+    const matrix = Array(n)
+        .fill(null)
+        .map(() => Array(n).fill(0));
 
     let top = 0;
     let bottom = n - 1;
@@ -4099,7 +4111,9 @@ For -2147483648, never take its absolute value: 2147483648 is outside signed 32-
     }
 
     // dp[i][j] = true if s3[0..i+j-1] can be formed by interleaving s1[0..i-1] and s2[0..j-1]
-    const dp = Array.from({length: m + 1}, () => Array(n + 1).fill(false));
+    const dp = Array(m + 1)
+        .fill(null)
+        .map(() => Array(n + 1).fill(false));
     dp[0][0] = true;
 
     for (let i = 0; i <= m; i++) {
@@ -5068,7 +5082,9 @@ For -2147483648, never take its absolute value: 2147483648 is outside signed 32-
     const tLen = t.length;
 
     // dp[i][j] = number of ways to form t[0..j-1] as subsequence of s[0..i-1]
-    const dp = Array.from({length: sLen + 1}, () => Array(tLen + 1).fill(0));
+    const dp = Array(sLen + 1)
+        .fill(null)
+        .map(() => Array(tLen + 1).fill(0));
 
     // Base case: empty t can always be formed (one way: choose nothing)
     for (let i = 0; i <= sLen; i++) {
@@ -5931,7 +5947,9 @@ For -2147483648, never take its absolute value: 2147483648 is outside signed 32-
 
     // Step 1: Precompute palindrome table
     // isPal[i][j] = true if s[i..j] is a palindrome
-    const isPal = Array.from({length: n}, () => Array(n).fill(false));
+    const isPal = Array(n)
+        .fill(null)
+        .map(() => Array(n).fill(false));
 
     for (let i = n - 1; i >= 0; i = i - 1) {
         for (let j = i; j < n; j = j + 1) {
@@ -5947,7 +5965,9 @@ For -2147483648, never take its absolute value: 2147483648 is outside signed 32-
 
     // Step 2: DP for minimum cuts
     // dp[i] = minimum cuts for s[0..i], initialized to worst case (all single chars)
-    const dp = Array.from({length: n}, (_, i) => i);
+    const dp = Array(n)
+        .fill(null)
+        .map((_, i) => i);
 
     for (let i = 1; i < n; i = i + 1) {
         // If the whole prefix s[0..i] is a palindrome, no cuts needed
@@ -7077,7 +7097,9 @@ For -2147483648, never take its absolute value: 2147483648 is outside signed 32-
     const bucketCount = Math.floor((maxVal - minVal) / bucketSize) + 1;
 
     // Each bucket tracks [min, max] of values it contains
-    const buckets = Array.from({length: bucketCount}, () => [Infinity, -Infinity]);
+    const buckets = Array(bucketCount)
+        .fill(null)
+        .map(() => [Infinity, -Infinity]);
 
     // Place each number into its bucket
     for (const num of nums) {
@@ -7651,7 +7673,9 @@ BSTIterator.prototype.hasNext = function() {
 
     // dp[i][j] = minimum health needed when entering cell (i, j)
     // Extra row and column serve as sentinels (infinity except at border)
-    const dp = Array.from({length: rows + 1}, () => Array(cols + 1).fill(Infinity));
+    const dp = Array(rows + 1)
+        .fill(null)
+        .map(() => Array(cols + 1).fill(Infinity));
 
     // From the princess's cell and beyond, need at least 1 health
     dp[rows][cols - 1] = 1;
