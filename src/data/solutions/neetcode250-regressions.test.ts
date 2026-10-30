@@ -108,6 +108,48 @@ describe('NeetCode 250 requirement regressions', () => {
 
 const hasPython = spawnSync('python3', ['--version']).status === 0;
 
+// An independent component-merging oracle for every possible 3x3 binary grid.
+const islandCases = Array.from({length:512},(_,mask)=>{
+  const grid=Array.from({length:3},(_,r)=>Array.from({length:3},(_,c)=>mask&(1<<(r*3+c))?'1':'0'));
+  const parent=Array.from({length:9},(_,i)=>i);
+  const root=(i:number):number=>parent[i]===i?i:root(parent[i]);
+  let expected=grid.flat().filter(cell=>cell==='1').length;
+  for(let r=0;r<3;r++)for(let c=0;c<3;c++)if(grid[r][c]==='1') {
+    for(const [nr,nc] of [[r-1,c],[r,c-1]])if(nr>=0&&nc>=0&&grid[nr][nc]==='1') {
+      const a=root(r*3+c),b=root(nr*3+nc);
+      if(a!==b){parent[a]=b;expected--;}
+    }
+  }
+  return {grid,expected};
+});
+
+it.each([['recursive',solutionMap[200]],['iterative',solutionMap[200].followUp!]] as const)('counts all 512 small grids using %s DFS',(_name,solution)=>{
+  const results=runInNewContext(`${solution.jsCode}\ncases.map(({grid})=>numIslands(grid.map(row=>row.slice())))`,{cases:islandCases},{timeout:5000});
+  expect([...results]).toEqual(islandCases.map(example=>example.expected));
+});
+
+it('handles a large connected island with the explicit stack',()=>{
+  expect(runInNewContext(`${solutionMap[200].followUp!.jsCode}\nnumIslands(Array.from({length:300},()=>Array(300).fill('1')))`,{},{timeout:5000})).toBe(1);
+});
+
+it.skipIf(!hasPython)('checks both Python island variants and the large iterative case',()=>{
+  const result=spawnSync('python3',['-c',`
+import json, sys
+data = json.load(sys.stdin)
+for name, source in data['sources'].items():
+    namespace = {}
+    exec(source, namespace)
+    solution = namespace['Solution']()
+    for case in data['cases']:
+        grid = [row[:] for row in case['grid']]
+        assert solution.numIslands(grid) == case['expected'], (name, case)
+    if name == 'iterative':
+        assert solution.numIslands([['1'] * 300 for _ in range(300)]) == 1
+`],{input:JSON.stringify({sources:{recursive:solutionMap[200].code,iterative:solutionMap[200].followUp!.code},cases:islandCases}),encoding:'utf8',timeout:15000});
+  expect(result.stderr).toBe('');
+  expect(result.status).toBe(0);
+});
+
 it.skipIf(!hasPython)('validates the corrected Python answers against edge cases and independent oracles', () => {
   const sources = Object.fromEntries([7, 215, 371, 417, 912].map(id => [id, solutionMap[id].code]));
   const result = spawnSync('python3', ['-c', `

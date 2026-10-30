@@ -10,28 +10,30 @@ import './traversalWalkthrough.css';
 import './executionWalkthrough.css';
 
 const loaders = import.meta.glob<{default: ExecutionTrace}>('../../data/walkthroughs/generated/*.json');
-const cache = new Map<number, Promise<ExecutionTrace>>();
-export const hasExecutionWalkthrough = (id: number) => !!loaders[`../../data/walkthroughs/generated/${id}.json`];
-function loadTrace(id: number) {
-  if (!cache.has(id)) cache.set(id, loaders[`../../data/walkthroughs/generated/${id}.json`]().then(module => module.default).catch(error => {cache.delete(id);throw error;}));
-  return cache.get(id)!;
+const cache = new Map<string, Promise<ExecutionTrace>>();
+const traceKey = (id: number, variant?: string) => variant ? `${id}-${variant}` : String(id);
+export const hasExecutionWalkthrough = (id: number, variant?: string) => !!loaders[`../../data/walkthroughs/generated/${traceKey(id,variant)}.json`];
+function loadTrace(key: string) {
+  if (!cache.has(key)) cache.set(key, loaders[`../../data/walkthroughs/generated/${key}.json`]().then(module => module.default).catch(error => {cache.delete(key);throw error;}));
+  return cache.get(key)!;
 }
 
-export default function ExecutionWalkthrough({ id, code }: { id: number; code: string }) {
+export default function ExecutionWalkthrough({ id, code, variant }: { id: number; code: string; variant?: string }) {
+  const key = traceKey(id,variant);
   const [trace, setTrace] = useState<ExecutionTrace>();
   const [error, setError] = useState(false);
   const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     let mounted = true; setError(false); setTrace(undefined);
-    loadTrace(id).then(data => { if(mounted) {if(data.code!==code)setError(true);else setTrace(data);} }).catch(()=>{if(mounted)setError(true);});
+    loadTrace(key).then(data => { if(mounted) {if(data.code!==code)setError(true);else setTrace(data);} }).catch(()=>{if(mounted)setError(true);});
     return () => {mounted=false;};
-  }, [id,code,attempt]);
+  }, [key,code,attempt]);
   if (!trace) return <section className="traversal-walkthrough">
     <WalkthroughCode code={code} lines={[]} enabled={false}/>
     <p className="execution-loading" role="status">{error ? 'The walkthrough could not load.' : 'Loading walkthrough…'}</p>
     {error && <button type="button" className="execution-expand" onClick={()=>setAttempt(value=>value+1)}>Retry</button>}
   </section>;
-  return <ExecutionPlayer key={id} trace={trace}/>;
+  return <ExecutionPlayer key={key} trace={trace}/>;
 }
 
 function stepTitle(step: ExecutionStep, heap: ReturnType<typeof materialize>['heap']) {

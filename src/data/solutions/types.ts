@@ -1,5 +1,7 @@
 export interface SolutionFollowUp {
   title: string;
+  label?: 'Alternative' | 'Follow-up';
+  walkthroughVariant?: string;
   approach: string;
   code: string;
   jsCode?: string;

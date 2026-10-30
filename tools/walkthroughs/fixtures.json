@@ -5108,7 +5108,7 @@
   ],
   "200": [
     {
-      "name": "Example",
+      "name": "Three islands",
       "entry": "numIslands",
       "params": [
         "grid"
@@ -5165,7 +5165,83 @@
         ]
       ],
       "expected": 0,
-      "name": "Edge case"
+      "name": "All water"
+    },
+    {
+      "name": "Diagonal land stays separate",
+      "entry": "numIslands",
+      "params": [
+        "grid"
+      ],
+      "args": [
+        [
+          [
+            "1",
+            "0"
+          ],
+          [
+            "0",
+            "1"
+          ]
+        ]
+      ],
+      "expected": 2
+    },
+    {
+      "name": "One solid island",
+      "entry": "numIslands",
+      "params": [
+        "grid"
+      ],
+      "args": [
+        [
+          [
+            "1",
+            "1",
+            "1"
+          ],
+          [
+            "1",
+            "1",
+            "1"
+          ]
+        ]
+      ],
+      "expected": 1
+    },
+    {
+      "name": "Single land cell",
+      "entry": "numIslands",
+      "params": [
+        "grid"
+      ],
+      "args": [
+        [
+          [
+            "1"
+          ]
+        ]
+      ],
+      "expected": 1
+    },
+    {
+      "name": "One row",
+      "entry": "numIslands",
+      "params": [
+        "grid"
+      ],
+      "args": [
+        [
+          [
+            "1",
+            "1",
+            "0",
+            "1",
+            "1"
+          ]
+        ]
+      ],
+      "expected": 2
     }
   ],
   "201": [

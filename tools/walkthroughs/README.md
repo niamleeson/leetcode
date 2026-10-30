@@ -5,6 +5,14 @@ Every NeetCode 250 JavaScript solution has at least two reviewed examples in
 problem-specific validators (topological ordering, grouping, matrix constraints,
 palindrome validity and length, and string reorganization).
 
+Number of Islands includes recursive DFS and iterative DFS with an explicit
+stack. Both versions share fixtures and each has a separately verified recording.
+Alternative solutions opt in with `followUp.walkthroughVariant`; artifacts use
+`<problem ID>-<variant>.json`. Generation, verification, source checks, and the
+recording audit cover these alternatives as well as the 250 primary solutions.
+Use `node tools/walkthroughs/verify.cjs --write --ids=200` to regenerate both
+Number of Islands recordings without rewriting unrelated problems.
+
 Run these commands with Node 22 or newer:
 
 ```sh

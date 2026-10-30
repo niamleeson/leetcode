@@ -5,7 +5,7 @@ const assert = require('node:assert/strict');
 const parser = require('@babel/parser');
 const traverse = require('@babel/traverse').default;
 const t = require('@babel/types');
-const { root, problems } = require('./load.cjs');
+const { root, walkthroughs } = require('./load.cjs');
 
 function decoder(heap) {
   const cache=new Map();
@@ -64,17 +64,17 @@ function evaluate(text,state,heap) {
   return fnCache.get(key).apply(decode(state.this),names.map(name=>decode(state[name])));
 }
 function audit() {
-  const stats={problems:0,examples:0,steps:0,sourceSpans:0,conditions:0,initializers:0,mutations:0,errors:[]};
-  for(const problem of problems) {
-    const trace=JSON.parse(fs.readFileSync(path.join(root,'src/data/walkthroughs/generated',`${problem.id}.json`),'utf8'));
+  const stats={problems:new Set(walkthroughs.map(entry=>entry.id)).size,solutions:0,examples:0,steps:0,sourceSpans:0,conditions:0,initializers:0,mutations:0,errors:[]};
+  for(const problem of walkthroughs) {
+    const trace=JSON.parse(fs.readFileSync(path.join(root,'src/data/walkthroughs/generated',`${problem.key}.json`),'utf8'));
     const nodes=new Map(),parents=new Map();
     traverse(parser.parse(trace.code),{enter({node,parent}){nodes.set(`${node.start}:${node.end}`,node);parents.set(node,parent);}});
-    stats.problems++;
+    stats.solutions++;
     for(const [exampleIndex,example] of trace.examples.entries()) {
       stats.examples++;let heap={},previousHeap={},previous;
       for(const [index,step] of example.steps.entries()) {
         previousHeap=heap;heap={...heap,...step.heap};stats.steps++;
-        const context=`${problem.id}/${exampleIndex}/${index} line ${step.line}: ${step.label}`;
+        const context=`${problem.key}/${exampleIndex}/${index} line ${step.line}: ${step.label}`;
         try {
           const sourceNode=nodes.get(`${step.start}:${step.end}`);
           assert(sourceNode,'Recorded action does not match an original source node');

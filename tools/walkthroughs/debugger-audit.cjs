@@ -30,7 +30,7 @@ if(!isMainThread) {
   })().catch(error=>{parentPort.postMessage({error:error.stack});process.exitCode=1;});
 } else {
   const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
-  const {root,solutionMap}=require('./load.cjs');
+  const {root,walkthroughs}=require('./load.cjs');
   const fixtures=require('./fixtures.json');
   const {setup,invocation}=require('./runtime.cjs');
   const {evaluate}=require('./audit-recordings.cjs');
@@ -43,6 +43,9 @@ if(!isMainThread) {
     {id:207,anchor:'queue.push(dependentCourse);',kind:'operation',expression:'({queue,inDegree,course,dependentCourse,processedCount})'},
     {id:322,anchor:'dp[a] = Math.min(dp[a], candidate);',kind:'statement',expression:'({dp,a,coin,candidate,remainder})'},
     {id:215,anchor:'let smaller = left;',kind:'statement',expression:'({nums,k,left,right,pivot,target})'},
+    {id:200,anchor:'grid[r][c] = "0";',kind:'statement',expression:'({grid,r,c})'},
+    {id:200,variant:'iterative',anchor:'[r, c] = stack.pop();',kind:'operation',expression:'({grid,stack,r,c})'},
+    {id:200,variant:'iterative',anchor:'stack.push([nr, nc]);',kind:'operation',expression:'({grid,stack,r,c,nr,nc})'},
   ];
   const normalize=value=>JSON.parse(JSON.stringify(value,(_key,v)=>typeof v==='number'&&!Number.isFinite(v)?String(v):v));
   const message=worker=>new Promise((resolve,reject)=>{
@@ -53,17 +56,18 @@ if(!isMainThread) {
   (async()=>{
     let comparisons=0,cases=0;
     for(const spec of specs) {
-      const source=solutionMap[spec.id].jsCode;
+      const key=spec.variant?`${spec.id}-${spec.variant}`:String(spec.id);
+      const source=walkthroughs.find(entry=>entry.key===key).solution.jsCode;
       const line=source.split('\n').findIndex(text=>text.trim()===spec.anchor)+1;
       assert(line>0,`Missing source anchor for ${spec.id}`);
-      const trace=JSON.parse(fs.readFileSync(path.join(root,'src/data/walkthroughs/generated',`${spec.id}.json`),'utf8'));
+      const trace=JSON.parse(fs.readFileSync(path.join(root,'src/data/walkthroughs/generated',`${key}.json`),'utf8'));
       for(const [index,fixture] of fixtures[spec.id].entries()) {
         const expected=[];let heap={},previous;
         for(const step of trace.examples[index].steps) {
           if(step.line===line&&step.kind===spec.kind)expected.push(normalize(evaluate(spec.expression,previous.state,heap)));
           heap={...heap,...step.heap};previous=step;
         }
-        const url=`walkthrough-v8-${spec.id}-${index}.js`;
+        const url=`walkthrough-v8-${key}-${line}-${index}.js`;
         const worker=new Worker(__filename,{workerData:{url,line,expression:spec.expression}});
         assert.equal(await message(worker),'ready');
         const context=vm.createContext({__problemId:spec.id,__case:JSON.parse(JSON.stringify(fixture)),__trace:{start(){},stop(){}}});
@@ -77,6 +81,6 @@ if(!isMainThread) {
         cases++;comparisons+=expected.length;
       }
     }
-    console.log(`V8 debugger audit: ${comparisons} intermediate snapshots matched across ${cases} cases in ${specs.length} algorithms.`);
+    console.log(`V8 debugger audit: ${comparisons} intermediate snapshots matched across ${cases} cases at ${specs.length} source locations.`);
   })().catch(error=>{console.error(error);process.exitCode=1;});
 }

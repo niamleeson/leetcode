@@ -118,7 +118,7 @@ function InlineSolution({ solution, language }: { solution: ProblemSolution; lan
           )}
         </div>
       )}
-      {solution.followUp && <FollowUpSolution solution={solution.followUp} language={language} />}
+      {solution.followUp && <FollowUpSolution solution={solution.followUp} language={language} problemId={solution.id} />}
     </div>
   );
 }

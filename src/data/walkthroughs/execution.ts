@@ -29,6 +29,7 @@ export interface ExecutionExample {
 }
 export interface ExecutionTrace {
   id: number;
+  variant?: string;
   title: string;
   topic: string;
   code: string;

@@ -1572,6 +1572,7 @@ Explanation: The graph has 4 nodes. Node 1 connects to 2 and 4, node 2 connects 
   // 200. Number of Islands
   {
     id: 200,
+    solutionTitle: "Recursive DFS",
     description:
       "Given an m x n 2D binary grid which represents a map of '1's (land) and '0's (water), return the number of islands. An island is surrounded by water and is formed by connecting adjacent lands horizontally or vertically.",
     examples: `Input: grid = [["1","1","0","0","0"],["1","1","0","0","0"],["0","0","1","0","0"],["0","0","0","1","1"]]
@@ -1669,6 +1670,86 @@ Explanation: There are three distinct groups of connected '1's separated by '0's
 - After DFS completes, the entire island is sunk, so we will not double-count it.`,
     timeComplexity: "O(m * n) where m and n are the grid dimensions",
     spaceComplexity: "O(m * n) in the worst case for the DFS recursion stack",
+    followUp: {
+      title: "Iterative DFS (explicit stack)",
+      label: "Alternative",
+      walkthroughVariant: "iterative",
+      approach: "Scan for unvisited land. Each new land cell starts one island. Use an explicit stack to explore its four-directional neighbors, marking land as water before pushing it so each cell enters the stack only once. Both versions modify the input grid; the iterative version avoids the language's recursion-depth limit.",
+      code: `class Solution:
+    def numIslands(self, grid: list[list[str]]) -> int:
+        if not grid:
+            return 0
+
+        rows, cols = len(grid), len(grid[0])
+        count = 0
+        directions = [(1, 0), (-1, 0), (0, 1), (0, -1)]
+
+        def dfs(r: int, c: int) -> None:
+            stack = []
+            grid[r][c] = "0"
+            stack.append((r, c))
+
+            while stack:
+                r, c = stack.pop()
+                for dr, dc in directions:
+                    nr, nc = r + dr, c + dc
+                    if 0 <= nr < rows and 0 <= nc < cols and grid[nr][nc] == "1":
+                        grid[nr][nc] = "0"
+                        stack.append((nr, nc))
+
+        for r in range(rows):
+            for c in range(cols):
+                if grid[r][c] == "1":
+                    count += 1
+                    dfs(r, c)
+
+        return count`,
+      jsCode: `var numIslands = function(grid) {
+    if (!grid.length) return 0;
+
+    const rows = grid.length;
+    const cols = grid[0].length;
+    let count = 0;
+    const directions = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+
+    const dfs = (r, c) => {
+        const stack = [];
+        grid[r][c] = "0";
+        stack.push([r, c]);
+
+        while (stack.length) {
+            [r, c] = stack.pop();
+            for (const [dr, dc] of directions) {
+                const nr = r + dr;
+                const nc = c + dc;
+                if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && grid[nr][nc] === "1") {
+                    grid[nr][nc] = "0";
+                    stack.push([nr, nc]);
+                }
+            }
+        }
+    };
+
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            if (grid[r][c] === "1") {
+                count++;
+                dfs(r, c);
+            }
+        }
+    }
+
+    return count;
+};`,
+      explanation: `- The outer r and c scan the grid; dfs has its own local r and c for the cell popped from the stack.
+- Increment count only when the scan finds an unvisited island.
+- Mark each land cell as "0" before pushing it, preventing duplicate stack entries.
+- Pop the most recently pushed cell, then check its four neighbors. Diagonal cells are not connected.
+- An empty stack means the entire island has been explored. Resume scanning for another island.
+- The explicit stack replaces recursive calls. Its visit order can differ from recursive DFS, but the island count is the same.`,
+      timeComplexity: "O(m * n): each cell is scanned and each land cell is pushed once",
+      spaceComplexity: "O(m * n) in the worst case for the explicit stack",
+    },
     hints: [
       "Each time you find a '1', that starts a new island -- use DFS/BFS to mark all connected land.",
       "Modifying the grid in-place (changing '1' to '0') serves as the visited marker.",

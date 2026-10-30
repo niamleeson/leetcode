@@ -2,7 +2,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
-const { root, problems, solutionMap } = require('./load.cjs');
+const { root, problems, walkthroughs } = require('./load.cjs');
 const { execute } = require('./runtime.cjs');
 const fixtures = require('./fixtures.json');
 const {indexingFor}=require('./source-analysis.cjs');
@@ -53,11 +53,11 @@ function validate(actual, fixture) {
 
 function verify({ write = false, ids } = {}) {
   const errors = [], stats = []; let cases = 0;
-  const selected = ids ? problems.filter(p=>ids.includes(p.id)) : problems;
+  const selected = ids ? walkthroughs.filter(p=>ids.includes(p.id)) : walkthroughs;
   assert.equal(problems.length,250);assert.equal(new Set(problems.map(p=>p.id)).size,250);
   for(const problem of selected) {
-    const source=solutionMap[problem.id]?.jsCode;
-    if(!source || !fixtures[problem.id]?.length){errors.push(`${problem.id}: missing source or fixture`);continue;}
+    const source=problem.solution?.jsCode;
+    if(!source || !fixtures[problem.id]?.length){errors.push(`${problem.key}: missing source or fixture`);continue;}
     const examples=[];
     for(const [index,fixture] of fixtures[problem.id].entries()) {
       try {
@@ -76,20 +76,20 @@ function verify({ write = false, ids } = {}) {
         }
         cases++;
         examples.push({name:fixture.name, input:fixture.args, expected:fixture.expected, result:traced.result, steps:traced.steps});
-      } catch(error) {errors.push(`${problem.id} ${problem.title} [${index}]: ${error.message}`);}
+      } catch(error) {errors.push(`${problem.key} ${problem.title} [${index}]: ${error.message}`);}
     }
-    const artifact={id:problem.id,title:problem.title,topic:problem.topic,code:source,sourceHash:crypto.createHash('sha256').update(source).digest('hex'),generatorHash,fixtureHash:crypto.createHash('sha256').update(JSON.stringify(fixtures[problem.id])).digest('hex'),indexing:indexingFor(source),examples};
+    const artifact={id:problem.id,...(problem.variant?{variant:problem.variant}:{}),title:problem.title,topic:problem.topic,code:source,sourceHash:crypto.createHash('sha256').update(source).digest('hex'),generatorHash,fixtureHash:crypto.createHash('sha256').update(JSON.stringify(fixtures[problem.id])).digest('hex'),indexing:indexingFor(source),examples};
     const json=JSON.stringify(artifact);
-    if(!write && !errors.some(error=>error.startsWith(`${problem.id} `))) {
-      const file=path.join(root,'src/data/walkthroughs/generated',`${problem.id}.json`);
-      if(!fs.existsSync(file)||fs.readFileSync(file,'utf8').trim()!==json) errors.push(`${problem.id}: committed recording differs from freshly verified execution; regenerate it`);
+    if(!write && !errors.some(error=>error.startsWith(`${problem.key} `))) {
+      const file=path.join(root,'src/data/walkthroughs/generated',`${problem.key}.json`);
+      if(!fs.existsSync(file)||fs.readFileSync(file,'utf8').trim()!==json) errors.push(`${problem.key}: committed recording differs from freshly verified execution; regenerate it`);
     }
-    stats.push({id:problem.id,cases:examples.length,steps:examples.reduce((n,e)=>n+e.steps.length,0),bytes:json.length});
+    stats.push({id:problem.key,cases:examples.length,steps:examples.reduce((n,e)=>n+e.steps.length,0),bytes:json.length});
     if(write && examples.length===fixtures[problem.id].length) {
-      const directory=path.join(root,'src/data/walkthroughs/generated');fs.mkdirSync(directory,{recursive:true});fs.writeFileSync(path.join(directory,`${problem.id}.json`),json+'\n');
+      const directory=path.join(root,'src/data/walkthroughs/generated');fs.mkdirSync(directory,{recursive:true});fs.writeFileSync(path.join(directory,`${problem.key}.json`),json+'\n');
     }
   }
-  return {problems:stats.length,cases,steps:stats.reduce((n,s)=>n+s.steps,0),bytes:stats.reduce((n,s)=>n+s.bytes,0),errors,stats};
+  return {problems:new Set(selected.map(problem=>problem.id)).size,solutions:stats.length,cases,steps:stats.reduce((n,s)=>n+s.steps,0),bytes:stats.reduce((n,s)=>n+s.bytes,0),errors,stats};
 }
 if(require.main===module) {
   const ids=process.argv.find(arg=>arg.startsWith('--ids='))?.slice(6).split(',').map(Number);
