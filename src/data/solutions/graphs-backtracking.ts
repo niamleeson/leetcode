@@ -2039,12 +2039,12 @@ Explanation: These cells can reach both the Pacific (top/left) and Atlantic (bot
     const rows = heights.length;
     const cols = heights[0].length;
 
-    const pacific = Array.from(
-        { length: rows }, () => Array(cols).fill(false)
-    );
-    const atlantic = Array.from(
-        { length: rows }, () => Array(cols).fill(false)
-    );
+    const pacific = Array(rows)
+        .fill(null)
+        .map(() => Array(cols).fill(false));
+    const atlantic = Array(rows)
+        .fill(null)
+        .map(() => Array(cols).fill(false));
 
     const directions = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 
