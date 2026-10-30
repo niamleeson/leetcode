@@ -58,6 +58,24 @@ template, solution, and walkthrough. Code keeps its original line breaks and
 full height, with horizontal scrolling inside the code block on narrow screens.
 Wide layouts give additional width to the code alongside the walkthrough.
 
+Tree layouts reserve left and right child slots, including a missing sibling,
+and check node separation and edge direction against every recorded tree state.
+Suspended recursive calls retain their partially constructed nodes; returned
+trees use the actual return value, including an empty result. Temporary shared
+child references appear in both slots with the same object ID. Node change
+markers compare that node's own fields, not its entire descendant subtree.
+Wide diagrams scroll horizontally to preserve readable spacing.
+
+Graph diagrams include directed reciprocal equation weights, both matrix
+constraint graphs, isolated vertices, and visible self-loops. Stable node
+positions stay fixed as pointers and queue membership change. The lock view
+changes neighborhoods when the current lock state changes. Point
+graphs preserve Cartesian coordinates; implicit graph problems use word
+transformations, current lock neighbors, character constraints, email parent
+links, or common-factor connections as appropriate. Queued and visited markers
+come from recorded state. Very long numeric edge labels are marked approximate,
+with the full recorded value available in the edge tooltip.
+
 The generated JSON files are loaded individually when a problem is expanded.
 No solution code is evaluated in the browser. The source displayed by the player
 is checked against the current solution; the production build also checks source,

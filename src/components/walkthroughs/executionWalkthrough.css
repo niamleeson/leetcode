@@ -41,6 +41,19 @@
 .execution-call-stack span.is-current { color: var(--trace-accent); border-color: var(--trace-accent); }
 .execution-structure svg { width: 100%; max-height: 420px; min-height: 160px; }
 .execution-structure > p { text-align: center; margin-top: 4px; }
+.execution-diagram-canvas { max-width: 100%; overflow-x: auto; overscroll-behavior-x: contain; }
+.execution-diagram-canvas svg { display: block; max-width: none; max-height: none; min-height: 0; height: auto; margin: 0 auto; }
+.execution-diagram-canvas:focus-visible { outline: 2px solid var(--trace-accent); outline-offset: -2px; }
+.execution-link.is-missing line { stroke-dasharray: 4 4; }
+.execution-null rect { fill: none; stroke: var(--trace-border); stroke-dasharray: 3 3; }
+.execution-null text { fill: var(--trace-muted); font: 11px ui-monospace, monospace; }
+.execution-node text.execution-quad-value { font-size: 11px; }
+.execution-node text.execution-long-label { font-size: 10px; }
+.execution-node.is-visited circle { fill: var(--trace-highlight); }
+.execution-node.is-queued circle { stroke: var(--trace-accent); stroke-dasharray: 4 3; }
+.execution-node.is-blocked circle { fill: var(--trace-noop-bg); stroke: var(--trace-noop); }
+.execution-link text.execution-edge-weight { paint-order: stroke; stroke: var(--trace-bg); stroke-width: 4px; stroke-linejoin: round; }
+.execution-graph-legend { display: flex; gap: 12px; justify-content: center; color: var(--trace-muted); font-size: 10px; }
 .execution-link { color: var(--trace-border); }
 .execution-link line { stroke: currentColor; stroke-width: 1.5px; }
 .execution-link path { stroke: currentColor; stroke-width: 1.5px; fill: none; }
