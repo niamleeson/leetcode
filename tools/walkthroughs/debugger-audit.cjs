@@ -46,6 +46,11 @@ if(!isMainThread) {
     {id:200,anchor:'grid[r][c] = "0";',kind:'statement',expression:'({grid,r,c})'},
     {id:200,variant:'iterative',anchor:'[r, c] = stack.pop();',kind:'operation',expression:'({grid,stack,r,c})'},
     {id:200,variant:'iterative',anchor:'stack.push([nr, nc]);',kind:'operation',expression:'({grid,stack,r,c,nr,nc})'},
+    {id:695,variant:'iterative',anchor:'area++;',kind:'statement',expression:'({grid,stack,r,c,area})'},
+    {id:695,variant:'iterative',anchor:'maxArea = Math.max(maxArea, area);',kind:'statement',expression:'({grid,r,c,area,maxArea})'},
+    {id:130,variant:'iterative',anchor:'stack.push([nr, nc]);',kind:'operation',expression:'({board,stack,r,c,nr,nc})'},
+    {id:133,variant:'iterative',anchor:'copy.neighbors.push(cloned.get(neighbor));',kind:'operation',expression:'({original:original.val,copy:copy.val,neighbors:copy.neighbors.map(n=>n.val),neighbor:neighbor.val,cloned:[...cloned.keys()].map(n=>n.val),stack:stack.map(n=>n.val)})'},
+    {id:332,variant:'iterative',anchor:'const finishedAirport = stack.pop();',kind:'operation',expression:'({stack,route,airport,destinations})'},
   ];
   const normalize=value=>JSON.parse(JSON.stringify(value,(_key,v)=>typeof v==='number'&&!Number.isFinite(v)?String(v):v));
   const message=worker=>new Promise((resolve,reject)=>{

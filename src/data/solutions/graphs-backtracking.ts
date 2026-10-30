@@ -1,4 +1,5 @@
 import { ProblemSolution } from "./types";
+import { iterativeGraphSolutions } from './graph-iterative';
 
 export const solutions: ProblemSolution[] = [
   // ============================================================
@@ -1339,6 +1340,8 @@ Explanation: "hit" -> "hot" -> "dot" -> "dog" -> "cog" is the shortest transform
   // 130. Surrounded Regions
   {
     id: 130,
+    solutionTitle: "Recursive DFS",
+    followUp: iterativeGraphSolutions[130],
     description:
       "Given an m x n matrix board containing 'X' and 'O', capture all regions that are 4-directionally surrounded by 'X'. A region is captured by flipping all 'O's into 'X's. 'O's on the border or connected to a border 'O' are not captured.",
     examples: `Input: board = [["X","X","X","X"],["X","O","O","X"],["X","X","O","X"],["X","O","X","X"]]
@@ -1467,6 +1470,8 @@ Explanation: The 'O' at the bottom border is not surrounded, so it stays. The in
   // 133. Clone Graph
   {
     id: 133,
+    solutionTitle: "Recursive DFS",
+    followUp: iterativeGraphSolutions[133],
     description:
       "Given a reference of a node in a connected undirected graph, return a deep copy (clone) of the graph. Each node contains a value and a list of its neighbors.",
     examples: `Input: adjList = [[2,4],[1,3],[2,4],[1,3]]
@@ -2191,6 +2196,8 @@ Explanation: Removing edge [2,3] leaves a valid tree. It is the last edge that, 
   // 695. Max Area of Island
   {
     id: 695,
+    solutionTitle: "Recursive DFS",
+    followUp: iterativeGraphSolutions[695],
     description:
       "Given a binary matrix grid where 1 represents land and 0 represents water, return the maximum area of an island in grid. An island is a group of 1's connected 4-directionally. If there is no island, return 0.",
     examples: `Input: grid = [[0,0,1,0,0],[0,0,0,0,0],[0,1,1,0,1],[0,1,0,0,1],[0,1,1,1,1]]
@@ -2640,6 +2647,8 @@ Explanation: It takes 4 minutes for the rot to spread from the top-left rotten o
   // 332. Reconstruct Itinerary
   {
     id: 332,
+    solutionTitle: "Recursive Hierholzer's algorithm",
+    followUp: iterativeGraphSolutions[332],
     description:
       "You are given a list of airline tickets where tickets[i] = [from_i, to_i] represents a flight. Reconstruct the itinerary in lexical order starting from 'JFK'. You must use all tickets exactly once. The itinerary must begin with 'JFK'.",
     examples: `Input: tickets = [["MUC","LHR"],["JFK","MUC"],["SFO","SJC"],["LHR","SFO"]]

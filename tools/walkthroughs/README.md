@@ -13,6 +13,18 @@ recording audit cover these alternatives as well as the 250 primary solutions.
 Use `node tools/walkthroughs/verify.cjs --write --ids=200` to regenerate both
 Number of Islands recordings without rewriting unrelated problems.
 
+All 31 entries in Graphs and Advanced Graphs were reviewed in both JavaScript
+and Python. The five recursive primary solutions now also have iterative
+versions: Number of Islands, Max Area of Island, Clone Graph, Surrounded Regions,
+and Reconstruct Itinerary. The other 26 already use iteration (including their
+union-find and heap helpers). New alternatives live in
+`src/data/solutions/graph-iterative.ts`; original recursive implementations stay
+available beside them. Grids mark cells before pushing; graph cloning creates
+and records clones before scheduling; itinerary reconstruction consumes tickets
+and backtracks with a stack, allowing repeated airports and duplicate tickets.
+Tests cover exhaustive small grids, connected four-node graphs, brute-force
+itinerary comparisons, Python parity, and large connected grids.
+
 Run these commands with Node 22 or newer:
 
 ```sh

@@ -3879,6 +3879,154 @@
         ]
       ],
       "name": "Edge case"
+    },
+    {
+      "name": "All border-connected",
+      "entry": "solve",
+      "params": [
+        "board"
+      ],
+      "args": [
+        [
+          [
+            "O",
+            "O",
+            "O"
+          ],
+          [
+            "O",
+            "O",
+            "O"
+          ]
+        ]
+      ],
+      "expected": [
+        [
+          "O",
+          "O",
+          "O"
+        ],
+        [
+          "O",
+          "O",
+          "O"
+        ]
+      ],
+      "resultArg": 0
+    },
+    {
+      "name": "Enclosed center",
+      "entry": "solve",
+      "params": [
+        "board"
+      ],
+      "args": [
+        [
+          [
+            "X",
+            "X",
+            "X"
+          ],
+          [
+            "X",
+            "O",
+            "X"
+          ],
+          [
+            "X",
+            "X",
+            "X"
+          ]
+        ]
+      ],
+      "expected": [
+        [
+          "X",
+          "X",
+          "X"
+        ],
+        [
+          "X",
+          "X",
+          "X"
+        ],
+        [
+          "X",
+          "X",
+          "X"
+        ]
+      ],
+      "resultArg": 0
+    },
+    {
+      "name": "Diagonal contact is not connected",
+      "entry": "solve",
+      "params": [
+        "board"
+      ],
+      "args": [
+        [
+          [
+            "O",
+            "X",
+            "X"
+          ],
+          [
+            "X",
+            "O",
+            "X"
+          ],
+          [
+            "X",
+            "X",
+            "O"
+          ]
+        ]
+      ],
+      "expected": [
+        [
+          "O",
+          "X",
+          "X"
+        ],
+        [
+          "X",
+          "X",
+          "X"
+        ],
+        [
+          "X",
+          "X",
+          "O"
+        ]
+      ],
+      "resultArg": 0
+    },
+    {
+      "name": "One row",
+      "entry": "solve",
+      "params": [
+        "board"
+      ],
+      "args": [
+        [
+          [
+            "O",
+            "X",
+            "O",
+            "O"
+          ]
+        ]
+      ],
+      "expected": [
+        [
+          "O",
+          "X",
+          "O",
+          "O"
+        ]
+      ],
+      "resultArg": 0
     }
   ],
   "131": [
@@ -3985,6 +4133,95 @@
       ],
       "expected": [],
       "name": "Edge case"
+    },
+    {
+      "name": "Isolated node",
+      "entry": "cloneGraph",
+      "params": [
+        "node"
+      ],
+      "args": [
+        {
+          "$graph": [
+            []
+          ]
+        }
+      ],
+      "expected": [
+        []
+      ],
+      "output": "graph",
+      "distinctClone": true
+    },
+    {
+      "name": "Triangle with shared neighbors",
+      "entry": "cloneGraph",
+      "params": [
+        "node"
+      ],
+      "args": [
+        {
+          "$graph": [
+            [
+              2,
+              3
+            ],
+            [
+              1,
+              3
+            ],
+            [
+              1,
+              2
+            ]
+          ]
+        }
+      ],
+      "expected": [
+        [
+          2,
+          3
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          1,
+          2
+        ]
+      ],
+      "output": "graph",
+      "distinctClone": true
+    },
+    {
+      "name": "Two connected nodes",
+      "entry": "cloneGraph",
+      "params": [
+        "node"
+      ],
+      "args": [
+        {
+          "$graph": [
+            [
+              2
+            ],
+            [
+              1
+            ]
+          ]
+        }
+      ],
+      "expected": [
+        [
+          2
+        ],
+        [
+          1
+        ]
+      ],
+      "output": "graph",
+      "distinctClone": true
     }
   ],
   "134": [
@@ -7417,6 +7654,93 @@
         "KUL"
       ],
       "name": "Edge case"
+    },
+    {
+      "name": "Lexical choice with cycles",
+      "entry": "findItinerary",
+      "params": [
+        "tickets"
+      ],
+      "args": [
+        [
+          [
+            "JFK",
+            "SFO"
+          ],
+          [
+            "JFK",
+            "ATL"
+          ],
+          [
+            "SFO",
+            "ATL"
+          ],
+          [
+            "ATL",
+            "JFK"
+          ],
+          [
+            "ATL",
+            "SFO"
+          ]
+        ]
+      ],
+      "expected": [
+        "JFK",
+        "ATL",
+        "JFK",
+        "SFO",
+        "ATL",
+        "SFO"
+      ]
+    },
+    {
+      "name": "Duplicate tickets",
+      "entry": "findItinerary",
+      "params": [
+        "tickets"
+      ],
+      "args": [
+        [
+          [
+            "JFK",
+            "ATL"
+          ],
+          [
+            "JFK",
+            "ATL"
+          ],
+          [
+            "ATL",
+            "JFK"
+          ]
+        ]
+      ],
+      "expected": [
+        "JFK",
+        "ATL",
+        "JFK",
+        "ATL"
+      ]
+    },
+    {
+      "name": "One ticket",
+      "entry": "findItinerary",
+      "params": [
+        "tickets"
+      ],
+      "args": [
+        [
+          [
+            "JFK",
+            "LAX"
+          ]
+        ]
+      ],
+      "expected": [
+        "JFK",
+        "LAX"
+      ]
     }
   ],
   "337": [
@@ -9292,6 +9616,81 @@
       ],
       "expected": 3,
       "name": "Edge case"
+    },
+    {
+      "name": "All water",
+      "entry": "maxAreaOfIsland",
+      "params": [
+        "grid"
+      ],
+      "args": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      ],
+      "expected": 0
+    },
+    {
+      "name": "Solid island with a cycle",
+      "entry": "maxAreaOfIsland",
+      "params": [
+        "grid"
+      ],
+      "args": [
+        [
+          [
+            1,
+            1
+          ],
+          [
+            1,
+            1
+          ]
+        ]
+      ],
+      "expected": 4
+    },
+    {
+      "name": "Diagonal land",
+      "entry": "maxAreaOfIsland",
+      "params": [
+        "grid"
+      ],
+      "args": [
+        [
+          [
+            1,
+            0
+          ],
+          [
+            0,
+            1
+          ]
+        ]
+      ],
+      "expected": 1
+    },
+    {
+      "name": "Single land cell",
+      "entry": "maxAreaOfIsland",
+      "params": [
+        "grid"
+      ],
+      "args": [
+        [
+          [
+            1
+          ]
+        ]
+      ],
+      "expected": 1
     }
   ],
   "698": [
