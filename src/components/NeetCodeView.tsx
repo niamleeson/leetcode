@@ -8,6 +8,7 @@ import { solutionMap, ProblemSolution } from '../data/solutions';
 import CodeBlock from './CodeBlock';
 import FollowUpSolution from './FollowUpSolution';
 import ExecutionWalkthrough, { hasExecutionWalkthrough } from './walkthroughs/ExecutionWalkthrough';
+import './neetcodeView.css';
 
 type Lang = 'python' | 'javascript';
 type TemplateTab = 'pseudocode' | 'code';
@@ -48,7 +49,7 @@ function InlineSolution({ solution, language }: { solution: ProblemSolution; lan
   const interactive = showJs && hasExecutionWalkthrough(solution.id);
 
   return (
-    <div className="space-y-4">
+    <div className="min-w-0 space-y-4">
       {solution.description && (
         <div>
           <h4 className="text-[10px] font-semibold text-gray-500 light:text-gray-500 uppercase tracking-wider mb-1.5">Problem</h4>
@@ -140,8 +141,8 @@ function ProblemRow({
   const hasSolution = !!externalSolution || !!inlineSolution;
 
   return (
-    <div className="border border-gray-800 light:border-gray-200 rounded-md overflow-hidden">
-      <div className="w-full flex items-center gap-3 px-3 py-2">
+    <div className="neetcode-problem min-w-0 border-b border-gray-800 light:border-gray-200">
+      <div className="w-full flex items-center gap-2 py-3">
         <span className="text-xs text-gray-500 light:text-gray-500 font-mono w-10 shrink-0">#{problem.id}</span>
         <button
           type="button"
@@ -182,7 +183,7 @@ function ProblemRow({
       </div>
 
       {open && hasSolution && (
-        <div className="border-t border-gray-800 light:border-gray-200 p-3 bg-gray-950/50 light:bg-gray-50">
+        <div className="neetcode-solution min-w-0 border-t border-gray-800 light:border-gray-200 py-4">
           {externalSolution ? (
             <InlineSolution solution={externalSolution} language={language} />
           ) : (
@@ -228,8 +229,8 @@ function TemplateCard({
     .filter((p): p is NeetCodeProblem => !!p);
 
   return (
-    <div className="border border-gray-800 light:border-gray-200 rounded-lg overflow-hidden bg-gray-900/40 light:bg-gray-50">
-      <div className="p-4 border-b border-gray-800 light:border-gray-200">
+    <div className="neetcode-template min-w-0">
+      <div className="py-3">
         <h3 className="text-base font-semibold text-white light:text-gray-900">{template.name}</h3>
         <p className="text-xs text-sky-300 light:text-sky-700 italic mt-1">&ldquo;{template.mnemonic}&rdquo;</p>
       </div>
@@ -251,9 +252,9 @@ function TemplateCard({
         ))}
       </div>
 
-      <div className="p-4">
+      <div className="min-w-0 py-3">
         {tab === 'pseudocode' ? (
-          <pre className="text-xs text-gray-300 light:text-gray-700 leading-relaxed whitespace-pre-wrap font-mono bg-gray-950 light:bg-gray-50 border border-gray-800 light:border-gray-200 rounded-md p-4">
+          <pre tabIndex={0} aria-label="Template pseudocode" className="text-xs text-gray-300 light:text-gray-700 leading-relaxed whitespace-pre overflow-x-auto font-mono bg-gray-950 light:bg-gray-50 border border-gray-800 light:border-gray-200 rounded-md p-2 sm:p-3">
             {template.pseudocode}
           </pre>
         ) : (
@@ -264,11 +265,11 @@ function TemplateCard({
         )}
       </div>
 
-      <div className="border-t border-gray-800 light:border-gray-200 p-4">
+      <div className="min-w-0 border-t border-gray-800 light:border-gray-200 pt-4">
         <h4 className="text-xs font-semibold text-blue-300 light:text-blue-700 uppercase tracking-wider mb-3">
           Questions solved by this template ({templateProblems.length})
         </h4>
-        <div className="space-y-1.5">
+        <div className="min-w-0">
           {templateProblems.map((p) => (
             <ProblemRow
               key={p.id}
@@ -307,10 +308,10 @@ function TopicSection({
   onToggleProblem: (id: number) => void;
 }) {
   return (
-    <div className="border border-gray-800 light:border-gray-200 rounded-lg overflow-hidden">
+    <div className="neetcode-topic min-w-0">
       <button
         onClick={onToggle}
-        className="w-full flex items-center justify-between p-4 bg-gray-900 light:bg-white hover:bg-gray-800/50 light:hover:bg-gray-100 transition-colors text-left"
+        className="w-full flex items-center justify-between gap-3 py-3 border-b border-gray-800 light:border-gray-200 hover:bg-gray-800/50 light:hover:bg-gray-100 transition-colors text-left"
       >
         <div>
           <h2 className="text-lg font-bold text-white light:text-gray-900">{topic.name}</h2>
@@ -330,7 +331,7 @@ function TopicSection({
       </button>
 
       {expanded && (
-        <div className="p-4 space-y-6 border-t border-gray-800 light:border-gray-200 bg-gray-950/40 light:bg-gray-50">
+        <div className="min-w-0 space-y-6">
           {topic.templates.map((tpl) => (
             <TemplateCard
               key={tpl.id}
@@ -365,8 +366,8 @@ export default function NeetCodeView({ topics, storagePrefix, title, description
   const problemsOpen = usePersistedOpenSet<number>(`${storagePrefix}-open-problems`);
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="neetcode-page min-w-0 space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-white light:text-gray-900">{title}</h1>
           <p className="text-gray-400 light:text-gray-600 mt-1 text-sm">{description}</p>

@@ -53,6 +53,11 @@ panel with all their names and source index markers. This keeps values such as
 `maxArea`, `maxProfit`, `freshCount`, `charSet`, and `inDegree` available throughout
 the relevant code steps, without repeating them in a collapsed variables list.
 
+NeetCode pages use one outer gutter, without padded cards around each topic,
+template, solution, and walkthrough. Code keeps its original line breaks and
+full height, with horizontal scrolling inside the code block on narrow screens.
+Wide layouts give additional width to the code alongside the walkthrough.
+
 The generated JSON files are loaded individually when a problem is expanded.
 No solution code is evaluated in the browser. The source displayed by the player
 is checked against the current solution; the production build also checks source,

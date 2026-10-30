@@ -106,7 +106,7 @@ export default function App() {
         dailyGoal={store.dailyGoal}
         getTopicStats={store.getTopicStats}
       />
-      <main className={`p-2 md:p-6 pt-14 overflow-y-auto mx-auto ${isNeetCodePage ? 'max-w-[1600px]' : 'max-w-5xl'}`}>
+      <main className={`mx-auto ${isNeetCodePage ? 'neetcode-main' : 'p-2 md:p-6 pt-14 overflow-y-auto max-w-5xl'}`}>
         <Routes>
           <Route path="/" element={
             <Dashboard

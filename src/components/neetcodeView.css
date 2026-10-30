@@ -1,0 +1,12 @@
+/* One page gutter; topic, template and solution wrappers add no horizontal inset. */
+.neetcode-main { width: 100%; min-width: 0; max-width: none; padding: 56px 8px 24px; }
+.neetcode-page .traversal-walkthrough { margin-top: 12px; padding: 0; border: 0; border-radius: 0; background: transparent; }
+.neetcode-page .execution-walkthrough .traversal-status { min-height: 0; }
+.neetcode-page .execution-data > .traversal-panel:not(.traversal-answer) { padding: 0; border: 0; border-radius: 0; background: transparent; }
+.neetcode-page .neetcode-solution .follow-up-solution { padding: 16px 0 0; border-width: 1px 0 0; border-radius: 0; background: transparent; }
+.neetcode-page .code-block { max-width: 100%; padding: 8px !important; }
+.neetcode-page :is(.code-block, pre[aria-label="Template pseudocode"]):focus-visible { outline: 2px solid #0284c7; outline-offset: -2px; }
+@media (min-width: 768px) {
+  .neetcode-main { padding-left: 16px; padding-right: 16px; }
+  .neetcode-page .code-block { padding: 12px !important; }
+}

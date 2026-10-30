@@ -31,7 +31,7 @@ export default function WalkthroughCode({ code, lines, enabled, noop }: { code: 
 
   return <div className="traversal-source">
     <div className="traversal-source-heading"><span>JavaScript</span><span>{enabled && lines.length > 0 ? `${lines.length === 1 ? 'Line' : 'Lines'} ${lines.join(', ')}` : ''}</span></div>
-    <pre aria-label="Walkthrough JavaScript code" className="traversal-source-code">
+    <pre tabIndex={0} aria-label="Walkthrough JavaScript code" className="traversal-source-code">
       <code className="language-javascript">{syntaxLines.map((tokens, index) => {
         const active = enabled && lines.includes(index + 1);
         return <span key={index} data-line={index + 1} aria-current={active ? 'step' : undefined} className={`traversal-source-line ${active ? noop ? 'is-noop' : 'is-active' : ''}`}>

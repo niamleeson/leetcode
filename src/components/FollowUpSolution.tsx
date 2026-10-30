@@ -8,7 +8,7 @@ export default function FollowUpSolution({ solution, language }: {
   const showJs = language === 'javascript' && !!solution.jsCode;
 
   return (
-    <section className="space-y-3 rounded-lg border border-blue-900/40 light:border-blue-200 bg-blue-950/10 light:bg-blue-50/50 p-4">
+    <section className="follow-up-solution space-y-3 rounded-lg border border-blue-900/40 light:border-blue-200 bg-blue-950/10 light:bg-blue-50/50 p-4">
       <h3 className="text-sm font-semibold text-blue-300 light:text-blue-700">Follow-up: {solution.title}</h3>
       <p className="text-sm text-gray-400 light:text-gray-600 leading-relaxed whitespace-pre-line">{solution.approach}</p>
       <h4 className="text-xs font-semibold text-emerald-400 light:text-emerald-700">{showJs ? 'JavaScript' : 'Python'} Solution</h4>
