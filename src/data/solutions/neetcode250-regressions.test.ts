@@ -108,6 +108,48 @@ describe('NeetCode 250 requirement regressions', () => {
 
 const hasPython = spawnSync('python3', ['--version']).status === 0;
 
+// Independent oracle: follow actual downhill flow from each starting cell.
+const oceanCases=Array.from({length:729},(_,seed)=>{
+  let value=seed;
+  const heights=Array.from({length:2},()=>Array.from({length:3},()=>{const height=value%3;value=Math.floor(value/3);return height;}));
+  const expected:number[][]=[];
+  for(let r=0;r<2;r++)for(let c=0;c<3;c++) {
+    const pending=[[r,c]],seen=new Set([`${r},${c}`]);let pacific=false,atlantic=false;
+    for(let head=0;head<pending.length;head++) {
+      const [row,col]=pending[head];
+      pacific ||= row===0||col===0;atlantic ||= row===1||col===2;
+      for(const [nr,nc] of [[row-1,col],[row+1,col],[row,col-1],[row,col+1]]) {
+        if(nr<0||nr>=2||nc<0||nc>=3||heights[nr][nc]>heights[row][col]||seen.has(`${nr},${nc}`))continue;
+        seen.add(`${nr},${nc}`);pending.push([nr,nc]);
+      }
+    }
+    if(pacific&&atlantic)expected.push([r,c]);
+  }
+  return {heights,expected};
+});
+
+it('matches forward water flow on all 729 small height grids without mutating heights',()=>{
+  const before=JSON.stringify(oceanCases);
+  const actual=runInNewContext(`${solutionMap[417].jsCode}\ncases.map(({heights})=>pacificAtlantic(heights))`,{cases:oceanCases},{timeout:5000});
+  expect(JSON.parse(JSON.stringify(actual))).toEqual(oceanCases.map(item=>item.expected));
+  expect(JSON.stringify(oceanCases)).toBe(before);
+});
+
+it.skipIf(!hasPython)('matches the coordinate-pair Python solution against forward water flow',()=>{
+  const result=spawnSync('python3',['-c',`
+import json, sys
+data = json.load(sys.stdin)
+namespace = {}
+exec(data['source'], namespace)
+solution = namespace['Solution']()
+for case in data['cases']:
+    heights = [row[:] for row in case['heights']]
+    assert solution.pacificAtlantic(heights) == case['expected']
+    assert heights == case['heights']
+`],{input:JSON.stringify({source:solutionMap[417].code,cases:oceanCases}),encoding:'utf8',timeout:15000});
+  expect(result.stderr).toBe('');expect(result.status).toBe(0);
+});
+
 // An independent component-merging oracle for every possible 3x3 binary grid.
 const islandCases = Array.from({length:512},(_,mask)=>{
   const grid=Array.from({length:3},(_,r)=>Array.from({length:3},(_,c)=>mask&(1<<(r*3+c))?'1':'0'));

@@ -1987,89 +1987,143 @@ Explanation: Course 0 has no prerequisites. Courses 1 and 2 depend on 0. Course 
   // 417. Pacific Atlantic Water Flow
   {
     id: 417,
+    solutionTitle: "Iterative DFS (coordinate pairs)",
     description:
       "Given an m x n matrix of heights, water can flow from a cell to an adjacent cell (up/down/left/right) only if the adjacent cell's height is less than or equal to the current cell's height. The Pacific ocean touches the left and top edges, and the Atlantic ocean touches the right and bottom edges. Return a list of cells from which water can flow to both oceans.",
     examples: `Input: heights = [[1,2,2,3,5],[3,2,3,4,4],[2,4,5,3,1],[6,7,1,4,5],[5,1,1,2,4]]
 Output: [[0,4],[1,3],[1,4],[2,2],[3,0],[3,1],[4,0]]
 Explanation: These cells can reach both the Pacific (top/left) and Atlantic (bottom/right) oceans.`,
     intuition:
-      "Checking from every cell whether water can flow to both oceans is expensive. Instead, reverse the flow: start from each ocean's border and flow uphill to find all cells that can drain into that ocean. Cells that appear in both the Pacific-reachable and Atlantic-reachable sets are your answer. Reversing the direction turns a hard problem into two simple flood fills.",
-    approach: `Traverse uphill from each ocean boundary using an explicit stack. A neighboring cell is reachable when its height is at least the current height. Return the cells reached by both traversals. Iteration avoids overflowing the call stack on large flat grids.`,
+      "Checking from every cell whether water can flow to both oceans is expensive. Instead, reverse the flow: start from each ocean's border and flow uphill to find all cells that can drain into that ocean. Track each ocean's reachable cells in its own boolean grid. A cell marked true in both grids can reach both oceans.",
+    approach: `Store [row, col] pairs directly in an explicit stack. Start searches at the Pacific's top/left borders and the Atlantic's bottom/right borders, marking cells in separate boolean grids. Move only to equal or higher neighbors because we are following water paths backward. Return coordinates marked true in both grids.`,
     code: `class Solution:
     def pacificAtlantic(self, heights: list[list[int]]) -> list[list[int]]:
         rows, cols = len(heights), len(heights[0])
 
-        def traverse(starts):
-            reachable = set(starts)
-            pending = list(reachable)
-            while pending:
-                row, col = pending.pop()
-                for delta_row, delta_col in [(1, 0), (-1, 0), (0, 1), (0, -1)]:
-                    next_row, next_col = row + delta_row, col + delta_col
-                    if not (0 <= next_row < rows and 0 <= next_col < cols):
-                        continue
-                    neighbor = (next_row, next_col)
-                    if neighbor not in reachable and heights[next_row][next_col] >= heights[row][col]:
-                        reachable.add(neighbor)
-                        pending.append(neighbor)
-            return reachable
+        pacific = [[False] * cols for _ in range(rows)]
+        atlantic = [[False] * cols for _ in range(rows)]
+        directions = [(1, 0), (-1, 0), (0, 1), (0, -1)]
 
-        pacific = traverse([(0, col) for col in range(cols)] + [(row, 0) for row in range(rows)])
-        atlantic = traverse([(rows - 1, col) for col in range(cols)] + [(row, cols - 1) for row in range(rows)])
-        return [[row, col] for row, col in pacific & atlantic]`,
+        def explore(start_row, start_col, visited):
+            if visited[start_row][start_col]:
+                return
+            visited[start_row][start_col] = True
+            stack = [(start_row, start_col)]
+            while stack:
+                r, c = stack.pop()
+                for dr, dc in directions:
+                    nr, nc = r + dr, c + dc
+                    if nr < 0 or nr >= rows or nc < 0 or nc >= cols:
+                        continue
+                    if visited[nr][nc]:
+                        continue
+                    if heights[nr][nc] < heights[r][c]:
+                        continue
+                    visited[nr][nc] = True
+                    stack.append((nr, nc))
+
+        for r in range(rows):
+            explore(r, 0, pacific)
+            explore(r, cols - 1, atlantic)
+        for c in range(cols):
+            explore(0, c, pacific)
+            explore(rows - 1, c, atlantic)
+
+        result = []
+        for r in range(rows):
+            for c in range(cols):
+                if pacific[r][c] and atlantic[r][c]:
+                    result.append([r, c])
+        return result`,
     jsCode: `var pacificAtlantic = function(heights) {
     const rows = heights.length;
     const cols = heights[0].length;
-    function traverse(starts) {
-        const reachable = new Set(starts.map(([row, col]) => row * cols + col));
-        const pending = [...reachable];
-        while (pending.length > 0) {
-            const cell = pending.pop();
-            const row = Math.floor(cell / cols);
-            const col = cell % cols;
-            for (const [deltaRow, deltaCol] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-                const nextRow = row + deltaRow;
-                const nextCol = col + deltaCol;
-                if (nextRow < 0 || nextRow >= rows || nextCol < 0 || nextCol >= cols) continue;
-                const neighbor = nextRow * cols + nextCol;
-                if (!reachable.has(neighbor) && heights[nextRow][nextCol] >= heights[row][col]) {
-                    reachable.add(neighbor);
-                    pending.push(neighbor);
+
+    const pacific = Array.from(
+        { length: rows }, () => Array(cols).fill(false)
+    );
+    const atlantic = Array.from(
+        { length: rows }, () => Array(cols).fill(false)
+    );
+
+    const directions = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+
+    function explore(startRow, startCol, visited) {
+        if (visited[startRow][startCol]) return;
+
+        visited[startRow][startCol] = true;
+        const stack = [[startRow, startCol]];
+
+        while (stack.length) {
+            const [r, c] = stack.pop();
+
+            for (const [dr, dc] of directions) {
+                const nr = r + dr;
+                const nc = c + dc;
+
+                if (nr < 0 || nr >= rows || nc < 0 || nc >= cols) {
+                    continue;
                 }
+
+                if (visited[nr][nc]) continue;
+
+                // Search backward: move uphill or stay at equal height.
+                if (heights[nr][nc] < heights[r][c]) continue;
+
+                visited[nr][nc] = true;
+                stack.push([nr, nc]);
             }
         }
-        return reachable;
     }
-    const pacificStarts = [];
-    const atlanticStarts = [];
-    for (let row = 0; row < rows; row++) {
-        pacificStarts.push([row, 0]);
-        atlanticStarts.push([row, cols - 1]);
+
+    // Left edge → Pacific; right edge → Atlantic.
+    for (let r = 0; r < rows; r++) {
+        explore(r, 0, pacific);
+        explore(r, cols - 1, atlantic);
     }
-    for (let col = 0; col < cols; col++) {
-        pacificStarts.push([0, col]);
-        atlanticStarts.push([rows - 1, col]);
+
+    // Top edge → Pacific; bottom edge → Atlantic.
+    for (let c = 0; c < cols; c++) {
+        explore(0, c, pacific);
+        explore(rows - 1, c, atlantic);
     }
-    const pacific = traverse(pacificStarts);
-    const atlantic = traverse(atlanticStarts);
-    return [...pacific].filter(cell => atlantic.has(cell)).map(cell => [Math.floor(cell / cols), cell % cols]);
+
+    const result = [];
+
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            if (pacific[r][c] && atlantic[r][c]) {
+                result.push([r, c]);
+            }
+        }
+    }
+
+    return result;
 };`,
     jsWalkthrough: `heights = [[1,2],[4,3]]
-Pacific starts: top row and left column. Uphill traversal reaches all four cells.
-Atlantic starts: bottom row and right column. Uphill traversal reaches (0,1), (1,0), (1,1).
-Intersection: [[0,1],[1,0],[1,1]] (any order).
-Neighbor bounds are checked before reading the grid; an explicit stack handles long paths.`,
+Stack entries are coordinates, such as [0,0].
+visited refers to the ocean grid passed to explore.
+
+After the border searches:
+pacific  = [[true,  true],
+            [true,  true]]
+atlantic = [[false, true],
+            [true,  true]]
+
+Both true: [0,1], [1,0], [1,1]
+result = [[0,1],[1,0],[1,1]]`,
     explanation: `1. Reverse the flow: start from ocean boundaries and move only to equal or higher cells.
-2. Maintain one visited set and work stack per traversal.
-3. Check row and column bounds before accessing a neighbor.
-4. Mark cells before adding them to the stack, so each is processed at most once per ocean.
-5. Intersect the two visited sets. Time and space are O(rows × cols).`,
+2. Keep separate pacific and atlantic boolean grids. The visited parameter refers to whichever grid is passed to explore.
+3. Pop [r, c] directly from the stack and check the four neighboring coordinates.
+4. Check bounds before indexing a neighbor. Mark it true before pushing so it is processed at most once per ocean.
+5. Repeated border searches return immediately when their starting cell is already marked.
+6. Scan for cells where both grids are true and append [r, c] to result. The heights grid stays unchanged.`,
     timeComplexity: "O(m * n) where m and n are the matrix dimensions",
-    spaceComplexity: "O(m * n) for the two reachable sets",
+    spaceComplexity: "O(m * n) for the two boolean grids, stack, and result",
     hints: [
       "Thinking forward (from each cell to the ocean) is expensive. Think backward: from each ocean, which cells can reach it?",
       "Run DFS/BFS from all Pacific border cells, then from all Atlantic border cells, flowing uphill.",
-      "Cells in both reachable sets can flow to both oceans.",
+      "Cells marked true in both boolean grids can flow to both oceans.",
     ],
   },
 
