@@ -4963,8 +4963,8 @@ class Solution:
       code: `class Solution:
     def checkIfPrerequisite(self, numCourses: int, prerequisites: list[list[int]], queries: list[list[int]]) -> list[bool]:
         graph = [[] for _ in range(numCourses)]
-        for before, after in prerequisites:
-            graph[before].append(after)
+        for prerequisite, course in prerequisites:
+            graph[prerequisite].append(course)
 
         reachable = [[False] * numCourses for _ in range(numCourses)]
 
@@ -4983,14 +4983,14 @@ class Solution:
                     reachable[start][next_course] = True
                     queue.append(next_course)
 
-        return [reachable[before][after] for before, after in queries]`,
+        return [reachable[prerequisite][course] for prerequisite, course in queries]`,
       jsCode: `var checkIfPrerequisite = function(numCourses, prerequisites, queries) {
     const graph = Array(numCourses)
         .fill(null)
         .map(() => []);
 
-    for (const [before, after] of prerequisites) {
-        graph[before].push(after);
+    for (const [prerequisite, course] of prerequisites) {
+        graph[prerequisite].push(course);
     }
 
     const reachable = Array(numCourses)
@@ -5013,14 +5013,14 @@ class Solution:
         }
     }
 
-    return queries.map(([before, after]) => reachable[before][after]);
+    return queries.map(([prerequisite, course]) => reachable[prerequisite][course]);
 };`,
       explanation:
-        '1. For [before, after], add the directed edge before → after.\n' +
+        '1. For [prerequisite, course], add the directed edge prerequisite → course.\n' +
         '2. Start a fresh queue for each course. Each start uses its own row of reachable.\n' +
         '3. Read queue[head] and advance head. Entries before head are already consumed; entries at or after head are pending.\n' +
         '4. Skip neighbors already marked in this row. Otherwise, mark them before enqueueing so multiple paths do not schedule a course twice.\n' +
-        '5. Answer [before, after] using reachable[before][after]. The input has no cycles, so a course does not become its own prerequisite.',
+        '5. Answer [prerequisite, course] using reachable[prerequisite][course]. The input has no cycles, so a course does not become its own prerequisite.',
       timeComplexity: 'O(V * (V + E) + Q), for V courses, E prerequisites, and Q queries',
       spaceComplexity: 'O(V^2 + E) auxiliary space for the reachability table, graph, and queue',
     },

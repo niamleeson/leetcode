@@ -35,7 +35,7 @@ it('loads the BFS alternative with accurate highlights, queue membership, and a 
         if (positions.has(key)) expect(position).toBe(positions.get(key));
         positions.set(key, position);
         expect(node.classList.contains('is-queued')).toBe(queue.slice(head).includes(value));
-        for (const name of ['start', 'course', 'next']) {
+        for (const name of ['prerequisite', 'start', 'course', 'next']) {
           if (step.state[name] === value) expect(node.querySelector('.execution-node-pointer')?.textContent).toContain(name);
         }
       }
