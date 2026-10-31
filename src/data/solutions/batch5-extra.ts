@@ -4970,11 +4970,9 @@ class Solution:
 
         for start in range(numCourses):
             queue = [start]
-            head = 0
 
-            while head < len(queue):
-                course = queue[head]
-                head += 1
+            while queue:
+                course = queue.pop(0)
 
                 for next_course in graph[course]:
                     if reachable[start][next_course]:
@@ -4999,10 +4997,9 @@ class Solution:
 
     for (let start = 0; start < numCourses; start++) {
         const queue = [start];
-        let head = 0;
 
-        while (head < queue.length) {
-            const course = queue[head++];
+        while (queue.length) {
+            const course = queue.shift();
 
             for (const next of graph[course]) {
                 if (reachable[start][next]) continue;
@@ -5018,10 +5015,10 @@ class Solution:
       explanation:
         '1. For [prerequisite, course], add the directed edge prerequisite → course.\n' +
         '2. Start a fresh queue for each course. Each start uses its own row of reachable.\n' +
-        '3. Read queue[head] and advance head. Entries before head are already consumed; entries at or after head are pending.\n' +
+        '3. While the queue is not empty, remove its first course and explore its outgoing edges. The queue contains only courses still waiting to be processed.\n' +
         '4. Skip neighbors already marked in this row. Otherwise, mark them before enqueueing so multiple paths do not schedule a course twice.\n' +
         '5. Answer [prerequisite, course] using reachable[prerequisite][course]. The input has no cycles, so a course does not become its own prerequisite.',
-      timeComplexity: 'O(V * (V + E) + Q), for V courses, E prerequisites, and Q queries',
+      timeComplexity: 'O(V * (V^2 + E) + Q) worst case: each array front removal can cost O(V), for V courses, E prerequisites, and Q queries',
       spaceComplexity: 'O(V^2 + E) auxiliary space for the reachability table, graph, and queue',
     },
   },

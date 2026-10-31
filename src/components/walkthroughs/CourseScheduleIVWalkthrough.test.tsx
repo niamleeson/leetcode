@@ -26,7 +26,6 @@ it('loads the BFS alternative with accurate highlights, queue membership, and a 
       expect([...document.querySelectorAll('[aria-current="step"]')].map(line => Number(line.getAttribute('data-line')))).toEqual(step.lines || [step.line]);
       const { heap } = materialize(example.steps, index);
       const queue = objectFor(step.state.queue, heap)?.items || [];
-      const head = typeof step.state.head === 'number' ? step.state.head : 0;
       const nodes = [...document.querySelectorAll('[data-node-key]')];
       expect(nodes).toHaveLength(example.input[0] as number);
       for (const node of nodes) {
@@ -34,7 +33,7 @@ it('loads the BFS alternative with accurate highlights, queue membership, and a 
         const position = node.getAttribute('transform')!;
         if (positions.has(key)) expect(position).toBe(positions.get(key));
         positions.set(key, position);
-        expect(node.classList.contains('is-queued')).toBe(queue.slice(head).includes(value));
+        expect(node.classList.contains('is-queued')).toBe(queue.includes(value));
         for (const name of ['prerequisite', 'start', 'course', 'next']) {
           if (step.state[name] === value) expect(node.querySelector('.execution-node-pointer')?.textContent).toContain(name);
         }
@@ -51,8 +50,8 @@ it('loads the BFS alternative with accurate highlights, queue membership, and a 
   }
 });
 
-it('marks before enqueueing, processes each course once per start, and records duplicate-path skips', () => {
-  let enqueued = 0, processed = 0, skipped = 0;
+it('marks before enqueueing, removes courses from the front once per start, and records duplicate-path skips', () => {
+  let enqueued = 0, dequeued = 0, processed = 0, skipped = 0;
   for (const example of trace.examples) {
     const seen = new Set<string>();
     for (const [index, step] of example.steps.entries()) {
@@ -66,9 +65,18 @@ it('marks before enqueueing, processes each course once per start, and records d
         expect(new Set(queue).size).toBe(queue.length);
         enqueued++;
       }
-      if (step.kind === 'statement' && step.label === 'const course = queue[head++];') {
+      if (step.kind === 'operation' && step.label === 'queue.shift()') {
+        const previous = example.steps[index - 1];
+        const previousHeap = materialize(example.steps, index - 1).heap;
+        const previousQueue = objectFor(previous.state.queue, previousHeap)!.items!;
+        expect(step.value).toBe(previousQueue[0]);
+        expect(objectFor(step.state.queue, heap)!.items).toEqual(previousQueue.slice(1));
+        dequeued++;
+      }
+      if (step.kind === 'statement' && step.label === 'const course = queue.shift();') {
         const queue = objectFor(step.state.queue, heap)!.items!;
-        expect(queue[(step.state.head as number) - 1]).toBe(step.state.course);
+        expect(queue).not.toContain(step.state.course);
+        expect(step.state.course).toBe(example.steps[index - 1].value);
         const key = `${step.state.start}/${step.state.course}`;
         expect(seen.has(key)).toBe(false);
         seen.add(key);
@@ -81,6 +89,7 @@ it('marks before enqueueing, processes each course once per start, and records d
     }
   }
   expect(enqueued).toBeGreaterThan(0);
+  expect(dequeued).toBe(processed);
   expect(processed).toBeGreaterThan(enqueued);
   expect(skipped).toBeGreaterThan(0);
 });
