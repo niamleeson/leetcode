@@ -3063,7 +3063,7 @@ NumMatrix.prototype.sumRegion = function(row1, col1, row2, col2) {
             adj[v].add(u)
         leaves = deque(i for i in range(n) if len(adj[i]) == 1)
         remaining = n
-        while remaining > 2:
+        while remaining != 1 and remaining != 2:
             remaining -= len(leaves)
             new_leaves = deque()
             for leaf in leaves:
@@ -3095,7 +3095,7 @@ NumMatrix.prototype.sumRegion = function(row1, col1, row2, col2) {
 
     // Peel leaves layer by layer until 1 or 2 nodes remain
     let nodesRemaining = n;
-    while (nodesRemaining > 2) {
+    while (nodesRemaining !== 1 && nodesRemaining !== 2) {
         nodesRemaining -= currentLeaves.length;
 
         const nextLeaves = [];
@@ -3122,7 +3122,7 @@ NumMatrix.prototype.sumRegion = function(row1, col1, row2, col2) {
       'Example: n=4, edges=[[1,0],[1,2],[1,3]]\n' +
       'adj: 0:{1}, 1:{0,2,3}, 2:{1}, 3:{1}\n' +
       'currentLeaves = [0,2,3]\n' +
-      'nodesRemaining > 2: 4 > 2 → true\n' +
+      'nodesRemaining !== 1 && nodesRemaining !== 2: 4 !== 1 && 4 !== 2 → true\n' +
       'nodesRemaining: 4 → 1\n' +
       'nextLeaves = []\n\n' +
       'leaf = 0, neighbor = 1\n' +
@@ -3134,7 +3134,7 @@ NumMatrix.prototype.sumRegion = function(row1, col1, row2, col2) {
       '  adj[1]: {3} → {}\n' +
       '  nextLeaves = [1]\n\n' +
       'currentLeaves: [0,2,3] → [1]\n' +
-      'nodesRemaining > 2: 1 > 2 → false\n' +
+      'nodesRemaining !== 1 && nodesRemaining !== 2: 1 !== 1 → false\n' +
       'return [1]',
     explanation:
       '1. Find all initial leaf nodes (degree 1).\n' +
