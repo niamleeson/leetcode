@@ -92,9 +92,11 @@ export function layoutGraph(graph:GraphModel) {
 
 export function graphNodeState(node:GraphNode,graph:GraphModel,state:Record<string,TraceValue>,heap:TraceHeap) {
   if(graph.active===false)return {labels:[],visited:false,queued:false};
-  const pointerNames=new Set(['node','parent','current','currentNode','course','dependentCourse','prereq','u','v','neighbor','before','after','src','dst','airport','from','to','char','currentWord','currentState','newState','leaf','rootX','rootY','pu','pv','x','y','a','b','value']);
+  const pointerNames=new Set(['node','parent','start','next','current','currentNode','course','dependentCourse','prereq','u','v','neighbor','before','after','src','dst','airport','from','to','char','currentWord','currentState','newState','leaf','rootX','rootY','pu','pv','x','y','a','b','value']);
   const labels=Object.entries(state).filter(([name,value])=>pointerNames.has(name)&&graphKey(value)===node.key).map(([name])=>name);
   const visited=(objectFor(state.visited,heap)?.items||objectFor(state.visitedStates,heap)?.items||[]).some(value=>graphKey(value)===node.key);
-  const queued=(objectFor(state.queue??state.stack,heap)?.items||[]).some(value=>graphKey(objectFor(value,heap)?.items?.[0]??value)===node.key);
+  const pending=objectFor(state.queue??state.stack,heap)?.items||[];
+  const head=state.queue!==undefined&&typeof state.head==='number'?state.head:0;
+  const queued=pending.slice(head).some(value=>graphKey(objectFor(value,heap)?.items?.[0]??value)===node.key);
   return {labels,visited,queued};
 }

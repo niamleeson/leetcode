@@ -6,6 +6,73 @@ import { neetcodeTopics } from '../neetcode250';
 import { solutionMap } from './index';
 import { iterativeGraphSolutions } from './graph-iterative';
 
+describe('Course Schedule IV BFS alternative', () => {
+  // Every four-node DAG has a topological order. Enumerate all orders and
+  // forward-edge subsets, then compute answers by independently enumerating paths.
+  const orders: number[][] = [];
+  function permute(prefix: number[], remaining: number[]) {
+    if (!remaining.length) orders.push(prefix);
+    remaining.forEach(node => permute([...prefix, node], remaining.filter(value => value !== node)));
+  }
+  permute([], [0, 1, 2, 3]);
+  const distinct = new Map<string, number[][]>();
+  for (const order of orders) {
+    const possible: number[][] = [];
+    for (let i = 0; i < 4; i++) for (let j = i + 1; j < 4; j++) possible.push([order[i], order[j]]);
+    for (let mask = 0; mask < 64; mask++) {
+      const edges = possible.filter((_, bit) => mask & (1 << bit)).sort(([a, b], [c, d]) => a - c || b - d);
+      distinct.set(JSON.stringify(edges), edges);
+    }
+  }
+  const cases = [...distinct.values()].map(edges => {
+    const reached = Array(4).fill(null).map(() => new Set<number>());
+    function paths(start: number, node: number) {
+      for (const [before, after] of edges) if (before === node) {
+        reached[start].add(after);
+        paths(start, after);
+      }
+    }
+    const queries: number[][] = [];
+    for (let start = 0; start < 4; start++) {
+      paths(start, start);
+      for (let end = 0; end < 4; end++) if (start !== end) queries.push([start, end]);
+    }
+    return { n: 4, edges, queries, expected: queries.map(([before, after]) => reached[before].has(after)) };
+  });
+  const chain = Array(99).fill(null).map((_, i) => [i + 1, i]);
+  const queries: number[][] = [];
+  for (let before = 0; before < 100; before++) for (let after = 0; after < 100; after++) if (before !== after) queries.push([before, after]);
+  cases.push({ n: 100, edges: chain, queries, expected: queries.map(([before, after]) => before > after) });
+
+  it('answers every query in all 543 four-node DAGs and a reverse-numbered chain without modifying inputs', () => {
+    expect(distinct.size).toBe(543);
+    const result = runInNewContext(`${solutionMap[1462].followUp!.jsCode}
+      cases.map(({ n, edges, queries }) => {
+        const before = JSON.stringify([edges, queries]);
+        const answer = checkIfPrerequisite(n, edges, queries);
+        if (JSON.stringify([edges, queries]) !== before) throw new Error('Inputs changed');
+        return answer;
+      })`, { cases }, { timeout: 5000 });
+    expect(JSON.parse(JSON.stringify(result))).toEqual(cases.map(({ expected }) => expected));
+  });
+
+  it('keeps the Python BFS consistent on the same independent cases', () => {
+    const result = spawnSync('python3', ['-c', `
+import json, sys
+data = json.load(sys.stdin)
+namespace = {}
+exec(data['code'], namespace)
+solution = namespace['Solution']()
+for case in data['cases']:
+    before = json.dumps([case['edges'], case['queries']])
+    assert solution.checkIfPrerequisite(case['n'], case['edges'], case['queries']) == case['expected'], case
+    assert json.dumps([case['edges'], case['queries']]) == before
+`], { input: JSON.stringify({ code: solutionMap[1462].followUp!.code, cases }), encoding: 'utf8', timeout: 10000 });
+    expect(result.stderr).toBe('');
+    expect(result.status).toBe(0);
+  });
+});
+
 describe('Graph Valid Tree iterative DFS', () => {
   // Independently detect cycles with union-find for every simple graph up to five nodes.
   const cases: { n: number; edges: number[][]; expected: boolean }[] = [];

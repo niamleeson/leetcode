@@ -4879,6 +4879,7 @@ class Solution:
   // ---------------------------------------------------------------------------
   {
     id: 1462,
+    solutionTitle: 'Floyd-Warshall (reachability table)',
     description:
       'There are numCourses courses labeled from 0 to numCourses-1. You are given prerequisites pairs and a list of queries. For each query [u, v], answer whether course u is a prerequisite of course v (directly or indirectly).',
     examples:
@@ -4886,7 +4887,7 @@ class Solution:
     intuition:
       'Floyd-Warshall computes transitive closure: after processing, you know exactly which courses are prerequisites of which. Each query then becomes a simple O(1) table lookup.',
     approach:
-      'Use Floyd-Warshall or BFS from each node to compute transitive closure: reachable[i][j] is True if there is a path from i to j. Then answer each query in O(1).',
+      'Use Floyd-Warshall to build a reachability table: reach[i][j] is true if there is a path from i to j. Then answer each query in O(1). The BFS alternative below builds the same information by exploring from each course.',
     code: `class Solution:
     def checkIfPrerequisite(self, numCourses: int, prerequisites: list[list[int]], queries: list[list[int]]) -> list[bool]:
         reach = [[False] * numCourses for _ in range(numCourses)]
@@ -4927,7 +4928,7 @@ class Solution:
     jsWalkthrough:
       'Input: numCourses=2, prerequisites=[[1,0]], queries=[[0,1],[1,0]]\n\n' +
       'Initial reach:\n' +
-      '  reach[1][0] = true  (course 1 requires course 0)\n\n' +
+      '  reach[1][0] = true  (course 1 is a prerequisite of course 0)\n\n' +
       'Floyd-Warshall (k=0):\n' +
       '  i=1,j=any: reach[1][0]=true, check reach[0][j]\n' +
       '    reach[0][0]=false -> no update\n' +
@@ -4953,6 +4954,76 @@ class Solution:
       'Floyd-Warshall can compute all-pairs reachability in O(n^3).',
       'After precomputation, each query is answered in O(1).',
     ],
+    followUp: {
+      title: 'BFS from each course',
+      label: 'Alternative',
+      walkthroughVariant: 'bfs',
+      approach:
+        'Build a directed graph with an edge from each prerequisite to the course that depends on it. Run BFS from every start course. reachable[start][course] becomes true for each course reached, including indirect dependencies. That row also serves as the visited array for this BFS.',
+      code: `class Solution:
+    def checkIfPrerequisite(self, numCourses: int, prerequisites: list[list[int]], queries: list[list[int]]) -> list[bool]:
+        graph = [[] for _ in range(numCourses)]
+        for before, after in prerequisites:
+            graph[before].append(after)
+
+        reachable = [[False] * numCourses for _ in range(numCourses)]
+
+        for start in range(numCourses):
+            queue = [start]
+            head = 0
+
+            while head < len(queue):
+                course = queue[head]
+                head += 1
+
+                for next_course in graph[course]:
+                    if reachable[start][next_course]:
+                        continue
+
+                    reachable[start][next_course] = True
+                    queue.append(next_course)
+
+        return [reachable[before][after] for before, after in queries]`,
+      jsCode: `var checkIfPrerequisite = function(numCourses, prerequisites, queries) {
+    const graph = Array(numCourses)
+        .fill(null)
+        .map(() => []);
+
+    for (const [before, after] of prerequisites) {
+        graph[before].push(after);
+    }
+
+    const reachable = Array(numCourses)
+        .fill(null)
+        .map(() => Array(numCourses).fill(false));
+
+    for (let start = 0; start < numCourses; start++) {
+        const queue = [start];
+        let head = 0;
+
+        while (head < queue.length) {
+            const course = queue[head++];
+
+            for (const next of graph[course]) {
+                if (reachable[start][next]) continue;
+
+                reachable[start][next] = true;
+                queue.push(next);
+            }
+        }
+    }
+
+    return queries.map(([before, after]) => reachable[before][after]);
+};`,
+      explanation:
+        '1. For [before, after], add the directed edge before → after.\n' +
+        '2. Start a fresh queue for each course. Each start uses its own row of reachable.\n' +
+        '3. Read queue[head] and advance head. Entries before head are already consumed; entries at or after head are pending.\n' +
+        '4. Skip neighbors already marked in this row. Otherwise, mark them before enqueueing so multiple paths do not schedule a course twice.\n' +
+        '5. Answer [before, after] using reachable[before][after]. The input has no cycles, so a course does not become its own prerequisite.',
+      timeComplexity: 'O(V * (V + E) + Q), for V courses, E prerequisites, and Q queries',
+      spaceComplexity: 'O(V^2 + E) auxiliary space for the reachability table, graph, and queue',
+    },
   },
 
   // ---------------------------------------------------------------------------
