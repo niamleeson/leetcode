@@ -1680,7 +1680,7 @@ function dijkstra(graph, start) {
   while (heap.size > 0) {
     const [distance, node] = heap.pop();
 
-    // A shorter route was found after this entry was added.
+    // Skip outdated entries with a worse distance than the best known.
     if (distance > distances[node]) continue;
 
     for (const [neighbor, weight] of graph[node]) {
