@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ExecutionTrace, ExecutionStep, VariableGroup, dataStepIndex, formatValue, groupVariables, hasNodes, isReference, materialize, truthy, valueChanged } from '../../data/walkthroughs/execution';
 import { useWalkthroughHighlight } from '../../hooks/useWalkthroughHighlight';
 import { suspendedValuesFor } from '../../data/walkthroughs/structure';
+import { graphContextsFor } from '../../data/walkthroughs/graphs';
 import WalkthroughCode from './WalkthroughCode';
 import ExecutionValues from './ExecutionValues';
 import ExecutionDiagram from './ExecutionDiagram';
@@ -57,6 +58,7 @@ export function ExecutionPlayer({ trace }: { trace: ExecutionTrace }) {
   const {heap,previousHeap}=useMemo(()=>materialize(example.steps,dataIndex),[example,dataIndex]);
   const variableOrder=useMemo(()=>[...new Set(example.steps.flatMap(frame=>Object.keys(frame.state)))],[example]);
   const suspended=useMemo(()=>suspendedValuesFor(example.steps),[example]);
+  const graphContexts=useMemo(()=>graphContextsFor(trace.id,example.steps),[trace.id,example]);
   const {variables,inputs,collections}=groupVariables(step,heap,variableOrder);
   const nodeInput=hasNodes(Object.values(step.input),heap);
   const nodeState=hasNodes([...Object.values(step.state),...suspended[index],step.value],heap);
@@ -107,7 +109,7 @@ export function ExecutionPlayer({ trace }: { trace: ExecutionTrace }) {
             </div>;
           })}</div></section>}
           {(nodeInput||nodeState||treeResult)&&<div className="traversal-panel"><h5>{treeResult?'Returned tree':'Structure & pointers'}</h5><ExecutionDiagram roots={step.input} state={step.state} heap={heap} previousHeap={previousHeap} callers={suspended[index]} result={step.value} resultOnly={treeResult}/></div>}
-          <ExecutionGraph id={trace.id} input={step.input} state={step.state} heap={heap}/>
+          <ExecutionGraph id={trace.id} input={step.input} state={step.state} heap={heap} context={{...graphContexts[index],variant:trace.variant}}/>
           {inputs.length>0&&<section className="traversal-panel execution-input" aria-label="Input values"><h5>Input</h5>{inputs.map(group=><div className="execution-value-block" role="group" aria-label={group.names.join(', ')} data-variable-names={JSON.stringify(group.names)} key={isReference(group.value)?group.value.$ref:group.names[0]}><h5>{group.names.join(' · ')}</h5>{collectionValues(group,true)}</div>)}</section>}
           {collections.map(group=><section className="traversal-panel" role="group" aria-label={group.names.join(', ')} data-variable-names={JSON.stringify(group.names)} key={isReference(group.value)?group.value.$ref:group.names[0]}><h5>{group.names.join(' · ')}</h5>{collectionValues(group)}</section>)}
           {done&&<div className="traversal-panel traversal-answer" aria-label="Final result"><h5>Result</h5><pre className="execution-result">{JSON.stringify(example.result)}</pre></div>}

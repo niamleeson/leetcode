@@ -100,6 +100,23 @@ links, or common-factor connections as appropriate. Queued and visited markers
 come from recorded state. Very long numeric edge labels are marked approximate,
 with the full recorded value available in the edge tooltip.
 
+Constructed graph edges come from the recorded adjacency lists, maps, sets, or
+reachability table at the selected step. They appear at insertion and disappear
+at removal, including duplicate itinerary tickets. Undirected adjacency lists
+show an arrow while only one direction is stored and a single line once both
+entries exist. Union-find diagrams show current parent links (including path
+compression), not all possible input connections. Word transformations appear
+as their wildcard buckets are populated; lock edges appear as neighbors are
+generated. Row and column constraint graphs retain their separate completed
+snapshots after their helpers return. Back and Reset never reveal future edges.
+Algorithms that directly read existing edge lists label them as input graphs.
+
+Number of Connected Components also has a BFS alternative with an explicit
+queue. It counts one component per unvisited starting node, including isolates,
+and marks neighbors before enqueueing. Its six recordings cover cycles,
+disconnected groups, and isolated nodes; JavaScript and Python are checked
+against independent component counts for every simple graph up to five nodes.
+
 The generated JSON files are loaded individually when a problem is expanded.
 No solution code is evaluated in the browser. The source displayed by the player
 is checked against the current solution; the production build also checks source,

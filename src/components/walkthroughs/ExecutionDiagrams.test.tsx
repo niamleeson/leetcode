@@ -8,7 +8,7 @@ import { ExecutionTrace, materialize } from '../../data/walkthroughs/execution';
 const trace=(id:number)=>JSON.parse(readFileSync(`src/data/walkthroughs/generated/${id}.json`,'utf8')) as ExecutionTrace;
 afterEach(cleanup);
 it('draws a visible self-loop instead of a zero-length line',()=>{
-  render(<ExecutionGraph id={207} input={{numCourses:1,prerequisites:{$ref:'edges'}}} state={{}} heap={{edges:{kind:'array',items:[{$ref:'row'}]},row:{kind:'array',items:[0,0]}}}/>);
+  render(<ExecutionGraph id={207} input={{numCourses:1,prerequisites:{$ref:'edges'}}} state={{graph:{$ref:'graph'}}} heap={{edges:{kind:'array',items:[{$ref:'row'}]},row:{kind:'array',items:[0,0]},graph:{kind:'array',items:[{$ref:'neighbors'}]},neighbors:{kind:'array',items:[0]}}}/>);
   const loop=[...document.querySelectorAll('.execution-link')].find(edge=>edge.getAttribute('data-from')===edge.getAttribute('data-to'));
   expect(loop?.querySelector('path')?.getAttribute('d')).toContain(' C ');
 });

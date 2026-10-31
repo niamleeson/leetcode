@@ -3806,6 +3806,7 @@ NumMatrix.prototype.sumRegion = function(row1, col1, row2, col2) {
   // ---------------------------------------------------------------------------
   {
     id: 323,
+    solutionTitle: 'Union-find',
     description:
       'You have a graph of n nodes and a list of undirected edges. Return the number of connected components in the graph.',
     examples:
@@ -3879,6 +3880,82 @@ NumMatrix.prototype.sumRegion = function(row1, col1, row2, col2) {
       'Start with n components and merge on each edge.',
       'Alternatively, use DFS/BFS to count connected components.',
     ],
+    followUp: {
+      title: 'BFS (queue)',
+      label: 'Alternative',
+      walkthroughVariant: 'bfs',
+      approach: 'Build an undirected adjacency list. Start BFS from each node that has not been visited yet, increasing componentCount once for that entire connected component. An isolated node also starts its own BFS and counts as one component.',
+      code: `class Solution:
+    def countComponents(self, n: int, edges: list[list[int]]) -> int:
+        graph = [[] for _ in range(n)]
+        for a, b in edges:
+            graph[a].append(b)
+            graph[b].append(a)
+
+        visited = set()
+        componentCount = 0
+
+        for start in range(n):
+            if start in visited:
+                continue
+
+            componentCount += 1
+            visited.add(start)
+            queue = [start]
+
+            while queue:
+                node = queue.pop(0)
+                for neighbor in graph[node]:
+                    if neighbor in visited:
+                        continue
+
+                    visited.add(neighbor)
+                    queue.append(neighbor)
+
+        return componentCount`,
+      jsCode: `var countComponents = function(n, edges) {
+    const graph = Array(n)
+        .fill(null)
+        .map(() => []);
+
+    for (const [a, b] of edges) {
+        graph[a].push(b);
+        graph[b].push(a);
+    }
+
+    const visited = new Set();
+    let componentCount = 0;
+
+    for (let start = 0; start < n; start++) {
+        if (visited.has(start)) continue;
+
+        componentCount++;
+        visited.add(start);
+        const queue = [start];
+
+        while (queue.length) {
+            const node = queue.shift();
+
+            for (const neighbor of graph[node]) {
+                if (visited.has(neighbor)) continue;
+
+                visited.add(neighbor);
+                queue.push(neighbor);
+            }
+        }
+    }
+
+    return componentCount;
+};`,
+      explanation:
+        '1. Add both directions of each edge to graph.\n' +
+        '2. Scan every node, including nodes with no edges. Skip nodes already reached by an earlier BFS.\n' +
+        '3. An unvisited start begins a new component, so increase componentCount once and mark start visited.\n' +
+        '4. Remove the first node from the queue. Mark each unvisited neighbor before adding it to the queue, preventing duplicate visits even in cycles.\n' +
+        '5. When the queue empties, that component is complete. Continue scanning and return componentCount.',
+      timeComplexity: 'O(n^2 + E) worst case with array front removals; graph traversal itself visits n nodes and E edges',
+      spaceComplexity: 'O(n + E) for the adjacency list, visited set, and queue',
+    },
   },
 
   // ---------------------------------------------------------------------------

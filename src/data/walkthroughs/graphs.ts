@@ -1,11 +1,32 @@
-import { TraceHeap, TraceValue, formatValue, isReference, objectFor } from './execution';
+import { ExecutionStep, TraceHeap, TraceValue, formatValue, isReference, objectFor } from './execution';
 
 export interface GraphNode { key:string;value:TraceValue;label:string;caption?:string;x?:number;y?:number;blocked?:boolean }
-export interface GraphEdge { from:string;to:string;weight?:string }
+export interface GraphEdge { from:string;to:string;weight?:string;directed?:boolean }
 export interface GraphModel { title:string;directed:boolean;nodes:GraphNode[];edges:GraphEdge[];active?:boolean }
+export interface GraphContext { variant?:string;conditionGraphs?:Record<string,TraceValue>;lockNeighbors?:string[] }
 export const graphKey=(value:TraceValue)=>JSON.stringify(value);
 const labelFor=(value:TraceValue,heap:TraceHeap)=>typeof value==='string'?value:formatValue(value,heap);
-export function graphModels(id:number,input:Record<string,TraceValue>,state:Record<string,TraceValue>,heap:TraceHeap):GraphModel[] {
+
+// Preserve each helper's graph reference after it returns, without looking ahead
+// in the trace. Earlier contexts stay immutable so Back and Reset cannot leak edges.
+export function graphContextsFor(id:number,steps:ExecutionStep[]):GraphContext[] {
+  if(id!==2392&&id!==752)return [];
+  let conditionGraphs:Record<string,TraceValue>={},currentState:TraceValue|undefined,lockNeighbors:string[]=[];
+  return steps.map(({state})=>{
+    if(id===2392&&isReference(state.conditions)&&isReference(state.graph)) {
+      conditionGraphs={...conditionGraphs,[state.conditions.$ref]:state.graph};
+    }
+    if(id===752) {
+      if(state.currentState!==currentState){currentState=state.currentState;lockNeighbors=[];}
+      if(typeof currentState==='string'&&typeof state.newState==='string'&&!lockNeighbors.includes(state.newState)) {
+        lockNeighbors=[...lockNeighbors,state.newState];
+      }
+    }
+    return {conditionGraphs,lockNeighbors};
+  });
+}
+
+export function graphModels(id:number,input:Record<string,TraceValue>,state:Record<string,TraceValue>,heap:TraceHeap,context:GraphContext={}):GraphModel[] {
   const items=(value:TraceValue|undefined)=>objectFor(value,heap)?.items||[];
   const rows=(value:TraceValue|undefined)=>items(value).map(items);
   function model(title:string,directed:boolean,values:TraceValue[],edges:GraphEdge[],active=true):GraphModel {
@@ -13,6 +34,33 @@ export function graphModels(id:number,input:Record<string,TraceValue>,state:Reco
     return {title,directed,edges,active,nodes:unique.map(value=>({key:graphKey(value),value,label:labelFor(value,heap)}))};
   }
   const edge=(from:TraceValue,to:TraceValue,weight?:TraceValue):GraphEdge=>({from:graphKey(from),to:graphKey(to),weight:weight===undefined?undefined:labelFor(weight,heap)});
+  const entries=(value:TraceValue|undefined):[TraceValue,TraceValue][]=>{
+    const object=objectFor(value,heap);
+    return object?.entries||object?.items?.map((item,index)=>[index,item])||[];
+  };
+  function adjacency(value:TraceValue|undefined,weighted=false):GraphEdge[] {
+    return entries(value).flatMap(([from,neighbors])=>{
+      const object=objectFor(neighbors,heap);
+      if(object?.kind==='map')return (object.entries||[]).map(([to,weight])=>edge(from,to,weight));
+      return items(neighbors).map(neighbor=>{
+        const pair=weighted?items(neighbor):[];
+        return pair.length?edge(from,pair[0],pair[1]):edge(from,neighbor);
+      });
+    });
+  }
+  function undirected(edges:GraphEdge[]):GraphEdge[] {
+    const links=new Map(edges.map(link=>[JSON.stringify([link.from,link.to]),link]));
+    const seen=new Set<string>(),result:GraphEdge[]=[];
+    for(const link of edges) {
+      const pair=JSON.stringify([link.from,link.to].sort());
+      if(seen.has(pair))continue;
+      seen.add(pair);
+      const reciprocal=links.has(JSON.stringify([link.to,link.from]));
+      result.push({...link,directed:!reciprocal});
+    }
+    return result;
+  }
+  const parents=()=>entries(state.parent).filter(([child,parent])=>graphKey(child)!==graphKey(parent)).map(([child,parent])=>edge(child,parent));
   if(id===269) {
     const values=items(input.words).flatMap(word=>typeof word==='string'?word.split(''):[]);
     const edges=(objectFor(state.adj,heap)?.entries||[]).flatMap(([from,neighbors])=>items(neighbors).map(to=>edge(from,to)));
@@ -20,8 +68,14 @@ export function graphModels(id:number,input:Record<string,TraceValue>,state:Reco
   }
   if(id===127) {
     const values=[...new Set([input.beginWord,...items(input.wordList)])].filter((value):value is string=>typeof value==='string');
-    const edges:GraphEdge[]=[];
-    values.forEach((a,i)=>values.slice(i+1).forEach(b=>{if(a.length===b.length&&a.split('').filter((char,j)=>char!==b[j]).length===1)edges.push(edge(a,b));}));
+    const edges:GraphEdge[]=[],seen=new Set<string>();
+    for(const [,bucket] of entries(state.neighbors)) {
+      const words=items(bucket);
+      words.forEach((a,i)=>words.slice(i+1).forEach(b=>{
+        const key=JSON.stringify([graphKey(a),graphKey(b)].sort());
+        if(graphKey(a)!==graphKey(b)&&!seen.has(key)){seen.add(key);edges.push(edge(a,b));}
+      }));
+    }
     return [model('One-letter transformations',false,values,edges)];
   }
   if(id===752) {
@@ -31,7 +85,8 @@ export function graphModels(id:number,input:Record<string,TraceValue>,state:Reco
       const wheel=Math.floor(i/2),delta=i%2===0?1:-1;
       return current.slice(0,wheel)+(Number(current[wheel])+delta+10)%10+current.slice(wheel+1);
     });
-    const graph=model('Current lock state and one-move neighbors',false,[current,...neighbors],neighbors.map(value=>edge(current,value)));
+    const generated=context.lockNeighbors??(typeof state.newState==='string'?[state.newState]:[]);
+    const graph=model('Current lock state and generated neighbors',false,[current,...neighbors],generated.filter(value=>neighbors.includes(value)).map(value=>edge(current,value)));
     graph.nodes.forEach(node=>{
       node.blocked=blocked.has(node.key);
       const index=neighbors.indexOf(node.value as string),angle=index*Math.PI/4-Math.PI/2;
@@ -41,8 +96,7 @@ export function graphModels(id:number,input:Record<string,TraceValue>,state:Reco
   }
   if(id===1584) {
     const points=rows(input.points),values=points.map((_,i)=>i);
-    const edges=rows(state.edges).filter(row=>row.length>=3).map(([weight,from,to])=>edge(from,to,weight));
-    const graph=model('Points and generated Manhattan distances',false,values,edges);
+    const graph=model('Points · union-find parents',true,values,parents());
     const xs=points.map(point=>Number(point[0])),ys=points.map(point=>Number(point[1]));
     const scale=Math.min(72,480/Math.max(1,Math.max(...xs)-Math.min(...xs),Math.max(...ys)-Math.min(...ys)));
     graph.nodes.forEach(node=>{const i=Number(node.value);node.x=70+(xs[i]-Math.min(...xs))*scale;node.y=70+(Math.max(...ys)-ys[i])*scale;node.caption=`(${xs[i]}, ${ys[i]})`;});
@@ -56,26 +110,39 @@ export function graphModels(id:number,input:Record<string,TraceValue>,state:Reco
     return [graph];
   }
   if(id===2709) {
-    const nums=items(input.nums),edges:GraphEdge[]=[];
-    const gcd=(a:number,b:number):number=>b?gcd(b,a%b):a;
-    nums.forEach((a,i)=>nums.slice(i+1).forEach((b,j)=>{if(gcd(Number(a),Number(b))>1)edges.push(edge(i,i+j+1));}));
-    const graph=model('Connections with a common factor',false,nums.map((_,i)=>i),edges);
+    const nums=items(input.nums);
+    const graph=model('Union-find parents',true,nums.map((_,i)=>i),parents());
     graph.nodes.forEach(node=>{node.caption=`nums[${node.value}] = ${nums[Number(node.value)]}`;});
     return [graph];
   }
   const names=['prerequisites','edges','times','flights','tickets','equations','rowConditions','colConditions','trust'].filter(name=>name in input);
   return names.map(name=>{
     const source=rows(input[name]).filter(row=>row.length>=2),values=source.flatMap(row=>row.slice(0,2));
-    let edges=source.map(row=>name==='prerequisites'&&id!==1462?edge(row[1],row[0],row[2]):edge(row[0],row[1],row[2]));
-    if(name==='equations') {
-      const ratios=items(input.values);
-      edges=source.flatMap(([a,b],i)=>[edge(a,b,ratios[i]),edge(b,a,1/Number(ratios[i]))]);
-    }
+    let edges:GraphEdge[]=[],title=name,directed=name!=='edges';
     const count=input.numCourses??input.n??(id===2392?input.k:undefined);
     const start=['times','trust','rowConditions','colConditions'].includes(name)?1:0;
     if(typeof count==='number'&&Number.isInteger(count)&&count>=0)for(let i=start;i<start+count;i++)values.push(i);
     const active=id!==2392||(isReference(state.conditions)&&isReference(input[name])&&state.conditions.$ref===input[name].$ref);
-    return model(name,name!=='edges',values,edges,active);
+    if([207,210,261,399,743,332].includes(id)||(id===323&&context.variant==='bfs'))edges=adjacency(state.graph,id===743);
+    else if(id===310)edges=adjacency(state.adj);
+    else if(id===1462) {
+      edges=isReference(state.graph)?adjacency(state.graph):rows(state.reach).flatMap((row,from)=>row.flatMap((connected,to)=>connected===true?[edge(from,to)]:[]));
+    } else if(id===2392) {
+      const condition=input[name];
+      const graph=active?state.graph:isReference(condition)?context.conditionGraphs?.[condition.$ref]:undefined;
+      edges=adjacency(graph);
+    } else if([323,684,1489].includes(id)) {
+      title='Union-find parents';directed=true;
+      const allowed=new Set(values.map(graphKey));
+      edges=parents().filter(link=>allowed.has(link.from)&&allowed.has(link.to));
+    } else {
+      // These algorithms read an already-existing edge list directly; there is
+      // no constructed adjacency structure to animate (e.g. Bellman-Ford).
+      title=`Input ${name}`;
+      edges=source.map(row=>edge(row[0],row[1],row[2]));
+    }
+    if(!directed)edges=undirected(edges);
+    return model(title,directed,values,edges,active);
   }).filter(graph=>graph.nodes.length>0);
 }
 

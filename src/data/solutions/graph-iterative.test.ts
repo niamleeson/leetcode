@@ -6,6 +6,50 @@ import { neetcodeTopics } from '../neetcode250';
 import { solutionMap } from './index';
 import { iterativeGraphSolutions } from './graph-iterative';
 
+describe('Connected Components BFS alternative', () => {
+  const cases: { n: number; edges: number[][]; expected: number }[] = [];
+  for (let n = 1; n <= 5; n++) {
+    const possible: number[][] = [];
+    for (let a = 0; a < n; a++) for (let b = a + 1; b < n; b++) possible.push([a, b]);
+    for (let mask = 0; mask < 2 ** possible.length; mask++) {
+      const edges = possible.filter((_, bit) => mask & (1 << bit));
+      const parents = Array(n).fill(null).map((_, i) => i);
+      const root = (node: number): number => parents[node] === node ? node : root(parents[node]);
+      for (const [a, b] of edges) parents[root(a)] = root(b);
+      cases.push({ n, edges, expected: new Set(parents.map((_, i) => root(i))).size });
+    }
+  }
+  cases.push({ n: 2000, edges: Array(1999).fill(null).map((_, i) => [0, i + 1]), expected: 1 });
+  cases.push({ n: 2000, edges: [], expected: 2000 });
+
+  it('counts every component in all simple graphs up to five nodes, a large star, and isolated nodes', () => {
+    const result = runInNewContext(`${solutionMap[323].followUp!.jsCode}
+      cases.map(({ n, edges }) => {
+        const before = JSON.stringify(edges);
+        const actual = countComponents(n, edges);
+        if (JSON.stringify(edges) !== before) throw new Error('Input changed');
+        return actual;
+      })`, { cases }, { timeout: 5000 });
+    expect([...result]).toEqual(cases.map(({ expected }) => expected));
+  });
+
+  it('keeps Python consistent on the same independent component counts', () => {
+    const result = spawnSync('python3', ['-c', `
+import json, sys
+data = json.load(sys.stdin)
+namespace = {}
+exec(data['code'], namespace)
+solution = namespace['Solution']()
+for case in data['cases']:
+    before = [edge[:] for edge in case['edges']]
+    assert solution.countComponents(case['n'], case['edges']) == case['expected'], case
+    assert case['edges'] == before
+`], { input: JSON.stringify({ code: solutionMap[323].followUp!.code, cases }), encoding: 'utf8', timeout: 10000 });
+    expect(result.stderr).toBe('');
+    expect(result.status).toBe(0);
+  });
+});
+
 describe('Course Schedule IV BFS alternative', () => {
   // Every four-node DAG has a topological order. Enumerate all orders and
   // forward-edge subsets, then compute answers by independently enumerating paths.
