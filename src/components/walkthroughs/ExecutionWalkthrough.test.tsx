@@ -9,6 +9,29 @@ const trace=(id:number)=>JSON.parse(readFileSync(`src/data/walkthroughs/generate
 beforeEach(()=>localStorage.clear());
 afterEach(cleanup);
 describe('execution walkthroughs',()=>{
+  it.each([1631,743,778])('shows #%i heap contents and the calling line through push, pop, Back, and Reset',id=>{
+    const data=trace(id),steps=data.examples[0].steps;
+    render(<ExecutionPlayer trace={data}/>);
+    expect(document.querySelectorAll('.traversal-source-line')).toHaveLength(data.code.split('\n').length);
+    expect(data.code).not.toContain('class MinHeap');
+    const index=steps.findIndex(step=>step.kind==='operation'&&step.label==='heap.pop()');
+    const go=(at:number)=>fireEvent.change(screen.getByRole('slider'),{target:{value:at}});
+    go(index-1);
+    const before=screen.getByRole('group',{name:'heap'}).innerHTML;
+    go(index);
+    expect(screen.getByRole('status').textContent).toContain('heap.pop() → [');
+    expect(document.querySelector('[aria-current="step"]')?.textContent).toContain('heap.pop()');
+    expect(screen.getByRole('group',{name:'heap'}).textContent).toContain('[]');
+    expect(screen.getByRole('group',{name:'heap'}).textContent).toContain('size0');
+    fireEvent.click(screen.getByRole('button',{name:'Back'}));
+    expect(screen.getByRole('group',{name:'heap'}).innerHTML).toBe(before);
+    const pushed=steps.findIndex(step=>step.kind==='operation'&&step.label.startsWith('heap.push('));
+    go(pushed);
+    expect(screen.getByRole('group',{name:'heap'}).textContent).toContain('size1');
+    expect(document.querySelector('[aria-current="step"]')?.textContent).toContain('heap.push(');
+    fireEvent.click(screen.getByRole('button',{name:'Reset'}));
+    expect(screen.queryByRole('group',{name:'heap'})).toBeNull();
+  });
   it.each(neetcodeTopics.flatMap(t=>t.problems).map(p=>[p.id,p.title] as const))('renders #%i %s at the beginning, middle, and result', (id)=>{
     const data=trace(id);render(<ExecutionPlayer trace={data}/>);
     const steps=data.examples[0].steps;

@@ -51,6 +51,12 @@ returns, break, and continue. A pop/shift is recorded before its result is assig
 to a variable. Native operations such as sorting and allocation are atomic;
 concise callbacks passed directly to them are part of that operation. Algorithm
 helper functions, including recursive helpers and heap methods, are stepped into.
+Advanced Graphs uses the heap defined once in its section reference. Its source
+lives in `src/data/shared-graph-heap.ts` and is also supplied to the recorder and
+V8 audit. Those solutions show only their algorithm: shared heap pushes and pops
+are atomic steps on the calling line, with the heap contents and size captured
+afterward. The shared source participates in the recorder hash so changing it
+requires regenerating recordings.
 Standalone mutations are recorded once; their enclosing expression statement
 does not create a duplicate frame. Compound conditions produce one decision, and
 boolean initializers produce one statement, while preserving JavaScript's actual

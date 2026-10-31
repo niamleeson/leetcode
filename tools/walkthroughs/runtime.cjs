@@ -1,5 +1,11 @@
 const vm = require('node:vm');
 const { instrument } = require('./instrument.cjs');
+const { graphMinHeapJavascript, sharedGraphHeapProblemIds } = require('../../src/data/shared-graph-heap.ts');
+// Shared library operations are atomic; only displayed solution code is traced.
+const SharedMinHeap = new vm.Script(`${graphMinHeapJavascript}\nMinHeap`).runInNewContext({});
+function dependenciesFor(id) {
+  return sharedGraphHeapProblemIds.includes(id) ? { MinHeap: SharedMinHeap } : {};
+}
 
 const setup = `
 // Reproducible teaching examples, including randomized quickselect pivots.
@@ -124,6 +130,8 @@ function execute(source, fixture, id, traced = true) {
         entry.kind = 'set'; entry.items = [...value].map(encode); delete entry.fields;
       } else {
         for (const name of Object.keys(value)) if (typeof value[name] !== 'function') entry.fields[name] = encode(value[name]);
+        // Preserve the shared heap's public getter for playback and condition audits.
+        if (value instanceof SharedMinHeap) entry.fields.size = value.size;
         if ('isLeaf' in value && 'topLeft' in value) entry.kind = 'quad';
         else if ('left' in value && 'right' in value && 'val' in value) entry.kind = 'tree';
         else if ('neighbors' in value && 'val' in value) entry.kind = 'graph';
@@ -152,7 +160,7 @@ function execute(source, fixture, id, traced = true) {
     steps.push({ site, line: meta.line, lines: meta.lines, start: meta.start, end: meta.end, kind: meta.kind, label: meta.label, state: snap.state, input: snap.input, heap, value: result, stack: [...stack] });
     return value;
   }
-  const context = vm.createContext({ __problemId: id, __case: JSON.parse(JSON.stringify(fixture)), __trace: {
+  const context = vm.createContext({ ...dependenciesFor(id), __problemId: id, __case: JSON.parse(JSON.stringify(fixture)), __trace: {
     record: append, leave() { if (active) stack.pop(); },
     start(input) { roots = input; active = true; },
     stop() { active = false; },
@@ -192,4 +200,4 @@ function invocation(fixture) {
     }
     __normalize(${fixture.resultArg !== undefined ? `__args[${fixture.resultArg}]` : '__returned'}, __case.output);`;
 }
-module.exports = { execute, setup, invocation };
+module.exports = { execute, setup, invocation, dependenciesFor };

@@ -2,10 +2,90 @@ import { spawnSync } from 'node:child_process';
 import { runInNewContext } from 'node:vm';
 import { describe, expect, it } from 'vitest';
 import { solutionMap } from './index';
+import { neetcodeTopics } from '../neetcode250';
+import { graphMinHeapJavascript } from '../shared-graph-heap';
 
 function run(problemId: number, invocation: string, context: Record<string, unknown> = {}) {
   return runInNewContext(`${solutionMap[problemId].jsCode}\n${invocation}`, context, { timeout: 5000 });
 }
+
+describe('Advanced Graphs shared heap', () => {
+  const solve = (id: number, entry: string) => runInNewContext(`${graphMinHeapJavascript}\n${solutionMap[id].jsCode}\n${entry}`);
+  it('keeps the implementation in the reference and solution code free of heap definitions', () => {
+    const topic=neetcodeTopics.find(topic=>topic.name==='Advanced Graphs')!;
+    expect(topic.reference!.javascript.startsWith(graphMinHeapJavascript)).toBe(true);
+    for(const problem of topic.problems) {
+      const solution=solutionMap[problem.id];
+      for(const code of [solution.jsCode,solution.followUp?.jsCode].filter(Boolean)) {
+        expect(code).not.toMatch(/class\s+\w*Heap|const (?:push|pop|siftUp|siftDown)\s*=|heap\.sort|heap\.shift|production solution|uses? (?:a )?max.?heap/i);
+      }
+    }
+  });
+  it('matches Bellman-Ford on every three-node directed graph with absent, zero, or unit edges', () => {
+    const networkDelayTime=solve(743,'networkDelayTime');
+    const pairs=[[1,2],[1,3],[2,1],[2,3],[3,1],[3,2]];
+    for(let seed=0;seed<729;seed++) {
+      let digits=seed;
+      const edges:number[][]=[];
+      for(const [from,to] of pairs) {
+        const state=digits%3;digits=Math.floor(digits/3);
+        if(state)edges.push([from,to,state-1]);
+      }
+      for(let start=1;start<=3;start++) {
+        const distances=Array(4).fill(Infinity);distances[start]=0;
+        for(let pass=0;pass<2;pass++)for(const [from,to,weight] of edges)distances[to]=Math.min(distances[to],distances[from]+weight);
+        const maximum=Math.max(...distances.slice(1));
+        expect(networkDelayTime(edges,3,start)).toBe(Number.isFinite(maximum)?maximum:-1);
+      }
+    }
+    expect(networkDelayTime([[1,2,9],[1,3,1],[3,2,1],[2,4,2],[3,4,8]],4,1)).toBe(4);
+  });
+  // Independent oracle: raise the allowed threshold until ordinary BFS can reach the end.
+  const thresholdPath=(grid:number[][],byDifference:boolean)=>{
+    const rows=grid.length,cols=grid[0].length;
+    for(let threshold=0;threshold<=Math.max(...grid.flat());threshold++) {
+      if(!byDifference&&grid[0][0]>threshold)continue;
+      const queue=[[0,0]],seen=new Set(['0,0']);
+      for(let index=0;index<queue.length;index++) {
+        const [row,col]=queue[index];
+        if(row===rows-1&&col===cols-1)return threshold;
+        for(const [dr,dc] of [[0,1],[1,0],[0,-1],[-1,0]]) {
+          const r=row+dr,c=col+dc;
+          if(r<0||r>=rows||c<0||c>=cols||seen.has(`${r},${c}`))continue;
+          const required=byDifference?Math.abs(grid[r][c]-grid[row][col]):grid[r][c];
+          if(required<=threshold){seen.add(`${r},${c}`);queue.push([r,c]);}
+        }
+      }
+    }
+    throw new Error('No path');
+  };
+  it('matches threshold BFS for all 2×3 height grids with values 0–2', () => {
+    const minimumEffortPath=solve(1631,'minimumEffortPath');
+    for(let seed=0;seed<729;seed++) {
+      let digits=seed;
+      const heights=Array(2).fill(null).map(()=>Array(3).fill(null).map(()=>{const value=digits%3;digits=Math.floor(digits/3);return value;}));
+      expect(minimumEffortPath(heights)).toBe(thresholdPath(heights,true));
+    }
+    expect(minimumEffortPath([[9]])).toBe(0);
+    expect(minimumEffortPath([[1,8,3,2]])).toBe(7);
+  });
+  it('matches threshold BFS for every 2×2 elevation permutation and shuffled 3×3 grids', () => {
+    const swimInWater=solve(778,'swimInWater');
+    const permutations=(values:number[]):number[][]=>values.length?values.flatMap((value,index)=>permutations(values.filter((_,i)=>i!==index)).map(rest=>[value,...rest])):[[]];
+    const grids=permutations([0,1,2,3]).map(values=>[values.slice(0,2),values.slice(2)]);
+    let seed=250;
+    for(let sample=0;sample<100;sample++) {
+      const values=[0,1,2,3,4,5,6,7,8];
+      for(let i=8;i>0;i--) {
+        seed=(Math.imul(1664525,seed)+1013904223)>>>0;
+        const j=seed%(i+1);[values[i],values[j]]=[values[j],values[i]];
+      }
+      grids.push([values.slice(0,3),values.slice(3,6),values.slice(6)]);
+    }
+    for(const grid of grids)expect(swimInWater(grid)).toBe(thresholdPath(grid,false));
+    expect(swimInWater([[0]])).toBe(0);
+  });
+});
 
 describe('NeetCode 250 requirement regressions', () => {
   it('sorts in place without a built-in sorting function', () => {

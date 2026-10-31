@@ -32,9 +32,12 @@ if(!isMainThread) {
   const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
   const {root,walkthroughs}=require('./load.cjs');
   const fixtures=require('./fixtures.json');
-  const {setup,invocation}=require('./runtime.cjs');
+  const {setup,invocation,dependenciesFor}=require('./runtime.cjs');
   const {evaluate}=require('./audit-recordings.cjs');
   const specs=[
+    {id:1631,anchor:'const [e, r, c] = heap.pop();',kind:'operation',expression:'({heap:heap.heap,size:heap.size,effort})'},
+    {id:743,anchor:'const [currentTime, node] = heap.pop();',kind:'operation',expression:'({heap:heap.heap,size:heap.size,dist:[...dist]})'},
+    {id:778,anchor:'const [timeRequired, row, col] = heap.pop();',kind:'operation',expression:'({heap:heap.heap,size:heap.size,visited})'},
     {id:150,anchor:'const rightOperand = stack.pop();',kind:'operation',expression:'({stack:stack.slice(),token})'},
     {id:3,anchor:'charSet.add(newChar);',kind:'operation',expression:'({left,right,newChar,maxLen,chars:[...charSet]})'},
     {id:102,anchor:'result.push(currentLevel);',kind:'operation',expression:'({queue:queue.map(n=>n.val),currentLevel,result,levelSize})'},
@@ -83,7 +86,7 @@ if(!isMainThread) {
         const url=`walkthrough-v8-${key}-${line}-${index}.js`;
         const worker=new Worker(__filename,{workerData:{url,line,expression:spec.expression}});
         assert.equal(await message(worker),'ready');
-        const context=vm.createContext({__problemId:spec.id,__case:JSON.parse(JSON.stringify(fixture)),__trace:{start(){},stop(){}}});
+        const context=vm.createContext({...dependenciesFor(spec.id),__problemId:spec.id,__case:JSON.parse(JSON.stringify(fixture)),__trace:{start(){},stop(){}}});
         new vm.Script(setup).runInContext(context);
         new vm.Script(source,{filename:url}).runInContext(context);
         new vm.Script(invocation(fixture)).runInContext(context,{timeout:15000});

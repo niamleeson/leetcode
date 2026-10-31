@@ -6,7 +6,7 @@ const { root, problems, walkthroughs } = require('./load.cjs');
 const { execute } = require('./runtime.cjs');
 const fixtures = require('./fixtures.json');
 const {indexingFor}=require('./source-analysis.cjs');
-const generatorHash=crypto.createHash('sha256').update(fs.readFileSync(path.join(__dirname,'instrument.cjs'))).update(fs.readFileSync(path.join(__dirname,'runtime.cjs'))).digest('hex');
+const generatorHash=crypto.createHash('sha256').update(fs.readFileSync(path.join(__dirname,'instrument.cjs'))).update(fs.readFileSync(path.join(__dirname,'runtime.cjs'))).update(fs.readFileSync(path.join(root,'src/data/shared-graph-heap.ts'))).digest('hex');
 
 const ordered = value => [...value].sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b)));
 function validate(actual, fixture) {

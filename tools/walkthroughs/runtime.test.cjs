@@ -1,6 +1,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { execute } = require('./runtime.cjs');
+const { execute, dependenciesFor } = require('./runtime.cjs');
+const { decoder } = require('./audit-recordings.cjs');
 const {indexingFor}=require('./source-analysis.cjs');
 
 function frames(source,args) {
@@ -8,6 +9,48 @@ function frames(source,args) {
   let heap={};
   return trace.steps.map(step=>{heap={...heap,...step.heap};return {...step,fullHeap:heap};});
 }
+test('shared heap operations capture contents and size atomically on the calling line',()=>{
+  const source=`function solve() {
+    const heap = new MinHeap();
+    heap.push([5, 'a']);
+    heap.push([1, 'b']);
+    heap.push([1, 'c']);
+    heap.push([0, 'd']);
+    const result = [];
+    while (heap.size > 0) {
+      const value = heap.pop();
+      result.push(value);
+    }
+    return result;
+  }`;
+  const trace=execute(source,{entry:'solve',args:[]},743);
+  assert.deepEqual(trace.result.map(entry=>entry[0]),[0,1,1,5]);
+  assert.deepEqual(dependenciesFor(1),{});
+  let objects={},previous=[];
+  const content=items=>items.map(item=>JSON.stringify(item)).sort();
+  for(const step of trace.steps) {
+    objects={...objects,...step.heap};
+    const decode=decoder(objects);
+    if(!step.state.heap)continue;
+    const heap=decode(step.state.heap);
+    assert.equal(heap.size,heap.heap.length);
+    assert.deepEqual(step.stack,['solve']);
+    for(let i=1;i<heap.heap.length;i++)assert(heap.heap[Math.floor((i-1)/2)][0]<=heap.heap[i][0]);
+    if(step.kind==='operation'&&step.label==='heap.pop()') {
+      const removed=decode(step.value);
+      assert.equal(removed[0],Math.min(...previous.map(item=>item[0])));
+      assert.deepEqual(content([...heap.heap,removed]),content(previous));
+      assert(!('value' in step.state),'pop must precede assignment');
+      assert.equal(source.split('\n')[step.line-1].trim(),'const value = heap.pop();');
+    }
+    previous=heap.heap;
+  }
+  for(const line of [3,4,5,6]) {
+    const steps=trace.steps.filter(step=>step.line===line);
+    assert.equal(steps.length,1);
+    assert.equal(steps[0].kind,'operation');
+  }
+});
 test('pop is recorded after removal and before the destination variable is assigned',()=>{
   const source=`function solve() {
     const stack = [2, 1];

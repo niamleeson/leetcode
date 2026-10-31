@@ -2405,14 +2405,12 @@ Explanation: From node 2, the signal reaches node 1 and 3 in 1 unit, and node 4 
     // dist maps node → shortest time to reach it from k
     const dist = new Map();
 
-    // Min-heap simulation: entries are [totalTime, node]
-    // In a production solution use a proper MinPriorityQueue
-    const heap = [[0, k]];
+    const heap = new MinHeap();
+    heap.push([0, k]);
 
-    while (heap.length > 0) {
+    while (heap.size > 0) {
         // Always process the entry with the smallest time first
-        heap.sort((a, b) => a[0] - b[0]);
-        const [currentTime, node] = heap.shift();
+        const [currentTime, node] = heap.pop();
 
         // Skip if we already found a shorter path to this node
         if (dist.has(node)) continue;

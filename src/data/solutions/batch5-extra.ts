@@ -8862,42 +8862,13 @@ class Solution:
         .map(() => new Array(n).fill(Infinity));
     effort[0][0] = 0;
 
-    // Min-heap: [effort, row, col]
-    const heap = [[0, 0, 0]];
-
-    const push = (val) => {
-        heap.push(val);
-        let i = heap.length - 1;
-        while (i > 0) {
-            const p = Math.floor((i - 1) / 2);
-            if (heap[p][0] <= heap[i][0]) break;
-            [heap[p], heap[i]] = [heap[i], heap[p]];
-            i = p;
-        }
-    };
-
-    const pop = () => {
-        if (heap.length <= 1) return heap.pop();
-        const v = heap[0];
-        heap[0] = heap.pop();
-        let i = 0;
-        while (true) {
-            let s = i;
-            const l = 2 * i + 1;
-            const r = 2 * i + 2;
-            if (l < heap.length && heap[l][0] < heap[s][0]) s = l;
-            if (r < heap.length && heap[r][0] < heap[s][0]) s = r;
-            if (s === i) break;
-            [heap[s], heap[i]] = [heap[i], heap[s]];
-            i = s;
-        }
-        return v;
-    };
+    const heap = new MinHeap();
+    heap.push([0, 0, 0]);
 
     const dirs = [[0,1],[0,-1],[1,0],[-1,0]];
 
-    while (heap.length) {
-        const [e, r, c] = pop();
+    while (heap.size > 0) {
+        const [e, r, c] = heap.pop();
 
         // Reached destination
         if (r === m - 1 && c === n - 1) return e;
@@ -8913,7 +8884,7 @@ class Solution:
                 const newEffort = Math.max(e, Math.abs(heights[nr][nc] - heights[r][c]));
                 if (newEffort < effort[nr][nc]) {
                     effort[nr][nc] = newEffort;
-                    push([newEffort, nr, nc]);
+                    heap.push([newEffort, nr, nc]);
                 }
             }
         }

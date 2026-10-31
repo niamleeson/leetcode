@@ -9656,17 +9656,14 @@ class Solution:
         .fill(null)
         .map(() => new Array(n).fill(false));
 
-    // Min-heap: each entry is [time, row, col]
-    // time = max elevation seen along path so far (Dijkstra-like minimax)
-    const heap = [[grid[0][0], 0, 0]];
+    const heap = new MinHeap();
+    heap.push([grid[0][0], 0, 0]);
     visited[0][0] = true;
 
     const directions = [[0, 1], [0, -1], [1, 0], [-1, 0]];
 
-    while (heap.length > 0) {
-        // Extract cell with minimum required time (simulate priority queue with sort)
-        heap.sort((a, b) => a[0] - b[0]);
-        const [timeRequired, row, col] = heap.shift();
+    while (heap.size > 0) {
+        const [timeRequired, row, col] = heap.pop();
 
         // Reached the bottom-right corner
         if (row === n - 1 && col === n - 1) {
@@ -9709,8 +9706,8 @@ class Solution:
       '  heap: [[2,0,1],[3,1,1]]\n\n' +
       'Step 3: Extract [2, 0, 1] → time=2, at (0,1)\n' +
       '  Not target. Explore neighbors:\n' +
-      '  (1,1): elevation=3, timeToReach=max(2,3)=3, push [3,1,1]\n' +
-      '  heap: [[3,1,1],[3,1,1]]\n\n' +
+      '  (1,1): already visited, skip\n' +
+      '  heap: [[3,1,1]]\n\n' +
       'Step 4: Extract [3, 1, 1] → at target (1,1), return 3',
     explanation:
       '1. Use a min-heap prioritized by the minimum time needed to reach each cell.\n' +
