@@ -138,8 +138,9 @@ Common Divisor Traversal. Course Schedule IV also starts with BFS, with
 Floyd-Warshall afterward. Both versions have independent recordings. The two MST
 problems keep Kruskal's weight ordering and use BFS only for connectivity checks.
 Redundant Connection builds its full graph before checking candidates in reverse
-input order with a queue. Each BFS ignores the candidate edge in both directions;
-the diagram keeps the stored edge visible but dashed once that candidate is bound.
+input order with a queue. Each BFS skips the direct move from a to b and returns
+upon reaching b, before exploring its neighbors. The diagram keeps the candidate
+edge visible but dashed once that candidate is bound.
 The other new BFS snippets use current/next layer arrays, without a queue index.
 Email and shared-prime graphs use Sets to avoid storing the same neighbor repeatedly.
 Correctness checks include independent Prim and exhaustive spanning-tree oracles,
