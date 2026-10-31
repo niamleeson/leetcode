@@ -52,6 +52,12 @@ if(!isMainThread) {
     {id:133,variant:'iterative',anchor:'copy.neighbors.push(cloned.get(neighbor));',kind:'operation',expression:'({original:original.val,copy:copy.val,neighbors:copy.neighbors.map(n=>n.val),neighbor:neighbor.val,cloned:[...cloned.keys()].map(n=>n.val),stack:stack.map(n=>n.val)})'},
     {id:332,variant:'iterative',anchor:'const finishedAirport = stack.pop();',kind:'operation',expression:'({stack,route,airport,destinations})'},
     {id:417,anchor:'stack.push([nr, nc]);',kind:'operation',expression:'({heights,visited,stack,r,c,nr,nc})'},
+    {id:684,anchor:'graph[a].push(b);',kind:'operation',expression:'({graph,a,b})'},
+    {id:684,anchor:'nextFrontier.push(neighbor);',kind:'operation',expression:'({graph,frontier,nextFrontier,visited:[...visited],start,target,node,neighbor})'},
+    {id:721,anchor:'graph.get(firstEmail).add(email);',kind:'operation',expression:'({graph:[...graph].map(([email,neighbors])=>[email,[...neighbors]]),firstEmail,email})'},
+    {id:1584,anchor:'totalCost += distance;',kind:'statement',expression:'({graph,totalCost,distance,edgesUsed,a,b})'},
+    {id:1489,anchor:'weight += cost;',kind:'statement',expression:'({graph,weight,count,cost,a,b})'},
+    {id:2709,anchor:'graph[index].add(other);',kind:'operation',expression:'({graph:graph.map(neighbors=>[...neighbors]),index,prime,other,firstIndex:[...firstIndex]})'},
   ];
   const normalize=value=>JSON.parse(JSON.stringify(value,(_key,v)=>typeof v==='number'&&!Number.isFinite(v)?String(v):v));
   const message=worker=>new Promise((resolve,reject)=>{

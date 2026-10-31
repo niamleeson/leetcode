@@ -125,11 +125,24 @@ the selected step. Additional tests change later states and final answers and
 verify that earlier rendered frames remain identical. Component regressions
 cover first appearance, Back, Reset, example changes, and final-result timing.
 
-Number of Connected Components also has a BFS alternative with an explicit
+Number of Connected Components starts with BFS with an explicit
 queue. It counts one component per unvisited starting node, including isolates,
 and marks neighbors before enqueueing. Its six recordings cover cycles,
 disconnected groups, and isolated nodes; JavaScript and Python are checked
 against independent component counts for every simple graph up to five nodes.
+
+`src/data/solutions/bfs-first.ts` puts BFS before the preserved union-find
+implementations for Connected Components, Redundant Connection, Accounts Merge,
+Min Cost to Connect All Points, Critical/Pseudo-Critical MST Edges, and Greatest
+Common Divisor Traversal. Course Schedule IV also starts with BFS, with
+Floyd-Warshall afterward. Both versions have independent recordings. The two MST
+problems keep Kruskal's weight ordering and use BFS only for connectivity checks.
+New BFS snippets use current/next layer arrays, without a queue index. Email and
+shared-prime graphs use Sets to avoid storing the same neighbor repeatedly.
+Correctness checks include independent Prim and exhaustive spanning-tree oracles,
+edge-removal cycle checks, intersecting email sets, pairwise GCD reachability,
+Python parity, and a large sparse shared-prime graph. Production checks reject
+orphaned artifacts after solution variants are renamed or reordered.
 
 The generated JSON files are loaded individually when a problem is expanded.
 No solution code is evaluated in the browser. The source displayed by the player

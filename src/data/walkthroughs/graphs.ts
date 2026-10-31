@@ -2,7 +2,7 @@ import { ExecutionStep, TraceHeap, TraceValue, formatValue, isReference, objectF
 
 export interface GraphNode { key:string;value:TraceValue;label:string;caption?:string;x?:number;y?:number;blocked?:boolean }
 export interface GraphEdge { from:string;to:string;weight?:string;directed?:boolean }
-export interface GraphModel { title:string;directed:boolean;nodes:GraphNode[];edges:GraphEdge[];active?:boolean;width?:number;height?:number }
+export interface GraphModel { title:string;directed:boolean;nodes:GraphNode[];edges:GraphEdge[];active?:boolean;width?:number;height?:number;pointerNames?:string[] }
 export interface GraphContext { variant?:string;conditionGraphs?:Record<string,TraceValue>;lockCurrent?:string;lockNeighbors?:string[] }
 export const graphKey=(value:TraceValue)=>JSON.stringify(value);
 const labelFor=(value:TraceValue,heap:TraceHeap)=>typeof value==='string'?value:formatValue(value,heap);
@@ -107,7 +107,8 @@ export function graphModels(id:number,input:Record<string,TraceValue>,state:Reco
   }
   if(id===1584) {
     const points=rows(input.points),values=points.map((_,i)=>i);
-    const graph=model('Points · union-find parents',true,values,parents());
+    const unionFind=context.variant==='union-find';
+    const graph=model(unionFind?'Points · union-find parents':'Accepted point connections',unionFind,values,unionFind?parents():undirected(adjacency(state.graph)));
     const xs=points.map(point=>Number(point[0])),ys=points.map(point=>Number(point[1]));
     const scale=Math.min(72,480/Math.max(1,Math.max(...xs)-Math.min(...xs),Math.max(...ys)-Math.min(...ys)));
     graph.nodes.forEach(node=>{const i=Number(node.value);node.x=70+(xs[i]-Math.min(...xs))*scale;node.y=70+(Math.max(...ys)-ys[i])*scale;node.caption=`(${xs[i]}, ${ys[i]})`;});
@@ -115,14 +116,16 @@ export function graphModels(id:number,input:Record<string,TraceValue>,state:Reco
   }
   if(id===721) {
     const emails=rows(input.accounts).flatMap(account=>account.slice(1));
-    const edges=(objectFor(state.parent,heap)?.entries||[]).filter(([a,b])=>graphKey(a)!==graphKey(b)).map(([a,b])=>edge(a,b));
-    const graph=model('Email parents (union-find)',true,emails,edges);
+    const unionFind=context.variant==='union-find';
+    const graph=model(unionFind?'Email parents (union-find)':'Email connections',unionFind,emails,unionFind?parents():undirected(adjacency(state.graph)));
     graph.nodes.forEach((node,i)=>{node.caption=node.label;node.label=`email ${i+1}`;});
     return [graph];
   }
   if(id===2709) {
     const nums=items(input.nums);
-    const graph=model('Union-find parents',true,nums.map((_,i)=>i),parents());
+    const unionFind=context.variant==='union-find';
+    const graph=model(unionFind?'Union-find parents':'Shared-prime connections',unionFind,nums.map((_,i)=>i),unionFind?parents():undirected(adjacency(state.graph)));
+    graph.pointerNames=['i','index','other','node','neighbor','x','a','b','root'];
     graph.nodes.forEach(node=>{node.caption=`nums[${node.value}] = ${nums[Number(node.value)]}`;});
     return [graph];
   }
@@ -134,7 +137,7 @@ export function graphModels(id:number,input:Record<string,TraceValue>,state:Reco
     const start=['times','trust','rowConditions','colConditions'].includes(name)?1:0;
     if(typeof count==='number'&&Number.isInteger(count)&&count>=0)for(let i=start;i<start+count;i++)values.push(i);
     const active=id!==2392||(isReference(state.conditions)&&isReference(input[name])&&state.conditions.$ref===input[name].$ref);
-    if([207,210,261,399,743,332].includes(id)||(id===323&&context.variant==='bfs'))edges=adjacency(state.graph,id===743);
+    if([207,210,261,399,743,332].includes(id)||([323,684,1489].includes(id)&&context.variant!=='union-find'))edges=adjacency(state.graph,id===743);
     else if(id===310)edges=adjacency(state.adj);
     else if(id===1462) {
       edges=isReference(state.graph)?adjacency(state.graph):rows(state.reach).flatMap((row,from)=>row.flatMap((connected,to)=>connected===true?[edge(from,to)]:[]));
@@ -170,8 +173,8 @@ export function layoutGraph(graph:GraphModel) {
 
 export function graphNodeState(node:GraphNode,graph:GraphModel,state:Record<string,TraceValue>,heap:TraceHeap) {
   if(graph.active===false)return {labels:[],visited:false,queued:false};
-  const pointerNames=new Set(['node','parent','start','next','current','currentNode','course','dependentCourse','prereq','prerequisite','u','v','neighbor','before','after','src','dst','airport','from','to','char','currentWord','currentState','newState','leaf','rootX','rootY','pu','pv','x','y','a','b','value']);
-  const labels=Object.entries(state).filter(([name,value])=>pointerNames.has(name)&&graphKey(value)===node.key).map(([name])=>name);
+  const pointerNames=new Set(['node','parent','start','target','next','current','currentNode','course','dependentCourse','prereq','prerequisite','u','v','neighbor','before','after','src','dst','airport','from','to','char','currentWord','currentState','newState','leaf','rootX','rootY','pu','pv','x','y','a','b','value','email','firstEmail','other']);
+  const labels=Object.entries(state).filter(([name,value])=>(graph.pointerNames?graph.pointerNames.includes(name):pointerNames.has(name))&&graphKey(value)===node.key).map(([name])=>name);
   const visited=(objectFor(state.visited,heap)?.items||objectFor(state.visitedStates,heap)?.items||[]).some(value=>graphKey(value)===node.key);
   const pending=objectFor(state.queue??state.stack,heap)?.items||[];
   const head=state.queue!==undefined&&typeof state.head==='number'?state.head:0;

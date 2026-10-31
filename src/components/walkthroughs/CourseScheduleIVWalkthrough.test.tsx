@@ -1,22 +1,20 @@
 import { afterEach, beforeEach, expect, it } from 'vitest';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { readFileSync } from 'node:fs';
-import FollowUpSolution from '../FollowUpSolution';
+import ExecutionWalkthrough from './ExecutionWalkthrough';
 import { ExecutionTrace, materialize, objectFor } from '../../data/walkthroughs/execution';
 import { solutionMap } from '../../data/solutions';
 
-const trace = JSON.parse(readFileSync('src/data/walkthroughs/generated/1462-bfs.json', 'utf8')) as ExecutionTrace;
+const trace = JSON.parse(readFileSync('src/data/walkthroughs/generated/1462.json', 'utf8')) as ExecutionTrace;
 beforeEach(() => localStorage.clear());
 afterEach(cleanup);
 
-it('loads the BFS alternative with accurate highlights, queue membership, and a separate reachability row per start', async () => {
-  const solution = solutionMap[1462].followUp!;
+it('loads the BFS primary with accurate highlights, queue membership, and a separate reachability row per start', async () => {
+  const solution = solutionMap[1462];
   expect(trace.code).toBe(solution.jsCode);
-  expect(solution.walkthroughVariant).toBe('bfs');
   expect(trace.examples).toHaveLength(6);
-  render(<FollowUpSolution solution={solution} problemId={1462} language="javascript" />);
+  render(<ExecutionWalkthrough id={1462} code={solution.jsCode!} />);
   await screen.findByRole('slider');
-  expect(screen.getByRole('heading', { name: 'Alternative: BFS from each course' })).toBeTruthy();
 
   for (const [exampleIndex, example] of trace.examples.entries()) {
     fireEvent.change(screen.getByRole('combobox'), { target: { value: exampleIndex } });

@@ -6,7 +6,7 @@ import { neetcodeTopics } from '../neetcode250';
 import { solutionMap } from './index';
 import { iterativeGraphSolutions } from './graph-iterative';
 
-describe('Connected Components BFS alternative', () => {
+describe('Connected Components BFS primary', () => {
   const cases: { n: number; edges: number[][]; expected: number }[] = [];
   for (let n = 1; n <= 5; n++) {
     const possible: number[][] = [];
@@ -23,7 +23,7 @@ describe('Connected Components BFS alternative', () => {
   cases.push({ n: 2000, edges: [], expected: 2000 });
 
   it('counts every component in all simple graphs up to five nodes, a large star, and isolated nodes', () => {
-    const result = runInNewContext(`${solutionMap[323].followUp!.jsCode}
+    const result = runInNewContext(`${solutionMap[323].jsCode}
       cases.map(({ n, edges }) => {
         const before = JSON.stringify(edges);
         const actual = countComponents(n, edges);
@@ -44,13 +44,13 @@ for case in data['cases']:
     before = [edge[:] for edge in case['edges']]
     assert solution.countComponents(case['n'], case['edges']) == case['expected'], case
     assert case['edges'] == before
-`], { input: JSON.stringify({ code: solutionMap[323].followUp!.code, cases }), encoding: 'utf8', timeout: 10000 });
+`], { input: JSON.stringify({ code: solutionMap[323].code, cases }), encoding: 'utf8', timeout: 10000 });
     expect(result.stderr).toBe('');
     expect(result.status).toBe(0);
   });
 });
 
-describe('Course Schedule IV BFS alternative', () => {
+describe('Course Schedule IV BFS primary', () => {
   // Every four-node DAG has a topological order. Enumerate all orders and
   // forward-edge subsets, then compute answers by independently enumerating paths.
   const orders: number[][] = [];
@@ -90,7 +90,7 @@ describe('Course Schedule IV BFS alternative', () => {
 
   it('answers every query in all 543 four-node DAGs and a reverse-numbered chain without modifying inputs', () => {
     expect(distinct.size).toBe(543);
-    const result = runInNewContext(`${solutionMap[1462].followUp!.jsCode}
+    const result = runInNewContext(`${solutionMap[1462].jsCode}
       cases.map(({ n, edges, queries }) => {
         const before = JSON.stringify([edges, queries]);
         const answer = checkIfPrerequisite(n, edges, queries);
@@ -111,7 +111,7 @@ for case in data['cases']:
     before = json.dumps([case['edges'], case['queries']])
     assert solution.checkIfPrerequisite(case['n'], case['edges'], case['queries']) == case['expected'], case
     assert json.dumps([case['edges'], case['queries']]) == before
-`], { input: JSON.stringify({ code: solutionMap[1462].followUp!.code, cases }), encoding: 'utf8', timeout: 10000 });
+`], { input: JSON.stringify({ code: solutionMap[1462].code, cases }), encoding: 'utf8', timeout: 10000 });
     expect(result.stderr).toBe('');
     expect(result.status).toBe(0);
   });

@@ -6,7 +6,7 @@ import { graphContextsFor, graphModels, layoutGraph } from './graphs';
 const trace=(key:string)=>JSON.parse(readFileSync(`src/data/walkthroughs/generated/${key}.json`,'utf8')) as ExecutionTrace;
 const sorted=(values:unknown[])=>values.map(value=>JSON.stringify(value)).sort();
 
-it.each(['207','210','261','1462-bfs','323-bfs','399','743','332','332-iterative','310','269'])('%s draws exactly the stored adjacency entries, including weights, duplicates, and removals',key=>{
+it.each(['207','210','261','1462','323','684','721','1584','1489','2709','399','743','332','332-iterative','310','269'])('%s draws exactly the stored adjacency entries, including weights, duplicates, and removals',key=>{
   const data=trace(key);
   for(const example of data.examples) {
     const heap:TraceHeap={};
@@ -45,26 +45,26 @@ it.each(['207','210','261','1462-bfs','323-bfs','399','743','332','332-iterative
 });
 
 it('adds direct and indirect Course Schedule IV links only when reach becomes true',()=>{
-  const data=trace('1462');
+  const data=trace('1462-floyd-warshall');
   for(const example of data.examples) {
     const heap:TraceHeap={};
     for(const step of example.steps) {
       Object.assign(heap,step.heap);
       const rows=objectFor(step.state.reach,heap)?.items||[];
       const expected=rows.flatMap((row,from)=>(objectFor(row,heap)?.items||[]).flatMap((connected,to)=>connected===true?[[String(from),String(to)]]:[]));
-      const graph=graphModels(data.id,step.input,step.state,heap)[0];
+      const graph=graphModels(data.id,step.input,step.state,heap,{variant:data.variant})[0];
       expect(sorted(graph.edges.map(edge=>[edge.from,edge.to]))).toEqual(sorted(expected));
     }
   }
 });
 
-it.each(['323','684','721','1584','1489','2709'])('%s shows live union-find parents, never predicted connections',key=>{
+it.each(['323-union-find','684-union-find','721-union-find','1584-union-find','1489-union-find','2709-union-find'])('%s shows live union-find parents, never predicted connections',key=>{
   const data=trace(key);
   for(const example of data.examples) {
     const heap:TraceHeap={};
     for(const [index,step] of example.steps.entries()) {
       Object.assign(heap,step.heap);
-      const graph=graphModels(data.id,step.input,step.state,heap)[0];
+      const graph=graphModels(data.id,step.input,step.state,heap,{variant:data.variant})[0];
       const parent=objectFor(step.state.parent,heap);
       const entries:[TraceValue,TraceValue][]=parent?.entries||parent?.items?.map((value,i)=>[i,value])||[];
       const keys=new Set(graph.nodes.map(node=>node.key));
@@ -102,7 +102,7 @@ it('creates Word Ladder connections only after words share an inserted wildcard 
     for(const step of example.steps) {
       Object.assign(heap,step.heap);
       const buckets=(objectFor(step.state.neighbors,heap)?.entries||[]).map(([,ref])=>objectFor(ref,heap)!.items!);
-      const graph=graphModels(data.id,step.input,step.state,heap)[0];
+      const graph=graphModels(data.id,step.input,step.state,heap,{variant:data.variant})[0];
       for(const edge of graph.edges) {
         const a=JSON.parse(edge.from),b=JSON.parse(edge.to);
         expect(buckets.some(bucket=>bucket.includes(a)&&bucket.includes(b))).toBe(true);

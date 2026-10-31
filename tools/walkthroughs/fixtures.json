@@ -9794,6 +9794,103 @@
         3
       ],
       "name": "Edge case"
+    },
+    {
+      "entry": "findRedundantConnection",
+      "params": [
+        "edges"
+      ],
+      "name": "Cycle closes after a disconnected prefix",
+      "args": [
+        [
+          [
+            1,
+            2
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            1,
+            4
+          ]
+        ]
+      ],
+      "expected": [
+        1,
+        4
+      ]
+    },
+    {
+      "entry": "findRedundantConnection",
+      "params": [
+        "edges"
+      ],
+      "name": "Edges after the redundant edge",
+      "args": [
+        [
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            1,
+            4
+          ],
+          [
+            1,
+            5
+          ]
+        ]
+      ],
+      "expected": [
+        1,
+        4
+      ]
+    },
+    {
+      "entry": "findRedundantConnection",
+      "params": [
+        "edges"
+      ],
+      "name": "Cycle inside a branch",
+      "args": [
+        [
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            3,
+            4
+          ]
+        ]
+      ],
+      "expected": [
+        3,
+        4
+      ]
     }
   ],
   "695": [
@@ -10449,6 +10546,101 @@
         ]
       ],
       "name": "Edge case"
+    },
+    {
+      "entry": "accountsMerge",
+      "params": [
+        "accounts"
+      ],
+      "compare": "accounts",
+      "name": "Transitive merge and same-name separation",
+      "args": [
+        [
+          [
+            "A",
+            "a@x",
+            "b@x"
+          ],
+          [
+            "A",
+            "c@x",
+            "d@x"
+          ],
+          [
+            "A",
+            "b@x",
+            "c@x"
+          ],
+          [
+            "A",
+            "z@x"
+          ]
+        ]
+      ],
+      "expected": [
+        [
+          "A",
+          "a@x",
+          "b@x",
+          "c@x",
+          "d@x"
+        ],
+        [
+          "A",
+          "z@x"
+        ]
+      ]
+    },
+    {
+      "entry": "accountsMerge",
+      "params": [
+        "accounts"
+      ],
+      "compare": "accounts",
+      "name": "Repeated email connection",
+      "args": [
+        [
+          [
+            "A",
+            "a@x",
+            "b@x"
+          ],
+          [
+            "A",
+            "b@x",
+            "a@x"
+          ]
+        ]
+      ],
+      "expected": [
+        [
+          "A",
+          "a@x",
+          "b@x"
+        ]
+      ]
+    },
+    {
+      "entry": "accountsMerge",
+      "params": [
+        "accounts"
+      ],
+      "compare": "accounts",
+      "name": "Single email",
+      "args": [
+        [
+          [
+            "A",
+            "a@x"
+          ]
+        ]
+      ],
+      "expected": [
+        [
+          "A",
+          "a@x"
+        ]
+      ]
     }
   ],
   "735": [
@@ -12482,6 +12674,120 @@
         ]
       ],
       "name": "Edge case"
+    },
+    {
+      "entry": "findCriticalAndPseudoCriticalEdges",
+      "params": [
+        "n",
+        "edges"
+      ],
+      "name": "Every edge is critical",
+      "args": [
+        4,
+        [
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            2,
+            2
+          ],
+          [
+            2,
+            3,
+            3
+          ]
+        ]
+      ],
+      "expected": [
+        [
+          0,
+          1,
+          2
+        ],
+        []
+      ]
+    },
+    {
+      "entry": "findCriticalAndPseudoCriticalEdges",
+      "params": [
+        "n",
+        "edges"
+      ],
+      "name": "Equal-cost cycle with a bridge",
+      "args": [
+        4,
+        [
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            2,
+            1
+          ],
+          [
+            0,
+            2,
+            1
+          ],
+          [
+            2,
+            3,
+            2
+          ]
+        ]
+      ],
+      "expected": [
+        [
+          3
+        ],
+        [
+          0,
+          1,
+          2
+        ]
+      ]
+    },
+    {
+      "entry": "findCriticalAndPseudoCriticalEdges",
+      "params": [
+        "n",
+        "edges"
+      ],
+      "name": "An edge in no minimum tree",
+      "args": [
+        3,
+        [
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            2,
+            2
+          ],
+          [
+            0,
+            2,
+            5
+          ]
+        ]
+      ],
+      "expected": [
+        [
+          0,
+          1
+        ],
+        []
+      ]
     }
   ],
   "1584": [
@@ -12536,6 +12842,74 @@
       ],
       "expected": 2,
       "name": "Edge case"
+    },
+    {
+      "entry": "minCostConnectPoints",
+      "params": [
+        "points"
+      ],
+      "name": "Single point",
+      "args": [
+        [
+          [
+            4,
+            -3
+          ]
+        ]
+      ],
+      "expected": 0
+    },
+    {
+      "entry": "minCostConnectPoints",
+      "params": [
+        "points"
+      ],
+      "name": "Equal-cost alternatives",
+      "args": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            0
+          ],
+          [
+            1,
+            1
+          ]
+        ]
+      ],
+      "expected": 3
+    },
+    {
+      "entry": "minCostConnectPoints",
+      "params": [
+        "points"
+      ],
+      "name": "Negative coordinates",
+      "args": [
+        [
+          [
+            -2,
+            -2
+          ],
+          [
+            -2,
+            3
+          ],
+          [
+            1,
+            3
+          ]
+        ]
+      ],
+      "expected": 8
     }
   ],
   "1631": [
@@ -13230,6 +13604,65 @@
       ],
       "expected": false,
       "name": "Edge case"
+    },
+    {
+      "entry": "canTraverseAllPairs",
+      "params": [
+        "nums"
+      ],
+      "name": "A single one",
+      "args": [
+        [
+          1
+        ]
+      ],
+      "expected": true
+    },
+    {
+      "entry": "canTraverseAllPairs",
+      "params": [
+        "nums"
+      ],
+      "name": "One is isolated among other values",
+      "args": [
+        [
+          1,
+          2,
+          4
+        ]
+      ],
+      "expected": false
+    },
+    {
+      "entry": "canTraverseAllPairs",
+      "params": [
+        "nums"
+      ],
+      "name": "Connection through several shared primes",
+      "args": [
+        [
+          6,
+          35,
+          10
+        ]
+      ],
+      "expected": true
+    },
+    {
+      "entry": "canTraverseAllPairs",
+      "params": [
+        "nums"
+      ],
+      "name": "Repeated values and shared factors",
+      "args": [
+        [
+          6,
+          6,
+          10,
+          15
+        ]
+      ],
+      "expected": true
     }
   ],
   "2807": [

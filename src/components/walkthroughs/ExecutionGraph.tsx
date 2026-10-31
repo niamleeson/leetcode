@@ -37,7 +37,7 @@ function GraphPicture({graph,state,heap}:{graph:GraphModel;state:Record<string,T
       })}
     </svg></div>
     {!graph.directed&&graph.edges.some(edge=>edge.directed)&&<p className="execution-empty">Arrow: one adjacency entry. Line: entries in both directions.</p>}
-    {[...statuses.values()].some(status=>status.queued||status.visited)&&<p className="execution-graph-legend"><span className="is-queued">Dashed: {state.queue===undefined&&state.stack!==undefined?'in stack':'queued'}</span><span className="is-visited">Blue fill: visited</span></p>}
+    {[...statuses.values()].some(status=>status.queued||status.visited)&&<p className="execution-graph-legend">{(state.queue!==undefined||state.stack!==undefined)&&<span className="is-queued">Dashed: {state.queue===undefined&&state.stack!==undefined?'in stack':'queued'}</span>}{[...statuses.values()].some(status=>status.visited)&&<span className="is-visited">Blue fill: visited</span>}</p>}
     {graph.nodes.some(node=>node.blocked)&&<p className="execution-empty">Amber nodes are deadends.</p>}
   </section>;
 }

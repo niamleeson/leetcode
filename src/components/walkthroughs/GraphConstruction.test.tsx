@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, expect, it } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { readFileSync } from 'node:fs';
-import FollowUpSolution from '../FollowUpSolution';
+import ExecutionWalkthrough from './ExecutionWalkthrough';
 import { ExecutionPlayer } from './ExecutionWalkthrough';
 import { ExecutionTrace, materialize, objectFor } from '../../data/walkthroughs/execution';
 import { solutionMap } from '../../data/solutions';
@@ -9,6 +9,38 @@ import { solutionMap } from '../../data/solutions';
 const trace=(key:string)=>JSON.parse(readFileSync(`src/data/walkthroughs/generated/${key}.json`,'utf8')) as ExecutionTrace;
 beforeEach(()=>localStorage.clear());
 afterEach(cleanup);
+
+it.each(['684','721','1489','1584','2709'])('%s BFS reveals each direction only at insertion and rewinds graph and highlights together',key=>{
+  const data=trace(key),steps=data.examples[0].steps;
+  const insertions=steps.flatMap((step,index)=>step.kind==='operation'&&/^graph(?:\[|\.get\().*\.(push|add)\(/.test(step.label)?[index]:[]);
+  expect(insertions.length).toBeGreaterThanOrEqual(2);
+  render(<ExecutionPlayer trace={data}/>);
+  const positions=()=>[...document.querySelectorAll('[data-node-key]')].map(node=>node.getAttribute('transform'));
+  const initial=positions();
+  expect(document.querySelectorAll('.execution-link')).toHaveLength(0);
+  for(const [offset,index] of insertions.slice(0,2).entries()) {
+    fireEvent.change(screen.getByRole('slider'),{target:{value:index}});
+    expect([...document.querySelectorAll('[aria-current="step"]')].map(line=>Number(line.getAttribute('data-line')))).toEqual(steps[index].lines);
+    expect(document.querySelectorAll('.execution-link')).toHaveLength(1);
+    expect(!!document.querySelector('.execution-link path')?.getAttribute('marker-end')).toBe(offset===0);
+    expect(positions()).toEqual(initial);
+  }
+  fireEvent.change(screen.getByRole('slider'),{target:{value:insertions[0]}});
+  fireEvent.click(screen.getByRole('button',{name:'Back'}));
+  expect(document.querySelectorAll('.execution-link')).toHaveLength(0);
+  fireEvent.change(screen.getByRole('slider'),{target:{value:insertions[1]}});
+  fireEvent.click(screen.getByRole('button',{name:'Reset'}));
+  expect(document.querySelectorAll('.execution-link')).toHaveLength(0);
+  expect(positions()).toEqual(initial);
+  const traversal=steps.findIndex(step=>step.kind==='operation'&&step.label==='nextFrontier.push(neighbor)');
+  expect(traversal).toBeGreaterThan(0);
+  fireEvent.change(screen.getByRole('slider'),{target:{value:traversal}});
+  const step=steps[traversal],{heap}=materialize(steps,traversal);
+  expect(objectFor(step.state.visited,heap)!.items).toContain(step.state.neighbor);
+  expect(screen.getByRole('group',{name:'frontier'})).toBeTruthy();
+  expect(screen.getByRole('group',{name:'nextFrontier'})).toBeTruthy();
+  expect(screen.queryByText('Dashed: queued')).toBeNull();
+});
 
 it('adds each adjacency entry at its mutation, keeps nodes fixed, and reverses correctly with Back and Reset',()=>{
   const data=trace('261'),steps=data.examples[0].steps;
@@ -33,12 +65,11 @@ it('adds each adjacency entry at its mutation, keeps nodes fixed, and reverses c
 });
 
 it('shows Connected Components BFS with exact highlights, component count, and queue/visited states in all examples',async()=>{
-  const data=trace('323-bfs'),solution=solutionMap[323].followUp!;
+  const data=trace('323'),solution=solutionMap[323];
   expect(data.code).toBe(solution.jsCode);
   expect(data.examples).toHaveLength(6);
-  render(<FollowUpSolution solution={solution} problemId={323} language="javascript"/>);
+  render(<ExecutionWalkthrough id={323} code={solution.jsCode!}/>);
   await screen.findByRole('slider');
-  expect(screen.getByRole('heading',{name:'Alternative: BFS (queue)'})).toBeTruthy();
   for(const [exampleIndex,example] of data.examples.entries()) {
     fireEvent.change(screen.getByRole('combobox'),{target:{value:exampleIndex}});
     let increments=0;

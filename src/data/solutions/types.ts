@@ -1,6 +1,6 @@
 export interface SolutionFollowUp {
   title: string;
-  label?: 'Alternative' | 'Follow-up';
+  label?: 'Alternative' | 'Follow-up' | 'Optimized';
   walkthroughVariant?: string;
   approach: string;
   code: string;

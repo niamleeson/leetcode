@@ -1,4 +1,5 @@
 import { ProblemSolution } from './types';
+import { withBfsFirst } from './bfs-first';
 
 // Original solution groups
 import { solutions as arraysHashing } from './arrays-hashing';
@@ -61,7 +62,7 @@ const allSolutions: ProblemSolution[] = [
   ...sdiVol2M1,
   ...sdiVol2M2,
   ...sdiVol2M3,
-];
+].map(withBfsFirst);
 
 // Build a map for O(1) lookup by problem ID
 export const solutionMap: Record<number, ProblemSolution> = {};

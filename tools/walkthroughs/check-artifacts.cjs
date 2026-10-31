@@ -7,6 +7,7 @@ const fixtures = require('./fixtures.json');
 const {indexingFor}=require('./source-analysis.cjs');
 const generatorHash=crypto.createHash('sha256').update(fs.readFileSync(path.join(__dirname,'instrument.cjs'))).update(fs.readFileSync(path.join(__dirname,'runtime.cjs'))).digest('hex');
 let examples=0,steps=0;
+assert.deepEqual(fs.readdirSync(path.join(root,'src/data/walkthroughs/generated')).filter(file=>file.endsWith('.json')).sort(),walkthroughs.map(problem=>`${problem.key}.json`).sort(),'Obsolete or missing walkthrough artifacts');
 for (const problem of walkthroughs) {
   const file=path.join(root,'src/data/walkthroughs/generated',`${problem.key}.json`);
   assert(fs.existsSync(file),`Missing walkthrough for ${problem.key}`);

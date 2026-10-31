@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 import { MemoryRouter } from 'react-router-dom';
 import { NeetCodeTopic, neetcodeTopics } from '../data/neetcode250';
 import NeetCodeView from './NeetCodeView';
+import { solutionMap } from '../data/solutions';
 
 const topics: NeetCodeTopic[] = ['Arrays', 'Trees'].map(name => ({
   name,
@@ -28,6 +29,36 @@ function showPage(storagePrefix = 'nc250') {
 
 beforeEach(() => localStorage.clear());
 afterEach(cleanup);
+
+it.each([323,684,721,1462,1489,1584,2709])('shows BFS first for #%i and loads the later version independently in both languages',async id=>{
+  const problem=neetcodeTopics.flatMap(topic=>topic.problems).find(problem=>problem.id===id)!;
+  const solution=solutionMap[id],alternative=solution.followUp!;
+  const topic:NeetCodeTopic={name:'Graphs',problems:[problem],templates:[{...topics[0].templates[0],problemIds:[id]}]};
+  render(<MemoryRouter><NeetCodeView topics={[topic]} storagePrefix="nc250" title="NeetCode" description="Templates"/></MemoryRouter>);
+  fireEvent.click(screen.getByRole('button',{name:/^Graphs 1 template/}));
+  fireEvent.click(screen.getByRole('button',{name:'Expand solution'}));
+  const firstHeading=screen.getByRole('heading',{name:`${solution.solutionTitle} · JavaScript Solution`});
+  const secondHeading=screen.getByRole('heading',{name:`${alternative.label}: ${alternative.title}`});
+  expect(firstHeading.compareDocumentPosition(secondHeading)&Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  await screen.findByRole('slider',{name:`${problem.title} step`});
+  await screen.findByRole('slider',{name:`${problem.title} · ${alternative.title} step`});
+  const first=screen.getByRole('region',{name:`${problem.title} walkthrough`});
+  const second=screen.getByRole('region',{name:`${problem.title} · ${alternative.title} walkthrough`});
+  for(const [panel,code] of [[first,solution.jsCode!],[second,alternative.jsCode!]] as const) {
+    expect([...panel.querySelectorAll('.traversal-line-content')].map(line=>line.textContent).join('\n')).toBe(code);
+  }
+  fireEvent.click(within(second).getByRole('button',{name:'Next →'}));
+  expect((within(first).getByRole('slider') as HTMLInputElement).value).toBe('0');
+  expect((within(second).getByRole('slider') as HTMLInputElement).value).toBe('1');
+  fireEvent.click(within(first).getByRole('checkbox',{name:'Highlight code'}));
+  for(const panel of [first,second])expect((within(panel).getByRole('checkbox') as HTMLInputElement).checked).toBe(false);
+  fireEvent.click(screen.getByRole('button',{name:'Python'}));
+  expect(screen.getByRole('heading',{name:`${solution.solutionTitle} · Python Solution`})).toBeTruthy();
+  expect(screen.getByRole('heading',{name:`${alternative.label}: ${alternative.title}`})).toBeTruthy();
+  expect(screen.queryAllByRole('slider')).toHaveLength(0);
+  expect([...document.querySelectorAll('pre code')].map(code=>code.textContent)).toContain(solution.code);
+  expect([...document.querySelectorAll('pre code')].map(code=>code.textContent)).toContain(alternative.code);
+});
 
 it('shows both island solutions, loads independent players, and shares the highlight preference',async()=>{
   const problem=neetcodeTopics.flatMap(topic=>topic.problems).find(problem=>problem.id===200)!;

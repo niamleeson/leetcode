@@ -64,7 +64,7 @@ it('backs every displayed binding, node, and structure link with data already re
   expect(pictures).toBeGreaterThan(1000);
 },30000);
 
-it.each(['105','133','133-iterative','1462-bfs','2392','323-bfs','752','416','417','84','46','2'])('%s ignores future states and final answers when rendering an earlier step',key=>{
+it.each(['105','133','133-iterative','1462','2392','323','752','416','417','84','46','2','684','721','1489','1584','2709','684-union-find','1489-union-find','1462-floyd-warshall'])('%s ignores future states and final answers when rendering an earlier step',key=>{
   const data=trace(key),example=data.examples[0];
   const index=Math.floor(example.steps.length/2);
   const page=render(<ExecutionPlayer trace={data}/>);
