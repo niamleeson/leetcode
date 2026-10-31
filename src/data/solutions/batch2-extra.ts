@@ -3049,9 +3049,9 @@ NumMatrix.prototype.sumRegion = function(row1, col1, row2, col2) {
     examples:
       'Input: n = 4, edges = [[1,0],[1,2],[1,3]]\nOutput: [1]',
     intuition:
-      'The centroid of a tree minimizes the maximum distance to any node. Find it by repeatedly trimming leaves from the outside in, like peeling an onion. The last 1 or 2 nodes remaining are the centroids - the optimal roots.',
+      'The center of a tree minimizes the maximum distance to any node. Find it by repeatedly trimming leaves from the outside in. The last 1 or 2 nodes remaining are the centers — the optimal roots.',
     approach:
-      'Repeatedly remove leaf nodes (degree 1) from the outside in, like peeling an onion. The last remaining 1 or 2 nodes are the roots of minimum height trees (the centroids of the tree).',
+      'Repeatedly remove leaf nodes (degree 1) from the outside in. The last remaining 1 or 2 nodes are the roots of minimum height trees (the centers of the tree).',
     code: `class Solution:
     def findMinHeightTrees(self, n: int, edges: list[list[int]]) -> list[int]:
         if n == 1:
@@ -3100,8 +3100,8 @@ NumMatrix.prototype.sumRegion = function(row1, col1, row2, col2) {
 
         const nextLeaves = [];
         for (const leaf of currentLeaves) {
-            // Each leaf has exactly one neighbor
-            const neighbor = [...adj[leaf]][0];
+            // Take the leaf's only neighbor from its Set.
+            const [neighbor] = adj[leaf];
 
             // Remove the leaf from its neighbor's connections
             adj[neighbor].delete(leaf);
@@ -3115,30 +3115,37 @@ NumMatrix.prototype.sumRegion = function(row1, col1, row2, col2) {
         currentLeaves = nextLeaves;
     }
 
-    // The remaining nodes are the centroids (roots of min height trees)
+    // The remaining nodes are the centers (roots of min height trees)
     return currentLeaves;
 };`,
     jsWalkthrough:
       'Example: n=4, edges=[[1,0],[1,2],[1,3]]\n' +
       'adj: 0:{1}, 1:{0,2,3}, 2:{1}, 3:{1}\n' +
-      'Initial leaves: [0,2,3] (degree 1)\n' +
-      'nodesRemaining=4, while 4>2:\n' +
-      '  nodesRemaining=4-3=1 → wait, 1≤2 so we stop before this\n' +
-      'Actually: leaves=[0,2,3], remaining=4>2\n' +
-      '  remaining=4-3=1... hmm. Let\'s retrace:\n' +
-      '  Remove 0,2,3: node 1 loses all → adj[1]={}, size=0 → not added\n' +
-      '  nodesRemaining=1, currentLeaves=[]\n' +
-      'Oops — example n=4 leaves [1]. Result: [1]',
+      'currentLeaves = [0,2,3]\n' +
+      'nodesRemaining > 2: 4 > 2 → true\n' +
+      'nodesRemaining: 4 → 1\n' +
+      'nextLeaves = []\n\n' +
+      'leaf = 0, neighbor = 1\n' +
+      '  adj[1]: {0,2,3} → {2,3}\n\n' +
+      'leaf = 2, neighbor = 1\n' +
+      '  adj[1]: {2,3} → {3}\n' +
+      '  nextLeaves: [] → [1]\n\n' +
+      'leaf = 3, neighbor = 1\n' +
+      '  adj[1]: {3} → {}\n' +
+      '  nextLeaves = [1]\n\n' +
+      'currentLeaves: [0,2,3] → [1]\n' +
+      'nodesRemaining > 2: 1 > 2 → false\n' +
+      'return [1]',
     explanation:
       '1. Find all initial leaf nodes (degree 1).\n' +
-      '2. Remove leaves layer by layer, updating neighbor degrees.\n' +
+      '2. Remove leaves layer by layer, updating neighbor degrees. Finish the entire current layer before checking the while condition again.\n' +
       '3. When a neighbor becomes a leaf (degree 1), add it to the next layer.\n' +
-      '4. Stop when 1 or 2 nodes remain — they are the centroids.',
+      '4. Stop when 1 or 2 nodes remain — they are the centers.',
     timeComplexity: 'O(n)',
     spaceComplexity: 'O(n)',
     hints: [
-      'The root of a minimum height tree is the centroid of the tree.',
-      'A tree has at most 2 centroids.',
+      'The root of a minimum height tree is a center of the tree.',
+      'A tree has one or two centers.',
       'Repeatedly trim leaves until 1-2 nodes remain.',
     ],
   },
