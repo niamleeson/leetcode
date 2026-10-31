@@ -6793,7 +6793,35 @@
         ]
       ],
       "expected": false,
-      "name": "Edge case"
+      "name": "Cycle"
+    },
+    {
+      "name": "Disconnected components",
+      "entry": "validTree",
+      "params": ["n", "edges"],
+      "args": [4, [[0, 1], [2, 3]]],
+      "expected": false
+    },
+    {
+      "name": "Single node",
+      "entry": "validTree",
+      "params": ["n", "edges"],
+      "args": [1, []],
+      "expected": true
+    },
+    {
+      "name": "Isolated nodes",
+      "entry": "validTree",
+      "params": ["n", "edges"],
+      "args": [2, []],
+      "expected": false
+    },
+    {
+      "name": "Cycle outside the starting component",
+      "entry": "validTree",
+      "params": ["n", "edges"],
+      "args": [4, [[1, 2], [2, 3], [3, 1]]],
+      "expected": false
     }
   ],
   "268": [

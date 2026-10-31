@@ -725,81 +725,97 @@ class Solution:
     examples:
       'Input: n = 5, edges = [[0,1],[0,2],[0,3],[1,4]]\nOutput: true',
     intuition:
-      'A valid tree has exactly two properties: n-1 edges and no cycles. Think of Union-Find as connecting islands - each edge merges two islands. If you try to connect two nodes already on the same island, you have found a cycle.',
+      'A valid tree is connected and has no cycles. Starting from node 0, visit its neighbors with a stack. Going back to the parent is normal because every edge is stored in both directions; reaching any other visited neighbor reveals a cycle.',
     approach:
-      'A valid tree with n nodes must have exactly n-1 edges and be fully connected. Use Union-Find to check both conditions: if any edge connects two already-connected nodes, there is a cycle.',
+      'Build an undirected adjacency list, then run iterative DFS from node 0 using [node, parent] stack entries. Skip the parent edge, reject any other visited neighbor, and mark new neighbors before pushing them. After DFS, require visited.size === n so disconnected graphs are rejected too.',
     code: `class Solution:
     def validTree(self, n: int, edges: list[list[int]]) -> bool:
-        if len(edges) != n - 1:
-            return False
-        parent = list(range(n))
-        def find(x):
-            while parent[x] != x:
-                parent[x] = parent[parent[x]]
-                x = parent[x]
-            return x
-        for u, v in edges:
-            pu, pv = find(u), find(v)
-            if pu == pv:
-                return False
-            parent[pu] = pv
-        return True`,
+        graph = [[] for _ in range(n)]
+        for a, b in edges:
+            graph[a].append(b)
+            graph[b].append(a)
+
+        visited = {0}
+        stack = [(0, -1)]  # (node, parent)
+
+        while stack:
+            node, parent = stack.pop()
+            for neighbor in graph[node]:
+                # Going back to the parent is normal in an undirected graph.
+                if neighbor == parent:
+                    continue
+
+                # Another connection to a visited node means a cycle.
+                if neighbor in visited:
+                    return False
+
+                visited.add(neighbor)
+                stack.append((neighbor, node))
+
+        # Every node must be reachable from node 0.
+        return len(visited) == n`,
     jsCode: `var validTree = function(n, edges) {
-    // A valid tree must have exactly n-1 edges
-    if (edges.length !== n - 1) return false;
-
-    // Initialize Union-Find: each node is its own parent
-    const parent = Array(n)
+    const graph = Array(n)
         .fill(null)
-        .map((_, i) => i);
+        .map(() => []);
 
-    // Find root with path compression
-    const find = (x) => {
-        while (parent[x] !== x) {
-            // Path compression: point directly to grandparent
-            parent[x] = parent[parent[x]];
-            x = parent[x];
-        }
-        return x;
-    };
-
-    // Process each edge; if both endpoints share a root, it's a cycle
-    for (const [u, v] of edges) {
-        const rootU = find(u);
-        const rootV = find(v);
-
-        if (rootU === rootV) {
-            // Adding this edge would create a cycle
-            return false;
-        }
-
-        // Union the two components
-        parent[rootU] = rootV;
+    for (const [a, b] of edges) {
+        graph[a].push(b);
+        graph[b].push(a);
     }
 
-    return true;
+    const visited = new Set([0]);
+    const stack = [[0, -1]]; // [node, parent]
+
+    while (stack.length) {
+        const [node, parent] = stack.pop();
+
+        for (const neighbor of graph[node]) {
+            // Going back to the parent is normal in an undirected graph.
+            if (neighbor === parent) continue;
+
+            // Another connection to a visited node means a cycle.
+            if (visited.has(neighbor)) return false;
+
+            visited.add(neighbor);
+            stack.push([neighbor, node]);
+        }
+    }
+
+    // Every node must be reachable from node 0.
+    return visited.size === n;
 };`,
     jsWalkthrough:
       'Example: n=5, edges=[[0,1],[0,2],[0,3],[1,4]]\n' +
-      'edges.length=4 === n-1=4 ✓\n' +
-      'parent = [0,1,2,3,4]\n' +
-      '[0,1]: find(0)=0, find(1)=1 → different → parent[0]=1 → [1,1,2,3,4]\n' +
-      '[0,2]: find(0)=1, find(2)=2 → different → parent[1]=2 → [1,2,2,3,4]\n' +
-      '[0,3]: find(0)=2, find(3)=3 → different → parent[2]=3 → [1,2,3,3,4]\n' +
-      '[1,4]: find(1)=3, find(4)=4 → different → parent[3]=4\n' +
-      'No cycle found → return true',
+      'graph = [[1,2,3],[0,4],[0],[0],[1]]\n' +
+      'visited = {0}; stack = [[0,-1]] (top on the right)\n' +
+      'pop [0,-1] → stack = []; node = 0, parent = -1\n' +
+      '  neighbor 1: not parent, not visited → visited = {0,1}; push [1,0] → stack = [[1,0]]\n' +
+      '  neighbor 2: not parent, not visited → visited = {0,1,2}; push [2,0] → stack = [[1,0],[2,0]]\n' +
+      '  neighbor 3: not parent, not visited → visited = {0,1,2,3}; push [3,0] → stack = [[1,0],[2,0],[3,0]]\n' +
+      'pop [3,0] → stack = [[1,0],[2,0]]; node = 3, parent = 0\n' +
+      '  neighbor 0 === parent → continue\n' +
+      'pop [2,0] → stack = [[1,0]]; node = 2, parent = 0\n' +
+      '  neighbor 0 === parent → continue\n' +
+      'pop [1,0] → stack = []; node = 1, parent = 0\n' +
+      '  neighbor 0 === parent → continue\n' +
+      '  neighbor 4: not parent, not visited → visited = {0,1,2,3,4}; push [4,1] → stack = [[4,1]]\n' +
+      'pop [4,1] → stack = []; node = 4, parent = 1\n' +
+      '  neighbor 1 === parent → continue\n' +
+      'stack.length = 0 → exit loop\n' +
+      'visited.size === n → 5 === 5 → return true',
     explanation:
-      '1. Check if the number of edges is exactly n-1 (necessary for a tree).\n' +
-      '2. Initialize Union-Find with each node as its own parent.\n' +
-      '3. For each edge, find the roots of both nodes.\n' +
-      '4. If they share the same root, adding this edge would create a cycle — return False.\n' +
-      '5. Otherwise, union them. If all edges pass, it is a valid tree.',
-    timeComplexity: 'O(n * alpha(n)) — nearly O(n) with path compression',
-    spaceComplexity: 'O(n)',
+      '1. Build an adjacency list containing both directions of every edge.\n' +
+      '2. Mark node 0 visited and push [0, -1]; -1 means the starting node has no parent.\n' +
+      '3. Pop [node, parent]. For each neighbor, skip the parent edge before checking visited.\n' +
+      '4. Any other visited neighbor reveals a cycle, so return false. Otherwise, mark it visited and push [neighbor, node].\n' +
+      '5. When the stack is empty, return whether all n nodes were visited. A disconnected graph is not a tree.',
+    timeComplexity: 'O(n + E), where E is the number of edges',
+    spaceComplexity: 'O(n + E) for the adjacency list, visited set, and stack',
     hints: [
-      'A tree with n nodes has exactly n-1 edges.',
-      'Use Union-Find to detect cycles: if both endpoints are already connected, there is a cycle.',
-      'Check both: n-1 edges AND no cycles.',
+      'A tree must be connected and have no cycles. Build an undirected adjacency list first.',
+      'Carry the parent with each node so the reverse edge is not mistaken for a cycle.',
+      'Mark neighbors before pushing them. Reject any visited neighbor other than the parent, then check that all n nodes were reached.',
     ],
   },
 

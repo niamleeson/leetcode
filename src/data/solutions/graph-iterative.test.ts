@@ -6,6 +6,58 @@ import { neetcodeTopics } from '../neetcode250';
 import { solutionMap } from './index';
 import { iterativeGraphSolutions } from './graph-iterative';
 
+describe('Graph Valid Tree iterative DFS', () => {
+  // Independently detect cycles with union-find for every simple graph up to five nodes.
+  const cases: { n: number; edges: number[][]; expected: boolean }[] = [];
+  for (let n = 1; n <= 5; n++) {
+    const pairs: number[][] = [];
+    for (let a = 0; a < n; a++) for (let b = a + 1; b < n; b++) pairs.push([a, b]);
+    for (let mask = 0; mask < 2 ** pairs.length; mask++) {
+      const edges = pairs.filter((_, bit) => mask & (1 << bit));
+      const roots = Array(n).fill(null).map((_, i) => i);
+      const find = (node: number): number => roots[node] === node ? node : find(roots[node]);
+      let cycle = false;
+      for (const [a, b] of edges) {
+        const rootA = find(a), rootB = find(b);
+        if (rootA === rootB) cycle = true;
+        roots[rootA] = rootB;
+      }
+      cases.push({ n, edges, expected: !cycle && edges.length === n - 1 });
+    }
+  }
+  cases.push({ n: 2000, edges: Array(1999).fill(null).map((_, i) => [i, i + 1]), expected: true });
+
+  it('matches the independent oracle, preserves inputs, and handles a long chain', () => {
+    const result = runInNewContext(`${solutionMap[261].jsCode}
+      cases.map(({ n, edges }) => {
+        const before = JSON.stringify(edges);
+        const actual = validTree(n, edges);
+        if (JSON.stringify(edges) !== before) throw new Error('Input edges changed');
+        const reversed = validTree(n, edges.map(([a, b]) => [b, a]).reverse());
+        return [actual, reversed];
+      })`, { cases }, { timeout: 5000 });
+    expect(JSON.parse(JSON.stringify(result))).toEqual(cases.map(({ expected }) => [expected, expected]));
+  });
+
+  it('keeps Python consistent on the same exhaustive cases and long chain', () => {
+    const result = spawnSync('python3', ['-c', `
+import json, sys
+data = json.load(sys.stdin)
+namespace = {}
+exec(data['code'], namespace)
+solution = namespace['Solution']()
+for case in data['cases']:
+    before = [edge[:] for edge in case['edges']]
+    assert solution.validTree(case['n'], case['edges']) == case['expected'], case
+    assert case['edges'] == before
+    reversed_edges = [[b, a] for a, b in reversed(case['edges'])]
+    assert solution.validTree(case['n'], reversed_edges) == case['expected'], case
+`], { input: JSON.stringify({ code: solutionMap[261].code, cases }), encoding: 'utf8', timeout: 10000 });
+    expect(result.stderr).toBe('');
+    expect(result.status).toBe(0);
+  });
+});
+
 // A separate union-find oracle checks every 3x3 land pattern and border connection.
 const grids=Array.from({length:512},(_,mask)=>{
   const grid=Array.from({length:3},(_,r)=>Array.from({length:3},(_,c)=>(mask>>(r*3+c))&1));

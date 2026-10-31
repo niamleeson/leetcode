@@ -35,7 +35,7 @@ function GraphPicture({graph,state,heap}:{graph:GraphModel;state:Record<string,T
         </g>;
       })}
     </svg></div>
-    {[...statuses.values()].some(status=>status.queued||status.visited)&&<p className="execution-graph-legend"><span className="is-queued">Dashed: queued</span><span className="is-visited">Blue fill: visited</span></p>}
+    {[...statuses.values()].some(status=>status.queued||status.visited)&&<p className="execution-graph-legend"><span className="is-queued">Dashed: {state.queue===undefined&&state.stack!==undefined?'in stack':'queued'}</span><span className="is-visited">Blue fill: visited</span></p>}
     {graph.nodes.some(node=>node.blocked)&&<p className="execution-empty">Amber nodes are deadends.</p>}
   </section>;
 }
