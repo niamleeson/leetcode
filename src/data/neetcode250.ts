@@ -1603,6 +1603,111 @@ def bfs(grid, start):
 
 const topic_advanced_graphs: NeetCodeTopic = {
   name: "Advanced Graphs",
+  reference: {
+    title: "JavaScript Dijkstra with Min-Heap",
+    description: "Find the shortest distance from the starting node to every node. The heap stores [distance, node] pairs and compares their distances directly.\nUse node IDs from 0 to graph.length - 1. Each graph[node] contains [neighbor, weight] pairs, and all weights must be nonnegative. Unreachable nodes keep distance Infinity.",
+    javascript: `class MinHeap {
+  constructor() {
+    this.heap = [];
+  }
+
+  get size() {
+    return this.heap.length;
+  }
+
+  push(value) {
+    const heap = this.heap;
+    heap.push(value);
+
+    let i = heap.length - 1;
+
+    // Move up until the parent has a smaller or equal distance.
+    while (i > 0) {
+      const parent = Math.floor((i - 1) / 2);
+
+      if (heap[parent][0] <= heap[i][0]) break;
+
+      [heap[parent], heap[i]] = [heap[i], heap[parent]];
+      i = parent;
+    }
+  }
+
+  pop() {
+    const heap = this.heap;
+    if (heap.length === 0) return undefined;
+
+    const min = heap[0];
+    const last = heap.pop();
+
+    if (heap.length > 0) {
+      heap[0] = last;
+      let i = 0;
+
+      // Move down, swapping with the smaller child.
+      while (true) {
+        const left = 2 * i + 1;
+        const right = 2 * i + 2;
+        let smallest = i;
+
+        if (left < heap.length && heap[left][0] < heap[smallest][0]) {
+          smallest = left;
+        }
+
+        if (right < heap.length && heap[right][0] < heap[smallest][0]) {
+          smallest = right;
+        }
+
+        if (smallest === i) break;
+
+        [heap[i], heap[smallest]] = [heap[smallest], heap[i]];
+        i = smallest;
+      }
+    }
+
+    return min;
+  }
+}
+
+// graph[node] = [[neighbor, weight], ...]
+// All edge weights must be nonnegative.
+function dijkstra(graph, start) {
+  const distances = Array(graph.length).fill(Infinity);
+  const heap = new MinHeap();
+
+  distances[start] = 0;
+  heap.push([0, start]);
+
+  while (heap.size > 0) {
+    const [distance, node] = heap.pop();
+
+    // A shorter route was found after this entry was added.
+    if (distance > distances[node]) continue;
+
+    for (const [neighbor, weight] of graph[node]) {
+      const newDistance = distance + weight;
+
+      if (newDistance < distances[neighbor]) {
+        distances[neighbor] = newDistance;
+        heap.push([newDistance, neighbor]);
+      }
+    }
+  }
+
+  return distances;
+}`,
+    usage: `// Each connection is [neighbor, weight].
+const graph = [
+  [[1, 4], [2, 1]], // Node 0
+  [[3, 1]],        // Node 1
+  [[1, 2], [3, 5]], // Node 2
+  [],              // Node 3
+];
+
+dijkstra(graph, 0);
+// [0, 3, 1, 4]
+// Shortest distance from node 0 to each node.`,
+    complexity: "Time: O(V + E log(E + 1)) · Extra space: O(V + E). V = nodes, E = edges; the heap can hold older distance entries.",
+  },
   templates: [
     {
       id: "dijkstra",
