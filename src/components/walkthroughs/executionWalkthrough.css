@@ -57,6 +57,7 @@
 .execution-link { color: var(--trace-border); }
 .execution-link line { stroke: currentColor; stroke-width: 1.5px; }
 .execution-link path { stroke: currentColor; stroke-width: 1.5px; fill: none; }
+.execution-link.is-ignored path { stroke-dasharray: 6 5; opacity: .45; }
 .execution-link text { fill: var(--trace-muted); text-anchor: middle; font: 10px ui-monospace, monospace; }
 .execution-node circle { fill: var(--trace-bg); stroke: var(--trace-border); stroke-width: 2; }
 .execution-node text { fill: var(--trace-text); font: 14px ui-monospace, monospace; }

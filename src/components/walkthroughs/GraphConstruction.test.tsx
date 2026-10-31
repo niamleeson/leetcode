@@ -32,14 +32,19 @@ it.each(['684','721','1489','1584','2709'])('%s BFS reveals each direction only 
   fireEvent.click(screen.getByRole('button',{name:'Reset'}));
   expect(document.querySelectorAll('.execution-link')).toHaveLength(0);
   expect(positions()).toEqual(initial);
-  const traversal=steps.findIndex(step=>step.kind==='operation'&&step.label==='nextFrontier.push(neighbor)');
+  const traversal=steps.findIndex(step=>step.kind==='operation'&&step.label===(key==='684'?'queue.push(neighbor)':'nextFrontier.push(neighbor)'));
   expect(traversal).toBeGreaterThan(0);
   fireEvent.change(screen.getByRole('slider'),{target:{value:traversal}});
   const step=steps[traversal],{heap}=materialize(steps,traversal);
   expect(objectFor(step.state.visited,heap)!.items).toContain(step.state.neighbor);
-  expect(screen.getByRole('group',{name:'frontier'})).toBeTruthy();
-  expect(screen.getByRole('group',{name:'nextFrontier'})).toBeTruthy();
-  expect(screen.queryByText('Dashed: queued')).toBeNull();
+  if(key==='684') {
+    expect(screen.getByRole('group',{name:'queue'})).toBeTruthy();
+    expect(screen.getByText('Dashed: queued')).toBeTruthy();
+  } else {
+    expect(screen.getByRole('group',{name:'frontier'})).toBeTruthy();
+    expect(screen.getByRole('group',{name:'nextFrontier'})).toBeTruthy();
+    expect(screen.queryByText('Dashed: queued')).toBeNull();
+  }
 });
 
 it('adds each adjacency entry at its mutation, keeps nodes fixed, and reverses correctly with Back and Reset',()=>{

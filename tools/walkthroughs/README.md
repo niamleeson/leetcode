@@ -137,8 +137,11 @@ Min Cost to Connect All Points, Critical/Pseudo-Critical MST Edges, and Greatest
 Common Divisor Traversal. Course Schedule IV also starts with BFS, with
 Floyd-Warshall afterward. Both versions have independent recordings. The two MST
 problems keep Kruskal's weight ordering and use BFS only for connectivity checks.
-New BFS snippets use current/next layer arrays, without a queue index. Email and
-shared-prime graphs use Sets to avoid storing the same neighbor repeatedly.
+Redundant Connection builds its full graph before checking candidates in reverse
+input order with a queue. Each BFS ignores the candidate edge in both directions;
+the diagram keeps the stored edge visible but dashed once that candidate is bound.
+The other new BFS snippets use current/next layer arrays, without a queue index.
+Email and shared-prime graphs use Sets to avoid storing the same neighbor repeatedly.
 Correctness checks include independent Prim and exhaustive spanning-tree oracles,
 edge-removal cycle checks, intersecting email sets, pairwise GCD reachability,
 Python parity, and a large sparse shared-prime graph. Production checks reject

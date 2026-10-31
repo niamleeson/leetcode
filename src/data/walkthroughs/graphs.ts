@@ -1,7 +1,7 @@
 import { ExecutionStep, TraceHeap, TraceValue, formatValue, isReference, objectFor } from './execution';
 
 export interface GraphNode { key:string;value:TraceValue;label:string;caption?:string;x?:number;y?:number;blocked?:boolean }
-export interface GraphEdge { from:string;to:string;weight?:string;directed?:boolean }
+export interface GraphEdge { from:string;to:string;weight?:string;directed?:boolean;ignored?:boolean }
 export interface GraphModel { title:string;directed:boolean;nodes:GraphNode[];edges:GraphEdge[];active?:boolean;width?:number;height?:number;pointerNames?:string[] }
 export interface GraphContext { variant?:string;conditionGraphs?:Record<string,TraceValue>;lockCurrent?:string;lockNeighbors?:string[] }
 export const graphKey=(value:TraceValue)=>JSON.stringify(value);
@@ -156,6 +156,10 @@ export function graphModels(id:number,input:Record<string,TraceValue>,state:Reco
       edges=source.map(row=>edge(row[0],row[1],row[2]));
     }
     if(!directed)edges=undirected(edges);
+    if(id===684&&context.variant!=='union-find'&&typeof state.i==='number'&&typeof state.a==='number'&&typeof state.b==='number') {
+      const a=graphKey(state.a),b=graphKey(state.b);
+      edges=edges.map(link=>({...link,ignored:(link.from===a&&link.to===b)||(link.from===b&&link.to===a)}));
+    }
     return model(title,directed,values,edges,active);
   }).filter(graph=>graph.nodes.length>0);
 }

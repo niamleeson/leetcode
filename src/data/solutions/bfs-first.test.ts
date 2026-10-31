@@ -35,6 +35,13 @@ for (let n = 3; n <= 5; n++) {
   }
 }
 
+// The cycle occurs before many bridges. Reverse-order BFS must reject every
+// bridge rather than accepting its direct edge in the already-built graph.
+cases[684].push({
+  args: [[[1, 2], [1, 3], [2, 3], ...Array(997).fill(null).map((_, i) => [1, i + 4])]],
+  expected: [2, 3],
+});
+
 // Merge sets until they no longer intersect; account names never establish a link.
 for (let trial = 0; trial < 200; trial++) {
   const accounts = Array(1 + random(8)).fill(null).map(() => {

@@ -41,37 +41,82 @@ const pythonConnected = `        def connected(graph, start, target):
 
 const bfsSolutions: Record<number, SolutionFollowUp> = {
   684: {
-    title: 'BFS connectivity check',
-    approach: 'Process edges in their original order. Before connecting two nodes, use BFS to check whether a path already connects them. If it does, this edge closes a cycle and is the redundant edge. Otherwise, add both directions to the graph.',
+    title: 'BFS (build graph first)',
+    approach: 'Build the complete undirected graph first. Check edges from last to first. For each candidate [a, b], run BFS from a while ignoring that edge in both directions. If BFS still reaches b, another path connects the endpoints, so the candidate can be removed. Reverse order gives the last valid edge in the input.',
     code: `class Solution:
     def findRedundantConnection(self, edges: list[list[int]]) -> list[int]:
+        from collections import deque
+
         graph = [[] for _ in range(len(edges) + 1)]
 
-${pythonConnected}
-
         for a, b in edges:
-            if connected(graph, a, b):
-                return [a, b]
             graph[a].append(b)
             graph[b].append(a)
+
+        for i in range(len(edges) - 1, -1, -1):
+            a, b = edges[i]
+            queue = deque([a])
+            visited = {a}
+
+            while queue:
+                node = queue.popleft()
+
+                if node == b:
+                    return [a, b]
+
+                for neighbor in graph[node]:
+                    # Ignore the candidate edge in both directions.
+                    if ((node == a and neighbor == b) or
+                            (node == b and neighbor == a)):
+                        continue
+
+                    if neighbor in visited:
+                        continue
+
+                    visited.add(neighbor)
+                    queue.append(neighbor)
+
         return []`,
     jsCode: `var findRedundantConnection = function(edges) {
     const graph = Array(edges.length + 1)
         .fill(null)
         .map(() => []);
 
-${jsConnected}
-
     for (const [a, b] of edges) {
-        if (connected(graph, a, b)) return [a, b];
         graph[a].push(b);
         graph[b].push(a);
     }
+
+    for (let i = edges.length - 1; i >= 0; i--) {
+        const [a, b] = edges[i];
+        const queue = [a];
+        const visited = new Set([a]);
+
+        while (queue.length) {
+            const node = queue.shift();
+
+            if (node === b) return [a, b];
+
+            for (const neighbor of graph[node]) {
+                // Ignore the candidate edge in both directions.
+                if (
+                    (node === a && neighbor === b) ||
+                    (node === b && neighbor === a)
+                ) continue;
+
+                if (visited.has(neighbor)) continue;
+
+                visited.add(neighbor);
+                queue.push(neighbor);
+            }
+        }
+    }
+
     return [];
 };`,
-    explanation: '1. Begin with no connections.\n2. BFS follows only edges already accepted; frontier holds the current layer and nextFrontier holds the next layer.\n3. Mark neighbors when adding them to the next layer so they are visited once per search.\n4. If a can already reach b, adding [a, b] would close a cycle. Return that edge before adding it.\n5. Otherwise, add both adjacency entries and continue. Processing edges in input order finds the last edge of the unique cycle.',
-    timeComplexity: 'O(E * V) for BFS on the growing forest; E = V for this problem',
-    spaceComplexity: 'O(V) for the forest and BFS state',
+    explanation: '1. Add every input edge to both adjacency lists before starting any BFS.\n2. Try candidates from the last input edge to the first, using a fresh queue and visited set for each search.\n3. Skip the candidate edge in both directions without changing the stored graph. Otherwise BFS could take that edge directly and incorrectly accept it.\n4. Mark neighbors before enqueueing. If BFS reaches b through other edges, [a, b] belongs to the cycle and can be removed.\n5. If the queue empties first, removing that candidate would disconnect the graph, so try the previous edge. Reverse order ensures the first success is the last removable edge in the input. For [[1,2], [1,3], [2,3]], ignoring [2,3] still allows 2 → 1 → 3.',
+    timeComplexity: 'Python: O(V^2) with deque. JavaScript: O(V^3) worst case counting array shift() costs. This problem has E = V.',
+    spaceComplexity: 'O(V + E) for the graph and BFS state; O(V) here because E = V',
   },
   721: {
     title: 'BFS over email connections',
@@ -440,7 +485,7 @@ export function withBfsFirst(solution: ProblemSolution): ProblemSolution {
     explanation: bfs.explanation,
     timeComplexity: bfs.timeComplexity,
     spaceComplexity: bfs.spaceComplexity,
-    hints: [bfs.approach, 'Mark a node when scheduling it so repeated paths cannot schedule it again.', floyd ? 'Each start course needs its own reachability row.' : 'Union-find with path compression speeds up repeated connectivity checks in the version below.'],
+    hints: solution.id===684 ? ['Build the full graph, then check candidate edges from last to first.', 'During BFS, ignore the candidate edge in both directions without removing it from the graph.', 'If its endpoints remain connected through another path, that edge can be removed.'] : [bfs.approach, 'Mark a node when scheduling it so repeated paths cannot schedule it again.', floyd ? 'Each start course needs its own reachability row.' : 'Union-find with path compression speeds up repeated connectivity checks in the version below.'],
     followUp: optimized,
   };
 }

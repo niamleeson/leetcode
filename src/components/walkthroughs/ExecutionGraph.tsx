@@ -21,7 +21,8 @@ function GraphPicture({graph,state,heap}:{graph:GraphModel;state:Record<string,T
         const loop=edge.from===edge.to;
         const path=loop?`M ${a.x-15} ${a.y-17} C ${a.x-60} ${a.y-80}, ${a.x+60} ${a.y-80}, ${a.x+15} ${a.y-17}`:
           `M ${a.x+dx*23} ${a.y+dy*23} Q ${cx} ${cy}, ${b.x-dx*25} ${b.y-dy*25}`;
-        return <g className="execution-link" key={i} data-from={edge.from} data-to={edge.to}>
+        return <g className={`execution-link${edge.ignored?' is-ignored':''}`} key={i} data-from={edge.from} data-to={edge.to}>
+          {edge.ignored&&<title>Candidate edge: ignored during this BFS</title>}
           <path d={path} markerEnd={directed?`url(#${arrowId})`:undefined}/>
           {edge.weight!==undefined&&<text className="execution-edge-weight" x={loop?a.x:(a.x+2*cx+b.x)/4} y={loop?a.y-65:(a.y+2*cy+b.y)/4-5}><title>{`Weight: ${edge.weight}`}</title>{edge.weight.length>10&&Number.isFinite(Number(edge.weight))?`≈${Number(edge.weight).toPrecision(4)}`:edge.weight}</text>}
         </g>;
@@ -37,6 +38,7 @@ function GraphPicture({graph,state,heap}:{graph:GraphModel;state:Record<string,T
       })}
     </svg></div>
     {!graph.directed&&graph.edges.some(edge=>edge.directed)&&<p className="execution-empty">Arrow: one adjacency entry. Line: entries in both directions.</p>}
+    {graph.edges.some(edge=>edge.ignored)&&<p className="execution-empty">Dashed edge: ignored by this BFS.</p>}
     {[...statuses.values()].some(status=>status.queued||status.visited)&&<p className="execution-graph-legend">{(state.queue!==undefined||state.stack!==undefined)&&<span className="is-queued">Dashed: {state.queue===undefined&&state.stack!==undefined?'in stack':'queued'}</span>}{[...statuses.values()].some(status=>status.visited)&&<span className="is-visited">Blue fill: visited</span>}</p>}
     {graph.nodes.some(node=>node.blocked)&&<p className="execution-empty">Amber nodes are deadends.</p>}
   </section>;
