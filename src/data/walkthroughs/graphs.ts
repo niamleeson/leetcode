@@ -2,8 +2,8 @@ import { ExecutionStep, TraceHeap, TraceValue, formatValue, isReference, objectF
 
 export interface GraphNode { key:string;value:TraceValue;label:string;caption?:string;x?:number;y?:number;blocked?:boolean }
 export interface GraphEdge { from:string;to:string;weight?:string;directed?:boolean }
-export interface GraphModel { title:string;directed:boolean;nodes:GraphNode[];edges:GraphEdge[];active?:boolean }
-export interface GraphContext { variant?:string;conditionGraphs?:Record<string,TraceValue>;lockNeighbors?:string[] }
+export interface GraphModel { title:string;directed:boolean;nodes:GraphNode[];edges:GraphEdge[];active?:boolean;width?:number;height?:number }
+export interface GraphContext { variant?:string;conditionGraphs?:Record<string,TraceValue>;lockCurrent?:string;lockNeighbors?:string[] }
 export const graphKey=(value:TraceValue)=>JSON.stringify(value);
 const labelFor=(value:TraceValue,heap:TraceHeap)=>typeof value==='string'?value:formatValue(value,heap);
 
@@ -11,18 +11,24 @@ const labelFor=(value:TraceValue,heap:TraceHeap)=>typeof value==='string'?value:
 // in the trace. Earlier contexts stay immutable so Back and Reset cannot leak edges.
 export function graphContextsFor(id:number,steps:ExecutionStep[]):GraphContext[] {
   if(id!==2392&&id!==752)return [];
-  let conditionGraphs:Record<string,TraceValue>={},currentState:TraceValue|undefined,lockNeighbors:string[]=[];
-  return steps.map(({state})=>{
+  let conditionGraphs:Record<string,TraceValue>={},lockCurrent:string|undefined,lockNeighbors:string[]=[];
+  const heap:TraceHeap={};
+  return steps.map(step=>{
+    const {state}=step;
     if(id===2392&&isReference(state.conditions)&&isReference(state.graph)) {
       conditionGraphs={...conditionGraphs,[state.conditions.$ref]:state.graph};
     }
     if(id===752) {
-      if(state.currentState!==currentState){currentState=state.currentState;lockNeighbors=[];}
-      if(typeof currentState==='string'&&typeof state.newState==='string'&&!lockNeighbors.includes(state.newState)) {
+      Object.assign(heap,step.heap);
+      const removed=step.kind==='operation'&&step.label==='queue.shift()'?objectFor(step.value,heap)?.items?.[0]:undefined;
+      const queued=objectFor(objectFor(state.queue,heap)?.items?.[0],heap)?.items?.[0];
+      const current=typeof removed==='string'?removed:typeof state.currentState==='string'?state.currentState:lockCurrent??queued;
+      if(typeof current==='string'&&current!==lockCurrent){lockCurrent=current;lockNeighbors=[];}
+      if(typeof lockCurrent==='string'&&typeof state.newState==='string'&&!lockNeighbors.includes(state.newState)) {
         lockNeighbors=[...lockNeighbors,state.newState];
       }
     }
-    return {conditionGraphs,lockNeighbors};
+    return {conditionGraphs,lockCurrent,lockNeighbors};
   });
 }
 
@@ -79,18 +85,23 @@ export function graphModels(id:number,input:Record<string,TraceValue>,state:Reco
     return [model('One-letter transformations',false,values,edges)];
   }
   if(id===752) {
-    const current=typeof state.currentState==='string'?state.currentState:'0000';
+    const queued=rows(state.queue)[0]?.[0];
+    const current=context.lockCurrent??(typeof state.currentState==='string'?state.currentState:queued);
+    if(typeof current!=='string')return [];
     const blocked=new Set(items(input.deadends).map(graphKey));
-    const neighbors=Array.from({length:8},(_,i)=>{
-      const wheel=Math.floor(i/2),delta=i%2===0?1:-1;
-      return current.slice(0,wheel)+(Number(current[wheel])+delta+10)%10+current.slice(wheel+1);
-    });
     const generated=context.lockNeighbors??(typeof state.newState==='string'?[state.newState]:[]);
-    const graph=model('Current lock state and generated neighbors',false,[current,...neighbors],generated.filter(value=>neighbors.includes(value)).map(value=>edge(current,value)));
+    const graph=model('Current lock state and generated neighbors',false,[current,...generated],generated.map(value=>edge(current,value)));
+    // Reserve space, not future nodes. A generated neighbor keeps the slot for
+    // its wheel and direction, so revealing another state never moves it.
+    graph.width=510;graph.height=510;
     graph.nodes.forEach(node=>{
       node.blocked=blocked.has(node.key);
-      const index=neighbors.indexOf(node.value as string),angle=index*Math.PI/4-Math.PI/2;
-      node.x=index<0?250:250+175*Math.cos(angle);node.y=index<0?250:250+175*Math.sin(angle);
+      if(node.value===current){node.x=250;node.y=250;return;}
+      const value=node.value as string;
+      const wheel=[...current].findIndex((digit,index)=>digit!==value[index]);
+      const up=Number(value[wheel])===(Number(current[wheel])+1)%10;
+      const angle=(wheel*2+(up?0:1))*Math.PI/4-Math.PI/2;
+      node.x=250+175*Math.cos(angle);node.y=250+175*Math.sin(angle);
     });
     return [graph];
   }
@@ -154,7 +165,7 @@ export function layoutGraph(graph:GraphModel) {
     const angle=2*Math.PI*i/graph.nodes.length-Math.PI/2;
     return [node.key,{x:node.x??(radius+padding+(graph.nodes.length===1?0:radius*Math.cos(angle))),y:node.y??(radius+80+(graph.nodes.length===1?0:radius*Math.sin(angle)))}];
   }));
-  return {positions,width:Math.max(320,...[...positions.values()].map(p=>p.x+widest/2+35)),height:Math.max(250,...[...positions.values()].map(p=>p.y+80))};
+  return {positions,width:graph.width??Math.max(320,...[...positions.values()].map(p=>p.x+widest/2+35)),height:graph.height??Math.max(250,...[...positions.values()].map(p=>p.y+80))};
 }
 
 export function graphNodeState(node:GraphNode,graph:GraphModel,state:Record<string,TraceValue>,heap:TraceHeap) {

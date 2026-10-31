@@ -111,6 +111,20 @@ generated. Row and column constraint graphs retain their separate completed
 snapshots after their helpers return. Back and Reset never reveal future edges.
 Algorithms that directly read existing edge lists label them as input graphs.
 
+Open Lock reveals the starting node when it is enqueued, then reveals each
+neighbor only when the code generates that state. Empty positions are reserved
+without drawing future nodes, so existing nodes keep their screen positions.
+Structure diagrams label a node as `return` only on an actual return step;
+conditions and queue/stack removals can produce node references without
+returning from the function. The clone diagram's new-node region appears only
+after the first clone exists.
+
+Visualization timing checks cover every committed solution and example. Each
+displayed binding, structure node, and link must be backed by data recorded by
+the selected step. Additional tests change later states and final answers and
+verify that earlier rendered frames remain identical. Component regressions
+cover first appearance, Back, Reset, example changes, and final-result timing.
+
 Number of Connected Components also has a BFS alternative with an explicit
 queue. It counts one component per unvisited starting node, including isolates,
 and marks neighbors before enqueueing. Its six recordings cover cycles,

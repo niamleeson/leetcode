@@ -20,6 +20,7 @@ describe('execution walkthroughs',()=>{
       const displayed=new Set([...document.querySelectorAll('[data-variable-names]')].flatMap(element=>JSON.parse(element.getAttribute('data-variable-names')!)));
       for(const name of Object.keys(steps[index].state)) expect(displayed.has(name),`#${id} step ${index}: ${name} must stay visible`).toBe(true);
       expect(document.querySelector('.execution-data details:not([open])')).toBeNull();
+      if(index<steps.length-1)expect(screen.queryByLabelText('Final result')).toBeNull();
     }
     expect(screen.getByLabelText('Final result').textContent).toContain(JSON.stringify(data.examples[0].result));
   });

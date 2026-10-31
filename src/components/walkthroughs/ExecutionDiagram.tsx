@@ -2,9 +2,9 @@ import { useId } from 'react';
 import { TraceHeap, TraceValue, formatValue, isReference, objectFor } from '../../data/walkthroughs/execution';
 import { collectStructure, layoutTree, nodeChanged, TreeOccurrence } from '../../data/walkthroughs/structure';
 
-export default function ExecutionDiagram({ roots, state, heap, previousHeap, callers=[], result, resultOnly=false }: {
+export default function ExecutionDiagram({ roots, state, heap, previousHeap, callers=[], result, resultOnly=false, isReturn=false }: {
   roots:Record<string,TraceValue>;state:Record<string,TraceValue>;heap:TraceHeap;previousHeap:TraceHeap;
-  callers?:TraceValue[];result?:TraceValue;resultOnly?:boolean;
+  callers?:TraceValue[];result?:TraceValue;resultOnly?:boolean;isReturn?:boolean;
 }) {
   const arrowId=useId().replace(/:/g,'');
   const originalIds=new Set(collectStructure(Object.values(roots),heap).keys());
@@ -42,7 +42,7 @@ export default function ExecutionDiagram({ roots, state, heap, previousHeap, cal
   return <div className="execution-structure"><div className="execution-diagram-canvas" tabIndex={0} aria-label="Structure diagram, scroll horizontally if needed">
     <svg role="img" aria-label={`${quad?'Quad tree':tree?'Tree':list?'Linked list':'Graph'} with current code pointers`} viewBox={`0 0 ${width} ${height}`} style={{width:`${width}px`}}>
       <defs><marker id={arrowId} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/></marker></defs>
-      {!tree&&!list&&originalIds.size>0&&<g className="execution-link"><text x="160" y="20">Input nodes</text><text x="480" y="20">New nodes</text></g>}
+      {!tree&&!list&&originalIds.size>0&&<g className="execution-link"><text x="160" y="20">Input nodes</text>{entries.some(([id])=>!originalIds.has(id))&&<text x="480" y="20">New nodes</text>}</g>}
       {edges.map((edge,index)=>{
         const from=positions.get(edge.from),to=positions.get(edge.to);if(!from||!to)return null;
         const distance=Math.hypot(to.x-from.x,to.y-from.y)||1;
@@ -56,7 +56,7 @@ export default function ExecutionDiagram({ roots, state, heap, previousHeap, cal
         if(!position.id)return <g key={position.key} transform={`translate(${position.x},${position.y})`} className="execution-null"><rect x="-22" y="-12" width="44" height="24" rx="5"/><text textAnchor="middle" dy="4">null</text></g>;
         const id=position.id,node=nodes.get(id)!;
         const pointers=Object.entries(state).filter(([,value])=>isReference(value)&&value.$ref===id).map(([name])=>name);
-        if(isReference(result)&&result.$ref===id)pointers.push('return');
+        if(isReturn&&isReference(result)&&result.$ref===id)pointers.push('return');
         const value=node.kind==='quad'?(heap[id].fields?.isLeaf?Number(node.value):'branch'):formatValue(node.value,heap);
         return <g key={position.key} data-node-id={id} transform={`translate(${position.x},${position.y})`} className={`execution-node ${pointers.length?'is-current':''} ${nodeChanged(id,previousHeap,heap)?'is-changed':''}`}>
           <circle r="22"/><text textAnchor="middle" dy="5" className={node.kind==='quad'?'execution-quad-value':undefined}>{value}</text>

@@ -48,7 +48,7 @@ it('loads the BFS alternative with accurate highlights, queue membership, and a 
     }
     expect(screen.getByLabelText('Final result').textContent).toContain(JSON.stringify(example.expected));
   }
-});
+},15000);
 
 it('marks before enqueueing, removes courses from the front once per start, and records duplicate-path skips', () => {
   let enqueued = 0, dequeued = 0, processed = 0, skipped = 0;

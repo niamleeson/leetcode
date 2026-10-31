@@ -112,20 +112,34 @@ it('creates Word Ladder connections only after words share an inserted wildcard 
   }
 });
 
-it('shows lock transitions only after that neighbor is generated for the current state',()=>{
+it('reveals lock nodes and transitions only when recorded, with stable positions as neighbors appear',()=>{
   const data=trace('752');
   for(const example of data.examples) {
     const contexts=graphContextsFor(data.id,example.steps),heap:TraceHeap={};
     let current:TraceValue|undefined;let generated=new Set<string>();
+    const positions=new Map<string,{x:number;y:number}>();
     for(const [index,step] of example.steps.entries()) {
       Object.assign(heap,step.heap);
-      if(current!==step.state.currentState){current=step.state.currentState;generated=new Set();}
+      const popped=step.kind==='operation'&&step.label==='queue.shift()'?objectFor(step.value,heap)?.items?.[0]:undefined;
+      const queued=objectFor(objectFor(step.state.queue,heap)?.items?.[0],heap)?.items?.[0];
+      const nextCurrent=popped??step.state.currentState??current??queued;
+      if(current!==nextCurrent){current=nextCurrent;generated=new Set();}
       if(step.kind==='statement'&&step.label.startsWith('const newState ='))generated.add(String(step.state.newState));
-      const graph=graphModels(data.id,step.input,step.state,heap,contexts[index])[0];
+      const models=graphModels(data.id,step.input,step.state,heap,contexts[index]);
+      if(current===undefined){expect(models).toEqual([]);continue;}
+      const graph=models[0];
+      expect(sorted(graph.nodes.map(node=>node.value))).toEqual(sorted([current,...generated]));
       expect(sorted(graph.edges.map(edge=>JSON.parse(edge.to)))).toEqual(sorted([...generated]));
+      const layout=layoutGraph(graph);
+      expect([layout.width,layout.height]).toEqual([510,510]);
+      for(const [key,point] of layout.positions) {
+        const slot=`${current}/${key}`;
+        if(positions.has(slot))expect(point).toEqual(positions.get(slot));
+        positions.set(slot,point);
+      }
     }
     const first=example.steps[0];
-    expect(graphModels(data.id,first.input,first.state,first.heap,contexts[0])[0].edges).toEqual([]);
+    expect(graphModels(data.id,first.input,first.state,first.heap,contexts[0])).toEqual([]);
   }
 });
 
