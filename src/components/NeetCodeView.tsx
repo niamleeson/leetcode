@@ -332,6 +332,16 @@ function TopicSection({
 
       {expanded && (
         <div className="min-w-0 space-y-6">
+          {topic.reference && (
+            <section aria-label={topic.reference.title} className="min-w-0 space-y-3 pt-3">
+              <h3 className="text-base font-semibold text-white light:text-gray-900">{topic.reference.title}</h3>
+              <p className="text-xs text-gray-300 light:text-gray-700 leading-relaxed whitespace-pre-line">{topic.reference.description}</p>
+              <CodeBlock code={topic.reference.javascript} language="javascript" />
+              <h4 className="text-sm font-semibold text-white light:text-gray-900">Usage</h4>
+              <CodeBlock code={topic.reference.usage} language="javascript" />
+              <p className="text-xs text-gray-500 light:text-gray-500">{topic.reference.complexity}</p>
+            </section>
+          )}
           {topic.templates.map((tpl) => (
             <TemplateCard
               key={tpl.id}

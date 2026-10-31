@@ -31,6 +31,13 @@ export interface NeetCodeTemplate {
 
 export interface NeetCodeTopic {
   name: string;
+  reference?: {
+    title: string;
+    description: string;
+    javascript: string;
+    usage: string;
+    complexity: string;
+  };
   templates: NeetCodeTemplate[];
   problems: NeetCodeProblem[];
 }
@@ -987,6 +994,101 @@ const topic_trees: NeetCodeTopic = {
 
 const topic_heap___priority_queue: NeetCodeTopic = {
   name: "Heap / Priority Queue",
+  reference: {
+    title: "JavaScript Min-Heap",
+    description: "Store numbers in an array. Each parent is smaller than or equal to its children, so the minimum stays at index 0.\nPush: add at the end, then move upward.\nPop: remove the minimum, put the last value at the top, then move it downward.",
+    javascript: `class MinHeap {
+    constructor() {
+        this.values = [];
+    }
+
+    size() {
+        return this.values.length;
+    }
+
+    peek() {
+        return this.values[0];
+    }
+
+    swap(a, b) {
+        const temp = this.values[a];
+        this.values[a] = this.values[b];
+        this.values[b] = temp;
+    }
+
+    push(value) {
+        this.values.push(value);
+
+        let index = this.values.length - 1;
+
+        // Move the new value up.
+        while (index > 0) {
+            const parent = Math.floor((index - 1) / 2);
+
+            if (this.values[parent] <= this.values[index]) break;
+
+            this.swap(parent, index);
+            index = parent;
+        }
+    }
+
+    pop() {
+        if (this.values.length === 0) return undefined;
+
+        const smallest = this.values[0];
+        const last = this.values.pop();
+
+        if (this.values.length === 0) return smallest;
+
+        this.values[0] = last;
+
+        let index = 0;
+
+        // Move the replacement down.
+        while (true) {
+            const left = 2 * index + 1;
+            const right = 2 * index + 2;
+
+            let smallestIndex = index;
+
+            if (
+                left < this.values.length &&
+                this.values[left] < this.values[smallestIndex]
+            ) {
+                smallestIndex = left;
+            }
+
+            if (
+                right < this.values.length &&
+                this.values[right] < this.values[smallestIndex]
+            ) {
+                smallestIndex = right;
+            }
+
+            if (smallestIndex === index) break;
+
+            this.swap(index, smallestIndex);
+            index = smallestIndex;
+        }
+
+        return smallest;
+    }
+}`,
+    usage: `const heap = new MinHeap();
+
+heap.push(5);
+heap.push(1);
+heap.push(3);
+
+heap.peek(); // 1 — stays in the heap
+
+heap.pop();  // 1
+heap.pop();  // 3
+heap.pop();  // 5
+heap.pop();  // undefined — empty
+heap.size(); // 0`,
+    complexity: "push / pop: O(log n) · peek / size: O(1) · space: O(n)",
+  },
   templates: [
     {
       id: "top-k-heap",
