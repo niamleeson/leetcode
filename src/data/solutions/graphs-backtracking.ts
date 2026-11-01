@@ -2386,7 +2386,7 @@ Explanation: From node 2, the signal reaches node 1 and 3 in 1 unit, and node 4 
 
         while heap:
             time, node = heapq.heappop(heap)
-            if node in dist:
+            if node in dist and time >= dist[node]:
                 continue
             dist[node] = time
             for neighbor, weight in graph[node]:
@@ -2412,8 +2412,10 @@ Explanation: From node 2, the signal reaches node 1 and 3 in 1 unit, and node 4 
         // Always process the entry with the smallest time first
         const [currentTime, node] = heap.pop();
 
-        // Skip if we already found a shorter path to this node
-        if (dist.has(node)) continue;
+        // Skip entries with an equal or worse distance than the recorded distance.
+        if (dist.has(node) && currentTime >= dist.get(node)) {
+            continue;
+        }
 
         // Record shortest time to reach this node
         dist.set(node, currentTime);
@@ -2457,7 +2459,7 @@ Explanation: From node 2, the signal reaches node 1 and 3 in 1 unit, and node 4 
     explanation: `- Build an adjacency list from the edge list.
 - Dijkstra's algorithm: use a min-heap to always process the node with the smallest known distance.
 - dist dictionary stores the shortest distance from k to each node. It also serves as the visited set.
-- For each node popped from the heap, if already in dist, skip (already processed with a shorter distance).
+- For each entry popped from the heap, skip it if its time is greater than or equal to the node's recorded shortest distance.
 - Otherwise, record its distance and push all unvisited neighbors with updated distances.
 - After Dijkstra completes, if all n nodes are in dist, return the max distance. Otherwise, return -1.`,
     timeComplexity: "O(E log V) where E is the number of edges and V is the number of nodes",
