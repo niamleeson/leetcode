@@ -7,6 +7,7 @@ import { useLocalStorage } from '../hooks/useLocalStorage';
 import CodeBlock from './CodeBlock';
 import GlossaryHighlighter from './GlossaryHighlighter';
 import FollowUpSolution from './FollowUpSolution';
+import SolutionComplexity from './SolutionComplexity';
 
 interface ProblemPageProps {
   getProgress: (id: number) => ProblemProgress;
@@ -255,10 +256,7 @@ export default function ProblemPage({ getProgress, onRate, onUpdateNotes, onRese
           </section>
 
           {/* ── Complexity ── */}
-          <div className="flex gap-6 text-sm text-gray-500 light:text-gray-500">
-            <span>Time: <strong className="text-gray-300 light:text-gray-700">{solution.timeComplexity}</strong></span>
-            <span>Space: <strong className="text-gray-300 light:text-gray-700">{solution.spaceComplexity}</strong></span>
-          </div>
+          <SolutionComplexity solution={solution} />
           {solution.followUp && <FollowUpSolution solution={solution.followUp} language={language} problemId={solution.id} />}
         </>
       ) : (

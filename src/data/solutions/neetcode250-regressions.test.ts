@@ -9,6 +9,30 @@ function run(problemId: number, invocation: string, context: Record<string, unkn
   return runInNewContext(`${solutionMap[problemId].jsCode}\n${invocation}`, context, { timeout: 5000 });
 }
 
+it('covers every graph solution and alternative with a derivation matching its final bound', () => {
+  const graphProblems = neetcodeTopics
+    .filter(topic => topic.name === 'Graphs' || topic.name === 'Advanced Graphs')
+    .flatMap(topic => topic.problems);
+  expect(graphProblems).toHaveLength(31);
+  let versions = 0;
+  for (const problem of graphProblems) {
+    const primary = solutionMap[problem.id];
+    for (const solution of [primary, ...(primary.followUp ? [primary.followUp] : [])]) {
+      const breakdown = solution.timeComplexityBreakdown;
+      expect(breakdown, `${problem.id}: ${solution.timeComplexity}`).toBeDefined();
+      expect(breakdown!.phases.length).toBeGreaterThan(1);
+      expect(breakdown!.simplifications[breakdown!.simplifications.length - 1]).toBe(solution.timeComplexity);
+      expect(breakdown!.variables).toBeTruthy();
+      expect(breakdown!.note).toBeTruthy();
+      versions++;
+    }
+  }
+  expect(versions).toBe(43);
+  expect(solutionMap[1462].timeComplexity).toBe('O(V × (V + E) + Q)');
+  expect(solutionMap[1462].followUp!.timeComplexity).toBe('O(V³ + Q)');
+  expect(solutionMap[787].timeComplexity).toBe('O((k + 1) × (V + E))');
+});
+
 describe('Advanced Graphs shared heap', () => {
   const solve = (id: number, entry: string) => runInNewContext(`${graphMinHeapJavascript}\n${solutionMap[id].jsCode}\n${entry}`);
   it('keeps the implementation in the reference and solution code free of heap definitions', () => {

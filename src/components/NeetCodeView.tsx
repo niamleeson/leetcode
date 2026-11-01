@@ -7,6 +7,7 @@ import { uniqueProblems } from '../data/problems';
 import { solutionMap, ProblemSolution } from '../data/solutions';
 import CodeBlock from './CodeBlock';
 import FollowUpSolution from './FollowUpSolution';
+import SolutionComplexity from './SolutionComplexity';
 import ExecutionWalkthrough, { hasExecutionWalkthrough } from './walkthroughs/ExecutionWalkthrough';
 import './neetcodeView.css';
 
@@ -104,20 +105,7 @@ function InlineSolution({ solution, language }: { solution: ProblemSolution; lan
         </div>
       )}
 
-      {(solution.timeComplexity || solution.spaceComplexity) && (
-        <div className="flex gap-5 text-[11px] text-gray-500 light:text-gray-500 pt-1">
-          {solution.timeComplexity && (
-            <span>
-              Time: <strong className="text-gray-300 light:text-gray-700">{solution.timeComplexity}</strong>
-            </span>
-          )}
-          {solution.spaceComplexity && (
-            <span>
-              Space: <strong className="text-gray-300 light:text-gray-700">{solution.spaceComplexity}</strong>
-            </span>
-          )}
-        </div>
-      )}
+      <SolutionComplexity solution={solution} />
       {solution.followUp && <FollowUpSolution solution={solution.followUp} language={language} problemId={solution.id} />}
     </div>
   );

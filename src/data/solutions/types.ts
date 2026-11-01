@@ -1,3 +1,10 @@
+export interface TimeComplexityBreakdown {
+  variables: string;
+  phases: { label: string; cost: string }[];
+  simplifications: string[];
+  note: string;
+}
+
 export interface SolutionFollowUp {
   title: string;
   label?: 'Alternative' | 'Follow-up' | 'Optimized';
@@ -8,6 +15,7 @@ export interface SolutionFollowUp {
   jsWalkthrough?: string;
   explanation: string;
   timeComplexity: string;
+  timeComplexityBreakdown?: TimeComplexityBreakdown;
   spaceComplexity: string;
 }
 
@@ -24,6 +32,7 @@ export interface ProblemSolution {
   jsWalkthrough?: string;
   explanation: string;
   timeComplexity: string;
+  timeComplexityBreakdown?: TimeComplexityBreakdown;
   spaceComplexity: string;
   hints: string[];
 }

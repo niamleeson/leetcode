@@ -1,5 +1,6 @@
 import { SolutionFollowUp } from '../data/solutions/types';
 import CodeBlock from './CodeBlock';
+import SolutionComplexity from './SolutionComplexity';
 import ExecutionWalkthrough, { hasExecutionWalkthrough } from './walkthroughs/ExecutionWalkthrough';
 
 export default function FollowUpSolution({ solution, language, problemId }: {
@@ -28,10 +29,7 @@ export default function FollowUpSolution({ solution, language, problemId }: {
       )}
       <h4 className="text-xs font-semibold text-yellow-400 light:text-yellow-700">Explanation</h4>
       <p className="text-sm text-gray-400 light:text-gray-600 leading-relaxed whitespace-pre-line">{solution.explanation}</p>
-      <div className="flex flex-wrap gap-x-6 gap-y-2 text-xs text-gray-500 light:text-gray-600">
-        <span>Time: <strong className="text-gray-300 light:text-gray-700">{solution.timeComplexity}</strong></span>
-        <span>Space: <strong className="text-gray-300 light:text-gray-700">{solution.spaceComplexity}</strong></span>
-      </div>
+      <SolutionComplexity solution={solution} />
     </section>
   );
 }

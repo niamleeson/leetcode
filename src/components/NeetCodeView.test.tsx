@@ -30,6 +30,22 @@ function showPage(storagePrefix = 'nc250') {
 beforeEach(() => localStorage.clear());
 afterEach(cleanup);
 
+it('shows the Accounts Merge sum and simplification for BFS, with a separate union-find derivation in either language', () => {
+  const problem = neetcodeTopics.flatMap(topic => topic.problems).find(problem => problem.id === 721)!;
+  const topic: NeetCodeTopic = { name: 'Graphs', problems: [problem], templates: [{ ...topics[0].templates[0], problemIds: [721] }] };
+  render(<MemoryRouter><NeetCodeView topics={[topic]} storagePrefix="nc250" title="NeetCode" description="Templates" /></MemoryRouter>);
+  fireEvent.click(screen.getByRole('button', { name: /^Graphs 1 template/ }));
+  fireEvent.click(screen.getByRole('button', { name: 'Expand solution' }));
+  const equations = () => [...document.querySelectorAll('.complexity-equation')].map(element => element.textContent);
+  expect(equations()).toHaveLength(2);
+  expect(equations()[0]).toBe('O(T) + O(U + T) + O(U log U) + O(U)\n= O(T) + O(T) + O(U log U) + O(U)\n= O(T + U log U)');
+  expect(equations()[1]).toContain('O(T log U)');
+  expect(equations()[1]).not.toContain('O(U + T)');
+  const javascript = equations();
+  fireEvent.click(screen.getByRole('button', { name: 'Python' }));
+  expect(equations()).toEqual(javascript);
+});
+
 it('shows one heap-based Dijkstra example while preserving the other tabs and every problem',()=>{
   const topic=neetcodeTopics.find(topic=>topic.name==='Advanced Graphs')!;
   const template=topic.templates.find(template=>template.id==='dijkstra')!;
