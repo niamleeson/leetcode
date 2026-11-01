@@ -175,6 +175,14 @@ function ChallengeDetail({ challenge }: { challenge: ReactChallenge }) {
         </div>
       </section>
 
+      {challenge.sampleData && (
+        <section aria-labelledby="sample-data-heading" className="min-w-0 space-y-3">
+          <h2 id="sample-data-heading" className={heading}>{challenge.sampleData.title}</h2>
+          <p className={muted}>{challenge.sampleData.description}</p>
+          <CodeBlock code={challenge.sampleData.code} language="jsx" />
+        </section>
+      )}
+
       <section aria-labelledby="solution-heading" className="min-w-0 space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 id="solution-heading" className={heading}>JavaScript + React solution</h2>

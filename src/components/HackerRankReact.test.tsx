@@ -38,7 +38,7 @@ it('lists all ten questions, searches concepts, and clears an empty result', () 
 });
 
 it.each(reactChallenges)('opens $title with its complete code and source', challenge => {
-  const page = showPage(`/hackerrank-react/${challenge.slug}`);
+  showPage(`/hackerrank-react/${challenge.slug}`);
   expect(screen.getByRole('heading', { name: challenge.title, level: 1 })).toBeTruthy();
   const prompt = screen.getByRole('region', { name: 'Problem prompt' });
   expect(within(prompt).getByText(challenge.prompt)).toBeTruthy();
@@ -46,12 +46,31 @@ it.each(reactChallenges)('opens $title with its complete code and source', chall
   expect(within(prompt).getByText(challenge.example.result)).toBeTruthy();
   const solution = screen.getByRole('region', { name: 'JavaScript + React solution' });
   expect(prompt.compareDocumentPosition(solution) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-  expect(page.container.querySelector('pre code')?.textContent).toBe(challenge.code);
+  expect(solution.querySelector('pre code')?.textContent).toBe(challenge.code);
   expect(screen.getByRole('link', { name: 'Original question on HackerRank ↗' }).getAttribute('href')).toBe(challenge.sourceUrl);
   expect(screen.getByRole('heading', { name: 'How it works' })).toBeTruthy();
   expect(screen.getByRole('heading', { name: 'Time and space' })).toBeTruthy();
   expect(screen.getAllByRole('row')).toHaveLength(challenge.testCases.length + 1);
   expect(screen.getByRole('combobox', { name: 'Jump to question' }).getAttribute('aria-label')).toBe('Jump to question');
+});
+
+it('shows three patient record samples above the solution and copies only the solution', async () => {
+  const challenge = reactChallenges.find(item => item.slug === 'patient-medical-records')!;
+  const writeText = vi.fn().mockResolvedValue(undefined);
+  vi.spyOn(navigator, 'clipboard', 'get').mockReturnValue({ writeText } as unknown as Clipboard);
+  showPage(`/hackerrank-react/${challenge.slug}`);
+  const samples = screen.getByRole('region', { name: 'medicalRecords.js — 3 sample records' });
+  const solution = screen.getByRole('region', { name: 'JavaScript + React solution' });
+  expect(samples.compareDocumentPosition(solution) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  const sampleCode = samples.querySelector('pre code')?.textContent ?? '';
+  expect(sampleCode).toBe(challenge.sampleData?.code);
+  expect(sampleCode.match(/userName/g)).toHaveLength(3);
+  for (const name of ['John Oliver', 'Bob Martin', 'Helena Fernandez']) expect(sampleCode).toContain(name);
+  for (const timestamp of ['1568550058964', '1565637002408', '1548036340751']) expect(sampleCode).toContain(timestamp);
+  fireEvent.click(screen.getByRole('button', { name: 'Copy solution' }));
+  await screen.findByRole('button', { name: 'Copied!' });
+  expect(writeText).toHaveBeenCalledWith(challenge.code);
+  expect(writeText).not.toHaveBeenCalledWith(sampleCode);
 });
 
 it('navigates from the index, between questions, and back to the catalog', () => {

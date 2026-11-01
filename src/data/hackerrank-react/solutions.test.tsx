@@ -6,12 +6,13 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 import '@testing-library/jest-dom/vitest';
 import { basicChallenges } from './basic';
 import { formChallenges } from './forms';
+import { medicalRecordsSample } from './medicalRecordsSample';
 
 const challenges = [...basicChallenges, ...formChallenges];
 
 // Execute the exact JSX shown in the solution library, so a broken snippet
 // fails these tests even when its explanation or example is still correct.
-function loadSolution(slug: string): React.ComponentType<any> {
+function loadSolution(slug: string, medicalRecords = medicalRecordsSample): React.ComponentType<any> {
   const challenge = challenges.find(item => item.slug === slug);
   if (!challenge) throw new Error(`Missing solution: ${slug}`);
 
@@ -34,6 +35,7 @@ function loadSolution(slug: string): React.ComponentType<any> {
   const require = (name: string) => {
     if (name === 'react') return React;
     if (name === 'react/jsx-runtime') return jsxRuntime;
+    if (name === './medicalRecords') return { default: medicalRecords };
     throw new Error(`Unexpected solution dependency: ${name}`);
   };
   new Function('require', 'exports', compiled.outputText)(require, exports);
@@ -194,45 +196,80 @@ describe('Slideshow', () => {
 });
 
 describe('Patient Medical Records', () => {
-  it('waits for Show, displays all selected records, and cycles patients in ID order', () => {
+  it('reads the imported patient groups and nested record fields, waits for Show, and wraps on Next', () => {
     const Component = loadSolution('patient-medical-records');
     const alert = vi.spyOn(window, 'alert').mockImplementation(() => {});
-    const patients = [
-      { id: 3, name: 'Chris', dob: '1990-01-01', height: 180, records: [
-        { id: 'c1', date: '2026-01-01', diagnosis: 'Checkup', weight: 70, doctor: 'Dr West' },
-        { id: 'c2', date: '2026-02-01', diagnosis: 'Follow-up', weight: 71, doctor: 'Dr East' },
-      ] },
-      { id: 1, name: 'Alex', dob: '1991-02-02', height: 170, records: [
-        { id: 'a1', date: '2026-03-01', diagnosis: 'Screening', weight: 65, doctor: 'Dr South' },
-      ] },
-      { id: 2, name: 'Blair', dob: '1992-03-03', height: 160, records: [
-        { id: 'b1', date: '2026-04-01', diagnosis: 'Consultation', weight: 60, doctor: 'Dr North' },
-      ] },
-    ];
-    const originalIds = patients.map(patient => patient.id);
-    render(<Component patients={patients} />);
+    render(<Component />);
+    expect(screen.getByLabelText('Patient')).toHaveValue('');
+    expect(screen.getByRole('option', { name: 'Select Patient' })).toBeDisabled();
+    expect(screen.getAllByRole('option').map(option => option.textContent)).toEqual([
+      'Select Patient', 'John Oliver', 'Bob Martin', 'Helena Fernandez',
+    ]);
     expect(screen.queryByRole('table')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Next' })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Show' }));
     expect(alert).toHaveBeenCalledWith('Please select a patient name');
 
-    change('Patient', '3');
+    change('Patient', '1');
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Show' }));
     const records = screen.getByRole('region', { name: 'Patient records' });
-    expect(within(records).getByText('Chris')).toBeInTheDocument();
-    expect(within(records).getByText('Checkup')).toBeInTheDocument();
-    expect(within(records).getByText('Follow-up')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
-    expect(within(records).getByText('Alex')).toBeInTheDocument();
-    expect(within(records).queryByText('Follow-up')).not.toBeInTheDocument();
+    expect(within(records).getByText('John Oliver')).toBeInTheDocument();
+    expect(within(records).getByText(/02-01-1986/)).toBeInTheDocument();
+    expect(within(records).getByText(/Height: 168/)).toBeInTheDocument();
+    expect(within(records).getAllByRole('cell').map(cell => cell.textContent)).toEqual([
+      '1', '15/09/2019', 'Pulmonary embolism', '173', 'Dr Arnold Bullock',
+    ]);
 
-    change('Patient', '2');
-    expect(within(records).getByText('Alex')).toBeInTheDocument();
+    change('Patient', '3');
+    expect(within(records).getByText('John Oliver')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Show' }));
-    expect(within(records).getByText('Blair')).toBeInTheDocument();
+    expect(within(records).getByText('Helena Fernandez')).toBeInTheDocument();
+    expect(within(records).getByText('21/01/2019')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Next' }));
-    expect(within(records).getByText('Chris')).toBeInTheDocument();
-    expect(patients.map(patient => patient.id)).toEqual(originalIds);
+    expect(within(records).getByText('John Oliver')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    expect(within(records).getByText('Bob Martin')).toBeInTheDocument();
+    expect(within(records).getByText('12/08/2019')).toBeInTheDocument();
+  });
+
+  it('renders every record and cycles unsorted, non-contiguous string IDs numerically without mutating the source', () => {
+    const secondJohnRecord = {
+      id: 7,
+      timestamp: 1564691138999,
+      diagnosis: { id: 3, name: 'Pulmonary embolism', severity: 4 },
+      vitals: {
+        bloodPressureDiastole: 147, bloodPressureSystole: 100, pulse: 138,
+        breathingRate: 25, bodyTemperature: 100,
+      },
+      doctor: { id: 3, name: 'Dr Pilar Cristancho' },
+      userId: 1,
+      userName: 'John Oliver',
+      userDob: '02-01-1986',
+      meta: { height: 168, weight: 196 },
+    };
+    const patients = medicalRecordsSample.map((patient, index) => {
+      const id = ['10', '2', '7'][index];
+      const data = index === 0 ? [...patient.data, secondJohnRecord] : patient.data;
+      return { id, data: data.map(record => ({ ...record, userId: Number(id) })) };
+    });
+    const original = JSON.stringify(patients);
+    const Component = loadSolution('patient-medical-records', patients);
+    render(<Component />);
+    expect(screen.getAllByRole('option').slice(1).map(option => option.getAttribute('value'))).toEqual(['2', '7', '10']);
+    change('Patient', '10');
+    fireEvent.click(screen.getByRole('button', { name: 'Show' }));
+    const records = screen.getByRole('region', { name: 'Patient records' });
+    expect(within(records).getAllByRole('row')).toHaveLength(3);
+    expect(within(records).getAllByRole('row').slice(1).map(row => within(row).getAllByRole('cell').map(cell => cell.textContent))).toEqual([
+      ['1', '15/09/2019', 'Pulmonary embolism', '173', 'Dr Arnold Bullock'],
+      ['2', '01/08/2019', 'Pulmonary embolism', '196', 'Dr Pilar Cristancho'],
+    ]);
+    for (const name of ['Bob Martin', 'Helena Fernandez', 'John Oliver']) {
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+      expect(within(records).getByText(name)).toBeInTheDocument();
+    }
+    expect(JSON.stringify(patients)).toBe(original);
   });
 });
 

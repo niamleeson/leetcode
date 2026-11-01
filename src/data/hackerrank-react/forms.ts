@@ -1,4 +1,5 @@
 import type { ReactChallenge } from './types';
+import { medicalRecordsSample } from './medicalRecordsSample';
 
 export const formChallenges: ReactChallenge[] = [
   {
@@ -10,8 +11,13 @@ export const formChallenges: ReactChallenge[] = [
     summary: 'Choose a patient, reveal their records, and cycle through the patients with wraparound navigation.',
     prompt: 'Build a React app for browsing the three patients supplied in medicalRecords.js. A Search component lets the user choose a patient and request their records. A Records component displays that patient’s details and medical history, with navigation to the next patient. Initially, the patient placeholder is selected and no records are visible.',
     example: {
-      actions: 'Suppose patient IDs 1, 2, and 3 belong to Mina, Owen, and Riya. Select Riya and click Show, then click Next.',
-      result: 'Show displays Riya’s details and records. Next wraps to Mina’s records.',
+      actions: 'Select Helena Fernandez (patient ID "3") and click Show, then click Next.',
+      result: 'Show displays Helena’s details and all ten of her records. Next wraps to John Oliver (patient ID "1").',
+    },
+    sampleData: {
+      title: 'medicalRecords.js — 3 sample records',
+      description: 'One complete record from each patient in the supplied file: John Oliver, Bob Martin, and Helena Fernandez. Each group’s data array is shortened to one record here; the full file contains ten records per patient. Keep the full medicalRecords.js when running the solution.',
+      code: `const medical_records = ${JSON.stringify(medicalRecordsSample, null, 2)};\n\nexport default medical_records;`,
     },
     requirements: [
       'Search contains a patient dropdown and Show button; Records contains the details, table, and Next button.',
@@ -21,23 +27,26 @@ export const formChallenges: ReactChallenge[] = [
     ],
     steps: [
       'Keep the dropdown selection separate from the displayed patient. Changing the dropdown alone should not replace the table.',
-      'Sort a copy of the patient list by numeric ID so Next follows the requested order without mutating the input.',
+      'Import medical_records from medicalRecords.js. Each item is a patient group with a string id and a data array. Sort a copy by numeric ID without changing the imported array.',
+      'Read the patient’s userName, userDob, and meta.height from data[0]. Map every item in data into a table row using timestamp, diagnosis.name, meta.weight, and doctor.name.',
       'Show validates the selection and stores the displayed ID. Look up the corresponding patient during rendering.',
       'Next finds the displayed index and advances with (index + 1) % patients.length.',
       'Pass data and handlers into Search and Records. The parent coordinates the two components.',
     ],
     pitfalls: [
       'Do not display the table merely because the dropdown has a value; Show is the action that reveals it.',
-      'A DOM select returns a string. Convert it to a number before comparing it with numeric IDs.',
+      'The group IDs are strings ("1", "2", "3"), matching the DOM select value. Keep selectedId and displayedId as strings; converting them to numbers would break strict equality with patient.id.',
+      'Patient details are inside data[0], and diagnosis and doctor are nested objects. Render their name fields instead of the objects themselves.',
       'Do not assume patient IDs are contiguous or equal to array indexes.',
       'A controlled select uses value on the select element, rather than selected on an option.',
     ],
     integrationNotes: [
-      'This standalone teaching version accepts normalized patients: { id, name, dob, height, records: [{ id, date, diagnosis, weight, doctor }] }. IDs must be unique numbers. Example: { id: 1, name: "Alex", dob: "1990-04-12", height: "170 cm", records: [{ id: 11, date: "2024-05-20", diagnosis: "Routine checkup", weight: "68 kg", doctor: "Dr. Lee" }] }.',
-      'The public statement names medicalRecords.js but does not expose its full data schema. Map its patient groups and record fields to the documented shape before passing them as patients; keep the starter’s date formatting, table columns, and test selectors when integrating.',
+      'This solution directly imports the default export from the supplied medicalRecords.js. No data conversion or patients prop is needed. Adjust the relative import path if the component lives in a different folder.',
+      'The supplied groups each contain ten records. The three records above are examples for reading the data structure, not a replacement for the full file.',
+      'Dates are displayed as DD/MM/YYYY in UTC to keep timestamp formatting consistent across time zones. Keep the starter’s required date format and test selectors when integrating.',
       'Search and Records are included in one file for easy reading. Move them into the corresponding starter files if that project expects separate components.',
     ],
-    complexity: 'For P patients and R records for the displayed patient: sorting costs O(P log P) when the patients prop changes; each render takes O(P + R). Navigation state is O(1), and the sorted copy uses O(P) space.',
+    complexity: 'For P patients and R records for the displayed patient: sorting costs O(P log P) once when the module loads; each render takes O(P + R). Navigation state is O(1), and the sorted copy uses O(P) space.',
     testCases: [
       { action: 'Load the component.', expected: 'The placeholder is selected; no record table or Next button appears.' },
       { action: 'Click Show without selecting a patient.', expected: 'An alert asks for a patient name; records remain hidden.' },
@@ -45,7 +54,19 @@ export const formChallenges: ReactChallenge[] = [
       { action: 'Change the dropdown without clicking Show.', expected: 'The currently displayed records stay unchanged.' },
       { action: 'Click Next on the highest patient ID.', expected: 'The records wrap to the lowest patient ID, even if IDs have gaps.' },
     ],
-    code: String.raw`import React, { useMemo, useState } from 'react';
+    code: String.raw`import React, { useState } from 'react';
+import medical_records from './medicalRecords';
+
+const patients = [...medical_records].sort(
+  (a, b) => Number(a.id) - Number(b.id)
+);
+
+function formatDate(timestamp) {
+  const date = new Date(timestamp);
+  const day = String(date.getUTCDate()).padStart(2, '0');
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  return [day, month, date.getUTCFullYear()].join('/');
+}
 
 function Search({ patients, selectedId, onSelect, onShow }) {
   return (
@@ -58,7 +79,7 @@ function Search({ patients, selectedId, onSelect, onShow }) {
         <option value="" disabled>Select Patient</option>
         {patients.map((patient) => (
           <option key={patient.id} value={patient.id}>
-            {patient.name}
+            {patient.data[0].userName}
           </option>
         ))}
       </select>
@@ -68,25 +89,28 @@ function Search({ patients, selectedId, onSelect, onShow }) {
 }
 
 function Records({ patient, onNext }) {
+  const profile = patient.data[0];
+
   return (
     <section aria-label="Patient records">
-      <h2>{patient.name}</h2>
-      <p>Date of birth: {patient.dob}</p>
-      <p>Height: {patient.height}</p>
+      <h2>{profile.userName}</h2>
+      <p>Date of birth: {profile.userDob}</p>
+      <p>Height: {profile.meta.height} cm</p>
       <table>
         <thead>
           <tr>
-            <th>Date</th><th>Diagnosis</th>
+            <th>S.No.</th><th>Date</th><th>Diagnosis</th>
             <th>Weight</th><th>Doctor</th>
           </tr>
         </thead>
         <tbody>
-          {patient.records.map((record) => (
+          {patient.data.map((record, index) => (
             <tr key={record.id}>
-              <td>{record.date}</td>
-              <td>{record.diagnosis}</td>
-              <td>{record.weight}</td>
-              <td>{record.doctor}</td>
+              <td>{index + 1}</td>
+              <td>{formatDate(record.timestamp)}</td>
+              <td>{record.diagnosis.name}</td>
+              <td>{record.meta.weight}</td>
+              <td>{record.doctor.name}</td>
             </tr>
           ))}
         </tbody>
@@ -96,39 +120,32 @@ function Records({ patient, onNext }) {
   );
 }
 
-// patients: [{ id, name, dob, height, records: [
-//   { id, date, diagnosis, weight, doctor }
-// ] }]
-export default function PatientMedicalRecords({ patients = [] }) {
-  const ordered = useMemo(
-    () => [...patients].sort((a, b) => a.id - b.id),
-    [patients]
-  );
+export default function PatientMedicalRecords() {
   const [selectedId, setSelectedId] = useState('');
   const [displayedId, setDisplayedId] = useState(null);
-  const displayedIndex = ordered.findIndex(
+  const displayedIndex = patients.findIndex(
     (patient) => patient.id === displayedId
   );
-  const patient = ordered[displayedIndex];
+  const patient = patients[displayedIndex];
 
   function showPatient() {
     if (selectedId === '') {
       window.alert('Please select a patient name');
       return;
     }
-    setDisplayedId(Number(selectedId));
+    setDisplayedId(selectedId);
   }
 
   function nextPatient() {
-    if (displayedIndex === -1 || ordered.length === 0) return;
-    const nextIndex = (displayedIndex + 1) % ordered.length;
-    setDisplayedId(ordered[nextIndex].id);
+    if (displayedIndex === -1 || patients.length === 0) return;
+    const nextIndex = (displayedIndex + 1) % patients.length;
+    setDisplayedId(patients[nextIndex].id);
   }
 
   return (
     <main>
       <Search
-        patients={ordered}
+        patients={patients}
         selectedId={selectedId}
         onSelect={setSelectedId}
         onShow={showPatient}

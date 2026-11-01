@@ -16,6 +16,7 @@ export interface ReactChallenge {
   images?: ReactPromptImage[];
   requirements: string[];
   example: { actions: string; result: string };
+  sampleData?: { title: string; description: string; code: string };
   steps: string[];
   pitfalls: string[];
   code: string;
