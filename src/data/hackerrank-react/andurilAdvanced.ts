@@ -33,9 +33,9 @@ export const andurilAdvancedChallenges: ReactChallenge[] = [
     steps: [
       'For flatten, visit each existing entry. Recurse into a nested array only while there is depth left; otherwise append the value.',
       'For mapArray, allocate an output array with the input length and assign transformed values only at existing indexes.',
-      'For reduceArray, start with initialValue and a hasAccumulator flag. arguments.length >= 3 means the caller supplied an initial value, even if it is undefined.',
-      'Use one loop and skip empty array slots. If there is no accumulator yet, the first existing value becomes it; otherwise, call the callback to update it.',
-      'After the loop, throw only if no accumulator was ever established: there was neither an initial value nor an existing array element.',
+      'For reduceArray, decide the accumulator and startIndex before the reduction loop. If an initial value was supplied, use it and start at index 0. arguments.length >= 3 counts an explicitly supplied undefined as an initial value.',
+      'Without an initial value, find the first existing element, use it as the accumulator, and set startIndex to firstElementIndex + 1. Throw if there is no existing element. For [2, 4, 6], this means accumulator = 2 and startIndex = 1.',
+      'Begin the reduction loop at startIndex. Skip empty slots and call the callback for each remaining element; accumulator selection is already complete.',
       'Capture length before invoking callbacks so an appended item is not unexpectedly visited during the same operation.',
     ],
     pitfalls: [
@@ -110,28 +110,36 @@ export function reduceArray(array, callback, initialValue) {
   }
 
   const length = array.length;
+  const hasInitialValue = arguments.length >= 3;
   let accumulator = initialValue;
-  // An explicit undefined still counts as an initial value.
-  let hasAccumulator = arguments.length >= 3;
+  let startIndex = 0;
 
-  for (let index = 0; index < length; index++) {
-    const hasElement = index in array;
-    if (!hasElement) {
-      continue; // Skip empty slots in sparse arrays.
+  if (!hasInitialValue) {
+    // Find the first element, skipping any leading empty slots.
+    let firstElementIndex = 0;
+    while (firstElementIndex < length) {
+      const hasElement = firstElementIndex in array;
+      if (hasElement) {
+        break;
+      }
+      firstElementIndex++;
     }
 
-    const value = array[index];
-
-    if (!hasAccumulator) {
-      accumulator = value;
-      hasAccumulator = true;
-    } else {
-      accumulator = callback(accumulator, value, index, array);
+    if (firstElementIndex === length) {
+      throw new TypeError('Empty array without an initial value');
     }
+
+    accumulator = array[firstElementIndex];
+    startIndex = firstElementIndex + 1;
   }
 
-  if (!hasAccumulator) {
-    throw new TypeError('Empty array without an initial value');
+  for (let index = startIndex; index < length; index++) {
+    const hasElement = index in array;
+    if (!hasElement) {
+      continue;
+    }
+
+    accumulator = callback(accumulator, array[index], index, array);
   }
 
   return accumulator;
