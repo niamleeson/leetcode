@@ -8,10 +8,15 @@ export const formChallenges: ReactChallenge[] = [
     topics: ['Controlled inputs', 'Shared state', 'Conditional rendering'],
     sourceUrl: 'https://www.hackerrank.com/challenges/patient-medical-records/problem',
     summary: 'Choose a patient, reveal their records, and cycle through the patients with wraparound navigation.',
+    prompt: 'Build a React app for browsing the three patients supplied in medicalRecords.js. A Search component lets the user choose a patient and request their records. A Records component displays that patient’s details and medical history, with navigation to the next patient. Initially, the patient placeholder is selected and no records are visible.',
+    example: {
+      actions: 'Suppose patient IDs 1, 2, and 3 belong to Mina, Owen, and Riya. Select Riya and click Show, then click Next.',
+      result: 'Show displays Riya’s details and records. Next wraps to Mina’s records.',
+    },
     requirements: [
       'Search contains a patient dropdown and Show button; Records contains the details, table, and Next button.',
       'Initially select the disabled placeholder and hide the records and Next button.',
-      'Show alerts when no patient is selected; otherwise it displays that patient.',
+      'Show alerts “Please select a patient name” when no patient is selected; otherwise it displays that patient.',
       'Next advances by patient ID and wraps from the last patient to the first.',
     ],
     steps: [
@@ -140,6 +145,11 @@ export default function PatientMedicalRecords({ patients = [] }) {
     topics: ['Controlled inputs', 'Immutable updates', 'List keys'],
     sourceUrl: 'https://www.hackerrank.com/challenges/blog-post/problem',
     summary: 'Create posts from a title and description, display them as cards, and delete individual posts.',
+    prompt: 'Build a React app where a user can publish and remove short blog posts. Provide a title input, a description textarea, and a Create button. Start with empty fields and no posts. Successful submissions should appear as individual cards in a grid, each containing its text and a Delete button.',
+    example: {
+      actions: 'Enter the title “Weekend notes” and description “Visited the science museum”, then click Create. Click Delete on the new card.',
+      result: 'Creation adds one card and clears both fields. Deletion removes that card.',
+    },
     requirements: [
       'Provide a title input, description textarea, and Create button.',
       'Only create a post when both fields contain content; clear them after creation.',
@@ -233,9 +243,14 @@ export default function BlogPost() {
     topics: ['Form validation', 'Derived state', 'Dates'],
     sourceUrl: 'https://www.hackerrank.com/challenges/employee-validation/problem',
     summary: 'Validate four employee fields as they change and allow submission only when all are valid.',
+    prompt: 'Build an employee information form with Name, Email, Employee ID, and Joining Date fields. Check each field against the rules below and show its error whenever it is invalid. The form starts empty, with errors visible and Submit disabled. A successful submission should clear all values and restore that initial form.',
+    example: {
+      actions: 'Enter “Nora Lee”, “nora@example.org”, ID “004281”, and today’s date. Submit the form.',
+      result: 'The valid values enable Submit. Submission clears all fields, restores their errors, and disables Submit. A future joining date would prevent submission.',
+    },
     requirements: [
       'Collect a name, email, six-digit employee ID, and joining date.',
-      'The name needs four or more letters/spaces; email needs a valid format; the date must not be in the future.',
+      'The name must have at least four characters using only A–Z, a–z, and spaces. Email must have a valid format; the joining date cannot be in the future.',
       'Show each invalid field’s error immediately, including on the initial empty form.',
       'Enable Submit only when every field passes, then clear the form after submission.',
     ],
@@ -342,6 +357,11 @@ export default function EmployeeValidationForm() {
     topics: ['Derived state', 'Filtering', 'Controlled inputs'],
     sourceUrl: 'https://www.hackerrank.com/challenges/react-word-omitter/problem',
     summary: 'Filter selected words from live input, with a toggle that restores the original sentence and a Clear action.',
+    prompt: 'Build a WordOmitter component that receives an omitWords array of strings. Let the user enter a sentence and display a version with those words removed as they type. Provide a toggle for showing the complete sentence and a Clear button. Initially, both input and output are empty, and omission is enabled.',
+    example: {
+      actions: 'With omitWords set to ["very"], enter “The sky is very blue”. Click Show All Words, then Clear.',
+      result: 'The filtered output reads “The sky is blue”. Toggling restores “very”; Clear empties both input and output.',
+    },
     requirements: [
       'Receive the omitted words through the omitWords prop.',
       'Update the displayed output while the user types; omission is enabled initially.',
@@ -406,11 +426,17 @@ export default function WordOmitter({ omitWords = [] }) {
     topics: ['Validation', 'Derived state', 'Number formatting'],
     sourceUrl: 'https://www.hackerrank.com/challenges/cryptorank-exchange/problem',
     summary: 'Validate an exchange amount against a balance and calculate the coin quantity for each supplied rate.',
+    prompt: 'Build a React currency exchange calculator using the provided available balance and cryptocurrency rates. Let the user enter an amount and display each currency’s rate and resulting coin quantity in a table. Begin with an empty input, no validation error, and quantities shown as 0.00000000. Update the results as the amount changes.',
+    example: {
+      actions: 'Given a balance of 80 and a currency rate of 0.125 coins per unit, enter 24. Then change the amount to 81.',
+      result: 'The valid amount displays 3.00000000 coins. The excessive amount shows a balance error and n/a.',
+    },
     requirements: [
       'Start with an empty amount, no error, and zero coins displayed to eight decimal places.',
       'Accept amounts from 0.01 through the available balance, inclusive.',
       'Update each coin quantity immediately using amount multiplied by its exchange rate.',
       'Show validation feedback for invalid input and n/a for nonempty invalid amounts.',
+      'After editing, an empty input reports “Amount cannot be empty”; exceeding the balance reports “Amount cannot exceed the available balance”.',
     ],
     steps: [
       'Store the input as a string so an empty field stays distinguishable from numeric zero.',

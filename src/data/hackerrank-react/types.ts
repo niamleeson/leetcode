@@ -4,7 +4,9 @@ export interface ReactChallenge {
   difficulty: 'Medium' | 'Hard';
   topics: string[];
   summary: string;
+  prompt: string;
   requirements: string[];
+  example: { actions: string; result: string };
   steps: string[];
   pitfalls: string[];
   code: string;

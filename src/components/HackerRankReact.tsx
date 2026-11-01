@@ -128,11 +128,26 @@ function ChallengeDetail({ challenge }: { challenge: ReactChallenge }) {
         <a className={`mt-3 inline-block ${link}`} href={challenge.sourceUrl} target="_blank" rel="noopener noreferrer">Original question on HackerRank ↗</a>
       </header>
 
-      <section className={panel} aria-labelledby="requirements-heading">
-        <h2 id="requirements-heading" className={heading}>What to build</h2>
+      <section className={panel} aria-labelledby="prompt-heading">
+        <h2 id="prompt-heading" className={heading}>Problem prompt</h2>
+        <p className={`mt-3 ${muted}`}>{challenge.prompt}</p>
+        <h3 className="mt-5 text-sm font-semibold text-gray-200 light:text-gray-800">Requirements</h3>
         <ul className={`mt-3 list-disc space-y-2 pl-5 ${muted}`}>
           {challenge.requirements.map(requirement => <li key={requirement}>{requirement}</li>)}
         </ul>
+        <div className="mt-5 border-t border-gray-800 pt-4 light:border-gray-200">
+          <h3 className="text-sm font-semibold text-gray-200 light:text-gray-800">Example interaction</h3>
+          <dl className={`mt-3 space-y-3 ${muted}`}>
+            <div>
+              <dt className="font-medium text-gray-200 light:text-gray-800">User actions</dt>
+              <dd className="mt-1">{challenge.example.actions}</dd>
+            </div>
+            <div>
+              <dt className="font-medium text-gray-200 light:text-gray-800">Expected result</dt>
+              <dd className="mt-1">{challenge.example.result}</dd>
+            </div>
+          </dl>
+        </div>
       </section>
 
       <section aria-labelledby="solution-heading" className="min-w-0 space-y-3">

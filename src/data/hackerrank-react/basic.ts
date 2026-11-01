@@ -7,6 +7,11 @@ export const basicChallenges: ReactChallenge[] = [
     difficulty: 'Medium',
     topics: ['useState', 'Controlled inputs', 'Immutable arrays'],
     summary: 'Append the entered text to a list, then clear the input.',
+    prompt: 'Build a React screen for collecting a list of text items. Show a text field, an Add Item button, and an unordered list that is empty when the screen first opens. Users should be able to add several items in sequence without losing earlier entries. Empty submissions should leave the list unchanged.',
+    example: {
+      actions: 'Enter Notebook and click Add Item. Then enter Pencil and click Add Item again.',
+      result: 'The list shows Notebook followed by Pencil, and the text field is empty after each successful addition.',
+    },
     requirements: [
       'Start with an empty input and an empty unordered list.',
       'Add Item appends the input text in insertion order.',
@@ -77,6 +82,11 @@ export default function ItemListManager() {
     difficulty: 'Medium',
     topics: ['useState', 'Object updates', 'Independent counters'],
     summary: 'Track independent positive and negative vote counts for five code-quality categories.',
+    prompt: 'Create a React feedback panel for reviewing code quality. Present five categories, each with its own Upvote and Downvote buttons and two visible counters. All counters begin at zero. Users can vote repeatedly in either direction, and the affected count should update immediately with a subtle animation while other counts remain unchanged.',
+    example: {
+      actions: 'Click Upvote for Testing three times, then click Downvote for Documentation once.',
+      result: 'Testing has 3 upvotes and 0 downvotes. Documentation has 0 upvotes and 1 downvote. Every other counter stays at 0.',
+    },
     requirements: [
       'Display Readability, Performance, Security, Documentation, and Testing.',
       'Each category starts with zero upvotes and zero downvotes.',
@@ -176,6 +186,11 @@ export default function CodeReviewFeedback() {
     difficulty: 'Hard',
     topics: ['Derived state', 'Sorting', 'useMemo'],
     summary: 'Render articles in a table and switch between highest-voted and newest-first order.',
+    prompt: 'Build an article browser that receives an articles array. Each article contains a title, an upvote count, and a publication date written as YYYY-MM-DD. Show the articles in a table, starting with the highest-voted article. Provide Most Upvoted and Most Recent controls so readers can switch between popularity and publication order.',
+    example: {
+      actions: 'Use Hooks with 8 upvotes dated 2026-09-12 and Components with 15 upvotes dated 2026-09-03. Open the page, then click Most Recent.',
+      result: 'Initially Components appears before Hooks. After Most Recent, Hooks appears before Components.',
+    },
     requirements: [
       'Accept articles with title, numeric upvotes, and an ISO YYYY-MM-DD date.',
       'Initially order by descending upvotes.',
@@ -261,9 +276,14 @@ export default function Articles({ articles }) {
     difficulty: 'Medium',
     topics: ['Controlled forms', 'Validation', 'Conditional rendering'],
     summary: 'Validate a contact form and display a snapshot of a successful submission.',
+    prompt: 'Create a React contact form with fields for a person’s name, email address, and message, plus a Submit button. Start with empty fields and no feedback below the form. Require a value in every field before accepting a submission. After a successful submission, show the entered details beneath the form and clear the fields.',
+    example: {
+      actions: 'Enter Mira as the name, mira@example.com as the email, and Please send the schedule as the message, then submit.',
+      result: 'Those three values appear beneath the form, and all inputs become empty. A submission with a missing value shows the required error instead.',
+    },
     requirements: [
       'Collect a name, email address, and message.',
-      'Reject an incomplete submission with the required error message.',
+      'Reject an incomplete submission with the error message: “All fields are required.”',
       'Display a valid submission below the form and clear the inputs.',
       'Initially show neither submitted details nor an error.',
     ],
@@ -362,6 +382,11 @@ export default function ContactForm() {
     difficulty: 'Medium',
     topics: ['useState', 'Array indexing', 'Boundary conditions'],
     summary: 'Move through a nonempty array of slides while enforcing navigation boundaries.',
+    prompt: 'Create a React slideshow that receives a nonempty slides array, where each slide has a title and text. Display the first slide when the component loads. Provide Next, Prev, and Restart controls so users can browse the slides or return to the beginning. Disable any control that cannot move the slideshow from its current position.',
+    example: {
+      actions: 'Supply slides titled Introduction, Exercise, and Review. Click Next twice, then click Restart.',
+      result: 'Review is shown after the two Next clicks, with Next disabled. Restart returns to Introduction, where Prev and Restart are disabled.',
+    },
     requirements: [
       'Accept slides containing title and text, and initially show the first one.',
       'Next and Prev move one slide in the corresponding direction.',

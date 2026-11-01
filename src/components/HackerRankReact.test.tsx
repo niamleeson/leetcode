@@ -40,6 +40,12 @@ it('lists all ten questions, searches concepts, and clears an empty result', () 
 it.each(reactChallenges)('opens $title with its complete code and source', challenge => {
   const page = showPage(`/hackerrank-react/${challenge.slug}`);
   expect(screen.getByRole('heading', { name: challenge.title, level: 1 })).toBeTruthy();
+  const prompt = screen.getByRole('region', { name: 'Problem prompt' });
+  expect(within(prompt).getByText(challenge.prompt)).toBeTruthy();
+  expect(within(prompt).getByText(challenge.example.actions)).toBeTruthy();
+  expect(within(prompt).getByText(challenge.example.result)).toBeTruthy();
+  const solution = screen.getByRole('region', { name: 'JavaScript + React solution' });
+  expect(prompt.compareDocumentPosition(solution) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   expect(page.container.querySelector('pre code')?.textContent).toBe(challenge.code);
   expect(screen.getByRole('link', { name: 'Original question on HackerRank ↗' }).getAttribute('href')).toBe(challenge.sourceUrl);
   expect(screen.getByRole('heading', { name: 'How it works' })).toBeTruthy();
