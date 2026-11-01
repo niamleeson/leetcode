@@ -3960,7 +3960,7 @@ NumMatrix.prototype.sumRegion = function(row1, col1, row2, col2) {
         '3. An unvisited start begins a new component, so increase componentCount once and mark start visited.\n' +
         '4. Remove the first node from the queue. Mark each unvisited neighbor before adding it to the queue, preventing duplicate visits even in cycles.\n' +
         '5. When the queue empties, that component is complete. Continue scanning and return componentCount.',
-      timeComplexity: 'O(n^2 + E) worst case with array front removals; graph traversal itself visits n nodes and E edges',
+      timeComplexity: 'O(n + E): visit each node and adjacency entry once, assuming O(1) queue operations',
       spaceComplexity: 'O(n + E) for the adjacency list, visited set, and queue',
     },
   },

@@ -2919,7 +2919,7 @@ Explanation: a/b=2, b/c=3, so a/c=6. b/a=1/2=0.5. "e" is unknown, so a/e=-1.`,
 - BFS from src tracking the cumulative product of edge weights.
 - When reaching dst, return the accumulated product. If BFS exhausts without reaching dst, return -1.0.
 - This works because a/c = (a/b) * (b/c) -- multiplying edge weights along the path.`,
-    timeComplexity: "O(Q * (V + E)) where Q is the number of queries, V is variables, E is equations",
+    timeComplexity: "O(E + Q * (V + E)): build the graph once, then BFS per query; V is variables, E is equations, and Q is queries. Assumes O(1) queue operations.",
     spaceComplexity: "O(V + E) for the graph",
     hints: [
       "Model a/b = k as a directed edge from a to b with weight k, and b to a with weight 1/k.",

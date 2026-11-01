@@ -9367,8 +9367,8 @@ MyStack.prototype.empty = function() {
       '3. Dequeue each active front and enqueue it at helper’s back, preserving the old stack order.\n' +
       '4. Swap the queue references. The newest value is now at active’s front, and helper is empty.\n' +
       '5. Pop dequeues the active front; top peeks without removal; empty checks active’s size.\n' +
-      '6. Only queue operations are used. Python deque gives O(n) push and O(1) pop/top/empty. JavaScript array shift() can cost O(n), giving O(n²) push and O(n) pop in the worst case.',
-    timeComplexity: 'Python deque: O(n) push, O(1) pop/top/empty. JavaScript arrays: O(n²) push, O(n) pop, O(1) top/empty (worst case).',
+      '6. With O(1) queue operations, push transfers n existing elements and takes O(n); pop, top, and empty each take O(1).',
+    timeComplexity: 'O(n) push, O(1) pop/top/empty, assuming O(1) queue operations',
     spaceComplexity: 'O(n) total across both queues',
     hints: [
       'Keep the newest value at the front of the active queue.',
@@ -9451,9 +9451,9 @@ MyStack.prototype.empty = function() {
         '2. On push: add element, then rotate all previous elements to the back.\n' +
         '3. This puts the newest element at the front (LIFO order).\n' +
         '4. Pop and top simply access the front of the queue.\n' +
-        '5. With Python deque, push is O(n) and pop, top, and empty are O(1).\n' +
-        '6. JavaScript array shift() can move O(n) elements: push is O(n²) and pop is O(n) in the worst case; top and empty remain O(1).',
-      timeComplexity: 'Python deque: O(n) push, O(1) pop/top/empty. JavaScript array: O(n²) push, O(n) pop, O(1) top/empty (worst case).',
+        '5. With O(1) queue operations, rotating n existing elements makes push O(n).\n' +
+        '6. Pop, top, and empty each use a single queue operation and take O(1).',
+      timeComplexity: 'O(n) push, O(1) pop/top/empty, assuming O(1) queue operations',
       spaceComplexity: 'O(n)',
     },
   },

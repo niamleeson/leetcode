@@ -8939,7 +8939,7 @@ class Solution:
       '2. Each state has 8 neighbors: each of 4 wheels turned +1 or -1.\n' +
       '3. Skip deadends and already visited states.\n' +
       '4. Return the move count when the target is reached.',
-    timeComplexity: 'O(10^4 * 4) = O(40000)',
+    timeComplexity: 'O(D + S): build the deadend set, then explore S states with eight neighbors each; D is the number of deadends and S is at most 10,000. Assumes O(1) queue operations.',
     spaceComplexity: 'O(10^4)',
     hints: [
       'Model this as a shortest path problem on a graph of states.',

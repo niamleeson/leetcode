@@ -88,6 +88,12 @@ Displayed JavaScript uses `Array(length).fill(null).map(...)` for length-based
 initializers in solutions, lessons, and templates. Construct each mutable row,
 bucket, Set, or object inside the callback so entries remain independent.
 
+Displayed time complexities assume O(1) FIFO queue enqueue and dequeue, including
+JavaScript `shift()` and Python `pop(0)` when they represent queue operations.
+This is the page's teaching model, stated above the topics. Apply it to both
+primary and alternative solutions, including stacks implemented with queues.
+Heap operations retain their logarithmic cost.
+
 Tree layouts reserve left and right child slots, including a missing sibling,
 and check node separation and edge direction against every recorded tree state.
 Suspended recursive calls retain their partially constructed nodes; returned

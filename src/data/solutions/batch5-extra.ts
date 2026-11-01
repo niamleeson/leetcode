@@ -5018,7 +5018,7 @@ class Solution:
         '3. While the queue is not empty, remove its first course and explore its outgoing edges. The queue contains only courses still waiting to be processed.\n' +
         '4. Skip neighbors already marked in this row. Otherwise, mark them before enqueueing so multiple paths do not schedule a course twice.\n' +
         '5. Answer [prerequisite, course] using reachable[prerequisite][course]. The input has no cycles, so a course does not become its own prerequisite.',
-      timeComplexity: 'O(V * (V^2 + E) + Q) worst case: each array front removal can cost O(V), for V courses, E prerequisites, and Q queries',
+      timeComplexity: 'O(V * (V + E) + Q): BFS from each of V courses, then answer Q queries; E is the number of prerequisites. Assumes O(1) queue operations.',
       spaceComplexity: 'O(V^2 + E) auxiliary space for the reachability table, graph, and queue',
     },
   },

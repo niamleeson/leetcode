@@ -111,7 +111,7 @@ const bfsSolutions: Record<number, SolutionFollowUp> = {
     return [];
 };`,
     explanation: '1. Add every input edge to both adjacency lists before starting any BFS.\n2. Try candidates from the last input edge to the first, using a fresh queue and visited set for each search.\n3. Skip the direct move from a to b without changing the stored graph. BFS returns immediately upon reaching b, before exploring its neighbors, so a reverse-direction check is unnecessary.\n4. Mark neighbors before enqueueing. If BFS reaches b through other edges, [a, b] belongs to the cycle and can be removed.\n5. If the queue empties first, removing that candidate would disconnect the graph, so try the previous edge. Reverse order ensures the first success is the last removable edge in the input. For [[1,2], [1,3], [2,3]], ignoring [2,3] still allows 2 → 1 → 3.',
-    timeComplexity: 'Python: O(V^2) with deque. JavaScript: O(V^3) worst case counting array shift() costs. This problem has E = V.',
+    timeComplexity: 'O(V^2): at most V BFS searches, each O(V + E), and this problem has E = V. Assumes O(1) queue operations.',
     spaceComplexity: 'O(V + E) for the graph and BFS state; O(V) here because E = V',
   },
   721: {

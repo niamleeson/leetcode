@@ -389,6 +389,7 @@ export default function NeetCodeView({ topics, storagePrefix, title, description
         <div>
           <h1 className="text-2xl font-bold text-white light:text-gray-900">{title}</h1>
           <p className="text-gray-400 light:text-gray-600 mt-1 text-sm">{description}</p>
+          <p className="text-gray-500 light:text-gray-500 mt-1 text-xs">Time complexities assume O(1) operations for FIFO queues.</p>
         </div>
         <LanguageToggle language={language} setLanguage={setLanguage} />
       </div>
