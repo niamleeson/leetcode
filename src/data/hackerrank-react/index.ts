@@ -4,6 +4,7 @@ import { promptImages } from './promptImages';
 import { andurilBasicChallenges } from './andurilBasic';
 import { andurilAdvancedChallenges } from './andurilAdvanced';
 import { andurilDiscussionChallenges } from './andurilDiscussion';
+import { ariaReferenceChallenge } from './ariaReference';
 import type { ReactChallenge } from './types';
 
 const challengeOrder = [
@@ -28,6 +29,7 @@ export const reactChallenges: ReactChallenge[] = [
   ...andurilBasicChallenges,
   ...andurilAdvancedChallenges,
   ...andurilDiscussionChallenges,
+  ariaReferenceChallenge,
 ];
 
 export type { ReactChallenge } from './types';

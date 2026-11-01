@@ -24,7 +24,7 @@ beforeEach(() => {
 });
 afterEach(cleanup);
 
-it('lists HackerRank first, then Anduril, searches concepts, and clears an empty result', () => {
+it('lists HackerRank first, then Anduril and the reference, searches concepts, and clears an empty result', () => {
   showPage();
   expect(screen.getByRole('heading', { name: 'React questions', level: 1 })).toBeTruthy();
   const hackerRank = screen.getByRole('region', { name: 'HackerRank React' });
@@ -32,7 +32,10 @@ it('lists HackerRank first, then Anduril, searches concepts, and clears an empty
   expect(hackerRank.compareDocumentPosition(anduril) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   expect(within(hackerRank).getAllByRole('heading', { level: 3 })).toHaveLength(10);
   expect(within(anduril).getAllByRole('heading', { level: 3 })).toHaveLength(10);
-  expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(20);
+  const reference = screen.getByRole('region', { name: 'Interview reference' });
+  expect(anduril.compareDocumentPosition(reference) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(within(reference).getByRole('heading', { name: 'ARIA Interview Essentials' })).toBeTruthy();
+  expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(21);
   const search = screen.getByRole('searchbox', { name: 'Find a question or concept' });
   fireEvent.change(search, { target: { value: 'SLIDESHOW' } });
   expect(screen.getAllByRole('heading', { level: 3 }).map(node => node.textContent)).toEqual(['Slideshow']);
@@ -42,7 +45,7 @@ it('lists HackerRank first, then Anduril, searches concepts, and clears an empty
   fireEvent.change(search, { target: { value: 'no-such-question' } });
   expect(screen.queryAllByRole('heading', { level: 2 })).toHaveLength(0);
   fireEvent.click(screen.getByRole('button', { name: 'Clear search' }));
-  expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(20);
+  expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(21);
 });
 
 it.each(reactChallenges)('opens $title with its complete solution and source', challenge => {
@@ -105,7 +108,7 @@ it('navigates from the index, between questions, and back to the catalog', () =>
   expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(reactChallenges[10].title);
   fireEvent.change(screen.getByRole('combobox', { name: 'Jump to question' }), { target: { value: reactChallenges[reactChallenges.length - 1].slug } });
   fireEvent.click(screen.getByRole('link', { name: 'Back to all questions →' }));
-  expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(20);
+  expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(21);
 });
 
 it('copies the full displayed solution and resets its confirmation on navigation', async () => {
