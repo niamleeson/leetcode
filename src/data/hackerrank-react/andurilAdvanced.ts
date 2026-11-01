@@ -33,8 +33,9 @@ export const andurilAdvancedChallenges: ReactChallenge[] = [
     steps: [
       'For flatten, visit each existing entry. Recurse into a nested array only while there is depth left; otherwise append the value.',
       'For mapArray, allocate an output array with the input length and assign transformed values only at existing indexes.',
-      'For reduceArray, distinguish a missing initial value from an explicitly supplied undefined using arguments.length.',
-      'When no initial value is supplied, scan for the first existing entry and begin callback execution after it.',
+      'For reduceArray, start with initialValue and a hasAccumulator flag. arguments.length >= 3 means the caller supplied an initial value, even if it is undefined.',
+      'Use one loop and skip empty array slots. If there is no accumulator yet, the first existing value becomes it; otherwise, call the callback to update it.',
+      'After the loop, throw only if no accumulator was ever established: there was neither an initial value nor an existing array element.',
       'Capture length before invoking callbacks so an appended item is not unexpectedly visited during the same operation.',
     ],
     pitfalls: [
@@ -109,25 +110,30 @@ export function reduceArray(array, callback, initialValue) {
   }
 
   const length = array.length;
-  let i = 0;
-  let accumulator;
+  let accumulator = initialValue;
+  // An explicit undefined still counts as an initial value.
+  let hasAccumulator = arguments.length >= 3;
 
-  if (arguments.length >= 3) {
-    accumulator = initialValue;
-  } else {
-    while (i < length && !(i in array)) i++;
-    if (i === length) {
-      throw new TypeError('Empty array without an initial value');
+  for (let index = 0; index < length; index++) {
+    const hasElement = index in array;
+    if (!hasElement) {
+      continue; // Skip empty slots in sparse arrays.
     }
-    accumulator = array[i];
-    i++;
+
+    const value = array[index];
+
+    if (!hasAccumulator) {
+      accumulator = value;
+      hasAccumulator = true;
+    } else {
+      accumulator = callback(accumulator, value, index, array);
+    }
   }
 
-  for (; i < length; i++) {
-    if (i in array) {
-      accumulator = callback(accumulator, array[i], i, array);
-    }
+  if (!hasAccumulator) {
+    throw new TypeError('Empty array without an initial value');
   }
+
   return accumulator;
 }`,
   },
