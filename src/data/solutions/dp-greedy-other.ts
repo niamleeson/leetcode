@@ -1683,67 +1683,75 @@ export const solutions: ProblemSolution[] = [
   {
     id: 435,
     description:
-      'Given an array of intervals where intervals[i] = [start_i, end_i], return the minimum number of intervals you need to remove to make the rest of the intervals non-overlapping.',
+      'Given an array of intervals where intervals[i] = [start_i, end_i], return the minimum number of intervals you need to remove to make the rest of the intervals non-overlapping. Intervals that touch at an endpoint do not overlap.',
     examples:
       'Input: intervals = [[1,2],[2,3],[3,4],[1,3]]\nOutput: 1\nExplanation: [1,3] can be removed.\n\nInput: intervals = [[1,2],[1,2],[1,2]]\nOutput: 2',
     intuition:
-      'This is the classic activity selection problem. Sorting by end time and always keeping the interval that finishes earliest leaves the most room for future intervals. Any interval that overlaps with the one you kept must be removed, and greedy guarantees you remove the minimum number.',
+      'Sort by start time to scan intervals from left to right. When two intervals overlap, one must be removed. Keep the one that ends earlier because it leaves at least as much room for every future interval. This may mean replacing the previously kept interval with the current one.',
     approach:
-      'Greedy: Sort intervals by end time. Greedily keep intervals that do not overlap with the last kept interval. The number of removed intervals = total - number of kept intervals.',
+      'Greedy: Sort intervals by start time. Track the end of the last kept interval. On an overlap, count one removal and keep the smaller end; otherwise, keep the current interval and update the tracked end.',
     code: `class Solution:
     def eraseOverlapIntervals(self, intervals: List[List[int]]) -> int:
-        intervals.sort(key=lambda x: x[1])
-        count = 0
-        prev_end = float('-inf')
+        intervals.sort(key=lambda interval: interval[0])
+        removed = 0
+        previous_end = intervals[0][1]
 
-        for start, end in intervals:
-            if start >= prev_end:
-                prev_end = end
+        for i in range(1, len(intervals)):
+            start, end = intervals[i]
+            if start < previous_end:
+                # They overlap: remove the interval that ends later.
+                removed += 1
+                previous_end = min(previous_end, end)
             else:
-                count += 1
+                # No overlap: keep this interval.
+                previous_end = end
 
-        return count`,
+        return removed`,
     jsCode: `var eraseOverlapIntervals = function(intervals) {
-    // Sort by end time — the interval that ends earliest leaves
-    // the most room for future intervals (greedy choice)
-    intervals.sort((a, b) => a[1] - b[1]);
+    intervals.sort((a, b) => a[0] - b[0]);
 
-    // count = number of intervals we must remove
-    let count = 0;
+    let removed = 0;
+    let previousEnd = intervals[0][1];
 
-    // prevEnd = end time of the last interval we decided to keep
-    let prevEnd = -Infinity;
+    for (let i = 1; i < intervals.length; i++) {
+        const [start, end] = intervals[i];
 
-    for (const [start, end] of intervals) {
-        if (start >= prevEnd) {
-            // No overlap with the last kept interval — keep this one
-            prevEnd = end;
+        if (start < previousEnd) {
+            // They overlap: remove the interval that ends later.
+            removed++;
+            previousEnd = Math.min(previousEnd, end);
         } else {
-            // Overlap detected — remove this interval
-            // The sorted order ensures we already kept the earlier-ending one
-            count++;
+            // No overlap: keep this interval.
+            previousEnd = end;
         }
     }
 
-    return count;
+    return removed;
 };`,
     jsWalkthrough:
-      'intervals = [[1,2],[2,3],[3,4],[1,3]]\n\n' +
-      'step 1: sort by end time → [[1,2],[2,3],[1,3],[3,4]]\n' +
-      'step 2: prevEnd = -Infinity, count = 0\n' +
-      'step 3: [1,2] — start(1) >= prevEnd(-Inf) → keep, prevEnd = 2\n' +
-      'step 4: [2,3] — start(2) >= prevEnd(2) → keep, prevEnd = 3\n' +
-      'step 5: [1,3] — start(1) < prevEnd(3) → overlap, remove, count = 1\n' +
-      'step 6: [3,4] — start(3) >= prevEnd(3) → keep, prevEnd = 4\n' +
-      'result: 1 interval removed',
+      'intervals = [[3,4],[1,5],[2,3]]\n\n' +
+      'sort by start → [[1,5],[2,3],[3,4]]\n' +
+      'removed = 0\n' +
+      'previousEnd = 5\n\n' +
+      'i = 1, start = 2, end = 3\n' +
+      '2 < 5 → true\n' +
+      'removed: 0 → 1\n' +
+      'previousEnd: 5 → 3\n' +
+      'keep [2,3]; remove [1,5]\n\n' +
+      'i = 2, start = 3, end = 4\n' +
+      '3 < 3 → false\n' +
+      'previousEnd: 3 → 4\n' +
+      'keep [3,4]\n\n' +
+      'i = 3, 3 < intervals.length → false\n' +
+      'return removed → 1',
     explanation:
-      '1. Sort intervals by their end time (greedy choice: keep the interval that finishes earliest).\n2. Initialize prev_end to negative infinity and count (removals) to 0.\n3. For each interval [start, end]:\n   - If start >= prev_end, this interval does not overlap; keep it and update prev_end = end.\n   - Otherwise, it overlaps with the previous kept interval; increment count (remove it).\n4. Return count, the number of intervals removed.',
+      '1. Sort intervals by start time.\n2. Initialize removed to 0 and previousEnd to the first interval\'s end.\n3. Scan from the second interval:\n   - If start < previousEnd, the intervals overlap. Increment removed and set previousEnd to the smaller of the two ends.\n   - Otherwise, keep the current interval and set previousEnd = end. Touching endpoints are allowed.\n4. Keeping the earlier end cannot block a future interval that the later end would have allowed.\n5. Return removed. Only the count and tracked end change; intervals are not physically deleted.',
     timeComplexity: 'O(n log n)',
-    spaceComplexity: 'O(1)',
+    spaceComplexity: 'O(1) for the scan; sorting uses additional implementation-dependent space (O(n) in Python)',
     hints: [
-      'Sort by end time, not start time.',
-      'Keeping the interval that ends earliest leaves the most room for future intervals.',
-      'This is equivalent to finding the maximum number of non-overlapping intervals.',
+      'Sort by start time and track the end of the last kept interval.',
+      'When two intervals overlap, count one removal and keep the smaller end.',
+      'The interval removed may be the previous one. Touching endpoints do not overlap.',
     ],
   },
   {

@@ -8823,6 +8823,30 @@
       ],
       "expected": 0,
       "name": "Edge case"
+    },
+    {
+      "name": "Keep the earlier end",
+      "entry": "eraseOverlapIntervals",
+      "params": [
+        "intervals"
+      ],
+      "args": [
+        [
+          [
+            3,
+            4
+          ],
+          [
+            1,
+            5
+          ],
+          [
+            2,
+            3
+          ]
+        ]
+      ],
+      "expected": 1
     }
   ],
   "450": [
