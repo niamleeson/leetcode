@@ -20,6 +20,7 @@ const navItems = [
   { path: '/blind75', label: 'NeetCode Blind 75' },
   { path: '/neetcode150', label: 'NeetCode 150' },
   { path: '/neetcode', label: 'NeetCode 250' },
+  { path: '/hackerrank-react', label: 'HackerRank React' },
   { path: '/system-design', label: 'System Design' },
   { path: '/sdi-book', label: 'SDI Book Notes' },
   { path: '/glossary', label: 'Glossary' },
@@ -115,9 +116,11 @@ export default function Sidebar({
         </div>
 
         {/* Navigation */}
-        <nav className="p-2 space-y-0.5">
+        <nav className="p-2 space-y-0.5 shrink-0 max-h-[55vh] overflow-y-auto">
           {navItems.map(item => {
-            const isActive = location.pathname === item.path;
+            const isActive = location.pathname === item.path || (
+              item.path === '/hackerrank-react' && location.pathname.startsWith('/hackerrank-react/')
+            );
             const badge = item.badgeKey === 'due' ? dueCount : 0;
 
             return (

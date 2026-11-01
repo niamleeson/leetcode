@@ -12,6 +12,7 @@ A self-contained React app for mastering LeetCode problems with spaced repetitio
 - **Pseudocode for memorization** — terse natural-language steps for each problem
 - **Bookmarkable URLs** — every topic, problem, and filter state has its own route
 - **Progress tracking** saved to localStorage
+- **HackerRank React** — all 10 public practice questions with JavaScript/JSX solutions, explanations, complexity notes, and edge cases; open it from the sidebar
 
 ## Topics Covered
 
@@ -34,10 +35,15 @@ Open http://localhost:5173
 | `/study` | Study session |
 | `/problems` | All problems (filterable) |
 | `/search` | Search |
+| `/hackerrank-react` | HackerRank React question catalog |
+| `/hackerrank-react/:slug` | React solution, explanation, and checks |
 | `/topic/:slug` | Topic lesson + problems |
 | `/problem/:id` | Individual problem page |
 
 Filters sync to query params: `/problems?status=solved&difficulty=Hard`
+
+The app uses hash routing: for example, `http://localhost:5173/leetcode/#/hackerrank-react`.
+Run `npm run hackerrank:test` with Node 22.22 or newer to exercise the displayed React solution code and its study pages.
 
 ## Tech Stack
 

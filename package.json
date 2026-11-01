@@ -9,6 +9,7 @@
     "dev:server": "node server.mjs",
     "build": "node tools/walkthroughs/check-artifacts.cjs && tsc -b && vite build",
     "preview": "vite preview",
+    "hackerrank:test": "vitest run --config vitest.hackerrank.config.ts",
     "walkthroughs:generate": "node tools/walkthroughs/verify.cjs --write",
     "walkthroughs:verify": "node --test tools/walkthroughs/runtime.test.cjs && node tools/walkthroughs/verify.cjs && node tools/walkthroughs/check-artifacts.cjs",
     "walkthroughs:test": "vitest run --config vitest.walkthrough.config.ts",

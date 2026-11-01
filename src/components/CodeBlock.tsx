@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import Prism from 'prismjs';
 import 'prismjs/components/prism-python';
 import 'prismjs/components/prism-javascript';
+import 'prismjs/components/prism-jsx';
 import '../styles/prism-themes.css';
 
 interface CodeBlockProps {

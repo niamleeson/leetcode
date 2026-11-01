@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { lazy, Suspense, useState, useCallback, useEffect, useRef } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAppStore } from './store/useStore';
 import Sidebar from './components/Sidebar';
@@ -32,6 +32,7 @@ function slugToTopic(slug: string): Topic | null {
 export { topicToSlug, slugToTopic };
 
 const ENABLE_ASK_CLAUDE = false;
+const HackerRankReact = lazy(() => import('./components/HackerRankReact'));
 
 export default function App() {
   const store = useAppStore();
@@ -146,6 +147,11 @@ export default function App() {
           <Route path="/train/sdi" element={<StudyMode source="sdi" />} />
           <Route path="/train/dsa" element={<StudyMode source="dsa" />} />
           <Route path="/glossary" element={<GlossaryPage />} />
+          <Route path="/hackerrank-react/:slug?" element={
+            <Suspense fallback={<p className="text-gray-400 light:text-gray-600">Loading React solutions…</p>}>
+              <HackerRankReact />
+            </Suspense>
+          } />
           <Route path="/topic/:slug" element={
             <TopicRoute store={store} />
           } />
