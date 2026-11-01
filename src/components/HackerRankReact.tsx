@@ -131,6 +131,31 @@ function ChallengeDetail({ challenge }: { challenge: ReactChallenge }) {
       <section className={panel} aria-labelledby="prompt-heading">
         <h2 id="prompt-heading" className={heading}>Problem prompt</h2>
         <p className={`mt-3 ${muted}`}>{challenge.prompt}</p>
+        {challenge.images?.map(image => (
+          <figure key={image.src} className="mt-5">
+            <a
+              href={image.src}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`Open ${challenge.title} reference image at full size`}
+              className="block overflow-hidden rounded-lg border border-gray-700 bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 light:border-gray-300"
+            >
+              <img
+                src={image.src}
+                alt={image.alt}
+                width={image.width}
+                height={image.height}
+                loading="lazy"
+                decoding="async"
+                className="mx-auto block h-auto max-w-full"
+              />
+            </a>
+            <figcaption className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs text-gray-500 light:text-gray-600">
+              <a href={image.sourceUrl} target="_blank" rel="noopener noreferrer" className="hover:underline">Original HackerRank reference ↗</a>
+              <a href={image.src} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline light:text-blue-700">Open full size ↗</a>
+            </figcaption>
+          </figure>
+        ))}
         <h3 className="mt-5 text-sm font-semibold text-gray-200 light:text-gray-800">Requirements</h3>
         <ul className={`mt-3 list-disc space-y-2 pl-5 ${muted}`}>
           {challenge.requirements.map(requirement => <li key={requirement}>{requirement}</li>)}

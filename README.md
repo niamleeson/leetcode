@@ -12,7 +12,7 @@ A self-contained React app for mastering LeetCode problems with spaced repetitio
 - **Pseudocode for memorization** — terse natural-language steps for each problem
 - **Bookmarkable URLs** — every topic, problem, and filter state has its own route
 - **Progress tracking** saved to localStorage
-- **HackerRank React** — all 10 public practice questions with problem prompts, example interactions, JavaScript/JSX solutions, explanations, complexity notes, and edge cases; open it from the sidebar
+- **HackerRank React** — all 10 public practice questions with problem prompts, original reference images and animations where supplied, example interactions, JavaScript/JSX solutions, explanations, complexity notes, and edge cases; open it from the sidebar
 
 ## Topics Covered
 

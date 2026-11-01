@@ -1,5 +1,6 @@
 import { basicChallenges } from './basic';
 import { formChallenges } from './forms';
+import { promptImages } from './promptImages';
 
 const challengeOrder = [
   'item-list-manager',
@@ -14,8 +15,8 @@ const challengeOrder = [
   'cryptorank-exchange',
 ];
 
-export const reactChallenges = [...basicChallenges, ...formChallenges].sort(
-  (a, b) => challengeOrder.indexOf(a.slug) - challengeOrder.indexOf(b.slug),
-);
+export const reactChallenges = [...basicChallenges, ...formChallenges]
+  .map(challenge => ({ ...challenge, images: promptImages[challenge.slug] }))
+  .sort((a, b) => challengeOrder.indexOf(a.slug) - challengeOrder.indexOf(b.slug));
 
 export type { ReactChallenge } from './types';
