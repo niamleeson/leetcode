@@ -200,13 +200,15 @@ export default function CodeReviewFeedback() {
     steps: [
       'Store only the chosen sort mode. The sorted articles can be calculated from that mode and the articles prop.',
       'Copy articles before sorting because sort changes its array in place.',
-      'Use b.upvotes - a.upvotes for highest first. Fixed-width ISO dates can be compared as strings for newest first.',
+      'Use b.upvotes - a.upvotes to put the highest vote count first.',
+      'For dates, convert both strings with new Date, then compare their getTime() timestamps. Subtract dateA from dateB to place the newest date first.',
       'Memoize the sorted copy and render one table row per article.',
     ],
     pitfalls: [
       'Sorting the articles prop directly mutates data owned by the parent.',
       'Reversing an already-sorted list does not switch between two different sort fields.',
       'Duplicating props into state can leave the table stale when the parent passes new articles.',
+      'Use Date objects only for comparison; keep the original date strings for rendering in the table.',
     ],
     code: `import { useMemo, useState } from 'react';
 
@@ -216,10 +218,13 @@ export default function Articles({ articles }) {
 
   const sortedArticles = useMemo(() => {
     const copy = [...articles];
-    copy.sort((a, b) => sortBy === 'upvotes'
-      ? b.upvotes - a.upvotes
-      : b.date.localeCompare(a.date)
-    );
+    copy.sort((a, b) => {
+      if (sortBy === 'upvotes') return b.upvotes - a.upvotes;
+
+      const dateA = new Date(a.date);
+      const dateB = new Date(b.date);
+      return dateB.getTime() - dateA.getTime();
+    });
     return copy;
   }, [articles, sortBy]);
 
