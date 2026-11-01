@@ -9,6 +9,38 @@ function run(problemId: number, invocation: string, context: Record<string, unkn
   return runInNewContext(`${solutionMap[problemId].jsCode}\n${invocation}`, context, { timeout: 5000 });
 }
 
+it('covers all 250 problems, every alternative, and language-specific operations with complete runtime derivations', () => {
+  const problems = neetcodeTopics.flatMap(topic => topic.problems);
+  expect(problems).toHaveLength(250);
+  let versions = 0;
+  for (const problem of problems) {
+    const primary = solutionMap[problem.id];
+    for (const solution of [primary, ...(primary.followUp ? [primary.followUp] : [])]) {
+      versions++;
+      for (const language of ['javascript', 'python'] as const) {
+        const breakdown = language === 'python' ? solution.pythonTimeComplexityBreakdown ?? solution.timeComplexityBreakdown : solution.timeComplexityBreakdown;
+        const time = language === 'python' ? solution.pythonTimeComplexity ?? solution.timeComplexity : solution.timeComplexity;
+        expect(breakdown, `${problem.id} ${language}`).toBeDefined();
+        expect(breakdown!.variables).toBeTruthy();
+        const calculations = [breakdown!, ...(breakdown!.operations ?? [])];
+        for (const calculation of calculations) {
+          expect(calculation.phases.length).toBeGreaterThan(0);
+          expect(calculation.phases.every(phase => phase.label && phase.cost.startsWith('O('))).toBe(true);
+          expect(calculation.simplifications.length).toBeGreaterThan(0);
+          expect(calculation.note).toBeTruthy();
+          const final = calculation.simplifications[calculation.simplifications.length - 1];
+          expect(time).toContain(final);
+        }
+      }
+    }
+  }
+  expect(versions).toBe(263);
+  expect(solutionMap[427].timeComplexity).toBe('O(n²)');
+  expect(solutionMap[698].timeComplexity).toBe('O(n log n + k^n)');
+  expect(solutionMap[1851].timeComplexity).toBe('O(n log n + q log q)');
+  expect(solutionMap[2402].timeComplexity).toBe('O(m log m + m log(n + 1) + n)');
+});
+
 it('covers every graph solution and alternative with a derivation matching its final bound', () => {
   const graphProblems = neetcodeTopics
     .filter(topic => topic.name === 'Graphs' || topic.name === 'Advanced Graphs')

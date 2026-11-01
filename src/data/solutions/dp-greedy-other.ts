@@ -1483,7 +1483,7 @@ export const solutions: ProblemSolution[] = [
     intuition:
       'Starting from the bottom, each step has a cost and you can jump 1 or 2 steps ahead. Working backwards, the cheapest way from each step to the top depends on the two steps above it. By the time you reach the bottom, you just pick the cheaper of the first two starting positions.',
     approach:
-      'Dynamic Programming: Work backwards. At each step, the minimum cost to reach the top is cost[i] + min(cost to reach top from i+1, cost to reach top from i+2). Use two variables for O(1) space.',
+      'Dynamic Programming: Work backwards. At each step, the minimum cost to reach the top is cost[i] + min(cost to reach top from i+1, cost to reach top from i+2). Store these answers in the cost array for O(1) extra space.',
     code: `class Solution:
     def minCostClimbingStairs(self, cost: List[int]) -> int:
         for i in range(len(cost) - 3, -1, -1):

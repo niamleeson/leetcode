@@ -30,6 +30,39 @@ function showPage(storagePrefix = 'nc250') {
 beforeEach(() => localStorage.clear());
 afterEach(cleanup);
 
+it('switches the Kth Largest Stream constructor analysis with the selected code language', () => {
+  const problem = neetcodeTopics.flatMap(topic => topic.problems).find(problem => problem.id === 703)!;
+  const topic: NeetCodeTopic = { name: 'Heaps', problems: [problem], templates: [{ ...topics[0].templates[0], problemIds: [703] }] };
+  render(<MemoryRouter><NeetCodeView topics={[topic]} storagePrefix="nc250" title="NeetCode" description="Templates" /></MemoryRouter>);
+  fireEvent.click(screen.getByRole('button', { name: /^Heaps 1 template/ }));
+  fireEvent.click(screen.getByRole('button', { name: 'Expand solution' }));
+  expect(document.querySelectorAll('.complexity-equation')).toHaveLength(2);
+  expect(screen.getByText('Constructor')).toBeTruthy();
+  expect(screen.getByText('add', { selector: 'p' })).toBeTruthy();
+  expect(screen.getByText(/Call add for every initial value/)).toBeTruthy();
+  expect(screen.queryByText(/Heapify all initial values/)).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Python' }));
+  expect(document.querySelectorAll('.complexity-equation')).toHaveLength(2);
+  expect(screen.getByText(/Heapify all initial values/)).toBeTruthy();
+  expect(screen.queryByText(/Call add for every initial value/)).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'JavaScript' }));
+  expect(screen.getByText(/Call add for every initial value/)).toBeTruthy();
+});
+
+it('renders separate operation equations for both stack-using-queue versions', () => {
+  const problem = neetcodeTopics.flatMap(topic => topic.problems).find(problem => problem.id === 225)!;
+  const topic: NeetCodeTopic = { name: 'Stack', problems: [problem], templates: [{ ...topics[0].templates[0], problemIds: [225] }] };
+  localStorage.setItem('nc250-language', JSON.stringify('python'));
+  render(<MemoryRouter><NeetCodeView topics={[topic]} storagePrefix="nc250" title="NeetCode" description="Templates" /></MemoryRouter>);
+  fireEvent.click(screen.getByRole('button', { name: /^Stack 1 template/ }));
+  fireEvent.click(screen.getByRole('button', { name: 'Expand solution' }));
+  expect(document.querySelectorAll('.solution-complexity')).toHaveLength(2);
+  expect(document.querySelectorAll('.complexity-equation')).toHaveLength(6);
+  expect(screen.getByText(/Move the n previous values to the helper queue/)).toBeTruthy();
+  expect(screen.getByText(/Rotate the n previous values/)).toBeTruthy();
+  expect(screen.getAllByText('pop / top / empty')).toHaveLength(2);
+});
+
 it('shows the Accounts Merge sum and simplification for BFS, with a separate union-find derivation in either language', () => {
   const problem = neetcodeTopics.flatMap(topic => topic.problems).find(problem => problem.id === 721)!;
   const topic: NeetCodeTopic = { name: 'Graphs', problems: [problem], templates: [{ ...topics[0].templates[0], problemIds: [721] }] };

@@ -1,6 +1,7 @@
 import { ProblemSolution } from './types';
 import { withBfsFirst } from './bfs-first';
 import { withGraphRuntimeBreakdown } from './graph-runtime';
+import { withNeetCodeRuntimeBreakdown } from './neetcode-runtime';
 
 // Original solution groups
 import { solutions as arraysHashing } from './arrays-hashing';
@@ -63,7 +64,7 @@ const allSolutions: ProblemSolution[] = [
   ...sdiVol2M1,
   ...sdiVol2M2,
   ...sdiVol2M3,
-].map(withBfsFirst).map(withGraphRuntimeBreakdown);
+].map(withBfsFirst).map(withGraphRuntimeBreakdown).map(withNeetCodeRuntimeBreakdown);
 
 // Build a map for O(1) lookup by problem ID
 export const solutionMap: Record<number, ProblemSolution> = {};

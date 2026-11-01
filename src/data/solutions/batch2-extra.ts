@@ -8210,7 +8210,7 @@ class Solution:
     intuition:
       'A Quad-Tree recursively divides a grid into four quadrants. If all values in a region are the same, collapse it into a single leaf. Otherwise, recurse on each quadrant. It is like a compression scheme - uniform regions get simplified.',
     approach:
-      'Recursively check if all values in the current region are the same. If yes, create a leaf node. Otherwise, divide into four quadrants and recurse.',
+      'Recursively build the four quadrants down to individual cells. If all four child nodes are leaves with the same value, collapse them into one leaf. Otherwise, return an internal node with those children. Each merge checks only the four child results.',
     code: `class Solution:
     def construct(self, grid: list[list[int]]):
         def build(r, c, size):

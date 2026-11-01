@@ -1224,7 +1224,7 @@ MyHashMap.prototype.remove = function(key) {
       '3. put: find the bucket, scan for the key. If found, update the value. Otherwise, append a new [key, value] pair.\n' +
       '4. get: find the bucket, scan for the key, return the value or -1 if not found.\n' +
       '5. remove: find the bucket, scan for the key, and pop it from the list.\n' +
-      '6. With a good bucket count, each operation is O(1) on average due to short chains.',
+      '6. With evenly distributed keys, an operation takes O(1 + n/B) on average for n keys and B buckets. If all keys collide, it can take O(n).',
     timeComplexity: 'O(n / k) average per operation where k is the number of buckets',
     spaceComplexity: 'O(n + k) where n is the number of entries',
     hints: [

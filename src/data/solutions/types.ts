@@ -1,8 +1,13 @@
-export interface TimeComplexityBreakdown {
-  variables: string;
+export interface TimeComplexityCalculation {
+  title?: string;
   phases: { label: string; cost: string }[];
   simplifications: string[];
   note: string;
+}
+
+export interface TimeComplexityBreakdown extends TimeComplexityCalculation {
+  variables: string;
+  operations?: TimeComplexityCalculation[];
 }
 
 export interface SolutionFollowUp {
@@ -16,6 +21,8 @@ export interface SolutionFollowUp {
   explanation: string;
   timeComplexity: string;
   timeComplexityBreakdown?: TimeComplexityBreakdown;
+  pythonTimeComplexity?: string;
+  pythonTimeComplexityBreakdown?: TimeComplexityBreakdown;
   spaceComplexity: string;
 }
 
@@ -33,6 +40,8 @@ export interface ProblemSolution {
   explanation: string;
   timeComplexity: string;
   timeComplexityBreakdown?: TimeComplexityBreakdown;
+  pythonTimeComplexity?: string;
+  pythonTimeComplexityBreakdown?: TimeComplexityBreakdown;
   spaceComplexity: string;
   hints: string[];
 }

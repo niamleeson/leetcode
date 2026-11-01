@@ -6557,7 +6557,7 @@ class Solution:
     intuition:
       'Think of filling k buckets to the same target sum. Use backtracking to try placing each number in each bucket, but prune aggressively: sort descending so large numbers fail fast, and skip duplicate bucket values to avoid redundant work.',
     approach:
-      'Check if total sum is divisible by k. Use backtracking with a bitmask to try assigning each number to one of k buckets. Sort in descending order and prune early.',
+      'Check if total sum is divisible by k. Use backtracking to assign each number to one of k buckets, tracking the bucket sums. Sort in descending order and skip choices that overflow the target or repeat a bucket sum already tried at this level.',
     code: `class Solution:
     def canPartitionKSubsets(self, nums: list[int], k: int) -> bool:
         total = sum(nums)
@@ -9263,7 +9263,7 @@ class Solution:
     intuition:
       'Place the most frequent character first to maximize spacing between repeats. Use a max-heap to always pick the most frequent remaining character, but never pick the same one twice in a row by holding the last-used character aside for one round.',
     approach:
-      'Use a max-heap of (count, char). Always place the most frequent character, but alternate to avoid adjacent duplicates. After placing a char, push the previously placed char back into the heap.',
+      'Always place the most frequent available character, holding the previous character aside to avoid adjacent duplicates. Python selects from a heap; JavaScript sorts the candidate array before selecting. Return the previous character to the candidates after placing a different one.',
     code: `import heapq
 from collections import Counter
 
@@ -9351,7 +9351,7 @@ class Solution:
       'Return "aba"',
     explanation:
       '1. If any character appears more than (n+1)/2 times, it\'s impossible.\n' +
-      '2. Use a max-heap to always place the most frequent available character.\n' +
+      '2. Select the most frequent available character using the heap in Python or the sorted candidates in JavaScript.\n' +
       '3. After placing a character, hold it aside and push back the previous one.\n' +
       '4. This ensures no two adjacent characters are the same.',
     timeComplexity: 'O(n log k) where k is the number of distinct characters',

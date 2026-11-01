@@ -29,7 +29,7 @@ export default function FollowUpSolution({ solution, language, problemId }: {
       )}
       <h4 className="text-xs font-semibold text-yellow-400 light:text-yellow-700">Explanation</h4>
       <p className="text-sm text-gray-400 light:text-gray-600 leading-relaxed whitespace-pre-line">{solution.explanation}</p>
-      <SolutionComplexity solution={solution} />
+      <SolutionComplexity solution={solution} language={showJs ? 'javascript' : 'python'} />
     </section>
   );
 }

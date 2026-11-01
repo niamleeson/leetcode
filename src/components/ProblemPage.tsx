@@ -256,7 +256,7 @@ export default function ProblemPage({ getProgress, onRate, onUpdateNotes, onRese
           </section>
 
           {/* ── Complexity ── */}
-          <SolutionComplexity solution={solution} />
+          <SolutionComplexity solution={solution} language={language === 'javascript' && solution.jsCode ? 'javascript' : 'python'} />
           {solution.followUp && <FollowUpSolution solution={solution.followUp} language={language} problemId={solution.id} />}
         </>
       ) : (
