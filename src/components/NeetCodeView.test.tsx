@@ -30,6 +30,26 @@ function showPage(storagePrefix = 'nc250') {
 beforeEach(() => localStorage.clear());
 afterEach(cleanup);
 
+it('shows one heap-based Dijkstra example while preserving the other tabs and every problem',()=>{
+  const topic=neetcodeTopics.find(topic=>topic.name==='Advanced Graphs')!;
+  const template=topic.templates.find(template=>template.id==='dijkstra')!;
+  localStorage.setItem('nc250-template-tab',JSON.stringify('code'));
+  render(<MemoryRouter><NeetCodeView topics={[topic]} storagePrefix="nc250" title="NeetCode" description="Templates"/></MemoryRouter>);
+  fireEvent.click(screen.getByRole('button',{name:/^Advanced Graphs 1 template/}));
+  const code=()=>[...document.querySelectorAll('pre code')].map(element=>element.textContent);
+  expect(code().filter(text=>text?.includes('function dijkstra('))).toEqual([template.javascript]);
+  expect(code()).toContain(template.reference!.usage);
+  expect(code().join('\n')).not.toMatch(/heap\.sort|heap\.shift/);
+  expect(screen.getAllByRole('button',{name:'Expand solution'})).toHaveLength(topic.problems.length);
+  fireEvent.click(screen.getByRole('button',{name:'Pseudocode (memorize)'}));
+  expect(screen.getByLabelText('Template pseudocode').textContent).toBe(template.pseudocode);
+  expect(screen.queryByRole('region',{name:template.reference!.title})).toBeNull();
+  fireEvent.click(screen.getByRole('button',{name:'Python'}));
+  fireEvent.click(screen.getByRole('button',{name:'Python',pressed:false}));
+  expect(code()).toEqual([template.python]);
+  expect(screen.getAllByRole('button',{name:'Expand solution'})).toHaveLength(topic.problems.length);
+});
+
 it.each([323,684,721,1462,1489,1584,2709])('shows BFS first for #%i and loads the later version independently in both languages',async id=>{
   const problem=neetcodeTopics.flatMap(topic=>topic.problems).find(problem=>problem.id===id)!;
   const solution=solutionMap[id],alternative=solution.followUp!;

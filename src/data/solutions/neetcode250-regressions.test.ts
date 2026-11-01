@@ -13,7 +13,7 @@ describe('Advanced Graphs shared heap', () => {
   const solve = (id: number, entry: string) => runInNewContext(`${graphMinHeapJavascript}\n${solutionMap[id].jsCode}\n${entry}`);
   it('keeps the implementation in the reference and solution code free of heap definitions', () => {
     const topic=neetcodeTopics.find(topic=>topic.name==='Advanced Graphs')!;
-    expect(topic.reference!.javascript.startsWith(graphMinHeapJavascript)).toBe(true);
+    expect(topic.templates.find(template=>template.id==='dijkstra')!.javascript.startsWith(graphMinHeapJavascript)).toBe(true);
     for(const problem of topic.problems) {
       const solution=solutionMap[problem.id];
       for(const code of [solution.jsCode,solution.followUp?.jsCode].filter(Boolean)) {

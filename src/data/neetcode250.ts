@@ -20,6 +20,13 @@ export interface NeetCodeProblem {
   solution?: NeetCodeSolution;
 }
 
+export interface NeetCodeReference {
+  title: string;
+  description: string;
+  usage: string;
+  complexity: string;
+}
+
 export interface NeetCodeTemplate {
   id: string;
   name: string;
@@ -27,18 +34,13 @@ export interface NeetCodeTemplate {
   pseudocode: string;
   python: string;
   javascript: string;
+  reference?: NeetCodeReference;
   problemIds: number[];
 }
 
 export interface NeetCodeTopic {
   name: string;
-  reference?: {
-    title: string;
-    description: string;
-    javascript: string;
-    usage: string;
-    complexity: string;
-  };
+  reference?: NeetCodeReference & { javascript: string };
   templates: NeetCodeTemplate[];
   problems: NeetCodeProblem[];
 }
@@ -1604,10 +1606,34 @@ def bfs(grid, start):
 
 const topic_advanced_graphs: NeetCodeTopic = {
   name: "Advanced Graphs",
-  reference: {
-    title: "JavaScript Dijkstra with Min-Heap",
-    description: "Find the shortest distance from the starting node to every node. The heap stores [distance, node] pairs and compares their distances directly.\nUse node IDs from 0 to graph.length - 1. Each graph[node] contains [neighbor, weight] pairs, and all weights must be nonnegative. Unreachable nodes keep distance Infinity.",
-    javascript: `${graphMinHeapJavascript}
+  templates: [
+    {
+      id: "dijkstra",
+      name: "Dijkstra (shortest path, non-negative)",
+      mnemonic: "Always expand the closest unvisited node.",
+      pseudocode: `dist = {start: 0}; heap = [(0, start)]
+while heap:
+    d, node = heappop(heap)
+    if d > dist[node]: continue
+    for nb, w in edges(node):
+        if d + w < dist.get(nb, inf):
+            dist[nb] = d + w
+            heappush(heap, (d + w, nb))`,
+      python: `import heapq
+def dijkstra(graph, start):
+    dist = {start: 0}
+    heap = [(0, start)]
+    while heap:
+        d, node = heapq.heappop(heap)
+        if d > dist[node]:
+            continue
+        for nb, w in graph[node]:
+            nd = d + w
+            if nd < dist.get(nb, float('inf')):
+                dist[nb] = nd
+                heapq.heappush(heap, (nd, nb))
+    return dist`,
+      javascript: `${graphMinHeapJavascript}
 
 // graph[node] = [[neighbor, weight], ...]
 // All edge weights must be nonnegative.
@@ -1636,7 +1662,10 @@ function dijkstra(graph, start) {
 
   return distances;
 }`,
-    usage: `// Each connection is [neighbor, weight].
+      reference: {
+        title: "JavaScript Dijkstra with Min-Heap",
+        description: "Find the shortest distance from the starting node to every node. The heap stores [distance, node] pairs and compares their distances directly.\nUse node IDs from 0 to graph.length - 1. Each graph[node] contains [neighbor, weight] pairs, and all weights must be nonnegative. Unreachable nodes keep distance Infinity.",
+        usage: `// Each connection is [neighbor, weight].
 const graph = [
   [[1, 4], [2, 1]], // Node 0
   [[3, 1]],        // Node 1
@@ -1647,52 +1676,8 @@ const graph = [
 dijkstra(graph, 0);
 // [0, 3, 1, 4]
 // Shortest distance from node 0 to each node.`,
-    complexity: "Time: O(V + E log(E + 1)) · Extra space: O(V + E). V = nodes, E = edges; the heap can hold older distance entries.",
-  },
-  templates: [
-    {
-      id: "dijkstra",
-      name: "Dijkstra (shortest path, non-negative)",
-      mnemonic: "Always expand the closest unvisited node.",
-      pseudocode: `dist = {start: 0}; heap = [(0, start)]
-while heap:
-    d, node = heappop(heap)
-    if d > dist[node]: continue
-    for nb, w in edges(node):
-        if d + w < dist.get(nb, inf):
-            dist[nb] = d + w
-            heappush(heap, (d + w, nb))`,
-      python: `import heapq
-def dijkstra(graph, start):
-    dist = {start: 0}
-    heap = [(0, start)]
-    while heap:
-        d, node = heapq.heappop(heap)
-        if d > dist[node]:
-            continue
-        for nb, w in graph[node]:
-            nd = d + w
-            if nd < dist.get(nb, float('inf')):
-                dist[nb] = nd
-                heapq.heappush(heap, (nd, nb))
-    return dist`,
-      javascript: `function dijkstra(graph, start) {
-  const dist = { [start]: 0 };
-  const heap = [[0, start]];
-  while (heap.length) {
-    heap.sort((a, b) => a[0] - b[0]);
-    const [d, node] = heap.shift();
-    if (d > dist[node]) continue;
-    for (const [nb, w] of graph[node] || []) {
-      const nd = d + w;
-      if (nd < (dist[nb] ?? Infinity)) {
-        dist[nb] = nd;
-        heap.push([nd, nb]);
-      }
-    }
-  }
-  return dist;
-}`,
+        complexity: "Time: O(V + E log(E + 1)) · Extra space: O(V + E). V = nodes, E = edges; the heap can hold older distance entries.",
+      },
       problemIds: [1631, 743, 332, 1584, 778, 269, 787, 1489, 2392, 2709],
     },
   ],

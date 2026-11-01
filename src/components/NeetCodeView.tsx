@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { usePersistedOpenSet } from '../hooks/usePersistedOpenSet';
-import { NeetCodeTopic, NeetCodeTemplate, NeetCodeProblem } from '../data/neetcode250';
+import { NeetCodeTopic, NeetCodeTemplate, NeetCodeProblem, NeetCodeReference } from '../data/neetcode250';
 import { uniqueProblems } from '../data/problems';
 import { solutionMap, ProblemSolution } from '../data/solutions';
 import CodeBlock from './CodeBlock';
@@ -205,6 +205,19 @@ function ProblemRow({
   );
 }
 
+function CodeReference({ reference, code }: { reference: NeetCodeReference; code: string }) {
+  return (
+    <section aria-label={reference.title} className="min-w-0 space-y-3 pt-3">
+      <h3 className="text-base font-semibold text-white light:text-gray-900">{reference.title}</h3>
+      <p className="text-xs text-gray-300 light:text-gray-700 leading-relaxed whitespace-pre-line">{reference.description}</p>
+      <CodeBlock code={code} language="javascript" />
+      <h4 className="text-sm font-semibold text-white light:text-gray-900">Usage</h4>
+      <CodeBlock code={reference.usage} language="javascript" />
+      <p className="text-xs text-gray-500 light:text-gray-500">{reference.complexity}</p>
+    </section>
+  );
+}
+
 function TemplateCard({
   template,
   problems,
@@ -257,6 +270,8 @@ function TemplateCard({
           <pre tabIndex={0} aria-label="Template pseudocode" className="text-xs text-gray-300 light:text-gray-700 leading-relaxed whitespace-pre overflow-x-auto font-mono bg-gray-950 light:bg-gray-50 border border-gray-800 light:border-gray-200 rounded-md p-2 sm:p-3">
             {template.pseudocode}
           </pre>
+        ) : language === 'javascript' && template.reference ? (
+          <CodeReference reference={template.reference} code={template.javascript} />
         ) : (
           <CodeBlock
             code={language === 'python' ? template.python : template.javascript}
@@ -333,14 +348,7 @@ function TopicSection({
       {expanded && (
         <div className="min-w-0 space-y-6">
           {topic.reference && (
-            <section aria-label={topic.reference.title} className="min-w-0 space-y-3 pt-3">
-              <h3 className="text-base font-semibold text-white light:text-gray-900">{topic.reference.title}</h3>
-              <p className="text-xs text-gray-300 light:text-gray-700 leading-relaxed whitespace-pre-line">{topic.reference.description}</p>
-              <CodeBlock code={topic.reference.javascript} language="javascript" />
-              <h4 className="text-sm font-semibold text-white light:text-gray-900">Usage</h4>
-              <CodeBlock code={topic.reference.usage} language="javascript" />
-              <p className="text-xs text-gray-500 light:text-gray-500">{topic.reference.complexity}</p>
-            </section>
+            <CodeReference reference={topic.reference} code={topic.reference.javascript} />
           )}
           {topic.templates.map((tpl) => (
             <TemplateCard
