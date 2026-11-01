@@ -24,32 +24,51 @@ beforeEach(() => {
 });
 afterEach(cleanup);
 
-it('lists all ten questions, searches concepts, and clears an empty result', () => {
+it('lists HackerRank first, then Anduril, searches concepts, and clears an empty result', () => {
   showPage();
-  expect(screen.getByRole('heading', { name: 'HackerRank React' })).toBeTruthy();
-  expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(10);
+  expect(screen.getByRole('heading', { name: 'React questions', level: 1 })).toBeTruthy();
+  const hackerRank = screen.getByRole('region', { name: 'HackerRank React' });
+  const anduril = screen.getByRole('region', { name: 'Anduril interview questions' });
+  expect(hackerRank.compareDocumentPosition(anduril) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(within(hackerRank).getAllByRole('heading', { level: 3 })).toHaveLength(10);
+  expect(within(anduril).getAllByRole('heading', { level: 3 })).toHaveLength(10);
+  expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(20);
   const search = screen.getByRole('searchbox', { name: 'Find a question or concept' });
   fireEvent.change(search, { target: { value: 'SLIDESHOW' } });
-  expect(screen.getAllByRole('heading', { level: 2 }).map(node => node.textContent)).toEqual(['Slideshow']);
+  expect(screen.getAllByRole('heading', { level: 3 }).map(node => node.textContent)).toEqual(['Slideshow']);
+  fireEvent.change(search, { target: { value: 'anduril' } });
+  expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(10);
+  expect(screen.queryByRole('region', { name: 'HackerRank React' })).toBeNull();
   fireEvent.change(search, { target: { value: 'no-such-question' } });
   expect(screen.queryAllByRole('heading', { level: 2 })).toHaveLength(0);
   fireEvent.click(screen.getByRole('button', { name: 'Clear search' }));
-  expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(10);
+  expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(20);
 });
 
-it.each(reactChallenges)('opens $title with its complete code and source', challenge => {
+it.each(reactChallenges)('opens $title with its complete solution and source', challenge => {
   showPage(`/hackerrank-react/${challenge.slug}`);
   expect(screen.getByRole('heading', { name: challenge.title, level: 1 })).toBeTruthy();
   const prompt = screen.getByRole('region', { name: 'Problem prompt' });
   expect(within(prompt).getByText(challenge.prompt)).toBeTruthy();
   expect(within(prompt).getByText(challenge.example.actions)).toBeTruthy();
   expect(within(prompt).getByText(challenge.example.result)).toBeTruthy();
-  const solution = screen.getByRole('region', { name: 'JavaScript + React solution' });
+  const solution = screen.getByRole('region', { name: challenge.solutionTitle ?? 'JavaScript + React solution' });
   expect(prompt.compareDocumentPosition(solution) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-  expect(solution.querySelector('pre code')?.textContent).toBe(challenge.code);
-  expect(screen.getByRole('link', { name: 'Original question on HackerRank ↗' }).getAttribute('href')).toBe(challenge.sourceUrl);
-  expect(screen.getByRole('heading', { name: 'How it works' })).toBeTruthy();
-  expect(screen.getByRole('heading', { name: 'Time and space' })).toBeTruthy();
+  if (challenge.code) expect(solution.querySelector('pre code')?.textContent).toBe(challenge.code);
+  for (const section of challenge.solutionSections ?? []) {
+    expect(within(solution).getByRole('heading', { name: section.title })).toBeTruthy();
+    expect(solution.textContent).toContain(section.body);
+  }
+  if (challenge.collection === 'Anduril') {
+    expect(challenge.report).toBeTruthy();
+    expect(challenge.assumptions?.length).toBeGreaterThan(0);
+    expect(within(prompt).getByText(challenge.report!)).toBeTruthy();
+    expect(within(prompt).getByRole('heading', { name: 'Assumptions for this answer' })).toBeTruthy();
+  }
+  const sourceLabel = challenge.sourceLabel ?? (challenge.collection === 'Anduril' ? 'Public candidate report' : 'Original question on HackerRank');
+  expect(screen.getByRole('link', { name: `${sourceLabel} ↗` }).getAttribute('href')).toBe(challenge.sourceUrl);
+  expect(screen.getByRole('heading', { name: challenge.kind === 'discussion' ? 'How to answer' : 'How it works' })).toBeTruthy();
+  expect(screen.getByRole('heading', { name: challenge.kind === 'discussion' ? 'Answer guidance' : 'Time and space' })).toBeTruthy();
   expect(screen.getAllByRole('row')).toHaveLength(challenge.testCases.length + 1);
   expect(screen.getByRole('combobox', { name: 'Jump to question' }).getAttribute('aria-label')).toBe('Jump to question');
 });
@@ -82,8 +101,11 @@ it('navigates from the index, between questions, and back to the catalog', () =>
   expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Code Review Feedback');
   fireEvent.change(screen.getByRole('combobox', { name: 'Jump to question' }), { target: { value: 'cryptorank-exchange' } });
   expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('CryptoRank Exchange');
+  fireEvent.click(within(screen.getByRole('navigation', { name: 'React question navigation' })).getByRole('link', { name: `${reactChallenges[10].title} →` }));
+  expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(reactChallenges[10].title);
+  fireEvent.change(screen.getByRole('combobox', { name: 'Jump to question' }), { target: { value: reactChallenges[reactChallenges.length - 1].slug } });
   fireEvent.click(screen.getByRole('link', { name: 'Back to all questions →' }));
-  expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(10);
+  expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(20);
 });
 
 it('copies the full displayed solution and resets its confirmation on navigation', async () => {
@@ -102,7 +124,7 @@ it('offers manual copying when clipboard access fails', async () => {
   vi.spyOn(navigator, 'clipboard', 'get').mockReturnValue({ writeText } as unknown as Clipboard);
   const page = showPage(`/hackerrank-react/${reactChallenges[0].slug}`);
   fireEvent.click(screen.getByRole('button', { name: 'Copy solution' }));
-  expect((await screen.findByRole('status')).textContent).toContain('Select and copy the code below');
+  expect((await screen.findByRole('status')).textContent).toContain('Select and copy the solution below');
   expect(page.container.querySelector('pre code')?.textContent).toBe(reactChallenges[0].code);
 });
 
@@ -110,5 +132,20 @@ it('recovers from an unknown question link', () => {
   showPage('/hackerrank-react/unknown-question');
   expect(screen.getByRole('heading', { name: 'React question not found' })).toBeTruthy();
   fireEvent.click(screen.getByRole('link', { name: 'View all React questions' }));
-  expect(screen.getByRole('heading', { name: 'HackerRank React' })).toBeTruthy();
+  expect(screen.getByRole('heading', { name: 'React questions', level: 1 })).toBeTruthy();
+});
+
+it('copies a complete prose solution for a design question', async () => {
+  const challenge = reactChallenges.find(item => item.slug === 'anduril-object-classification')!;
+  const writeText = vi.fn().mockResolvedValue(undefined);
+  vi.spyOn(navigator, 'clipboard', 'get').mockReturnValue({ writeText } as unknown as Clipboard);
+  showPage(`/hackerrank-react/${challenge.slug}`);
+  fireEvent.click(screen.getByRole('button', { name: 'Copy solution' }));
+  await screen.findByRole('button', { name: 'Copied!' });
+  const copied = writeText.mock.calls[0][0];
+  for (const section of challenge.solutionSections!) {
+    expect(copied).toContain(section.title);
+    expect(copied).toContain(section.body);
+    if (section.code) expect(copied).toContain(section.code);
+  }
 });

@@ -7,6 +7,15 @@ export interface ReactPromptImage {
 }
 
 export interface ReactChallenge {
+  collection?: 'HackerRank' | 'Anduril';
+  kind?: 'coding' | 'design' | 'discussion';
+  report?: string;
+  assumptions?: string[];
+  sourceLabel?: string;
+  additionalSources?: { label: string; url: string }[];
+  solutionTitle?: string;
+  solutionSections?: { title: string; body: string; code?: string }[];
+  codeLanguage?: 'jsx' | 'javascript';
   slug: string;
   title: string;
   difficulty: 'Medium' | 'Hard';

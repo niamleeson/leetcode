@@ -1,6 +1,10 @@
 import { basicChallenges } from './basic';
 import { formChallenges } from './forms';
 import { promptImages } from './promptImages';
+import { andurilBasicChallenges } from './andurilBasic';
+import { andurilAdvancedChallenges } from './andurilAdvanced';
+import { andurilDiscussionChallenges } from './andurilDiscussion';
+import type { ReactChallenge } from './types';
 
 const challengeOrder = [
   'item-list-manager',
@@ -15,8 +19,15 @@ const challengeOrder = [
   'cryptorank-exchange',
 ];
 
-export const reactChallenges = [...basicChallenges, ...formChallenges]
+const hackerRankChallenges = [...basicChallenges, ...formChallenges]
   .map(challenge => ({ ...challenge, images: promptImages[challenge.slug] }))
   .sort((a, b) => challengeOrder.indexOf(a.slug) - challengeOrder.indexOf(b.slug));
+
+export const reactChallenges: ReactChallenge[] = [
+  ...hackerRankChallenges,
+  ...andurilBasicChallenges,
+  ...andurilAdvancedChallenges,
+  ...andurilDiscussionChallenges,
+];
 
 export type { ReactChallenge } from './types';

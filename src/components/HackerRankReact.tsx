@@ -8,6 +8,13 @@ const panel = 'rounded-xl border border-gray-800 bg-gray-900/40 p-4 sm:p-6 light
 const muted = 'text-sm leading-relaxed text-gray-400 light:text-gray-600';
 const heading = 'text-lg font-semibold text-white light:text-gray-900';
 const link = 'text-sm text-blue-400 hover:underline light:text-blue-700';
+const collections = ['HackerRank', 'Anduril'] as const;
+
+function solutionText(challenge: ReactChallenge) {
+  return challenge.code || challenge.solutionSections?.map(section =>
+    [section.title, section.body, section.code].filter(Boolean).join('\n\n'),
+  ).join('\n\n') || '';
+}
 
 function Difficulty({ value }: { value: ReactChallenge['difficulty'] }) {
   return (
@@ -25,16 +32,16 @@ function ChallengeIndex() {
   const [query, setQuery] = useState('');
   const search = query.trim().toLowerCase();
   const filtered = reactChallenges.filter(challenge =>
-    [challenge.title, challenge.summary, ...challenge.topics].join(' ').toLowerCase().includes(search),
+    [challenge.collection ?? 'HackerRank', challenge.kind ?? 'coding', challenge.title, challenge.summary, ...challenge.topics].join(' ').toLowerCase().includes(search),
   );
 
   return (
     <div className="space-y-6 pb-8">
       <header>
         <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-emerald-400 light:text-emerald-700">React practice</p>
-        <h1 className="text-2xl font-bold text-white light:text-gray-900">HackerRank React</h1>
+        <h1 className="text-2xl font-bold text-white light:text-gray-900">React questions</h1>
         <p className={`mt-2 ${muted}`}>
-          All {reactChallenges.length} public practice questions, with JavaScript solutions, step-by-step explanations, and edge cases to check.
+          {reactChallenges.length} questions covering HackerRank practice and reported Anduril interviews, with solutions, explanations, and edge cases to check.
         </p>
         <a className={`mt-3 inline-block ${link}`} href="https://www.hackerrank.com/domains/react" target="_blank" rel="noopener noreferrer">
           Open HackerRank’s React catalog ↗
@@ -60,26 +67,39 @@ function ChallengeIndex() {
           <button className={`mt-3 ${link}`} onClick={() => setQuery('')}>Clear search</button>
         </div>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2">
-          {filtered.map(challenge => (
-            <Link
-              key={challenge.slug}
-              to={`${basePath}/${challenge.slug}`}
-              className="group rounded-xl border border-gray-800 bg-gray-900/40 p-5 transition-colors hover:border-blue-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 light:border-gray-200 light:bg-gray-50 light:hover:border-blue-500"
-            >
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <span className="font-mono text-xs text-gray-500">{String(reactChallenges.indexOf(challenge) + 1).padStart(2, '0')}</span>
-                <Difficulty value={challenge.difficulty} />
+        collections.map(collection => {
+          const questions = filtered.filter(challenge => (challenge.collection ?? 'HackerRank') === collection);
+          if (questions.length === 0) return null;
+          return (
+            <section key={collection} aria-labelledby={`collection-${collection}`} className="space-y-4">
+              <div>
+                <h2 id={`collection-${collection}`} className={heading}>{collection === 'HackerRank' ? 'HackerRank React' : 'Anduril interview questions'}</h2>
+                {collection === 'Anduril' && <p className={`mt-2 ${muted}`}>Candidate reports establish the broad tasks. Each practice solution states its assumptions where the original requirements are unavailable. Difficulty labels are study estimates.</p>}
               </div>
-              <h2 className="font-semibold text-white group-hover:text-blue-300 light:text-gray-900 light:group-hover:text-blue-700">{challenge.title}</h2>
-              <p className={`mt-2 ${muted}`}>{challenge.summary}</p>
-              <div className="mt-4 flex flex-wrap gap-2">
-                {challenge.topics.map(topic => <span key={topic} className="rounded bg-gray-800 px-2 py-1 text-xs text-gray-300 light:bg-gray-200 light:text-gray-700">{topic}</span>)}
+              <div className="grid gap-3 sm:grid-cols-2">
+                {questions.map(challenge => (
+                  <Link
+                    key={challenge.slug}
+                    to={`${basePath}/${challenge.slug}`}
+                    className="group rounded-xl border border-gray-800 bg-gray-900/40 p-5 transition-colors hover:border-blue-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 light:border-gray-200 light:bg-gray-50 light:hover:border-blue-500"
+                  >
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <span className="font-mono text-xs text-gray-500">{String(reactChallenges.indexOf(challenge) + 1).padStart(2, '0')}</span>
+                      <Difficulty value={challenge.difficulty} />
+                    </div>
+                    <h3 className="font-semibold text-white group-hover:text-blue-300 light:text-gray-900 light:group-hover:text-blue-700">{challenge.title}</h3>
+                    {challenge.kind && challenge.kind !== 'coding' && <p className="mt-2 text-xs font-medium text-emerald-400 light:text-emerald-700">{challenge.kind === 'design' ? 'System design / problem framing' : 'Interview discussion'}</p>}
+                    <p className={`mt-2 ${muted}`}>{challenge.summary}</p>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {challenge.topics.map(topic => <span key={topic} className="rounded bg-gray-800 px-2 py-1 text-xs text-gray-300 light:bg-gray-200 light:text-gray-700">{topic}</span>)}
+                    </div>
+                    <p className="mt-4 text-xs font-medium text-blue-400 light:text-blue-700">Read solution →</p>
+                  </Link>
+                ))}
               </div>
-              <p className="mt-4 text-xs font-medium text-blue-400 light:text-blue-700">Read solution →</p>
-            </Link>
-          ))}
-        </div>
+            </section>
+          );
+        })
       )}
     </div>
   );
@@ -91,10 +111,12 @@ function ChallengeDetail({ challenge }: { challenge: ReactChallenge }) {
   const index = reactChallenges.findIndex(item => item.slug === challenge.slug);
   const previous = reactChallenges[index - 1];
   const next = reactChallenges[index + 1];
+  const isAnduril = challenge.collection === 'Anduril';
+  const solutionHeading = challenge.solutionTitle ?? 'JavaScript + React solution';
 
   async function copySolution() {
     try {
-      await navigator.clipboard.writeText(challenge.code);
+      await navigator.clipboard.writeText(solutionText(challenge));
       setCopyStatus('copied');
     } catch {
       setCopyStatus('failed');
@@ -120,17 +142,19 @@ function ChallengeDetail({ challenge }: { challenge: ReactChallenge }) {
 
       <header>
         <div className="mb-3 flex items-center gap-3">
-          <span className="text-xs text-gray-500">Question {index + 1} of {reactChallenges.length}</span>
+          <span className="text-xs text-gray-500">Question {index + 1} of {reactChallenges.length} · {challenge.collection ?? 'HackerRank'}</span>
           <Difficulty value={challenge.difficulty} />
         </div>
         <h1 className="text-2xl font-bold text-white light:text-gray-900">{challenge.title}</h1>
         <p className={`mt-2 ${muted}`}>{challenge.summary}</p>
-        <a className={`mt-3 inline-block ${link}`} href={challenge.sourceUrl} target="_blank" rel="noopener noreferrer">Original question on HackerRank ↗</a>
+        <a className={`mt-3 inline-block ${link}`} href={challenge.sourceUrl} target="_blank" rel="noopener noreferrer">{challenge.sourceLabel ?? (isAnduril ? 'Public candidate report' : 'Original question on HackerRank')} ↗</a>
+        {challenge.additionalSources?.map(source => <a key={source.url} className={`ml-4 mt-3 inline-block ${link}`} href={source.url} target="_blank" rel="noopener noreferrer">{source.label} ↗</a>)}
       </header>
 
       <section className={panel} aria-labelledby="prompt-heading">
         <h2 id="prompt-heading" className={heading}>Problem prompt</h2>
         <p className={`mt-3 ${muted}`}>{challenge.prompt}</p>
+        {challenge.report && <div className="mt-4 border-l-2 border-emerald-700 pl-4"><h3 className="text-sm font-semibold text-gray-200 light:text-gray-800">What was reported</h3><p className={`mt-2 ${muted}`}>{challenge.report}</p></div>}
         {challenge.images?.map(image => (
           <figure key={image.src} className="mt-5">
             <a
@@ -156,10 +180,11 @@ function ChallengeDetail({ challenge }: { challenge: ReactChallenge }) {
             </figcaption>
           </figure>
         ))}
-        <h3 className="mt-5 text-sm font-semibold text-gray-200 light:text-gray-800">Requirements</h3>
+        <h3 className="mt-5 text-sm font-semibold text-gray-200 light:text-gray-800">{isAnduril ? 'Practice requirements' : 'Requirements'}</h3>
         <ul className={`mt-3 list-disc space-y-2 pl-5 ${muted}`}>
           {challenge.requirements.map(requirement => <li key={requirement}>{requirement}</li>)}
         </ul>
+        {challenge.assumptions && <div className="mt-5"><h3 className="text-sm font-semibold text-gray-200 light:text-gray-800">Assumptions for this answer</h3><ul className={`mt-3 list-disc space-y-2 pl-5 ${muted}`}>{challenge.assumptions.map(assumption => <li key={assumption}>{assumption}</li>)}</ul></div>}
         <div className="mt-5 border-t border-gray-800 pt-4 light:border-gray-200">
           <h3 className="text-sm font-semibold text-gray-200 light:text-gray-800">Example interaction</h3>
           <dl className={`mt-3 space-y-3 ${muted}`}>
@@ -185,14 +210,15 @@ function ChallengeDetail({ challenge }: { challenge: ReactChallenge }) {
 
       <section aria-labelledby="solution-heading" className="min-w-0 space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 id="solution-heading" className={heading}>JavaScript + React solution</h2>
+          <h2 id="solution-heading" className={heading}>{solutionHeading}</h2>
           <button onClick={copySolution} className="rounded-md border border-gray-700 bg-gray-800 px-3 py-2 text-xs font-medium text-gray-200 hover:bg-gray-700 light:border-gray-300 light:bg-gray-100 light:text-gray-800 light:hover:bg-gray-200">
             {copyStatus === 'copied' ? 'Copied!' : 'Copy solution'}
           </button>
         </div>
-        <p className={muted}>Use this standalone implementation as a reference. In HackerRank’s starter project, keep its existing component exports and test selectors.</p>
-        {copyStatus !== 'idle' && <p role="status" className={muted}>{copyStatus === 'copied' ? 'Solution copied to clipboard.' : 'Clipboard access is unavailable. Select and copy the code below.'}</p>}
-        <CodeBlock code={challenge.code} language="jsx" />
+        {challenge.code && <p className={muted}>{isAnduril ? 'This implementation follows the practice requirements and assumptions above.' : 'Use this standalone implementation as a reference. In HackerRank’s starter project, keep its existing component exports and test selectors.'}</p>}
+        {copyStatus !== 'idle' && <p role="status" className={muted}>{copyStatus === 'copied' ? 'Solution copied to clipboard.' : 'Clipboard access is unavailable. Select and copy the solution below.'}</p>}
+        {challenge.code && <CodeBlock code={challenge.code} language={challenge.codeLanguage ?? 'jsx'} />}
+        {challenge.solutionSections?.map(section => <div key={section.title} className={panel}><h3 className="text-sm font-semibold text-gray-200 light:text-gray-800">{section.title}</h3><p className={`mt-3 whitespace-pre-line ${muted}`}>{section.body}</p>{section.code && <div className="mt-4"><CodeBlock code={section.code} language="javascript" /></div>}</div>)}
         {challenge.integrationNotes && challenge.integrationNotes.length > 0 && (
           <div className={panel}>
             <h3 className="text-sm font-semibold text-gray-200 light:text-gray-800">Using this solution</h3>
@@ -204,12 +230,12 @@ function ChallengeDetail({ challenge }: { challenge: ReactChallenge }) {
       </section>
 
       <section className={panel} aria-labelledby="approach-heading">
-        <h2 id="approach-heading" className={heading}>How it works</h2>
+        <h2 id="approach-heading" className={heading}>{challenge.kind === 'discussion' ? 'How to answer' : 'How it works'}</h2>
         <ol className={`mt-3 list-decimal space-y-3 pl-5 ${muted}`}>
           {challenge.steps.map(step => <li key={step} className="pl-1">{step}</li>)}
         </ol>
         <div className="mt-5 border-t border-gray-800 pt-4 light:border-gray-200">
-          <h3 className="text-sm font-semibold text-gray-200 light:text-gray-800">Time and space</h3>
+          <h3 className="text-sm font-semibold text-gray-200 light:text-gray-800">{challenge.kind === 'discussion' ? 'Answer guidance' : 'Time and space'}</h3>
           <p className={`mt-2 ${muted}`}>{challenge.complexity}</p>
         </div>
       </section>
