@@ -13,7 +13,7 @@ const difficultyOrder = { Easy: 0, Medium: 1, Hard: 2 };
 const collections = ['HackerRank', 'Anduril', 'GreatFrontEnd', 'Practice', 'Reference'] as const;
 const collectionTitles = {
   HackerRank: 'HackerRank React',
-  Anduril: 'Anduril interview questions',
+  Anduril: 'Other interview questions',
   GreatFrontEnd: 'GreatFrontEnd React',
   Practice: 'Additional practice',
   Reference: 'Interview reference',

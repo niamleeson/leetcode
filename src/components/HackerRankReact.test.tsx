@@ -28,7 +28,7 @@ it('lists all collections in order, keeps only the requested GreatFrontEnd level
   showPage();
   expect(screen.getByRole('heading', { name: 'React questions', level: 1 })).toBeTruthy();
   const hackerRank = screen.getByRole('region', { name: 'HackerRank React' });
-  const anduril = screen.getByRole('region', { name: 'Anduril interview questions' });
+  const anduril = screen.getByRole('region', { name: 'Other interview questions' });
   expect(hackerRank.compareDocumentPosition(anduril) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   expect(within(hackerRank).getAllByRole('heading', { level: 3 })).toHaveLength(10);
   expect(within(anduril).getAllByRole('heading', { level: 3 })).toHaveLength(8);
