@@ -8,6 +8,9 @@ import { spreadsheetChallenge } from './spreadsheet';
 import { greatFrontendChallenges } from './greatfrontend';
 import { sunoAudioChallenge } from './sunoAudio';
 import { sunoFeedChallenge } from './sunoFeed';
+import { sunoDesignBriefChallenge, sunoNotificationChallenge } from './sunoDesign';
+import { sunoReferralChallenge, sunoDagChallenge } from './sunoAlgorithms';
+import { sunoIntervalChallenge } from './sunoInterval';
 import type { ReactChallenge } from './types';
 
 const challengeOrder = [
@@ -31,6 +34,11 @@ export const reactChallenges: ReactChallenge[] = [
   ...hackerRankChallenges,
   sunoAudioChallenge,
   sunoFeedChallenge,
+  sunoDesignBriefChallenge,
+  sunoReferralChallenge,
+  sunoDagChallenge,
+  sunoIntervalChallenge,
+  sunoNotificationChallenge,
   ...andurilBasicChallenges,
   ...andurilAdvancedChallenges,
   ...greatFrontendChallenges,

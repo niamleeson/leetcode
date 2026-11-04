@@ -96,7 +96,7 @@ function ChallengeIndex({ greatFrontendSort, onSortChange }: {
             <section key={collection} aria-labelledby={`collection-${collection}`} className="space-y-4">
               <div>
                 <h2 id={`collection-${collection}`} className={heading}>{collectionTitles[collection]}</h2>
-                {collection === 'Suno' && <p className={`mt-2 ${muted}`}>Candidate-reported Suno tasks adapted into React exercises. The reports are from Staff Software Engineer and Growth Engineer interviews; each original solution labels its practice assumptions. Difficulty labels are study estimates.</p>}
+                {collection === 'Suno' && <p className={`mt-2 ${muted}`}>Reported UI tasks, JavaScript algorithms, and design exercises. Each entry identifies the candidate’s role and separates reported requirements from practice assumptions. Difficulty labels are study estimates.</p>}
                 {collection === 'Anduril' && <p className={`mt-2 ${muted}`}>Candidate reports establish the broad tasks. Each practice solution states its assumptions where the original requirements are unavailable. Difficulty labels are study estimates.</p>}
                 {collection === 'GreatFrontEnd' && <p className={`mt-2 ${muted}`}>40 UI problems and 31 hooks, keeping the highest numbered level in each series. Original study solutions include summarized prompts, examples, and explicit assumptions.</p>}
                 {collection === 'GreatFrontEnd' && (
