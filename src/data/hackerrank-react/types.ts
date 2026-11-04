@@ -7,7 +7,7 @@ export interface ReactPromptImage {
 }
 
 export interface ReactChallenge {
-  collection?: 'HackerRank' | 'Anduril' | 'GreatFrontEnd' | 'Practice' | 'Reference';
+  collection?: 'HackerRank' | 'Suno' | 'Anduril' | 'GreatFrontEnd' | 'Practice' | 'Reference';
   kind?: 'coding' | 'design' | 'discussion';
   report?: string;
   assumptions?: string[];

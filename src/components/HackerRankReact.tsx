@@ -10,9 +10,10 @@ const heading = 'text-lg font-semibold text-white light:text-gray-900';
 const link = 'text-sm text-blue-400 hover:underline light:text-blue-700';
 type GreatFrontendSort = 'default' | 'easy-first' | 'hard-first';
 const difficultyOrder = { Easy: 0, Medium: 1, Hard: 2 };
-const collections = ['HackerRank', 'Anduril', 'GreatFrontEnd', 'Practice', 'Reference'] as const;
+const collections = ['HackerRank', 'Suno', 'Anduril', 'GreatFrontEnd', 'Practice', 'Reference'] as const;
 const collectionTitles = {
   HackerRank: 'HackerRank React',
+  Suno: 'Suno AI interview questions',
   Anduril: 'Other interview questions',
   GreatFrontEnd: 'GreatFrontEnd React',
   Practice: 'Additional practice',
@@ -95,6 +96,7 @@ function ChallengeIndex({ greatFrontendSort, onSortChange }: {
             <section key={collection} aria-labelledby={`collection-${collection}`} className="space-y-4">
               <div>
                 <h2 id={`collection-${collection}`} className={heading}>{collectionTitles[collection]}</h2>
+                {collection === 'Suno' && <p className={`mt-2 ${muted}`}>Candidate-reported Suno tasks adapted into React exercises. The reports are from Staff Software Engineer and Growth Engineer interviews; each original solution labels its practice assumptions. Difficulty labels are study estimates.</p>}
                 {collection === 'Anduril' && <p className={`mt-2 ${muted}`}>Candidate reports establish the broad tasks. Each practice solution states its assumptions where the original requirements are unavailable. Difficulty labels are study estimates.</p>}
                 {collection === 'GreatFrontEnd' && <p className={`mt-2 ${muted}`}>40 UI problems and 31 hooks, keeping the highest numbered level in each series. Original study solutions include summarized prompts, examples, and explicit assumptions.</p>}
                 {collection === 'GreatFrontEnd' && (

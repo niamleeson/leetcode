@@ -6,6 +6,8 @@ import { andurilAdvancedChallenges } from './andurilAdvanced';
 import { ariaReferenceChallenge } from './ariaReference';
 import { spreadsheetChallenge } from './spreadsheet';
 import { greatFrontendChallenges } from './greatfrontend';
+import { sunoAudioChallenge } from './sunoAudio';
+import { sunoFeedChallenge } from './sunoFeed';
 import type { ReactChallenge } from './types';
 
 const challengeOrder = [
@@ -27,6 +29,8 @@ const hackerRankChallenges = [...basicChallenges, ...formChallenges]
 
 export const reactChallenges: ReactChallenge[] = [
   ...hackerRankChallenges,
+  sunoAudioChallenge,
+  sunoFeedChallenge,
   ...andurilBasicChallenges,
   ...andurilAdvancedChallenges,
   ...greatFrontendChallenges,

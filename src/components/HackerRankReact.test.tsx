@@ -28,9 +28,12 @@ it('lists all collections in order, keeps only the requested GreatFrontEnd level
   showPage();
   expect(screen.getByRole('heading', { name: 'React questions', level: 1 })).toBeTruthy();
   const hackerRank = screen.getByRole('region', { name: 'HackerRank React' });
+  const suno = screen.getByRole('region', { name: 'Suno AI interview questions' });
   const anduril = screen.getByRole('region', { name: 'Other interview questions' });
-  expect(hackerRank.compareDocumentPosition(anduril) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(hackerRank.compareDocumentPosition(suno) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(suno.compareDocumentPosition(anduril) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   expect(within(hackerRank).getAllByRole('heading', { level: 3 })).toHaveLength(10);
+  expect(within(suno).getAllByRole('heading', { level: 3 }).map(node => node.textContent)).toEqual(['Audio Player + Playlist', 'Hooks-Style Media Feed']);
   expect(within(anduril).getAllByRole('heading', { level: 3 })).toHaveLength(6);
   const reference = screen.getByRole('region', { name: 'Interview reference' });
   const practice = screen.getByRole('region', { name: 'Additional practice' });
@@ -45,13 +48,16 @@ it('lists all collections in order, keeps only the requested GreatFrontEnd level
   expect(practice.compareDocumentPosition(reference) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   expect(within(practice).getByRole('heading', { name: 'Spreadsheet' })).toBeTruthy();
   expect(within(reference).getByRole('heading', { name: 'ARIA Interview Essentials' })).toBeTruthy();
-  expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(89);
+  expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(91);
   const search = screen.getByRole('searchbox', { name: 'Find a question or concept' });
   fireEvent.change(search, { target: { value: 'SLIDESHOW' } });
   expect(screen.getAllByRole('heading', { level: 3 }).map(node => node.textContent)).toEqual(['Slideshow']);
   fireEvent.change(search, { target: { value: 'anduril' } });
   expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(6);
   expect(screen.queryByRole('region', { name: 'HackerRank React' })).toBeNull();
+  fireEvent.change(search, { target: { value: 'Suno' } });
+  expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(2);
+  expect(screen.queryByRole('region', { name: 'Other interview questions' })).toBeNull();
   fireEvent.change(search, { target: { value: 'GreatFrontEnd' } });
   expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(71);
   fireEvent.change(search, { target: { value: 'useBoolean' } });
@@ -59,7 +65,7 @@ it('lists all collections in order, keeps only the requested GreatFrontEnd level
   fireEvent.change(search, { target: { value: 'no-such-question' } });
   expect(screen.queryAllByRole('heading', { level: 2 })).toHaveLength(0);
   fireEvent.click(screen.getByRole('button', { name: 'Clear search' }));
-  expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(89);
+  expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(91);
 });
 
 it.each(reactChallenges)('opens $title with its complete solution and source', challenge => {
@@ -76,7 +82,7 @@ it.each(reactChallenges)('opens $title with its complete solution and source', c
     expect(within(solution).getByRole('heading', { name: section.title })).toBeTruthy();
     expect(solution.textContent).toContain(section.body);
   }
-  if (challenge.collection === 'Anduril') {
+  if (challenge.collection === 'Anduril' || challenge.collection === 'Suno') {
     expect(challenge.report).toBeTruthy();
     expect(challenge.assumptions?.length).toBeGreaterThan(0);
     expect(within(prompt).getByText(challenge.report!)).toBeTruthy();
@@ -127,7 +133,7 @@ it('navigates from the index, between questions, and back to the catalog', () =>
   expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(reactChallenges[10].title);
   fireEvent.change(screen.getByRole('combobox', { name: 'Jump to question' }), { target: { value: reactChallenges[reactChallenges.length - 1].slug } });
   fireEvent.click(screen.getByRole('link', { name: 'Back to all questions →' }));
-  expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(89);
+  expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(91);
 });
 
 it('copies the full displayed solution and resets its confirmation on navigation', async () => {
