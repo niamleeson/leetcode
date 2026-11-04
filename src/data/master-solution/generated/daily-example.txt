@@ -1,0 +1,38 @@
+// A delivery day exercises one operation from each chapter. Every other audited
+// variation remains available through operation(unitId, problemId, variant).
+export function runDeliveryDay(input = deliveryDayInput) {
+  const day = structuredClone(input);
+  const { subarraySum } = operation('A13', 560);
+  const { twoSum } = operation('P03', 167);
+  const { minWindow } = operation('W03', 76);
+  const { evalRPN } = operation('S01', 150);
+  const { shipWithinDays } = operation('B02', 1011);
+  const { reverseList } = operation('L01', 206);
+  const { levelOrder } = operation('T06', 102);
+  const { KthLargest } = operation('H01', 703);
+  const { combinationSum } = operation('R01', 39);
+  const { Trie } = operation('TR01', 208);
+  const { findOrder } = operation('G07', 210);
+  const { networkDelayTime } = operation('D01', 743);
+  const { merge } = operation('I01', 56);
+
+  const priorities = new KthLargest(day.rank, day.priorities);
+  const addressBook = new Trie();
+  for (const address of day.addresses) addressBook.insert(address);
+
+  return {
+    matchingLedgerSegments: subarraySum(day.ledger, day.targetTotal),
+    pairedWeightIndices: twoSum(day.sortedWeights, day.pairTarget),
+    shortestCompleteEventSegment: minWindow(day.events, day.requiredEvents),
+    deliveryCost: evalRPN(day.costExpression),
+    truckCapacity: shipWithinDays(day.shipmentWeights, day.days),
+    reversedRoute: listValues(reverseList(makeList(day.route))),
+    managementLevels: levelOrder(makeTree(day.management)),
+    secondHighestPriority: priorities.add(day.newPriority),
+    boxPlans: combinationSum(day.boxSizes, day.packedWeight),
+    addressPrefixExists: addressBook.startsWith(day.addressPrefix),
+    jobOrder: findOrder(day.jobCount, day.prerequisites),
+    alertArrivalTime: networkDelayTime(day.roads, day.cityCount, day.startCity),
+    combinedWindows: merge(day.windows),
+  };
+}

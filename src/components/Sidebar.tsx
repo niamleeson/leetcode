@@ -20,6 +20,7 @@ const navItems = [
   { path: '/blind75', label: 'NeetCode Blind 75' },
   { path: '/neetcode150', label: 'NeetCode 150' },
   { path: '/neetcode', label: 'NeetCode 250' },
+  { path: '/master-solution', label: 'Master solution' },
   { path: '/hackerrank-react', label: 'React questions' },
   { path: '/system-design', label: 'System Design' },
   { path: '/sdi-book', label: 'SDI Book Notes' },

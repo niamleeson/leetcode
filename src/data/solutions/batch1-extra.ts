@@ -9377,6 +9377,7 @@ MyStack.prototype.empty = function() {
     ],
     followUp: {
       title: 'One queue',
+      walkthroughVariant: 'one-queue',
       approach:
         'Replace the helper queue with rotation. Enqueue the new value, then move exactly size - 1 older values from front to back. The new value reaches the front, with the previous stack order behind it. Pop, top, and empty still use only standard queue operations.',
       code: `from collections import deque

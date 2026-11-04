@@ -1885,7 +1885,7 @@ Output: [3,9,20,null,null,15,7]`,
 - Finding the root in inorder tells us how many nodes are in the left vs right subtree.
 - We maintain a global preorder index (pre_idx) that increments each time we create a node.
 - The inorder_map gives O(1) lookup of the root's position in the inorder array.
-- Recursion builds the left subtree first (matching preorder's left-root-right order).`,
+- After creating the root, recursion builds the left subtree, then the right (preorder is root-left-right).`,
     timeComplexity: 'O(n)',
     spaceComplexity: 'O(n) for the hash map and recursion stack',
     hints: [
@@ -2633,7 +2633,7 @@ Explanation: The longest path is [4,2,1,3] or [5,2,1,3], which has 3 edges.`,
     jsCode: `var diameterOfBinaryTree = function(root) {
     let maxDiameter = 0;
 
-    // Returns the height (number of edges to deepest leaf) of a subtree
+    // Returns subtree height in nodes: empty = 0, leaf = 1
     const height = (node) => {
         if (!node) {
             return 0;
@@ -2646,7 +2646,7 @@ Explanation: The longest path is [4,2,1,3] or [5,2,1,3], which has 3 edges.`,
         const pathThroughThisNode = leftHeight + rightHeight;
         maxDiameter = Math.max(maxDiameter, pathThroughThisNode);
 
-        // Report height (edges) to the parent node
+        // Report height in nodes to the parent
         return 1 + Math.max(leftHeight, rightHeight);
     };
 
@@ -2667,8 +2667,8 @@ Explanation: The longest path is [4,2,1,3] or [5,2,1,3], which has 3 edges.`,
       'height(1): leftH=2, rightH=1, path=2+1=3, maxDiameter=3, return 3\n\n' +
       'Return maxDiameter = 3\n' +
       '(Longest path: 4->2->1->3 or 5->2->1->3, both have 3 edges)',
-    explanation: `- height() returns the height (number of edges to deepest leaf) of a subtree.
-- At each node, the path through that node has length left_height + right_height.
+    explanation: `- height() counts nodes on the longest downward path: an empty subtree has height 0 and a leaf has height 1.
+- Each child height equals the number of edges from the current node to that child's deepest leaf, so left_height + right_height gives the path length in edges.
 - Update self.diameter with the maximum such path seen.
 - Return 1 + max(left, right) as the height to the parent.`,
     timeComplexity: 'O(n)',

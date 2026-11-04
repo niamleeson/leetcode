@@ -16,7 +16,7 @@ export const structureRuntimes: Record<string, Runtime> = {
   682: r('n = operations; numerical tokens have bounded length.', [['Process operations with stack pushes and pops', 'O(n)'], ['Sum remaining scores', 'O(n)']], ['O(2n)', 'O(n)'], 'At most n scores remain. Each input operation reads or changes only a constant number of scores.'),
   20: r(n, [['Initialize the three bracket mappings', 'O(1)'], ['Read each bracket and push or pop', 'O(n)']], ['O(1 + n)', 'O(n)'], 'Each bracket is processed once; a mismatch can stop earlier.'),
   225: queueStack(false),
-  '225-follow-up': queueStack(true),
+  '225-one-queue': queueStack(true),
   232: ops('n = elements waiting in inputStack; q = total calls.', [
     c('Constructor / push / empty', [['Create empty stacks, append one value, or inspect two lengths', 'O(1)']], ['O(1)'], 'Stack append uses amortized O(1) time.'),
     c('pop / peek (one call, worst case)', [['Transfer up to n waiting elements', 'O(2n)'], ['Pop or read outputStack', 'O(1)']], ['O(n) + O(1)', 'O(n + 1)'], 'A transfer happens only when outputStack is empty.'),
