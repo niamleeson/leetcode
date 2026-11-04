@@ -3,7 +3,6 @@ import { formChallenges } from './forms';
 import { promptImages } from './promptImages';
 import { andurilBasicChallenges } from './andurilBasic';
 import { andurilAdvancedChallenges } from './andurilAdvanced';
-import { andurilDiscussionChallenges } from './andurilDiscussion';
 import { ariaReferenceChallenge } from './ariaReference';
 import { spreadsheetChallenge } from './spreadsheet';
 import { greatFrontendChallenges } from './greatfrontend';
@@ -30,7 +29,6 @@ export const reactChallenges: ReactChallenge[] = [
   ...hackerRankChallenges,
   ...andurilBasicChallenges,
   ...andurilAdvancedChallenges,
-  ...andurilDiscussionChallenges,
   ...greatFrontendChallenges,
   spreadsheetChallenge,
   ariaReferenceChallenge,

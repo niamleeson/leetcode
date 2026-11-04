@@ -31,7 +31,7 @@ it('lists all collections in order, keeps only the requested GreatFrontEnd level
   const anduril = screen.getByRole('region', { name: 'Other interview questions' });
   expect(hackerRank.compareDocumentPosition(anduril) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   expect(within(hackerRank).getAllByRole('heading', { level: 3 })).toHaveLength(10);
-  expect(within(anduril).getAllByRole('heading', { level: 3 })).toHaveLength(8);
+  expect(within(anduril).getAllByRole('heading', { level: 3 })).toHaveLength(6);
   const reference = screen.getByRole('region', { name: 'Interview reference' });
   const practice = screen.getByRole('region', { name: 'Additional practice' });
   const greatFrontend = screen.getByRole('region', { name: 'GreatFrontEnd React' });
@@ -45,12 +45,12 @@ it('lists all collections in order, keeps only the requested GreatFrontEnd level
   expect(practice.compareDocumentPosition(reference) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   expect(within(practice).getByRole('heading', { name: 'Spreadsheet' })).toBeTruthy();
   expect(within(reference).getByRole('heading', { name: 'ARIA Interview Essentials' })).toBeTruthy();
-  expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(91);
+  expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(89);
   const search = screen.getByRole('searchbox', { name: 'Find a question or concept' });
   fireEvent.change(search, { target: { value: 'SLIDESHOW' } });
   expect(screen.getAllByRole('heading', { level: 3 }).map(node => node.textContent)).toEqual(['Slideshow']);
   fireEvent.change(search, { target: { value: 'anduril' } });
-  expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(8);
+  expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(6);
   expect(screen.queryByRole('region', { name: 'HackerRank React' })).toBeNull();
   fireEvent.change(search, { target: { value: 'GreatFrontEnd' } });
   expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(71);
@@ -59,7 +59,7 @@ it('lists all collections in order, keeps only the requested GreatFrontEnd level
   fireEvent.change(search, { target: { value: 'no-such-question' } });
   expect(screen.queryAllByRole('heading', { level: 2 })).toHaveLength(0);
   fireEvent.click(screen.getByRole('button', { name: 'Clear search' }));
-  expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(91);
+  expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(89);
 });
 
 it.each(reactChallenges)('opens $title with its complete solution and source', challenge => {
@@ -127,7 +127,7 @@ it('navigates from the index, between questions, and back to the catalog', () =>
   expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(reactChallenges[10].title);
   fireEvent.change(screen.getByRole('combobox', { name: 'Jump to question' }), { target: { value: reactChallenges[reactChallenges.length - 1].slug } });
   fireEvent.click(screen.getByRole('link', { name: 'Back to all questions →' }));
-  expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(91);
+  expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(89);
 });
 
 it('copies the full displayed solution and resets its confirmation on navigation', async () => {
@@ -168,19 +168,4 @@ it('recovers from an unknown question link', () => {
   expect(screen.getByRole('heading', { name: 'React question not found' })).toBeTruthy();
   fireEvent.click(screen.getByRole('link', { name: 'View all React questions' }));
   expect(screen.getByRole('heading', { name: 'React questions', level: 1 })).toBeTruthy();
-});
-
-it('copies a complete prose solution for a design question', async () => {
-  const challenge = reactChallenges.find(item => item.slug === 'anduril-object-classification')!;
-  const writeText = vi.fn().mockResolvedValue(undefined);
-  vi.spyOn(navigator, 'clipboard', 'get').mockReturnValue({ writeText } as unknown as Clipboard);
-  showPage(`/hackerrank-react/${challenge.slug}`);
-  fireEvent.click(screen.getByRole('button', { name: 'Copy solution' }));
-  await screen.findByRole('button', { name: 'Copied!' });
-  const copied = writeText.mock.calls[0][0];
-  for (const section of challenge.solutionSections!) {
-    expect(copied).toContain(section.title);
-    expect(copied).toContain(section.body);
-    if (section.code) expect(copied).toContain(section.code);
-  }
 });
