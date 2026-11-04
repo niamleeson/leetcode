@@ -1,7 +1,0 @@
-{
-  "543:0": {
-    "auditedHash": "1be9dc80ea7d6ff2614cb38cd606d69b8da2d0ae701f808eb811f16490b12224",
-    "reviewedHash": "6e31783cec98dc54b04ce5592e15c55adfe07ea23271bc85155043b7ce3e915b",
-    "reason": "Corrected two comments: height counts nodes (empty 0, leaf 1), while the diameter counts edges. Executable logic and pattern coverage are unchanged."
-  }
-}

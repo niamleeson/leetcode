@@ -33,12 +33,11 @@ export { topicToSlug, slugToTopic };
 
 const ENABLE_ASK_CLAUDE = false;
 const HackerRankReact = lazy(() => import('./components/HackerRankReact'));
-const MasterSolution = lazy(() => import('./components/MasterSolution'));
 
 export default function App() {
   const store = useAppStore();
   const { pathname } = useLocation();
-  const isNeetCodePage = ['/neetcode', '/neetcode150', '/blind75', '/master-solution'].includes(pathname.replace(/\/+$/, ''));
+  const isNeetCodePage = ['/neetcode', '/neetcode150', '/blind75'].includes(pathname.replace(/\/+$/, ''));
   const [highlighted, setHighlighted] = useState('');
   const [panelPos, setPanelPos] = useState<{ top: number; left: number } | null>(null);
   const panelLockedRef = useRef(false);
@@ -141,11 +140,6 @@ export default function App() {
           } />
           <Route path="/dsa" element={<DSAReference />} />
           <Route path="/neetcode" element={<NeetCode250 />} />
-          <Route path="/master-solution" element={
-            <Suspense fallback={<p className="text-gray-400 light:text-gray-600">Loading master solution…</p>}>
-              <MasterSolution />
-            </Suspense>
-          } />
           <Route path="/neetcode150" element={<NeetCode150 />} />
           <Route path="/blind75" element={<NeetCodeBlind75 />} />
           <Route path="/system-design" element={<SystemDesignReference />} />
