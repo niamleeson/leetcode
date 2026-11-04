@@ -8,10 +8,11 @@ const panel = 'rounded-xl border border-gray-800 bg-gray-900/40 p-4 sm:p-6 light
 const muted = 'text-sm leading-relaxed text-gray-400 light:text-gray-600';
 const heading = 'text-lg font-semibold text-white light:text-gray-900';
 const link = 'text-sm text-blue-400 hover:underline light:text-blue-700';
-const collections = ['HackerRank', 'Anduril', 'Reference'] as const;
+const collections = ['HackerRank', 'Anduril', 'Practice', 'Reference'] as const;
 const collectionTitles = {
   HackerRank: 'HackerRank React',
   Anduril: 'Anduril interview questions',
+  Practice: 'Additional practice',
   Reference: 'Interview reference',
 };
 
@@ -46,7 +47,7 @@ function ChallengeIndex() {
         <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-emerald-400 light:text-emerald-700">React practice</p>
         <h1 className="text-2xl font-bold text-white light:text-gray-900">React questions</h1>
         <p className={`mt-2 ${muted}`}>
-          {reactChallenges.length} questions and references covering HackerRank practice, reported Anduril interviews, and React interview essentials.
+          {reactChallenges.length} questions and references for React and JavaScript interviews, with solutions, explanations, and examples.
         </p>
         <a className={`mt-3 inline-block ${link}`} href="https://www.hackerrank.com/domains/react" target="_blank" rel="noopener noreferrer">
           Open HackerRank’s React catalog ↗
@@ -116,7 +117,7 @@ function ChallengeDetail({ challenge }: { challenge: ReactChallenge }) {
   const index = reactChallenges.findIndex(item => item.slug === challenge.slug);
   const previous = reactChallenges[index - 1];
   const next = reactChallenges[index + 1];
-  const isAnduril = challenge.collection === 'Anduril';
+  const isHackerRank = (challenge.collection ?? 'HackerRank') === 'HackerRank';
   const solutionHeading = challenge.solutionTitle ?? 'JavaScript + React solution';
 
   async function copySolution() {
@@ -152,7 +153,9 @@ function ChallengeDetail({ challenge }: { challenge: ReactChallenge }) {
         </div>
         <h1 className="text-2xl font-bold text-white light:text-gray-900">{challenge.title}</h1>
         <p className={`mt-2 ${muted}`}>{challenge.summary}</p>
-        <a className={`mt-3 inline-block ${link}`} href={challenge.sourceUrl} target="_blank" rel="noopener noreferrer">{challenge.sourceLabel ?? (isAnduril ? 'Public candidate report' : 'Original question on HackerRank')} ↗</a>
+        {challenge.sourceUrl ? (
+          <a className={`mt-3 inline-block ${link}`} href={challenge.sourceUrl} target="_blank" rel="noopener noreferrer">{challenge.sourceLabel ?? (isHackerRank ? 'Original question on HackerRank' : 'Public candidate report')} ↗</a>
+        ) : challenge.sourceLabel && <p className={`mt-3 ${muted}`}>{challenge.sourceLabel}</p>}
         {challenge.additionalSources?.map(source => <a key={source.url} className={`ml-4 mt-3 inline-block ${link}`} href={source.url} target="_blank" rel="noopener noreferrer">{source.label} ↗</a>)}
       </header>
 
@@ -185,7 +188,7 @@ function ChallengeDetail({ challenge }: { challenge: ReactChallenge }) {
             </figcaption>
           </figure>
         ))}
-        <h3 className="mt-5 text-sm font-semibold text-gray-200 light:text-gray-800">{challenge.collection === 'Reference' ? 'What to know' : isAnduril ? 'Practice requirements' : 'Requirements'}</h3>
+        <h3 className="mt-5 text-sm font-semibold text-gray-200 light:text-gray-800">{challenge.collection === 'Reference' ? 'What to know' : isHackerRank ? 'Requirements' : 'Practice requirements'}</h3>
         <ul className={`mt-3 list-disc space-y-2 pl-5 ${muted}`}>
           {challenge.requirements.map(requirement => <li key={requirement}>{requirement}</li>)}
         </ul>
@@ -220,7 +223,7 @@ function ChallengeDetail({ challenge }: { challenge: ReactChallenge }) {
             {copyStatus === 'copied' ? 'Copied!' : 'Copy solution'}
           </button>
         </div>
-        {challenge.code && <p className={muted}>{isAnduril ? 'This implementation follows the practice requirements and assumptions above.' : 'Use this standalone implementation as a reference. In HackerRank’s starter project, keep its existing component exports and test selectors.'}</p>}
+        {challenge.code && <p className={muted}>{isHackerRank ? 'Use this standalone implementation as a reference. In HackerRank’s starter project, keep its existing component exports and test selectors.' : 'This implementation follows the practice requirements and assumptions above.'}</p>}
         {copyStatus !== 'idle' && <p role="status" className={muted}>{copyStatus === 'copied' ? 'Solution copied to clipboard.' : 'Clipboard access is unavailable. Select and copy the solution below.'}</p>}
         {challenge.code && <CodeBlock code={challenge.code} language={challenge.codeLanguage ?? 'jsx'} />}
         {challenge.solutionSections?.map(section => <div key={section.title} className={panel}><h3 className="text-sm font-semibold text-gray-200 light:text-gray-800">{section.title}</h3><p className={`mt-3 whitespace-pre-line ${muted}`}>{section.body}</p>{section.code && <div className="mt-4"><CodeBlock code={section.code} language={challenge.codeLanguage ?? 'javascript'} /></div>}</div>)}
