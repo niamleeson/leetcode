@@ -250,9 +250,11 @@ function ChallengeDetail({ challenge }: { challenge: ReactChallenge }) {
       <section aria-labelledby="solution-heading" className="min-w-0 space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 id="solution-heading" className={heading}>{solutionHeading}</h2>
-          <button onClick={copySolution} className="rounded-md border border-gray-700 bg-gray-800 px-3 py-2 text-xs font-medium text-gray-200 hover:bg-gray-700 light:border-gray-300 light:bg-gray-100 light:text-gray-800 light:hover:bg-gray-200">
-            {copyStatus === 'copied' ? 'Copied!' : 'Copy solution'}
-          </button>
+          {challenge.slug !== 'aria-interview-essentials' && (
+            <button onClick={copySolution} className="rounded-md border border-gray-700 bg-gray-800 px-3 py-2 text-xs font-medium text-gray-200 hover:bg-gray-700 light:border-gray-300 light:bg-gray-100 light:text-gray-800 light:hover:bg-gray-200">
+              {copyStatus === 'copied' ? 'Copied!' : 'Copy solution'}
+            </button>
+          )}
         </div>
         {challenge.code && <p className={muted}>{isHackerRank ? 'Use this standalone implementation as a reference. In HackerRank’s starter project, keep its existing component exports and test selectors.' : 'This implementation follows the practice requirements and assumptions above.'}</p>}
         {copyStatus !== 'idle' && <p role="status" className={muted}>{copyStatus === 'copied' ? 'Solution copied to clipboard.' : 'Clipboard access is unavailable. Select and copy the solution below.'}</p>}
