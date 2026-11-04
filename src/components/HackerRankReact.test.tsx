@@ -24,7 +24,7 @@ beforeEach(() => {
 });
 afterEach(cleanup);
 
-it('lists HackerRank, Anduril, additional practice, and the reference, and searches concepts', () => {
+it('lists all collections in order, keeps only the requested GreatFrontEnd levels, and searches concepts', () => {
   showPage();
   expect(screen.getByRole('heading', { name: 'React questions', level: 1 })).toBeTruthy();
   const hackerRank = screen.getByRole('region', { name: 'HackerRank React' });
@@ -34,21 +34,32 @@ it('lists HackerRank, Anduril, additional practice, and the reference, and searc
   expect(within(anduril).getAllByRole('heading', { level: 3 })).toHaveLength(8);
   const reference = screen.getByRole('region', { name: 'Interview reference' });
   const practice = screen.getByRole('region', { name: 'Additional practice' });
-  expect(anduril.compareDocumentPosition(practice) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  const greatFrontend = screen.getByRole('region', { name: 'GreatFrontEnd React' });
+  expect(anduril.compareDocumentPosition(greatFrontend) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(greatFrontend.compareDocumentPosition(practice) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(within(greatFrontend).getAllByRole('heading', { level: 3 })).toHaveLength(71);
+  expect(within(greatFrontend).getByRole('heading', { name: 'Accordion III' })).toBeTruthy();
+  expect(within(greatFrontend).queryByRole('heading', { name: 'Accordion II' })).toBeNull();
+  expect(within(greatFrontend).getByRole('heading', { name: 'Progress Bar' })).toBeTruthy();
+  expect(within(greatFrontend).getByRole('heading', { name: 'Progress Bars IV' })).toBeTruthy();
   expect(practice.compareDocumentPosition(reference) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   expect(within(practice).getByRole('heading', { name: 'Spreadsheet' })).toBeTruthy();
   expect(within(reference).getByRole('heading', { name: 'ARIA Interview Essentials' })).toBeTruthy();
-  expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(20);
+  expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(91);
   const search = screen.getByRole('searchbox', { name: 'Find a question or concept' });
   fireEvent.change(search, { target: { value: 'SLIDESHOW' } });
   expect(screen.getAllByRole('heading', { level: 3 }).map(node => node.textContent)).toEqual(['Slideshow']);
   fireEvent.change(search, { target: { value: 'anduril' } });
   expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(8);
   expect(screen.queryByRole('region', { name: 'HackerRank React' })).toBeNull();
+  fireEvent.change(search, { target: { value: 'GreatFrontEnd' } });
+  expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(71);
+  fireEvent.change(search, { target: { value: 'useBoolean' } });
+  expect(screen.getAllByRole('heading', { level: 3 }).map(node => node.textContent)).toEqual(['useBoolean II']);
   fireEvent.change(search, { target: { value: 'no-such-question' } });
   expect(screen.queryAllByRole('heading', { level: 2 })).toHaveLength(0);
   fireEvent.click(screen.getByRole('button', { name: 'Clear search' }));
-  expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(20);
+  expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(91);
 });
 
 it.each(reactChallenges)('opens $title with its complete solution and source', challenge => {
@@ -56,8 +67,8 @@ it.each(reactChallenges)('opens $title with its complete solution and source', c
   expect(screen.getByRole('heading', { name: challenge.title, level: 1 })).toBeTruthy();
   const prompt = screen.getByRole('region', { name: 'Problem prompt' });
   expect(within(prompt).getByText(challenge.prompt)).toBeTruthy();
-  expect(within(prompt).getByText(challenge.example.actions)).toBeTruthy();
-  expect(within(prompt).getByText(challenge.example.result)).toBeTruthy();
+  expect(within(prompt).getByText(challenge.example.actions, { normalizer: text => text })).toBeTruthy();
+  expect(within(prompt).getByText(challenge.example.result, { normalizer: text => text })).toBeTruthy();
   const solution = screen.getByRole('region', { name: challenge.solutionTitle ?? 'JavaScript + React solution' });
   expect(prompt.compareDocumentPosition(solution) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   if (challenge.code) expect(solution.querySelector('pre code')?.textContent).toBe(challenge.code);
@@ -116,7 +127,7 @@ it('navigates from the index, between questions, and back to the catalog', () =>
   expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(reactChallenges[10].title);
   fireEvent.change(screen.getByRole('combobox', { name: 'Jump to question' }), { target: { value: reactChallenges[reactChallenges.length - 1].slug } });
   fireEvent.click(screen.getByRole('link', { name: 'Back to all questions →' }));
-  expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(20);
+  expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(91);
 });
 
 it('copies the full displayed solution and resets its confirmation on navigation', async () => {
@@ -137,6 +148,19 @@ it('offers manual copying when clipboard access fails', async () => {
   fireEvent.click(screen.getByRole('button', { name: 'Copy solution' }));
   expect((await screen.findByRole('status')).textContent).toContain('Select and copy the solution below');
   expect(page.container.querySelector('pre code')?.textContent).toBe(reactChallenges[0].code);
+});
+
+it('copies a complete GreatFrontEnd solution and preserves navigation into the existing references', async () => {
+  const challenge = reactChallenges.find(item => item.title === 'useQuery' && item.collection === 'GreatFrontEnd')!;
+  const writeText = vi.fn().mockResolvedValue(undefined);
+  vi.spyOn(navigator, 'clipboard', 'get').mockReturnValue({ writeText } as unknown as Clipboard);
+  showPage(`/hackerrank-react/${challenge.slug}`);
+  fireEvent.click(screen.getByRole('button', { name: 'Copy solution' }));
+  await screen.findByRole('button', { name: 'Copied!' });
+  expect(writeText).toHaveBeenCalledWith(challenge.code);
+  fireEvent.change(screen.getByRole('combobox', { name: 'Jump to question' }), { target: { value: 'spreadsheet' } });
+  fireEvent.click(screen.getByRole('link', { name: 'ARIA Interview Essentials →' }));
+  expect(screen.getByRole('heading', { name: 'ARIA Interview Essentials', level: 1 })).toBeTruthy();
 });
 
 it('recovers from an unknown question link', () => {

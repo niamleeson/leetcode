@@ -6,6 +6,7 @@ import { andurilAdvancedChallenges } from './andurilAdvanced';
 import { andurilDiscussionChallenges } from './andurilDiscussion';
 import { ariaReferenceChallenge } from './ariaReference';
 import { spreadsheetChallenge } from './spreadsheet';
+import { greatFrontendChallenges } from './greatfrontend';
 import type { ReactChallenge } from './types';
 
 const challengeOrder = [
@@ -30,6 +31,7 @@ export const reactChallenges: ReactChallenge[] = [
   ...andurilBasicChallenges,
   ...andurilAdvancedChallenges,
   ...andurilDiscussionChallenges,
+  ...greatFrontendChallenges,
   spreadsheetChallenge,
   ariaReferenceChallenge,
 ];

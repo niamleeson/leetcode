@@ -4,7 +4,7 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     include: [
-      'src/data/hackerrank-react/*.test.tsx',
+      'src/data/hackerrank-react/**/*.test.tsx',
       'src/components/HackerRankReact.test.tsx',
     ],
   },

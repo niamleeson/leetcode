@@ -8,10 +8,11 @@ const panel = 'rounded-xl border border-gray-800 bg-gray-900/40 p-4 sm:p-6 light
 const muted = 'text-sm leading-relaxed text-gray-400 light:text-gray-600';
 const heading = 'text-lg font-semibold text-white light:text-gray-900';
 const link = 'text-sm text-blue-400 hover:underline light:text-blue-700';
-const collections = ['HackerRank', 'Anduril', 'Practice', 'Reference'] as const;
+const collections = ['HackerRank', 'Anduril', 'GreatFrontEnd', 'Practice', 'Reference'] as const;
 const collectionTitles = {
   HackerRank: 'HackerRank React',
   Anduril: 'Anduril interview questions',
+  GreatFrontEnd: 'GreatFrontEnd React',
   Practice: 'Additional practice',
   Reference: 'Interview reference',
 };
@@ -27,7 +28,9 @@ function Difficulty({ value }: { value: ReactChallenge['difficulty'] }) {
     <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${
       value === 'Hard'
         ? 'bg-rose-500/10 text-rose-400 light:bg-rose-100 light:text-rose-700'
-        : 'bg-amber-500/10 text-amber-400 light:bg-amber-100 light:text-amber-800'
+        : value === 'Easy'
+          ? 'bg-emerald-500/10 text-emerald-400 light:bg-emerald-100 light:text-emerald-800'
+          : 'bg-amber-500/10 text-amber-400 light:bg-amber-100 light:text-amber-800'
     }`}>
       {value}
     </span>
@@ -51,6 +54,9 @@ function ChallengeIndex() {
         </p>
         <a className={`mt-3 inline-block ${link}`} href="https://www.hackerrank.com/domains/react" target="_blank" rel="noopener noreferrer">
           Open HackerRank’s React catalog ↗
+        </a>
+        <a className={`mt-3 ml-4 inline-block ${link}`} href="https://www.greatfrontend.com/questions/react-coding-interview-questions" target="_blank" rel="noopener noreferrer">
+          Open GreatFrontEnd’s React catalog ↗
         </a>
       </header>
 
@@ -81,6 +87,7 @@ function ChallengeIndex() {
               <div>
                 <h2 id={`collection-${collection}`} className={heading}>{collectionTitles[collection]}</h2>
                 {collection === 'Anduril' && <p className={`mt-2 ${muted}`}>Candidate reports establish the broad tasks. Each practice solution states its assumptions where the original requirements are unavailable. Difficulty labels are study estimates.</p>}
+                {collection === 'GreatFrontEnd' && <p className={`mt-2 ${muted}`}>40 UI problems and 31 hooks, keeping the highest numbered level in each series. Original study solutions include summarized prompts, examples, and explicit assumptions.</p>}
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 {questions.map(challenge => (

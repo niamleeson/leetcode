@@ -7,7 +7,7 @@ export interface ReactPromptImage {
 }
 
 export interface ReactChallenge {
-  collection?: 'HackerRank' | 'Anduril' | 'Practice' | 'Reference';
+  collection?: 'HackerRank' | 'Anduril' | 'GreatFrontEnd' | 'Practice' | 'Reference';
   kind?: 'coding' | 'design' | 'discussion';
   report?: string;
   assumptions?: string[];
@@ -18,7 +18,7 @@ export interface ReactChallenge {
   codeLanguage?: 'jsx' | 'javascript';
   slug: string;
   title: string;
-  difficulty: 'Medium' | 'Hard';
+  difficulty: 'Easy' | 'Medium' | 'Hard';
   topics: string[];
   summary: string;
   prompt: string;
