@@ -1,0 +1,4840 @@
+{
+  "title": "NeetCode 250 master problem pattern audit",
+  "date": "2026-11-04",
+  "sourceCommit": "bb9cce9652ab753fbb3dd7923fab85d026f60d0b",
+  "scope": {
+    "basis": "Exclude named page sections, not every occurrence of those concepts elsewhere. This preserves the previously agreed 180 problems.",
+    "excludedTopics": [
+      "1-D Dynamic Programming",
+      "2-D Dynamic Programming",
+      "Greedy",
+      "Math & Geometry",
+      "Bit Manipulation"
+    ],
+    "includedTopics": [
+      "Arrays & Hashing",
+      "Two Pointers",
+      "Sliding Window",
+      "Stack",
+      "Binary Search",
+      "Linked List",
+      "Trees",
+      "Heap / Priority Queue",
+      "Backtracking",
+      "Tries",
+      "Graphs",
+      "Advanced Graphs",
+      "Intervals"
+    ],
+    "includedProblemCount": 180,
+    "displayedSolutionVersionCount": 193,
+    "studyUnitCount": 96
+  },
+  "method": "Classified every included primary JavaScript solution and every displayed JavaScript follow-up from the resolved solutionMap; inspected Python for noted implementation differences. Each version has a source hash and a required invariant or variation. This is a curriculum coverage audit, not a fresh judge run or a catalog of every possible alternative algorithm.",
+  "countMeaning": "Study-unit boundaries are editorial. The count includes specialized techniques and variants; it is not a canonical or minimal number of algorithms.",
+  "coverageMeaning": "All included entries and displayed JavaScript versions are mapped. No master lesson is implemented or validated by this audit. A lesson must demonstrate each mapped variation before it may be called covered.",
+  "patterns": [
+    {
+      "id": "A01",
+      "chapter": "Arrays & Hashing",
+      "name": "Sequential scanning and compaction",
+      "masterOperation": "Copy package records, compare shared prefixes, and compact retained records.",
+      "problemIds": [
+        1929,
+        14,
+        27,
+        26
+      ]
+    },
+    {
+      "id": "A02",
+      "chapter": "Arrays & Hashing",
+      "name": "Set membership and structural constraints",
+      "masterOperation": "Detect duplicates, validate row/column/box constraints, and start runs only at their first value.",
+      "problemIds": [
+        217,
+        36,
+        128,
+        219,
+        3
+      ]
+    },
+    {
+      "id": "A03",
+      "chapter": "Arrays & Hashing",
+      "name": "Counts and grouped records",
+      "masterOperation": "Count inventory, group records by key, and derive canonical signatures when equality needs normalization.",
+      "problemIds": [
+        242,
+        49,
+        347,
+        424,
+        567,
+        76,
+        981,
+        621,
+        355,
+        767
+      ]
+    },
+    {
+      "id": "A04",
+      "chapter": "Arrays & Hashing",
+      "name": "Complement lookup",
+      "masterOperation": "Find an earlier package whose weight completes a target.",
+      "problemIds": [
+        1,
+        560
+      ]
+    },
+    {
+      "id": "A05",
+      "chapter": "Arrays & Hashing",
+      "name": "Hash table implementation",
+      "masterOperation": "Implement buckets and collision handling without a built-in set or map.",
+      "problemIds": [
+        705,
+        706
+      ]
+    },
+    {
+      "id": "A06",
+      "chapter": "Arrays & Hashing",
+      "name": "Boyer Moore candidate cancellation",
+      "masterOperation": "Find majority labels, with candidate verification when existence is not guaranteed.",
+      "problemIds": [
+        169,
+        229
+      ]
+    },
+    {
+      "id": "A07",
+      "chapter": "Arrays & Hashing",
+      "name": "Heap construction and heapsort",
+      "masterOperation": "Sort records in place with a shrinking heap boundary.",
+      "problemIds": [
+        912
+      ]
+    },
+    {
+      "id": "A08",
+      "chapter": "Arrays & Hashing",
+      "name": "Three way partition and quickselect",
+      "masterOperation": "Partition package classes and select a rank without fully sorting.",
+      "problemIds": [
+        75,
+        215
+      ]
+    },
+    {
+      "id": "A09",
+      "chapter": "Arrays & Hashing",
+      "name": "Frequency bucket ranking",
+      "masterOperation": "Select frequent destinations by scanning count-indexed buckets.",
+      "problemIds": [
+        347
+      ]
+    },
+    {
+      "id": "A10",
+      "chapter": "Arrays & Hashing",
+      "name": "Length prefixed encoding",
+      "masterOperation": "Transmit arbitrary string fields without delimiter ambiguity.",
+      "problemIds": [
+        271
+      ]
+    },
+    {
+      "id": "A11",
+      "chapter": "Arrays & Hashing",
+      "name": "Rectangle prefix sums",
+      "masterOperation": "Answer warehouse rectangle totals using inclusion-exclusion.",
+      "problemIds": [
+        304
+      ]
+    },
+    {
+      "id": "A12",
+      "chapter": "Arrays & Hashing",
+      "name": "Prefix and suffix products",
+      "masterOperation": "Compute a product excluding each package without division.",
+      "problemIds": [
+        238
+      ]
+    },
+    {
+      "id": "A13",
+      "chapter": "Arrays & Hashing",
+      "name": "Prefix sum frequency lookup",
+      "masterOperation": "Count contiguous weight totals, including negative values.",
+      "problemIds": [
+        560
+      ]
+    },
+    {
+      "id": "A14",
+      "chapter": "Arrays & Hashing",
+      "name": "Value to index placement",
+      "masterOperation": "Find the first missing positive package slot in place.",
+      "problemIds": [
+        41
+      ]
+    },
+    {
+      "id": "A15",
+      "chapter": "Arrays & Hashing",
+      "name": "Positive adjacent gain aggregation",
+      "masterOperation": "Aggregate independently realizable price gains; explicit greedy overlap.",
+      "problemIds": [
+        122
+      ]
+    },
+    {
+      "id": "P01",
+      "chapter": "Two Pointers",
+      "name": "Symmetric comparison and reversal",
+      "masterOperation": "Reverse or validate a route string, including one permitted deletion.",
+      "problemIds": [
+        344,
+        125,
+        680,
+        189,
+        131
+      ]
+    },
+    {
+      "id": "P02",
+      "chapter": "Two Pointers",
+      "name": "Merging and interleaving sequences",
+      "masterOperation": "Combine sorted or alternating records without losing unread input.",
+      "problemIds": [
+        1768,
+        88,
+        21,
+        143,
+        23
+      ]
+    },
+    {
+      "id": "P03",
+      "chapter": "Two Pointers",
+      "name": "Sorted target elimination and k sum",
+      "masterOperation": "Find pairs, triples, and quadruples with duplicate suppression.",
+      "problemIds": [
+        167,
+        15,
+        18
+      ]
+    },
+    {
+      "id": "P04",
+      "chapter": "Two Pointers",
+      "name": "Limiting boundary reasoning",
+      "masterOperation": "Move the limiting boundary when computing capacity or trapped volume.",
+      "problemIds": [
+        11,
+        42
+      ]
+    },
+    {
+      "id": "P05",
+      "chapter": "Two Pointers",
+      "name": "Pairing extremes under a limit",
+      "masterOperation": "Pair the heaviest load with the lightest feasible partner.",
+      "problemIds": [
+        881
+      ]
+    },
+    {
+      "id": "W01",
+      "chapter": "Sliding Window",
+      "name": "Fixed windows and bounded history",
+      "masterOperation": "Expire old events and maintain exact character counts.",
+      "problemIds": [
+        219,
+        567
+      ]
+    },
+    {
+      "id": "W02",
+      "chapter": "Sliding Window",
+      "name": "Longest window with a validity bound",
+      "masterOperation": "Expand and repair duplicate or replacement-budget violations.",
+      "problemIds": [
+        3,
+        424
+      ]
+    },
+    {
+      "id": "W03",
+      "chapter": "Sliding Window",
+      "name": "Shortest window satisfying requirements",
+      "masterOperation": "Record a valid window before shrinking it to seek a smaller one.",
+      "problemIds": [
+        209,
+        76
+      ]
+    },
+    {
+      "id": "W04",
+      "chapter": "Sliding Window",
+      "name": "Monotonic deque",
+      "masterOperation": "Keep only unexpired, undominated candidates for recent maxima.",
+      "problemIds": [
+        239
+      ]
+    },
+    {
+      "id": "W05",
+      "chapter": "Sliding Window",
+      "name": "Running minimum and best gain",
+      "masterOperation": "Evaluate a sale against the cheapest earlier purchase.",
+      "problemIds": [
+        121
+      ]
+    },
+    {
+      "id": "S01",
+      "chapter": "Stack",
+      "name": "Operand and history stacks",
+      "masterOperation": "Evaluate postfix costs or undo and derive recent score entries.",
+      "problemIds": [
+        682,
+        150
+      ]
+    },
+    {
+      "id": "S02",
+      "chapter": "Stack",
+      "name": "Nested syntax and saved contexts",
+      "masterOperation": "Validate brackets and decode repeated nested commands.",
+      "problemIds": [
+        20,
+        394
+      ]
+    },
+    {
+      "id": "S03",
+      "chapter": "Stack",
+      "name": "Local cancellation and normalization",
+      "masterOperation": "Resolve collisions or normalize parent-directory navigation.",
+      "problemIds": [
+        735,
+        71
+      ]
+    },
+    {
+      "id": "S04",
+      "chapter": "Stack",
+      "name": "Queue and stack adapters",
+      "masterOperation": "Implement LIFO using FIFO and FIFO using LIFO, respecting allowed operations.",
+      "problemIds": [
+        225,
+        232
+      ]
+    },
+    {
+      "id": "S05",
+      "chapter": "Stack",
+      "name": "Augmented stack state",
+      "masterOperation": "Store a minimum for each stack depth.",
+      "problemIds": [
+        155
+      ]
+    },
+    {
+      "id": "S06",
+      "chapter": "Stack",
+      "name": "Monotonic unresolved items",
+      "masterOperation": "Resolve next-greater distances, aggregate spans, and close rectangle widths.",
+      "problemIds": [
+        739,
+        901,
+        84
+      ]
+    },
+    {
+      "id": "S07",
+      "chapter": "Stack",
+      "name": "Frequency buckets with ordering",
+      "masterOperation": "Manage most-frequent pops and least-frequent cache eviction with tie rules.",
+      "problemIds": [
+        895,
+        460
+      ]
+    },
+    {
+      "id": "S08",
+      "chapter": "Stack",
+      "name": "Arrival time fleet aggregation",
+      "masterOperation": "Scan vehicles from nearest to farthest and merge catching-up arrivals.",
+      "problemIds": [
+        853
+      ]
+    },
+    {
+      "id": "B01",
+      "chapter": "Binary Search",
+      "name": "Ordered search and boundaries",
+      "masterOperation": "Find exact values, insertion points, predecessors, and optimal window boundaries.",
+      "problemIds": [
+        658,
+        704,
+        35,
+        374,
+        69,
+        74,
+        981,
+        1095
+      ]
+    },
+    {
+      "id": "B02",
+      "chapter": "Binary Search",
+      "name": "Binary search on a feasible answer",
+      "masterOperation": "Find the first capacity or speed satisfying a monotone feasibility check.",
+      "problemIds": [
+        875,
+        1011,
+        410
+      ]
+    },
+    {
+      "id": "B03",
+      "chapter": "Binary Search",
+      "name": "Rotated order search",
+      "masterOperation": "Identify the sorted half, handling duplicate ambiguity separately.",
+      "problemIds": [
+        153,
+        33,
+        81
+      ]
+    },
+    {
+      "id": "B04",
+      "chapter": "Binary Search",
+      "name": "Coupled partitions of two sorted arrays",
+      "masterOperation": "Choose two balanced partitions and verify the cross-boundary ordering.",
+      "problemIds": [
+        4
+      ]
+    },
+    {
+      "id": "B05",
+      "chapter": "Binary Search",
+      "name": "Peak search and opposite directions",
+      "masterOperation": "Find a mountain peak, then search its increasing and decreasing sides.",
+      "problemIds": [
+        1095
+      ]
+    },
+    {
+      "id": "L01",
+      "chapter": "Linked List",
+      "name": "Pointer rewiring and reconnection",
+      "masterOperation": "Reverse whole routes, subranges, or complete groups without losing the suffix.",
+      "problemIds": [
+        206,
+        143,
+        92,
+        25
+      ]
+    },
+    {
+      "id": "L02",
+      "chapter": "Linked List",
+      "name": "Fast slow and fixed gap pointers",
+      "masterOperation": "Find middles, remove from the end, detect cycles, and locate cycle entry.",
+      "problemIds": [
+        141,
+        143,
+        19,
+        287
+      ]
+    },
+    {
+      "id": "L03",
+      "chapter": "Linked List",
+      "name": "Identity preserving cloning",
+      "masterOperation": "Register each original-to-copy mapping before connecting arbitrary references.",
+      "problemIds": [
+        138,
+        133
+      ]
+    },
+    {
+      "id": "L04",
+      "chapter": "Linked List",
+      "name": "Digit streams and carry",
+      "masterOperation": "Add numbers represented as lists with unequal lengths and a final carry.",
+      "problemIds": [
+        2
+      ]
+    },
+    {
+      "id": "L05",
+      "chapter": "Linked List",
+      "name": "Circular storage",
+      "masterOperation": "Wrap queue/deque positions while distinguishing empty and full states.",
+      "problemIds": [
+        239,
+        622
+      ]
+    },
+    {
+      "id": "L06",
+      "chapter": "Linked List",
+      "name": "Recency ordering for caches",
+      "masterOperation": "Combine key lookup with usage order, using a doubly linked list or ordered frequency buckets.",
+      "problemIds": [
+        146,
+        460
+      ]
+    },
+    {
+      "id": "T01",
+      "chapter": "Trees",
+      "name": "Depth first traversal order",
+      "masterOperation": "Visit before, between, or after children and reproduce that order iteratively.",
+      "problemIds": [
+        94,
+        144,
+        145,
+        226,
+        572,
+        230
+      ]
+    },
+    {
+      "id": "T02",
+      "chapter": "Trees",
+      "name": "Bottom up aggregation and pruning",
+      "masterOperation": "Return a child summary, update a separate global answer, or remove newly exposed leaves.",
+      "problemIds": [
+        104,
+        543,
+        110,
+        427,
+        1325,
+        124
+      ]
+    },
+    {
+      "id": "T03",
+      "chapter": "Trees",
+      "name": "Paired structure comparison",
+      "masterOperation": "Compare matching nodes and search for an equal subtree.",
+      "problemIds": [
+        100,
+        572
+      ]
+    },
+    {
+      "id": "T04",
+      "chapter": "Trees",
+      "name": "Ancestor state and valid ranges",
+      "masterOperation": "Pass path maxima or strict value bounds down the tree.",
+      "problemIds": [
+        1448,
+        98
+      ]
+    },
+    {
+      "id": "T05",
+      "chapter": "Trees",
+      "name": "Binary search tree navigation and mutation",
+      "masterOperation": "Use sorted structure for LCA, insertion, deletion, and rank traversal.",
+      "problemIds": [
+        235,
+        701,
+        450,
+        98,
+        230
+      ]
+    },
+    {
+      "id": "T06",
+      "chapter": "Trees",
+      "name": "Level traversal",
+      "masterOperation": "Process a fixed level size and choose all or the last item in that level.",
+      "problemIds": [
+        102,
+        199
+      ]
+    },
+    {
+      "id": "T07",
+      "chapter": "Trees",
+      "name": "Reconstruction from traversals",
+      "masterOperation": "Consume preorder roots and split inorder ranges without copying them.",
+      "problemIds": [
+        105
+      ]
+    },
+    {
+      "id": "T08",
+      "chapter": "Trees",
+      "name": "Tree encoding with null markers",
+      "masterOperation": "Serialize shape and values, then consume the same token grammar to rebuild it.",
+      "problemIds": [
+        297
+      ]
+    },
+    {
+      "id": "T09",
+      "chapter": "Trees",
+      "name": "Tree dynamic programming",
+      "masterOperation": "Return take/skip choices for each subtree; explicit DP overlap.",
+      "problemIds": [
+        337
+      ]
+    },
+    {
+      "id": "T10",
+      "chapter": "Trees",
+      "name": "Spatial subdivision and compression",
+      "masterOperation": "Build four quadrants and collapse equal leaf children.",
+      "problemIds": [
+        427
+      ]
+    },
+    {
+      "id": "H01",
+      "chapter": "Heap / Priority Queue",
+      "name": "Bounded heap selection",
+      "masterOperation": "Retain only the best k items and inspect the worst retained candidate.",
+      "problemIds": [
+        703,
+        973
+      ]
+    },
+    {
+      "id": "H02",
+      "chapter": "Heap / Priority Queue",
+      "name": "Repeated priority choice with constraints",
+      "masterOperation": "Reinsert changed priorities and temporarily hold ineligible choices aside.",
+      "problemIds": [
+        1046,
+        767,
+        1405
+      ]
+    },
+    {
+      "id": "H03",
+      "chapter": "Heap / Priority Queue",
+      "name": "Merging multiple sorted streams",
+      "masterOperation": "Keep one candidate per nonempty stream and advance only the selected stream.",
+      "problemIds": [
+        23,
+        355
+      ]
+    },
+    {
+      "id": "H04",
+      "chapter": "Heap / Priority Queue",
+      "name": "Eligibility sweep and priority scheduling",
+      "masterOperation": "Move newly eligible work into a priority queue and handle idle periods and ties.",
+      "problemIds": [
+        1834,
+        502,
+        2402
+      ]
+    },
+    {
+      "id": "H05",
+      "chapter": "Heap / Priority Queue",
+      "name": "Two heaps for an ordered split",
+      "masterOperation": "Maintain lower and upper halves with both order and size invariants.",
+      "problemIds": [
+        295
+      ]
+    },
+    {
+      "id": "H06",
+      "chapter": "Heap / Priority Queue",
+      "name": "Difference arrays and event sweeps",
+      "masterOperation": "Apply endpoint changes and reconstruct simultaneous resource use.",
+      "problemIds": [
+        1094
+      ]
+    },
+    {
+      "id": "H07",
+      "chapter": "Heap / Priority Queue",
+      "name": "Cooldown frame counting",
+      "masterOperation": "Derive idle slots from maximum frequency; explicit formula/greedy overlap.",
+      "problemIds": [
+        621
+      ]
+    },
+    {
+      "id": "R01",
+      "chapter": "Backtracking",
+      "name": "Subset and combination enumeration",
+      "masterOperation": "Control reuse and duplicates with the next start index and copy completed paths.",
+      "problemIds": [
+        1863,
+        78,
+        39,
+        40,
+        77,
+        90
+      ]
+    },
+    {
+      "id": "R02",
+      "chapter": "Backtracking",
+      "name": "Permutation enumeration",
+      "masterOperation": "Choose unused positions and undo both the path and usage state.",
+      "problemIds": [
+        46,
+        47
+      ]
+    },
+    {
+      "id": "R03",
+      "chapter": "Backtracking",
+      "name": "Constrained sequence construction",
+      "masterOperation": "Expand legal next symbols using counters or position-specific choices.",
+      "problemIds": [
+        22,
+        17
+      ]
+    },
+    {
+      "id": "R04",
+      "chapter": "Backtracking",
+      "name": "Path scoped grid visits",
+      "masterOperation": "Mark a cell for one candidate path and restore it when returning.",
+      "problemIds": [
+        79,
+        212
+      ]
+    },
+    {
+      "id": "R05",
+      "chapter": "Backtracking",
+      "name": "Partitioning by valid cuts",
+      "masterOperation": "Choose a valid prefix and recurse on the remaining suffix.",
+      "problemIds": [
+        131,
+        140
+      ]
+    },
+    {
+      "id": "R06",
+      "chapter": "Backtracking",
+      "name": "Bucket assignment and symmetry pruning",
+      "masterOperation": "Assign each item once, respect capacity, and skip equivalent bucket states.",
+      "problemIds": [
+        473,
+        698
+      ]
+    },
+    {
+      "id": "R07",
+      "chapter": "Backtracking",
+      "name": "Constraint occupancy sets",
+      "masterOperation": "Track occupied columns and both diagonal directions while placing choices.",
+      "problemIds": [
+        51,
+        52
+      ]
+    },
+    {
+      "id": "R08",
+      "chapter": "Backtracking",
+      "name": "Memoized suffix enumeration",
+      "masterOperation": "Cache all completions of a suffix, preserving output construction costs.",
+      "problemIds": [
+        140
+      ]
+    },
+    {
+      "id": "TR01",
+      "chapter": "Tries",
+      "name": "Trie insertion and prefix lookup",
+      "masterOperation": "Distinguish an existing path from a complete stored address.",
+      "problemIds": [
+        208,
+        211,
+        212
+      ]
+    },
+    {
+      "id": "TR02",
+      "chapter": "Tries",
+      "name": "Wildcard branching in a trie",
+      "masterOperation": "Follow one child for a literal or all children for a wildcard.",
+      "problemIds": [
+        211
+      ]
+    },
+    {
+      "id": "TR03",
+      "chapter": "Tries",
+      "name": "Trie guided grid search",
+      "masterOperation": "Combine dictionary prefix pruning, path restoration, and result deduplication.",
+      "problemIds": [
+        212
+      ]
+    },
+    {
+      "id": "TR04",
+      "chapter": "Tries",
+      "name": "Dictionary segmentation dynamic programming",
+      "masterOperation": "Choose skipping a character or completing a dictionary word; explicit DP overlap.",
+      "problemIds": [
+        2707
+      ]
+    },
+    {
+      "id": "G01",
+      "chapter": "Graphs",
+      "name": "Local edge accounting and degrees",
+      "masterOperation": "Count boundary contributions or inbound/outbound balance without traversal.",
+      "problemIds": [
+        463,
+        997
+      ]
+    },
+    {
+      "id": "G02",
+      "chapter": "Graphs",
+      "name": "Custom alphabet comparisons",
+      "masterOperation": "Use the first differing character and reject longer-before-shorter prefixes.",
+      "problemIds": [
+        953,
+        269
+      ]
+    },
+    {
+      "id": "G03",
+      "chapter": "Graphs",
+      "name": "Reachability and connected components",
+      "masterOperation": "Visit each reachable state once and restart from unvisited components.",
+      "problemIds": [
+        200,
+        695,
+        133,
+        130,
+        261,
+        1462,
+        323,
+        684,
+        721,
+        2709
+      ]
+    },
+    {
+      "id": "G04",
+      "chapter": "Graphs",
+      "name": "Multisource breadth first search",
+      "masterOperation": "Seed every source before expanding shortest-distance layers.",
+      "problemIds": [
+        286,
+        994
+      ]
+    },
+    {
+      "id": "G05",
+      "chapter": "Graphs",
+      "name": "Implicit state graphs",
+      "masterOperation": "Generate valid next states or use feature buckets to find neighbors.",
+      "problemIds": [
+        752,
+        127
+      ]
+    },
+    {
+      "id": "G06",
+      "chapter": "Graphs",
+      "name": "Border reachability and reverse traversal",
+      "masterOperation": "Search from exits or safe boundaries, then intersect or complement the visited sets.",
+      "problemIds": [
+        417,
+        130
+      ]
+    },
+    {
+      "id": "G07",
+      "chapter": "Graphs",
+      "name": "Topological ordering",
+      "masterOperation": "Release a node only when its remaining prerequisite count reaches zero.",
+      "problemIds": [
+        207,
+        210,
+        269,
+        2392
+      ]
+    },
+    {
+      "id": "G08",
+      "chapter": "Graphs",
+      "name": "Undirected cycle checks and edge removal",
+      "masterOperation": "Distinguish a parent edge from a cycle, or test connectivity with a candidate excluded.",
+      "problemIds": [
+        261,
+        684,
+        1584,
+        1489
+      ]
+    },
+    {
+      "id": "G09",
+      "chapter": "Graphs",
+      "name": "Repeated searches and transitive closure",
+      "masterOperation": "Precompute all-source reachability or expand allowed intermediate vertices.",
+      "problemIds": [
+        1462
+      ]
+    },
+    {
+      "id": "G10",
+      "chapter": "Graphs",
+      "name": "Multiplicative path queries",
+      "masterOperation": "Store reciprocal edges and accumulate products along a path.",
+      "problemIds": [
+        399
+      ]
+    },
+    {
+      "id": "G11",
+      "chapter": "Graphs",
+      "name": "Leaf layer removal",
+      "masterOperation": "Peel current leaves together until the tree centers remain.",
+      "problemIds": [
+        310
+      ]
+    },
+    {
+      "id": "G12",
+      "chapter": "Graphs",
+      "name": "Disjoint sets",
+      "masterOperation": "Find representatives, merge components, and compress parent paths.",
+      "problemIds": [
+        323,
+        684,
+        721,
+        1584,
+        1489,
+        2709
+      ]
+    },
+    {
+      "id": "G13",
+      "chapter": "Graphs",
+      "name": "Shared feature graph construction",
+      "masterOperation": "Connect items through emails or prime-factor representatives instead of every pair.",
+      "problemIds": [
+        721,
+        2709
+      ]
+    },
+    {
+      "id": "D01",
+      "chapter": "Advanced Graphs",
+      "name": "Additive Dijkstra",
+      "masterOperation": "Finalize the smallest reachable nonnegative path distance and skip outdated entries.",
+      "problemIds": [
+        743
+      ]
+    },
+    {
+      "id": "D02",
+      "chapter": "Advanced Graphs",
+      "name": "Bottleneck path search",
+      "masterOperation": "Replace path addition with a maximum while minimizing the resulting bottleneck.",
+      "problemIds": [
+        1631,
+        778
+      ]
+    },
+    {
+      "id": "D03",
+      "chapter": "Advanced Graphs",
+      "name": "Bounded edge relaxation",
+      "masterOperation": "Use the previous round to limit a path to a fixed number of edges.",
+      "problemIds": [
+        787
+      ]
+    },
+    {
+      "id": "D04",
+      "chapter": "Advanced Graphs",
+      "name": "Kruskal minimum spanning tree",
+      "masterOperation": "Accept edges in cost order only when they join separate components.",
+      "problemIds": [
+        1584,
+        1489
+      ]
+    },
+    {
+      "id": "D05",
+      "chapter": "Advanced Graphs",
+      "name": "Spanning tree edge sensitivity",
+      "masterOperation": "Recompute cost with an edge excluded or forced and retain original edge indices.",
+      "problemIds": [
+        1489
+      ]
+    },
+    {
+      "id": "D06",
+      "chapter": "Advanced Graphs",
+      "name": "Eulerian traversal",
+      "masterOperation": "Consume every edge once and append vertices when their outgoing edges are exhausted.",
+      "problemIds": [
+        332
+      ]
+    },
+    {
+      "id": "I01",
+      "chapter": "Intervals",
+      "name": "Merging and inserting intervals",
+      "masterOperation": "Extend an overlapping interval or preserve the completed prefix and suffix.",
+      "problemIds": [
+        57,
+        56
+      ]
+    },
+    {
+      "id": "I02",
+      "chapter": "Intervals",
+      "name": "Overlap detection and conflict removal",
+      "masterOperation": "Treat touching endpoints correctly and keep the earlier end when removing conflicts.",
+      "problemIds": [
+        435,
+        252
+      ]
+    },
+    {
+      "id": "I03",
+      "chapter": "Intervals",
+      "name": "Resource reuse and delayed allocation",
+      "masterOperation": "Track earliest release, available resource IDs, and tie-breaking rules.",
+      "problemIds": [
+        253,
+        2402
+      ]
+    },
+    {
+      "id": "I04",
+      "chapter": "Intervals",
+      "name": "Offline interval queries",
+      "masterOperation": "Sort queries, add eligible intervals, discard expired candidates, and restore query order.",
+      "problemIds": [
+        1851
+      ]
+    }
+  ],
+  "problems": [
+    {
+      "id": 1929,
+      "title": "Concatenation of Array",
+      "topic": "Arrays & Hashing",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "A01"
+          ],
+          "requiredVariation": "Write each item to i and i+n; preserve input order and return a separate output array.",
+          "javascriptSha256": "b112973216d82c8ad49279aa718e66b113af4c144d5502d97732afcf251c4a81",
+          "pythonSha256": "cbe5c155c44b6aed56c88583e50fb2c7fd6ad6ff2e2e83c97016111803ce4faa"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 217,
+      "title": "Contains Duplicate",
+      "topic": "Arrays & Hashing",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "A02"
+          ],
+          "requiredVariation": "Check membership before insertion; return on the first repeated value.",
+          "javascriptSha256": "3c6054161fc1320adcbb5b3ac1f1e4871648ae32be1c8f663da8b8080cf42029",
+          "pythonSha256": "b2b7552f96c5c9caf8842640299c802d0e8cc651b015d6f98b2975258189d4f6"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 242,
+      "title": "Valid Anagram",
+      "topic": "Arrays & Hashing",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "A03"
+          ],
+          "requiredVariation": "Compare character multiplicities, not just the set of characters; reject unequal lengths.",
+          "javascriptSha256": "a45ab690df1de7850c6a9a8ed9a2f5ea390e97fce086de81d86cf89dd01ed93b",
+          "pythonSha256": "1baef8564925bc740eea20bf0b3a00e09b1b22bc8d75c4ee2ba48ab3ac6705d9"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 1,
+      "title": "Two Sum",
+      "topic": "Arrays & Hashing",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "A04"
+          ],
+          "requiredVariation": "Look up target-current before storing the current index so an item cannot pair with itself.",
+          "javascriptSha256": "e98e9e921f37be501eff961dd1fbc9b383763f0169f26b78b807787c60866a76",
+          "pythonSha256": "12b5b3cadc60e331a80a4db17ec4dea79bf6219f2a46f0751a2c4ce058144e9f"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 14,
+      "title": "Longest Common Prefix",
+      "topic": "Arrays & Hashing",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "A01"
+          ],
+          "requiredVariation": "Compare the same character position across strings; stop at mismatch or the shortest string's end.",
+          "javascriptSha256": "0be3fad1d5c7743c6489d6d70807c73a276fe581788d905df66beb74735f152e",
+          "pythonSha256": "5b061a2b51ca4a3cfbe7c97e50c787f0438432e2cb4f3a3e7b9fbce382daef03"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 49,
+      "title": "Group Anagrams",
+      "topic": "Arrays & Hashing",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "A03"
+          ],
+          "requiredVariation": "Sort each word to form a canonical grouping key; preserve all original words in each bucket.",
+          "javascriptSha256": "9af808e77d1aa936cbdac258198511500c12960637cb2d9dfda4b8b7d9b90cd9",
+          "pythonSha256": "704720ee71960d4b17475c85b9dee486e8b6d61969df35b1107a80ce1f4b1787"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 27,
+      "title": "Remove Element",
+      "topic": "Arrays & Hashing",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "A01"
+          ],
+          "requiredVariation": "The prefix before the write pointer contains only retained values; return its logical length.",
+          "javascriptSha256": "e08259ba330ba499d5487048eb47f9b37185927811224305f891495c974c3dc4",
+          "pythonSha256": "a686aa3ff5177cef97987c2208e9a33d91e2a87a3616d05532a6c999ac43a390"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 169,
+      "title": "Majority Element",
+      "topic": "Arrays & Hashing",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "A06"
+          ],
+          "requiredVariation": "Cancel unequal votes; the guaranteed more-than-half majority makes a final verification unnecessary.",
+          "javascriptSha256": "0477eaacc18f1ca8bd1fa719d69666b786e3d1aa4d70fb614655a07fc15e610c",
+          "pythonSha256": "0695f7f0820f176954578312a9497f6396b1d49eecbe984b752a4a6c37cce3cc"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 705,
+      "title": "Design HashSet",
+      "topic": "Arrays & Hashing",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "A05"
+          ],
+          "requiredVariation": "Separate chaining must check duplicates and delete within a collision bucket; current code is not direct addressing.",
+          "javascriptSha256": "8034438696cebd88e5f4fdbaa67ce2b4ef919846ff642863cd5b177e548b62db",
+          "pythonSha256": "554e28f4996297b728d2deca7ba30f8f1df0247bf5e4335072077a915c6a083a"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "The approach text mentions a direct-address option, but both displayed implementations use collision buckets.",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 706,
+      "title": "Design HashMap",
+      "topic": "Arrays & Hashing",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "A05"
+          ],
+          "requiredVariation": "Store key/value pairs in collision buckets; updating a key must not create another entry.",
+          "javascriptSha256": "75208162cd3818d80a5efbed4872c218f48eaed59b2c97455bc34928aa010e48",
+          "pythonSha256": "714e9d9825bc8f61e6d068f5cf3f557ced35bbb452e03f8c87a4063d05313ebb"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 912,
+      "title": "Sort an Array",
+      "topic": "Arrays & Hashing",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "A07"
+          ],
+          "requiredVariation": "Build the heap bottom-up, then move maxima into a sorted suffix; no built-in sort or copied subarrays.",
+          "javascriptSha256": "75347d2bfb195e0e3fb39e1b969bd741a2c52ccb04d442bcf1412ff8ae313458",
+          "pythonSha256": "6ea3ef53b8d6d6e2732c8ba91d4f171983b16708fcd1520a3a49d352ca725c90"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 75,
+      "title": "Sort Colors",
+      "topic": "Arrays & Hashing",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "A08"
+          ],
+          "requiredVariation": "Maintain low/mid/high regions; do not advance mid after swapping in an unclassified value from high.",
+          "javascriptSha256": "fa4cc2b6cea3d98d0f11c301f50b2b011df7cedfc18eded63863240216d687a7",
+          "pythonSha256": "874051c6f4259851fd1496b47fd49be086489f9d93acfda964955b0e76890a78"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 347,
+      "title": "Top K Frequent Elements",
+      "topic": "Arrays & Hashing",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "A03",
+            "A09"
+          ],
+          "requiredVariation": "Bucket by frequency and scan downward; this displayed solution is not a top-k heap.",
+          "javascriptSha256": "d8f9d8bbc9c43e58cdd217f6e17683e90f792cd87f3b4bccf5124649445cca37",
+          "pythonSha256": "a008dedd57219ffbe4a987903f3cfeb30f939190dc01e6699a56d354f5874db4"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 271,
+      "title": "Encode and Decode Strings",
+      "topic": "Arrays & Hashing",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "A10"
+          ],
+          "requiredVariation": "Read a decimal length and then exactly that many characters; empty strings and embedded delimiters must round-trip.",
+          "javascriptSha256": "1ff9af187c17d99c570f23d020130145a627aa1f9e45b4201af00f6f4612a1f5",
+          "pythonSha256": "6ab089daee3a8a8c3537edd58698a9da604f4e62178764fe8bf82bf8ca2ec0f1"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 304,
+      "title": "Range Sum Query 2D Immutable",
+      "topic": "Arrays & Hashing",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "A11"
+          ],
+          "requiredVariation": "Use a padded prefix matrix and subtract top/left overlap once; a 2D array alone does not make this excluded DP.",
+          "javascriptSha256": "052935783e7c321dd1033a5533b3145264b38b3a3513430708fd25788e94fb50",
+          "pythonSha256": "1777e58ed4c02f2a19b08687ddf87ce21d40630b3a044eb729a718f7ce4a16b2"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "Keep this rectangle prefix-sum lesson in the section-based scope; two-dimensional input is not equivalent to the excluded 2-D DP category.",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 238,
+      "title": "Product of Array Except Self",
+      "topic": "Arrays & Hashing",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "A12"
+          ],
+          "requiredVariation": "Combine products strictly before and after each index; handle zeros without division and use output as workspace.",
+          "javascriptSha256": "8e1b15736174b8b43c5806a50d9d77625c09336127c552bb13cb7bca714b406b",
+          "pythonSha256": "8f4b3bee4ebb1de800949c79ad88e1fba6d41394698bcc91b6bc5860fb416834"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 36,
+      "title": "Valid Sudoku",
+      "topic": "Arrays & Hashing",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "A02"
+          ],
+          "requiredVariation": "Maintain separate row, column, and box sets; ignore empty cells and check all three constraints before insertion.",
+          "javascriptSha256": "766ab4c40d5e54026a7de83d6fed1007378a46267ff2d997760d761fd5993a86",
+          "pythonSha256": "2410a1f08f165d8f820888f300207778bd29831610f56d46c0c6a86e77d21e37"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 128,
+      "title": "Longest Consecutive Sequence",
+      "topic": "Arrays & Hashing",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "A02"
+          ],
+          "requiredVariation": "Only start a consecutive run if its predecessor is absent; iterate distinct values to avoid repeated starts.",
+          "javascriptSha256": "86f0d87d1576be27f39f45740b9c52215e8f726f40580dfe50749ebb962fabeb",
+          "pythonSha256": "a32e9c126339d58b862e71e41d0c6b4b89c3ba66dc080b5fc4df221cd884b1d6"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 122,
+      "title": "Best Time to Buy And Sell Stock II",
+      "topic": "Arrays & Hashing",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "A15"
+          ],
+          "requiredVariation": "Add every positive adjacent price difference; unlimited transactions justify realizing every rising segment.",
+          "javascriptSha256": "f710d995b105d9cc074d10fcdb7a2dab5d4f807791fcbca06a5b295530518ae0",
+          "pythonSha256": "1f96e28e61c47a5bae8136dc042540b3750d08460f1a41cdc4d8bbded2b1a1ac"
+        }
+      ],
+      "scopeOverlaps": [
+        "Greedy: collecting every positive adjacent gain."
+      ],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 229,
+      "title": "Majority Element II",
+      "topic": "Arrays & Hashing",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "A06"
+          ],
+          "requiredVariation": "At most two values exceed n/3; candidate cancellation must be followed by actual-frequency verification.",
+          "javascriptSha256": "7db1956312b4f1071b90525881b2ff533d00a556f73bc0b0f2e3c5e7183b9841",
+          "pythonSha256": "7c80aa9b44612d69610bafa6b4658ed8d790e41d6c98480b1348c75096b000d2"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 560,
+      "title": "Subarray Sum Equals K",
+      "topic": "Arrays & Hashing",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "A13",
+            "A04"
+          ],
+          "requiredVariation": "Seed prefix frequency zero with one, query currentSum-k before incrementing, and count repeated prefixes; negatives prevent a generic sum window.",
+          "javascriptSha256": "30ec7016a4a82316fd1cab6f2a4fd1abce7208133558bd24ee2082e6bafef374",
+          "pythonSha256": "f779d4ec44dc042c7ed1e3826934e6f2afa6f0b88c0e3103e4a245b80d68efc2"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 41,
+      "title": "First Missing Positive",
+      "topic": "Arrays & Hashing",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "A14"
+          ],
+          "requiredVariation": "Put v at v-1 only when 1<=v<=n; stop on duplicate occupants to prevent an infinite swap loop.",
+          "javascriptSha256": "743d44859f1dfa9babf25f2c798c6e8c6217ab35342e0d8ec7cc271b88b3d210",
+          "pythonSha256": "7619f556cf19a97f743bcd1663966f446d39334a37d0fe3232ae912639db5afa"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 344,
+      "title": "Reverse String",
+      "topic": "Two Pointers",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "P01"
+          ],
+          "requiredVariation": "Swap endpoints in place until pointers meet; no returned copy is required.",
+          "javascriptSha256": "6a7ce7ccbd76ad880d509ca5fb9b1f0f64611394bd23b7f7d76988567d642018",
+          "pythonSha256": "de77449b5c8e126fb1b192ae16d8d8a0b50c1cca742f4b3ca068d675d880424f"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 125,
+      "title": "Valid Palindrome",
+      "topic": "Two Pointers",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "P01"
+          ],
+          "requiredVariation": "Skip non-alphanumeric characters and compare normalized case before moving both pointers.",
+          "javascriptSha256": "dc1a61762e3b733f18773c25d593a98f55a71c5b84a92a6ca6f5648a12de59f0",
+          "pythonSha256": "507865a26f9cf42fc103f03c2d9262ccaa2ccaec48776511821fe0e9f966851c"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 680,
+      "title": "Valid Palindrome II",
+      "topic": "Two Pointers",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "P01"
+          ],
+          "requiredVariation": "At the first mismatch, test either one-character deletion; do not allow another deletion inside the helper.",
+          "javascriptSha256": "a19b3d262e7c363c3eeb488bb17846debf3ae184ecec252914492d3e1f3bc3ec",
+          "pythonSha256": "2533293d6f34ccad3035ec37c62c3da3eae642ce398b58a2d0bc0f485d7ed3da"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 1768,
+      "title": "Merge Strings Alternately",
+      "topic": "Two Pointers",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "P02"
+          ],
+          "requiredVariation": "Alternate elements from independent sequences and then append any remainder; sorted order is not required.",
+          "javascriptSha256": "40c23e110325ec2d1ee7cbdcd4b420520e4439af8b827889758ba05f764e642d",
+          "pythonSha256": "1ae30a67b4124379e50ebe593534d1b3e3d37092c71220775f64edcdd6e41cef"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 88,
+      "title": "Merge Sorted Array",
+      "topic": "Two Pointers",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "P02"
+          ],
+          "requiredVariation": "Merge backward into spare capacity so unread values in the first array are not overwritten.",
+          "javascriptSha256": "f340b6cc232dcc65437f2640cc8ac313e6a56d1fa7d5770b4b66855f232b532c",
+          "pythonSha256": "11cb56f69f96daf53102d92a07f1889a53c8bc5e4ec4f94026e2c8e85846e27b"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 26,
+      "title": "Remove Duplicates From Sorted Array",
+      "topic": "Two Pointers",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "A01"
+          ],
+          "requiredVariation": "Sorted duplicates are adjacent; compare against the last retained value and return the compacted prefix length.",
+          "javascriptSha256": "6e63a47167433c008b02fff0c2b4ff3f384e874b6cc87464c23573c923862a24",
+          "pythonSha256": "446af071d94bbbbf55fcd9a16ca58a1615e7e081cf1610b6b451acba34e99dde"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 167,
+      "title": "Two Sum II Input Array Is Sorted",
+      "topic": "Two Pointers",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "P03"
+          ],
+          "requiredVariation": "Sorted order proves which endpoint can be discarded; return one-based indices.",
+          "javascriptSha256": "a716a041d6ee61fb1fffccd987e834f4d0d16a96c706f91b406aca857cf782be",
+          "pythonSha256": "b802af6351926a2fa6de89524cb07d739e169009b3c555c5dca69e553483c813"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 15,
+      "title": "3Sum",
+      "topic": "Two Pointers",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "P03"
+          ],
+          "requiredVariation": "Fix one value, solve the remaining pair, and skip duplicate fixed values and duplicate endpoint values.",
+          "javascriptSha256": "8889f556767020a8b22cc4908b84d7d537aa9b617ba3ff509c273ffb481a3574",
+          "pythonSha256": "894d3fcc12bad8d93c5169441707dc7f0c23d3ca90acf84ca9738fa081029fcd"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 18,
+      "title": "4Sum",
+      "topic": "Two Pointers",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "P03"
+          ],
+          "requiredVariation": "Fix two values before the pair search; suppress duplicates at both outer levels and both endpoints.",
+          "javascriptSha256": "7c9b8e2f657fd59bdd95b132be0382536fb38f1594104bc83943860a5c588efc",
+          "pythonSha256": "57bd67e4fcb3a46c2e0785b3cee0a3d9fda8b0519f66dd8321b443bee13d0a6b"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 189,
+      "title": "Rotate Array",
+      "topic": "Two Pointers",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "P01"
+          ],
+          "requiredVariation": "Reduce k modulo n, reverse the whole array, then reverse the first k and remaining elements.",
+          "javascriptSha256": "9a6b393d5c5c3076146a373e841fe96d8a3b2ba2fae7b52296bb93587a9278df",
+          "pythonSha256": "6052f37abd7d533746ae65e138d3792332663baa0d12ed848e87859e637fcd57"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 11,
+      "title": "Container With Most Water",
+      "topic": "Two Pointers",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "P04"
+          ],
+          "requiredVariation": "Area uses the shorter endpoint times width; only moving a limiting endpoint can improve the answer.",
+          "javascriptSha256": "391469445510f906fccfd14515975ed6ee36efce868fdd86d64d157d84ee30ca",
+          "pythonSha256": "aae5df72c545eb06e2df7edd25c62bbaf7cce049c52fa7d465d7629b473089b3"
+        }
+      ],
+      "scopeOverlaps": [
+        "Greedy reasoning: discard the limiting endpoint using a dominance argument."
+      ],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 881,
+      "title": "Boats to Save People",
+      "topic": "Two Pointers",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "P05"
+          ],
+          "requiredVariation": "The heaviest person always leaves this iteration; pair with the lightest only if the limit permits.",
+          "javascriptSha256": "071fbe43d01508b97c6a67f23b5129cbd0cafbe21da50e6813dad124a76fe172",
+          "pythonSha256": "4f868ea5ec4bd490b4ee57fee1896860189b81632eac7cbe6f5d9bf7bd7c4c49"
+        }
+      ],
+      "scopeOverlaps": [
+        "Greedy: pairing the heaviest remaining item with a feasible lightest item."
+      ],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 42,
+      "title": "Trapping Rain Water",
+      "topic": "Two Pointers",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "P04"
+          ],
+          "requiredVariation": "Track maxima from both ends and process the side with the smaller known boundary; this is not the container-area formula.",
+          "javascriptSha256": "acbe57b2d12fc4439f25b1b607ccafdc243f381cdaa5229d5ef2a779713e3d97",
+          "pythonSha256": "8dc46d9d4f330c1ca15b7f80c89977612bdc109927c020c0b8c7cf79829c7024"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 219,
+      "title": "Contains Duplicate II",
+      "topic": "Sliding Window",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "W01",
+            "A02"
+          ],
+          "requiredVariation": "Compare against at most the preceding k items; expire the item at i-k after inserting the current item.",
+          "javascriptSha256": "927e9a28f1676aae9880f7a08bad7b8fa32e4b05f1ffd6905a18b533a896fb9d",
+          "pythonSha256": "4c1ca58e5358faa50a77c873560e94c6ae0912340fa7d5217c0d120ecf8d98cf"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 121,
+      "title": "Best Time to Buy And Sell Stock",
+      "topic": "Sliding Window",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "W05"
+          ],
+          "requiredVariation": "Track the minimum price seen before or at today and the best sale gain; only one buy/sell transaction is allowed.",
+          "javascriptSha256": "030608f5ff6b5b351d5e0bb29d4a6e16e53271a0ee117e47413a23cda5e63994",
+          "pythonSha256": "d9c62c9366839f0ab42c032c32093846ffc57f48c8350dfc84cebc3035d99e01"
+        }
+      ],
+      "scopeOverlaps": [
+        "Greedy reasoning: retain the cheapest earlier purchase."
+      ],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 3,
+      "title": "Longest Substring Without Repeating Characters",
+      "topic": "Sliding Window",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "W02",
+            "A02"
+          ],
+          "requiredVariation": "While the incoming character is already present, remove from the left; record the longest repaired window.",
+          "javascriptSha256": "e592ba38bc111f2aae1e81482caddc24901b82392195598b227e4d98d29a26ca",
+          "pythonSha256": "ffb151fb52dc4a4f872b7ee80d6cdc59523bb671206dbcaaebdcae6a71f0b991"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 424,
+      "title": "Longest Repeating Character Replacement",
+      "topic": "Sliding Window",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "W02",
+            "A03"
+          ],
+          "requiredVariation": "Use window length minus historical maximum frequency; the nondecreasing max and single shrink seek maximum length, not an always-valid materialized window.",
+          "javascriptSha256": "cdb395b6401301decc27da1eb85d8996dfee91ca137772855a2ca95cbfbcef49",
+          "pythonSha256": "5fc4e1be75715560e4bd70659a52ec304dc315b460deaffc81becc499e36267e"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "Historical maxFreq can overestimate the actual current frequency. The length-only invariant does not promise that every retained window itself is valid.",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 567,
+      "title": "Permutation In String",
+      "topic": "Sliding Window",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "W01",
+            "A03"
+          ],
+          "requiredVariation": "Keep exact counts for a fixed-length window and update equality matches on both entry and exit, including the final window.",
+          "javascriptSha256": "57d0114a85f8000038c319cafe5bd9ba53b1c2e7cc363b1c895cb6321ea479fd",
+          "pythonSha256": "93c56007251481b451f6dde393e3c6886a042cff5e8ec5d90934df4e23e0b86e"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 209,
+      "title": "Minimum Size Subarray Sum",
+      "topic": "Sliding Window",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "W03"
+          ],
+          "requiredVariation": "Positive numbers make shrinking a sum-valid window monotone; update minimum length before removing from the left.",
+          "javascriptSha256": "a2faebe780f911f8ed189717defe1697ee3a31cd086b7735fbde89e0d18f7f44",
+          "pythonSha256": "046f1118aa01618cfd714c84b1ea167619a90981206817c5a6d3090b5700cbe2"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 658,
+      "title": "Find K Closest Elements",
+      "topic": "Sliding Window",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "B01"
+          ],
+          "requiredVariation": "Binary-search the start of a length-k sorted window using boundary distances; equal distances favor the left window.",
+          "javascriptSha256": "d3479aa9d2bcb7f5d62dd574f5cc1d32ade3221fff28821dc0affb4d40e13864",
+          "pythonSha256": "8ed0ed67d9dba33aa9073662d274e6e0e38d6febd8d9eac10c8310d4025fdd22"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "Placed under Sliding Window, but the current solution binary-searches a window boundary.",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 76,
+      "title": "Minimum Window Substring",
+      "topic": "Sliding Window",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "W03",
+            "A03"
+          ],
+          "requiredVariation": "Track satisfied distinct requirements while respecting duplicate character counts; shrink while all requirements remain satisfied.",
+          "javascriptSha256": "d19e0ef44f7204c3dcc8cb18bd7c727fe9356469efc038d0535794ffde0fa43f",
+          "pythonSha256": "febe8a145e6df6a33ee78561abf943c6114ef10c01a3e3599f4a5b2c95805e3d"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 239,
+      "title": "Sliding Window Maximum",
+      "topic": "Sliding Window",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "W04",
+            "L05"
+          ],
+          "requiredVariation": "Expire indices at the front, remove dominated values from the back, then emit the front after k arrivals; JS uses a circular deque.",
+          "javascriptSha256": "362ff6c752029c9fb818eea6e30c6aecd7618e56aeda4643369cf33216a1c23d",
+          "pythonSha256": "13e6f4dc963ce4cee31c25ef2de75dff324630e42e7cc61de295720b2ab3307c"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 682,
+      "title": "Baseball Game",
+      "topic": "Stack",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "S01"
+          ],
+          "requiredVariation": "C removes the latest score; D and + derive a new score from existing history without consuming those operands.",
+          "javascriptSha256": "2a9a6c4c76494ed843b0f8fa23e07e6273fe85e58f78766dd6875a100ec42bd5",
+          "pythonSha256": "824cb1fcb448c5ae33193df88d07f47081920ad3e82d1433cd11faae2151193c"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 20,
+      "title": "Valid Parentheses",
+      "topic": "Stack",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "S02"
+          ],
+          "requiredVariation": "A closing bracket must match the latest opener; reject premature closers and unmatched openers at the end.",
+          "javascriptSha256": "329fa3132b99128d6488d78868cc1a4166c30e78bdcc7f5c0184d7b327134e89",
+          "pythonSha256": "21f196c8c7485e34f1be748dfe156a7e586dcf9f28340a3d31db858c1d008f5e"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 225,
+      "title": "Implement Stack Using Queues",
+      "topic": "Stack",
+      "versions": [
+        {
+          "name": "Two queues",
+          "patterns": [
+            "S04"
+          ],
+          "requiredVariation": "Primary uses active/helper queues and transfers on push; all operations must stay FIFO, including top from the front.",
+          "javascriptSha256": "5c173392995557ea65309c133386517cba528639406ef92038ed2e40cd816d84",
+          "pythonSha256": "304671fa09ad9b239bb05e44d42bd02f9b4079f807c274bee6e9865275e9932a"
+        },
+        {
+          "name": "One queue",
+          "patterns": [
+            "S04"
+          ],
+          "requiredVariation": "Rotate the previous size elements after enqueueing; only queue-front removal and queue-back insertion are used.",
+          "javascriptSha256": "b3052b747d398e28caa3d2e491ac25b4b09baa8966d97358fd253b37e836d0d9",
+          "pythonSha256": "8c5f1eb767e5b62c43b80aa1b46b7a89bd2e531effe4977d144fcbc8f78bb957"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 232,
+      "title": "Implement Queue using Stacks",
+      "topic": "Stack",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "S04"
+          ],
+          "requiredVariation": "Transfer the input stack only when the output stack is empty; each item transfers at most once, giving amortized constant operations.",
+          "javascriptSha256": "a57b26a346f37336cc9f34ad6cd4f7e2f3f0ee478a927ff0cfefc6a104d4e348",
+          "pythonSha256": "76ef1c2857755f0e09f6696f1d5df2dd42f4289cd4659e5434fcf0c331d3ec45"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 155,
+      "title": "Min Stack",
+      "topic": "Stack",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "S05"
+          ],
+          "requiredVariation": "Store a minimum at each depth, including duplicate minima, and pop values and minima together.",
+          "javascriptSha256": "f09709389b7d1a6a385423ad44d9bb92dfb539ab41aafac3beeeb4271cdc1024",
+          "pythonSha256": "ebe6c1a5c69925c29373eb57409fa4a3cf1f152dd39d4a603fdd27dd4cff9b69"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 150,
+      "title": "Evaluate Reverse Polish Notation",
+      "topic": "Stack",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "S01"
+          ],
+          "requiredVariation": "Pop the right operand before the left; subtraction/division preserve that order and division truncates toward zero.",
+          "javascriptSha256": "89e4eb1325f19c922a0584e555dba5a584923650113f5422ce00f42d7e921398",
+          "pythonSha256": "1fd8bb19f86a6defa8dcac27fcafacc3f586ec4646bae4474084fa603e0bf3ea"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 735,
+      "title": "Asteroid Collision",
+      "topic": "Stack",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "S03"
+          ],
+          "requiredVariation": "Only a right-moving stack top and left-moving incoming item collide; distinguish smaller, equal, and larger sizes and repeat while alive.",
+          "javascriptSha256": "1270585a27ffcf6ab5b926e0f1a0b18968c0801869ee99a8bf9864acb2165e77",
+          "pythonSha256": "427c7e38b8a98abfe915687c92d353da63608d609d19f500f7c0c622be37aa18"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 739,
+      "title": "Daily Temperatures",
+      "topic": "Stack",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "S06"
+          ],
+          "requiredVariation": "Store unresolved indices; pop only on a strictly warmer temperature and record the index difference.",
+          "javascriptSha256": "a39eefb2b9e77a71d0c662f3412c7cd7871f89cee761acd04bb0fab6b00fe000",
+          "pythonSha256": "ad16c4f9a41103ec09874e96d93552e44b2d55a452c31223631e0e8f73af6391"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 901,
+      "title": "Online Stock Span",
+      "topic": "Stack",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "S06"
+          ],
+          "requiredVariation": "Store price/span pairs; absorb spans while previous price<=current price, including equal prices.",
+          "javascriptSha256": "a4c160fb5f2f673d64440a7e4661d5564299cf2f23886474280ef51080be7d3f",
+          "pythonSha256": "cebaef37366bf3323a2e0316626b17eb29b8145f309c3bfbdba94c6a43fdc4e5"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 853,
+      "title": "Car Fleet",
+      "topic": "Stack",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "S08"
+          ],
+          "requiredVariation": "Sort positions nearest-to-target first; a following arrival time no greater than the fleet ahead joins it, including equality.",
+          "javascriptSha256": "bc7df561e5fb0a9f70d7abb9952b6977477c1b1264ec2b51801b256366ad2fc4",
+          "pythonSha256": "5eefd2ddd44cd20b8ba7786d217e3cd0b3e1e7623e553f874db90de3ee95f70d"
+        }
+      ],
+      "scopeOverlaps": [
+        "Greedy: descending-position fleet aggregation."
+      ],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 71,
+      "title": "Simplify Path",
+      "topic": "Stack",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "S03"
+          ],
+          "requiredVariation": "Ignore empty components and '.', pop for '..' only when possible, and treat other dot strings as ordinary names.",
+          "javascriptSha256": "87deca93747d52c240bfc5966067e0ae7a4ec960e9a021f1faeb5289b5638cec",
+          "pythonSha256": "0d3feaa13f464e475235ac8280bd343734c181aa5944f2f5cc20bdef04ed75de"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 394,
+      "title": "Decode String",
+      "topic": "Stack",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "S02"
+          ],
+          "requiredVariation": "Save repeat count and outer text at '['; support multi-digit counts and restore the outer context at ']'.",
+          "javascriptSha256": "ae0d65385b048355ec6c578d13eae6f9e43c08b41ae48c6306d1ff0048d022d6",
+          "pythonSha256": "086d0843c0a99b324bb1294dc74daa7daf781a3bcf0332a557ae53a130182d3b"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 895,
+      "title": "Maximum Frequency Stack",
+      "topic": "Stack",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "S07"
+          ],
+          "requiredVariation": "Keep a stack for each attained frequency; pop the highest-frequency most-recent item and lower maxFreq only when its bucket empties.",
+          "javascriptSha256": "29ce4be6a74a92077a582037a41207c6be03c691e2a30f3d1b080dcadce509a1",
+          "pythonSha256": "b19697b279990895ae1987d69c92fc1fa53dcbda7997fdbbed2ad9fe956d8bbf"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 84,
+      "title": "Largest Rectangle In Histogram",
+      "topic": "Stack",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "S06"
+          ],
+          "requiredVariation": "Increasing stack closes rectangles at a smaller height; JS carries the earliest left edge, Python uses indices; a temporary zero flushes remaining bars.",
+          "javascriptSha256": "85fe6af1c96e0276f1e49a8415718f32c81953aff757c7406bb9c9c87d4037ee",
+          "pythonSha256": "7889d781ffddbcfab8079691abe42b99b64105ddd0fef73dbaaf790b98efd2a5"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "JavaScript stores [leftEdge,height]; Python stores bar indices. Teach both boundary calculations if displaying both languages.",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 704,
+      "title": "Binary Search",
+      "topic": "Binary Search",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "B01"
+          ],
+          "requiredVariation": "Use an exact-match closed interval; discarding mid requires lo=mid+1 or hi=mid-1.",
+          "javascriptSha256": "bc0803e389b54d5b738c8be93e072b98ffc21c7dd3398b9b28179c7bb6408fe3",
+          "pythonSha256": "73b111c13047e28238bbd305b8157cbe5a2d3d47d1e85fc1e877f8c934bd8ce8"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 35,
+      "title": "Search Insert Position",
+      "topic": "Binary Search",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "B01"
+          ],
+          "requiredVariation": "Find the first value>=target in a half-open range; n is a valid insertion result.",
+          "javascriptSha256": "16495016bd288ad46cf625009925520ca046abf83f6b8b8e1b28d8837daa0f34",
+          "pythonSha256": "a7ac16e48c98e8cc034f247efcabf44e66612478a69f76c0ce3960660b20c42b"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 374,
+      "title": "Guess Number Higher Or Lower",
+      "topic": "Binary Search",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "B01"
+          ],
+          "requiredVariation": "The comparison comes from guess(mid), not array access; map the oracle's sign to the correct half.",
+          "javascriptSha256": "949df3bd0cf412fa21359d709df5a3321273cc2fd383004968f72546506c9706",
+          "pythonSha256": "52022c4cefc332358a110bd9f07e5b9b7287c6bfd1395447a9e203f74f4068a7"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 69,
+      "title": "Sqrt(x)",
+      "topic": "Binary Search",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "B01"
+          ],
+          "requiredVariation": "Find the first integer with square>x and subtract one; zero and one require correct exclusive bounds.",
+          "javascriptSha256": "7be9899d1da6e025ab72351cb57751aed732e516d604de95738f082f429bb133",
+          "pythonSha256": "ffe0d93a5445782e1393e111be527f3fc21372bbdaf5dac32c6c6236b80303cd"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 74,
+      "title": "Search a 2D Matrix",
+      "topic": "Binary Search",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "B01"
+          ],
+          "requiredVariation": "The whole matrix must be globally ordered across row boundaries; current code maps a flat index to row/column.",
+          "javascriptSha256": "99151015affbe35d2ec37504a024f8d32497bbc411d76ec7b8823b66d4fbb0b3",
+          "pythonSha256": "a0fa1515a56341e11ad4b95842850b5a667f0d51c777ed71dc294517d4693ce4"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 875,
+      "title": "Koko Eating Bananas",
+      "topic": "Binary Search",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "B02"
+          ],
+          "requiredVariation": "Search speed from 1 to max pile; feasibility sums ceil(pile/speed), with each pile costing separate hours.",
+          "javascriptSha256": "44df98f56ebe5d163c68f42a1b336008edf4c8e247e8694a860a6540d9d8ada5",
+          "pythonSha256": "ff97b1fcc7fd171e9fd9774d2ae4332bdada13c57deb200dcb2fcc946b05037e"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 1011,
+      "title": "Capacity to Ship Packages Within D Days",
+      "topic": "Binary Search",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "B02"
+          ],
+          "requiredVariation": "Search max weight through total weight; preserve package order and start a new day only when the next weight would overflow.",
+          "javascriptSha256": "169a6cd568e28316fba96525ecceb5dbd27ab24e8da162bca4fdeefe5ab221e0",
+          "pythonSha256": "6fbf13a262e573ea424d0445e7a13a91ee474e3a31678732a00320062d6809cb"
+        }
+      ],
+      "scopeOverlaps": [
+        "Greedy feasibility: pack each ordered day maximally under a candidate capacity."
+      ],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 153,
+      "title": "Find Minimum In Rotated Sorted Array",
+      "topic": "Binary Search",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "B03"
+          ],
+          "requiredVariation": "Compare mid with the right endpoint; retain mid when it may be the minimum.",
+          "javascriptSha256": "4fae30570e620eaa1e0f75f9017fe4be7131c3c6ffe0fbf95c2ef1ac91eafd17",
+          "pythonSha256": "ce2770c69c16757ed09ad4672e2d86257d9f1195bc3ae6388c60e7a423a666f2"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 33,
+      "title": "Search In Rotated Sorted Array",
+      "topic": "Binary Search",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "B03"
+          ],
+          "requiredVariation": "Identify a sorted half and test whether the target lies in its bounds before discarding a half.",
+          "javascriptSha256": "7e4d835df441ea553e9b59f14e8d968ac941d497a5230184f21e0bb33feabd43",
+          "pythonSha256": "154cc9bcaf1db6262ecde8e56f0e757eb6125fbad9a5957895b6d8772bc29b87"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 81,
+      "title": "Search In Rotated Sorted Array II",
+      "topic": "Binary Search",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "B03"
+          ],
+          "requiredVariation": "Equal left and middle values can hide the sorted half; skip an ambiguous endpoint, accepting worst-case linear work.",
+          "javascriptSha256": "115cba212eb7f82624cc0396dc973e60dd40ef8780243dc561833395776e0480",
+          "pythonSha256": "4fa5092f36d1172c1a113c02bbc2b7334f23a96000011a683cea4c3f8391e9e0"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 981,
+      "title": "Time Based Key Value Store",
+      "topic": "Binary Search",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "B01",
+            "A03"
+          ],
+          "requiredVariation": "Append timestamped values per key; get finds the latest timestamp<=query, not an exact match, and may return no value.",
+          "javascriptSha256": "7e88c9a6dddfa9c3c8bac908db3870417e0b8bbd213bafcf11d04ac508968376",
+          "pythonSha256": "0cb9c61cf27523a056fd07791bd259df6c3e78fa2145bb5bc47df71a40b5b1c0"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 410,
+      "title": "Split Array Largest Sum",
+      "topic": "Binary Search",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "B02"
+          ],
+          "requiredVariation": "For nonnegative values, feasibility counts contiguous groups under a bound; at most k groups can be subdivided to exactly k.",
+          "javascriptSha256": "0861289f48952b78e162c592a71903ea73d0deb968627c5d5b3b0ca54bdf5896",
+          "pythonSha256": "0fda18eb0368013c0f3222944bb4a6c3e3c30c5683e09c620f6649e29ab60944"
+        }
+      ],
+      "scopeOverlaps": [
+        "Greedy feasibility: make maximal contiguous groups under a candidate sum."
+      ],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 4,
+      "title": "Median of Two Sorted Arrays",
+      "topic": "Binary Search",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "B04"
+          ],
+          "requiredVariation": "Search the shorter array; complementary cuts must balance sizes and satisfy both cross-boundary inequalities, including empty partitions.",
+          "javascriptSha256": "14e825bf5db855d9c8145dbf767cd6a7b8a1601b42f82a738073d41727df9e90",
+          "pythonSha256": "13d58ef1e9ddedc54fd43c3cc27eaf54a04c302cfdf144af2ff194c849b7e1a2"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 1095,
+      "title": "Find in Mountain Array",
+      "topic": "Binary Search",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "B05",
+            "B01"
+          ],
+          "requiredVariation": "Find peak using neighboring values, search ascending side first for the smallest index, then reverse comparisons on the descending side; preserve API-call efficiency.",
+          "javascriptSha256": "0119ead0bcc5aeaa064ee9aeb4f79c9c2bcbfe4edf850c32308f6d75b294f85c",
+          "pythonSha256": "3915baf21507fcc90e5a84f3eca521ddfb2120d19426f2a5b4b15bcb7ff7a416"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 206,
+      "title": "Reverse Linked List",
+      "topic": "Linked List",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "L01"
+          ],
+          "requiredVariation": "Save the next node before reversing a pointer; return the final previous node as the new head.",
+          "javascriptSha256": "ee1c724a9576f7f2776ec3df2a0ca0a3d4560926d475a79d221ac32423065736",
+          "pythonSha256": "e2ab19b20fb81e069f0ac3bbaa459c8650ed21ee505d12aff66df3baca017838"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 21,
+      "title": "Merge Two Sorted Lists",
+      "topic": "Linked List",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "P02"
+          ],
+          "requiredVariation": "Use a dummy/tail and attach the smaller list head; connect the remaining suffix once one list ends.",
+          "javascriptSha256": "7aab8943a5e326a96f5f9db0a0441cf4d2366d9f81ef5cf486818c5cb26b50aa",
+          "pythonSha256": "7cad2ef62a20ba9d374c88618627a62f9418dfd3d13934560352082d042e6d84"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 141,
+      "title": "Linked List Cycle",
+      "topic": "Linked List",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "L02"
+          ],
+          "requiredVariation": "Fast moves twice and slow once; compare node identities, and check fast and fast.next before advancing.",
+          "javascriptSha256": "4c2982c734e69a37a5dcf67b898731f1ce69d969605794031615823f08c48f87",
+          "pythonSha256": "ab00fb003d21137c865854122513a42741cf7c1af77ef877439daada0368c30c"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 143,
+      "title": "Reorder List",
+      "topic": "Linked List",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "L02",
+            "L01",
+            "P02"
+          ],
+          "requiredVariation": "Find the midpoint, disconnect halves, reverse the second, then interleave without leaving a cycle.",
+          "javascriptSha256": "1e217069095c07306061768abe72ea2d573a43a3ef5cfcda3bf1e48eca0bc69d",
+          "pythonSha256": "601fecb2454b3c596936aca36091f8f0a18dbb89505f22c221bbd80aa858dc53"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 19,
+      "title": "Remove Nth Node From End of List",
+      "topic": "Linked List",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "L02"
+          ],
+          "requiredVariation": "Use a dummy and an n+1-node gap to stop before the removed node, including when it is the head.",
+          "javascriptSha256": "3aee3f5108719c74539018973738e71c9e8497096300a1e3baa0e9000a1db4a4",
+          "pythonSha256": "c7da73cf45e46508a4009c50961b798cbff83a6afec5587a810cc47129c1088d"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 138,
+      "title": "Copy List With Random Pointer",
+      "topic": "Linked List",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "L03"
+          ],
+          "requiredVariation": "Create all identity-mapped nodes first, then connect next/random references; equal values are not shared identities.",
+          "javascriptSha256": "1083af01d97f88791bb3e50f772cc7d56581c4b9c7321a7c9bf663f0a6ffe79c",
+          "pythonSha256": "89c0da03c026075cd325072f9d91eb92b3c6e7ed499e0b3662ce8ac99bcfe56e"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 2,
+      "title": "Add Two Numbers",
+      "topic": "Linked List",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "L04"
+          ],
+          "requiredVariation": "Continue while either list or carry remains; zero-pad exhausted lists and allocate one node per output digit.",
+          "javascriptSha256": "91651f928b496aef9465355ec2821f043ee6de91e21225c6da52074f387971f3",
+          "pythonSha256": "96f820d36293a1c1b7a5bf1b0f8631d0addf6c96bc401bcc588bc970c31ec65d"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 287,
+      "title": "Find The Duplicate Number",
+      "topic": "Linked List",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "L02"
+          ],
+          "requiredVariation": "Treat values as successor indices without mutating the array; after a meeting, reset one pointer and locate the cycle entrance.",
+          "javascriptSha256": "defd21266adeae9c41537875b83b6672d86282377888fe83e99f6e3dcd7d0dfb",
+          "pythonSha256": "7bc20d2729cc92c2fada30d140220040a9d3eba700ee564b725c740f56a20065"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 92,
+      "title": "Reverse Linked List II",
+      "topic": "Linked List",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "L01"
+          ],
+          "requiredVariation": "Keep the node before the segment and its original first node; repeatedly insert the next node at the segment front.",
+          "javascriptSha256": "f712b9ad09b2702d77ed474d724754d55a50fc334726be1ea0450ad8f4aa3759",
+          "pythonSha256": "ae943ea2fc8781c4da3caeb2f4f8cda97f350666f37f6e1320deaf73fac8fd7f"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 622,
+      "title": "Design Circular Queue",
+      "topic": "Linked List",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "L05"
+          ],
+          "requiredVariation": "Use head and count to distinguish empty/full; wrap insertion and rear indices within fixed capacity.",
+          "javascriptSha256": "c0faacdb05447eb3d10cc817fb945cc98fb173eca6d8cb2ffe3a73ef8e80a121",
+          "pythonSha256": "3b73d5789b2b54d08f69268f2438ff042ffe09c0ebafc2e928c7875ba926c1fb"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 146,
+      "title": "LRU Cache",
+      "topic": "Linked List",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "L06"
+          ],
+          "requiredVariation": "Hash lookup plus doubly linked sentinels; reads and writes update recency, and eviction removes both map and list entries.",
+          "javascriptSha256": "2971768cf6193d73c1093c11a790f81dfff5f368e3aacddcd8c5b4e296caaea5",
+          "pythonSha256": "c2fc2724cb494b429d127e874402ae0b5b7d5f03a3638862ba583c69fb0a07fc"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 460,
+      "title": "LFU Cache",
+      "topic": "Linked List",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "S07",
+            "L06"
+          ],
+          "requiredVariation": "Track key frequency, ordered keys per frequency, and minimum frequency; evict the oldest key in the minimum bucket and update frequency even on reads.",
+          "javascriptSha256": "555e4abe07409ad382b7986fe7af191ad5b3c6e1014c017601d9a94e9dd568f6",
+          "pythonSha256": "5d6a1a6ea50120c8f38d062c9d729cbf661c8b1a1a52af8406dcef2b82509a9d"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 23,
+      "title": "Merge K Sorted Lists",
+      "topic": "Linked List",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "H03",
+            "P02"
+          ],
+          "requiredVariation": "Keep one node per list in the heap; after appending the smallest node, enqueue only its successor.",
+          "javascriptSha256": "e386b6110b6d18efc898b743ab066510d83e1737645d17bde1bbc6ec944e8bd3",
+          "pythonSha256": "03bc861bd2e78026568bebb3abf57dcc2e1698d85c6a645d3a9113af456df840"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 25,
+      "title": "Reverse Nodes In K Group",
+      "topic": "Linked List",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "L01"
+          ],
+          "requiredVariation": "Verify k nodes exist before rewiring; reverse exactly k and reconnect the untouched or recursively processed suffix.",
+          "javascriptSha256": "d08cf332a7001d82403f6f223ad76aedb1ff373c0157fd6afd37205a2801489b",
+          "pythonSha256": "778585320946a7f064a98ef4d3ff4422af2572f810f0317ba2122ff59aea1bd2"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 94,
+      "title": "Binary Tree Inorder Traversal",
+      "topic": "Trees",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "T01"
+          ],
+          "requiredVariation": "Push the full left path, visit the popped node, then enter its right subtree.",
+          "javascriptSha256": "a80f37c110bcce0f30ce2302c54d4cd5659f096b7e857917dacdd8d00692b82d",
+          "pythonSha256": "0fe27df5452ae64f07ec2d3fb7e60d32c31ad6d927f0c9324229232be2d13ddb"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 144,
+      "title": "Binary Tree Preorder Traversal",
+      "topic": "Trees",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "T01"
+          ],
+          "requiredVariation": "Visit before children; push right before left so the stack visits left first.",
+          "javascriptSha256": "26015554af13733e9390977998ae04f7f4b00104cbb09f2a70bd2e170d5d58c6",
+          "pythonSha256": "37f59b2205b01bc1d8ebe8b616e41876f68ef839a9509686220045874de36eee"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 145,
+      "title": "Binary Tree Postorder Traversal",
+      "topic": "Trees",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "T01"
+          ],
+          "requiredVariation": "Current implementation records root/right/left then reverses output; postorder consumers need child results before processing the parent.",
+          "javascriptSha256": "f7297bf2460921cd819b9aef5efad8968a7d5f18004fa1867cc9c8e2d6b26566",
+          "pythonSha256": "47c7c177662d924ae7a857ad89f9403e4efca41c53afa1bf61831cc6785cd389"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 226,
+      "title": "Invert Binary Tree",
+      "topic": "Trees",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "T01"
+          ],
+          "requiredVariation": "Swap both child references at every node and visit the swapped subtrees.",
+          "javascriptSha256": "a7f65e7e3428e6b27467a2b6dc043817616d23c8adcbd39b87c6512be9626798",
+          "pythonSha256": "242e79aec0f9d02486328ecf3a9221ed181497bc5089143b9b6af16039cec42c"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 104,
+      "title": "Maximum Depth of Binary Tree",
+      "topic": "Trees",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "T02"
+          ],
+          "requiredVariation": "Return zero for null and one plus the greater child depth; height is the returned summary.",
+          "javascriptSha256": "2a398809da3995989d4b6a6418e12f67bda9d06012fbdb1ab373c9d29c318191",
+          "pythonSha256": "1a040715aad73d2bd87d7ae429194937a4d40b4d78c4286bd7839d3aebcd9ff9"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 543,
+      "title": "Diameter of Binary Tree",
+      "topic": "Trees",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "T02"
+          ],
+          "requiredVariation": "Return a one-branch height but update the best path with both child heights; measure diameter in edges.",
+          "javascriptSha256": "1be9dc80ea7d6ff2614cb38cd606d69b8da2d0ae701f808eb811f16490b12224",
+          "pythonSha256": "a1929b25ac56f261c12a6f20ccd9669e2ce5103f20a4aebd6aa7ca47cbf68134"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "Existing comment and explanation call the returned height an edge count, but null returns 0 and a leaf returns 1, so returned heights count nodes. Adding the child heights correctly gives the through-node diameter in edges.",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 110,
+      "title": "Balanced Binary Tree",
+      "topic": "Trees",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "T02"
+          ],
+          "requiredVariation": "Use -1 to propagate an unbalanced subtree instead of repeatedly recomputing heights.",
+          "javascriptSha256": "6affa40a1b55a44652ff8f15949d195a136195365af6b11be2b054cb7dcb1854",
+          "pythonSha256": "a5e50ddf3cc4499c02e49308f3752869666b700f6016a19a9268c4855a83a4f5"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 100,
+      "title": "Same Tree",
+      "topic": "Trees",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "T03"
+          ],
+          "requiredVariation": "Compare null structure as well as values, then both corresponding child pairs.",
+          "javascriptSha256": "13ccc14416c6a9939f55b26ffe0784e529dd4b1c4dc432c3fe8731f50cc8b80c",
+          "pythonSha256": "8c22478860a54a71a7fd432735f587513bcc2076463741e22d4115d0309d0109"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 572,
+      "title": "Subtree of Another Tree",
+      "topic": "Trees",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "T03",
+            "T01"
+          ],
+          "requiredVariation": "Try structural equality at every candidate root; equality of just the root value is insufficient.",
+          "javascriptSha256": "6cc65a361a1749dcd0d3f6111f68632ccef3119193a0c51dd1d1f767566e11de",
+          "pythonSha256": "7143516373d6112e5b1265ffb9997de6e35b0b55395d67aff5de1b7c5de91cc0"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 235,
+      "title": "Lowest Common Ancestor of a Binary Search Tree",
+      "topic": "Trees",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "T05"
+          ],
+          "requiredVariation": "Move toward both targets while they lie on one side; the first split or matching ancestor is the answer.",
+          "javascriptSha256": "38f1eabccb9a46d12618d57cd50813135f4db92118ac0455cafc50362199f8d6",
+          "pythonSha256": "61ffe3197e2f3a5ebe0a5e7a36ad92f84a34e427e569b98c41fb8184cbaf5eb7"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 701,
+      "title": "Insert into a Binary Search Tree",
+      "topic": "Trees",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "T05"
+          ],
+          "requiredVariation": "Navigate by key comparisons and reconnect the recursive subtree result at the insertion point.",
+          "javascriptSha256": "be22d4936108430d436375f36eb5d3f03c63a44bc2ea65e00b1695fb3b7caa87",
+          "pythonSha256": "c0f2f3a7ad8ac0e2060e7cd6839d9cb4e431f0614e8f0524019747359368f010"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 450,
+      "title": "Delete Node in a BST",
+      "topic": "Trees",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "T05"
+          ],
+          "requiredVariation": "Handle zero/one child replacement and two-child successor substitution followed by deletion of that successor.",
+          "javascriptSha256": "4082d91b8d87dd5ddfdc8db8da4df2cbeacd215815bde8ec57e4dc37f1253ff3",
+          "pythonSha256": "8a66c796bb9c3b2b94aae34694994d040f215b4eac759c83cfeca36b5593684a"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 102,
+      "title": "Binary Tree Level Order Traversal",
+      "topic": "Trees",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "T06"
+          ],
+          "requiredVariation": "Capture queue length before a level so children belong to the next level.",
+          "javascriptSha256": "7124d4cc51af0b339eb8fd45a804f715a2aa7093f0a68036edf73a6e5ff5f506",
+          "pythonSha256": "d9c2f32df25387fcd2a7e123d1aca17c7fba94ba9c2701c90e6c8a3ad1293f17"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 199,
+      "title": "Binary Tree Right Side View",
+      "topic": "Trees",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "T06"
+          ],
+          "requiredVariation": "With left-to-right queue order, keep the last item of each fixed-size level.",
+          "javascriptSha256": "6ec158798b8b8245ad07a6d68265a4d8e20195a0586596df6eb008552a948e3b",
+          "pythonSha256": "4cecf2b5d8b60c74c35e41362ed7480e467652c4eff2b532baad1a01d3175e40"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 427,
+      "title": "Construct Quad Tree",
+      "topic": "Trees",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "T10",
+            "T02"
+          ],
+          "requiredVariation": "Split a square into four quadrants; collapse only when all four children are leaves with the same value.",
+          "javascriptSha256": "2acb80fe56fa44ef2d0650b32c41a8d90f0bbeb5f95c77d365e4b0ad1f699eae",
+          "pythonSha256": "998f00d3d00662d4ba77649be8b071136945668345bda4c48150a5c38c51ab4a"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 1448,
+      "title": "Count Good Nodes In Binary Tree",
+      "topic": "Trees",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "T04"
+          ],
+          "requiredVariation": "Carry the maximum from the current root-to-node path, not a global maximum from unrelated branches.",
+          "javascriptSha256": "a896ebec683b161350c90d38918fa58b40b37c2892de363d7e7807f1d9f385fb",
+          "pythonSha256": "0c2f0f56d56ae988caa1cc849b5686686547235208248368731471017c30ae50"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 98,
+      "title": "Validate Binary Search Tree",
+      "topic": "Trees",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "T04",
+            "T05"
+          ],
+          "requiredVariation": "Pass strict ancestor bounds; checking each node only against its immediate children is insufficient.",
+          "javascriptSha256": "12951c4c721218cfa7641ec6f562a62d74ee3401ad5ba01abc42eef6e4b028e4",
+          "pythonSha256": "6d4f7d48c2b05dafcb67e5a3e1183b20552c97d2d6c897583a172c73fdb971ed"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 230,
+      "title": "Kth Smallest Element In a Bst",
+      "topic": "Trees",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "T01",
+            "T05"
+          ],
+          "requiredVariation": "Inorder traversal of a BST produces sorted values; stop at the kth visited node.",
+          "javascriptSha256": "6b67086752d5d021e7500d055403983e14f8ec1e9d6fefb948437b97e607a24f",
+          "pythonSha256": "76b7d47c616cf387c5617521851a50f3179a4a88f50e9a0cff09bb320988f409"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 105,
+      "title": "Construct Binary Tree From Preorder And Inorder Traversal",
+      "topic": "Trees",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "T07"
+          ],
+          "requiredVariation": "Consume preorder root/left/right while a value-to-inorder-index map identifies subtree bounds; unique values are assumed.",
+          "javascriptSha256": "e232d61e2ba01058eb8593bcd805b9378add2c653bf472d67e0bf24b10c7a7b9",
+          "pythonSha256": "e1a3ff07b7757659d740c0c978f89a20785a137ce133d0a88664bcc92fb8c26f"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "Existing explanation incorrectly says preorder is left-root-right; code correctly consumes root-left-right. Flagged here, not edited during this audit.",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 337,
+      "title": "House Robber III",
+      "topic": "Trees",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "T09"
+          ],
+          "requiredVariation": "Return take/skip states: taking a parent forces skipping children; skipping permits each child's better state.",
+          "javascriptSha256": "49afd7110067218e2b2a6ecaa1b8b1f4080fe651a1c913da97e49caf4c6f871b",
+          "pythonSha256": "404d7bc00be6ba796f612e175c79f1855068f099ebccd59e630342e272155555"
+        }
+      ],
+      "scopeOverlaps": [
+        "Dynamic programming: take/skip states on a tree, despite placement in Trees."
+      ],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 1325,
+      "title": "Delete Leaves With a Given Value",
+      "topic": "Trees",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "T02"
+          ],
+          "requiredVariation": "Process and reconnect children before deciding whether the current node has become a removable leaf.",
+          "javascriptSha256": "54aa47c063efb44544a145e88f26ef9ee0ce4c043f6e7977f3ff0c13d0fd0c69",
+          "pythonSha256": "3137ed4939e12e41dbaf55d6d8fbab92a2431f8c03c8e20bca56d6dd82d46c60"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 124,
+      "title": "Binary Tree Maximum Path Sum",
+      "topic": "Trees",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "T02"
+          ],
+          "requiredVariation": "Clamp negative child gains to zero; update a through-node best but return only one branch, and handle all-negative trees.",
+          "javascriptSha256": "d01566369131570f553f84b621f0ffce63d1fd80a49523a64d90d23b5bd317a9",
+          "pythonSha256": "46231bc98931ac10d0d6debecdd2399ea927b511c03ce2c390be39fbace3b780"
+        }
+      ],
+      "scopeOverlaps": [
+        "Dynamic programming viewpoint: reuse optimal downward subtree gains; taught here as postorder aggregation."
+      ],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 297,
+      "title": "Serialize And Deserialize Binary Tree",
+      "topic": "Trees",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "T08"
+          ],
+          "requiredVariation": "Include null tokens to preserve shape; decoding must consume tokens in the same preorder grammar.",
+          "javascriptSha256": "a500d4ab2d7f4df837c4ae8f12012095f01a1b64117b207561fb55cad4460377",
+          "pythonSha256": "83faab4390911331512e65a6a85a5c573732439e000dc00a3936373a4f773c28"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 703,
+      "title": "Kth Largest Element In a Stream",
+      "topic": "Heap / Priority Queue",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "H01"
+          ],
+          "requiredVariation": "Keep at most k largest arrivals in a min-heap; repeated add calls maintain the invariant across time.",
+          "javascriptSha256": "df8ce868d7797a363cb5b64518b05e18a4596bab42f8086e91533b5e094770b8",
+          "pythonSha256": "122c09db406e2fb0d9292ee8d676f4fd3277b96efca9938bd13ea9e04878f327"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 1046,
+      "title": "Last Stone Weight",
+      "topic": "Heap / Priority Queue",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "H02"
+          ],
+          "requiredVariation": "Extract the two maximum weights, reinsert a positive difference, and handle zero or one survivor.",
+          "javascriptSha256": "921bd3018a3b90641a7e87ec429d46c2de54a0f175c7b66b81a4e7637ff0e42c",
+          "pythonSha256": "c7ee298c574148bc1da2e2faed19e7f9774e372e3816f719c417f309189886e5"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 973,
+      "title": "K Closest Points to Origin",
+      "topic": "Heap / Priority Queue",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "H01"
+          ],
+          "requiredVariation": "Rank by squared distance; a max-heap of k retained points evicts the farthest without computing square roots.",
+          "javascriptSha256": "7e88564d6ede9cf5e6df0023ac378da68bb313603f7bf71ef99badae4dc98b49",
+          "pythonSha256": "34dc067d8367619ef26c1b641a966b96586184e201c2ee9994e7b3cc1c2d439c"
+        }
+      ],
+      "scopeOverlaps": [
+        "Geometry: squared Euclidean distance provides the heap priority."
+      ],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 215,
+      "title": "Kth Largest Element In An Array",
+      "topic": "Heap / Priority Queue",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "A08"
+          ],
+          "requiredVariation": "Randomized three-way quickselect narrows around sorted index n-k; the equal band prevents duplicate-heavy degeneration.",
+          "javascriptSha256": "89688f82942dc28e362301edb8ed3e994e1ad6daabc7f6b48dd2a6b8158bb566",
+          "pythonSha256": "201869ecd330053afa4d31ddab53e18eddb764f354e52dbedeb6903b71ab7321"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "Placed under Heap / Priority Queue, but the current solution is three-way randomized quickselect.",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 621,
+      "title": "Task Scheduler",
+      "topic": "Heap / Priority Queue",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "H07",
+            "A03"
+          ],
+          "requiredVariation": "Maximum frequency, number tied for it, and cooldown determine a frame lower bound; take max with total task count.",
+          "javascriptSha256": "ba8b14d64e24cf302f27f6bff25958e4fd9aef46c25e242db6722e81bb3892f9",
+          "pythonSha256": "9ec3d069e17b90403c1f879af6a12288a5bbbdf70e0bcdb5aa5ebf6c681f7111"
+        }
+      ],
+      "scopeOverlaps": [
+        "Greedy and counting formula: maximum-frequency cooldown frames; no heap in the displayed solution."
+      ],
+      "sourceNotes": "Placed under Heap / Priority Queue, but the current solution counts frequencies and applies a formula.",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 355,
+      "title": "Design Twitter",
+      "topic": "Heap / Priority Queue",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "H03",
+            "A03"
+          ],
+          "requiredVariation": "Merge each followed user's newest-first stream, include self, and cap output at ten; JS repeatedly sorts candidates, Python uses a heap.",
+          "javascriptSha256": "9de98c73c15e09d1fbb28bcabbc4d223d57c01ae9bb61abecbc64aa5c5017419",
+          "pythonSha256": "5133599b03ae8d494a11bb5cf81b398a3c0f34af7ff1fb56f63b0902efc1a49f"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "The prose calls this a heap merge. JavaScript actually re-sorts the active stream candidates; Python uses heapq. Same stream invariant, different selection cost.",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 1834,
+      "title": "Single Threaded CPU",
+      "topic": "Heap / Priority Queue",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "H04"
+          ],
+          "requiredVariation": "Sort arrivals, enqueue all tasks available at current time, select by duration then original index, and jump time when idle.",
+          "javascriptSha256": "5d98c422805445140d14d490bf2ecb49f20284cb2d9a4622fcaf16f617541f67",
+          "pythonSha256": "ac84fe2d1b5422a0f17057a974fae4e0adce8e374ba1c13d84ed0321ce96bda2"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 767,
+      "title": "Reorganize String",
+      "topic": "Heap / Priority Queue",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "H02",
+            "A03"
+          ],
+          "requiredVariation": "Hold the last character out for one choice, reinsert its remaining count afterward; JS sorts candidates, Python uses a heap.",
+          "javascriptSha256": "1a41f48d4aee6eb9cb14dccc234f7673779e6a023df30484979ce8ce88739e29",
+          "pythonSha256": "56063d8d8375a293ba2d18f6a62f7ca2dc40516377d50c439a23b813921cc9e0"
+        }
+      ],
+      "scopeOverlaps": [
+        "Greedy: select the most frequent currently eligible character."
+      ],
+      "sourceNotes": "JavaScript uses repeated sorting while Python uses a heap. Do not teach the JavaScript snippet as heap push/pop execution.",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 1405,
+      "title": "Longest Happy String",
+      "topic": "Heap / Priority Queue",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "H02"
+          ],
+          "requiredVariation": "If the highest-count character would make three equal characters, use the next candidate or stop; reinsert unconsumed counts.",
+          "javascriptSha256": "50d73fd65250293b5250be7cfe049a08bc80c8cbe75e089b8b0034e5d6a73b85",
+          "pythonSha256": "740ea22b7d716077f8b2537337f8d82c5a5200a27665a4b60c1fd95d06e76c85"
+        }
+      ],
+      "scopeOverlaps": [
+        "Greedy: select the largest feasible remaining character count."
+      ],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 1094,
+      "title": "Car Pooling",
+      "topic": "Heap / Priority Queue",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "H06"
+          ],
+          "requiredVariation": "Add at pickup and subtract at dropoff, then prefix-scan load; dropoff frees capacity at that same coordinate.",
+          "javascriptSha256": "a76fef629c4a66c04c7f583b8ac94b5504c6bd1cccf99f7dc8cf3b6aee2b8783",
+          "pythonSha256": "ac1725c6f6510543a085c9dd9a3c4c2aa2ae96d7624f652e2992fe893ca16fc0"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "Placed under Heap / Priority Queue, but the current solution is a difference array and prefix scan.",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 295,
+      "title": "Find Median From Data Stream",
+      "topic": "Heap / Priority Queue",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "H05"
+          ],
+          "requiredVariation": "Enforce both ordering between halves and size difference<=1; median comes from one root or the two roots.",
+          "javascriptSha256": "f57d224b4c5cdacf8066eaa8718a9f04757346df143651181cda3647dc491ed5",
+          "pythonSha256": "d788dd2477ea9b72f1e8049af489d1fe0b2d007d5221ccc3c27f4ebec1ab3675"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 502,
+      "title": "IPO",
+      "topic": "Heap / Priority Queue",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "H04"
+          ],
+          "requiredVariation": "Move newly affordable projects into a profit max-heap and choose at most k; increased capital changes later eligibility.",
+          "javascriptSha256": "c1615c9901b5a53bad8ddb7409744283f5934a20c3d0cf4909be09016778afdb",
+          "pythonSha256": "14bd467f9646714d2036d2af465a5ae27a571e0933d78d46d8606a3cfd21e6d9"
+        }
+      ],
+      "scopeOverlaps": [
+        "Greedy: choose the largest affordable nonnegative profit to maximize later eligibility."
+      ],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 1863,
+      "title": "Sum of All Subsets XOR Total",
+      "topic": "Backtracking",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "R01"
+          ],
+          "requiredVariation": "Include/exclude each value while carrying a running XOR and sum leaf results; the aggregation itself requires XOR.",
+          "javascriptSha256": "335b1816762883179b40a8311dd4032b44ca426788d1fd43b9a1bc4a0c6227af",
+          "pythonSha256": "c48a721597787f40c4441c12e1b3991571b3817d46a00c9a3b40a47cc8c82fc5"
+        }
+      ],
+      "scopeOverlaps": [
+        "Bit manipulation: XOR aggregation is part of the problem, not merely an implementation detail."
+      ],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 78,
+      "title": "Subsets",
+      "topic": "Backtracking",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "R01"
+          ],
+          "requiredVariation": "Record every recursion node as a subset; advance start past a chosen position and copy the path.",
+          "javascriptSha256": "632622ff7335eeebf1fb1415d816166a3746d72dde53518cdf995bfb5e9ff159",
+          "pythonSha256": "cd3ffc84f70edeedb0b544af0550db431082821b6e6f5302f8ed59eb0afd8035"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 39,
+      "title": "Combination Sum",
+      "topic": "Backtracking",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "R01"
+          ],
+          "requiredVariation": "Candidates are reusable, so recurse with the same index; positive sorted values permit remaining-target pruning.",
+          "javascriptSha256": "94dd511c2fa937ffe82da94b9ace0ee7499b300c53f3d4ab1c5667399264bd8e",
+          "pythonSha256": "36d8945266e6f617727459481668af56a467f26fae595f786de304df7137e930"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 40,
+      "title": "Combination Sum II",
+      "topic": "Backtracking",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "R01"
+          ],
+          "requiredVariation": "Use each position once, recurse at i+1, and skip equal values only at the same recursion depth.",
+          "javascriptSha256": "6c9d9602af7a3e9ceb010e5ba31e3af1da23b3ea53f4a104ab4da4a189072559",
+          "pythonSha256": "4471a07fef00a308dbc99a98e9de894911abadd27ed1f1d61bc1a5b7850c2453"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 77,
+      "title": "Combinations",
+      "topic": "Backtracking",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "R01"
+          ],
+          "requiredVariation": "Record only paths of length k; stop choices early when too few remaining values can complete the path.",
+          "javascriptSha256": "dd2a1bcd274dc994f8b7a69b95571fe762b1bbde5cf995780abb1da9f0d877c9",
+          "pythonSha256": "f13476610ac706b889315e05eeeab5da738ba0204a202606b44bfe1cb51ea899"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 46,
+      "title": "Permutations",
+      "topic": "Backtracking",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "R02"
+          ],
+          "requiredVariation": "Choose any unused index; undo both the chosen value and its used marker.",
+          "javascriptSha256": "8fff23afcf166310f9aff5111da7aa88a49584ccdd9d0126e67c07f1659b2fa6",
+          "pythonSha256": "4683a589f218c64a79ec86b87a58daa73fa9884c6ebfa11256da54f0970b2dae"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 90,
+      "title": "Subsets II",
+      "topic": "Backtracking",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "R01"
+          ],
+          "requiredVariation": "Sort and skip duplicates only when i>start; duplicates may still appear together deeper in a subset.",
+          "javascriptSha256": "37f86a1e699d0b5af20154fc38e4db101e24c593cef1a55a27c473266d449327",
+          "pythonSha256": "49d702e4947f5b2983fd5e46993963d54f67b673239607bcb0110fa4965505ae"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 47,
+      "title": "Permutations II",
+      "topic": "Backtracking",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "R02"
+          ],
+          "requiredVariation": "For equal values, require the previous equal index to have been used on this path before using the next one.",
+          "javascriptSha256": "8c21a568429713c102bd749b775a33f42165f72f4da858e7ecaf960ffee83c27",
+          "pythonSha256": "be6f8633d6d65a11fa0f3d705b1d1bdefd961170077920c7fd76ca41d27764b8"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 22,
+      "title": "Generate Parentheses",
+      "topic": "Backtracking",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "R03"
+          ],
+          "requiredVariation": "Open count cannot exceed n; close count cannot exceed open count, so invalid prefixes are never generated.",
+          "javascriptSha256": "e01b992a258b86675ddd2c6c87268b12ada7d5e8c329b9d2c5224440d31ff943",
+          "pythonSha256": "c2c964bde14f970429ccd8463f75ab8bf9e24e82b911fbd1b546adc2679652a5"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 79,
+      "title": "Word Search",
+      "topic": "Backtracking",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "R04"
+          ],
+          "requiredVariation": "Marks belong to one candidate word path and must be restored even after finding a matching continuation.",
+          "javascriptSha256": "cb6fcb3204bf5b40b6fdd41da518225c066773cd237a63988d06313c42bb41af",
+          "pythonSha256": "37457b38a44077c26578cbc7cbba42e5dfcaf829b72c3502409b2ebcea710ded"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 131,
+      "title": "Palindrome Partitioning",
+      "topic": "Backtracking",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "R05",
+            "P01"
+          ],
+          "requiredVariation": "Try each next cut, validate the chosen substring as a palindrome, then recurse on the remaining suffix.",
+          "javascriptSha256": "122b545548fbe956ac7166249221b9943a7b604c5e07d6bab29aabb2eb8a3298",
+          "pythonSha256": "aedcd2207ec10cc505a01f4c30a3feedffc3da5ac6c897dac79e67144d28bdd1"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 17,
+      "title": "Letter Combinations of a Phone Number",
+      "topic": "Backtracking",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "R03"
+          ],
+          "requiredVariation": "Each input position has its own allowed character set; this is a Cartesian product, with empty input returning no combinations.",
+          "javascriptSha256": "35aa8f16f05d24c22aba5e3c11e1b90c07f5208e0c40db78284104252c481d5d",
+          "pythonSha256": "d296dbeb2616e0d14089976176c3b12ccada65d7b375b0237c2d16cfb6a5ad19"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 473,
+      "title": "Matchsticks to Square",
+      "topic": "Backtracking",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "R06"
+          ],
+          "requiredVariation": "Require a divisible total, place large sticks first, and skip sides with equal current sums; undo unsuccessful placements.",
+          "javascriptSha256": "e644ef99ffd0b462541941fb2affe89271eb12f513d2f9e71c1d3774bcbf5e26",
+          "pythonSha256": "60a4c7612c8a7d622e02cd6a3f4c3b8331e6da32565e55780aed00f65f833900"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 698,
+      "title": "Partition to K Equal Sum Subsets",
+      "topic": "Backtracking",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "R06"
+          ],
+          "requiredVariation": "Generalize to k target-sum buckets; reject oversized items and try each distinct current bucket sum only once per level.",
+          "javascriptSha256": "a855aa2b5f039ce3173aafd99ad8203633edcdee4f31a8c6431cadb672d091a5",
+          "pythonSha256": "363e35c4edd7e1e91bad1fde9cbcbb14d44744b4ea398d35e3c1bb1bf6a39a5d"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 51,
+      "title": "N Queens",
+      "topic": "Backtracking",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "R07"
+          ],
+          "requiredVariation": "Place one queen per row; track column, row+column, and row-column attacks and restore all three after recursion.",
+          "javascriptSha256": "1448cfd58da2b2a52f0feb311181e227fa4cd20af0e34da34bfb73e274eaf14f",
+          "pythonSha256": "4df930df657e1fe74bb3e2c9cf4854fc38fad67135369ebcd062e9a18c31b54b"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 52,
+      "title": "N Queens II",
+      "topic": "Backtracking",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "R07"
+          ],
+          "requiredVariation": "Use the same attack-state search but count completions instead of materializing boards.",
+          "javascriptSha256": "075ebee70ca25066b71cf1d0ae3afee0e10217f105075e926acccbd89bce736b",
+          "pythonSha256": "365246cd2b8fb55e997839cae064ec4f850af5823fecec290bcc1c4d0a7c92d7"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 140,
+      "title": "Word Break II",
+      "topic": "Backtracking",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "R08",
+            "R05"
+          ],
+          "requiredVariation": "Memoize all valid sentences for each suffix; combine each valid word with every completion and retain the empty completion base case.",
+          "javascriptSha256": "5b51999d11076a18b97e20ee24528823ab3a0a6182858df0126feef1f192ff45",
+          "pythonSha256": "07f25d0a50335ebaa04c8c466221c4513bc2b1f81b79392627a3e7a49ac45596"
+        }
+      ],
+      "scopeOverlaps": [
+        "Dynamic programming: memoized suffix enumeration."
+      ],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 208,
+      "title": "Implement Trie Prefix Tree",
+      "topic": "Tries",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "TR01"
+          ],
+          "requiredVariation": "Distinguish end-of-word from an existing prefix; insertion creates missing children without overwriting existing branches.",
+          "javascriptSha256": "528e96caa32fe99b8d9fd0f5d27d6e2ab64f513e514862b6b70d7a9b5af60dbd",
+          "pythonSha256": "f16ef686e7abdac87b132a22810214bbbc36d99781cf89023bd984db17693ccc"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 211,
+      "title": "Design Add And Search Words Data Structure",
+      "topic": "Tries",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "TR02",
+            "TR01"
+          ],
+          "requiredVariation": "A dot branches over real character children; an exhausted query succeeds only at an end marker.",
+          "javascriptSha256": "db33b82941c9a71616929fbb23d2fbeef8875c7278c20ce17176c0d6a7a99e37",
+          "pythonSha256": "ee3932f92c0a5466a1d80261385792a1ee28332455d09be23b225bd63c47b09b"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 2707,
+      "title": "Extra Characters in a String",
+      "topic": "Tries",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "TR04"
+          ],
+          "requiredVariation": "Current solution is prefix DP with a dictionary set, not a trie; compare skipping one character with completing every matching word.",
+          "javascriptSha256": "9aac4f4877af128309a088afc49b5d1b3a913a7551cd3f1c91f845d15d43db4d",
+          "pythonSha256": "f1648c6f26e6856cb860af47cd8b1ca70e91c4633ecb20f079e7d0cbc46065c1"
+        }
+      ],
+      "scopeOverlaps": [
+        "Dynamic programming: prefix segmentation table; the displayed solution contains no trie."
+      ],
+      "sourceNotes": "Placed under Tries, but the current JavaScript and Python are dictionary-set DP.",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 212,
+      "title": "Word Search II",
+      "topic": "Tries",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "TR03",
+            "TR01",
+            "R04"
+          ],
+          "requiredVariation": "Follow trie prefixes while marking the current board path; remove a found terminal to avoid duplicates and delete exhausted branches.",
+          "javascriptSha256": "a9ae69f7c9356d2b0d089b081974816a46148cbba1bb34648530aa3b9794cf28",
+          "pythonSha256": "fc197dd71496b45bd671482cfefd81a553fd90f40e599dad04cf8b0fed9bda21"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 463,
+      "title": "Island Perimeter",
+      "topic": "Graphs",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "G01"
+          ],
+          "requiredVariation": "Count four edges per land cell and subtract two per already-counted shared boundary; traversal is unnecessary.",
+          "javascriptSha256": "70df0a58b575c98b2117aeb5ecf0e06b7da3cd8d1caac5902156ce86dd893a7f",
+          "pythonSha256": "ffcdfff856ba1922ed3b9aae96cf5a8eaa68d23d78d54a6fdaef5e7c54efd94d"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 953,
+      "title": "Verifying An Alien Dictionary",
+      "topic": "Graphs",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "G02"
+          ],
+          "requiredVariation": "Use supplied character ranks, stop at the first mismatch, and reject a longer word before its own prefix.",
+          "javascriptSha256": "efb6130473421d2df746c2edc726c675c270b5ca6f5cc1714b813bf6387e4925",
+          "pythonSha256": "632800ef68103ef232210956e0719f37b43784e26a06d12952d721c12c627533"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 997,
+      "title": "Find the Town Judge",
+      "topic": "Graphs",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "G01"
+          ],
+          "requiredVariation": "Increment inbound and decrement outbound trust balance; the judge must reach n-1 under the distinct-edge constraints.",
+          "javascriptSha256": "d34efb2d8b7f93b4735c276847e71d11312fcf57d65fde716f72916989e81bf8",
+          "pythonSha256": "809207c4733d017209e60e6e11e6ea4b84e862b7c856434081b189f32da35d91"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 200,
+      "title": "Number of Islands",
+      "topic": "Graphs",
+      "versions": [
+        {
+          "name": "Recursive DFS",
+          "patterns": [
+            "G03"
+          ],
+          "requiredVariation": "Restart traversal on each unvisited land cell; recursive and iterative versions mark land permanently for component discovery.",
+          "javascriptSha256": "9338e5addff3cda6887458fe621f5af0081980a46a790560eedd221c7424a40c",
+          "pythonSha256": "d9e3f1b41b59ac8269acd3aa9759352b8247848be49b68983226b84f4ce6a4aa"
+        },
+        {
+          "name": "Iterative DFS (explicit stack)",
+          "patterns": [
+            "G03"
+          ],
+          "requiredVariation": "Use an explicit stack and mark before pushing; each land cell is scheduled once.",
+          "javascriptSha256": "98c1ae3904b5a947eb7622d54c8f721d50165a78727735fc273b62f6c944ee75",
+          "pythonSha256": "8908850f7dfd1f9dbbb1af7ca3e3890be053c10ccc4dbabb5278f071a58e100b"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 695,
+      "title": "Max Area of Island",
+      "topic": "Graphs",
+      "versions": [
+        {
+          "name": "Recursive DFS",
+          "patterns": [
+            "G03"
+          ],
+          "requiredVariation": "Count cells within each component and track the largest area; iterative version counts on pop and marks on push.",
+          "javascriptSha256": "a4fb8336fe980925401a2e5af9de0ed6f5274bf4592f0ddffed2cf3bef7f8328",
+          "pythonSha256": "dcb85db6e8f5052ba61f0994a8dd7f15ef6c75c88e33bb616579952b594eea8f"
+        },
+        {
+          "name": "Iterative DFS (explicit stack)",
+          "patterns": [
+            "G03"
+          ],
+          "requiredVariation": "Use an explicit stack, mark before pushing, and maintain a component area counter.",
+          "javascriptSha256": "d8b1cfd4efda1a43cd1e6f369acf8fc4f59b97678f69ac196ad88bea58a84985",
+          "pythonSha256": "e6bc28509b7627e4703e88ce0c0cba93641b7e852b1917b8e8b193d0ff49b67f"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 133,
+      "title": "Clone Graph",
+      "topic": "Graphs",
+      "versions": [
+        {
+          "name": "Recursive DFS",
+          "patterns": [
+            "L03",
+            "G03"
+          ],
+          "requiredVariation": "Register a clone before exploring neighbors to preserve cycles and shared identities; recursive and iterative versions differ only in traversal control.",
+          "javascriptSha256": "4604515b166841d56427ba571ef7ff0323e2f8dc6d0fb99e3b1fc4de2667de31",
+          "pythonSha256": "944da9459d31a87b38e4ad37191b4ab88cb2bf734a2278dd42eba6c5a0f260fc"
+        },
+        {
+          "name": "Iterative DFS (explicit stack)",
+          "patterns": [
+            "L03",
+            "G03"
+          ],
+          "requiredVariation": "Create/map clones when discovered and wire all neighbor references while processing an explicit stack.",
+          "javascriptSha256": "b86568ffd01022637c5db32929d0b7be7982a036e0446bfb9409e020bb654a3b",
+          "pythonSha256": "a00bd487f39e1320f6f64616145e22830cdf5bcd651124f1783fb86cedd5a4c5"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 286,
+      "title": "Walls And Gates",
+      "topic": "Graphs",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "G04"
+          ],
+          "requiredVariation": "Seed all gates, write distance at discovery, and expand only unfilled rooms so walls and previous discoveries are preserved.",
+          "javascriptSha256": "d2e3cd3ca21a6bfec345f9f9d5d3e6baddc3a383e988d9c74bfa217f8972d0a4",
+          "pythonSha256": "2b95abcf601c493e59f1e1cf74e80f0ebb3ee00455f93010c811f0f1d835486f"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 994,
+      "title": "Rotting Oranges",
+      "topic": "Graphs",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "G04"
+          ],
+          "requiredVariation": "Seed all rotten cells, count fresh cells, and advance in fixed layers; distinguish no fresh cells from unreachable fresh cells.",
+          "javascriptSha256": "a97170c6318a026506e94f76699298ec89c3e0db836dacfb45d3328fbef6fa47",
+          "pythonSha256": "bbe84e2000312b7bdeb2ab350777997f4bc84e316e7755ff9bf3714dd3f3fa71"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 417,
+      "title": "Pacific Atlantic Water Flow",
+      "topic": "Graphs",
+      "versions": [
+        {
+          "name": "Iterative DFS (coordinate pairs)",
+          "patterns": [
+            "G06"
+          ],
+          "requiredVariation": "Reverse water edges: climb from each ocean's border to equal/higher cells, maintain two visited grids, and intersect them.",
+          "javascriptSha256": "5dc0911efacfe537bfee26d2f8b823ef1a085235c69659c7933a179824d74fe3",
+          "pythonSha256": "ed99895d75b29cfd765a98226962532416698f07012ed63347f8839d2196b839"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 130,
+      "title": "Surrounded Regions",
+      "topic": "Graphs",
+      "versions": [
+        {
+          "name": "Recursive DFS",
+          "patterns": [
+            "G06",
+            "G03"
+          ],
+          "requiredVariation": "Mark border-connected O cells safe, capture the remaining O cells, then restore the safe marker.",
+          "javascriptSha256": "8bca7ef27ffddb047bdf5b69ceee79726db49e3aab519df87e4ddf213e5b13d9",
+          "pythonSha256": "b83ea831901d49a2a7e6c4ddb6f02ca6d453d3fda60435abef7267998355c79e"
+        },
+        {
+          "name": "Iterative DFS (explicit stack)",
+          "patterns": [
+            "G06",
+            "G03"
+          ],
+          "requiredVariation": "Use an explicit stack for border safety marking, then capture and restore in a second pass.",
+          "javascriptSha256": "3f5d5131c5024c78da7f91b2e4c8fad02513c93257226868d5b73f222c22eeb4",
+          "pythonSha256": "a6837eaeb8cccfecf47eaf08158fa58d75da45e7cedbaa9bd58d3f525a6a9dad"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 752,
+      "title": "Open The Lock",
+      "topic": "Graphs",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "G05"
+          ],
+          "requiredVariation": "Generate digit-wheel neighbors, reject dead ends before enqueueing, mark discovered states, and count shortest moves.",
+          "javascriptSha256": "7f25e124ca8690a9e7fd55eeb6e5aed223b79cb457fdc35aff5f8c94d2f5a8c5",
+          "pythonSha256": "c193e78ac88855f06d9e1af76554484dc42c45588b266ce61c70d1d72d2a001a"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 207,
+      "title": "Course Schedule",
+      "topic": "Graphs",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "G07"
+          ],
+          "requiredVariation": "Edges run prerequisite to dependent course; process zero-indegree nodes and require every course to be processed.",
+          "javascriptSha256": "f4e062b80c6e2f435370d0f5a148b43d840aa92280ea781707a12c19a108c08f",
+          "pythonSha256": "734c98d48cb5c1cf6c990f3fc90a591df7017ceb499345660124307409206c68"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 210,
+      "title": "Course Schedule II",
+      "topic": "Graphs",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "G07"
+          ],
+          "requiredVariation": "Collect the same topological processing order; return no order if a cycle prevents processing all courses.",
+          "javascriptSha256": "03335de8d001f276e989078d5a9658ea86f27d33d21bcd00527502aa87aea3fe",
+          "pythonSha256": "13b4b9281392bc35f890ec6a91a74960faf6793e0ff87d95806bb303a37ddfcf"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 261,
+      "title": "Graph Valid Tree",
+      "topic": "Graphs",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "G08",
+            "G03"
+          ],
+          "requiredVariation": "Skip the parent edge in undirected DFS, reject any other discovered neighbor, and require full connectivity.",
+          "javascriptSha256": "4524810fbf962dde0110dec416ff6075aa6a0a2b6c7b5bb1a0517621ff87dee5",
+          "pythonSha256": "f3d6f43bed6d50f4874638552105b66d127ebd7878d11ebca57a8e0b46c0f746"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 1462,
+      "title": "Course Schedule IV",
+      "topic": "Graphs",
+      "versions": [
+        {
+          "name": "BFS from each course",
+          "patterns": [
+            "G09",
+            "G03"
+          ],
+          "requiredVariation": "Run BFS separately from every start and retain each reachability row; prerequisite/course edge orientation differs from Course Schedule input pairs.",
+          "javascriptSha256": "d765f2c8a88705664a9d694d8b27ac0577ff2c67d3c316ee086f2e72b62e01a1",
+          "pythonSha256": "6a382b0a22c1e1f59fd85713515d298d1e0e777b16b34756fca5e62d130e60da"
+        },
+        {
+          "name": "Floyd-Warshall (reachability table)",
+          "patterns": [
+            "G09"
+          ],
+          "requiredVariation": "Floyd-Warshall transitive closure: allow intermediate vertices in the outermost loop and combine reach[i][k] with reach[k][j].",
+          "javascriptSha256": "5a144f8a18d5014e672a939ae42a84d7b319cc68b338d5428d302c2403c1e994",
+          "pythonSha256": "ecf105bba4d05c8536ecc17df027c50bec8e8fd6e69f4fcae3b3f9f559e7a59d"
+        }
+      ],
+      "scopeOverlaps": [
+        "Dynamic programming: the displayed Floyd-Warshall follow-up uses intermediate-vertex states; BFS primary does not require it."
+      ],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 323,
+      "title": "Number of Connected Components In An Undirected Graph",
+      "topic": "Graphs",
+      "versions": [
+        {
+          "name": "BFS (queue)",
+          "patterns": [
+            "G03"
+          ],
+          "requiredVariation": "Count one BFS start per unvisited component, including isolated vertices.",
+          "javascriptSha256": "72b3e22be4d2f48cd85b488eacbbe6a17b56cfe8b28100a381d065a27655e2e8",
+          "pythonSha256": "df96fa01501abe5ef1f7ddd4a8f767267568d4c154ee819464bcd091b2193848"
+        },
+        {
+          "name": "Union-find with path compression",
+          "patterns": [
+            "G12"
+          ],
+          "requiredVariation": "Decrement component count only when different representatives merge; compress parent paths.",
+          "javascriptSha256": "a8422dc4188c58b97f49ffcb713a7a0ed06de776247ff256bb9247fec8757250",
+          "pythonSha256": "20e583281c8648565d9701a258c42d82204d010499dec20ef024c45525528532"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 684,
+      "title": "Redundant Connection",
+      "topic": "Graphs",
+      "versions": [
+        {
+          "name": "BFS (build graph first)",
+          "patterns": [
+            "G08",
+            "G03"
+          ],
+          "requiredVariation": "Build the full graph, try edges in reverse input order, skip the candidate direct move, and test whether another route still connects its endpoints.",
+          "javascriptSha256": "67cbd424b6b8d297a0cb02baf97db0d2b1bfab0cf7c58218a076e939fdd26bfd",
+          "pythonSha256": "873ae9fcfeced9af106471140b278e703c19e5afa5ac7e04e634a5a616231792"
+        },
+        {
+          "name": "Union-find with path compression",
+          "patterns": [
+            "G12"
+          ],
+          "requiredVariation": "Process edges in input order; the first failed union identifies the redundant edge for the given tree-plus-one-edge input.",
+          "javascriptSha256": "568ee95ef59693d8ae519c333f44cfad3cfbfac829c813b5195d706818b316eb",
+          "pythonSha256": "251ab2a2179503edf677f47608a02980a26776f52d3d373a615dd7fa3877abb1"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 721,
+      "title": "Accounts Merge",
+      "topic": "Graphs",
+      "versions": [
+        {
+          "name": "BFS over email connections",
+          "patterns": [
+            "G13",
+            "G03"
+          ],
+          "requiredVariation": "Connect emails within each account through one representative, merge transitively by email identity, then sort each component's emails.",
+          "javascriptSha256": "310186de69e027adf10ea671807167e5d4eea4ee559de8ee660a0ab7e5150f33",
+          "pythonSha256": "eae484ef7a93aedc9e929035d9325b70a97e51929c1e0051b9c8e9e621b89cdc"
+        },
+        {
+          "name": "Union-find with path compression",
+          "patterns": [
+            "G12",
+            "G13"
+          ],
+          "requiredVariation": "Union each account email with its representative; group by root and sort emails after all unions.",
+          "javascriptSha256": "01409a3cb66ed3b5bcd0c723ebcf8a8dfe7ab618912ac55b98d4971314dab54f",
+          "pythonSha256": "a5c17b900f54af6c1418a483515b2e6abb1aef7302b69b7711d7fa76688cf1b3"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 399,
+      "title": "Evaluate Division",
+      "topic": "Graphs",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "G10"
+          ],
+          "requiredVariation": "Add reciprocal weighted edges; path values multiply rather than add, and unknown variables remain invalid even for x/x.",
+          "javascriptSha256": "4452a73a5b2ab6a95e567dfb7bc2a8d7dea752caedaf281a6549c2c5d9d195f1",
+          "pythonSha256": "529743d0d48900c9be03bda0ec3d5b23f5fe61556b3b8f14299c0ae071338c65"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 310,
+      "title": "Minimum Height Trees",
+      "topic": "Graphs",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "G11"
+          ],
+          "requiredVariation": "Remove all leaves in a layer together; a valid tree has one or two final centers, with a separate single-node case.",
+          "javascriptSha256": "30659c3b4927e5ed549b2f3605f219bea2b0ae302d54db37534af0770ef5764d",
+          "pythonSha256": "64c315c10e83bdbceb1c01388f571c9735b30356b5a52fcc928cb5126d4d7d73"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 127,
+      "title": "Word Ladder",
+      "topic": "Graphs",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "G05"
+          ],
+          "requiredVariation": "Index wildcard patterns to find one-letter neighbors; BFS distance counts words, and endWord must be in the dictionary.",
+          "javascriptSha256": "e94600673c3a40aeb9de7c39ecab3af94096527e3348e6ea0fb61443b2a6b7ae",
+          "pythonSha256": "a1cfa909f0ad47d3b3811865947884c32500952561c9e6515a45f36c5482214f"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "The displayed code does not clear wildcard buckets after expansion; bucket clearing is an optional optimization, not an audited existing step.",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 1631,
+      "title": "Path with Minimum Effort",
+      "topic": "Advanced Graphs",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "D02"
+          ],
+          "requiredVariation": "Relax with max(path effort, absolute edge difference); compare best-known efforts and finalize the target on minimum extraction.",
+          "javascriptSha256": "c61e5fed21fbdc07f7ff746c54f0bbd880672f4bb5cdcbf3a03e3a0203d55ba1",
+          "pythonSha256": "6cb48460f7e5915ef63c53dcb929e3a76399e1aaa783bffee82949ac172e5edc"
+        }
+      ],
+      "scopeOverlaps": [
+        "Greedy graph algorithm: finalize the minimum bottleneck path cost."
+      ],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 743,
+      "title": "Network Delay Time",
+      "topic": "Advanced Graphs",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "D01"
+          ],
+          "requiredVariation": "Nonnegative edges allow first minimum extraction to finalize a node; skip equal/worse duplicate entries and return the maximum reached distance or -1.",
+          "javascriptSha256": "4b3725a1e506d44a37bb56a1bc4a2e285f1e817b34eb6bf31c1b723e75e2a1fc",
+          "pythonSha256": "c0febbfbd2cd8249d9a3ce18bbd7fb3d99cbd7202f78107684d8f29ae39bc220"
+        }
+      ],
+      "scopeOverlaps": [
+        "Greedy graph algorithm: finalize the minimum unsettled distance with nonnegative weights."
+      ],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 332,
+      "title": "Reconstruct Itinerary",
+      "topic": "Advanced Graphs",
+      "versions": [
+        {
+          "name": "Recursive Hierholzer's algorithm",
+          "patterns": [
+            "D06"
+          ],
+          "requiredVariation": "Consume ticket edges rather than marking airports visited; use lexical destination order and reverse the postorder route, retaining duplicate tickets.",
+          "javascriptSha256": "728f469bc6c7a0ccc397d3e2de16d774ef51f9846e19c967c63d62ecd48a4455",
+          "pythonSha256": "488256b2bb95a6223e7637a7f30a629a798e5eb75a1ea53e0075665ce140e308"
+        },
+        {
+          "name": "Iterative Hierholzer's algorithm (explicit stack)",
+          "patterns": [
+            "D06"
+          ],
+          "requiredVariation": "Explicit path stack consumes tickets; append an airport only when its outgoing tickets are exhausted, then reverse.",
+          "javascriptSha256": "affd096b5be50bc9ad0cee1c10f612050d7d9499770a3a2d7442af021d1af775",
+          "pythonSha256": "2049de971e16eeec761ff3d87d65b4351f6eacb2cad59a471f55e3644e2ebb16"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 1584,
+      "title": "Min Cost to Connect All Points",
+      "topic": "Advanced Graphs",
+      "versions": [
+        {
+          "name": "Kruskal with BFS connectivity",
+          "patterns": [
+            "D04",
+            "G08"
+          ],
+          "requiredVariation": "Generate Manhattan-weighted edges and apply Kruskal's cost order; primary uses BFS for cycle checks, not BFS as a minimum-cost algorithm.",
+          "javascriptSha256": "cea0c7832f8aa517a780ed1ce0e9750da426285b70d4f96e1f07d72294cacd84",
+          "pythonSha256": "1b50df26c785d9c1cce5e78bf365842b0919d1fa65a02068afd00c02ce4ca7ea"
+        },
+        {
+          "name": "Kruskal with union-find and path compression",
+          "patterns": [
+            "D04",
+            "G12"
+          ],
+          "requiredVariation": "Keep Kruskal ordering and replace repeated BFS connectivity checks with disjoint sets.",
+          "javascriptSha256": "f2e9ec2a259474447792f323ed8aca640f40d710dd32b7a49f64f96797536c6f",
+          "pythonSha256": "de467d7351d404d90df408ce5e7c3b51025b7a95d546230c00d605ffe3133be9"
+        }
+      ],
+      "scopeOverlaps": [
+        "Greedy graph algorithm: Kruskal minimum spanning tree.",
+        "Geometry: Manhattan distance builds the edge weights."
+      ],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 778,
+      "title": "Swim In Rising Water",
+      "topic": "Advanced Graphs",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "D02"
+          ],
+          "requiredVariation": "Cost is the maximum cell elevation on the path; this specialized vertex-cost model marks on insertion, unlike a general Dijkstra relaxation template.",
+          "javascriptSha256": "faffb65748ca899606d1d257c1c3caa8d1c970320c8626c70539efc7b62f9146",
+          "pythonSha256": "14ec1574614116125decae95e90b0f0a7f0f0079148816d11569ba89a53c420c"
+        }
+      ],
+      "scopeOverlaps": [
+        "Greedy graph algorithm: finalize the minimum required water level."
+      ],
+      "sourceNotes": "Marking on insertion is specific to this vertex-elevation bottleneck model; do not copy it into the general additive or edge-effort Dijkstra lesson.",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 269,
+      "title": "Alien Dictionary",
+      "topic": "Advanced Graphs",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "G02",
+            "G07"
+          ],
+          "requiredVariation": "Infer only the first differing-character edge, deduplicate edges, include isolated characters, reject invalid prefixes, and detect cycles.",
+          "javascriptSha256": "a80e49b4ef22647cee52e30bd81c72e73f3380c1734d70e9db1d9c52510f600c",
+          "pythonSha256": "031295406e1b4f7612039b20450b002286f2d94d8321bef58a3c320508ecd1f7"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 787,
+      "title": "Cheapest Flights Within K Stops",
+      "topic": "Advanced Graphs",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "D03"
+          ],
+          "requiredVariation": "k stops allow k+1 edges; relax from the previous prices array into a copy so one round cannot chain multiple new edges.",
+          "javascriptSha256": "4061ed6f922a7aa4af898fbb88f7c201c5abb7464402b51b43a15016a1e1d876",
+          "pythonSha256": "1b6cf610a8429c346332c61d630f30046b8db421c3ed3a5686ada38eeee7781c"
+        }
+      ],
+      "scopeOverlaps": [
+        "Dynamic programming viewpoint: bounded Bellman-Ford carries costs by permitted edge count."
+      ],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 1489,
+      "title": "Find Critical and Pseudo Critical Edges in Minimum Spanning Tree",
+      "topic": "Advanced Graphs",
+      "versions": [
+        {
+          "name": "Kruskal with BFS connectivity",
+          "patterns": [
+            "D05",
+            "D04",
+            "G08"
+          ],
+          "requiredVariation": "Compare baseline MST cost with edge exclusion and forced inclusion; disconnection means infinite cost and answers use original indices.",
+          "javascriptSha256": "3293240a37028f352003bfdbb0c8358feb2ad1a70ff9f78237f1f1ae3d8c4b42",
+          "pythonSha256": "4fb272a9a3576db37290e0bc42beac50727ddc2e66403f3dd8b4bb1ea0163934"
+        },
+        {
+          "name": "Kruskal with union-find and path compression",
+          "patterns": [
+            "D05",
+            "D04",
+            "G12"
+          ],
+          "requiredVariation": "Retain exclusion/forced-inclusion MST recomputation while using union-find to test each candidate connection.",
+          "javascriptSha256": "c027012c87c49cf9b8196e2242746820494688bef15744780daf20af7d7ed36b",
+          "pythonSha256": "9b9d0860d591b75c1b8c687269679486fc167c64e02115474982a07cd4598b0b"
+        }
+      ],
+      "scopeOverlaps": [
+        "Greedy graph algorithm: repeated Kruskal minimum spanning trees."
+      ],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 2392,
+      "title": "Build a Matrix With Conditions",
+      "topic": "Advanced Graphs",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "G07"
+          ],
+          "requiredVariation": "Topologically order row and column constraints independently; either cycle fails the result, otherwise combine both positions for every value.",
+          "javascriptSha256": "f24132006afbd9ed9f9eb9ef0a434c45575ddf4f9170a56e023995d8c23e13a6",
+          "pythonSha256": "c2323c2f150431b8e8eac136000a8cbb7ba546b8da9f212a47ef2b7287f1140b"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "Two topological orders plus matrix placement; the two-dimensional output does not make the method 2-D DP.",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 2709,
+      "title": "Greatest Common Divisor Traversal",
+      "topic": "Advanced Graphs",
+      "versions": [
+        {
+          "name": "BFS over shared-prime connections",
+          "patterns": [
+            "G13",
+            "G03"
+          ],
+          "requiredVariation": "Factor values and connect each prime's indices through one representative; duplicate values remain distinct indices and 1 connects to nothing.",
+          "javascriptSha256": "42afa684daeeb0d4d019378dbb64b0dbc6908aee913467c74bfd4005644aace0",
+          "pythonSha256": "1be748e4c1c9d7d558c22c47c3c3e616387ee0280c2d035b4a570ad69047cfeb"
+        },
+        {
+          "name": "Union-find with path compression",
+          "patterns": [
+            "G13",
+            "G12"
+          ],
+          "requiredVariation": "Union indices sharing prime factors; handle a single item and any isolated value 1 before checking representatives.",
+          "javascriptSha256": "82ba041e814cdaf0563f687ca1483ba012a84a28b866fef152b9bf10f575185b",
+          "pythonSha256": "4c8b414f63bf6b17c5edf0940395f6980cb3a891fbec6bf3473e3fec8c396bfc"
+        }
+      ],
+      "scopeOverlaps": [
+        "Number theory: prime factorization is required to build the shared-factor connectivity graph efficiently."
+      ],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 57,
+      "title": "Insert Interval",
+      "topic": "Intervals",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "I01"
+          ],
+          "requiredVariation": "Input is already sorted and disjoint; preserve the before region, merge overlaps, then append the after region without sorting.",
+          "javascriptSha256": "7e2b9d3f880790ee2549d319b10a370f961bd6e815b10a4174539c58b43265c5",
+          "pythonSha256": "817941d75847221a5f5e07e73bf3e0c62c2fadfeccd0f24c0765060f812c85b8"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 56,
+      "title": "Merge Intervals",
+      "topic": "Intervals",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "I01"
+          ],
+          "requiredVariation": "Sort by start and extend the last end by max on overlap; shared endpoints are merged.",
+          "javascriptSha256": "5f77b9be09dfafed7b096ecd2ca7f1c25419b1e0173ddcbdd8de5158b987c279",
+          "pythonSha256": "e74351370276d3d3b2c85772ae6964bc3cb9c7487db82c02c5407da0f156ce69"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 435,
+      "title": "Non Overlapping Intervals",
+      "topic": "Intervals",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "I02"
+          ],
+          "requiredVariation": "Sort by start; on strict overlap increment removals and keep the smaller end; touching endpoints are allowed.",
+          "javascriptSha256": "53bee5c665a0bc0a23bbe50eec1ede5c36428b9748ba32965d1c2fdc4df7531d",
+          "pythonSha256": "e40946f9817869db6c32b83e0bde16b1664be07b2aaa52cc11d51dc1b6664539"
+        }
+      ],
+      "scopeOverlaps": [
+        "Greedy: keep the earlier end when discarding an overlapping interval."
+      ],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 252,
+      "title": "Meeting Rooms",
+      "topic": "Intervals",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "I02"
+          ],
+          "requiredVariation": "After sorting by start, only consecutive meetings need comparison; equality at an endpoint is allowed.",
+          "javascriptSha256": "59300a961c886eeecacb53dedb531a4c26665ec6b66a28da108bdce144324d4d",
+          "pythonSha256": "12a90e6f5b925888f5844331f6f817be21a5132a0674985ec8bea17ef4f5212e"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 253,
+      "title": "Meeting Rooms II",
+      "topic": "Intervals",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "I03"
+          ],
+          "requiredVariation": "Store one end time per allocated room; reuse the earliest room if it has ended, otherwise grow the allocation count.",
+          "javascriptSha256": "fa2f4fc526064716d749e3095eaccb0271a240100823ae6922597d315d6b4612",
+          "pythonSha256": "24c0a273b0f673c528c5f035a9bf3513b4e42918c0a1632970381f47e528dfc1"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 2402,
+      "title": "Meeting Rooms III",
+      "topic": "Intervals",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "I03",
+            "H04"
+          ],
+          "requiredVariation": "Separate available room IDs from busy end times; release all finished rooms, preserve duration when delayed, and tie-break by smallest room ID.",
+          "javascriptSha256": "3e05128d0796c83ada297d98fe0bc9eb0a0d6c63d1304afff8ec319ebbd820f9",
+          "pythonSha256": "41cd445853b67856b83baff138a03b252d481a0bba6e1766c30174e1b63b1e6b"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    },
+    {
+      "id": 1851,
+      "title": "Minimum Interval to Include Each Query",
+      "topic": "Intervals",
+      "versions": [
+        {
+          "name": "Primary",
+          "patterns": [
+            "I04"
+          ],
+          "requiredVariation": "Sort queries with original indices, insert intervals with left<=query, discard right<query, and minimize inclusive length right-left+1.",
+          "javascriptSha256": "b1eed1c1809a371ce3370c736286deba0735f816ff876582939d05d09fa899cd",
+          "pythonSha256": "39dda09077e34c85042c400ce38f6d49c110514be982e3005937731553739e08"
+        }
+      ],
+      "scopeOverlaps": [],
+      "sourceNotes": "",
+      "masterLessonStatus": "specified-not-implemented"
+    }
+  ],
+  "originalOutlineGaps": [
+    {
+      "topic": "Arrays & Hashing",
+      "requiredAdditions": "Add custom hash tables, cancellation voting, heapsort, three-way selection, frequency buckets, framing codecs, rectangle prefix sums, prefix/suffix products, and in-place index placement.",
+      "examples": [
+        705,
+        706,
+        169,
+        229,
+        912,
+        75,
+        215,
+        347,
+        271,
+        304,
+        238,
+        41
+      ]
+    },
+    {
+      "topic": "Two Pointers",
+      "requiredAdditions": "Separate symmetric reversal, one permitted deletion, merging backward, k-sum duplicate control, area bounds, trapped-volume bounds, and pairing extremes.",
+      "examples": [
+        680,
+        88,
+        15,
+        18,
+        189,
+        11,
+        42,
+        881
+      ]
+    },
+    {
+      "topic": "Sliding Window",
+      "requiredAdditions": "Add exact count matching, historical-max replacement windows, binary-searched windows, and the one-transaction running minimum.",
+      "examples": [
+        567,
+        424,
+        658,
+        121
+      ]
+    },
+    {
+      "topic": "Stack",
+      "requiredAdditions": "Add adapters with restricted operations, augmented minima, collision cancellation, frequency/recency buckets, fleet aggregation, and histogram boundary accounting.",
+      "examples": [
+        225,
+        232,
+        155,
+        735,
+        895,
+        853,
+        84
+      ]
+    },
+    {
+      "topic": "Binary Search",
+      "requiredAdditions": "Add predecessor queries, rotated duplicates, coupled median partitions, and mountain-array oracle limits.",
+      "examples": [
+        981,
+        81,
+        4,
+        1095
+      ]
+    },
+    {
+      "topic": "Linked List",
+      "requiredAdditions": "Separate cycle entrance from detection, group reconnection, random-pointer identity cloning, carry streams, circular queues, and LFU from ordinary LRU.",
+      "examples": [
+        287,
+        25,
+        138,
+        2,
+        622,
+        460
+      ]
+    },
+    {
+      "topic": "Trees",
+      "requiredAdditions": "Add pairwise equality/subtree search, ancestor bounds, BST successor deletion, traversal reconstruction, quad-tree compression, and take/skip tree DP.",
+      "examples": [
+        100,
+        572,
+        98,
+        450,
+        105,
+        427,
+        337
+      ]
+    },
+    {
+      "topic": "Heap / Priority Queue",
+      "requiredAdditions": "Distinguish bounded selection, stream merging, two ordered halves, eligibility scheduling, temporary withholding, difference sweeps, and formula-only scheduling.",
+      "examples": [
+        703,
+        355,
+        295,
+        1834,
+        767,
+        1094,
+        621
+      ]
+    },
+    {
+      "topic": "Backtracking",
+      "requiredAdditions": "Separate index reuse, per-level duplicate skipping, permutation duplicate order, cut choices, bucket symmetry, attacked diagonals, and suffix memoization.",
+      "examples": [
+        39,
+        40,
+        47,
+        131,
+        698,
+        51,
+        140
+      ]
+    },
+    {
+      "topic": "Tries",
+      "requiredAdditions": "Add the dictionary DP exception and explicitly combine terminal deduplication, path restoration, and branch pruning in multiword search.",
+      "examples": [
+        2707,
+        212
+      ]
+    },
+    {
+      "topic": "Graphs",
+      "requiredAdditions": "Add local edge accounting, reverse boundary searches, all-source closure, weighted products, leaf peeling, feature graphs, and the displayed union-find alternatives.",
+      "examples": [
+        463,
+        997,
+        417,
+        1462,
+        399,
+        310,
+        721,
+        2709,
+        323
+      ]
+    },
+    {
+      "topic": "Advanced Graphs",
+      "requiredAdditions": "Separate additive versus bottleneck relaxation, edge-budget rounds, spanning-tree edge sensitivity, and edge-consuming Eulerian traversal.",
+      "examples": [
+        743,
+        1631,
+        778,
+        787,
+        1489,
+        332
+      ]
+    },
+    {
+      "topic": "Intervals",
+      "requiredAdditions": "Add presorted insertion, strict versus touching endpoint semantics, delayed room assignment with ties, and offline query reordering.",
+      "examples": [
+        57,
+        435,
+        2402,
+        1851
+      ]
+    }
+  ],
+  "acceptanceCriteria": [
+    "Every included problem and displayed alternative maps to at least one implemented study unit and its required variation.",
+    "A category label, shared data structure, or common loop shape alone never counts as coverage.",
+    "Each lesson supplies explicit input constraints, expected output, state, invariant, full JavaScript code, and a reason each update is valid.",
+    "Each mapped variation has an example that exercises it, including adversarial cases where a superficially similar template fails.",
+    "Walkthrough events come from executing the displayed code; highlight ranges and data changes match that version. No artificial noop steps or premature structures.",
+    "Show expanded complexity costs and their simplification; preserve the agreed O(1) FIFO convention and distinguish heap costs and output construction.",
+    "Keep all excluded-section overlaps visible; excluding those concepts everywhere would change the 180-problem scope.",
+    "Recheck source hashes and the page inventory before claiming the audit is current."
+  ]
+}
