@@ -42,9 +42,10 @@ export const sunoFeedChallenge: ReactChallenge = {
     'Start with a fixed clip array and a Set of liked IDs. Copy the Set before adding or deleting an ID.',
     'Use CSS scroll snapping for the layout and native video controls for manual playback and sound.',
     'Observe each card against the viewport. Keep its latest ratio because each callback may contain only the cards whose thresholds changed.',
-    'Scan the stored ratios to choose the active card, then synchronize all video elements through one playback function.',
+    'Scan the stored ratios to choose the active card, then pass its ID into syncPlayback(selectedId).',
     'Before automatic playback, mute the chosen video. Catch play() rejection and recheck eligibility when its promise resolves.',
-    'Use a visibilitychange listener to pause hidden-tab playback. Cleanup releases both subscriptions and pauses every captured video.',
+    'Wrap the visibilitychange listener so it calls syncPlayback(activeId) with the latest selected ID rather than the browser event. When hidden, clear allowedId, pause every video, and return early.',
+    'Cleanup sets isCancelled to true, releases both subscriptions, and pauses every captured video. The flag prevents late callbacks from restarting playback; it does not cancel pending promises.',
   ],
   pitfalls: [
     'An observer callback is a partial update, not a complete snapshot. Selecting only from its entries can choose the wrong clip.',
@@ -95,13 +96,13 @@ export default function MediaFeed() {
     const videos = cards.map((card) => card.querySelector('video'));
     const ratios = new Map();
     let activeId = null;
-    let disposed = false;
+    let isCancelled = false;
 
     async function playVideo(video, id) {
       video.muted = true;
       try {
         await video.play();
-        if (disposed || document.hidden || allowedId.current !== id) {
+        if (isCancelled || document.hidden || allowedId.current !== id) {
           video.pause();
         }
       } catch {
@@ -109,8 +110,14 @@ export default function MediaFeed() {
       }
     }
 
-    function syncPlayback() {
-      allowedId.current = document.hidden ? null : activeId;
+    function syncPlayback(selectedId) {
+      if (document.hidden) {
+        allowedId.current = null;
+        videos.forEach((video) => video.pause());
+        return;
+      }
+
+      allowedId.current = selectedId;
       cards.forEach((card, index) => {
         const id = card.dataset.clipId;
         const video = videos[index];
@@ -123,7 +130,7 @@ export default function MediaFeed() {
     }
 
     const observer = new IntersectionObserver((entries) => {
-      if (disposed) return;
+      if (isCancelled) return;
       for (const entry of entries) {
         ratios.set(entry.target, entry.isIntersecting ? entry.intersectionRatio : 0);
       }
@@ -138,17 +145,21 @@ export default function MediaFeed() {
       }
       if (nextId !== activeId) {
         activeId = nextId;
-        syncPlayback();
+        syncPlayback(activeId);
       }
     }, { threshold: [0, 0.25, 0.5, 0.75, 1] });
 
+    function handleVisibilityChange() {
+      syncPlayback(activeId);
+    }
+
     cards.forEach((card) => observer.observe(card));
-    document.addEventListener('visibilitychange', syncPlayback);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => {
-      disposed = true;
+      isCancelled = true;
       allowedId.current = null;
       observer.disconnect();
-      document.removeEventListener('visibilitychange', syncPlayback);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       videos.forEach((video) => video.pause());
     };
   }, []);
