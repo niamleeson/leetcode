@@ -147,7 +147,7 @@ export const sunoDagChallenge: ReactChallenge = {
     'Read the queue using a head index. For each outgoing edge, consider extending the current vertex’s longest path by one edge.',
     'Decrease the neighbor’s indegree. Once it reaches 0, all predecessors have contributed and that neighbor’s distance is final, so enqueue it.',
     'For the example, processing 0 sets distances for 1 and 2 to 1. They both offer distance 2 to vertex 3; processing 3 sets vertex 4 to 3.',
-    'Track the largest distance while processing edges. If fewer than n vertices were processed, a cycle prevented a valid topological order.',
+    'After traversal, check that all n vertices were processed; otherwise a cycle prevented a valid topological order. Then scan the completed distance array to find the largest value.',
   ],
   pitfalls: [
     'Clarify whether length counts edges or vertices. For vertex counts, add 1 to a nonempty graph’s edge-count result; keep the empty graph at 0.',
@@ -156,7 +156,7 @@ export const sunoDagChallenge: ReactChallenge = {
     'Use a queue head index instead of shift(), which can require moving the remaining array entries repeatedly.',
     'The acyclic condition is what allows predecessor distances to become final before successors are processed.',
   ],
-  complexity: 'For V vertices and E directed edges, time is O(V + E): each vertex enters the queue once and each edge is examined once. Space is O(V + E), including the adjacency list, indegree and distance arrays, and queue.',
+  complexity: 'For V vertices and E directed edges, time is O(V + E): each vertex enters the queue once and each edge is examined once. The final scan of distance adds O(V) work, so the overall bound stays O(V + E). Space is O(V + E), including the adjacency list, indegree and distance arrays, and queue.',
   integrationNotes: [
     'This is a standalone JavaScript graph function. The examples use edge lists, including an empty graph and disconnected components.',
     'The cycle check is a useful safeguard, not a solution for longest simple paths in arbitrary cyclic graphs.',
@@ -190,7 +190,6 @@ export const sunoDagChallenge: ReactChallenge = {
 
   let head = 0;
   let visited = 0;
-  let answer = 0;
 
   while (head < queue.length) {
     const from = queue[head++];
@@ -198,7 +197,6 @@ export const sunoDagChallenge: ReactChallenge = {
 
     for (const to of graph[from]) {
       distance[to] = Math.max(distance[to], distance[from] + 1);
-      answer = Math.max(answer, distance[to]);
       indegree[to]--;
 
       // All predecessors of "to" have now been processed.
@@ -210,6 +208,12 @@ export const sunoDagChallenge: ReactChallenge = {
 
   if (visited !== n) {
     throw new Error('Graph must be acyclic');
+  }
+
+  let answer = 0;
+
+  for (const length of distance) {
+    answer = Math.max(answer, length);
   }
 
   return answer;
