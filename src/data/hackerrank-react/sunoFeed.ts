@@ -42,9 +42,9 @@ export const sunoFeedChallenge: ReactChallenge = {
     'Start with a fixed clip array and a Set of liked IDs. Copy the Set before adding or deleting an ID.',
     'Use CSS scroll snapping for the layout and native video controls for manual playback and sound.',
     'Observe each card against the viewport. Keep its latest ratio because each callback may contain only the cards whose thresholds changed.',
-    'Scan the stored ratios to choose the active card, then pass its ID into syncPlayback(selectedId).',
-    'Before automatic playback, mute the chosen video. Catch play() rejection and recheck eligibility when its promise resolves.',
-    'Wrap the visibilitychange listener so it calls syncPlayback(activeId) with the latest selected ID rather than the browser event. When hidden, clear allowedId, pause every video, and return early.',
+    'Scan the stored ratios to choose the active card, save its ID in activeId.current, and pass that ID into syncPlayback(selectedId). The ref lets both the effect and the JSX play handler read the latest selection.',
+    'Before automatic playback, mute the chosen video. Catch play() rejection and recheck isCancelled, document.hidden, and activeId.current when its promise resolves.',
+    'Wrap the visibilitychange listener so it calls syncPlayback(activeId.current) with the latest selected ID rather than the browser event. When hidden, pause every video and return early. Keep the selected ID so the active clip can resume when the page becomes visible.',
     'Cleanup sets isCancelled to true, releases both subscriptions, and pauses every captured video. The flag prevents late callbacks from restarting playback; it does not cancel pending promises.',
   ],
   pitfalls: [
@@ -89,20 +89,19 @@ const CLIPS = [
 export default function MediaFeed() {
   const [liked, setLiked] = useState(() => new Set());
   const feedRef = useRef(null);
-  const allowedId = useRef(null);
+  const activeId = useRef(null);
 
   useEffect(() => {
     const cards = Array.from(feedRef.current.children);
     const videos = cards.map((card) => card.querySelector('video'));
     const ratios = new Map();
-    let activeId = null;
     let isCancelled = false;
 
     async function playVideo(video, id) {
       video.muted = true;
       try {
         await video.play();
-        if (isCancelled || document.hidden || allowedId.current !== id) {
+        if (isCancelled || document.hidden || activeId.current !== id) {
           video.pause();
         }
       } catch {
@@ -112,16 +111,14 @@ export default function MediaFeed() {
 
     function syncPlayback(selectedId) {
       if (document.hidden) {
-        allowedId.current = null;
         videos.forEach((video) => video.pause());
         return;
       }
 
-      allowedId.current = selectedId;
       cards.forEach((card, index) => {
         const id = card.dataset.clipId;
         const video = videos[index];
-        if (id !== allowedId.current) {
+        if (id !== selectedId) {
           video.pause();
           return;
         }
@@ -143,21 +140,21 @@ export default function MediaFeed() {
           bestRatio = ratio;
         }
       }
-      if (nextId !== activeId) {
-        activeId = nextId;
-        syncPlayback(activeId);
+      if (nextId !== activeId.current) {
+        activeId.current = nextId;
+        syncPlayback(activeId.current);
       }
     }, { threshold: [0, 0.25, 0.5, 0.75, 1] });
 
     function handleVisibilityChange() {
-      syncPlayback(activeId);
+      syncPlayback(activeId.current);
     }
 
     cards.forEach((card) => observer.observe(card));
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => {
       isCancelled = true;
-      allowedId.current = null;
+      activeId.current = null;
       observer.disconnect();
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       videos.forEach((video) => video.pause());
@@ -200,7 +197,7 @@ export default function MediaFeed() {
               style={{ width: '100%', minHeight: 0, flex: 1,
                 objectFit: 'contain', background: '#111' }}
               onPlay={(event) => {
-                if (document.hidden || allowedId.current !== clip.id) {
+                if (document.hidden || activeId.current !== clip.id) {
                   event.currentTarget.pause();
                 }
               }}

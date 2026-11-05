@@ -111,6 +111,10 @@ describe('Suno media feed displayed solution', () => {
     vi.spyOn(document, 'hidden', 'get').mockReturnValue(true);
     fireEvent(document, new Event('visibilitychange'));
     expect(playing.size).toBe(0);
+    // The selected ID is retained while hidden, but native playback is still blocked.
+    playing.add(videos[0]);
+    fireEvent.play(videos[0]);
+    expect(playing.size).toBe(0);
     await intersect(observer, [[cards[0], 0], [cards[1], 1]]);
     expect(playing.size).toBe(0);
     videos[1].muted = false;
