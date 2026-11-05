@@ -24,7 +24,7 @@ export const sunoAudioChallenge: ReactChallenge = {
     'Show the current title, an accessible playlist, and exactly one audio element with native controls.',
     'Disable Previous at the first track and Next at the last track; identify the current playlist item with aria-current.',
     'Start a selected track, preserve playback state during adjacent navigation, and advance automatically after an ended event.',
-    'Catch rejected play promises and display a useful error. Ignore results from an obsolete track after navigation or unmount.',
+    'Catch rejected play promises and display a useful error. Ignore results from an old playback request after navigation or unmount.',
     'Pause the previous audio element when switching tracks and pause the active element on unmount.',
   ],
   sampleData: {
@@ -50,14 +50,14 @@ export const sunoAudioChallenge: ReactChallenge = {
     'Render the audio element with key={track.id}. Changing tracks creates a fresh element, which resets the playback position and keeps old media events separate.',
     'Playlist buttons request playback. Previous and Next read the current element’s paused property to decide whether the next selection should play.',
     'In an effect, capture the selected audio element and await play only when requested. Show an alert for playback failures; an AbortError from pausing a pending request is expected.',
-    'Cleanup marks the old request obsolete and pauses the captured element. If its play promise resolves later, pause it again; if it rejects later, leave the current track’s error message alone.',
+    'Cleanup sets isCancelled to true and pauses the captured element. The flag does not cancel the promise: if it resolves later, pause the old audio again; if it rejects later, leave the current track’s error message alone.',
     'Handle ended by selecting the next track with playback enabled. At the last track, leave the selection unchanged and let native playback stop.',
   ],
   pitfalls: [
     'A play request is asynchronous and may fail because of browser playback policies, a missing file, or an unsupported format. Do not assume it always starts.',
     'Read audio.paused when navigating; a separate React playing flag can drift from native play and pause controls.',
     'Capture the old audio element inside the effect. Reading ref.current in cleanup can accidentally pause the new track instead.',
-    'Ignore an obsolete play rejection so a slow previous track cannot overwrite the active track’s message.',
+    'Ignore a late rejection from an old play request so a slow previous track cannot overwrite the active track’s message.',
     'Do not use a timer to guess when a track ends. Use the media element’s ended event and native seeking controls.',
   ],
   complexity: 'For N tracks, rendering the playlist takes O(N) time and rendered output uses O(N) space. Each selection update uses O(1) application state and renders the O(N) playlist. The app owns one audio element; browser media buffering and decoding are outside this accounting.',
@@ -72,7 +72,7 @@ export const sunoAudioChallenge: ReactChallenge = {
     { action: 'Pause, then select Previous.', expected: 'The previous track is selected and stays paused.' },
     { action: 'Select another playlist row while paused.', expected: 'The selected track starts playing and is marked current.' },
     { action: 'Let a track finish, then let the final track finish.', expected: 'Playback advances once, then stops on the final track without wrapping.' },
-    { action: 'Reject playback, or reject an old request after changing tracks.', expected: 'A current failure shows an alert; an obsolete failure does not affect the current track.' },
+    { action: 'Reject playback, or reject an old request after changing tracks.', expected: 'A current failure shows an alert; a failure from an old request does not affect the current track.' },
     { action: 'Unmount the player or provide an empty playlist.', expected: 'Unmount pauses active audio; an empty playlist displays No tracks available.' },
   ],
   code: String.raw`import { useEffect, useRef, useState } from 'react';
@@ -97,16 +97,16 @@ export default function AudioPlaylist({ tracks = TRACKS }) {
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
-    let obsolete = false;
+    let isCancelled = false;
     setError('');
 
     async function startPlayback() {
       if (!selection.shouldPlay) return;
       try {
         await audio.play();
-        if (obsolete) audio.pause();
+        if (isCancelled) audio.pause();
       } catch (error) {
-        if (!obsolete && error.name !== 'AbortError') {
+        if (!isCancelled && error.name !== 'AbortError') {
           setError('Playback could not start. Use Play to retry or choose another track.');
         }
       }
@@ -114,7 +114,7 @@ export default function AudioPlaylist({ tracks = TRACKS }) {
 
     startPlayback();
     return () => {
-      obsolete = true;
+      isCancelled = true;
       audio.pause();
     };
   }, [selection, track]);

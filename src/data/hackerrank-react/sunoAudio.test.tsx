@@ -139,7 +139,7 @@ describe('Suno audio player displayed solution', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
-  it('pauses an obsolete element again if its play request succeeds after navigation', async () => {
+  it('pauses the previous audio element again if its play request succeeds after navigation', async () => {
     render(<AudioPlaylist tracks={tracks} />);
     const pending = deferred();
     vi.mocked(HTMLMediaElement.prototype.play).mockImplementationOnce(function (this: HTMLMediaElement) {
