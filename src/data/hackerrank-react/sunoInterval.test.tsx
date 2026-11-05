@@ -4,7 +4,7 @@ import { sunoIntervalChallenge } from './sunoInterval';
 
 type Entry = [number, number];
 type Heap = {
-  readonly size: number;
+  size(): number;
   push(value: Entry): void;
   pop(): Entry | undefined;
   peek(): Entry | undefined;
@@ -74,7 +74,7 @@ describe('Suno minimum interval displayed practice solution', () => {
 
   it('maintains heap priority through interleaved pushes and removals', () => {
     const heap = new MinHeap();
-    expect(heap.size).toBe(0);
+    expect(heap.size()).toBe(0);
     expect(heap.peek()).toBeUndefined();
     expect(heap.pop()).toBeUndefined();
     heap.push([5, 100]);
@@ -89,7 +89,7 @@ describe('Suno minimum interval displayed practice solution', () => {
     const remaining = [heap.pop()!, heap.pop()!];
     expect(remaining.map(entry => entry[0])).toEqual([5, 5]);
     expect(remaining.map(entry => entry[1]).sort((a, b) => a - b)).toEqual([3, 100]);
-    expect(heap.size).toBe(0);
+    expect(heap.size()).toBe(0);
     expect(heap.pop()).toBeUndefined();
   });
 

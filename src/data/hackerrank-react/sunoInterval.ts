@@ -53,7 +53,8 @@ export const sunoIntervalChallenge: ReactChallenge = {
   complexity: 'For N intervals and Q queries, time is O(N log N + Q log Q): sorting dominates alongside at most N heap insertions and N removals. Scanning queries and reading the heap top take O(Q). Space is O(N + Q) for sorted copies, original query indexes, the heap, and answers.',
   integrationNotes: [
     'Run this standalone JavaScript in a browser console or Node.js. The heap is included, and the examples print their results.',
-    'Heap push moves a new entry upward; pop replaces the root with the last entry and moves it downward. Both restore the rule that a parent’s interval length is no greater than either child’s.',
+    'Each heap entry is [intervalLength, rightEndpoint], so comparisons use entry[0]. swap exchanges entire entries, keeping each length paired with its right endpoint.',
+    'Heap push swaps a new entry with its parent while it is smaller. pop replaces the root with the last entry, then swaps it with the smaller child until heap order is restored. size() returns the number of entries.',
     'Before using this in an interview, establish which minimum-interval variant is intended. This answer applies specifically to the practice specification linked above.',
   ],
   testCases: [
@@ -67,76 +68,80 @@ export const sunoIntervalChallenge: ReactChallenge = {
   codeLanguage: 'javascript',
   code: String.raw`class MinHeap {
   constructor() {
-    this.items = [];
+    this.values = [];
   }
 
-  get size() {
-    return this.items.length;
+  size() {
+    return this.values.length;
   }
 
   peek() {
-    return this.items[0];
+    return this.values[0];
+  }
+
+  swap(a, b) {
+    const temp = this.values[a];
+    this.values[a] = this.values[b];
+    this.values[b] = temp;
   }
 
   // Each entry is [intervalLength, rightEndpoint].
   push(value) {
-    const items = this.items;
-    let index = items.length;
+    this.values.push(value);
 
-    items.push(value);
+    let index = this.values.length - 1;
 
-    // Move the new value upward until heap order is restored.
+    // Move the new value up, comparing interval lengths.
     while (index > 0) {
       const parent = Math.floor((index - 1) / 2);
 
-      if (items[parent][0] <= value[0]) {
-        break;
-      }
+      if (this.values[parent][0] <= this.values[index][0]) break;
 
-      items[index] = items[parent];
+      this.swap(parent, index);
       index = parent;
     }
-
-    items[index] = value;
   }
 
   pop() {
-    if (this.items.length === 0) {
-      return undefined;
-    }
+    if (this.values.length === 0) return undefined;
 
-    const items = this.items;
-    const minimum = items[0];
-    const last = items.pop();
+    const smallest = this.values[0];
+    const last = this.values.pop();
 
-    if (items.length === 0) {
-      return minimum;
-    }
+    if (this.values.length === 0) return smallest;
+
+    this.values[0] = last;
 
     let index = 0;
 
-    // Move the last value downward until heap order is restored.
-    while (2 * index + 1 < items.length) {
-      let child = 2 * index + 1;
-      const rightChild = child + 1;
+    // Move the replacement down.
+    while (true) {
+      const left = 2 * index + 1;
+      const right = 2 * index + 2;
+
+      let smallestIndex = index;
 
       if (
-        rightChild < items.length &&
-        items[rightChild][0] < items[child][0]
+        left < this.values.length &&
+        this.values[left][0] < this.values[smallestIndex][0]
       ) {
-        child = rightChild;
+        smallestIndex = left;
       }
 
-      if (last[0] <= items[child][0]) {
-        break;
+      if (
+        right < this.values.length &&
+        this.values[right][0] < this.values[smallestIndex][0]
+      ) {
+        smallestIndex = right;
       }
 
-      items[index] = items[child];
-      index = child;
+      if (smallestIndex === index) break;
+
+      this.swap(index, smallestIndex);
+      index = smallestIndex;
     }
 
-    items[index] = last;
-    return minimum;
+    return smallest;
   }
 }
 
@@ -172,13 +177,13 @@ function minInterval(intervals, queries) {
 
     // Remove expired intervals when they reach the top.
     while (
-      heap.size > 0 &&
+      heap.size() > 0 &&
       heap.peek()[1] < query
     ) {
       heap.pop();
     }
 
-    if (heap.size > 0) {
+    if (heap.size() > 0) {
       answers[originalIndex] = heap.peek()[0];
     }
   }
