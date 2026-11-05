@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { reactChallenges, type ReactChallenge } from '../data/hackerrank-react';
 import CodeBlock from './CodeBlock';
@@ -40,11 +40,13 @@ function Difficulty({ value }: { value: ReactChallenge['difficulty'] }) {
   );
 }
 
-function ChallengeIndex({ greatFrontendSort, onSortChange }: {
+function ChallengeIndex({ query, onQueryChange, greatFrontendSort, onSortChange, onOpenQuestion }: {
+  query: string;
+  onQueryChange: (query: string) => void;
   greatFrontendSort: GreatFrontendSort;
   onSortChange: (sort: GreatFrontendSort) => void;
+  onOpenQuestion: () => void;
 }) {
-  const [query, setQuery] = useState('');
   const search = query.trim().toLowerCase();
   const filtered = reactChallenges.filter(challenge =>
     [challenge.collection ?? 'HackerRank', challenge.kind ?? 'coding', challenge.title, challenge.summary, ...challenge.topics].join(' ').toLowerCase().includes(search),
@@ -72,7 +74,7 @@ function ChallengeIndex({ greatFrontendSort, onSortChange }: {
           id="react-question-search"
           type="search"
           value={query}
-          onChange={event => setQuery(event.target.value)}
+          onChange={event => onQueryChange(event.target.value)}
           placeholder="Search sorting, forms, state…"
           className="w-full rounded-lg border border-gray-700 bg-gray-900 px-4 py-3 text-sm text-white outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 light:border-gray-300 light:bg-white light:text-gray-900"
         />
@@ -82,7 +84,7 @@ function ChallengeIndex({ greatFrontendSort, onSortChange }: {
       {filtered.length === 0 ? (
         <div className={panel}>
           <p className={muted}>No questions match “{query}”.</p>
-          <button className={`mt-3 ${link}`} onClick={() => setQuery('')}>Clear search</button>
+          <button className={`mt-3 ${link}`} onClick={() => onQueryChange('')}>Clear search</button>
         </div>
       ) : (
         collections.map(collection => {
@@ -120,6 +122,7 @@ function ChallengeIndex({ greatFrontendSort, onSortChange }: {
                   <Link
                     key={challenge.slug}
                     to={`${basePath}/${challenge.slug}`}
+                    onClick={onOpenQuestion}
                     className="group rounded-xl border border-gray-800 bg-gray-900/40 p-5 transition-colors hover:border-blue-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 light:border-gray-200 light:bg-gray-50 light:hover:border-blue-500"
                   >
                     <div className="mb-3 flex items-center justify-between gap-3">
@@ -314,11 +317,32 @@ function ChallengeDetail({ challenge }: { challenge: ReactChallenge }) {
 
 export default function HackerRankReact() {
   const { slug } = useParams<{ slug?: string }>();
+  const [query, setQuery] = useState('');
   const [greatFrontendSort, setGreatFrontendSort] = useState<GreatFrontendSort>('default');
-  useEffect(() => {
-    window.scrollTo({ top: 0, left: 0 });
-  }, [slug]);
-  if (!slug) return <ChallengeIndex greatFrontendSort={greatFrontendSort} onSortChange={setGreatFrontendSort} />;
+  const listScroll = useRef({ top: 0, left: 0 });
+  const saveListScroll = useCallback(() => {
+    listScroll.current = { top: window.scrollY, left: window.scrollX };
+  }, []);
+
+  useLayoutEffect(() => {
+    // Own restoration while this route is mounted, including browser Back.
+    const previous = window.history.scrollRestoration;
+    window.history.scrollRestoration = 'manual';
+    return () => { window.history.scrollRestoration = previous; };
+  }, []);
+
+  useLayoutEffect(() => {
+    // The list has rendered with its saved search/sort before restoring it.
+    const position = slug ? { top: 0, left: 0 } : listScroll.current;
+    window.scrollTo({ ...position, behavior: 'instant' });
+    if (slug) return;
+
+    // Detail scrolling must never overwrite the saved list position.
+    window.addEventListener('scroll', saveListScroll, { passive: true });
+    return () => window.removeEventListener('scroll', saveListScroll);
+  }, [slug, saveListScroll]);
+
+  if (!slug) return <ChallengeIndex query={query} onQueryChange={setQuery} greatFrontendSort={greatFrontendSort} onSortChange={setGreatFrontendSort} onOpenQuestion={saveListScroll} />;
   const challenge = reactChallenges.find(item => item.slug === slug);
   if (!challenge) {
     return <div className="space-y-3"><h1 className={heading}>React question not found</h1><Link className={link} to={basePath}>View all React questions</Link></div>;

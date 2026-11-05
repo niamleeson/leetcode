@@ -1,17 +1,53 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
+import { StrictMode } from 'react';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
 import HackerRankReact from './HackerRankReact';
 import { reactChallenges } from '../data/hackerrank-react';
 
-function showPage(path = '/hackerrank-react') {
-  return render(
+function HistoryControls() {
+  const navigate = useNavigate();
+  return <><button onClick={() => navigate(-1)}>History back</button><button onClick={() => navigate(1)}>History forward</button></>;
+}
+
+function showPage(path = '/hackerrank-react', options: { historyControls?: boolean; strict?: boolean } = {}) {
+  const page = (
     <MemoryRouter initialEntries={[path]}>
+      {options.historyControls && <HistoryControls />}
       <Routes>
         <Route path="/hackerrank-react/:slug?" element={<HackerRankReact />} />
       </Routes>
-    </MemoryRouter>,
+    </MemoryRouter>
   );
+  return render(options.strict ? <StrictMode>{page}</StrictMode> : page);
+}
+
+let restoreScrollProperties: (() => void) | undefined;
+
+function mockScrolling() {
+  let top = 0;
+  let left = 0;
+  const originals = [
+    [window, 'scrollY'], [window, 'scrollX'], [window.history, 'scrollRestoration'],
+  ] as const;
+  const descriptors = originals.map(([target, key]) => Object.getOwnPropertyDescriptor(target, key));
+  restoreScrollProperties = () => originals.forEach(([target, key], index) => {
+    const descriptor = descriptors[index];
+    if (descriptor) Object.defineProperty(target, key, descriptor);
+    else Reflect.deleteProperty(target, key);
+  });
+  Object.defineProperty(window, 'scrollY', { configurable: true, get: () => top });
+  Object.defineProperty(window, 'scrollX', { configurable: true, get: () => left });
+  window.history.scrollRestoration = 'auto';
+  vi.mocked(window.scrollTo).mockImplementation((options?: ScrollToOptions | number, y?: number) => {
+    left = typeof options === 'number' ? options : options?.left ?? left;
+    top = typeof options === 'number' ? y ?? top : options?.top ?? top;
+  });
+  return (nextTop: number, nextLeft = 0, dispatchEvent = true) => {
+    top = nextTop;
+    left = nextLeft;
+    if (dispatchEvent) fireEvent.scroll(window);
+  };
 }
 
 beforeEach(() => {
@@ -22,7 +58,12 @@ beforeEach(() => {
     get: () => ({ writeText: vi.fn().mockResolvedValue(undefined) }),
   });
 });
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  restoreScrollProperties?.();
+  restoreScrollProperties = undefined;
+  vi.restoreAllMocks();
+});
 
 it('lists all collections in order, keeps only the requested GreatFrontEnd levels, and searches concepts', () => {
   showPage();
@@ -182,4 +223,72 @@ it('recovers from an unknown question link', () => {
   expect(screen.getByRole('heading', { name: 'React question not found' })).toBeTruthy();
   fireEvent.click(screen.getByRole('link', { name: 'View all React questions' }));
   expect(screen.getByRole('heading', { name: 'React questions', level: 1 })).toBeTruthy();
+});
+
+it('restores list position, search, and sorting through the All React questions link', () => {
+  const scroll = mockScrolling();
+  showPage();
+  fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'GreatFrontEnd' } });
+  fireEvent.change(screen.getByRole('combobox', { name: 'Sort by' }), { target: { value: 'hard-first' } });
+  const section = screen.getByRole('region', { name: 'GreatFrontEnd React' });
+  const titles = within(section).getAllByRole('heading', { level: 3 }).map(node => node.textContent);
+  // Capture the current position on click even before a scroll event is delivered.
+  scroll(1920, 12, false);
+  fireEvent.click(within(section).getAllByRole('link')[0]);
+  expect(window.scrollY).toBe(0);
+  expect(window.scrollX).toBe(0);
+  fireEvent.click(screen.getByRole('link', { name: '← All React questions' }));
+  expect(window.scrollY).toBe(1920);
+  expect(window.scrollX).toBe(12);
+  expect((screen.getByRole('searchbox') as HTMLInputElement).value).toBe('GreatFrontEnd');
+  expect((screen.getByRole('combobox', { name: 'Sort by' }) as HTMLSelectElement).value).toBe('hard-first');
+  expect(within(screen.getByRole('region', { name: 'GreatFrontEnd React' })).getAllByRole('heading', { level: 3 }).map(node => node.textContent)).toEqual(titles);
+});
+
+it('keeps detail scrolling and next/previous navigation from replacing the list position', () => {
+  const scroll = mockScrolling();
+  showPage();
+  scroll(3200);
+  fireEvent.click(screen.getByRole('link', { name: /Item List Manager/ }));
+  scroll(700);
+  fireEvent.click(screen.getByRole('link', { name: 'Code Review Feedback →' }));
+  expect(window.scrollY).toBe(0);
+  scroll(1500);
+  fireEvent.click(screen.getByRole('link', { name: '← Item List Manager' }));
+  expect(window.scrollY).toBe(0);
+  scroll(900);
+  fireEvent.click(screen.getAllByRole('link', { name: '← All React questions' })[0]);
+  expect(window.scrollY).toBe(3200);
+});
+
+it('restores the latest list position through browser history back and forward', () => {
+  const scroll = mockScrolling();
+  showPage('/hackerrank-react', { historyControls: true });
+  scroll(2500);
+  fireEvent.click(screen.getByRole('link', { name: /Referral Credits/ }));
+  scroll(600);
+  fireEvent.click(screen.getByRole('button', { name: 'History back' }));
+  expect(screen.getByRole('heading', { name: 'React questions', level: 1 })).toBeTruthy();
+  expect(window.scrollY).toBe(2500);
+  // History navigation has no card click, so this position comes from the scroll listener.
+  scroll(4100);
+  fireEvent.click(screen.getByRole('button', { name: 'History forward' }));
+  expect(screen.getByRole('heading', { name: 'Referral Credits', level: 1 })).toBeTruthy();
+  expect(window.scrollY).toBe(0);
+  scroll(1200);
+  fireEvent.click(screen.getByRole('button', { name: 'History back' }));
+  expect(window.scrollY).toBe(4100);
+});
+
+it('starts a directly opened detail and its list at the top and restores browser ownership on unmount', () => {
+  const scroll = mockScrolling();
+  scroll(900);
+  const page = showPage('/hackerrank-react/suno-referral-credits', { strict: true });
+  expect(window.history.scrollRestoration).toBe('manual');
+  expect(window.scrollY).toBe(0);
+  scroll(1600);
+  fireEvent.click(screen.getByRole('link', { name: '← All React questions' }));
+  expect(window.scrollY).toBe(0);
+  page.unmount();
+  expect(window.history.scrollRestoration).toBe('auto');
 });
