@@ -1,0 +1,8 @@
+1929	scan	Allocate an output array of twice the input length. Copy each original value to its own index and again n positions later.
+242	hash	Reject different lengths, count characters from the first string, then consume those counts with the second. Reject any character whose count is already exhausted.
+84	monotonic	Keep increasing heights paired with their earliest possible left edge. When a shorter bar arrives, resolve taller entries and carry their left edge forward; a final zero flushes the stack.
+355	priority-sort	Keep ordered tweets per user and followee sets. Repeatedly sort the current stream candidates by recency, select the newest, and advance only that user's stream.
+767	priority-sort	Count letters and repeatedly sort the available candidates by remaining frequency. Hold the previous letter out for one turn so the next chosen character differs.
+371	bits	Compute sum-without-carry using XOR and carry using AND shifted left. Repeat with JavaScript's signed 32-bit bitwise coercion until no carry remains.
+190	bits	Repeat exactly 32 shift-and-append steps to reverse the input bits. Use unsigned shifts and convert the final bit pattern to an unsigned result.
+3133	bits	Use BigInt to preserve high bits. Starting from x, insert the bits of n minus one into x's zero-bit positions, then convert the final safe-range result to Number.

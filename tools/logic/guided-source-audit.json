@@ -1,0 +1,1256 @@
+{
+  "version": 1,
+  "scope": "All 250 curated solutions, both Python and JavaScript; manually reviewed algorithm and structure.",
+  "sources": {
+    "1929": {
+      "title": "Concatenation of Array",
+      "python": "cbe5c155c44b6aed56c88583e50fb2c7fd6ad6ff2e2e83c97016111803ce4faa",
+      "javascript": "b112973216d82c8ad49279aa718e66b113af4c144d5502d97732afcf251c4a81"
+    },
+    "217": {
+      "title": "Contains Duplicate",
+      "python": "b2b7552f96c5c9caf8842640299c802d0e8cc651b015d6f98b2975258189d4f6",
+      "javascript": "3c6054161fc1320adcbb5b3ac1f1e4871648ae32be1c8f663da8b8080cf42029"
+    },
+    "242": {
+      "title": "Valid Anagram",
+      "python": "1baef8564925bc740eea20bf0b3a00e09b1b22bc8d75c4ee2ba48ab3ac6705d9",
+      "javascript": "a45ab690df1de7850c6a9a8ed9a2f5ea390e97fce086de81d86cf89dd01ed93b"
+    },
+    "1": {
+      "title": "Two Sum",
+      "python": "12b5b3cadc60e331a80a4db17ec4dea79bf6219f2a46f0751a2c4ce058144e9f",
+      "javascript": "e98e9e921f37be501eff961dd1fbc9b383763f0169f26b78b807787c60866a76"
+    },
+    "14": {
+      "title": "Longest Common Prefix",
+      "python": "5b061a2b51ca4a3cfbe7c97e50c787f0438432e2cb4f3a3e7b9fbce382daef03",
+      "javascript": "0be3fad1d5c7743c6489d6d70807c73a276fe581788d905df66beb74735f152e"
+    },
+    "49": {
+      "title": "Group Anagrams",
+      "python": "704720ee71960d4b17475c85b9dee486e8b6d61969df35b1107a80ce1f4b1787",
+      "javascript": "9af808e77d1aa936cbdac258198511500c12960637cb2d9dfda4b8b7d9b90cd9"
+    },
+    "27": {
+      "title": "Remove Element",
+      "python": "a686aa3ff5177cef97987c2208e9a33d91e2a87a3616d05532a6c999ac43a390",
+      "javascript": "e08259ba330ba499d5487048eb47f9b37185927811224305f891495c974c3dc4"
+    },
+    "169": {
+      "title": "Majority Element",
+      "python": "0695f7f0820f176954578312a9497f6396b1d49eecbe984b752a4a6c37cce3cc",
+      "javascript": "0477eaacc18f1ca8bd1fa719d69666b786e3d1aa4d70fb614655a07fc15e610c"
+    },
+    "705": {
+      "title": "Design HashSet",
+      "python": "554e28f4996297b728d2deca7ba30f8f1df0247bf5e4335072077a915c6a083a",
+      "javascript": "8034438696cebd88e5f4fdbaa67ce2b4ef919846ff642863cd5b177e548b62db"
+    },
+    "706": {
+      "title": "Design HashMap",
+      "python": "714e9d9825bc8f61e6d068f5cf3f557ced35bbb452e03f8c87a4063d05313ebb",
+      "javascript": "75208162cd3818d80a5efbed4872c218f48eaed59b2c97455bc34928aa010e48"
+    },
+    "912": {
+      "title": "Sort an Array",
+      "python": "6ea3ef53b8d6d6e2732c8ba91d4f171983b16708fcd1520a3a49d352ca725c90",
+      "javascript": "75347d2bfb195e0e3fb39e1b969bd741a2c52ccb04d442bcf1412ff8ae313458"
+    },
+    "75": {
+      "title": "Sort Colors",
+      "python": "874051c6f4259851fd1496b47fd49be086489f9d93acfda964955b0e76890a78",
+      "javascript": "fa4cc2b6cea3d98d0f11c301f50b2b011df7cedfc18eded63863240216d687a7"
+    },
+    "347": {
+      "title": "Top K Frequent Elements",
+      "python": "a008dedd57219ffbe4a987903f3cfeb30f939190dc01e6699a56d354f5874db4",
+      "javascript": "d8f9d8bbc9c43e58cdd217f6e17683e90f792cd87f3b4bccf5124649445cca37"
+    },
+    "271": {
+      "title": "Encode and Decode Strings",
+      "python": "6ab089daee3a8a8c3537edd58698a9da604f4e62178764fe8bf82bf8ca2ec0f1",
+      "javascript": "1ff9af187c17d99c570f23d020130145a627aa1f9e45b4201af00f6f4612a1f5"
+    },
+    "304": {
+      "title": "Range Sum Query 2D Immutable",
+      "python": "1777e58ed4c02f2a19b08687ddf87ce21d40630b3a044eb729a718f7ce4a16b2",
+      "javascript": "052935783e7c321dd1033a5533b3145264b38b3a3513430708fd25788e94fb50"
+    },
+    "238": {
+      "title": "Product of Array Except Self",
+      "python": "8f4b3bee4ebb1de800949c79ad88e1fba6d41394698bcc91b6bc5860fb416834",
+      "javascript": "8e1b15736174b8b43c5806a50d9d77625c09336127c552bb13cb7bca714b406b"
+    },
+    "36": {
+      "title": "Valid Sudoku",
+      "python": "2410a1f08f165d8f820888f300207778bd29831610f56d46c0c6a86e77d21e37",
+      "javascript": "766ab4c40d5e54026a7de83d6fed1007378a46267ff2d997760d761fd5993a86"
+    },
+    "128": {
+      "title": "Longest Consecutive Sequence",
+      "python": "a32e9c126339d58b862e71e41d0c6b4b89c3ba66dc080b5fc4df221cd884b1d6",
+      "javascript": "86f0d87d1576be27f39f45740b9c52215e8f726f40580dfe50749ebb962fabeb"
+    },
+    "122": {
+      "title": "Best Time to Buy And Sell Stock II",
+      "python": "1f96e28e61c47a5bae8136dc042540b3750d08460f1a41cdc4d8bbded2b1a1ac",
+      "javascript": "f710d995b105d9cc074d10fcdb7a2dab5d4f807791fcbca06a5b295530518ae0"
+    },
+    "229": {
+      "title": "Majority Element II",
+      "python": "7c80aa9b44612d69610bafa6b4658ed8d790e41d6c98480b1348c75096b000d2",
+      "javascript": "7db1956312b4f1071b90525881b2ff533d00a556f73bc0b0f2e3c5e7183b9841"
+    },
+    "560": {
+      "title": "Subarray Sum Equals K",
+      "python": "f779d4ec44dc042c7ed1e3826934e6f2afa6f0b88c0e3103e4a245b80d68efc2",
+      "javascript": "30ec7016a4a82316fd1cab6f2a4fd1abce7208133558bd24ee2082e6bafef374"
+    },
+    "41": {
+      "title": "First Missing Positive",
+      "python": "7619f556cf19a97f743bcd1663966f446d39334a37d0fe3232ae912639db5afa",
+      "javascript": "743d44859f1dfa9babf25f2c798c6e8c6217ab35342e0d8ec7cc271b88b3d210"
+    },
+    "344": {
+      "title": "Reverse String",
+      "python": "de77449b5c8e126fb1b192ae16d8d8a0b50c1cca742f4b3ca068d675d880424f",
+      "javascript": "6a7ce7ccbd76ad880d509ca5fb9b1f0f64611394bd23b7f7d76988567d642018"
+    },
+    "125": {
+      "title": "Valid Palindrome",
+      "python": "507865a26f9cf42fc103f03c2d9262ccaa2ccaec48776511821fe0e9f966851c",
+      "javascript": "dc1a61762e3b733f18773c25d593a98f55a71c5b84a92a6ca6f5648a12de59f0"
+    },
+    "680": {
+      "title": "Valid Palindrome II",
+      "python": "2533293d6f34ccad3035ec37c62c3da3eae642ce398b58a2d0bc0f485d7ed3da",
+      "javascript": "a19b3d262e7c363c3eeb488bb17846debf3ae184ecec252914492d3e1f3bc3ec"
+    },
+    "1768": {
+      "title": "Merge Strings Alternately",
+      "python": "1ae30a67b4124379e50ebe593534d1b3e3d37092c71220775f64edcdd6e41cef",
+      "javascript": "40c23e110325ec2d1ee7cbdcd4b420520e4439af8b827889758ba05f764e642d"
+    },
+    "88": {
+      "title": "Merge Sorted Array",
+      "python": "11cb56f69f96daf53102d92a07f1889a53c8bc5e4ec4f94026e2c8e85846e27b",
+      "javascript": "f340b6cc232dcc65437f2640cc8ac313e6a56d1fa7d5770b4b66855f232b532c"
+    },
+    "26": {
+      "title": "Remove Duplicates From Sorted Array",
+      "python": "446af071d94bbbbf55fcd9a16ca58a1615e7e081cf1610b6b451acba34e99dde",
+      "javascript": "6e63a47167433c008b02fff0c2b4ff3f384e874b6cc87464c23573c923862a24"
+    },
+    "167": {
+      "title": "Two Sum II Input Array Is Sorted",
+      "python": "b802af6351926a2fa6de89524cb07d739e169009b3c555c5dca69e553483c813",
+      "javascript": "a716a041d6ee61fb1fffccd987e834f4d0d16a96c706f91b406aca857cf782be"
+    },
+    "15": {
+      "title": "3Sum",
+      "python": "894d3fcc12bad8d93c5169441707dc7f0c23d3ca90acf84ca9738fa081029fcd",
+      "javascript": "8889f556767020a8b22cc4908b84d7d537aa9b617ba3ff509c273ffb481a3574"
+    },
+    "18": {
+      "title": "4Sum",
+      "python": "57bd67e4fcb3a46c2e0785b3cee0a3d9fda8b0519f66dd8321b443bee13d0a6b",
+      "javascript": "7c9b8e2f657fd59bdd95b132be0382536fb38f1594104bc83943860a5c588efc"
+    },
+    "189": {
+      "title": "Rotate Array",
+      "python": "6052f37abd7d533746ae65e138d3792332663baa0d12ed848e87859e637fcd57",
+      "javascript": "9a6b393d5c5c3076146a373e841fe96d8a3b2ba2fae7b52296bb93587a9278df"
+    },
+    "11": {
+      "title": "Container With Most Water",
+      "python": "aae5df72c545eb06e2df7edd25c62bbaf7cce049c52fa7d465d7629b473089b3",
+      "javascript": "391469445510f906fccfd14515975ed6ee36efce868fdd86d64d157d84ee30ca"
+    },
+    "881": {
+      "title": "Boats to Save People",
+      "python": "4f868ea5ec4bd490b4ee57fee1896860189b81632eac7cbe6f5d9bf7bd7c4c49",
+      "javascript": "071fbe43d01508b97c6a67f23b5129cbd0cafbe21da50e6813dad124a76fe172"
+    },
+    "42": {
+      "title": "Trapping Rain Water",
+      "python": "8dc46d9d4f330c1ca15b7f80c89977612bdc109927c020c0b8c7cf79829c7024",
+      "javascript": "acbe57b2d12fc4439f25b1b607ccafdc243f381cdaa5229d5ef2a779713e3d97"
+    },
+    "219": {
+      "title": "Contains Duplicate II",
+      "python": "4c1ca58e5358faa50a77c873560e94c6ae0912340fa7d5217c0d120ecf8d98cf",
+      "javascript": "927e9a28f1676aae9880f7a08bad7b8fa32e4b05f1ffd6905a18b533a896fb9d"
+    },
+    "121": {
+      "title": "Best Time to Buy And Sell Stock",
+      "python": "d9c62c9366839f0ab42c032c32093846ffc57f48c8350dfc84cebc3035d99e01",
+      "javascript": "030608f5ff6b5b351d5e0bb29d4a6e16e53271a0ee117e47413a23cda5e63994"
+    },
+    "3": {
+      "title": "Longest Substring Without Repeating Characters",
+      "python": "ffb151fb52dc4a4f872b7ee80d6cdc59523bb671206dbcaaebdcae6a71f0b991",
+      "javascript": "e592ba38bc111f2aae1e81482caddc24901b82392195598b227e4d98d29a26ca"
+    },
+    "424": {
+      "title": "Longest Repeating Character Replacement",
+      "python": "5fc4e1be75715560e4bd70659a52ec304dc315b460deaffc81becc499e36267e",
+      "javascript": "cdb395b6401301decc27da1eb85d8996dfee91ca137772855a2ca95cbfbcef49"
+    },
+    "567": {
+      "title": "Permutation In String",
+      "python": "93c56007251481b451f6dde393e3c6886a042cff5e8ec5d90934df4e23e0b86e",
+      "javascript": "57d0114a85f8000038c319cafe5bd9ba53b1c2e7cc363b1c895cb6321ea479fd"
+    },
+    "209": {
+      "title": "Minimum Size Subarray Sum",
+      "python": "046f1118aa01618cfd714c84b1ea167619a90981206817c5a6d3090b5700cbe2",
+      "javascript": "a2faebe780f911f8ed189717defe1697ee3a31cd086b7735fbde89e0d18f7f44"
+    },
+    "658": {
+      "title": "Find K Closest Elements",
+      "python": "8ed0ed67d9dba33aa9073662d274e6e0e38d6febd8d9eac10c8310d4025fdd22",
+      "javascript": "d3479aa9d2bcb7f5d62dd574f5cc1d32ade3221fff28821dc0affb4d40e13864"
+    },
+    "76": {
+      "title": "Minimum Window Substring",
+      "python": "febe8a145e6df6a33ee78561abf943c6114ef10c01a3e3599f4a5b2c95805e3d",
+      "javascript": "d19e0ef44f7204c3dcc8cb18bd7c727fe9356469efc038d0535794ffde0fa43f"
+    },
+    "239": {
+      "title": "Sliding Window Maximum",
+      "python": "13e6f4dc963ce4cee31c25ef2de75dff324630e42e7cc61de295720b2ab3307c",
+      "javascript": "362ff6c752029c9fb818eea6e30c6aecd7618e56aeda4643369cf33216a1c23d"
+    },
+    "682": {
+      "title": "Baseball Game",
+      "python": "824cb1fcb448c5ae33193df88d07f47081920ad3e82d1433cd11faae2151193c",
+      "javascript": "2a9a6c4c76494ed843b0f8fa23e07e6273fe85e58f78766dd6875a100ec42bd5"
+    },
+    "20": {
+      "title": "Valid Parentheses",
+      "python": "21f196c8c7485e34f1be748dfe156a7e586dcf9f28340a3d31db858c1d008f5e",
+      "javascript": "329fa3132b99128d6488d78868cc1a4166c30e78bdcc7f5c0184d7b327134e89"
+    },
+    "225": {
+      "title": "Implement Stack Using Queues",
+      "python": "304671fa09ad9b239bb05e44d42bd02f9b4079f807c274bee6e9865275e9932a",
+      "javascript": "5c173392995557ea65309c133386517cba528639406ef92038ed2e40cd816d84"
+    },
+    "232": {
+      "title": "Implement Queue using Stacks",
+      "python": "76ef1c2857755f0e09f6696f1d5df2dd42f4289cd4659e5434fcf0c331d3ec45",
+      "javascript": "a57b26a346f37336cc9f34ad6cd4f7e2f3f0ee478a927ff0cfefc6a104d4e348"
+    },
+    "155": {
+      "title": "Min Stack",
+      "python": "ebe6c1a5c69925c29373eb57409fa4a3cf1f152dd39d4a603fdd27dd4cff9b69",
+      "javascript": "f09709389b7d1a6a385423ad44d9bb92dfb539ab41aafac3beeeb4271cdc1024"
+    },
+    "150": {
+      "title": "Evaluate Reverse Polish Notation",
+      "python": "1fd8bb19f86a6defa8dcac27fcafacc3f586ec4646bae4474084fa603e0bf3ea",
+      "javascript": "89e4eb1325f19c922a0584e555dba5a584923650113f5422ce00f42d7e921398"
+    },
+    "735": {
+      "title": "Asteroid Collision",
+      "python": "427c7e38b8a98abfe915687c92d353da63608d609d19f500f7c0c622be37aa18",
+      "javascript": "1270585a27ffcf6ab5b926e0f1a0b18968c0801869ee99a8bf9864acb2165e77"
+    },
+    "739": {
+      "title": "Daily Temperatures",
+      "python": "ad16c4f9a41103ec09874e96d93552e44b2d55a452c31223631e0e8f73af6391",
+      "javascript": "a39eefb2b9e77a71d0c662f3412c7cd7871f89cee761acd04bb0fab6b00fe000"
+    },
+    "901": {
+      "title": "Online Stock Span",
+      "python": "cebaef37366bf3323a2e0316626b17eb29b8145f309c3bfbdba94c6a43fdc4e5",
+      "javascript": "a4c160fb5f2f673d64440a7e4661d5564299cf2f23886474280ef51080be7d3f"
+    },
+    "853": {
+      "title": "Car Fleet",
+      "python": "5eefd2ddd44cd20b8ba7786d217e3cd0b3e1e7623e553f874db90de3ee95f70d",
+      "javascript": "bc7df561e5fb0a9f70d7abb9952b6977477c1b1264ec2b51801b256366ad2fc4"
+    },
+    "71": {
+      "title": "Simplify Path",
+      "python": "0d3feaa13f464e475235ac8280bd343734c181aa5944f2f5cc20bdef04ed75de",
+      "javascript": "87deca93747d52c240bfc5966067e0ae7a4ec960e9a021f1faeb5289b5638cec"
+    },
+    "394": {
+      "title": "Decode String",
+      "python": "086d0843c0a99b324bb1294dc74daa7daf781a3bcf0332a557ae53a130182d3b",
+      "javascript": "ae0d65385b048355ec6c578d13eae6f9e43c08b41ae48c6306d1ff0048d022d6"
+    },
+    "895": {
+      "title": "Maximum Frequency Stack",
+      "python": "b19697b279990895ae1987d69c92fc1fa53dcbda7997fdbbed2ad9fe956d8bbf",
+      "javascript": "29ce4be6a74a92077a582037a41207c6be03c691e2a30f3d1b080dcadce509a1"
+    },
+    "84": {
+      "title": "Largest Rectangle In Histogram",
+      "python": "7889d781ffddbcfab8079691abe42b99b64105ddd0fef73dbaaf790b98efd2a5",
+      "javascript": "85fe6af1c96e0276f1e49a8415718f32c81953aff757c7406bb9c9c87d4037ee"
+    },
+    "704": {
+      "title": "Binary Search",
+      "python": "73b111c13047e28238bbd305b8157cbe5a2d3d47d1e85fc1e877f8c934bd8ce8",
+      "javascript": "bc0803e389b54d5b738c8be93e072b98ffc21c7dd3398b9b28179c7bb6408fe3"
+    },
+    "35": {
+      "title": "Search Insert Position",
+      "python": "a7ac16e48c98e8cc034f247efcabf44e66612478a69f76c0ce3960660b20c42b",
+      "javascript": "16495016bd288ad46cf625009925520ca046abf83f6b8b8e1b28d8837daa0f34"
+    },
+    "374": {
+      "title": "Guess Number Higher Or Lower",
+      "python": "52022c4cefc332358a110bd9f07e5b9b7287c6bfd1395447a9e203f74f4068a7",
+      "javascript": "949df3bd0cf412fa21359d709df5a3321273cc2fd383004968f72546506c9706"
+    },
+    "69": {
+      "title": "Sqrt(x)",
+      "python": "ffe0d93a5445782e1393e111be527f3fc21372bbdaf5dac32c6c6236b80303cd",
+      "javascript": "7be9899d1da6e025ab72351cb57751aed732e516d604de95738f082f429bb133"
+    },
+    "74": {
+      "title": "Search a 2D Matrix",
+      "python": "a0fa1515a56341e11ad4b95842850b5a667f0d51c777ed71dc294517d4693ce4",
+      "javascript": "99151015affbe35d2ec37504a024f8d32497bbc411d76ec7b8823b66d4fbb0b3"
+    },
+    "875": {
+      "title": "Koko Eating Bananas",
+      "python": "ff97b1fcc7fd171e9fd9774d2ae4332bdada13c57deb200dcb2fcc946b05037e",
+      "javascript": "44df98f56ebe5d163c68f42a1b336008edf4c8e247e8694a860a6540d9d8ada5"
+    },
+    "1011": {
+      "title": "Capacity to Ship Packages Within D Days",
+      "python": "6fbf13a262e573ea424d0445e7a13a91ee474e3a31678732a00320062d6809cb",
+      "javascript": "169a6cd568e28316fba96525ecceb5dbd27ab24e8da162bca4fdeefe5ab221e0"
+    },
+    "153": {
+      "title": "Find Minimum In Rotated Sorted Array",
+      "python": "ce2770c69c16757ed09ad4672e2d86257d9f1195bc3ae6388c60e7a423a666f2",
+      "javascript": "4fae30570e620eaa1e0f75f9017fe4be7131c3c6ffe0fbf95c2ef1ac91eafd17"
+    },
+    "33": {
+      "title": "Search In Rotated Sorted Array",
+      "python": "154cc9bcaf1db6262ecde8e56f0e757eb6125fbad9a5957895b6d8772bc29b87",
+      "javascript": "7e4d835df441ea553e9b59f14e8d968ac941d497a5230184f21e0bb33feabd43"
+    },
+    "81": {
+      "title": "Search In Rotated Sorted Array II",
+      "python": "4fa5092f36d1172c1a113c02bbc2b7334f23a96000011a683cea4c3f8391e9e0",
+      "javascript": "115cba212eb7f82624cc0396dc973e60dd40ef8780243dc561833395776e0480"
+    },
+    "981": {
+      "title": "Time Based Key Value Store",
+      "python": "0cb9c61cf27523a056fd07791bd259df6c3e78fa2145bb5bc47df71a40b5b1c0",
+      "javascript": "7e88c9a6dddfa9c3c8bac908db3870417e0b8bbd213bafcf11d04ac508968376"
+    },
+    "410": {
+      "title": "Split Array Largest Sum",
+      "python": "0fda18eb0368013c0f3222944bb4a6c3e3c30c5683e09c620f6649e29ab60944",
+      "javascript": "0861289f48952b78e162c592a71903ea73d0deb968627c5d5b3b0ca54bdf5896"
+    },
+    "4": {
+      "title": "Median of Two Sorted Arrays",
+      "python": "13d58ef1e9ddedc54fd43c3cc27eaf54a04c302cfdf144af2ff194c849b7e1a2",
+      "javascript": "14e825bf5db855d9c8145dbf767cd6a7b8a1601b42f82a738073d41727df9e90"
+    },
+    "1095": {
+      "title": "Find in Mountain Array",
+      "python": "3915baf21507fcc90e5a84f3eca521ddfb2120d19426f2a5b4b15bcb7ff7a416",
+      "javascript": "0119ead0bcc5aeaa064ee9aeb4f79c9c2bcbfe4edf850c32308f6d75b294f85c"
+    },
+    "206": {
+      "title": "Reverse Linked List",
+      "python": "e2ab19b20fb81e069f0ac3bbaa459c8650ed21ee505d12aff66df3baca017838",
+      "javascript": "ee1c724a9576f7f2776ec3df2a0ca0a3d4560926d475a79d221ac32423065736"
+    },
+    "21": {
+      "title": "Merge Two Sorted Lists",
+      "python": "7cad2ef62a20ba9d374c88618627a62f9418dfd3d13934560352082d042e6d84",
+      "javascript": "7aab8943a5e326a96f5f9db0a0441cf4d2366d9f81ef5cf486818c5cb26b50aa"
+    },
+    "141": {
+      "title": "Linked List Cycle",
+      "python": "ab00fb003d21137c865854122513a42741cf7c1af77ef877439daada0368c30c",
+      "javascript": "4c2982c734e69a37a5dcf67b898731f1ce69d969605794031615823f08c48f87"
+    },
+    "143": {
+      "title": "Reorder List",
+      "python": "601fecb2454b3c596936aca36091f8f0a18dbb89505f22c221bbd80aa858dc53",
+      "javascript": "1e217069095c07306061768abe72ea2d573a43a3ef5cfcda3bf1e48eca0bc69d"
+    },
+    "19": {
+      "title": "Remove Nth Node From End of List",
+      "python": "c7da73cf45e46508a4009c50961b798cbff83a6afec5587a810cc47129c1088d",
+      "javascript": "3aee3f5108719c74539018973738e71c9e8497096300a1e3baa0e9000a1db4a4"
+    },
+    "138": {
+      "title": "Copy List With Random Pointer",
+      "python": "89c0da03c026075cd325072f9d91eb92b3c6e7ed499e0b3662ce8ac99bcfe56e",
+      "javascript": "1083af01d97f88791bb3e50f772cc7d56581c4b9c7321a7c9bf663f0a6ffe79c"
+    },
+    "2": {
+      "title": "Add Two Numbers",
+      "python": "96f820d36293a1c1b7a5bf1b0f8631d0addf6c96bc401bcc588bc970c31ec65d",
+      "javascript": "91651f928b496aef9465355ec2821f043ee6de91e21225c6da52074f387971f3"
+    },
+    "287": {
+      "title": "Find The Duplicate Number",
+      "python": "7bc20d2729cc92c2fada30d140220040a9d3eba700ee564b725c740f56a20065",
+      "javascript": "defd21266adeae9c41537875b83b6672d86282377888fe83e99f6e3dcd7d0dfb"
+    },
+    "92": {
+      "title": "Reverse Linked List II",
+      "python": "ae943ea2fc8781c4da3caeb2f4f8cda97f350666f37f6e1320deaf73fac8fd7f",
+      "javascript": "f712b9ad09b2702d77ed474d724754d55a50fc334726be1ea0450ad8f4aa3759"
+    },
+    "622": {
+      "title": "Design Circular Queue",
+      "python": "3b73d5789b2b54d08f69268f2438ff042ffe09c0ebafc2e928c7875ba926c1fb",
+      "javascript": "c0faacdb05447eb3d10cc817fb945cc98fb173eca6d8cb2ffe3a73ef8e80a121"
+    },
+    "146": {
+      "title": "LRU Cache",
+      "python": "c2fc2724cb494b429d127e874402ae0b5b7d5f03a3638862ba583c69fb0a07fc",
+      "javascript": "2971768cf6193d73c1093c11a790f81dfff5f368e3aacddcd8c5b4e296caaea5"
+    },
+    "460": {
+      "title": "LFU Cache",
+      "python": "5d6a1a6ea50120c8f38d062c9d729cbf661c8b1a1a52af8406dcef2b82509a9d",
+      "javascript": "555e4abe07409ad382b7986fe7af191ad5b3c6e1014c017601d9a94e9dd568f6"
+    },
+    "23": {
+      "title": "Merge K Sorted Lists",
+      "python": "03bc861bd2e78026568bebb3abf57dcc2e1698d85c6a645d3a9113af456df840",
+      "javascript": "e386b6110b6d18efc898b743ab066510d83e1737645d17bde1bbc6ec944e8bd3"
+    },
+    "25": {
+      "title": "Reverse Nodes In K Group",
+      "python": "778585320946a7f064a98ef4d3ff4422af2572f810f0317ba2122ff59aea1bd2",
+      "javascript": "d08cf332a7001d82403f6f223ad76aedb1ff373c0157fd6afd37205a2801489b"
+    },
+    "94": {
+      "title": "Binary Tree Inorder Traversal",
+      "python": "0fe27df5452ae64f07ec2d3fb7e60d32c31ad6d927f0c9324229232be2d13ddb",
+      "javascript": "a80f37c110bcce0f30ce2302c54d4cd5659f096b7e857917dacdd8d00692b82d"
+    },
+    "144": {
+      "title": "Binary Tree Preorder Traversal",
+      "python": "37f59b2205b01bc1d8ebe8b616e41876f68ef839a9509686220045874de36eee",
+      "javascript": "26015554af13733e9390977998ae04f7f4b00104cbb09f2a70bd2e170d5d58c6"
+    },
+    "145": {
+      "title": "Binary Tree Postorder Traversal",
+      "python": "47c7c177662d924ae7a857ad89f9403e4efca41c53afa1bf61831cc6785cd389",
+      "javascript": "f7297bf2460921cd819b9aef5efad8968a7d5f18004fa1867cc9c8e2d6b26566"
+    },
+    "226": {
+      "title": "Invert Binary Tree",
+      "python": "242e79aec0f9d02486328ecf3a9221ed181497bc5089143b9b6af16039cec42c",
+      "javascript": "a7f65e7e3428e6b27467a2b6dc043817616d23c8adcbd39b87c6512be9626798"
+    },
+    "104": {
+      "title": "Maximum Depth of Binary Tree",
+      "python": "1a040715aad73d2bd87d7ae429194937a4d40b4d78c4286bd7839d3aebcd9ff9",
+      "javascript": "2a398809da3995989d4b6a6418e12f67bda9d06012fbdb1ab373c9d29c318191"
+    },
+    "543": {
+      "title": "Diameter of Binary Tree",
+      "python": "a1929b25ac56f261c12a6f20ccd9669e2ce5103f20a4aebd6aa7ca47cbf68134",
+      "javascript": "6e31783cec98dc54b04ce5592e15c55adfe07ea23271bc85155043b7ce3e915b"
+    },
+    "110": {
+      "title": "Balanced Binary Tree",
+      "python": "a5e50ddf3cc4499c02e49308f3752869666b700f6016a19a9268c4855a83a4f5",
+      "javascript": "6affa40a1b55a44652ff8f15949d195a136195365af6b11be2b054cb7dcb1854"
+    },
+    "100": {
+      "title": "Same Tree",
+      "python": "8c22478860a54a71a7fd432735f587513bcc2076463741e22d4115d0309d0109",
+      "javascript": "13ccc14416c6a9939f55b26ffe0784e529dd4b1c4dc432c3fe8731f50cc8b80c"
+    },
+    "572": {
+      "title": "Subtree of Another Tree",
+      "python": "7143516373d6112e5b1265ffb9997de6e35b0b55395d67aff5de1b7c5de91cc0",
+      "javascript": "6cc65a361a1749dcd0d3f6111f68632ccef3119193a0c51dd1d1f767566e11de"
+    },
+    "235": {
+      "title": "Lowest Common Ancestor of a Binary Search Tree",
+      "python": "61ffe3197e2f3a5ebe0a5e7a36ad92f84a34e427e569b98c41fb8184cbaf5eb7",
+      "javascript": "38f1eabccb9a46d12618d57cd50813135f4db92118ac0455cafc50362199f8d6"
+    },
+    "701": {
+      "title": "Insert into a Binary Search Tree",
+      "python": "c0f2f3a7ad8ac0e2060e7cd6839d9cb4e431f0614e8f0524019747359368f010",
+      "javascript": "be22d4936108430d436375f36eb5d3f03c63a44bc2ea65e00b1695fb3b7caa87"
+    },
+    "450": {
+      "title": "Delete Node in a BST",
+      "python": "8a66c796bb9c3b2b94aae34694994d040f215b4eac759c83cfeca36b5593684a",
+      "javascript": "4082d91b8d87dd5ddfdc8db8da4df2cbeacd215815bde8ec57e4dc37f1253ff3"
+    },
+    "102": {
+      "title": "Binary Tree Level Order Traversal",
+      "python": "d9c2f32df25387fcd2a7e123d1aca17c7fba94ba9c2701c90e6c8a3ad1293f17",
+      "javascript": "7124d4cc51af0b339eb8fd45a804f715a2aa7093f0a68036edf73a6e5ff5f506"
+    },
+    "199": {
+      "title": "Binary Tree Right Side View",
+      "python": "4cecf2b5d8b60c74c35e41362ed7480e467652c4eff2b532baad1a01d3175e40",
+      "javascript": "6ec158798b8b8245ad07a6d68265a4d8e20195a0586596df6eb008552a948e3b"
+    },
+    "427": {
+      "title": "Construct Quad Tree",
+      "python": "998f00d3d00662d4ba77649be8b071136945668345bda4c48150a5c38c51ab4a",
+      "javascript": "2acb80fe56fa44ef2d0650b32c41a8d90f0bbeb5f95c77d365e4b0ad1f699eae"
+    },
+    "1448": {
+      "title": "Count Good Nodes In Binary Tree",
+      "python": "0c2f0f56d56ae988caa1cc849b5686686547235208248368731471017c30ae50",
+      "javascript": "a896ebec683b161350c90d38918fa58b40b37c2892de363d7e7807f1d9f385fb"
+    },
+    "98": {
+      "title": "Validate Binary Search Tree",
+      "python": "6d4f7d48c2b05dafcb67e5a3e1183b20552c97d2d6c897583a172c73fdb971ed",
+      "javascript": "12951c4c721218cfa7641ec6f562a62d74ee3401ad5ba01abc42eef6e4b028e4"
+    },
+    "230": {
+      "title": "Kth Smallest Element In a Bst",
+      "python": "76b7d47c616cf387c5617521851a50f3179a4a88f50e9a0cff09bb320988f409",
+      "javascript": "6b67086752d5d021e7500d055403983e14f8ec1e9d6fefb948437b97e607a24f"
+    },
+    "105": {
+      "title": "Construct Binary Tree From Preorder And Inorder Traversal",
+      "python": "e1a3ff07b7757659d740c0c978f89a20785a137ce133d0a88664bcc92fb8c26f",
+      "javascript": "e232d61e2ba01058eb8593bcd805b9378add2c653bf472d67e0bf24b10c7a7b9"
+    },
+    "337": {
+      "title": "House Robber III",
+      "python": "404d7bc00be6ba796f612e175c79f1855068f099ebccd59e630342e272155555",
+      "javascript": "49afd7110067218e2b2a6ecaa1b8b1f4080fe651a1c913da97e49caf4c6f871b"
+    },
+    "1325": {
+      "title": "Delete Leaves With a Given Value",
+      "python": "3137ed4939e12e41dbaf55d6d8fbab92a2431f8c03c8e20bca56d6dd82d46c60",
+      "javascript": "54aa47c063efb44544a145e88f26ef9ee0ce4c043f6e7977f3ff0c13d0fd0c69"
+    },
+    "124": {
+      "title": "Binary Tree Maximum Path Sum",
+      "python": "46231bc98931ac10d0d6debecdd2399ea927b511c03ce2c390be39fbace3b780",
+      "javascript": "d01566369131570f553f84b621f0ffce63d1fd80a49523a64d90d23b5bd317a9"
+    },
+    "297": {
+      "title": "Serialize And Deserialize Binary Tree",
+      "python": "83faab4390911331512e65a6a85a5c573732439e000dc00a3936373a4f773c28",
+      "javascript": "a500d4ab2d7f4df837c4ae8f12012095f01a1b64117b207561fb55cad4460377"
+    },
+    "703": {
+      "title": "Kth Largest Element In a Stream",
+      "python": "122c09db406e2fb0d9292ee8d676f4fd3277b96efca9938bd13ea9e04878f327",
+      "javascript": "df8ce868d7797a363cb5b64518b05e18a4596bab42f8086e91533b5e094770b8"
+    },
+    "1046": {
+      "title": "Last Stone Weight",
+      "python": "c7ee298c574148bc1da2e2faed19e7f9774e372e3816f719c417f309189886e5",
+      "javascript": "921bd3018a3b90641a7e87ec429d46c2de54a0f175c7b66b81a4e7637ff0e42c"
+    },
+    "973": {
+      "title": "K Closest Points to Origin",
+      "python": "34dc067d8367619ef26c1b641a966b96586184e201c2ee9994e7b3cc1c2d439c",
+      "javascript": "7e88564d6ede9cf5e6df0023ac378da68bb313603f7bf71ef99badae4dc98b49"
+    },
+    "215": {
+      "title": "Kth Largest Element In An Array",
+      "python": "201869ecd330053afa4d31ddab53e18eddb764f354e52dbedeb6903b71ab7321",
+      "javascript": "89688f82942dc28e362301edb8ed3e994e1ad6daabc7f6b48dd2a6b8158bb566"
+    },
+    "621": {
+      "title": "Task Scheduler",
+      "python": "9ec3d069e17b90403c1f879af6a12288a5bbbdf70e0bcdb5aa5ebf6c681f7111",
+      "javascript": "ba8b14d64e24cf302f27f6bff25958e4fd9aef46c25e242db6722e81bb3892f9"
+    },
+    "355": {
+      "title": "Design Twitter",
+      "python": "5133599b03ae8d494a11bb5cf81b398a3c0f34af7ff1fb56f63b0902efc1a49f",
+      "javascript": "9de98c73c15e09d1fbb28bcabbc4d223d57c01ae9bb61abecbc64aa5c5017419"
+    },
+    "1834": {
+      "title": "Single Threaded CPU",
+      "python": "ac84fe2d1b5422a0f17057a974fae4e0adce8e374ba1c13d84ed0321ce96bda2",
+      "javascript": "5d98c422805445140d14d490bf2ecb49f20284cb2d9a4622fcaf16f617541f67"
+    },
+    "767": {
+      "title": "Reorganize String",
+      "python": "56063d8d8375a293ba2d18f6a62f7ca2dc40516377d50c439a23b813921cc9e0",
+      "javascript": "1a41f48d4aee6eb9cb14dccc234f7673779e6a023df30484979ce8ce88739e29"
+    },
+    "1405": {
+      "title": "Longest Happy String",
+      "python": "740ea22b7d716077f8b2537337f8d82c5a5200a27665a4b60c1fd95d06e76c85",
+      "javascript": "50d73fd65250293b5250be7cfe049a08bc80c8cbe75e089b8b0034e5d6a73b85"
+    },
+    "1094": {
+      "title": "Car Pooling",
+      "python": "ac1725c6f6510543a085c9dd9a3c4c2aa2ae96d7624f652e2992fe893ca16fc0",
+      "javascript": "a76fef629c4a66c04c7f583b8ac94b5504c6bd1cccf99f7dc8cf3b6aee2b8783"
+    },
+    "295": {
+      "title": "Find Median From Data Stream",
+      "python": "d788dd2477ea9b72f1e8049af489d1fe0b2d007d5221ccc3c27f4ebec1ab3675",
+      "javascript": "f57d224b4c5cdacf8066eaa8718a9f04757346df143651181cda3647dc491ed5"
+    },
+    "502": {
+      "title": "IPO",
+      "python": "14bd467f9646714d2036d2af465a5ae27a571e0933d78d46d8606a3cfd21e6d9",
+      "javascript": "c1615c9901b5a53bad8ddb7409744283f5934a20c3d0cf4909be09016778afdb"
+    },
+    "1863": {
+      "title": "Sum of All Subsets XOR Total",
+      "python": "c48a721597787f40c4441c12e1b3991571b3817d46a00c9a3b40a47cc8c82fc5",
+      "javascript": "335b1816762883179b40a8311dd4032b44ca426788d1fd43b9a1bc4a0c6227af"
+    },
+    "78": {
+      "title": "Subsets",
+      "python": "cd3ffc84f70edeedb0b544af0550db431082821b6e6f5302f8ed59eb0afd8035",
+      "javascript": "632622ff7335eeebf1fb1415d816166a3746d72dde53518cdf995bfb5e9ff159"
+    },
+    "39": {
+      "title": "Combination Sum",
+      "python": "36d8945266e6f617727459481668af56a467f26fae595f786de304df7137e930",
+      "javascript": "94dd511c2fa937ffe82da94b9ace0ee7499b300c53f3d4ab1c5667399264bd8e"
+    },
+    "40": {
+      "title": "Combination Sum II",
+      "python": "4471a07fef00a308dbc99a98e9de894911abadd27ed1f1d61bc1a5b7850c2453",
+      "javascript": "6c9d9602af7a3e9ceb010e5ba31e3af1da23b3ea53f4a104ab4da4a189072559"
+    },
+    "77": {
+      "title": "Combinations",
+      "python": "f13476610ac706b889315e05eeeab5da738ba0204a202606b44bfe1cb51ea899",
+      "javascript": "dd2a1bcd274dc994f8b7a69b95571fe762b1bbde5cf995780abb1da9f0d877c9"
+    },
+    "46": {
+      "title": "Permutations",
+      "python": "4683a589f218c64a79ec86b87a58daa73fa9884c6ebfa11256da54f0970b2dae",
+      "javascript": "8fff23afcf166310f9aff5111da7aa88a49584ccdd9d0126e67c07f1659b2fa6"
+    },
+    "90": {
+      "title": "Subsets II",
+      "python": "49d702e4947f5b2983fd5e46993963d54f67b673239607bcb0110fa4965505ae",
+      "javascript": "37f86a1e699d0b5af20154fc38e4db101e24c593cef1a55a27c473266d449327"
+    },
+    "47": {
+      "title": "Permutations II",
+      "python": "be6f8633d6d65a11fa0f3d705b1d1bdefd961170077920c7fd76ca41d27764b8",
+      "javascript": "8c21a568429713c102bd749b775a33f42165f72f4da858e7ecaf960ffee83c27"
+    },
+    "22": {
+      "title": "Generate Parentheses",
+      "python": "c2c964bde14f970429ccd8463f75ab8bf9e24e82b911fbd1b546adc2679652a5",
+      "javascript": "e01b992a258b86675ddd2c6c87268b12ada7d5e8c329b9d2c5224440d31ff943"
+    },
+    "79": {
+      "title": "Word Search",
+      "python": "37457b38a44077c26578cbc7cbba42e5dfcaf829b72c3502409b2ebcea710ded",
+      "javascript": "cb6fcb3204bf5b40b6fdd41da518225c066773cd237a63988d06313c42bb41af"
+    },
+    "131": {
+      "title": "Palindrome Partitioning",
+      "python": "aedcd2207ec10cc505a01f4c30a3feedffc3da5ac6c897dac79e67144d28bdd1",
+      "javascript": "122b545548fbe956ac7166249221b9943a7b604c5e07d6bab29aabb2eb8a3298"
+    },
+    "17": {
+      "title": "Letter Combinations of a Phone Number",
+      "python": "d296dbeb2616e0d14089976176c3b12ccada65d7b375b0237c2d16cfb6a5ad19",
+      "javascript": "35aa8f16f05d24c22aba5e3c11e1b90c07f5208e0c40db78284104252c481d5d"
+    },
+    "473": {
+      "title": "Matchsticks to Square",
+      "python": "60a4c7612c8a7d622e02cd6a3f4c3b8331e6da32565e55780aed00f65f833900",
+      "javascript": "e644ef99ffd0b462541941fb2affe89271eb12f513d2f9e71c1d3774bcbf5e26"
+    },
+    "698": {
+      "title": "Partition to K Equal Sum Subsets",
+      "python": "363e35c4edd7e1e91bad1fde9cbcbb14d44744b4ea398d35e3c1bb1bf6a39a5d",
+      "javascript": "a855aa2b5f039ce3173aafd99ad8203633edcdee4f31a8c6431cadb672d091a5"
+    },
+    "51": {
+      "title": "N Queens",
+      "python": "4df930df657e1fe74bb3e2c9cf4854fc38fad67135369ebcd062e9a18c31b54b",
+      "javascript": "1448cfd58da2b2a52f0feb311181e227fa4cd20af0e34da34bfb73e274eaf14f"
+    },
+    "52": {
+      "title": "N Queens II",
+      "python": "365246cd2b8fb55e997839cae064ec4f850af5823fecec290bcc1c4d0a7c92d7",
+      "javascript": "075ebee70ca25066b71cf1d0ae3afee0e10217f105075e926acccbd89bce736b"
+    },
+    "140": {
+      "title": "Word Break II",
+      "python": "07f25d0a50335ebaa04c8c466221c4513bc2b1f81b79392627a3e7a49ac45596",
+      "javascript": "5b51999d11076a18b97e20ee24528823ab3a0a6182858df0126feef1f192ff45"
+    },
+    "208": {
+      "title": "Implement Trie Prefix Tree",
+      "python": "f16ef686e7abdac87b132a22810214bbbc36d99781cf89023bd984db17693ccc",
+      "javascript": "528e96caa32fe99b8d9fd0f5d27d6e2ab64f513e514862b6b70d7a9b5af60dbd"
+    },
+    "211": {
+      "title": "Design Add And Search Words Data Structure",
+      "python": "ee3932f92c0a5466a1d80261385792a1ee28332455d09be23b225bd63c47b09b",
+      "javascript": "db33b82941c9a71616929fbb23d2fbeef8875c7278c20ce17176c0d6a7a99e37"
+    },
+    "2707": {
+      "title": "Extra Characters in a String",
+      "python": "f1648c6f26e6856cb860af47cd8b1ca70e91c4633ecb20f079e7d0cbc46065c1",
+      "javascript": "9aac4f4877af128309a088afc49b5d1b3a913a7551cd3f1c91f845d15d43db4d"
+    },
+    "212": {
+      "title": "Word Search II",
+      "python": "fc197dd71496b45bd671482cfefd81a553fd90f40e599dad04cf8b0fed9bda21",
+      "javascript": "a9ae69f7c9356d2b0d089b081974816a46148cbba1bb34648530aa3b9794cf28"
+    },
+    "463": {
+      "title": "Island Perimeter",
+      "python": "ffcdfff856ba1922ed3b9aae96cf5a8eaa68d23d78d54a6fdaef5e7c54efd94d",
+      "javascript": "70df0a58b575c98b2117aeb5ecf0e06b7da3cd8d1caac5902156ce86dd893a7f"
+    },
+    "953": {
+      "title": "Verifying An Alien Dictionary",
+      "python": "632800ef68103ef232210956e0719f37b43784e26a06d12952d721c12c627533",
+      "javascript": "efb6130473421d2df746c2edc726c675c270b5ca6f5cc1714b813bf6387e4925"
+    },
+    "997": {
+      "title": "Find the Town Judge",
+      "python": "809207c4733d017209e60e6e11e6ea4b84e862b7c856434081b189f32da35d91",
+      "javascript": "d34efb2d8b7f93b4735c276847e71d11312fcf57d65fde716f72916989e81bf8"
+    },
+    "200": {
+      "title": "Number of Islands",
+      "python": "d9e3f1b41b59ac8269acd3aa9759352b8247848be49b68983226b84f4ce6a4aa",
+      "javascript": "9338e5addff3cda6887458fe621f5af0081980a46a790560eedd221c7424a40c"
+    },
+    "695": {
+      "title": "Max Area of Island",
+      "python": "dcb85db6e8f5052ba61f0994a8dd7f15ef6c75c88e33bb616579952b594eea8f",
+      "javascript": "a4fb8336fe980925401a2e5af9de0ed6f5274bf4592f0ddffed2cf3bef7f8328"
+    },
+    "133": {
+      "title": "Clone Graph",
+      "python": "944da9459d31a87b38e4ad37191b4ab88cb2bf734a2278dd42eba6c5a0f260fc",
+      "javascript": "4604515b166841d56427ba571ef7ff0323e2f8dc6d0fb99e3b1fc4de2667de31"
+    },
+    "286": {
+      "title": "Walls And Gates",
+      "python": "2b95abcf601c493e59f1e1cf74e80f0ebb3ee00455f93010c811f0f1d835486f",
+      "javascript": "d2e3cd3ca21a6bfec345f9f9d5d3e6baddc3a383e988d9c74bfa217f8972d0a4"
+    },
+    "994": {
+      "title": "Rotting Oranges",
+      "python": "bbe84e2000312b7bdeb2ab350777997f4bc84e316e7755ff9bf3714dd3f3fa71",
+      "javascript": "a97170c6318a026506e94f76699298ec89c3e0db836dacfb45d3328fbef6fa47"
+    },
+    "417": {
+      "title": "Pacific Atlantic Water Flow",
+      "python": "ed99895d75b29cfd765a98226962532416698f07012ed63347f8839d2196b839",
+      "javascript": "5dc0911efacfe537bfee26d2f8b823ef1a085235c69659c7933a179824d74fe3"
+    },
+    "130": {
+      "title": "Surrounded Regions",
+      "python": "b83ea831901d49a2a7e6c4ddb6f02ca6d453d3fda60435abef7267998355c79e",
+      "javascript": "8bca7ef27ffddb047bdf5b69ceee79726db49e3aab519df87e4ddf213e5b13d9"
+    },
+    "752": {
+      "title": "Open The Lock",
+      "python": "c193e78ac88855f06d9e1af76554484dc42c45588b266ce61c70d1d72d2a001a",
+      "javascript": "7f25e124ca8690a9e7fd55eeb6e5aed223b79cb457fdc35aff5f8c94d2f5a8c5"
+    },
+    "207": {
+      "title": "Course Schedule",
+      "python": "734c98d48cb5c1cf6c990f3fc90a591df7017ceb499345660124307409206c68",
+      "javascript": "f4e062b80c6e2f435370d0f5a148b43d840aa92280ea781707a12c19a108c08f"
+    },
+    "210": {
+      "title": "Course Schedule II",
+      "python": "13b4b9281392bc35f890ec6a91a74960faf6793e0ff87d95806bb303a37ddfcf",
+      "javascript": "03335de8d001f276e989078d5a9658ea86f27d33d21bcd00527502aa87aea3fe"
+    },
+    "261": {
+      "title": "Graph Valid Tree",
+      "python": "f3d6f43bed6d50f4874638552105b66d127ebd7878d11ebca57a8e0b46c0f746",
+      "javascript": "4524810fbf962dde0110dec416ff6075aa6a0a2b6c7b5bb1a0517621ff87dee5"
+    },
+    "1462": {
+      "title": "Course Schedule IV",
+      "python": "6a382b0a22c1e1f59fd85713515d298d1e0e777b16b34756fca5e62d130e60da",
+      "javascript": "d765f2c8a88705664a9d694d8b27ac0577ff2c67d3c316ee086f2e72b62e01a1"
+    },
+    "323": {
+      "title": "Number of Connected Components In An Undirected Graph",
+      "python": "df96fa01501abe5ef1f7ddd4a8f767267568d4c154ee819464bcd091b2193848",
+      "javascript": "72b3e22be4d2f48cd85b488eacbbe6a17b56cfe8b28100a381d065a27655e2e8"
+    },
+    "684": {
+      "title": "Redundant Connection",
+      "python": "873ae9fcfeced9af106471140b278e703c19e5afa5ac7e04e634a5a616231792",
+      "javascript": "67cbd424b6b8d297a0cb02baf97db0d2b1bfab0cf7c58218a076e939fdd26bfd"
+    },
+    "721": {
+      "title": "Accounts Merge",
+      "python": "eae484ef7a93aedc9e929035d9325b70a97e51929c1e0051b9c8e9e621b89cdc",
+      "javascript": "310186de69e027adf10ea671807167e5d4eea4ee559de8ee660a0ab7e5150f33"
+    },
+    "399": {
+      "title": "Evaluate Division",
+      "python": "529743d0d48900c9be03bda0ec3d5b23f5fe61556b3b8f14299c0ae071338c65",
+      "javascript": "4452a73a5b2ab6a95e567dfb7bc2a8d7dea752caedaf281a6549c2c5d9d195f1"
+    },
+    "310": {
+      "title": "Minimum Height Trees",
+      "python": "64c315c10e83bdbceb1c01388f571c9735b30356b5a52fcc928cb5126d4d7d73",
+      "javascript": "30659c3b4927e5ed549b2f3605f219bea2b0ae302d54db37534af0770ef5764d"
+    },
+    "127": {
+      "title": "Word Ladder",
+      "python": "a1cfa909f0ad47d3b3811865947884c32500952561c9e6515a45f36c5482214f",
+      "javascript": "e94600673c3a40aeb9de7c39ecab3af94096527e3348e6ea0fb61443b2a6b7ae"
+    },
+    "1631": {
+      "title": "Path with Minimum Effort",
+      "python": "6cb48460f7e5915ef63c53dcb929e3a76399e1aaa783bffee82949ac172e5edc",
+      "javascript": "c61e5fed21fbdc07f7ff746c54f0bbd880672f4bb5cdcbf3a03e3a0203d55ba1"
+    },
+    "743": {
+      "title": "Network Delay Time",
+      "python": "c0febbfbd2cd8249d9a3ce18bbd7fb3d99cbd7202f78107684d8f29ae39bc220",
+      "javascript": "4b3725a1e506d44a37bb56a1bc4a2e285f1e817b34eb6bf31c1b723e75e2a1fc"
+    },
+    "332": {
+      "title": "Reconstruct Itinerary",
+      "python": "488256b2bb95a6223e7637a7f30a629a798e5eb75a1ea53e0075665ce140e308",
+      "javascript": "728f469bc6c7a0ccc397d3e2de16d774ef51f9846e19c967c63d62ecd48a4455"
+    },
+    "1584": {
+      "title": "Min Cost to Connect All Points",
+      "python": "1b50df26c785d9c1cce5e78bf365842b0919d1fa65a02068afd00c02ce4ca7ea",
+      "javascript": "cea0c7832f8aa517a780ed1ce0e9750da426285b70d4f96e1f07d72294cacd84"
+    },
+    "778": {
+      "title": "Swim In Rising Water",
+      "python": "14ec1574614116125decae95e90b0f0a7f0f0079148816d11569ba89a53c420c",
+      "javascript": "faffb65748ca899606d1d257c1c3caa8d1c970320c8626c70539efc7b62f9146"
+    },
+    "269": {
+      "title": "Alien Dictionary",
+      "python": "031295406e1b4f7612039b20450b002286f2d94d8321bef58a3c320508ecd1f7",
+      "javascript": "a80e49b4ef22647cee52e30bd81c72e73f3380c1734d70e9db1d9c52510f600c"
+    },
+    "787": {
+      "title": "Cheapest Flights Within K Stops",
+      "python": "1b6cf610a8429c346332c61d630f30046b8db421c3ed3a5686ada38eeee7781c",
+      "javascript": "4061ed6f922a7aa4af898fbb88f7c201c5abb7464402b51b43a15016a1e1d876"
+    },
+    "1489": {
+      "title": "Find Critical and Pseudo Critical Edges in Minimum Spanning Tree",
+      "python": "4fb272a9a3576db37290e0bc42beac50727ddc2e66403f3dd8b4bb1ea0163934",
+      "javascript": "3293240a37028f352003bfdbb0c8358feb2ad1a70ff9f78237f1f1ae3d8c4b42"
+    },
+    "2392": {
+      "title": "Build a Matrix With Conditions",
+      "python": "c2323c2f150431b8e8eac136000a8cbb7ba546b8da9f212a47ef2b7287f1140b",
+      "javascript": "f24132006afbd9ed9f9eb9ef0a434c45575ddf4f9170a56e023995d8c23e13a6"
+    },
+    "2709": {
+      "title": "Greatest Common Divisor Traversal",
+      "python": "1be748e4c1c9d7d558c22c47c3c3e616387ee0280c2d035b4a570ad69047cfeb",
+      "javascript": "42afa684daeeb0d4d019378dbb64b0dbc6908aee913467c74bfd4005644aace0"
+    },
+    "70": {
+      "title": "Climbing Stairs",
+      "python": "60fffbbe827ea2ddcff52f1b529513375cda1351e6e80d18375840bc067613b2",
+      "javascript": "cb91f35e4c30e769b7fbd9e011a420b4f5ec7df557c53af73b9f12f43f8f19de"
+    },
+    "746": {
+      "title": "Min Cost Climbing Stairs",
+      "python": "9813ae4c7b85aee944c7ae3c7edc85b067e8a413a6897f89e9d60079b8a87035",
+      "javascript": "9bce6f187386f970d1a6c7529a31603ce446bcc5515603b2125f13e9bf3f90b9"
+    },
+    "1137": {
+      "title": "N-th Tribonacci Number",
+      "python": "ef27a6eaf4eda84005b302e1fed037ffd4a74b02e2203f26361431a0ef7f02d0",
+      "javascript": "3b620874b2629a4d03635d8d61c270976b099a74df6dad9b9f148917ae8ea35d"
+    },
+    "198": {
+      "title": "House Robber",
+      "python": "d1285b904571a78558224e1dfb3923cb31dc3267e3b96a61b02fb02e1a7d7a11",
+      "javascript": "eaf6630b6bc5dbaafa69e02ebd6d60d8679d44ce42da707c5ac530296f6c6126"
+    },
+    "213": {
+      "title": "House Robber II",
+      "python": "6dbc447e7a5d45a1aa16933522d42c71255ce912e0ec54f2b7cf4fd63611e940",
+      "javascript": "ed87f5f13a73ae8aeb6296a05de2069a798669c675e7512a98ba138f4a51e1ac"
+    },
+    "5": {
+      "title": "Longest Palindromic Substring",
+      "python": "13c26b395ac84e7acd3edb4a0095087dadccfe9c59e3e3aba57bac643300bedd",
+      "javascript": "404e9569e852dd6457b114d91f4e0958a0596f2411eddf5bb3751f50d6182657"
+    },
+    "647": {
+      "title": "Palindromic Substrings",
+      "python": "797ca8e2063e86e883a9b2fb908b4e11f771e1e97f82f61233d597ba0739d7b2",
+      "javascript": "757718b0d558ff06eb3d25c87d9550652d3924fcd61b26e10fae3faa15755229"
+    },
+    "91": {
+      "title": "Decode Ways",
+      "python": "49cb1284ea6e2b6e253eba28ffd88e1d905888c01f534a24388d5cf7d3ff8eff",
+      "javascript": "609b888dbcf222bdce9b33c3d792b2ef35aec5811ae1338bec7010e9ba001e87"
+    },
+    "322": {
+      "title": "Coin Change",
+      "python": "32cc6f518ad3fbe028846864c131e722dfd36cfc1bd18f4aef4346c3a4d6695a",
+      "javascript": "9b9a02353c3ec1d4eb37430e3fbad8e851002ad6fb9cd0f2e24c7e16b9580bae"
+    },
+    "152": {
+      "title": "Maximum Product Subarray",
+      "python": "afec09d4f315c5a18ccca8bca7b432e013c3ee4a166dec5adf9d0b560c2e2d67",
+      "javascript": "cc0af464a2e2a86c824cc2f107f3a6bd97f8e96bbd0d5ebadfc460d3991500a7"
+    },
+    "139": {
+      "title": "Word Break",
+      "python": "a0d31e0538d706eb46e1053c68f5d35ba0563b4d3d149a6c477faa05a5cdda47",
+      "javascript": "55afcd566823ecb3f6715c2048b4c9a28512dd795fd0780219b344d998011685"
+    },
+    "300": {
+      "title": "Longest Increasing Subsequence",
+      "python": "72798268ebb9abb5cc85a481cb7f466b26ff522ba57d7f3807a493178f12210e",
+      "javascript": "7d7e3b8d0b69cc53bf98673420a1274419caa03637251dc59ded68ceeddad5f6"
+    },
+    "416": {
+      "title": "Partition Equal Subset Sum",
+      "python": "901ea67a2c7b14c84e6b1676efd096ade207c7a82d6d9deda5465c8cb39d87e6",
+      "javascript": "aff7834bf64410af4852451e7406405828667c8a125f62a372a0045666ebd680"
+    },
+    "377": {
+      "title": "Combination Sum IV",
+      "python": "69eb5b7ba063ea9356c18aaa6b6168d9b5bef04ea03cd2758c0f3964ac9bf581",
+      "javascript": "0ae6d1fab344669fda99bc0c40edcacf22ad0b7c64b6994298a5d6db29b11c3e"
+    },
+    "279": {
+      "title": "Perfect Squares",
+      "python": "e784495fb4cf51933162c322ab617cea19cbd674f5311ab17b017ea7d1a0111a",
+      "javascript": "0f1b9fab1340cf8e88474e0591abcf214d96c612c4049db45780926d45e61e16"
+    },
+    "343": {
+      "title": "Integer Break",
+      "python": "803231b2e6ab7d84dc9e5c774027414cee070d56772e5772d72fb741598addab",
+      "javascript": "b617be3811bc5a3d3d2323a49078956a039d73d50da9484d405a9361831778d4"
+    },
+    "1406": {
+      "title": "Stone Game III",
+      "python": "690a16408201f12ae3e10d40649895a613ae98633709e0085d32bd88f3e667c8",
+      "javascript": "08d59103a77977dbf4e214bf36a6a1a61780d71cdcc331eebad215e63fc23b4a"
+    },
+    "62": {
+      "title": "Unique Paths",
+      "python": "6d1711bd64746841ec9753bebc3abf052c21c30e1c9d3abb806cd8ff217bd015",
+      "javascript": "d4a3ab66d0007916b42c51aedd91320f0467e09a12bf6ca7112069fb6ff5e35e"
+    },
+    "63": {
+      "title": "Unique Paths II",
+      "python": "a2a762149d9141bd72545476fb615a353ae9ea13e6f442d3d078c4c316dcdbea",
+      "javascript": "a781448c6a73a6dc95cb85bfc58815ce3d539a3580fdb2ca8112bcc53ddb92d4"
+    },
+    "64": {
+      "title": "Minimum Path Sum",
+      "python": "d8ebc7e6b9580fec918366b672f497e6af3384ef6d0f28991a7b9794b63f9959",
+      "javascript": "6ab7bfbf5b46132f1d013c2626abd4141365981680846b10f9d2081edec730fe"
+    },
+    "1143": {
+      "title": "Longest Common Subsequence",
+      "python": "aea4a2da13eadaa08903ea8a26db324d0668361a789542c28ea8e0dab1d0caa0",
+      "javascript": "cb09efed50d4676fb432c24aac9de946ab1b0454ab66d88ade9f0a4a17b6f4b4"
+    },
+    "1049": {
+      "title": "Last Stone Weight II",
+      "python": "b829560b3a62257b60e01ba0b664324f57a89e0c90947eb09d0094fe8d19e833",
+      "javascript": "d12ac29284b11696c6c0424b08367f59b051d8cd01fa22bed36b3779c1e541b3"
+    },
+    "309": {
+      "title": "Best Time to Buy And Sell Stock With Cooldown",
+      "python": "a9f12ee925fc2ce550a42a898ea970ef7c07c750352f96754a0b86e19be945e9",
+      "javascript": "cfe6bc071454de8a8f15deb7db79b06847960aeec0c8405a22a663adf2d3a771"
+    },
+    "518": {
+      "title": "Coin Change II",
+      "python": "be7c3c044d2fec04cd8b7675a1c2a6a22815c397f382446e0956e2f958aadb4c",
+      "javascript": "c6b6103e2f4b2422f4a04e0c62283b7ac4808ecd467783504cacc6562e9a7721"
+    },
+    "494": {
+      "title": "Target Sum",
+      "python": "6b61e9cb975efb3d0ea97905ef86d7594aeb28a2594824b74c756f03a22ef796",
+      "javascript": "9b469ce06bfd6935d3cac501646943a329c085ae1027256a8f942356572c4556"
+    },
+    "97": {
+      "title": "Interleaving String",
+      "python": "04a7b46bf071f2f90e38953926bd083cd85d4f332568370e5c312e3127c174a9",
+      "javascript": "f49e1a85d12dc159697299e86637bcabfaa26c373f31adf33621ac560b996378"
+    },
+    "877": {
+      "title": "Stone Game",
+      "python": "a760ac9fb0c282efa452a8a9af5323d16d2769f9dff920b27206c5e5e266a637",
+      "javascript": "78f8d45a4a5f0e152a9cd5ed224b5407a7d4353b40788517fbc6f8a7dd15b309"
+    },
+    "1140": {
+      "title": "Stone Game II",
+      "python": "5c0c70d3c3bc0797794afd2b350028302476764d05bc45063c4fead8b82995b4",
+      "javascript": "99070f962ee84578d6968a8dc57b9bf01767908d2d4f456264e20bf5e2b6748c"
+    },
+    "329": {
+      "title": "Longest Increasing Path In a Matrix",
+      "python": "e9a007b47abfa513ad7a44394ab41462eb1aea8161ccefa398575dbb5c5932f0",
+      "javascript": "81e448562510f4cadf7017189acc15b6ae58ab0c8ae58dad13016459568abc5c"
+    },
+    "115": {
+      "title": "Distinct Subsequences",
+      "python": "ece89f0de77768aaba1712ea77bdba59c91bc9f0314c8f6534dcde9fd8909dc4",
+      "javascript": "42edc04a3b46d6d1ae949a0beff3f7b6bfae6dab75c90844a7865226e139586a"
+    },
+    "72": {
+      "title": "Edit Distance",
+      "python": "c18792ba1bd69b65ef3657931beeb068bbbd73ffbfb4f11850fda574b2fa5f6f",
+      "javascript": "b189cc6d1eea8c65184ca823ff625ce1580f6955a155cdd2b4200587b1d424f7"
+    },
+    "312": {
+      "title": "Burst Balloons",
+      "python": "6ba343d0c56d07bd565c9667dcc4906b6fb5e0cb0d0a717fc8049bb6bd921e72",
+      "javascript": "b7189e8648dff55d769c9310d5895f14c1cc470f11512358fb23c25520a6746b"
+    },
+    "10": {
+      "title": "Regular Expression Matching",
+      "python": "d8347bfd25d365fc90ea91020c4046a09460ae4d760dc98042d95a4ffdced59e",
+      "javascript": "69d9370a8f2fafd28609154149aff37577f22a8b6ee70497d9210e4670d672c0"
+    },
+    "860": {
+      "title": "Lemonade Change",
+      "python": "f3dbea10c99832dfe8395c5c84659fdbbdc947b2736f256c64acf296220cb0ad",
+      "javascript": "f8509fdf0ad9c20cc06155046b697fbc5b1c882c31ed136250339f4edeb8dedc"
+    },
+    "53": {
+      "title": "Maximum Subarray",
+      "python": "b80ac4c99cdfc3bb57aa05ef63cd7becfda018db74e6ab6677b8baf9cb72f535",
+      "javascript": "3cefc7c1c5dccad07809d131a4b3bb26ba0c7e6350ff609ed1f1cb0a9a9a4161"
+    },
+    "918": {
+      "title": "Maximum Sum Circular Subarray",
+      "python": "8efa3822eaa1786f10e7a6b04de19f1413767d3c7636e95c8fc8913f314476e5",
+      "javascript": "3545b743105668258f9123d3e2e7bf545b1a5e13af928b116f81d112c1b28466"
+    },
+    "978": {
+      "title": "Longest Turbulent Subarray",
+      "python": "40eadbc43cc0f5d3ed4ff3cbc66f4bd0d575ced4a473b20e6e80336ab169f809",
+      "javascript": "0ef14b27df096775f10a563835aab3809fe909f60af9b9cafa3e7eb1ccbbe947"
+    },
+    "55": {
+      "title": "Jump Game",
+      "python": "151ffc3e66fd1a823d0c3088994e1d44635c266a15533b5250546df4a622188e",
+      "javascript": "eba38c6dc15286d7843714608d8ea552f35726dc4c45e1d53a0b907398860d5a"
+    },
+    "45": {
+      "title": "Jump Game II",
+      "python": "a85abb577dc85e362bcffdcbde679a7ccbd1b624906a6ab7ae98ab94d058bce4",
+      "javascript": "642b7d738f140d9999e6b0a8c2caa77e2de388b20d1bc3146a7721050a4fcfcc"
+    },
+    "1871": {
+      "title": "Jump Game VII",
+      "python": "822717e778059e0ed4c14c67a8b49dcd9822a7ab46c3f1970fc860ccdd1da782",
+      "javascript": "43625f2b52b07f82f7841a986f082f0c1a61f613cc2300d0d207831758b645ad"
+    },
+    "134": {
+      "title": "Gas Station",
+      "python": "0fbe66bcb28ea89873145016850007bec8f5623c157fbc79006083de3ce072c3",
+      "javascript": "6b14fcdab9c3e7c2437b0388428fdf89cc2a9b1bbe99d7a98ab7e11d7199de25"
+    },
+    "846": {
+      "title": "Hand of Straights",
+      "python": "f7adc2365c8f0bc2361a7f8417d0cffe926e8de159571c0bfb40fb485cddad19",
+      "javascript": "094375e5d00d9e3356fea07fab8daa9b5ccc1b8a19322fda664dd21de0f636e0"
+    },
+    "649": {
+      "title": "Dota2 Senate",
+      "python": "7533ef6c89ef7e60b321cfd2b3ee4ed84ba931ca133c2e9712bea2448864a89a",
+      "javascript": "0dc0619c1cd0be1bed4660d9f82c8e495293abb687503cf233e9ba6646efec68"
+    },
+    "1899": {
+      "title": "Merge Triplets to Form Target Triplet",
+      "python": "e375de87ecdb5c158fe0cf51ddfc25b0751597130338a8a51c96a2d171f648e7",
+      "javascript": "09409977ac3bc9b5d9fff5c5baccba5969660b73939eb7aa5bb5ebe7f040f85b"
+    },
+    "763": {
+      "title": "Partition Labels",
+      "python": "ee549c4ae8083fd8cb0807984a3150e634ce09a81bc96fb500c440fbf27773eb",
+      "javascript": "e5ca1b4923fde6a87dc3c35283986006ffa43154f70332712c8299788b8d5266"
+    },
+    "678": {
+      "title": "Valid Parenthesis String",
+      "python": "2144cb41cdad00db2b847c29f621a643ad0d5b58e2e3451c3a3e26589608ac4a",
+      "javascript": "5cdc30b9cf62284efd4e26adf060ef78fa8396893f1bbb02b56fecde721b640b"
+    },
+    "135": {
+      "title": "Candy",
+      "python": "6f3084542484f5fdd7d7998ea733b7647fc7e4cc563139360ae5407ceefdd368",
+      "javascript": "64e37a66c630916aaa7fdf4090b63dfb5330b89451d83cc70492f2c7e3edfa9f"
+    },
+    "57": {
+      "title": "Insert Interval",
+      "python": "817941d75847221a5f5e07e73bf3e0c62c2fadfeccd0f24c0765060f812c85b8",
+      "javascript": "7e2b9d3f880790ee2549d319b10a370f961bd6e815b10a4174539c58b43265c5"
+    },
+    "56": {
+      "title": "Merge Intervals",
+      "python": "e74351370276d3d3b2c85772ae6964bc3cb9c7487db82c02c5407da0f156ce69",
+      "javascript": "5f77b9be09dfafed7b096ecd2ca7f1c25419b1e0173ddcbdd8de5158b987c279"
+    },
+    "435": {
+      "title": "Non Overlapping Intervals",
+      "python": "e40946f9817869db6c32b83e0bde16b1664be07b2aaa52cc11d51dc1b6664539",
+      "javascript": "53bee5c665a0bc0a23bbe50eec1ede5c36428b9748ba32965d1c2fdc4df7531d"
+    },
+    "252": {
+      "title": "Meeting Rooms",
+      "python": "12a90e6f5b925888f5844331f6f817be21a5132a0674985ec8bea17ef4f5212e",
+      "javascript": "59300a961c886eeecacb53dedb531a4c26665ec6b66a28da108bdce144324d4d"
+    },
+    "253": {
+      "title": "Meeting Rooms II",
+      "python": "24c0a273b0f673c528c5f035a9bf3513b4e42918c0a1632970381f47e528dfc1",
+      "javascript": "fa2f4fc526064716d749e3095eaccb0271a240100823ae6922597d315d6b4612"
+    },
+    "2402": {
+      "title": "Meeting Rooms III",
+      "python": "41cd445853b67856b83baff138a03b252d481a0bba6e1766c30174e1b63b1e6b",
+      "javascript": "3e05128d0796c83ada297d98fe0bc9eb0a0d6c63d1304afff8ec319ebbd820f9"
+    },
+    "1851": {
+      "title": "Minimum Interval to Include Each Query",
+      "python": "39dda09077e34c85042c400ce38f6d49c110514be982e3005937731553739e08",
+      "javascript": "b1eed1c1809a371ce3370c736286deba0735f816ff876582939d05d09fa899cd"
+    },
+    "168": {
+      "title": "Excel Sheet Column Title",
+      "python": "5a3beb89ad9968ff03fc8e11107ce7550161950f443aea277f9af5c77b36b9ed",
+      "javascript": "cba5c08a7459c54c0ee658ffcc887797f5ef78790f7a46c011142b6935d45b90"
+    },
+    "1071": {
+      "title": "Greatest Common Divisor of Strings",
+      "python": "a8249f01777240af7c830e045fc1f23174d8ea3918fe1af6b8aece9303ac6963",
+      "javascript": "5f428822f5b17251d7893d138c4123b109337d864a965444328b23efd566a56d"
+    },
+    "2807": {
+      "title": "Insert Greatest Common Divisors in Linked List",
+      "python": "9ffe3d298a2dd8080fe0d7c8f218fa5b7dcfd722e0e5ac9763325cf12e6a2488",
+      "javascript": "24dc74d6cdce4875665bab25057504a4353ce3b294b755d7d02e8a9e47e119b8"
+    },
+    "867": {
+      "title": "Transpose Matrix",
+      "python": "203b1994d7c4547306aa87f286a17129074e77a7614b4ce84cb7c3e2815550de",
+      "javascript": "a6529d3da861733a9d612315364c0ded7297bc519ca5fa66eadf0a8dee1e5c97"
+    },
+    "48": {
+      "title": "Rotate Image",
+      "python": "b5a4fe84a5c4c4d65577acd99dcf3f55f31dcae71e5a93cdd094a669aadc97c4",
+      "javascript": "cf7e104965b5d108b7c662641454e62939aab36a8dc3d0dfcfe1f2781ed190c9"
+    },
+    "54": {
+      "title": "Spiral Matrix",
+      "python": "465f88c31b6cab336b1c5806df4f7884af0f569ec8df6d5aad67cef3a6d0a0d5",
+      "javascript": "9ae368c40c1ddbe5ecd2e524639b0a2f81ad06de8a5ff8c9d3069c884450f36b"
+    },
+    "73": {
+      "title": "Set Matrix Zeroes",
+      "python": "33e124976007063d02a705822af2b9c954c6e3156b3c71e9214b98cb8e16437b",
+      "javascript": "01cb26a88c2fe93fccf1a45aa02981e74b240fe44fa47b8fb67335bb4870b637"
+    },
+    "202": {
+      "title": "Happy Number",
+      "python": "1abc2f82584b9941a7c0980cc8eda438d179273682255560cd2fa1d79a41795a",
+      "javascript": "a1b2bd03790c3382d7b4091c97e96c7d04b5e27d1628989b9f35fb320f669719"
+    },
+    "66": {
+      "title": "Plus One",
+      "python": "02153efb171d97b03db50c699fe7563888452c31fd1d734ea5037b3d1e4cdfc0",
+      "javascript": "cc6b41964edc3004155ab820e05e0ecfff439b1d2fa6b27abed4d6e0e3a9471a"
+    },
+    "13": {
+      "title": "Roman to Integer",
+      "python": "7c3f74bb8a719667a2860930f94d21cebfa7a732bef5219d06d2e9add8d8b4bf",
+      "javascript": "c6c7107898f4947cc079fc0f461d5a9bc8bbeefe13ea6399cf5df4a84ce0dbf1"
+    },
+    "50": {
+      "title": "Pow(x, n)",
+      "python": "e68c52076bf0de74a8a4fb14959b2e68de9454c1f7109c05bb9cfc735fa3cadd",
+      "javascript": "dd79c58b3377441ffbc5d27eace7367d30b202482d1aa1a49539cdab531a7ec7"
+    },
+    "43": {
+      "title": "Multiply Strings",
+      "python": "30763143d7d1f01e4eb5d5de7cb4baa25efaab568e06ab81817d1a130d8c1bf6",
+      "javascript": "d011cbd6350b9b2192caab9a2c4b258b8418d3bd46e201d128a2a51e946a7b26"
+    },
+    "2013": {
+      "title": "Detect Squares",
+      "python": "7a75cd023e61909c4b5d18ac65a36eea20248097a6ba8c0cb92f4a204585aae2",
+      "javascript": "693c353759ee53a11efbe587ab61439d097b9d47f5c37d68b7a76891153d3cd4"
+    },
+    "136": {
+      "title": "Single Number",
+      "python": "9ccc7936391a68666b95139110fb160c59023e623f2135745868a2e9a113f0f4",
+      "javascript": "f51a3aa896060565f2e9f68c46e7c6a559d17411386e941651a359b850c8f294"
+    },
+    "191": {
+      "title": "Number of 1 Bits",
+      "python": "4af3d67ae41a2dcb7d2504c1b344e4cdfe9e20e1f7674f50380a570da75a4e85",
+      "javascript": "35d1b8e845604130821da6f6ea0d40b2f609a61358491996e58a291054f0246b"
+    },
+    "338": {
+      "title": "Counting Bits",
+      "python": "e116dec6b9a338ad4754015b9edf27d04d1d3e4f805880bcf6e1bd2798f9f3f7",
+      "javascript": "d4298d2a7d9ed55d68d42ea30c5406513672e29aa2ec397fdf352808dd8646c8"
+    },
+    "67": {
+      "title": "Add Binary",
+      "python": "8da5294fe9bb18fa1f7c0048f453b8ffc20a72280a9e26d32a09da35ada76113",
+      "javascript": "7a2425f1ef2382b306b3e919bbb632c8fca4a0558913ce5fcfdcc9bd8b8a12ae"
+    },
+    "190": {
+      "title": "Reverse Bits",
+      "python": "21ce1897695699852a498b18a8cd370c9a4bfcb05ac1481acc0e519576d9d18b",
+      "javascript": "b87f4857599c994a1897862cdbf43315546cef4b048ed67a490a2453753b1f55"
+    },
+    "268": {
+      "title": "Missing Number",
+      "python": "8d00983e02591f46b6529aaef824b842cdbd7ed9b207e27d5e9ac0ccc17fa780",
+      "javascript": "d291ec795e29605753a3742899b83237f464764fee5877968734f213f2548850"
+    },
+    "371": {
+      "title": "Sum of Two Integers",
+      "python": "bf9de8579c67ce7a8ac76181d0432bfc8cee793a118cabb0f051d99617bd38a7",
+      "javascript": "f9af31a8b9bb27811c993cae540b592a0c9a9bf6d88d1a57b57f5fa845e52b1d"
+    },
+    "7": {
+      "title": "Reverse Integer",
+      "python": "557c16dac99446995b02740abfb7543df7ad1fb0528415fd2c68c100eed3eb5c",
+      "javascript": "35ba0adf054df8a07daab19bbbddcaec3c17f500d451e5f00a472bd33083d3ca"
+    },
+    "201": {
+      "title": "Bitwise AND of Numbers Range",
+      "python": "a84ed6773c683edc6d4a27ba1ae176526953c7e4e6550a80c8e3b38f9b6e5a6f",
+      "javascript": "ff5ab7676efdf7ecd17750a78ddbed948825225b5c4c9b7b66b97a11b2002493"
+    },
+    "3133": {
+      "title": "Minimum Array End",
+      "python": "eea2775e1019d7a00c6bce9ede19fd9ef5fa435925299df6f83b79d803885262",
+      "javascript": "c62776394429f98c2a56b3ce84b87f6ede8fbf70fa426bd308747372cbe1a9cc"
+    }
+  }
+}

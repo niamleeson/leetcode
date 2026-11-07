@@ -1,0 +1,250 @@
+1929	scan	Concatenate the original list with itself, preserving its order in both copies.
+217	hash	Scan the numbers with a set of earlier values. Report a duplicate before inserting the current value; otherwise finish with false.
+242	hash	Count each character in both strings and compare the complete frequency maps.
+1	hash	Scan left to right with a value-to-index map. Look up the current complement before storing the current index.
+14	scan	Compare each character position of the first string against every other string. Stop at the first mismatch or shorter string.
+49	hash	Sort each word's characters into a key, group original words by that key, then return the groups.
+27	two-pointers	Scan every value while a separate write position advances only for values that should remain. Return the retained prefix length.
+169	voting	Keep a candidate and a balance: equal values reinforce it and different values cancel it. Replace the candidate when the balance reaches zero.
+705	hash	Hash each key into a bucket, then check the actual keys in that bucket. Add, remove, and query without confusing collisions with equality.
+706	hash	Hash keys into buckets of key-value pairs. Update a matching pair, append a new key, and search or remove by the full key.
+912	heap	Build an in-place max-heap. Move its root to the end of the unsorted prefix, shrink that prefix, and restore the heap.
+75	two-pointers	Maintain regions for zeros, ones, and twos with three positions. Examine a swapped-in unknown value before advancing past it.
+347	hash	Count occurrences, place each distinct value into its frequency bucket, and collect values from the largest frequencies until k are chosen.
+271	scan	Encode each string as its length, a separator, and its contents. Decode by reading the length and then exactly that many characters.
+304	prefix	Build a padded two-dimensional prefix-sum table. Answer each rectangle using four corners and inclusion-exclusion.
+238	prefix	Store the product strictly before each index in a forward pass. Multiply by the product strictly after it in a backward pass.
+36	hash	Track seen digits separately for each row, column, and box. Ignore empty cells and reject a digit repeated in any of its three regions.
+128	hash	Put values in a set. Extend a consecutive run only from values whose predecessor is absent, and keep the longest run.
+122	greedy	Add each positive difference between neighboring prices. This captures profitable rises while allowing multiple transactions.
+229	voting	Cancel values against two candidate balances. Recount the surviving candidates and keep only those occurring more than n/3 times.
+560	prefix	Count earlier prefix sums, starting with one empty prefix. For each new prefix, add the count of prefix minus k before recording it.
+41	index-placement	Swap each value from 1 through n into index value minus one, stopping on duplicates. Find the first position whose expected value is missing.
+344	two-pointers	Swap the first and last characters, then move both positions inward until they meet.
+125	two-pointers	Move inward from both ends, skipping non-alphanumeric characters. Compare the remaining characters without case differences.
+680	two-pointers	Compare opposite ends until the first mismatch. Test both remaining intervals obtained by deleting one of the mismatching characters.
+1768	scan	Advance a shared character index and append from each string when that index exists. Continue until both strings are exhausted.
+88	two-pointers	Compare the last unused values of both sorted inputs. Write the larger value into the last free slot of nums1 and work backward.
+26	two-pointers	Scan the sorted array while tracking its unique prefix. Copy a value into the next output position only when it differs from the last retained value.
+167	two-pointers	Compare the sum at the two ends of the sorted array with the target. Increase the smaller end or decrease the larger end, and return one-based positions.
+15	two-pointers	Sort, fix one value, and search the remaining suffix with two inward-moving positions. Skip duplicate choices and duplicate matching pairs.
+18	two-pointers	Sort, fix two distinct positions, and search the remaining suffix with two positions. Skip duplicate choices at each level.
+189	two-pointers	Reduce k modulo the array length. Reverse the whole array, then reverse the first k values and the remaining values separately.
+11	two-pointers	Measure the container between the outer lines. Keep the best area and move the shorter boundary inward.
+881	two-pointers	Sort weights and always assign the heaviest remaining person a boat. Pair that person with the lightest only when their combined weight fits.
+42	two-pointers	Track the highest boundary seen from each end. Process the side with the smaller boundary and accumulate the water above its next bar.
+219	window	Keep a set of the previous at most k values. Check for the current duplicate, then insert it and remove the value that expires from the window.
+121	greedy	Track the minimum price encountered so far. At each day, compare today's sale profit against the best earlier profit.
+3	window	Expand a window of unique characters. Remove characters from its left until the next right character can be included without repetition.
+424	window	Track character counts and the best frequency seen as the right boundary advances. Move the left boundary when length minus that frequency exceeds k.
+567	window	Count the required characters and a fixed-length window in s2. Update entering and leaving counts and detect when all 26 counts match.
+209	window	Expand the sum window to reach the target. Repeatedly shrink a valid window while recording its shortest length.
+658	binary-search	Search the possible starting positions of a k-element window. Compare the two competing boundary distances and keep the left window on ties.
+76	window	Expand until all required character counts are covered. Shrink while coverage remains valid, keeping the shortest interval found.
+239	monotonic	Keep candidate indices in decreasing value order. Expire indices outside the window and discard smaller trailing candidates before reading the front maximum.
+682	stack	Keep the valid scores in a stack. Apply cancellation, doubling, or addition to the latest valid scores and sum the final stack.
+20	stack	Push opening brackets. Each closing bracket must match the latest opener, and no openers may remain at the end.
+225	queue	Push into an empty helper queue, then transfer the old active queue behind the new value. Swap queues so pop and top use the active front.
+232	stack	Push into an input stack. When the output stack is empty, transfer all inputs to reverse their order; pop and peek from the output stack.
+155	stack	Maintain value and running-minimum stacks at matching depths. Push and pop both so the latest minimum belongs to the current contents.
+150	stack	Push numbers; for each operator, pop right then left operand and push the computed result. Division truncates toward zero.
+735	stack	Keep surviving asteroids. Resolve collisions only when a new left-moving asteroid meets a right-moving survivor, continuing until one side survives.
+739	monotonic	Keep indices awaiting a warmer day in decreasing temperature order. A warmer day resolves trailing indices by their index distance.
+901	monotonic	Store price-span pairs in decreasing price order. Pop all prices no greater than the new price, add their spans, and store the combined span.
+853	monotonic	Process cars from nearest to farthest from the target. Add a new fleet only when its arrival time exceeds the fleet ahead.
+71	stack	Process slash-separated path components. Ignore empty and dot entries, pop for a parent step, and retain ordinary directory names.
+394	stack	Save the repetition count and previous text at each opening bracket. On a closing bracket, restore the outer text and append the repeated inner text.
+895	stack	Track each value's frequency and a stack for each frequency level. Pop from the highest frequency, using stack order to break ties by recency.
+84	monotonic	Keep indices of increasing bar heights. When a shorter bar arrives, resolve popped bars using their nearest shorter boundaries; a final zero flushes the stack.
+704	binary-search	Maintain an inclusive candidate interval. Compare its middle value, discard the impossible half including the checked middle, and return minus one if empty.
+35	binary-search	Find the first index whose value is at least the target. Use an upper boundary of n so insertion after the final value remains possible.
+374	binary-search	Search the integer range 1 through n. Use the guess API result to keep only the side that can contain the hidden number.
+69	binary-search	Find the first nonnegative integer whose square exceeds x. Return the preceding integer as the floor square root.
+74	binary-search	Search the matrix as one flattened sorted range. Convert each middle index to its row and column before comparing its value.
+875	binary-search	Search eating speeds from 1 to the largest pile. Sum each pile's rounded-up time and retain the smallest speed that finishes within h hours.
+1011	binary-search	Search capacities from the largest package to the total weight. Greedily count ordered shipping days for each candidate capacity.
+153	binary-search	Compare the middle value with the rightmost value. Keep the side containing the rotation minimum, retaining the middle when it could be the answer.
+33	binary-search	Identify which half is sorted, then decide whether the target lies in that half's bounds. Search only the half that can contain it.
+81	binary-search	Search as a rotated array, but first skip an equal left boundary when duplicates hide the sorted half. Continue until a match or an empty range.
+981	binary-search	Append timestamped values per key. For a query, search that key's ordered history for the latest timestamp not exceeding the requested time.
+410	binary-search	Search the allowed maximum subarray sum. Greedily count contiguous groups for each bound and keep the smallest bound needing at most k groups.
+4	binary-search	Search a partition of the shorter array and derive the other partition's size. Once both left sides are no greater than both right sides, read the median boundaries.
+1095	binary-search	Find the peak first. Search the increasing side before the decreasing side, reversing comparisons on the latter to preserve the smallest matching index.
+206	linked-list	Save the next node before reversing the current link. Advance previous and current pointers, then return the new head.
+21	linked-list	Append the smaller current node to a dummy-headed result. Advance only its input list and attach the unexhausted remainder at the end.
+141	fast-slow	Advance one pointer by one link and another by two. A meeting proves a cycle; reaching a missing fast link proves termination.
+143	linked-list	Locate and detach the second half, reverse it, then alternate nodes from the first half and the reversed half.
+19	two-pointers	Start two pointers at a dummy node with a gap of n plus one links. Move them together, then bypass the node after the slower pointer.
+138	hash	Create a clone for every original node in one pass. In a second pass, use the identity map to connect each clone's next and random links.
+2	linked-list	Traverse both digit lists together with a carry. Append a new digit for each sum and continue while either list or the carry remains.
+287	fast-slow	Treat array values as next-node links. Find a cycle meeting, reset one pointer to the start, and move both one step to locate the duplicate entry.
+92	linked-list	Locate the node just before the reversal segment. Repeatedly detach the node after the segment's first node and insert it at the segment's front.
+622	queue	Keep a fixed array, head index, and item count. Compute rear positions modulo capacity and distinguish full from empty by the count.
+146	cache	Map keys to doubly linked nodes ordered by recency. Move accesses to the front and evict the tail's least recently used node when over capacity.
+460	cache	Track values, frequencies, and ordered keys within each frequency. Promote accesses and evict the oldest key at the lowest frequency.
+23	heap	Put each nonempty list's first node into a min-heap. Append the smallest node and add its successor until all lists are consumed.
+25	linked-list	Check that k nodes remain before reversing them. Connect the reversed group's old head to the recursively processed remainder; leave a short final group intact.
+94	dfs	Use a stack to descend left, visit the popped node, then move right. This produces left-node-right order without recursion.
+144	dfs	Visit each popped node, then push its right child before its left child. The stack therefore explores left before right.
+145	dfs	Collect nodes in node-right-left order using a stack. Reverse the collected sequence to obtain left-right-node order.
+226	dfs	At each node, swap its children and recursively invert both child subtrees. Return the original root reference.
+104	dfs	Return zero for a missing node. Otherwise return one plus the larger depth of its two subtrees.
+543	dfs	Return subtree heights upward. At each node, compare the sum of its two child heights with a separate global diameter.
+110	dfs	Compute subtree heights after visiting their children. Propagate an unbalanced sentinel instead of a height if either child or their height difference is invalid.
+100	dfs	Compare corresponding nodes, including missing children. Equal values are sufficient only when both corresponding subtrees also match.
+572	dfs	Try a full structural comparison at each candidate root. If it fails, search both child subtrees for another starting point.
+235	bst	Move left when both targets are smaller and right when both are larger. The first split or target match is their lowest common ancestor.
+701	bst	Follow the value comparison down the tree. Create the new node at a missing child and reconnect the returned subtree on the way back.
+450	bst	Find the key by ordered comparisons. Replace a one-child node directly, or copy its inorder successor and delete that successor from the right subtree.
+102	bfs	Process the queue in batches equal to its size at the start of each level. Record one value list per batch and enqueue its children.
+199	bfs	Traverse one level at a time from left to right. Record only the final node of each level's queue batch.
+427	divide-conquer	Recursively build four equal quadrants. Collapse them into one leaf only when all four are leaves with the same value.
+1448	dfs	Carry the largest ancestor value separately down each root-to-node path. Count a node when its value is at least that maximum.
+98	bst	Carry strict lower and upper bounds inherited from all ancestors. Narrow the appropriate bound when validating each subtree.
+230	dfs	Use iterative inorder traversal to visit BST values in ascending order. Count visits and return the kth node's value.
+105	divide-conquer	Read each root from preorder and locate it in an inorder index map. Recursively build the left inorder range before the right range.
+337	dp	For every node, compute two values: rob this node or skip it. Robbing requires skipped children; skipping permits each child's better option.
+1325	dfs	Process both children before deciding about their parent. Delete a target-valued node only after it has become a leaf.
+124	dfs	Return the best single downward branch from each node. Separately update the best full path through the node using both nonnegative child contributions.
+297	dfs	Serialize in preorder with explicit null markers. Deserialize by consuming the same token order recursively to rebuild both child positions.
+703	heap	Keep a min-heap containing the largest k stream values seen so far. Drop its smallest value on overflow and report its root.
+1046	heap	Represent the largest stones with a max-priority heap. Remove the two heaviest and reinsert their positive difference until at most one remains.
+973	heap	Keep at most k points in a heap whose root is the farthest retained point. Remove that point on overflow and return the retained coordinates.
+215	quickselect	Convert kth largest to a zero-based sorted rank. Partition the current range into less-than, equal-to, and greater-than pivot regions, then keep the region containing that rank.
+621	math	Count the most frequent tasks and how many share that frequency. Compare the cooldown block bound with the total task count to account for fully filled gaps.
+355	heap	Keep ordered tweets per user and followee sets. Merge the latest relevant tweets with a heap, advancing only the stream whose tweet was selected.
+1834	heap	Sort tasks by arrival time and enqueue all currently available tasks. Run the smallest processing-time/index pair, or jump the clock forward when none is available.
+767	heap	Choose the most frequent available character while holding the previous character out of the heap for one turn. Reject an impossible dominant count first.
+1405	heap	Prefer the most frequent remaining letter. If it would create three identical consecutive letters, use the next candidate or stop if none exists.
+1094	prefix	Record passenger changes at pickup and drop-off positions in a difference array. Accumulate occupancy in position order and reject any capacity excess.
+295	heap	Maintain a max-heap for the lower half and a min-heap for the upper half. Repair their ordering and balance their sizes before reading the middle value or values.
+502	heap	Sort projects by required capital. At each of at most k rounds, heap-select the largest profit among projects affordable with the current capital.
+1863	backtracking	For each input value, recurse once excluding it and once including it in the running XOR. Sum the completed subset XOR values.
+78	backtracking	Record the current subset, then choose each later position in turn. Undo each appended value after exploring that branch.
+39	backtracking	Try sorted candidates from a nondecreasing start position. Recurse on the remaining target while allowing the same candidate to be reused.
+40	backtracking	Sort candidates, skip equal choices at the same depth, and advance past each chosen index. Record a combination when the remaining target reaches zero.
+77	backtracking	Choose increasing values from 1 through n until k are selected. Bound the next choice so enough values remain to complete the combination.
+46	backtracking	Build a full ordering by choosing any unused input index. Mark it during that branch, then undo both the choice and the mark.
+90	backtracking	Sort values and record each growing subset. Skip equal alternatives at the same recursion depth, while allowing distinct duplicate positions in deeper levels.
+47	backtracking	Sort values and track used positions. At a given depth, skip a duplicate whose equal predecessor has not been chosen, then undo usage on return.
+22	backtracking	Grow the string with an opener only while fewer than n are used. Add a closer only when unmatched openers remain.
+79	backtracking	Try each cell as a start and match one word character per adjacent move. Mark the current cell during a path and restore it when that path returns.
+131	backtracking	Try every palindromic prefix of the unprocessed suffix. Recurse from its end and undo the chosen piece before trying another cut.
+17	backtracking	For each digit, choose one mapped letter and advance to the next digit. Record the string only after all digits have contributed.
+473	backtracking	Check the total can form four equal sides, then place longest sticks first. Try each fitting side and undo failed placements, skipping equal side states.
+698	backtracking	Check divisibility and try larger values first. Place each value into a bucket without exceeding the target, undo failures, and skip equal bucket states.
+51	backtracking	Place one queen per row while tracking occupied columns and both diagonals. Undo each placement before exploring the next column and save complete boards.
+52	backtracking	Try one safe column for each row using column and diagonal sets. Undo each choice and sum one for every completed placement.
+140	dp	Memoize all valid sentences beginning at each string index. Join a dictionary prefix with each sentence returned for the remaining suffix.
+208	trie	Follow or create one character edge at a time. Mark complete words separately so a stored prefix is not automatically a complete word.
+211	trie	Store words in a trie with end markers. During search, follow a literal edge or explore all character children for a dot wildcard.
+2707	dp	Let each prefix store its minimum number of extra characters. Either pay for its last character or attach a dictionary word to an earlier solved prefix.
+212	trie	Build a trie for all target words and search board paths through its prefixes. Mark cells per path, emit each terminal word once, and prune exhausted branches.
+463	scan	Add four sides for each land cell. Subtract two for each land neighbor already visited above or to its left.
+953	hash	Map each alien character to its rank. Compare adjacent words at their first different character, also rejecting a longer word before its exact prefix.
+997	scan	Subtract outgoing trust and add incoming trust for each person. Find a balance of n minus one, which requires all others' trust and no outgoing trust.
+200	dfs	Scan for unvisited land; each such cell starts one island. Flood its connected land and mark it before exploring neighbors.
+695	dfs	Flood each unvisited land component and sum its cells. Mark cells on entry and keep the largest component area.
+133	dfs	Map original nodes to clones before exploring their neighbors. Reuse an existing clone when a cycle reaches a node already discovered.
+286	bfs	Seed the queue with every gate at distance zero. Expand into unfilled rooms, assigning each its first and therefore shortest distance.
+994	bfs	Start with every rotten orange and count the fresh ones. Spread rot one queue layer per minute, marking new rotten cells immediately.
+417	dfs	Explore backward from each ocean border toward equal or higher cells. Return cells reached by both independent traversals.
+130	dfs	Mark every region connected to a border O as safe. Flip the remaining O cells and restore the safe marks.
+752	bfs	Explore lock states by increasing move count. Generate one-wheel neighbors, skip dead or visited states, and stop at the target.
+207	topological	Build prerequisite-to-course edges and indegrees. Repeatedly remove zero-indegree courses; all courses must be removed for the schedule to be feasible.
+210	topological	Queue every zero-indegree course and record the removal order. Release dependents as their indegrees reach zero; return no order if a cycle remains.
+261	dfs	Traverse the undirected graph while remembering each node's parent. Reject a visited non-parent neighbor and require every node to be reached.
+1462	bfs	Run a reachability traversal from each course and record which courses it reaches. Answer each prerequisite query from that directed reachability table.
+323	bfs	Start a traversal from every still-unvisited vertex, counting one component each time. Mark and explore its entire undirected component.
+684	bfs	Try candidate edges from last to first. Search for a path between their endpoints while skipping the candidate edge; the first remaining path identifies the answer.
+721	bfs	Connect email addresses belonging to the same account. Traverse email components, sort their addresses, and attach the associated account name.
+399	bfs	Build reciprocal weighted edges for each equation. Traverse from each query source while multiplying edge ratios, returning minus one when no path exists.
+310	bfs	Collect all leaves and remove them in simultaneous layers. Stop when the tree has only one or two central vertices remaining.
+127	bfs	Group words by one-character wildcard patterns. Explore undiscovered neighboring words in distance layers and return the first layer containing the target.
+1631	shortest-path	Use a min-heap ordered by path effort. Relax a neighbor with the maximum of current effort and the new height difference, keeping the smallest effort per cell.
+743	shortest-path	Use a min-heap to settle earliest arrival times from the start. Expand directed weighted edges and return the latest settled time only if every node is reached.
+332	euler	Order outgoing destinations lexically and consume each ticket during recursive traversal. Append airports when their outgoing tickets are exhausted, then reverse the route.
+1584	mst	Sort all Manhattan-distance edges. Accept the next cheapest edge only when its endpoints are not yet connected, using BFS to check connectivity.
+778	shortest-path	Expand the cell with the smallest required water level from a min-heap. A neighbor's path cost is the larger of the current level and its elevation.
+269	topological	Extract precedence from the first differing letters of adjacent words. Reject invalid prefixes, then remove zero-indegree letters to form an order or detect a cycle.
+787	shortest-path	Relax every flight for exactly k plus one rounds. Read the previous round's prices and write a copy so one round adds at most one edge.
+1489	mst	Compute the minimum spanning-tree cost, then recompute while excluding or forcing each edge. Compare costs to classify critical and optional minimum-tree edges.
+2392	topological	Topologically order the row and column conditions independently. If neither has a cycle, place each number at the intersection of its two order positions.
+2709	bfs	Connect indices sharing a prime factor through one representative per factor. Traverse that graph and require every index to be reachable.
+70	dp	Track the counts for two neighboring stair states. Replace them with their sum and the previous value until the requested step count is reached.
+746	dp	Work backward, adding the cheaper of the next two finishing costs to each stair. Choose the cheaper of starting at stair zero or one.
+1137	dp	Handle the three initial Tribonacci values. Repeatedly shift a three-value window and append the sum of its previous values.
+198	dp	Track the best totals for the previous two prefixes. At each house, choose between skipping it and adding it to the best total two houses back.
+213	dp	Handle a single house directly. Otherwise solve the linear robbery recurrence once without the first house and once without the last, taking the better result.
+5	center	Expand matching characters around every single-character and adjacent-pair center. Keep the longest interval found.
+647	center	Expand around every odd and even center. Count each successful expansion as one palindromic substring occurrence.
+91	dp	Work backward over suffixes, with one way to decode the empty suffix. Add valid one-digit and two-digit continuations, assigning zero to a leading zero.
+322	dp	Store the fewest coins needed for each amount, starting at zero coins for amount zero. Try every fitting coin as the final coin of that amount.
+152	dp	Track both largest and smallest products ending at the current position. A negative value can exchange their roles, while zero starts a new segment.
+139	dp	Mark the empty prefix as segmentable. A longer prefix is segmentable when it ends with a dictionary word after an already segmentable prefix.
+300	binary-search	Maintain the smallest possible tail for each increasing-subsequence length. Binary-search where each value replaces a tail or extends the list.
+416	dp	Reject an odd total. Track achievable sums while processing each value once and test whether half of the total can be reached.
+377	dp	Count ordered ways to reach each amount. For every increasing amount, try each number as the final element and add the ways for the remaining amount.
+279	dp	Store the fewest squares needed for each total. Try every square no larger than the current total as its final summand.
+343	math	Handle the smallest mandatory splits, then take factors of three while the remainder exceeds four. Multiply by the final remainder instead of leaving a factor of one.
+1406	dp	Work backward with the best score difference for the current player. Try taking one, two, or three stones and subtract the opponent's remaining advantage.
+62	dp	Store path counts for one row. Update each interior column by adding the count from its left to the count retained from above.
+63	dp	Maintain one row of path counts. Reset obstacle cells to zero; otherwise add the left count to the count already coming from above.
+64	dp	Accumulate minimum path sums in the grid from top-left to bottom-right. Each cell adds its cost to the better reachable predecessor above or left.
+1143	dp	Compare string prefixes in a two-dimensional table. Matching last characters extend the diagonal; mismatches choose the better prefix after dropping one character.
+1049	dp	Track achievable subset sums no greater than half the total stone weight. Use the largest such sum to minimize the difference between two groups.
+309	dp	Track holding, just-sold, and resting profits for each day. Compute new states only from previous-day states so buying cannot violate the cooldown.
+518	dp	Start with one way to form amount zero. Process each coin outside the increasing-amount loop so combinations are counted without ordering duplicates.
+494	dp	Map each reachable sum to its number of sign assignments. For each number, build a new map by adding both its positive and negative contributions.
+97	dp	Use states for consumed prefixes of both source strings. Extend a reachable state when the next character from either source matches the combined string.
+877	dp	Solve intervals from short to long using score advantage. Taking either end gains that pile and subtracts the opponent's best advantage on the remaining interval.
+1140	dp	Memoize the best score by pile index and M, using suffix totals. Try each permitted take and subtract the opponent's best score from the remaining total.
+329	dp	Memoize the longest increasing path starting at each cell. Explore only strictly larger neighbors and reuse each cell's solved result.
+115	dp	Count ways to match each target prefix from each source prefix. Always allow skipping the source character and add a matching-use branch when characters agree.
+72	dp	Build edit distances between prefixes, including empty-prefix costs. Matching characters use the diagonal; others take one plus the best insert, delete, or replace state.
+312	dp	Solve intervals by choosing which balloon bursts last inside each interval. Combine its left and right subinterval results with the fixed outer boundaries.
+10	dp	Track which string and pattern prefixes match. A star either removes its preceding token or consumes another matching character while retaining that token.
+860	greedy	Track available five- and ten-dollar bills in customer order. For twenty dollars, prefer ten plus five when possible, preserving more five-dollar bills.
+53	greedy	Track a contiguous running sum and the best nonempty sum. Discard a negative running prefix before extending with the next value.
+918	dp	Compute maximum and minimum contiguous sums plus the total. Compare the normal maximum with total minus the minimum, handling all-negative input separately.
+978	dp	Track turbulent lengths ending in an upward or downward comparison. Extend the opposite direction on a strict change and reset both on equality.
+55	greedy	Scan only as far as the reachable frontier permits. Extend that frontier with each reachable index's jump and reject an unreachable gap.
+45	greedy	Track the farthest index reachable within the current jump layer. When the layer ends, count one jump and advance its boundary.
+1871	window	Track how many reachable earlier positions lie within the allowed jump-distance window. A new position is reachable only when that count is positive and its character is zero.
+134	greedy	Reject insufficient total gas. Scan the surplus and restart just after a negative running segment, since none of that segment's starts can finish it.
+846	greedy	Count cards and repeatedly start a group at the smallest remaining card. Consume exactly one of each required consecutive value or reject a missing card.
+649	queue	Queue each party's turn indices. The earlier queued senator bans the opponent and rejoins one full round later; continue until one party's queue is empty.
+1899	greedy	Discard any triplet that exceeds a target coordinate. Among the remaining triplets, require an exact match for each target coordinate somewhere.
+763	greedy	Record each character's final position. Expand a partition's end to include every character encountered, closing it when the scan reaches that end.
+678	greedy	Maintain the smallest and largest possible unmatched-open counts. Clamp the minimum to zero, reject a negative maximum, and require a possible zero at the end.
+135	greedy	Assign one candy each, then satisfy increasing ratings from left to right. Sweep right to left, increasing only as needed to satisfy the other neighbor too.
+57	intervals	Keep intervals before the new one unchanged, merge every overlap into the new interval, then append it before the untouched later intervals.
+56	intervals	Sort by start time. Extend the last merged interval when the next one overlaps, otherwise start a new output interval.
+435	intervals	Sort intervals by start. On overlap remove one and keep the smaller end; otherwise retain the new interval and update the tracked end.
+252	intervals	Sort meetings by start time. Reject when a meeting starts before the previous meeting ends.
+253	heap	Process meetings by start time with a heap of room availability times. Reuse the earliest available room or allocate another, retaining one heap entry per room.
+2402	heap	Keep available rooms ordered by number and busy rooms by finish time then number. Preserve meeting duration when delaying, and count assignments per room.
+1851	heap	Sort intervals and queries. Add intervals whose start has been reached, discard expired heap candidates, and read the shortest remaining interval for each query.
+168	math	Convert a one-based column number into base-26 letters. Subtract one before each remainder and reverse the collected least-significant letters.
+1071	math	First check that the two concatenation orders match. If they do, return a prefix whose length is the greatest common divisor of both lengths.
+2807	linked-list	For each original adjacent node pair, insert a node holding their GCD. Advance to the saved original next node so inserted nodes are not processed again.
+867	scan	Create a new matrix with swapped dimensions. Read original row-column coordinates in reversed order for each output cell.
+48	scan	Transpose the square matrix across its main diagonal, swapping each pair once. Reverse every row to complete the clockwise rotation.
+54	scan	Traverse the current top, right, bottom, and left boundaries in order. Shrink each boundary and guard against re-reading a collapsed row or column.
+73	scan	Remember whether the first row and column originally contain zeros. Use their remaining cells as markers, clear marked interiors, then handle those first boundaries.
+202	fast-slow	Apply the digit-square-sum transition once to a slow state and twice to a fast state. Stop at one or a repeated meeting state.
+66	math	Propagate one carry from the final digit toward the front. Stop at the first digit below nine, or prepend one if every digit overflowed.
+13	scan	Read symbols from left to right. Subtract a symbol when the following symbol is larger; otherwise add it.
+50	math	Handle a negative exponent by inverting the base. Repeatedly square the base, halve the exponent, and multiply the result for set exponent bits.
+43	math	Multiply each digit pair into its aligned output positions. Split each accumulated value into a digit and a carry, then remove leading zeros.
+2013	hash	Count stored point multiplicities and index horizontal partners. For each nonzero side, multiply the counts of the three required corners above and below the query.
+136	bits	XOR every number into an accumulator. Equal pairs cancel, leaving the value that appears once.
+191	bits	Repeatedly clear the lowest set bit with n AND n-minus-one. Count how many clear operations occur before n becomes zero.
+338	dp	Build bit counts from zero upward. Reuse the count for the number shifted right once, then add its lowest bit.
+67	math	Add the two strings from right to left with a binary carry. Emit each result bit, continue through any final carry, then reverse the collected bits.
+190	bits	Repeat exactly 32 times: shift the result left, append the input's lowest bit, and shift the input right.
+268	bits	XOR the full index range with the array values. Values appearing on both sides cancel, leaving the missing number.
+371	bits	Compute sum-without-carry using XOR and carry using AND shifted left. Repeat under a 32-bit mask, then convert the result back to a signed integer.
+7	math	Extract signed decimal digits using division toward zero. Check both 32-bit overflow boundaries before appending each digit to the reversed result.
+201	bits	Shift both endpoints right until their prefixes agree. Restore that common prefix's position with zeros in the varying lower bits.
+3133	bits	Start with every bit of x present. Insert the bits of n minus one into x's zero-bit positions from low to high without changing x's set bits.

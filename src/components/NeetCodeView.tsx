@@ -79,9 +79,9 @@ function ProblemRow({
           {problem.title}
         </button>
         <span className={`text-xs font-medium ${difficultyColor(problem.difficulty)}`}>{problem.difficulty}</span>
-        {hasLogicProblem(problem.id) && <Link to={`/practice/${problem.id}`}
+        {hasLogicProblem(problem.id) && <Link to={`/practice/${problem.id}?language=${language}`}
           className="py-2 text-xs font-medium text-cyan-400 light:text-cyan-700"
-          aria-label={`Build Python for ${problem.title}`}>Build</Link>}
+          aria-label={`Practice ${problem.title} in ${language === 'python' ? 'Python' : 'JavaScript'}`}>Practice</Link>}
         <a
           href={problem.url}
           target="_blank"

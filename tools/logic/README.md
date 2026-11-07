@@ -1,5 +1,81 @@
 # Logic practice data
 
+## Guided Python and JavaScript practice
+
+The default `/practice/:id` flow covers all 250 NeetCode problems in both
+languages. Each lesson starts with eight pattern choices, then four overall
+plans, followed by a few implementation decisions. Incorrect choices stay on
+the question with feedback; correct choices advance immediately. The approach
+is specific to the worked solution, and the UI acknowledges that other
+algorithms can be valid. Pattern feedback does not reveal the next plan.
+
+Implementation distractors are source mutations with independently replayed
+counterexamples. The learner can inspect input, expected output, and the actual
+result or exception. These are individual substitutions into the reference
+implementation. They are not an unrestricted judge of alternate whole programs.
+Weak return questions that can be answered from output type alone are removed
+where substantive decisions remain, or replaced with reviewed alternatives.
+
+After the decisions, learners can run the finished code and step through real
+source statements and variables. Both languages run in workers; JavaScript
+uses build-time instrumentation and Python uses the existing WebAssembly
+runtime. Neither worker runs before Run tests is pressed. Reveal solution is
+available throughout, matches the selected language, and leaves progress intact.
+Progress is saved separately for each problem and language, and invalidates
+when lesson content changes. Passing does not automatically mark mastery.
+
+Only the requested lesson JSON, including its worked source, is downloaded;
+the library does not fetch all 500 lessons. The separate solution explanation,
+code renderer, and runtimes also load when needed. The
+full LeetCode catalog remains separate from the 250-problem guided curriculum.
+Existing Python drafts remain accessible from the problem details and at
+`/practice/:id?draft=1`.
+
+Useful checks (Node 22+ and Python 3):
+
+```sh
+npm run logic:test
+npm run logic:guided:test
+npm run logic:guided:check
+npm run logic:guided:verify
+npm run logic:javascript:verify
+# Independent Python checks can use multiple hash seeds:
+PYTHONHASHSEED=1 python3 -B tools/logic/verify-guided-python.py
+# Production UI check with Playwright and Chrome installed:
+LEETCODE_TEST_URL=http://127.0.0.1:5182/leetcode/ node tools/logic/browser-guided.cjs
+```
+
+`generate-guided.cjs --check-artifacts` is a fast build guard for coverage,
+source hashes, choices, curriculum, and content revision. The full `--check`
+executes the Python witnesses. `verify-guided-javascript.cjs` independently
+executes JavaScript references and wrong choices using the browser runtime
+adapter. Timeouts, recursion limits, and syntax/name errors are excluded as
+proof that a choice is logically wrong. Runtime acceptance includes valid
+unordered or nonunique outputs where the problem permits them.
+
+The curriculum is authored in `guided-patterns.json`, `guided-plans.tsv`,
+`guided-distractors.tsv`, and `guided-javascript-plans.tsv`; source audit hashes
+in `guided-source-audit.json` require re-review when an algorithm changes.
+`guided-quality-overrides.json` contains reviewed implementation choices with
+replayed counterexamples; `guided-feedback.json` supplies focused
+explanations for selected correct choices without changing their code.
+`curriculum.test.cjs` checks all 500 language-specific lesson metadata records,
+source hashes, eight/four choice counts, algorithm differences, and answer leaks. To regenerate, export inputs with
+`node tools/logic/generate-guided.cjs --input-only`, generate the JavaScript
+cache with `node tools/logic/generate-guided-javascript.cjs`, audit/repair that
+cache with `node tools/logic/verify-guided-javascript.cjs
+/tmp/leetcode-guided-js.json --repair`, then run
+`node tools/logic/generate-curriculum.cjs` and
+`node tools/logic/generate-guided.cjs`. Run the full audits before publishing.
+The checked-in validation summary records the current revision and counts.
+
+Browser checks exercise wrong and correct choices, reload and language
+switching, reveal and failed-download recovery, real runs and debugger steps,
+restart, and mobile/desktop layouts. These checks establish that the learning
+flow works; they do not measure long-term retention or independent coding skill.
+
+## Interface-only legacy draft data
+
 Generate or check the interface-only practice assets:
 
 ```sh
@@ -47,7 +123,7 @@ The original walkthrough fixture fields are preserved for the runtime adapter:
 must accept semantically valid alternate answers rather than require one output
 ordering or one implementation.
 
-## Learning design review
+## Earlier free-form builder design review
 
 The learner should choose state, conditions, operations, loop bounds, ordering,
 and returned values. A small syntax palette can reduce typing while preserving
@@ -80,7 +156,7 @@ related problem immediately and after a delay; count solution reveals and
 test-driven edits separately. Completion speed, taps, or same-session green
 checks alone cannot establish retention or transfer.
 
-## Browser evaluation, 7 November 2026
+## Earlier free-form builder browser evaluation, 7 November 2026
 
 A production build was exercised in isolated Chrome at 390 × 844 and desktop
 widths, using the visible controls. No reference solution was loaded during

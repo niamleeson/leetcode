@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "feedback": [
+    {
+      "id": 1,
+      "language": "python",
+      "questionId": "python-line-3",
+      "sourceHash": "12b5b3cadc60e331a80a4db17ec4dea79bf6219f2a46f0751a2c4ce058144e9f",
+      "feedback": "Correct. Visit every value in its original order while retaining its original index. That index is what the answer must return."
+    },
+    {
+      "id": 1,
+      "language": "python",
+      "questionId": "python-line-4",
+      "sourceHash": "12b5b3cadc60e331a80a4db17ec4dea79bf6219f2a46f0751a2c4ce058144e9f",
+      "feedback": "Correct. The partner must satisfy partner + num = target, so subtract the current value from the target to find the needed partner."
+    },
+    {
+      "id": 1,
+      "language": "python",
+      "questionId": "python-line-5",
+      "sourceHash": "12b5b3cadc60e331a80a4db17ec4dea79bf6219f2a46f0751a2c4ce058144e9f",
+      "feedback": "Correct. The map contains earlier values. Finding the complement there provides a previously visited index, so the pair uses two different elements."
+    },
+    {
+      "id": 1,
+      "language": "javascript",
+      "questionId": "implementation-5",
+      "sourceHash": "e98e9e921f37be501eff961dd1fbc9b383763f0169f26b78b807787c60866a76",
+      "feedback": "Correct. Start at index zero, stop before length, and advance by one so every original position can serve as one member of the pair."
+    },
+    {
+      "id": 1,
+      "language": "javascript",
+      "questionId": "implementation-7",
+      "sourceHash": "e98e9e921f37be501eff961dd1fbc9b383763f0169f26b78b807787c60866a76",
+      "feedback": "Correct. The partner must satisfy partner + currentNum = target. Subtracting currentNum gives the value to look up among earlier elements."
+    }
+  ]
+}

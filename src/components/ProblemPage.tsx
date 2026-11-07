@@ -141,8 +141,8 @@ export default function ProblemPage({ getProgress, onRate, onUpdateNotes, onRese
         </div>
       </div>
 
-      {hasLogicProblem(problem.id) && <Link to={`/practice/${problem.id}`}
-        className="inline-flex items-center min-h-11 px-4 py-2 rounded-lg bg-cyan-600 text-white font-medium text-sm">Build your Python solution</Link>}
+      {hasLogicProblem(problem.id) && <Link to={`/practice/${problem.id}?language=${language}`}
+        className="inline-flex items-center min-h-11 px-4 py-2 rounded-lg bg-cyan-600 text-white font-medium text-sm">Practice the approach and implementation</Link>}
 
       {solution ? (
         <>

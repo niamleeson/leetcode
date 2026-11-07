@@ -4,7 +4,7 @@ const url=process.env.LEETCODE_TEST_URL || 'http://127.0.0.1:5181/leetcode/';
 (async()=>{
  const browser=await chromium.launch({executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true});
  const page=await browser.newPage({viewport:{width:390,height:844}});
- await page.goto(`${url}#/practice/1`);await page.getByRole('heading',{name:'Two Sum',exact:true}).waitFor();
+ await page.goto(`${url}#/practice/1?draft=1`);await page.getByRole('heading',{name:'Two Sum',exact:true}).waitFor();
  await page.context().route('**/*.wasm',route=>route.abort());
  await page.getByRole('button',{name:'Run tests',exact:true}).click();
  await page.getByRole('alert').waitFor({timeout:60000});

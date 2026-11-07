@@ -23,6 +23,10 @@ export interface LogicTraceFrame {
   locals: Record<string, string>;
   stack: string[];
   value?: string;
+  /** Precise source expression, used by JavaScript's build-time instrumentation. */
+  statement?: string;
+  detail?: string;
+  valueLabel?: string;
 }
 
 export interface LogicTestResult {

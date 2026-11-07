@@ -1,0 +1,172 @@
+[
+  {
+    "id": "scan",
+    "label": "Direct scan or simulation",
+    "summary": "Follow the input operations or visit each required position directly."
+  },
+  {
+    "id": "hash",
+    "label": "Hash map or set",
+    "summary": "Remember values, counts, or identities for direct lookup."
+  },
+  {
+    "id": "two-pointers",
+    "label": "Two pointers",
+    "summary": "Move coordinated positions while preserving an ordering or partition invariant."
+  },
+  {
+    "id": "window",
+    "label": "Sliding window",
+    "summary": "Maintain state for a changing contiguous range."
+  },
+  {
+    "id": "binary-search",
+    "label": "Binary search",
+    "summary": "Use sorted order or a monotone condition to discard part of the search range."
+  },
+  {
+    "id": "stack",
+    "label": "Stack",
+    "summary": "Resolve the most recently opened or unfinished operation first."
+  },
+  {
+    "id": "monotonic",
+    "label": "Monotonic stack or deque",
+    "summary": "Keep ordered candidates and discard those that can no longer help."
+  },
+  {
+    "id": "queue",
+    "label": "Queue simulation",
+    "summary": "Maintain the order in which pending operations take their turns."
+  },
+  {
+    "id": "heap",
+    "label": "Heap / priority queue",
+    "summary": "Repeatedly select an extreme item while candidates change."
+  },
+  {
+    "id": "quickselect",
+    "label": "Quickselect partitioning",
+    "summary": "Partition around a pivot and continue only where the requested rank lies."
+  },
+  {
+    "id": "prefix",
+    "label": "Prefix / suffix accumulation",
+    "summary": "Reuse aggregate information from before or after each position."
+  },
+  {
+    "id": "voting",
+    "label": "Candidate cancellation",
+    "summary": "Cancel competing occurrences while preserving possible majority candidates."
+  },
+  {
+    "id": "index-placement",
+    "label": "Value-to-index placement",
+    "summary": "Move each in-range value to its designated array position."
+  },
+  {
+    "id": "linked-list",
+    "label": "Linked-list pointer updates",
+    "summary": "Save and rewire node links without losing the remaining list."
+  },
+  {
+    "id": "fast-slow",
+    "label": "Fast and slow pointers",
+    "summary": "Move at different speeds to detect a cycle or locate a meeting point."
+  },
+  {
+    "id": "cache",
+    "label": "Indexed state with recency / frequency",
+    "summary": "Combine key lookup with an order that implements the eviction rule."
+  },
+  {
+    "id": "dfs",
+    "label": "Depth-first traversal",
+    "summary": "Explore a branch before returning to its siblings, recursively or with a stack."
+  },
+  {
+    "id": "bfs",
+    "label": "Breadth-first traversal",
+    "summary": "Explore a graph frontier or distance layer before moving farther."
+  },
+  {
+    "id": "bst",
+    "label": "Binary search tree ordering",
+    "summary": "Use lower/greater value bounds to select branches or validate structure."
+  },
+  {
+    "id": "divide-conquer",
+    "label": "Divide and conquer",
+    "summary": "Split a region into smaller independent regions and combine their results."
+  },
+  {
+    "id": "backtracking",
+    "label": "Backtracking",
+    "summary": "Try a choice, explore it, then undo it before trying alternatives."
+  },
+  {
+    "id": "trie",
+    "label": "Trie / prefix tree",
+    "summary": "Share character prefixes and advance through matching branches."
+  },
+  {
+    "id": "topological",
+    "label": "Topological ordering",
+    "summary": "Process dependency-free vertices and release their dependents."
+  },
+  {
+    "id": "shortest-path",
+    "label": "Weighted path optimization",
+    "summary": "Relax path costs while respecting edge costs or an edge-count budget."
+  },
+  {
+    "id": "mst",
+    "label": "Minimum spanning tree",
+    "summary": "Choose low-cost connections that connect every vertex without cycles."
+  },
+  {
+    "id": "dp",
+    "label": "Dynamic programming",
+    "summary": "Define reusable subproblem states and combine already solved dependencies."
+  },
+  {
+    "id": "center",
+    "label": "Expand around centers",
+    "summary": "Grow matching intervals from each odd and even center."
+  },
+  {
+    "id": "greedy",
+    "label": "Greedy invariant",
+    "summary": "Make a locally justified choice that preserves a globally useful invariant."
+  },
+  {
+    "id": "intervals",
+    "label": "Ordered interval processing",
+    "summary": "Process interval boundaries in order and merge, reuse, or discard overlaps."
+  },
+  {
+    "id": "math",
+    "label": "Arithmetic or counting identity",
+    "summary": "Use a numerical identity, digit rule, or counting bound to compute the result."
+  },
+  {
+    "id": "bits",
+    "label": "Bit manipulation",
+    "summary": "Use bitwise identities, masks, shifts, or bit-position contributions."
+  },
+  {
+    "id": "euler",
+    "label": "Eulerian edge traversal",
+    "summary": "Consume every edge once and assemble the route in reverse finishing order."
+  },
+  {
+    "id": "priority-sort",
+    "label": "Sort candidates by priority",
+    "summary": "Re-sort the available candidate pool and take its currently best item."
+  },
+  {
+    "id": "union-find",
+    "label": "Union-find components",
+    "summary": "Merge disjoint components and use representative roots to test connectivity."
+  }
+]

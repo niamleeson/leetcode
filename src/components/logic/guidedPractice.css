@@ -1,0 +1,72 @@
+.guided-practice { max-width:880px; margin:0 auto; gap:14px; }
+.guided-language { display:flex; padding:3px; border:1px solid var(--lp-line); border-radius:9px; background:var(--lp-panel); flex-shrink:0; }
+.guided-language button { min-height:40px; padding:7px 11px; color:var(--lp-muted); font-size:12px; border-radius:6px; }
+.guided-language button[aria-pressed="true"] { background:var(--lp-accent-bg); color:var(--lp-accent); font-weight:650; }
+.guided-problem-summary { font-size:14px; line-height:1.65; color:var(--lp-muted); white-space:pre-line; }
+.guided-progress { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:5px 0; }
+.guided-progress ol { display:flex; gap:12px; margin:0; padding:0; list-style:none; }
+.guided-progress li { display:flex; gap:5px; align-items:center; font-size:12px; color:var(--lp-muted); }
+.guided-progress li[data-active="true"], .guided-progress li[data-done="true"] { color:var(--lp-accent); }
+.guided-progress li[data-active="true"] { font-weight:650; }
+.guided-progress > span { font-size:11px; color:var(--lp-muted); white-space:nowrap; }
+.guided-question-card { border:1px solid var(--lp-line); border-radius:14px; padding:20px; background:var(--lp-panel); min-width:0; }
+.guided-question-card h2, .guided-complete h2 { font-size:22px; font-weight:650; letter-spacing:-.025em; margin:7px 0 12px; line-height:1.35; outline:none; }
+.guided-question-note { font-size:12px; line-height:1.55; color:var(--lp-muted); margin:8px 0; }
+.guided-choices { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; margin:16px 0; }
+.guided-choice { display:flex; gap:10px; align-items:flex-start; min-height:74px; padding:13px; border:1px solid var(--lp-line); border-radius:10px; background:var(--lp-card); text-align:left; color:var(--lp-text); min-width:0; }
+.guided-choice:hover { border-color:var(--lp-accent); }
+.guided-choice-letter { display:flex; align-items:center; justify-content:center; flex-shrink:0; width:24px; height:24px; border:1px solid var(--lp-line); border-radius:6px; color:var(--lp-muted); font-size:11px; }
+.guided-choice > span:last-child { min-width:0; }
+.guided-choice strong { display:block; font-size:13px; font-weight:550; line-height:1.55; }
+.guided-choice code { font:12px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace; white-space:pre-wrap; overflow-wrap:anywhere; }
+.guided-choice small { display:block; margin-top:5px; font-size:10px; color:#fda4af; }
+.guided-choice[data-attempted="true"] { border-color:#9f4c5b; background:#7f1d1d1a; }
+html.light .guided-choice small { color:#9f1239; }
+.guided-code-choices { grid-template-columns:minmax(0,1fr); }
+.guided-code-choices .guided-choice { min-height:56px; }
+.guided-context { padding:14px; background:var(--lp-bg); border:1px solid var(--lp-line); border-radius:9px; font:12px/1.7 ui-monospace,SFMono-Regular,Menlo,monospace; overflow:auto; max-height:290px; margin:14px 0; color:var(--lp-muted); }
+.guided-feedback { padding:13px 16px; border:1px solid var(--lp-line); border-radius:10px; font-size:13px; line-height:1.55; scroll-margin-top:75px; }
+.guided-question-card h2 { scroll-margin-top:75px; }
+.guided-feedback strong { font-weight:650; }
+.guided-feedback > small { margin-left:10px; font-size:10px; color:var(--lp-muted); }
+.guided-feedback p { margin-top:4px; white-space:pre-line; }
+.guided-feedback-correct { background:var(--lp-accent-bg); border-color:var(--lp-accent); }
+.guided-feedback-correct strong { color:var(--lp-accent); }
+.guided-feedback-incorrect { background:#713f1220; border-color:#9b751e; }
+.guided-feedback-incorrect strong { color:#fbbf24; }
+html.light .guided-feedback-incorrect strong { color:#92400e; }
+.guided-feedback details { margin-top:8px; }
+.guided-feedback summary { cursor:pointer; min-height:40px; padding:8px 0; }
+.guided-feedback dl { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.guided-feedback dl > div { background:var(--lp-bg); padding:9px; border-radius:6px; min-width:0; }
+.guided-feedback dt { color:var(--lp-muted); font-size:10px; }
+.guided-feedback dd { font:12px/1.5 ui-monospace,monospace; white-space:pre-wrap; overflow-wrap:anywhere; max-height:150px; overflow:auto; }
+.guided-complete { padding:18px; border:1px solid var(--lp-accent); background:var(--lp-accent-bg); border-radius:12px; }
+.guided-complete p { font-size:13px; line-height:1.6; color:var(--lp-muted); }
+.guided-review { border:1px solid var(--lp-line); border-radius:10px; background:var(--lp-panel); }
+.guided-review summary { padding:13px; cursor:pointer; font-size:13px; }
+.guided-review ol { padding:0 18px 18px 32px; list-style:decimal; }
+.guided-review li { margin:14px 0; font-size:12px; line-height:1.6; }
+.guided-review strong { font-weight:650; }
+.guided-review p { color:var(--lp-muted); margin:5px 0; white-space:pre-line; }
+.guided-review pre { overflow:auto; font-size:11px; background:var(--lp-bg); padding:8px; border-radius:6px; margin:6px 0; }
+.guided-footer { display:flex; gap:12px; justify-content:space-between; align-items:center; color:var(--lp-muted); font-size:11px; }
+.guided-footer button { min-height:44px; color:var(--lp-accent); padding:8px 12px; }
+.guided-saved-draft { display:inline-flex; min-height:44px; padding:10px 0; }
+@media(max-width:600px) {
+ .guided-practice { gap:10px; }
+ .guided-language button { padding:7px 9px; font-size:11px; }
+ .guided-practice .logic-heading h1 { font-size:18px; }
+ .guided-question-card { padding:14px; }
+ .guided-question-card h2, .guided-complete h2 { font-size:19px; }
+ .guided-choices { gap:7px; margin:12px 0; }
+ .guided-choice { min-height:72px; padding:10px; gap:7px; }
+ .guided-choice strong { font-size:12px; }
+ .guided-choice-letter { width:20px; height:22px; font-size:10px; }
+ .guided-progress { align-items:flex-start; flex-direction:column; gap:6px; }
+ .guided-progress ol { width:100%; justify-content:space-between; gap:7px; }
+ .guided-progress li { font-size:11px; }
+ .guided-context { font-size:11px; padding:10px; }
+ .guided-code-choices .guided-choice code { font-size:11px; }
+ .guided-problem-summary { font-size:13px; }
+}

@@ -48,3 +48,40 @@ Validation:
 
 Pyodide's official documentation describes the [module Worker requirement](https://pyodide.org/en/stable/usage/webworker.html)
 and [self-hosted core files](https://pyodide.org/en/stable/usage/downloading-and-deploying.html).
+
+# Completed guided solutions
+
+`GuidedCodeRunner` is mounted only after the guided questions finish. It shows
+the completed source through the shared syntax highlighter and waits for an
+explicit Run. The component selects the Python or JavaScript runner according
+to the lesson language; changing the lesson, source, or language disposes the
+previous worker and clears stale results. Design-class cases show each call
+beside its expected and actual output.
+
+JavaScript uses `createJavaScriptRunner()` and a module Worker loaded on Run.
+The lesson includes instrumentation generated from its exact source by the
+canonical Babel instrumenter during the build. The browser receives prepared
+code and source locations, without Babel or Node dependencies. It executes the
+code afresh on each Run; displayed trace frames are not prerecorded results.
+The worker evaluates source in a fresh function for every fixture. It is for
+the completed lesson source and is not a hostile-code sandbox.
+
+`javascriptAdapter.generated.ts` is generated from the canonical node/input/
+invocation helpers by `tools/logic/generate-javascript-adapter.cjs`. Run that
+script with `--check` in build validation. The browser adds checks against
+cyclic returned structures and accepts arbitrary remaining-prefix order for
+Remove Element. `javascriptValidation.ts` handles valid alternative answers
+and is also usable by the lesson generator when checking wrong choices.
+
+JavaScript has the same 160-frame display cap, independent 500,000-event and
+2-second per-case budgets, and an 8-second worker supervisor timeout. Stop,
+errors, and timeouts permit a fresh-worker retry. Traces show exact original
+source expressions, completed statement state, call stacks, and condition
+results. An exception includes its actual message and partial trace; it omits
+the line number when a mapping to the original source cannot be proven.
+
+`node tools/logic/verify-javascript-runtime.cjs` executes all 250 JavaScript
+reference solutions against the 670 practice cases and verifies every saved
+frame's source location. Focused tests cover real execution, semantically
+valid alternatives, incorrect Two Sum logic, trace limits, Stop/timeout/retry,
+and the completion component's lazy behavior.

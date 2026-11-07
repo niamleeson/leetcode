@@ -20,7 +20,7 @@ const escape = text => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   }
   async function variant(label, text) { await tap(`Options for ${label}`); await page.locator('.logic-variant-panel').getByRole('button', { name: text, exact: true }).click(); taps++; }
   async function start(id, title) {
-    await page.goto(`${url}#/practice/${id}`); await page.getByRole('heading', { name: title, exact: true }).waitFor(); taps = 0;
+    await page.goto(`${url}#/practice/${id}?draft=1`); await page.getByRole('heading', { name: title, exact: true }).waitFor(); taps = 0;
   }
   async function passes(title) {
     const constructionTaps = taps; const start = Date.now(); await tap('Run tests');
@@ -63,7 +63,7 @@ const escape = text => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
   // All function selectors work on a multi-method design task; failed cases show calls.
   await start(155,'Min Stack'); await page.getByLabel('Choose function to build').selectOption({label:'MinStack.push'}); await tap('Run tests'); await page.getByRole('region',{name:'Test results'}).waitFor({timeout:30000}); await page.getByText('Calls in order',{exact:true}).waitFor(); assert.match(await page.locator('.logic-operation-list').innerText(),/push\(/);
-  await page.setViewportSize({width:1440,height:1000}); await page.goto(`${url}#/practice/1`);await page.getByRole('heading',{name:'Two Sum',exact:true}).waitFor();await page.screenshot({path:`${output}/logic-desktop.png`,fullPage:true});
+  await page.setViewportSize({width:1440,height:1000}); await page.goto(`${url}#/practice/1?draft=1`);await page.getByRole('heading',{name:'Two Sum',exact:true}).waitFor();await page.screenshot({path:`${output}/logic-desktop.png`,fullPage:true});
   await page.setViewportSize({width:390,height:844});await page.getByRole('button',{name:'Open menu',exact:true}).click();await page.getByRole('button',{name:'Switch to light theme',exact:true}).click();await page.getByRole('button',{name:'Close menu',exact:true}).click(); await page.waitForFunction(() => document.querySelector('aside').getBoundingClientRect().right <= 1); await page.screenshot({path:`${output}/logic-light-mobile.png`,fullPage:true});
   await page.goto(`${url}#/practice`);await page.getByRole('heading',{name:'Decide the logic.',exact:true}).waitFor();await page.getByRole('searchbox',{name:'Find a practice problem'}).fill('LRU');assert.equal(await page.locator('.logic-problem-card').count(),1);
   assert.deepEqual(errors,[]); fs.writeFileSync(`${output}/logic-browser-report.json`,JSON.stringify(report,null,2)); console.log(JSON.stringify(report,null,2));await browser.close();

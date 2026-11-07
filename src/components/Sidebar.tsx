@@ -15,7 +15,7 @@ interface SidebarProps {
 const navItems = [
   { path: '/', label: 'Dashboard' },
   { path: '/study', label: 'Study Session', badgeKey: 'due' as const },
-  { path: '/practice', label: 'Build Python' },
+  { path: '/practice', label: 'Practice logic' },
   { path: '/problems', label: 'All Problems' },
   { path: '/dsa', label: 'DSA Reference' },
   { path: '/blind75', label: 'NeetCode Blind 75' },

@@ -1,0 +1,1892 @@
+{
+  "version": 1,
+  "overrides": [
+    {
+      "id": 49,
+      "language": "javascript",
+      "sourceHash": "9af808e77d1aa936cbdac258198511500c12960637cb2d9dfda4b8b7d9b90cd9",
+      "replaceQuestionId": "implementation-19",
+      "question": {
+        "id": "implementation-19",
+        "stage": "implementation",
+        "prompt": "What should we return at this point?",
+        "context": "15      }\n16  \n17      // Collect all the groups into an array\n18      const result = Array.from(groups.values());\n19      // Choose the missing statement.",
+        "line": 19,
+        "endLine": 19,
+        "choices": [
+          {
+            "id": "line-19-reference",
+            "label": "Choose this statement",
+            "code": "    return result;",
+            "correct": true,
+            "feedback": "Return the complete groups of original words. Sorted keys identify groups, but the words and their duplicate occurrences belong in the output."
+          },
+          {
+            "id": "quality-alternative-1",
+            "label": "Choose this statement",
+            "code": "    return strs.map(word => [word]);",
+            "correct": false,
+            "feedback": "On “Example”, this produces a different result. Compare its output with the expected output below.",
+            "witness": {
+              "fixtureIndex": 0,
+              "name": "Example",
+              "input": [
+                [
+                  "eat",
+                  "tea",
+                  "tan",
+                  "ate",
+                  "nat",
+                  "bat"
+                ]
+              ],
+              "expected": [
+                [
+                  "bat"
+                ],
+                [
+                  "nat",
+                  "tan"
+                ],
+                [
+                  "ate",
+                  "eat",
+                  "tea"
+                ]
+              ],
+              "actual": [
+                [
+                  "eat"
+                ],
+                [
+                  "tea"
+                ],
+                [
+                  "tan"
+                ],
+                [
+                  "ate"
+                ],
+                [
+                  "nat"
+                ],
+                [
+                  "bat"
+                ]
+              ]
+            }
+          },
+          {
+            "id": "quality-alternative-2",
+            "label": "Choose this statement",
+            "code": "    return Array.from(groups.values(), words => [words[0]]);",
+            "correct": false,
+            "feedback": "On “Example”, this produces a different result. Compare its output with the expected output below.",
+            "witness": {
+              "fixtureIndex": 0,
+              "name": "Example",
+              "input": [
+                [
+                  "eat",
+                  "tea",
+                  "tan",
+                  "ate",
+                  "nat",
+                  "bat"
+                ]
+              ],
+              "expected": [
+                [
+                  "bat"
+                ],
+                [
+                  "nat",
+                  "tan"
+                ],
+                [
+                  "ate",
+                  "eat",
+                  "tea"
+                ]
+              ],
+              "actual": [
+                [
+                  "eat"
+                ],
+                [
+                  "tan"
+                ],
+                [
+                  "bat"
+                ]
+              ]
+            }
+          },
+          {
+            "id": "quality-alternative-3",
+            "label": "Choose this statement",
+            "code": "    return Array.from(groups.keys()).map(key => [key]);",
+            "correct": false,
+            "feedback": "On “Example”, this produces a different result. Compare its output with the expected output below.",
+            "witness": {
+              "fixtureIndex": 0,
+              "name": "Example",
+              "input": [
+                [
+                  "eat",
+                  "tea",
+                  "tan",
+                  "ate",
+                  "nat",
+                  "bat"
+                ]
+              ],
+              "expected": [
+                [
+                  "bat"
+                ],
+                [
+                  "nat",
+                  "tan"
+                ],
+                [
+                  "ate",
+                  "eat",
+                  "tea"
+                ]
+              ],
+              "actual": [
+                [
+                  "aet"
+                ],
+                [
+                  "ant"
+                ],
+                [
+                  "abt"
+                ]
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": 133,
+      "language": "javascript",
+      "sourceHash": "4604515b166841d56427ba571ef7ff0323e2f8dc6d0fb99e3b1fc4de2667de31",
+      "replaceQuestionId": "implementation-27",
+      "question": {
+        "id": "implementation-27",
+        "stage": "implementation",
+        "prompt": "What should we return at this point?",
+        "context": "23              const clonedNeighbor = dfs(neighbor);\n24              copy.neighbors.push(clonedNeighbor);\n25          }\n26  \n27          // Choose the missing statement.",
+        "line": 27,
+        "endLine": 27,
+        "choices": [
+          {
+            "id": "quality-alternative-2",
+            "label": "Choose this statement",
+            "code": "        return new _Node(original.val);",
+            "correct": false,
+            "feedback": "On “Example”, this produces a different result. Compare its output with the expected output below.",
+            "witness": {
+              "fixtureIndex": 0,
+              "name": "Example",
+              "input": [
+                {
+                  "$graph": [
+                    [
+                      2,
+                      4
+                    ],
+                    [
+                      1,
+                      3
+                    ],
+                    [
+                      2,
+                      4
+                    ],
+                    [
+                      1,
+                      3
+                    ]
+                  ]
+                }
+              ],
+              "expected": [
+                [
+                  2,
+                  4
+                ],
+                [
+                  1,
+                  3
+                ],
+                [
+                  2,
+                  4
+                ],
+                [
+                  1,
+                  3
+                ]
+              ],
+              "actual": [
+                []
+              ]
+            }
+          },
+          {
+            "id": "line-27-reference",
+            "label": "Choose this statement",
+            "code": "        return copy;",
+            "correct": true,
+            "feedback": "Return the clone recorded for this original node after connecting its cloned neighbors. Sharing that same clone across revisits preserves the graph structure without returning an original node."
+          },
+          {
+            "id": "quality-alternative-3",
+            "label": "Choose this statement",
+            "code": "        return cloned.get(node);",
+            "correct": false,
+            "feedback": "On “Example”, this produces a different result. Compare its output with the expected output below.",
+            "witness": {
+              "fixtureIndex": 0,
+              "name": "Example",
+              "input": [
+                {
+                  "$graph": [
+                    [
+                      2,
+                      4
+                    ],
+                    [
+                      1,
+                      3
+                    ],
+                    [
+                      2,
+                      4
+                    ],
+                    [
+                      1,
+                      3
+                    ]
+                  ]
+                }
+              ],
+              "expected": [
+                [
+                  2,
+                  4
+                ],
+                [
+                  1,
+                  3
+                ],
+                [
+                  2,
+                  4
+                ],
+                [
+                  1,
+                  3
+                ]
+              ],
+              "actual": [
+                [
+                  1,
+                  4
+                ],
+                [
+                  1,
+                  1
+                ],
+                [
+                  1,
+                  2
+                ],
+                [
+                  1,
+                  3
+                ]
+              ]
+            }
+          },
+          {
+            "id": "quality-alternative-4",
+            "label": "Choose this statement",
+            "code": "        return Object.assign(copy, { neighbors: [] });",
+            "correct": false,
+            "feedback": "On “Example”, this produces a different result. Compare its output with the expected output below.",
+            "witness": {
+              "fixtureIndex": 0,
+              "name": "Example",
+              "input": [
+                {
+                  "$graph": [
+                    [
+                      2,
+                      4
+                    ],
+                    [
+                      1,
+                      3
+                    ],
+                    [
+                      2,
+                      4
+                    ],
+                    [
+                      1,
+                      3
+                    ]
+                  ]
+                }
+              ],
+              "expected": [
+                [
+                  2,
+                  4
+                ],
+                [
+                  1,
+                  3
+                ],
+                [
+                  2,
+                  4
+                ],
+                [
+                  1,
+                  3
+                ]
+              ],
+              "actual": [
+                []
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": 133,
+      "language": "javascript",
+      "sourceHash": "4604515b166841d56427ba571ef7ff0323e2f8dc6d0fb99e3b1fc4de2667de31",
+      "replaceQuestionId": "implementation-30",
+      "question": {
+        "id": "implementation-30",
+        "stage": "implementation",
+        "prompt": "What should we return at this point?",
+        "context": "26  \n27          return copy;\n28      };\n29  \n30      // Choose the missing statement.",
+        "line": 30,
+        "endLine": 30,
+        "choices": [
+          {
+            "id": "line-30-reference",
+            "label": "Choose this statement",
+            "code": "    return dfs(node);",
+            "correct": true,
+            "feedback": "Start cloning at the supplied node and return that fully connected clone. A new node with no copied edges is not yet a cloned graph."
+          },
+          {
+            "id": "quality-alternative-2",
+            "label": "Choose this statement",
+            "code": "    return new _Node(node.val);",
+            "correct": false,
+            "feedback": "On “Example”, this produces a different result. Compare its output with the expected output below.",
+            "witness": {
+              "fixtureIndex": 0,
+              "name": "Example",
+              "input": [
+                {
+                  "$graph": [
+                    [
+                      2,
+                      4
+                    ],
+                    [
+                      1,
+                      3
+                    ],
+                    [
+                      2,
+                      4
+                    ],
+                    [
+                      1,
+                      3
+                    ]
+                  ]
+                }
+              ],
+              "expected": [
+                [
+                  2,
+                  4
+                ],
+                [
+                  1,
+                  3
+                ],
+                [
+                  2,
+                  4
+                ],
+                [
+                  1,
+                  3
+                ]
+              ],
+              "actual": [
+                []
+              ]
+            }
+          },
+          {
+            "id": "quality-alternative-3",
+            "label": "Choose this statement",
+            "code": "    return Object.assign(dfs(node), { neighbors: [] });",
+            "correct": false,
+            "feedback": "On “Example”, this produces a different result. Compare its output with the expected output below.",
+            "witness": {
+              "fixtureIndex": 0,
+              "name": "Example",
+              "input": [
+                {
+                  "$graph": [
+                    [
+                      2,
+                      4
+                    ],
+                    [
+                      1,
+                      3
+                    ],
+                    [
+                      2,
+                      4
+                    ],
+                    [
+                      1,
+                      3
+                    ]
+                  ]
+                }
+              ],
+              "expected": [
+                [
+                  2,
+                  4
+                ],
+                [
+                  1,
+                  3
+                ],
+                [
+                  2,
+                  4
+                ],
+                [
+                  1,
+                  3
+                ]
+              ],
+              "actual": [
+                []
+              ]
+            }
+          },
+          {
+            "id": "quality-alternative-4",
+            "label": "Choose this statement",
+            "code": "    return Object.assign(dfs(node), { val: node.val + 1 });",
+            "correct": false,
+            "feedback": "On “Example”, this produces a different result. Compare its output with the expected output below.",
+            "witness": {
+              "fixtureIndex": 0,
+              "name": "Example",
+              "input": [
+                {
+                  "$graph": [
+                    [
+                      2,
+                      4
+                    ],
+                    [
+                      1,
+                      3
+                    ],
+                    [
+                      2,
+                      4
+                    ],
+                    [
+                      1,
+                      3
+                    ]
+                  ]
+                }
+              ],
+              "expected": [
+                [
+                  2,
+                  4
+                ],
+                [
+                  1,
+                  3
+                ],
+                [
+                  2,
+                  4
+                ],
+                [
+                  1,
+                  3
+                ]
+              ],
+              "actual": [
+                [
+                  2,
+                  4
+                ],
+                [
+                  2,
+                  3
+                ],
+                [
+                  2,
+                  4
+                ],
+                [
+                  2,
+                  3
+                ]
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": 1863,
+      "language": "javascript",
+      "sourceHash": "335b1816762883179b40a8311dd4032b44ca426788d1fd43b9a1bc4a0c6227af",
+      "replaceQuestionId": "implementation-6",
+      "question": {
+        "id": "implementation-6",
+        "stage": "implementation",
+        "prompt": "What should we return at this point?",
+        "context": "2      function visit(index, xor) {\n3          if (index === nums.length) return xor;\n4          const without = visit(index + 1, xor);\n5          const withValue = visit(index + 1, xor ^ nums[index]);\n6          // Choose the missing statement.",
+        "line": 6,
+        "endLine": 6,
+        "choices": [
+          {
+            "id": "line-6-reference",
+            "label": "Choose this statement",
+            "code": "        return without + withValue;",
+            "correct": true,
+            "feedback": "The two branches describe disjoint groups of subsets. XOR builds each individual subset score; ordinary addition combines the scores from all subsets."
+          },
+          {
+            "id": "quality-alternative-1",
+            "label": "Choose this statement",
+            "code": "        return without ^ withValue;",
+            "correct": false,
+            "feedback": "On “Example”, this produces a different result. Compare its output with the expected output below.",
+            "witness": {
+              "fixtureIndex": 0,
+              "name": "Example",
+              "input": [
+                [
+                  1,
+                  3
+                ]
+              ],
+              "expected": 6,
+              "actual": 0
+            }
+          },
+          {
+            "id": "quality-alternative-2",
+            "label": "Choose this statement",
+            "code": "        return Math.max(without, withValue);",
+            "correct": false,
+            "feedback": "On “Example”, this produces a different result. Compare its output with the expected output below.",
+            "witness": {
+              "fixtureIndex": 0,
+              "name": "Example",
+              "input": [
+                [
+                  1,
+                  3
+                ]
+              ],
+              "expected": 6,
+              "actual": 3
+            }
+          },
+          {
+            "id": "quality-alternative-3",
+            "label": "Choose this statement",
+            "code": "        return withValue;",
+            "correct": false,
+            "feedback": "On “Example”, this produces a different result. Compare its output with the expected output below.",
+            "witness": {
+              "fixtureIndex": 0,
+              "name": "Example",
+              "input": [
+                [
+                  1,
+                  3
+                ]
+              ],
+              "expected": 6,
+              "actual": 2
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": 701,
+      "language": "javascript",
+      "sourceHash": "be22d4936108430d436375f36eb5d3f03c63a44bc2ea65e00b1695fb3b7caa87",
+      "replaceQuestionId": "implementation-4",
+      "question": {
+        "id": "implementation-4",
+        "stage": "implementation",
+        "prompt": "What should we return at this point?",
+        "context": "1  var insertIntoBST = function(root, val) {\n2      // Base case: found the correct empty position — insert here\n3      if (!root) {\n4          // Choose the missing statement.",
+        "line": 4,
+        "endLine": 4,
+        "choices": [
+          {
+            "id": "quality-alternative-1",
+            "label": "Choose this statement",
+            "code": "        return new TreeNode(0);",
+            "correct": false,
+            "feedback": "On “Example”, this produces a different result. Compare its output with the expected output below.",
+            "witness": {
+              "fixtureIndex": 0,
+              "name": "Example",
+              "input": [
+                {
+                  "$tree": [
+                    4,
+                    2,
+                    7,
+                    1,
+                    3
+                  ]
+                },
+                5
+              ],
+              "expected": [
+                4,
+                2,
+                7,
+                1,
+                3,
+                5
+              ],
+              "actual": [
+                4,
+                2,
+                7,
+                1,
+                3,
+                0
+              ]
+            }
+          },
+          {
+            "id": "line-4-reference",
+            "label": "Choose this statement",
+            "code": "        return new TreeNode(val);",
+            "correct": true,
+            "feedback": "A missing subtree is the insertion location. Return exactly one new node containing the requested value; the recursive caller attaches it without creating duplicate children."
+          },
+          {
+            "id": "quality-alternative-2",
+            "label": "Choose this statement",
+            "code": "        return new TreeNode(val, new TreeNode(val), null);",
+            "correct": false,
+            "feedback": "On “Example”, this produces a different result. Compare its output with the expected output below.",
+            "witness": {
+              "fixtureIndex": 0,
+              "name": "Example",
+              "input": [
+                {
+                  "$tree": [
+                    4,
+                    2,
+                    7,
+                    1,
+                    3
+                  ]
+                },
+                5
+              ],
+              "expected": [
+                4,
+                2,
+                7,
+                1,
+                3,
+                5
+              ],
+              "actual": [
+                4,
+                2,
+                7,
+                1,
+                3,
+                5,
+                null,
+                null,
+                null,
+                null,
+                null,
+                5
+              ]
+            }
+          },
+          {
+            "id": "quality-alternative-3",
+            "label": "Choose this statement",
+            "code": "        return new TreeNode(val, null, new TreeNode(val));",
+            "correct": false,
+            "feedback": "On “Example”, this produces a different result. Compare its output with the expected output below.",
+            "witness": {
+              "fixtureIndex": 0,
+              "name": "Example",
+              "input": [
+                {
+                  "$tree": [
+                    4,
+                    2,
+                    7,
+                    1,
+                    3
+                  ]
+                },
+                5
+              ],
+              "expected": [
+                4,
+                2,
+                7,
+                1,
+                3,
+                5
+              ],
+              "actual": [
+                4,
+                2,
+                7,
+                1,
+                3,
+                5,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                5
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": 572,
+      "language": "javascript",
+      "sourceHash": "6cc65a361a1749dcd0d3f6111f68632ccef3119193a0c51dd1d1f767566e11de",
+      "replaceQuestionId": "implementation-16",
+      "question": {
+        "id": "implementation-16",
+        "stage": "implementation",
+        "prompt": "What should we return at this point?",
+        "context": "12      // Try the left and right subtrees\n13      const foundInLeft = isSubtree(root.left, subRoot);\n14      const foundInRight = isSubtree(root.right, subRoot);\n15  \n16      // Choose the missing statement.",
+        "line": 16,
+        "endLine": 16,
+        "choices": [
+          {
+            "id": "quality-alternative-1",
+            "label": "Choose this statement",
+            "code": "    return foundInLeft && foundInRight;",
+            "correct": false,
+            "feedback": "On “Example”, this produces a different result. Compare its output with the expected output below.",
+            "witness": {
+              "fixtureIndex": 0,
+              "name": "Example",
+              "input": [
+                {
+                  "$tree": [
+                    3,
+                    4,
+                    5,
+                    1,
+                    2
+                  ]
+                },
+                {
+                  "$tree": [
+                    4,
+                    1,
+                    2
+                  ]
+                }
+              ],
+              "expected": true,
+              "actual": false
+            }
+          },
+          {
+            "id": "line-16-reference",
+            "label": "Choose this statement",
+            "code": "    return foundInLeft || foundInRight;",
+            "correct": true,
+            "feedback": "After the current root fails the full comparison, a match anywhere in either child subtree is enough. Both searches do not have to succeed."
+          },
+          {
+            "id": "quality-alternative-3",
+            "label": "Choose this statement",
+            "code": "    return foundInRight;",
+            "correct": false,
+            "feedback": "On “Example”, this produces a different result. Compare its output with the expected output below.",
+            "witness": {
+              "fixtureIndex": 0,
+              "name": "Example",
+              "input": [
+                {
+                  "$tree": [
+                    3,
+                    4,
+                    5,
+                    1,
+                    2
+                  ]
+                },
+                {
+                  "$tree": [
+                    4,
+                    1,
+                    2
+                  ]
+                }
+              ],
+              "expected": true,
+              "actual": false
+            }
+          },
+          {
+            "id": "quality-alternative-4",
+            "label": "Choose this statement",
+            "code": "    return !foundInLeft || !foundInRight;",
+            "correct": false,
+            "feedback": "On “Example”, this produces a different result. Compare its output with the expected output below.",
+            "witness": {
+              "fixtureIndex": 0,
+              "name": "Example",
+              "input": [
+                {
+                  "$tree": [
+                    3,
+                    4,
+                    5,
+                    1,
+                    2
+                  ]
+                },
+                {
+                  "$tree": [
+                    4,
+                    1,
+                    2
+                  ]
+                }
+              ],
+              "expected": true,
+              "actual": false
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": 1929,
+      "language": "python",
+      "sourceHash": "cbe5c155c44b6aed56c88583e50fb2c7fd6ad6ff2e2e83c97016111803ce4faa",
+      "replaceQuestionId": "python-line-3",
+      "question": {
+        "id": "python-line-3",
+        "stage": "implementation",
+        "prompt": "Which value should this path return?",
+        "context": "class Solution:\n    def getConcatenation(self, nums):\n        # Choose the missing statement",
+        "line": 3,
+        "endLine": 3,
+        "choices": [
+          {
+            "id": "quality-alternative-1",
+            "label": "Choose this statement",
+            "code": "        return [value for value in nums for _ in range(2)]",
+            "correct": false,
+            "feedback": "On “Example”, this produces a different result. Compare its output with the expected output below.",
+            "witness": {
+              "fixtureIndex": 0,
+              "name": "Example",
+              "input": [
+                [
+                  1,
+                  2,
+                  1
+                ]
+              ],
+              "expected": [
+                1,
+                2,
+                1,
+                1,
+                2,
+                1
+              ],
+              "actual": [
+                1,
+                1,
+                2,
+                2,
+                1,
+                1
+              ]
+            }
+          },
+          {
+            "id": "quality-alternative-2",
+            "label": "Choose this statement",
+            "code": "        return nums + nums[1:]",
+            "correct": false,
+            "feedback": "On “Example”, this produces a different result. Compare its output with the expected output below.",
+            "witness": {
+              "fixtureIndex": 0,
+              "name": "Example",
+              "input": [
+                [
+                  1,
+                  2,
+                  1
+                ]
+              ],
+              "expected": [
+                1,
+                2,
+                1,
+                1,
+                2,
+                1
+              ],
+              "actual": [
+                1,
+                2,
+                1,
+                2,
+                1
+              ]
+            }
+          },
+          {
+            "id": "quality-alternative-3",
+            "label": "Choose this statement",
+            "code": "        return [value * 2 for value in nums]",
+            "correct": false,
+            "feedback": "On “Example”, this produces a different result. Compare its output with the expected output below.",
+            "witness": {
+              "fixtureIndex": 0,
+              "name": "Example",
+              "input": [
+                [
+                  1,
+                  2,
+                  1
+                ]
+              ],
+              "expected": [
+                1,
+                2,
+                1,
+                1,
+                2,
+                1
+              ],
+              "actual": [
+                2,
+                4,
+                2
+              ]
+            }
+          },
+          {
+            "id": "correct",
+            "label": "Option D",
+            "code": "        return nums + nums",
+            "correct": true,
+            "feedback": "List concatenation appends a complete second copy in the original order. It does not double numeric values or repeat each value next to itself."
+          }
+        ]
+      }
+    },
+    {
+      "id": 287,
+      "language": "javascript",
+      "sourceHash": "defd21266adeae9c41537875b83b6672d86282377888fe83e99f6e3dcd7d0dfb",
+      "replaceQuestionId": "implementation-22",
+      "question": {
+        "id": "implementation-22",
+        "stage": "implementation",
+        "prompt": "What should we return at this point?",
+        "context": "18          fast = nums[fast];\n19      }\n20  \n21      // They meet at the cycle entrance, which is the duplicate value\n22      // Choose the missing statement.",
+        "line": 22,
+        "endLine": 22,
+        "choices": [
+          {
+            "id": "line-22-reference",
+            "label": "Choose this statement",
+            "code": "    return slow;",
+            "correct": true,
+            "feedback": "After the second phase, both pointers meet at the cycle entry. That entry value is the duplicate; following another link or shifting it by one would identify something else."
+          },
+          {
+            "id": "quality-alternative-1",
+            "label": "Choose this statement",
+            "code": "    return nums[slow];",
+            "correct": false,
+            "feedback": "On “Example”, this produces a different result. Compare its output with the expected output below.",
+            "witness": {
+              "fixtureIndex": 0,
+              "name": "Example",
+              "input": [
+                [
+                  1,
+                  3,
+                  4,
+                  2,
+                  2
+                ]
+              ],
+              "expected": 2,
+              "actual": 4
+            }
+          },
+          {
+            "id": "quality-alternative-2",
+            "label": "Choose this statement",
+            "code": "    return nums[0];",
+            "correct": false,
+            "feedback": "On “Example”, this produces a different result. Compare its output with the expected output below.",
+            "witness": {
+              "fixtureIndex": 0,
+              "name": "Example",
+              "input": [
+                [
+                  1,
+                  3,
+                  4,
+                  2,
+                  2
+                ]
+              ],
+              "expected": 2,
+              "actual": 1
+            }
+          },
+          {
+            "id": "quality-alternative-3",
+            "label": "Choose this statement",
+            "code": "    return slow + 1;",
+            "correct": false,
+            "feedback": "On “Example”, this produces a different result. Compare its output with the expected output below.",
+            "witness": {
+              "fixtureIndex": 0,
+              "name": "Example",
+              "input": [
+                [
+                  1,
+                  3,
+                  4,
+                  2,
+                  2
+                ]
+              ],
+              "expected": 2,
+              "actual": 3
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": 104,
+      "language": "javascript",
+      "sourceHash": "2a398809da3995989d4b6a6418e12f67bda9d06012fbdb1ab373c9d29c318191",
+      "replaceQuestionId": "implementation-12",
+      "question": {
+        "id": "implementation-12",
+        "stage": "implementation",
+        "prompt": "What should we return at this point?",
+        "context": "8      const leftDepth = maxDepth(root.left);\n9      const rightDepth = maxDepth(root.right);\n10  \n11      // This node adds 1 to the deeper of the two subtrees\n12      // Choose the missing statement.",
+        "line": 12,
+        "endLine": 12,
+        "choices": [
+          {
+            "id": "quality-alternative-1",
+            "label": "Choose this statement",
+            "code": "    return 1 + Math.min(leftDepth, rightDepth);",
+            "correct": false,
+            "feedback": "On “Example”, this produces a different result. Compare its output with the expected output below.",
+            "witness": {
+              "fixtureIndex": 0,
+              "name": "Example",
+              "input": [
+                {
+                  "$tree": [
+                    3,
+                    9,
+                    20,
+                    null,
+                    null,
+                    15,
+                    7
+                  ]
+                }
+              ],
+              "expected": 3,
+              "actual": 2
+            }
+          },
+          {
+            "id": "quality-alternative-2",
+            "label": "Choose this statement",
+            "code": "    return 1 + leftDepth + rightDepth;",
+            "correct": false,
+            "feedback": "On “Example”, this produces a different result. Compare its output with the expected output below.",
+            "witness": {
+              "fixtureIndex": 0,
+              "name": "Example",
+              "input": [
+                {
+                  "$tree": [
+                    3,
+                    9,
+                    20,
+                    null,
+                    null,
+                    15,
+                    7
+                  ]
+                }
+              ],
+              "expected": 3,
+              "actual": 5
+            }
+          },
+          {
+            "id": "quality-alternative-3",
+            "label": "Choose this statement",
+            "code": "    return Math.max(leftDepth, rightDepth);",
+            "correct": false,
+            "feedback": "On “Example”, this produces a different result. Compare its output with the expected output below.",
+            "witness": {
+              "fixtureIndex": 0,
+              "name": "Example",
+              "input": [
+                {
+                  "$tree": [
+                    3,
+                    9,
+                    20,
+                    null,
+                    null,
+                    15,
+                    7
+                  ]
+                }
+              ],
+              "expected": 3,
+              "actual": 0
+            }
+          },
+          {
+            "id": "line-12-reference",
+            "label": "Choose this statement",
+            "code": "    return 1 + Math.max(leftDepth, rightDepth);",
+            "correct": true,
+            "feedback": "Count the current node once and extend only the deeper child path. Adding both branches would count nodes across paths rather than maximum depth."
+          }
+        ]
+      }
+    },
+    {
+      "id": 253,
+      "language": "javascript",
+      "sourceHash": "fa2f4fc526064716d749e3095eaccb0271a240100823ae6922597d315d6b4612",
+      "replaceQuestionId": "implementation-53",
+      "question": {
+        "id": "implementation-53",
+        "stage": "implementation",
+        "prompt": "What should we return at this point?",
+        "context": "49              roomEndTimes.dequeue();\n50          }\n51          roomEndTimes.enqueue(end);\n52      }\n53      // Choose the missing statement.",
+        "line": 53,
+        "endLine": 53,
+        "choices": [
+          {
+            "id": "quality-alternative-1",
+            "label": "Choose this statement",
+            "code": "    return intervals.length;",
+            "correct": false,
+            "feedback": "On “Example”, this produces a different result. Compare its output with the expected output below.",
+            "witness": {
+              "fixtureIndex": 0,
+              "name": "Example",
+              "input": [
+                [
+                  [
+                    0,
+                    30
+                  ],
+                  [
+                    5,
+                    10
+                  ],
+                  [
+                    15,
+                    20
+                  ]
+                ]
+              ],
+              "expected": 2,
+              "actual": 3
+            }
+          },
+          {
+            "id": "line-53-reference",
+            "label": "Choose this statement",
+            "code": "    return roomEndTimes.size();",
+            "correct": true,
+            "feedback": "The heap retains one availability entry for each allocated room. Its size is the number of rooms; its root is a time, and some meetings can reuse an existing room."
+          },
+          {
+            "id": "quality-alternative-2",
+            "label": "Choose this statement",
+            "code": "    return roomEndTimes.front();",
+            "correct": false,
+            "feedback": "On “Example”, this produces a different result. Compare its output with the expected output below.",
+            "witness": {
+              "fixtureIndex": 0,
+              "name": "Example",
+              "input": [
+                [
+                  [
+                    0,
+                    30
+                  ],
+                  [
+                    5,
+                    10
+                  ],
+                  [
+                    15,
+                    20
+                  ]
+                ]
+              ],
+              "expected": 2,
+              "actual": 20
+            }
+          },
+          {
+            "id": "quality-alternative-3",
+            "label": "Choose this statement",
+            "code": "    return Math.max(0, roomEndTimes.size() - 1);",
+            "correct": false,
+            "feedback": "On “Example”, this produces a different result. Compare its output with the expected output below.",
+            "witness": {
+              "fixtureIndex": 0,
+              "name": "Example",
+              "input": [
+                [
+                  [
+                    0,
+                    30
+                  ],
+                  [
+                    5,
+                    10
+                  ],
+                  [
+                    15,
+                    20
+                  ]
+                ]
+              ],
+              "expected": 2,
+              "actual": 1
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": 225,
+      "language": "javascript",
+      "sourceHash": "5c173392995557ea65309c133386517cba528639406ef92038ed2e40cd816d84",
+      "replaceQuestionId": "implementation-15",
+      "question": {
+        "id": "implementation-15",
+        "stage": "implementation",
+        "prompt": "What should we return at this point?",
+        "context": "11      [this.active, this.helper] = [this.helper, this.active];\n12  };\n13  \n14  MyStack.prototype.pop = function() {\n15      // Choose the missing statement.",
+        "line": 15,
+        "endLine": 15,
+        "choices": [
+          {
+            "id": "quality-alternative-1",
+            "label": "Choose this statement",
+            "code": "    return this.active.pop();",
+            "correct": false,
+            "feedback": "On “Example”, this produces a different result. Compare its output with the expected output below.",
+            "witness": {
+              "fixtureIndex": 0,
+              "name": "Example",
+              "input": [],
+              "operations": [
+                [
+                  "push",
+                  [
+                    1
+                  ]
+                ],
+                [
+                  "push",
+                  [
+                    2
+                  ]
+                ],
+                [
+                  "top",
+                  []
+                ],
+                [
+                  "pop",
+                  []
+                ],
+                [
+                  "empty",
+                  []
+                ]
+              ],
+              "expected": [
+                null,
+                null,
+                null,
+                2,
+                2,
+                false
+              ],
+              "actual": [
+                null,
+                null,
+                null,
+                2,
+                1,
+                false
+              ]
+            }
+          },
+          {
+            "id": "line-15-reference",
+            "label": "Choose this statement",
+            "code": "    return this.active.shift();",
+            "correct": true,
+            "feedback": "Push has arranged the newest stack value at the active queue front. Pop must remove and return that front value, not peek at it or take the older back value."
+          },
+          {
+            "id": "quality-alternative-2",
+            "label": "Choose this statement",
+            "code": "    return this.active[0];",
+            "correct": false,
+            "feedback": "On “Edge case”, this produces a different result. Compare its output with the expected output below.",
+            "witness": {
+              "fixtureIndex": 1,
+              "name": "Edge case",
+              "input": [],
+              "operations": [
+                [
+                  "empty",
+                  []
+                ],
+                [
+                  "push",
+                  [
+                    1
+                  ]
+                ],
+                [
+                  "pop",
+                  []
+                ],
+                [
+                  "empty",
+                  []
+                ]
+              ],
+              "expected": [
+                null,
+                true,
+                null,
+                1,
+                true
+              ],
+              "actual": [
+                null,
+                true,
+                null,
+                1,
+                false
+              ]
+            }
+          },
+          {
+            "id": "quality-alternative-3",
+            "label": "Choose this statement",
+            "code": "    return this.active.splice(1, 1)[0];",
+            "correct": false,
+            "feedback": "On “Example”, this produces a different result. Compare its output with the expected output below.",
+            "witness": {
+              "fixtureIndex": 0,
+              "name": "Example",
+              "input": [],
+              "operations": [
+                [
+                  "push",
+                  [
+                    1
+                  ]
+                ],
+                [
+                  "push",
+                  [
+                    2
+                  ]
+                ],
+                [
+                  "top",
+                  []
+                ],
+                [
+                  "pop",
+                  []
+                ],
+                [
+                  "empty",
+                  []
+                ]
+              ],
+              "expected": [
+                null,
+                null,
+                null,
+                2,
+                2,
+                false
+              ],
+              "actual": [
+                null,
+                null,
+                null,
+                2,
+                1,
+                false
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": 225,
+      "language": "javascript",
+      "sourceHash": "5c173392995557ea65309c133386517cba528639406ef92038ed2e40cd816d84",
+      "replaceQuestionId": "implementation-19",
+      "question": {
+        "id": "implementation-19",
+        "stage": "implementation",
+        "prompt": "What should we return at this point?",
+        "context": "15      return this.active.shift();\n16  };\n17  \n18  MyStack.prototype.top = function() {\n19      // Choose the missing statement.",
+        "line": 19,
+        "endLine": 19,
+        "choices": [
+          {
+            "id": "quality-alternative-1",
+            "label": "Choose this statement",
+            "code": "    return this.active[this.active.length - 1];",
+            "correct": false,
+            "feedback": "On “Example”, this produces a different result. Compare its output with the expected output below.",
+            "witness": {
+              "fixtureIndex": 0,
+              "name": "Example",
+              "input": [],
+              "operations": [
+                [
+                  "push",
+                  [
+                    1
+                  ]
+                ],
+                [
+                  "push",
+                  [
+                    2
+                  ]
+                ],
+                [
+                  "top",
+                  []
+                ],
+                [
+                  "pop",
+                  []
+                ],
+                [
+                  "empty",
+                  []
+                ]
+              ],
+              "expected": [
+                null,
+                null,
+                null,
+                2,
+                2,
+                false
+              ],
+              "actual": [
+                null,
+                null,
+                null,
+                1,
+                2,
+                false
+              ]
+            }
+          },
+          {
+            "id": "line-19-reference",
+            "label": "Choose this statement",
+            "code": "    return this.active[0];",
+            "correct": true,
+            "feedback": "The stack top is at the active queue front. Top reads it without changing either queue, so a later pop still removes that same value."
+          },
+          {
+            "id": "quality-alternative-2",
+            "label": "Choose this statement",
+            "code": "    return this.active.shift();",
+            "correct": false,
+            "feedback": "On “Example”, this produces a different result. Compare its output with the expected output below.",
+            "witness": {
+              "fixtureIndex": 0,
+              "name": "Example",
+              "input": [],
+              "operations": [
+                [
+                  "push",
+                  [
+                    1
+                  ]
+                ],
+                [
+                  "push",
+                  [
+                    2
+                  ]
+                ],
+                [
+                  "top",
+                  []
+                ],
+                [
+                  "pop",
+                  []
+                ],
+                [
+                  "empty",
+                  []
+                ]
+              ],
+              "expected": [
+                null,
+                null,
+                null,
+                2,
+                2,
+                false
+              ],
+              "actual": [
+                null,
+                null,
+                null,
+                2,
+                1,
+                true
+              ]
+            }
+          },
+          {
+            "id": "quality-alternative-3",
+            "label": "Choose this statement",
+            "code": "    return this.helper[0];",
+            "correct": false,
+            "feedback": "On “Example”, this produces a different result. Compare its output with the expected output below.",
+            "witness": {
+              "fixtureIndex": 0,
+              "name": "Example",
+              "input": [],
+              "operations": [
+                [
+                  "push",
+                  [
+                    1
+                  ]
+                ],
+                [
+                  "push",
+                  [
+                    2
+                  ]
+                ],
+                [
+                  "top",
+                  []
+                ],
+                [
+                  "pop",
+                  []
+                ],
+                [
+                  "empty",
+                  []
+                ]
+              ],
+              "expected": [
+                null,
+                null,
+                null,
+                2,
+                2,
+                false
+              ],
+              "actual": [
+                null,
+                null,
+                null,
+                null,
+                2,
+                false
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": 225,
+      "language": "javascript",
+      "sourceHash": "5c173392995557ea65309c133386517cba528639406ef92038ed2e40cd816d84",
+      "replaceQuestionId": "implementation-23",
+      "question": {
+        "id": "implementation-23",
+        "stage": "implementation",
+        "prompt": "What should we return at this point?",
+        "context": "19      return this.active[0];\n20  };\n21  \n22  MyStack.prototype.empty = function() {\n23      // Choose the missing statement.",
+        "line": 23,
+        "endLine": 23,
+        "choices": [
+          {
+            "id": "quality-alternative-1",
+            "label": "Choose this statement",
+            "code": "    return this.active.length !== 0;",
+            "correct": false,
+            "feedback": "On “Example”, this produces a different result. Compare its output with the expected output below.",
+            "witness": {
+              "fixtureIndex": 0,
+              "name": "Example",
+              "input": [],
+              "operations": [
+                [
+                  "push",
+                  [
+                    1
+                  ]
+                ],
+                [
+                  "push",
+                  [
+                    2
+                  ]
+                ],
+                [
+                  "top",
+                  []
+                ],
+                [
+                  "pop",
+                  []
+                ],
+                [
+                  "empty",
+                  []
+                ]
+              ],
+              "expected": [
+                null,
+                null,
+                null,
+                2,
+                2,
+                false
+              ],
+              "actual": [
+                null,
+                null,
+                null,
+                2,
+                2,
+                true
+              ]
+            }
+          },
+          {
+            "id": "quality-alternative-2",
+            "label": "Choose this statement",
+            "code": "    return this.helper.length === 0;",
+            "correct": false,
+            "feedback": "On “Example”, this produces a different result. Compare its output with the expected output below.",
+            "witness": {
+              "fixtureIndex": 0,
+              "name": "Example",
+              "input": [],
+              "operations": [
+                [
+                  "push",
+                  [
+                    1
+                  ]
+                ],
+                [
+                  "push",
+                  [
+                    2
+                  ]
+                ],
+                [
+                  "top",
+                  []
+                ],
+                [
+                  "pop",
+                  []
+                ],
+                [
+                  "empty",
+                  []
+                ]
+              ],
+              "expected": [
+                null,
+                null,
+                null,
+                2,
+                2,
+                false
+              ],
+              "actual": [
+                null,
+                null,
+                null,
+                2,
+                2,
+                true
+              ]
+            }
+          },
+          {
+            "id": "quality-alternative-3",
+            "label": "Choose this statement",
+            "code": "    return this.active.length <= 1;",
+            "correct": false,
+            "feedback": "On “Example”, this produces a different result. Compare its output with the expected output below.",
+            "witness": {
+              "fixtureIndex": 0,
+              "name": "Example",
+              "input": [],
+              "operations": [
+                [
+                  "push",
+                  [
+                    1
+                  ]
+                ],
+                [
+                  "push",
+                  [
+                    2
+                  ]
+                ],
+                [
+                  "top",
+                  []
+                ],
+                [
+                  "pop",
+                  []
+                ],
+                [
+                  "empty",
+                  []
+                ]
+              ],
+              "expected": [
+                null,
+                null,
+                null,
+                2,
+                2,
+                false
+              ],
+              "actual": [
+                null,
+                null,
+                null,
+                2,
+                2,
+                true
+              ]
+            }
+          },
+          {
+            "id": "line-23-reference",
+            "label": "Choose this statement",
+            "code": "    return this.active.length === 0;",
+            "correct": true,
+            "feedback": "The helper is empty after every completed push, regardless of stack size. Only an active-queue length of zero means the stack is empty."
+          }
+        ]
+      }
+    }
+  ]
+}
