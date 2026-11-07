@@ -1,6 +1,8 @@
 export type TraceValue = null | boolean | number | string | { $ref: string } | { $scalar: string };
+export type TraceLanguage = 'javascript' | 'python';
 export interface TraceObject {
   kind: 'array' | 'object' | 'map' | 'set' | 'tree' | 'graph' | 'list' | 'quad';
+  typeName?: string;
   items?: TraceValue[];
   entries?: [TraceValue, TraceValue][];
   fields?: Record<string, TraceValue>;
@@ -29,6 +31,7 @@ export interface ExecutionExample {
 }
 export interface ExecutionTrace {
   id: number;
+  language?: TraceLanguage;
   variant?: string;
   title: string;
   topic: string;
@@ -86,22 +89,38 @@ export function groupVariables(step: ExecutionStep, heap: TraceHeap, order: stri
   }
   return { variables, inputs, collections };
 }
-export function formatValue(value: TraceValue | undefined, heap: TraceHeap, depth = 0, seen = new Set<string>()): string {
-  if (value === undefined) return 'undefined';
-  if (value === null) return 'null';
+export function formatValue(value: TraceValue | undefined, heap: TraceHeap, depth = 0, seen = new Set<string>(), language: TraceLanguage = 'javascript'): string {
+  if (value === undefined) return language === 'python' ? 'not assigned' : 'undefined';
+  if (value === null) return language === 'python' ? 'None' : 'null';
+  if (language === 'python' && typeof value === 'boolean') return value ? 'True' : 'False';
   if (typeof value === 'string') return JSON.stringify(value);
   if (typeof value !== 'object') return String(value);
   if ('$scalar' in value) return value.$scalar;
   const object = heap[value.$ref];
   if (!object) return 'unavailable';
-  if (['tree','graph','list','quad'].includes(object.kind)) return `${formatValue(object.fields?.val, heap)} · ${value.$ref}`;
+  if (['tree','graph','list','quad'].includes(object.kind)) return `${formatValue(object.fields?.val, heap, 0, new Set(), language)} · ${value.$ref}`;
   if (seen.has(value.$ref) || depth > 2) return object.kind === 'array' ? `[${object.items?.length ?? 0} items]` : object.kind;
   const nextSeen = new Set(seen).add(value.$ref);
-  const format = (item: TraceValue) => formatValue(item, heap, depth + 1, nextSeen);
-  if (object.items) return `${object.kind === 'set' ? '{' : '['}${object.items.slice(0,8).map(format).join(', ')}${object.items.length > 8 ? ', …' : ''}${object.kind === 'set' ? '}' : ']'}`;
+  const format = (item: TraceValue) => formatValue(item, heap, depth + 1, nextSeen, language);
+  if (object.items) {
+    if (language === 'python' && object.kind === 'set' && !object.items.length) return 'set()';
+    const tuple = language === 'python' && object.typeName === 'tuple';
+    const items = object.items.slice(0,8).map(format).join(', ') + (object.items.length > 8 ? ', …' : tuple && object.items.length === 1 ? ',' : '');
+    return `${object.kind === 'set' ? '{' : tuple ? '(' : '['}${items}${object.kind === 'set' ? '}' : tuple ? ')' : ']'}`;
+  }
   if (object.entries) return `{${object.entries.slice(0,6).map(([k,v])=>`${format(k)}: ${format(v)}`).join(', ')}${object.entries.length>6?', …':''}}`;
   const entries = Object.entries(object.fields || {});
   return `{${entries.slice(0,5).map(([k,v])=>`${k}: ${format(v)}`).join(', ')}${entries.length>5?', …':''}}`;
+}
+export const formatTraceValue = (value: TraceValue | undefined, heap: TraceHeap, language: TraceLanguage = 'javascript') => formatValue(value, heap, 0, new Set(), language);
+
+export function formatTraceResult(value: unknown, language: TraceLanguage = 'javascript'): string {
+  if (language === 'javascript') return JSON.stringify(value);
+  if (value === null) return 'None';
+  if (typeof value === 'boolean') return value ? 'True' : 'False';
+  if (Array.isArray(value)) return `[${value.map(item => formatTraceResult(item, language)).join(', ')}]`;
+  if (typeof value === 'object') return `{${Object.entries(value as Record<string, unknown>).map(([key, item]) => `${JSON.stringify(key)}: ${formatTraceResult(item, language)}`).join(', ')}}`;
+  return JSON.stringify(value);
 }
 export function valueChanged(before: TraceValue | undefined, after: TraceValue | undefined, oldHeap: TraceHeap, heap: TraceHeap, seen = new Set<string>()): boolean {
   if (JSON.stringify(before) !== JSON.stringify(after)) return true;

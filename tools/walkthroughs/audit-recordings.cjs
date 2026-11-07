@@ -64,7 +64,7 @@ function evaluate(text,state,heap) {
   return fnCache.get(key).apply(decode(state.this),names.map(name=>decode(state[name])));
 }
 function audit() {
-  const stats={problems:new Set(walkthroughs.map(entry=>entry.id)).size,solutions:0,examples:0,steps:0,sourceSpans:0,conditions:0,initializers:0,mutations:0,errors:[]};
+  const stats={problems:new Set(walkthroughs.map(entry=>entry.id)).size,solutions:0,examples:0,steps:0,sourceSpans:0,conditions:0,initializers:0,mutations:0,callbackReturns:0,errors:[]};
   for(const problem of walkthroughs) {
     const trace=JSON.parse(fs.readFileSync(path.join(root,'src/data/walkthroughs/generated',`${problem.key}.json`),'utf8'));
     const nodes=new Map(),parents=new Map();
@@ -109,6 +109,14 @@ function audit() {
               try{actual=evaluate(text,step.state,heap);}catch(error){if(error instanceof ReferenceError||error instanceof TypeError)available=false;else throw error;}
               if(available){assert.deepEqual(actual,decode(step.state[variable.id.name]),'Initialized variable differs from its source expression');stats.initializers++;}
             }
+          }
+          // A concise arrow's implicit return retains the original expression
+          // span. Check its result independently when evaluating that expression
+          // has no side effects (including reduce accumulators and sort results).
+          const sourceParent=parents.get(sourceNode);
+          if(step.kind==='return'&&t.isArrowFunctionExpression(sourceParent)&&sourceParent.body===sourceNode&&safe(sourceNode)) {
+            assert.deepEqual(evaluate(step.label,step.state,heap),decode(step.value),'Callback return differs from its source expression');
+            stats.callbackReturns++;
           }
           if(step.kind==='operation'&&previous&&JSON.stringify(previous.stack)===JSON.stringify(step.stack)) {
             const ast=expression(step.label);

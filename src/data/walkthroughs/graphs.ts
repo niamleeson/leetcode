@@ -1,15 +1,15 @@
-import { ExecutionStep, TraceHeap, TraceValue, formatValue, isReference, objectFor } from './execution';
+import { ExecutionStep, TraceHeap, TraceLanguage, TraceValue, formatValue, isReference, objectFor } from './execution';
 
 export interface GraphNode { key:string;value:TraceValue;label:string;caption?:string;x?:number;y?:number;blocked?:boolean }
 export interface GraphEdge { from:string;to:string;weight?:string;directed?:boolean;ignored?:boolean }
 export interface GraphModel { title:string;directed:boolean;nodes:GraphNode[];edges:GraphEdge[];active?:boolean;width?:number;height?:number;pointerNames?:string[] }
-export interface GraphContext { variant?:string;conditionGraphs?:Record<string,TraceValue>;lockCurrent?:string;lockNeighbors?:string[] }
+export interface GraphContext { variant?:string;language?:TraceLanguage;conditionGraphs?:Record<string,TraceValue>;lockCurrent?:string;lockNeighbors?:string[] }
 export const graphKey=(value:TraceValue)=>JSON.stringify(value);
 const labelFor=(value:TraceValue,heap:TraceHeap)=>typeof value==='string'?value:formatValue(value,heap);
 
 // Preserve each helper's graph reference after it returns, without looking ahead
 // in the trace. Earlier contexts stay immutable so Back and Reset cannot leak edges.
-export function graphContextsFor(id:number,steps:ExecutionStep[]):GraphContext[] {
+export function graphContextsFor(id:number,steps:ExecutionStep[],language:TraceLanguage='javascript'):GraphContext[] {
   if(id!==2392&&id!==752)return [];
   let conditionGraphs:Record<string,TraceValue>={},lockCurrent:string|undefined,lockNeighbors:string[]=[];
   const heap:TraceHeap={};
@@ -22,10 +22,15 @@ export function graphContextsFor(id:number,steps:ExecutionStep[]):GraphContext[]
       Object.assign(heap,step.heap);
       const removed=step.kind==='operation'&&step.label==='queue.shift()'?objectFor(step.value,heap)?.items?.[0]:undefined;
       const queued=objectFor(objectFor(state.queue,heap)?.items?.[0],heap)?.items?.[0];
-      const current=typeof removed==='string'?removed:typeof state.currentState==='string'?state.currentState:lockCurrent??queued;
+      const selected=language==='python'?state.state:state.currentState;
+      const generated=language==='python'?state.new_state:state.newState;
+      const current=typeof removed==='string'?removed:typeof selected==='string'?selected:lockCurrent??queued;
       if(typeof current==='string'&&current!==lockCurrent){lockCurrent=current;lockNeighbors=[];}
-      if(typeof lockCurrent==='string'&&typeof state.newState==='string'&&!lockNeighbors.includes(state.newState)) {
-        lockNeighbors=[...lockNeighbors,state.newState];
+      // Python locals persist across iterations. A previous neighbor must not
+      // appear under the next state before its assignment actually executes.
+      const generatedNow=language!=='python'||/^new_state\s*=/.test(step.label.trim());
+      if(generatedNow&&typeof lockCurrent==='string'&&typeof generated==='string'&&!lockNeighbors.includes(generated)) {
+        lockNeighbors=[...lockNeighbors,generated];
       }
     }
     return {conditionGraphs,lockCurrent,lockNeighbors};
@@ -86,11 +91,13 @@ export function graphModels(id:number,input:Record<string,TraceValue>,state:Reco
   }
   if(id===752) {
     const queued=rows(state.queue)[0]?.[0];
-    const current=context.lockCurrent??(typeof state.currentState==='string'?state.currentState:queued);
+    const selected=context.language==='python'?state.state:state.currentState;
+    const current=context.lockCurrent??(typeof selected==='string'?selected:queued);
     if(typeof current!=='string')return [];
     const blocked=new Set(items(input.deadends).map(graphKey));
     const generated=context.lockNeighbors??(typeof state.newState==='string'?[state.newState]:[]);
     const graph=model('Current lock state and generated neighbors',false,[current,...generated],generated.map(value=>edge(current,value)));
+    if(context.language==='python')graph.pointerNames=['state','new_state'];
     // Reserve space, not future nodes. A generated neighbor keeps the slot for
     // its wheel and direction, so revealing another state never moves it.
     graph.width=510;graph.height=510;

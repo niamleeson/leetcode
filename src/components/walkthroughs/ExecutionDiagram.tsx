@@ -1,17 +1,17 @@
 import { useId } from 'react';
-import { TraceHeap, TraceValue, formatValue, isReference, objectFor } from '../../data/walkthroughs/execution';
+import { TraceHeap, TraceLanguage, TraceValue, formatTraceValue, isReference, objectFor } from '../../data/walkthroughs/execution';
 import { collectStructure, layoutTree, nodeChanged, TreeOccurrence } from '../../data/walkthroughs/structure';
 
-export default function ExecutionDiagram({ roots, state, heap, previousHeap, callers=[], result, resultOnly=false, isReturn=false }: {
+export default function ExecutionDiagram({ roots, state, heap, previousHeap, callers=[], result, resultOnly=false, isReturn=false, language='javascript' }: {
   roots:Record<string,TraceValue>;state:Record<string,TraceValue>;heap:TraceHeap;previousHeap:TraceHeap;
-  callers?:TraceValue[];result?:TraceValue;resultOnly?:boolean;isReturn?:boolean;
+  callers?:TraceValue[];result?:TraceValue;resultOnly?:boolean;isReturn?:boolean;language?:TraceLanguage;
 }) {
   const arrowId=useId().replace(/:/g,'');
   const originalIds=new Set(collectStructure(Object.values(roots),heap).keys());
   const values=resultOnly?[]:[...Object.values(roots),...callers,...Object.values(state)];
   if(result!==undefined)values.push(result);
   const nodes=collectStructure(values,heap);
-  if(!nodes.size)return resultOnly?<div className="execution-empty" role="img" aria-label="Empty returned tree">Returned tree = null</div>:null;
+  if(!nodes.size)return resultOnly?<div className="execution-empty" role="img" aria-label="Empty returned tree">Returned tree = {language === 'python' ? 'None' : 'null'}</div>:null;
   const entries=[...nodes];
   const tree=entries.every(([,node])=>['tree','quad'].includes(node.kind));
   const quad=entries.every(([,node])=>node.kind==='quad');
@@ -53,11 +53,11 @@ export default function ExecutionDiagram({ roots, state, heap, previousHeap, cal
         </g>;
       })}
       {occurrences.map(position=>{
-        if(!position.id)return <g key={position.key} transform={`translate(${position.x},${position.y})`} className="execution-null"><rect x="-22" y="-12" width="44" height="24" rx="5"/><text textAnchor="middle" dy="4">null</text></g>;
+        if(!position.id)return <g key={position.key} transform={`translate(${position.x},${position.y})`} className="execution-null"><rect x="-22" y="-12" width="44" height="24" rx="5"/><text textAnchor="middle" dy="4">{language === 'python' ? 'None' : 'null'}</text></g>;
         const id=position.id,node=nodes.get(id)!;
         const pointers=Object.entries(state).filter(([,value])=>isReference(value)&&value.$ref===id).map(([name])=>name);
         if(isReturn&&isReference(result)&&result.$ref===id)pointers.push('return');
-        const value=node.kind==='quad'?(heap[id].fields?.isLeaf?Number(node.value):'branch'):formatValue(node.value,heap);
+        const value=node.kind==='quad'?(heap[id].fields?.isLeaf?Number(node.value):'branch'):formatTraceValue(node.value,heap,language);
         return <g key={position.key} data-node-id={id} transform={`translate(${position.x},${position.y})`} className={`execution-node ${pointers.length?'is-current':''} ${nodeChanged(id,previousHeap,heap)?'is-changed':''}`}>
           <circle r="22"/><text textAnchor="middle" dy="5" className={node.kind==='quad'?'execution-quad-value':undefined}>{value}</text>
           <text className="execution-node-id" textAnchor="middle" y="38">{id}{position.referenceOnly?' ↩':''}</text>

@@ -9,14 +9,9 @@ function instrument(source) {
   const sites = [];
   const originalNodes = new WeakSet();
   const recordedOperations = new WeakSet();
-  traverse(ast, { enter(path) {
-    // A concise callback passed to a built-in (Array.from, sort, map...) is part
-    // of that expression. Record its result at the caller, rather than thousands
-    // of allocation/comparator frames. Named algorithm helpers are still traced.
-    if (path.isArrowFunctionExpression() && !t.isBlockStatement(path.node.body) &&
-        (path.parentPath.isCallExpression() || path.parentPath.isNewExpression())) { path.skip(); return; }
-    originalNodes.add(path.node);
-  } });
+  // Every displayed callback is executable solution code, including concise
+  // arrows passed to native iteration methods. Retain its individual frames.
+  traverse(ast, { enter(path) { originalNodes.add(path.node); } });
   const text = node => source.slice(node.start, node.end).replace(/\s+/g, ' ').trim();
   function state(path) {
     const bindings = path.scope.getAllBindings();
@@ -59,7 +54,9 @@ function instrument(source) {
         const ret = t.returnStatement(expression);
         Object.assign(ret, { loc: expression.loc, start: expression.start, end: expression.end });
         originalNodes.add(ret);
-        path.get('body').replaceWith(t.blockStatement([ret]));
+        const body = t.blockStatement([ret]);
+        Object.assign(body, { loc: expression.loc, start: expression.start, end: expression.end });
+        path.get('body').replaceWith(body);
       }
     },
   });
@@ -115,7 +112,10 @@ function instrument(source) {
         const body = path.get('body');
         if (!body.isBlockStatement()) return;
         const parent = path.parentPath;
-        const name = node.id?.name || (parent.isVariableDeclarator() ? parent.node.id.name : parent.isAssignmentExpression() ? text(parent.node.left) : node.key?.name) || 'callback';
+        const callee = parent.isCallExpression() || parent.isNewExpression() ? parent.node.callee : undefined;
+        const callbackName = t.isMemberExpression(callee) && !callee.computed ? `${callee.property.name} callback`
+          : t.isIdentifier(callee) ? `${callee.name} callback` : 'callback';
+        const name = node.id?.name || (parent.isVariableDeclarator() ? parent.node.id.name : parent.isAssignmentExpression() ? text(parent.node.left) : node.key?.name) || callbackName;
         const enter = t.expressionStatement(call(path, 'call', node, undefined, name));
         // try/finally makes call depth correct for early returns, recursion and throws.
         body.node.body = [enter, t.tryStatement(t.blockStatement(body.node.body), null,

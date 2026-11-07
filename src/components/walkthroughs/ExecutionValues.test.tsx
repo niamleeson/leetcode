@@ -35,6 +35,15 @@ describe('data markers follow source indexing',()=>{
     expect(screen.getAllByRole('listitem')).toHaveLength(4);
     expect(screen.getByText('right').parentElement?.textContent).toContain('"b"');
   });
+  it('uses Python Unicode code point indices and Python values',()=>{
+    const page=render(<ExecutionValues value="a😀b" heap={{}} previousHeap={{}} path="s" pointers={{right:2}} indexing={{s:{indices:['right'],cells:[]}}} language="python"/>);
+    expect(screen.getAllByRole('listitem')).toHaveLength(3);
+    expect(screen.getByText('right').parentElement?.textContent).toContain('"b"');
+    page.rerender(<ExecutionValues value={{$ref:'values'}} heap={{values:{kind:'array',items:[true,false,null]}}} previousHeap={{}} language="python"/>);
+    expect(screen.getByText('True')).toBeTruthy();
+    expect(screen.getByText('False')).toBeTruthy();
+    expect(screen.getByText('None')).toBeTruthy();
+  });
   it('labels initial grid values without a missing-value dash or transition arrow',()=>{
     const heap:TraceHeap={grid:{kind:'array',items:[{$ref:'row'}]},row:{kind:'array',items:[1,2]}};
     render(<ExecutionValues value={{$ref:'grid'}} heap={heap} previousHeap={{}} path="grid"/>);

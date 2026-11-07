@@ -147,7 +147,7 @@ function execute(source, fixture, id, traced = true) {
   }
   function append(site, getters, value) {
     if (!active) return value;
-    if (steps.length >= 20000) throw new Error('Trace exceeded 20,000 steps; use a smaller teaching example.');
+    if (steps.length >= 50000) throw new Error('Trace exceeded 50,000 steps; use a smaller teaching example.');
     const meta = built.sites[site];
     if (meta.kind === 'call') stack.push(meta.label);
     const snap = snapshot(getters());

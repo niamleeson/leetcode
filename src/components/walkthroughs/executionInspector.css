@@ -1,0 +1,24 @@
+.execution-inspector { min-width: 0; overflow: hidden; margin-bottom: 16px; border: 1px solid var(--trace-border); border-radius: 8px; background: var(--trace-panel); color: var(--trace-text); }
+.debugger-heading { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 4px 12px; padding: 9px 12px; border-bottom: 1px solid var(--trace-border); }
+.debugger-heading h5 { margin: 0; font-size: 12px; font-weight: 600; color: var(--trace-text); }
+.debugger-heading > span { font: 11px/1.5 ui-monospace, monospace; color: var(--trace-muted); overflow-wrap: anywhere; }
+.debugger-timing { margin: 0; padding: 6px 12px 0; color: var(--trace-muted); font-size: 11px; }
+.debugger-section { padding: 8px 0; }
+.debugger-section + .debugger-section { border-top: 1px solid var(--trace-border); }
+.debugger-section h6 { padding: 0 12px 5px; color: var(--trace-muted); font-size: 10px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; }
+.debugger-node { min-width: 0; }
+.debugger-row { padding: 4px 10px 4px 12px; min-height: 27px; font: 12px/1.6 ui-monospace, monospace; overflow-wrap: anywhere; }
+.debugger-row > span { margin-right: 5px; }
+summary.debugger-row { cursor: pointer; }
+summary.debugger-row::marker { color: var(--trace-muted); font-size: 10px; }
+.debugger-leaf { padding-left: 25px; }
+.debugger-row.is-changed { background: var(--trace-highlight); }
+.debugger-name { color: var(--trace-accent); }
+.debugger-colon, .debugger-type, .debugger-reference, .debugger-cycle { color: var(--trace-muted); }
+.debugger-type, .debugger-reference, .debugger-cycle { font-size: 10px; }
+.debugger-value { color: var(--trace-text); }
+.debugger-changed { color: var(--trace-accent); font: 10px/1.5 system-ui, sans-serif; }
+.debugger-children { margin-left: 17px; border-left: 1px solid var(--trace-border); }
+.debugger-empty { margin: 0; padding: 3px 12px; color: var(--trace-muted); font-size: 11px; }
+.debugger-more { padding: 4px 12px; color: var(--trace-accent); font-size: 11px; text-align: left; }
+.execution-inspector summary:focus-visible, .execution-inspector button:focus-visible { outline: 2px solid var(--trace-accent); outline-offset: -2px; }

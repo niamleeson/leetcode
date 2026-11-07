@@ -124,9 +124,19 @@ it.each([323,684,721,1462,1489,1584,2709])('shows BFS first for #%i and loads th
   fireEvent.click(screen.getByRole('button',{name:'Python'}));
   expect(screen.getByRole('heading',{name:`${solution.solutionTitle} · Python Solution`})).toBeTruthy();
   expect(screen.getByRole('heading',{name:`${alternative.label}: ${alternative.title}`})).toBeTruthy();
-  expect(screen.queryAllByRole('slider')).toHaveLength(0);
-  expect([...document.querySelectorAll('pre code')].map(code=>code.textContent)).toContain(solution.code);
-  expect([...document.querySelectorAll('pre code')].map(code=>code.textContent)).toContain(alternative.code);
+  expect(screen.queryByLabelText('Walkthrough JavaScript code')).toBeNull();
+  await screen.findByRole('slider',{name:`${problem.title} step`});
+  await screen.findByRole('slider',{name:`${problem.title} · ${alternative.title} step`});
+  const pythonFirst=screen.getByRole('region',{name:`${problem.title} walkthrough`});
+  const pythonSecond=screen.getByRole('region',{name:`${problem.title} · ${alternative.title} walkthrough`});
+  for(const [panel,code] of [[pythonFirst,solution.code],[pythonSecond,alternative.code]] as const) {
+    expect([...panel.querySelectorAll('.traversal-line-content')].map(line=>line.textContent).join('\n')).toBe(code);
+    expect((within(panel).getByRole('slider') as HTMLInputElement).value).toBe('0');
+    expect(within(panel).getByRole('region',{name:'Debugger variables'})).toBeTruthy();
+  }
+  fireEvent.click(within(pythonSecond).getByRole('button',{name:'Next →'}));
+  expect((within(pythonFirst).getByRole('slider') as HTMLInputElement).value).toBe('0');
+  expect((within(pythonSecond).getByRole('slider') as HTMLInputElement).value).toBe('1');
 });
 
 it('shows both island solutions, loads independent players, and shares the highlight preference',async()=>{
@@ -147,7 +157,10 @@ it('shows both island solutions, loads independent players, and shares the highl
   expect((within(iterative).getByRole('slider') as HTMLInputElement).value).toBe('1');
   expect((within(recursive).getByRole('slider') as HTMLInputElement).value).toBe('0');
   fireEvent.click(screen.getByRole('button',{name:'Python'}));
-  expect(screen.queryAllByRole('slider')).toHaveLength(0);
+  expect(screen.queryByLabelText('Walkthrough JavaScript code')).toBeNull();
+  await screen.findByRole('slider',{name:'Number of Islands step'});
+  await screen.findByRole('slider',{name:/Number of Islands · Iterative DFS/});
+  expect(screen.getAllByLabelText('Walkthrough Python code')).toHaveLength(2);
   expect(screen.getByRole('heading',{name:'Recursive DFS · Python Solution'})).toBeTruthy();
   expect(screen.getByRole('heading',{name:'Alternative: Iterative DFS (explicit stack)'})).toBeTruthy();
   expect(document.body.textContent).toContain('stack.append((nr, nc))');

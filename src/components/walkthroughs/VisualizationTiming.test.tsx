@@ -62,7 +62,9 @@ it('backs every displayed binding, node, and structure link with data already re
   expect(examples).toBeGreaterThanOrEqual(615);
   expect(frames).toBeGreaterThanOrEqual(47719);
   expect(pictures).toBeGreaterThan(1000);
-},30000);
+// Full callback recordings include over 100,000 frames, including all 10,007
+// HashSet bucket allocations. Keep the exhaustive sweep with time to inspect it.
+},60000);
 
 it.each(['105','133','133-iterative','1462','2392','323','752','416','417','84','46','2','684','721','1489','1584','2709','684-union-find','1489-union-find','1462-floyd-warshall'])('%s ignores future states and final answers when rendering an earlier step',key=>{
   const data=trace(key),example=data.examples[0];

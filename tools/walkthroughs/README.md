@@ -48,9 +48,13 @@ remain reproducible without changing the displayed algorithm.
 Recorded steps include initialization, each loop iteration and termination check,
 compound conditions, failed guards, mutation operations, function calls,
 returns, break, and continue. A pop/shift is recorded before its result is assigned
-to a variable. Native operations such as sorting and allocation are atomic;
-concise callbacks passed directly to them are part of that operation. Algorithm
+to a variable. Every displayed callback is stepped into, including concise arrow
+functions passed to `forEach`, `map`, `reduce`, sorting, and allocation. Each
+invocation records its parameters, body operations, and return before resuming
+the caller. Native internals without displayed source remain atomic. Algorithm
 helper functions, including recursive helpers and heap methods, are stepped into.
+Recordings fail explicitly above 50,000 steps rather than truncating iterations;
+this accommodates every bucket-initialization callback in Design HashSet.
 Advanced Graphs uses the heap defined once in its section reference. Its source
 lives in `src/data/shared-graph-heap.ts` and is also supplied to the recorder and
 V8 audit. Those solutions show only their algorithm: shared heap pushes and pops
@@ -201,3 +205,24 @@ official problem statements: [1929](https://leetcode.com/problems/concatenation-
 [649](https://leetcode.com/problems/dota2-senate/),
 [2807](https://leetcode.com/problems/insert-greatest-common-divisors-in-linked-list/),
 and [3133](https://leetcode.com/problems/minimum-array-end/).
+
+## Python walkthroughs
+
+The NeetCode language selector also selects the execution recording. Python
+recordings live in `src/data/walkthroughs/generated-python/`, use the exact
+Python solution text, and are lazy-loaded only when a problem is opened.
+Both primary solutions and walkthrough-enabled alternatives are required.
+
+The Python recorder executes the displayed source with CPython tracing. It
+records source lines, function calls and returns, input arguments, local
+variables, object references, and collection mutations. The player provides
+Next, Back, Reset, example selection, code highlighting, and an expandable
+variable inspector for either language. Switching language starts a fresh
+recording; JavaScript execution is never presented as a Python trace.
+
+Use `npm run walkthroughs:python:generate` to regenerate Python recordings.
+`npm run walkthroughs:generate` regenerates both languages, and
+`npm run walkthroughs:verify` checks both against fresh executions.
+The production build rejects missing or stale Python recordings as well as
+missing or stale JavaScript recordings. All 250 problems and every declared
+walkthrough variant must be present before deployment.

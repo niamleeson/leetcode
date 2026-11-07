@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ExecutionTrace, ExecutionStep, VariableGroup, dataStepIndex, formatValue, groupVariables, hasNodes, isReference, materialize, truthy, valueChanged } from '../../data/walkthroughs/execution';
+import { ExecutionTrace, ExecutionStep, TraceLanguage, VariableGroup, dataStepIndex, formatTraceResult, formatTraceValue, groupVariables, hasNodes, isReference, materialize, truthy, valueChanged } from '../../data/walkthroughs/execution';
 import { useWalkthroughHighlight } from '../../hooks/useWalkthroughHighlight';
 import { suspendedValuesFor } from '../../data/walkthroughs/structure';
 import { graphContextsFor } from '../../data/walkthroughs/graphs';
@@ -7,47 +7,58 @@ import WalkthroughCode from './WalkthroughCode';
 import ExecutionValues from './ExecutionValues';
 import ExecutionDiagram from './ExecutionDiagram';
 import ExecutionGraph from './ExecutionGraph';
+import ExecutionInspector, { argumentSnapshotsFor } from './ExecutionInspector';
 import './traversalWalkthrough.css';
 import './executionWalkthrough.css';
 
-const loaders = import.meta.glob<{default: ExecutionTrace}>('../../data/walkthroughs/generated/*.json');
+const loaders = import.meta.glob<{default: ExecutionTrace}>(['../../data/walkthroughs/generated/*.json', '../../data/walkthroughs/generated-python/*.json']);
 const cache = new Map<string, Promise<ExecutionTrace>>();
-const traceKey = (id: number, variant?: string) => variant ? `${id}-${variant}` : String(id);
-export const hasExecutionWalkthrough = (id: number, variant?: string) => !!loaders[`../../data/walkthroughs/generated/${traceKey(id,variant)}.json`];
+const traceKey = (id: number, variant?: string, language: TraceLanguage = 'javascript') => `../../data/walkthroughs/${language === 'python' ? 'generated-python' : 'generated'}/${variant ? `${id}-${variant}` : id}.json`;
+export const hasExecutionWalkthrough = (id: number, variant?: string, language: TraceLanguage = 'javascript') => !!loaders[traceKey(id,variant,language)];
 function loadTrace(key: string) {
-  if (!cache.has(key)) cache.set(key, loaders[`../../data/walkthroughs/generated/${key}.json`]().then(module => module.default).catch(error => {cache.delete(key);throw error;}));
+  if (!loaders[key]) return Promise.reject(new Error('Walkthrough recording is unavailable'));
+  if (!cache.has(key)) cache.set(key, loaders[key]().then(module => module.default).catch(error => {cache.delete(key);throw error;}));
   return cache.get(key)!;
 }
 
-export default function ExecutionWalkthrough({ id, code, variant }: { id: number; code: string; variant?: string }) {
-  const key = traceKey(id,variant);
+interface WalkthroughProps { id: number; code: string; variant?: string; language?: TraceLanguage }
+
+export default function ExecutionWalkthrough(props: WalkthroughProps) {
+  // A language/solution switch must immediately discard the previous player's
+  // position, code, and snapshots, including while the new recording is loading.
+  return <TraceLoader key={traceKey(props.id, props.variant, props.language)} {...props}/>;
+}
+
+function TraceLoader({ id, code, variant, language = 'javascript' }: WalkthroughProps) {
+  const key = traceKey(id,variant,language);
   const [trace, setTrace] = useState<ExecutionTrace>();
   const [error, setError] = useState(false);
   const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     let mounted = true; setError(false); setTrace(undefined);
-    loadTrace(key).then(data => { if(mounted) {if(data.code!==code)setError(true);else setTrace(data);} }).catch(()=>{if(mounted)setError(true);});
+    loadTrace(key).then(data => { if(mounted) {if(data.code!==code || (data.language ?? 'javascript') !== language)setError(true);else setTrace(data);} }).catch(()=>{if(mounted)setError(true);});
     return () => {mounted=false;};
-  }, [key,code,attempt]);
-  if (!trace) return <section className="traversal-walkthrough">
-    <WalkthroughCode code={code} lines={[]} enabled={false}/>
+  }, [key,code,language,attempt]);
+  if (!trace || trace.code !== code) return <section className="traversal-walkthrough">
+    <WalkthroughCode code={code} lines={[]} enabled={false} language={language}/>
     <p className="execution-loading" role="status">{error ? 'The walkthrough could not load.' : 'Loading walkthrough…'}</p>
     {error && <button type="button" className="execution-expand" onClick={()=>setAttempt(value=>value+1)}>Retry</button>}
   </section>;
   return <ExecutionPlayer key={key} trace={trace}/>;
 }
 
-function stepTitle(step: ExecutionStep, heap: ReturnType<typeof materialize>['heap']) {
+function stepTitle(step: ExecutionStep, heap: ReturnType<typeof materialize>['heap'], language: TraceLanguage) {
   if(step.kind==='call') return `Call ${step.label}`;
-  if(step.kind==='return') return `Return → ${formatValue(step.value,heap)}`;
-  if(step.kind==='check') return `${step.label} → ${truthy(step.value) ? 'true' : 'false'}`;
+  if(step.kind==='return') return `Return → ${formatTraceValue(step.value,heap,language)}`;
+  if(step.kind==='check') return `${step.label} → ${formatTraceValue(truthy(step.value),heap,language)}`;
   // Show what was removed; a push's return value is the new length, which can
   // otherwise look like the value that was pushed.
-  if(step.kind==='operation' && /\.\s*(pop|shift)\(\s*\)$/.test(step.label)) return `${step.label} → ${formatValue(step.value,heap)}`;
+  if(step.kind==='operation' && /\.\s*(pop|shift)\(\s*\)$/.test(step.label)) return `${step.label} → ${formatTraceValue(step.value,heap,language)}`;
   return step.label;
 }
 
 export function ExecutionPlayer({ trace }: { trace: ExecutionTrace }) {
+  const language = trace.language ?? 'javascript';
   const [exampleIndex,setExampleIndex]=useState(0);
   const [index,setIndex]=useState(0);
   const [highlight,setHighlight]=useWalkthroughHighlight();
@@ -57,8 +68,9 @@ export function ExecutionPlayer({ trace }: { trace: ExecutionTrace }) {
   const previous=example.steps[dataIndex-1];
   const {heap,previousHeap}=useMemo(()=>materialize(example.steps,dataIndex),[example,dataIndex]);
   const variableOrder=useMemo(()=>[...new Set(example.steps.flatMap(frame=>Object.keys(frame.state)))],[example]);
+  const argumentSnapshots=useMemo(()=>argumentSnapshotsFor(example.steps),[example]);
   const suspended=useMemo(()=>suspendedValuesFor(example.steps),[example]);
-  const graphContexts=useMemo(()=>graphContextsFor(trace.id,example.steps),[trace.id,example]);
+  const graphContexts=useMemo(()=>graphContextsFor(trace.id,example.steps,language),[trace.id,example,language]);
   const {variables,inputs,collections}=groupVariables(step,heap,variableOrder);
   const nodeInput=hasNodes(Object.values(step.input),heap);
   const nodeState=hasNodes([...Object.values(step.state),...suspended[index],step.value],heap);
@@ -73,7 +85,7 @@ export function ExecutionPlayer({ trace }: { trace: ExecutionTrace }) {
       cells:accesses.flatMap(access=>access.cells).filter((pair,i,all)=>all.findIndex(other=>other[0]===pair[0]&&other[1]===pair[1])===i),
     }};
     const before=input&&previous&&!Object.prototype.hasOwnProperty.call(previous.state,name)?previous.input[name]:previous?.state[name];
-    return <ExecutionValues value={value} before={before} heap={heap} previousHeap={previousHeap} pointers={step.state} path={name} indexing={indexing} variant={names.includes('grid')?(trace.id===994?'oranges':[200,695].includes(trace.id)?'islands':undefined):undefined}/>;
+    return <ExecutionValues value={value} before={before} heap={heap} previousHeap={previousHeap} pointers={step.state} path={name} indexing={indexing} language={language} variant={names.includes('grid')?(trace.id===994?'oranges':[200,695].includes(trace.id)?'islands':undefined):undefined}/>;
   }
   return <section className="traversal-walkthrough execution-walkthrough" aria-label={`${trace.title} walkthrough`}>
     <div className="traversal-header">
@@ -84,7 +96,7 @@ export function ExecutionPlayer({ trace }: { trace: ExecutionTrace }) {
     </div>
     <label className="traversal-highlight-toggle"><input type="checkbox" checked={highlight} onChange={event=>setHighlight(event.target.checked)}/>Highlight code</label>
     <div className="traversal-columns">
-      <WalkthroughCode code={trace.code} lines={step.lines || [step.line]} enabled={highlight}/>
+      <WalkthroughCode code={trace.code} lines={step.lines || [step.line]} enabled={highlight} language={language}/>
       <div className="traversal-live">
         <div className="execution-navigation traversal-controls">
           <input type="range" min={0} max={count-1} value={index} aria-label={`${trace.title} step`} aria-valuetext={`Step ${index+1} of ${count}`} onChange={event=>setIndex(Number(event.target.value))}/>
@@ -94,13 +106,14 @@ export function ExecutionPlayer({ trace }: { trace: ExecutionTrace }) {
           </div>
         </div>
         <div className="traversal-status" role="status" aria-live="polite" aria-atomic="true">
-          <div className="traversal-action"><span className="traversal-badge">{step.kind==='check'?'CHECK':step.kind==='return'?'RETURN':step.kind==='call'?'CALL':['iterate','loop-end'].includes(step.kind)?'LOOP':step.kind==='break'?'BREAK':step.kind==='continue'?'CONTINUE':'STEP'}</span><strong>{stepTitle(step,heap)}</strong></div>
+          <div className="traversal-action"><span className="traversal-badge">{step.kind==='check'?'CHECK':step.kind==='return'?'RETURN':step.kind==='call'?'CALL':['iterate','loop-end'].includes(step.kind)?'LOOP':step.kind==='break'?'BREAK':step.kind==='continue'?'CONTINUE':'STEP'}</span><strong>{stepTitle(step,heap,language)}</strong></div>
         </div>
         {step.stack.length>1 && <div className="execution-call-stack" aria-label="Call stack">{step.stack.map((name,i)=><span key={i} className={i===step.stack.length-1?'is-current':''}>{name}</span>)}</div>}
+        <ExecutionInspector key={exampleIndex} step={step} previous={previous} heap={heap} previousHeap={previousHeap} variableOrder={variableOrder} complete={done} argumentsSnapshot={argumentSnapshots[index]} previousArgumentsSnapshot={argumentSnapshots[dataIndex-1]} language={language}/>
         <div className="execution-data">
           {variables.length>0&&<section className="traversal-panel execution-state" aria-label="Current variables"><h5>Variables</h5><div className="execution-variable-grid">{variables.map(([name,value])=>{
             const changed=valueChanged(previous?.state[name],value,previousHeap,heap);
-            const before=formatValue(previous?.state[name],previousHeap),after=formatValue(value,heap);
+            const before=formatTraceValue(previous?.state[name],previousHeap,language),after=formatTraceValue(value,heap,language);
             const showBefore=changed&&previous&&Object.prototype.hasOwnProperty.call(previous.state,name)&&before!==after;
             return <div className={`execution-change ${changed?'is-changed':''}`} role="group" aria-label={name} data-variable-names={JSON.stringify([name])} key={name}>
               <span className="execution-variable-name">{name}</span>
@@ -108,11 +121,11 @@ export function ExecutionPlayer({ trace }: { trace: ExecutionTrace }) {
               <strong>{after}</strong>
             </div>;
           })}</div></section>}
-          {(nodeInput||nodeState||treeResult)&&<div className="traversal-panel"><h5>{treeResult?'Returned tree':'Structure & pointers'}</h5><ExecutionDiagram roots={step.input} state={step.state} heap={heap} previousHeap={previousHeap} callers={suspended[index]} result={step.value} resultOnly={treeResult} isReturn={step.kind==='return'}/></div>}
-          <ExecutionGraph id={trace.id} input={step.input} state={step.state} heap={heap} context={{...graphContexts[index],variant:trace.variant}}/>
+          {(nodeInput||nodeState||treeResult)&&<div className="traversal-panel"><h5>{treeResult?'Returned tree':'Structure & pointers'}</h5><ExecutionDiagram roots={step.input} state={step.state} heap={heap} previousHeap={previousHeap} callers={suspended[index]} result={step.value} resultOnly={treeResult} isReturn={step.kind==='return'} language={language}/></div>}
+          <ExecutionGraph id={trace.id} input={step.input} state={step.state} heap={heap} context={{...graphContexts[index],variant:trace.variant,language}}/>
           {inputs.length>0&&<section className="traversal-panel execution-input" aria-label="Input values"><h5>Input</h5>{inputs.map(group=><div className="execution-value-block" role="group" aria-label={group.names.join(', ')} data-variable-names={JSON.stringify(group.names)} key={isReference(group.value)?group.value.$ref:group.names[0]}><h5>{group.names.join(' · ')}</h5>{collectionValues(group,true)}</div>)}</section>}
           {collections.map(group=><section className="traversal-panel" role="group" aria-label={group.names.join(', ')} data-variable-names={JSON.stringify(group.names)} key={isReference(group.value)?group.value.$ref:group.names[0]}><h5>{group.names.join(' · ')}</h5>{collectionValues(group)}</section>)}
-          {done&&<div className="traversal-panel traversal-answer" aria-label="Final result"><h5>Result</h5><pre className="execution-result">{JSON.stringify(example.result)}</pre></div>}
+          {done&&<div className="traversal-panel traversal-answer" aria-label="Final result"><h5>Result</h5><pre className="execution-result">{formatTraceResult(example.result,language)}</pre></div>}
         </div>
       </div>
     </div>

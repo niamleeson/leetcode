@@ -47,7 +47,7 @@ function InlineSolution({ solution, language }: { solution: ProblemSolution; lan
   const showJs = language === 'javascript' && !!solution.jsCode;
   const code = showJs ? solution.jsCode! : solution.code;
   const codeLang: Lang = showJs ? 'javascript' : 'python';
-  const interactive = showJs && hasExecutionWalkthrough(solution.id);
+  const interactive = hasExecutionWalkthrough(solution.id, undefined, codeLang);
 
   return (
     <div className="min-w-0 space-y-4">
@@ -89,7 +89,7 @@ function InlineSolution({ solution, language }: { solution: ProblemSolution; lan
         {language === 'javascript' && !solution.jsCode && (
           <p className="text-[10px] text-gray-500 light:text-gray-500 mt-1">JavaScript solution not available — showing Python.</p>
         )}
-        {interactive ? <ExecutionWalkthrough id={solution.id} code={code} />
+        {interactive ? <ExecutionWalkthrough id={solution.id} code={code} language={codeLang} />
           : showJs && solution.jsWalkthrough && (
           <div className="mt-3 bg-gray-950 light:bg-sky-50 border border-sky-900/30 light:border-sky-200 rounded-md p-3">
             <h4 className="text-[10px] font-semibold text-sky-400 light:text-sky-700 uppercase tracking-wider mb-2">Step-by-Step Walkthrough</h4>

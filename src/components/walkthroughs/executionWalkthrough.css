@@ -67,3 +67,6 @@
 .execution-node.is-changed circle { fill: var(--trace-highlight); }
 .execution-result { margin-top: 8px; font: 14px/1.6 ui-monospace, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
 .execution-loading { color: var(--trace-muted); font-size: 12px; margin-top: 12px; }
+@container walkthrough (min-width: 720px) {
+  .execution-walkthrough .traversal-columns { grid-template-columns: minmax(0, 1fr) clamp(280px, 38%, 520px); }
+}

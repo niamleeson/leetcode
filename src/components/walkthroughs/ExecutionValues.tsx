@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ExecutionTrace, TraceHeap, TraceValue, formatValue, isReference, objectFor, valueChanged } from '../../data/walkthroughs/execution';
+import { ExecutionTrace, TraceHeap, TraceLanguage, TraceValue, formatTraceValue, isReference, objectFor, valueChanged } from '../../data/walkthroughs/execution';
 
 interface ValueProps {
   value: TraceValue | undefined;
@@ -11,13 +11,16 @@ interface ValueProps {
   variant?: 'oranges' | 'islands';
   path?: string;
   indexing?: ExecutionTrace['indexing'];
+  language?: TraceLanguage;
 }
 
-export default function ExecutionValues({ value, before, heap, previousHeap, pointers = {}, depth = 0, variant, path='', indexing={} }: ValueProps) {
+export default function ExecutionValues({ value, before, heap, previousHeap, pointers = {}, depth = 0, variant, path='', indexing={}, language='javascript' }: ValueProps) {
   const [expanded, setExpanded] = useState(false);
-  // JavaScript string indices address UTF-16 units, not Unicode code points.
-  const object = typeof value === 'string' && value.length > 1 ? { kind:'array' as const, items:value.split('') } : objectFor(value, heap);
-  const old = typeof before === 'string' && before.length > 1 ? { kind:'array' as const, items:before.split('') } : objectFor(before, previousHeap);
+  const formatValue = (value: TraceValue | undefined, heap: TraceHeap) => formatTraceValue(value, heap, language);
+  const characters = (text: string) => language === 'python' ? [...text] : text.split('');
+  // Python indexes code points; JavaScript indexes UTF-16 code units.
+  const object = typeof value === 'string' && value.length > 1 ? { kind:'array' as const, items:characters(value) } : objectFor(value, heap);
+  const old = typeof before === 'string' && before.length > 1 ? { kind:'array' as const, items:characters(before) } : objectFor(before, previousHeap);
   const changed = (first: TraceValue | undefined, second: TraceValue | undefined) => valueChanged(first, second, previousHeap, heap);
   const access=indexing[path];
   if (object?.items && depth < 2) {
@@ -71,7 +74,7 @@ export default function ExecutionValues({ value, before, heap, previousHeap, poi
   </div>;
   if (object?.fields && object.kind === 'object' && depth < 2) return <div className="execution-fields">
     {!Object.keys(object.fields).length&&<span className="execution-empty">{'{}'}</span>}
-    {Object.entries(object.fields).map(([name,v])=><div key={name}><span className="execution-variable-name">{name}</span><ExecutionValues value={v} before={old?.fields?.[name]} heap={heap} previousHeap={previousHeap} depth={depth+1} pointers={pointers} path={`${path}.${name}`} indexing={indexing}/></div>)}
+    {Object.entries(object.fields).map(([name,v])=><div key={name}><span className="execution-variable-name">{name}</span><ExecutionValues value={v} before={old?.fields?.[name]} heap={heap} previousHeap={previousHeap} depth={depth+1} pointers={pointers} path={`${path}.${name}`} indexing={indexing} language={language}/></div>)}
   </div>;
   return <span className="execution-scalar">{formatValue(value,heap)}{isReference(value) && object?.kind === 'list' && <span className="execution-empty"> → {formatValue(object.fields?.next, heap)}</span>}</span>;
 }

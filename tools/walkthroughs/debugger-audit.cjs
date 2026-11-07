@@ -25,7 +25,7 @@ if(!isMainThread) {
       if(message==='done'){await session.post('Debugger.disable');session.disconnect();parentPort.postMessage({values,errors});parentPort.close();}
     });
     await session.post('Debugger.enable');
-    await session.post('Debugger.setBreakpointByUrl',{url:workerData.url,lineNumber:workerData.line-1});
+    await session.post('Debugger.setBreakpointByUrl',{url:workerData.url,lineNumber:workerData.line-1,...(workerData.column===undefined?{}:{columnNumber:workerData.column})});
     parentPort.postMessage('ready');
   })().catch(error=>{parentPort.postMessage({error:error.stack});process.exitCode=1;});
 } else {
@@ -35,6 +35,9 @@ if(!isMainThread) {
   const {setup,invocation,dependenciesFor}=require('./runtime.cjs');
   const {evaluate}=require('./audit-recordings.cjs');
   const specs=[
+    {id:105,anchor:'inorder.forEach((val, idx) => inorderIndexMap.set(val, idx));',columnAnchor:'inorderIndexMap.set',kind:'call',expression:'({val,idx,entries:[...inorderIndexMap]})'},
+    {id:271,anchor:"return strs.map(s => s.length + '#' + s).join('');",columnAnchor:'s.length',kind:'call',expression:'({s})'},
+    {id:682,anchor:'return scoreStack.reduce((total, score) => total + score, 0);',columnAnchor:'total + score',kind:'call',expression:'({total,score})'},
     {id:1631,anchor:'const [e, r, c] = heap.pop();',kind:'operation',expression:'({heap:heap.heap,size:heap.size,effort})'},
     {id:743,anchor:'const [currentTime, node] = heap.pop();',kind:'operation',expression:'({heap:heap.heap,size:heap.size,dist:[...dist]})'},
     {id:778,anchor:'const [timeRequired, row, col] = heap.pop();',kind:'operation',expression:'({heap:heap.heap,size:heap.size,visited})'},
@@ -76,15 +79,21 @@ if(!isMainThread) {
       const source=walkthroughs.find(entry=>entry.key===key).solution.jsCode;
       const line=source.split('\n').findIndex(text=>text.trim()===spec.anchor)+1;
       assert(line>0,`Missing source anchor for ${spec.id}`);
+      const column=spec.columnAnchor===undefined?undefined:source.split('\n')[line-1].indexOf(spec.columnAnchor);
+      assert(column===undefined||column>=0,`Missing callback source column for ${spec.id}`);
       const trace=JSON.parse(fs.readFileSync(path.join(root,'src/data/walkthroughs/generated',`${key}.json`),'utf8'));
       for(const [index,fixture] of fixtures[spec.id].entries()) {
         const expected=[];let heap={},previous;
         for(const step of trace.examples[index].steps) {
-          if(step.line===line&&step.kind===spec.kind)expected.push(normalize(evaluate(spec.expression,previous.state,heap)));
-          heap={...heap,...step.heap};previous=step;
+          const currentHeap={...heap,...step.heap};
+          // Entry snapshots already contain the callback's bound parameters,
+          // before its body runs. Other records are post-operation snapshots,
+          // so compare their preceding state with the original V8 breakpoint.
+          if(step.line===line&&step.kind===spec.kind)expected.push(normalize(evaluate(spec.expression,spec.kind==='call'?step.state:previous.state,spec.kind==='call'?currentHeap:heap)));
+          heap=currentHeap;previous=step;
         }
         const url=`walkthrough-v8-${key}-${line}-${index}.js`;
-        const worker=new Worker(__filename,{workerData:{url,line,expression:spec.expression}});
+        const worker=new Worker(__filename,{workerData:{url,line,column,expression:spec.expression}});
         assert.equal(await message(worker),'ready');
         const context=vm.createContext({...dependenciesFor(spec.id),__problemId:spec.id,__case:JSON.parse(JSON.stringify(fixture)),__trace:{start(){},stop(){}}});
         new vm.Script(setup).runInContext(context);
