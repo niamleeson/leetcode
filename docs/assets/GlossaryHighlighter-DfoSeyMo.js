@@ -1,0 +1,1 @@
+import{d as o,r as s,j as a}from"./index-u1Q051gJ.js";import{u as i}from"./useGlossary-BJv26p02.js";o();function c({text:t,className:r}){i();const[l,e]=s.useState(null);return s.useCallback(()=>e(null),[]),a.jsx("span",{className:r,children:t})}export{c as G};

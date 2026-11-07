@@ -133,7 +133,7 @@ export default function LogicEditor({ problem }: { problem: LogicProblem }) {
 
   return <div className="logic-editor">
     <header className="logic-heading"><div><Link to="/practice">← Practice problems</Link><h1>{problem.title}</h1><div className="logic-heading-meta">#{problem.id} · {problem.difficulty} · Python</div></div><span className="logic-save" role="status">{saved ? 'Draft saved on this device' : 'Draft could not save'}</span></header>
-    <details className="logic-question"><summary>Problem & examples</summary><div className="logic-question-content"><p>{problem.description}</p>{problem.examples.slice(0, 2).map((example, i) => <pre key={i}>{example.name}{'\n'}Input: {display(example.input)}{example.operations && `\nOperations: ${display(example.operations)}`}{'\n'}Expected: {display(example.expected)}</pre>)}</div></details>
+    <details className="logic-question" open><summary>Problem & examples</summary><div className="logic-question-content"><p>{problem.description}</p>{problem.examples.slice(0, 2).map((example, i) => <pre key={i}>{example.name}{'\n'}Input: {display(example.input)}{example.operations && `\nOperations: ${display(example.operations)}`}{'\n'}Expected: {display(example.expected)}</pre>)}</div></details>
     <div className="logic-workspace">
       <section className="logic-code-panel" aria-label="Your Python code">
         <div className="logic-code-top"><strong>Your code</strong><span>Tap a line to change it</span></div>
