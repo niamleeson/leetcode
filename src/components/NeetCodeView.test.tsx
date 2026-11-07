@@ -192,6 +192,7 @@ it('shows both island solutions, loads independent players, and shares the highl
 });
 
 describe('shared template tab preference', () => {
+  const selectedTemplateButtons = (name: string) => screen.getAllByRole('button', { name, pressed: true }).filter(button => button.closest('.neetcode-template'));
   it('syncs open and newly opened topics, survives remounting, and follows the chosen language', () => {
     let page = showPage();
     fireEvent.click(screen.getByRole('button', { name: /^Arrays 1 template/ }));
@@ -199,13 +200,13 @@ describe('shared template tab preference', () => {
     expect(JSON.parse(localStorage.getItem('nc250-template-tab')!)).toBe('code');
 
     fireEvent.click(screen.getByRole('button', { name: /^Trees 1 template/ }));
-    expect(screen.getAllByRole('button', { name: 'JavaScript', pressed: true })).toHaveLength(2);
+    expect(selectedTemplateButtons('JavaScript')).toHaveLength(2);
 
     page.unmount();
     page = showPage();
-    expect(screen.getAllByRole('button', { name: 'JavaScript', pressed: true })).toHaveLength(2);
+    expect(selectedTemplateButtons('JavaScript')).toHaveLength(2);
     fireEvent.click(screen.getByRole('button', { name: 'Python' }));
-    expect(screen.getAllByRole('button', { name: 'Python', pressed: true })).toHaveLength(2);
+    expect(selectedTemplateButtons('Python')).toHaveLength(2);
 
     fireEvent.click(screen.getAllByRole('button', { name: 'Pseudocode (memorize)' })[1]);
     expect(screen.getAllByRole('button', { name: 'Pseudocode (memorize)', pressed: true })).toHaveLength(2);

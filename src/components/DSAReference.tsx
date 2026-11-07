@@ -3,6 +3,8 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { lessons, TopicLesson } from '../data/lessons';
 import { templateBlockMeta, splitTemplateByBlocks } from '../data/template-block-meta';
 import { useLocalStorage } from '../hooks/useLocalStorage';
+import { useProgrammingLanguage } from '../hooks/useProgrammingLanguage';
+import LanguageToggle from './ProgrammingLanguageToggle';
 import { usePersistedOpenSet } from '../hooks/usePersistedOpenSet';
 import { dsaChunks } from '../data/chunks-dsa';
 import { useStudyStore } from '../store/useStudyStore';
@@ -103,35 +105,6 @@ const DSA_CATEGORIES = [
   },
 ];
 
-function LanguageToggle({ language, setLanguage }: {
-  language: 'python' | 'javascript';
-  setLanguage: (lang: 'python' | 'javascript') => void;
-}) {
-  return (
-    <div className="inline-flex rounded-md bg-gray-800 light:bg-gray-100 p-0.5">
-      <button
-        onClick={() => setLanguage('javascript')}
-        className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
-          language === 'javascript'
-            ? 'bg-yellow-600 text-white'
-            : 'text-gray-400 light:text-gray-600 hover:text-gray-200 light:hover:text-gray-800'
-        }`}
-      >
-        JavaScript
-      </button>
-      <button
-        onClick={() => setLanguage('python')}
-        className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
-          language === 'python'
-            ? 'bg-blue-600 text-white'
-            : 'text-gray-400 light:text-gray-600 hover:text-gray-200 light:hover:text-gray-800'
-        }`}
-      >
-        Python
-      </button>
-    </div>
-  );
-}
 
 function splitWalkthroughBySection(walkthrough: string): { title: string; content: string }[] {
   const sections: { title: string; content: string }[] = [];
@@ -550,7 +523,7 @@ function AllMnemonics() {
 }
 
 export default function DSAReference() {
-  const [language, setLanguage] = useLocalStorage<'python' | 'javascript'>('lc-language', 'javascript');
+  const [language, setLanguage] = useProgrammingLanguage();
   const [codeStyle, setCodeStyle] = useLocalStorage<'readable' | 'original'>('lc-code-style', 'readable');
   const [searchParams, setSearchParams] = useSearchParams();
   const view = searchParams.get('view') === 'mnemonics' ? 'mnemonics' : 'topics';

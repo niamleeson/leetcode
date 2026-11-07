@@ -1,6 +1,8 @@
 import { lazy, Suspense, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useLocalStorage } from '../hooks/useLocalStorage';
+import { useProgrammingLanguage } from '../hooks/useProgrammingLanguage';
+import LanguageToggle from './ProgrammingLanguageToggle';
 import { usePersistedOpenSet } from '../hooks/usePersistedOpenSet';
 import { NeetCodeTopic, NeetCodeTemplate, NeetCodeProblem, NeetCodeReference } from '../data/neetcode250';
 import { uniqueProblems } from '../data/problems';
@@ -13,28 +15,6 @@ type Lang = 'python' | 'javascript';
 type TemplateTab = 'pseudocode' | 'code';
 const NeetCodeSolution = lazy(() => import('./NeetCodeSolution'));
 
-function LanguageToggle({ language, setLanguage }: { language: Lang; setLanguage: (l: Lang) => void }) {
-  return (
-    <div className="inline-flex rounded-md bg-gray-800 light:bg-gray-100 p-0.5">
-      <button
-        onClick={() => setLanguage('javascript')}
-        className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
-          language === 'javascript' ? 'bg-yellow-600 text-white' : 'text-gray-400 light:text-gray-600 hover:text-gray-200 light:hover:text-gray-800'
-        }`}
-      >
-        JavaScript
-      </button>
-      <button
-        onClick={() => setLanguage('python')}
-        className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
-          language === 'python' ? 'bg-blue-600 text-white' : 'text-gray-400 light:text-gray-600 hover:text-gray-200 light:hover:text-gray-800'
-        }`}
-      >
-        Python
-      </button>
-    </div>
-  );
-}
 
 function difficultyColor(d: NeetCodeProblem['difficulty']) {
   if (d === 'Easy') return 'text-emerald-400 light:text-emerald-700';
@@ -79,7 +59,7 @@ function ProblemRow({
           {problem.title}
         </button>
         <span className={`text-xs font-medium ${difficultyColor(problem.difficulty)}`}>{problem.difficulty}</span>
-        {hasLogicProblem(problem.id) && <Link to={`/practice/${problem.id}?language=${language}`}
+        {hasLogicProblem(problem.id) && <Link to={`/practice/${problem.id}`}
           className="py-2 text-xs font-medium text-cyan-400 light:text-cyan-700"
           aria-label={`Practice ${problem.title} in ${language === 'python' ? 'Python' : 'JavaScript'}`}>Practice</Link>}
         <a
@@ -302,7 +282,7 @@ export interface NeetCodeViewProps {
 }
 
 export default function NeetCodeView({ topics, storagePrefix, title, description }: NeetCodeViewProps) {
-  const [language, setLanguage] = useLocalStorage<Lang>(`${storagePrefix}-language`, 'javascript');
+  const [language, setLanguage] = useProgrammingLanguage();
   const [tab, setTab] = useLocalStorage<TemplateTab>(`${storagePrefix}-template-tab`, 'pseudocode');
   const inAppIds = useMemo(() => new Set(uniqueProblems.map((p) => p.id)), []);
   const topicsOpen = usePersistedOpenSet<string>(`${storagePrefix}-open-topics`);

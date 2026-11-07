@@ -25,6 +25,7 @@ import 'prismjs/components/prism-scala';
 import 'prismjs/components/prism-nim';
 import 'prismjs/components/prism-dart';
 import { catalogDocumentUrl, type CatalogDocument } from '../data/catalog';
+import { useProgrammingLanguage } from '../hooks/useProgrammingLanguage';
 import CodeBlock from './CodeBlock';
 import './catalogProblemContent.css';
 
@@ -67,10 +68,14 @@ export default function CatalogProblemContent({ id }: { id: number }) {
 }
 
 function DocumentContent({ id }: { id: number }) {
+  const [language, setLanguage] = useProgrammingLanguage();
   const [document, setDocument] = useState<CatalogDocument>();
   const [error, setError] = useState<string>();
   const [attempt, setAttempt] = useState(0);
-  const [selected, setSelected] = useState(0);
+  const [selection, setSelection] = useState<{ index: number; preference: typeof language } | null>(null);
+  // A nonbinary language belongs to this document. A later shared preference
+  // change starts a fresh selection instead of restoring an old local choice.
+  useEffect(() => { setSelection(null); }, [language]);
   useEffect(() => {
     let active = true;
     setError(undefined);
@@ -87,7 +92,26 @@ function DocumentContent({ id }: { id: number }) {
     {error && <button type="button" onClick={() => setAttempt(value => value + 1)}>Retry</button>}
   </div>;
 
+  const preferredIndex = document.solutions.findIndex(item => item.language === language);
+  const selected = selection?.preference === language
+    ? selection.index
+    : Math.max(0, preferredIndex);
   const solution = document.solutions[selected] ?? document.solutions[0];
+  const options = document.solutions.map((item, index) => ({ item, index }));
+  const pythonIndex = options.findIndex(({ item }) => item.language === 'python');
+  const javascriptIndex = options.findIndex(({ item }) => item.language === 'javascript');
+  if (pythonIndex >= 0 && javascriptIndex > pythonIndex) {
+    // Keep the stored indexes and the relative order of every other language.
+    options.splice(pythonIndex, 0, options.splice(javascriptIndex, 1)[0]);
+  }
+
+  function selectSolution(index: number) {
+    const item = document!.solutions[index];
+    if (!item) return;
+    const binaryLanguage = item.language === 'python' || item.language === 'javascript' ? item.language : null;
+    setSelection({ index, preference: binaryLanguage ?? language });
+    if (binaryLanguage) setLanguage(binaryLanguage);
+  }
   return <div className="space-y-6">
     <section aria-label="Problem description">
       <h2 className="catalog-section-title">Problem</h2>
@@ -103,9 +127,9 @@ function DocumentContent({ id }: { id: number }) {
         <h2 className="catalog-section-title !mb-0">Solution · {solution.label}</h2>
         {document.solutions.length > 1 && <label className="text-xs text-gray-400 light:text-gray-600">
           Language
-          <select aria-label="Solution language" value={selected} onChange={event => setSelected(Number(event.target.value))}
+          <select aria-label="Solution language" value={selected} onChange={event => selectSolution(Number(event.target.value))}
             className="ml-2 rounded border border-gray-700 bg-gray-900 p-2 text-gray-200 light:border-gray-300 light:bg-white light:text-gray-800">
-            {document.solutions.map((item, index) => <option key={index} value={index}>{item.label}</option>)}
+            {options.map(({ item, index }) => <option key={index} value={index}>{item.label}</option>)}
           </select>
         </label>}
       </div>

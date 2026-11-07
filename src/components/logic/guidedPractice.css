@@ -1,7 +1,4 @@
 .guided-practice { max-width:880px; margin:0 auto; gap:14px; }
-.guided-language { display:flex; padding:3px; border:1px solid var(--lp-line); border-radius:9px; background:var(--lp-panel); flex-shrink:0; }
-.guided-language button { min-height:40px; padding:7px 11px; color:var(--lp-muted); font-size:12px; border-radius:6px; }
-.guided-language button[aria-pressed="true"] { background:var(--lp-accent-bg); color:var(--lp-accent); font-weight:650; }
 .guided-problem-summary { font-size:14px; line-height:1.65; color:var(--lp-muted); white-space:pre-line; }
 .guided-progress { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:5px 0; }
 .guided-progress ol { display:flex; gap:12px; margin:0; padding:0; list-style:none; }
@@ -55,7 +52,6 @@ html.light .guided-feedback-incorrect strong { color:#92400e; }
 .guided-saved-draft { display:inline-flex; min-height:44px; padding:10px 0; }
 @media(max-width:600px) {
  .guided-practice { gap:10px; }
- .guided-language button { padding:7px 9px; font-size:11px; }
  .guided-practice .logic-heading h1 { font-size:18px; }
  .guided-question-card { padding:14px; }
  .guided-question-card h2, .guided-complete h2 { font-size:19px; }

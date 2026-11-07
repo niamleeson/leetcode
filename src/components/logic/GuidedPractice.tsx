@@ -4,6 +4,7 @@ import type { LogicProblem } from '../../data/logic/types';
 import { loadGuidedLesson } from '../../data/logic/guided';
 import type { GuidedChoice, GuidedLesson, GuidedQuestion } from '../../data/logic/guided-types';
 import SolutionReveal from './SolutionReveal';
+import ProgrammingLanguageToggle from '../ProgrammingLanguageToggle';
 import './guidedPractice.css';
 
 const GuidedCodeRunner = lazy(() => import('./GuidedCodeRunner'));
@@ -43,14 +44,14 @@ export default function GuidedPractice(props: Props) {
     return () => { current = false; };
   }, [problem.id, language, retry]);
   return <div className="logic-editor guided-practice">
-    <header className="logic-heading"><div><Link to={`/practice?language=${language}`}>← Practice problems</Link><h1>{problem.title}</h1><div className="logic-heading-meta">#{problem.id} · {problem.difficulty}</div></div><LanguageToggle language={language} onChange={props.onLanguageChange}/></header>
+    <header className="logic-heading"><div><Link to="/practice">← Practice problems</Link><h1>{problem.title}</h1><div className="logic-heading-meta">#{problem.id} · {problem.difficulty}</div></div><LanguageToggle language={language} onChange={props.onLanguageChange}/></header>
     <p className="guided-problem-summary">{problem.description.split('\n').find(line => line.trim())}</p>
     <details className="logic-question"><summary>Full problem & examples</summary><div className="logic-question-content"><p>{problem.description}</p>{problem.examples.slice(0, 2).map((example, i) => <pre key={i}>{example.name}{'\n'}Input: {display(example.input)}{example.operations && `\nCalls: ${display(example.operations)}`}{'\n'}Expected: {display(example.expected)}</pre>)}{hasSavedDraft(problem.id) && <Link className="guided-saved-draft" to={`/practice/${problem.id}?draft=1`}>Open your saved Python draft</Link>}</div></details>
     {!currentLesson ? <section className="guided-question-card"><p role={error ? 'alert' : 'status'}>{error || 'Loading guided questions…'}</p>{error && <button type="button" className="logic-small-button" onClick={() => setRetry(value => value + 1)}>Retry questions</button>}</section> : <GuidedSession key={`${problem.id}:${language}:${currentLesson.revision}`} problem={problem} language={language} lesson={currentLesson}/>}
   </div>;
 }
 export function LanguageToggle({ language, onChange }: { language: Language; onChange: (value: Language) => void }) {
-  return <div className="guided-language" aria-label="Implementation language">{(['python','javascript'] as const).map(value => <button type="button" key={value} aria-pressed={value === language} onClick={() => onChange(value)}>{value === 'python' ? 'Python' : 'JavaScript'}</button>)}</div>;
+  return <ProgrammingLanguageToggle language={language} setLanguage={onChange}/>;
 }
 function GuidedSession({ problem, language, lesson }: { problem: LogicProblem; language: Language; lesson: GuidedLesson }) {
   const [progress, setProgress] = useState(() => readProgress(lesson, language));

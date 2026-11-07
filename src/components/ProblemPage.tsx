@@ -5,7 +5,8 @@ import { hasSolution } from '../data/solutions/lazy';
 import { hasLogicProblem } from '../data/logic';
 import { useProblemSolution } from '../hooks/useProblemSolution';
 import { ProblemProgress } from '../types';
-import { useLocalStorage } from '../hooks/useLocalStorage';
+import { useProgrammingLanguage } from '../hooks/useProgrammingLanguage';
+import LanguageToggle from './ProgrammingLanguageToggle';
 import CodeBlock from './CodeBlock';
 import GlossaryHighlighter from './GlossaryHighlighter';
 import FollowUpSolution from './FollowUpSolution';
@@ -104,7 +105,7 @@ export default function ProblemPage({ getProgress, onRate, onUpdateNotes, onRese
   const { id } = useParams();
   const [showNotes, setShowNotes] = useState(false);
   const [revealedHints, setRevealedHints] = useState(0);
-  const [language, setLanguage] = useLocalStorage<'python' | 'javascript'>('lc-language', 'javascript');
+  const [language, setLanguage] = useProgrammingLanguage();
 
   const problemId = Number(id);
   const { solution, error, retry } = useProblemSolution(problemId);
@@ -141,7 +142,7 @@ export default function ProblemPage({ getProgress, onRate, onUpdateNotes, onRese
         </div>
       </div>
 
-      {hasLogicProblem(problem.id) && <Link to={`/practice/${problem.id}?language=${language}`}
+      {hasLogicProblem(problem.id) && <Link to={`/practice/${problem.id}`}
         className="inline-flex items-center min-h-11 px-4 py-2 rounded-lg bg-cyan-600 text-white font-medium text-sm">Practice the approach and implementation</Link>}
 
       {solution ? (
@@ -195,33 +196,12 @@ export default function ProblemPage({ getProgress, onRate, onUpdateNotes, onRese
 
           {/* ── Solution ── */}
           <section>
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
               <h2 className="text-xs font-semibold text-emerald-400 light:text-emerald-700 uppercase tracking-wider">
                 {solution.solutionTitle && `${solution.solutionTitle} · `}
-                {language === 'python' ? 'Python' : 'JavaScript'} Solution
+                {language === 'javascript' && solution.jsCode ? 'JavaScript' : 'Python'} Solution
               </h2>
-              <div className="flex items-center bg-gray-800 light:bg-gray-100 rounded-md p-0.5 text-xs">
-                <button
-                  onClick={() => setLanguage('javascript')}
-                  className={`px-2.5 py-1 rounded transition-colors ${
-                    language === 'javascript'
-                      ? 'bg-gray-600 light:bg-gray-200 text-white light:text-gray-900'
-                      : 'text-gray-400 light:text-gray-600 hover:text-gray-200 light:hover:text-gray-800'
-                  }`}
-                >
-                  JavaScript
-                </button>
-                <button
-                  onClick={() => setLanguage('python')}
-                  className={`px-2.5 py-1 rounded transition-colors ${
-                    language === 'python'
-                      ? 'bg-gray-600 light:bg-gray-200 text-white light:text-gray-900'
-                      : 'text-gray-400 light:text-gray-600 hover:text-gray-200 light:hover:text-gray-800'
-                  }`}
-                >
-                  Python
-                </button>
-              </div>
+              <LanguageToggle language={language} setLanguage={setLanguage}/>
             </div>
             <CodeBlock
               code={language === 'javascript' && solution.jsCode ? solution.jsCode : solution.code}

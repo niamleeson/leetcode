@@ -3,7 +3,7 @@ import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { hasLogicProblem, loadLogicProblem, logicManifest } from '../../data/logic';
 import type { LogicProblem } from '../../data/logic/types';
 import GuidedPractice, { LanguageToggle } from './GuidedPractice';
-import { useLocalStorage } from '../../hooks/useLocalStorage';
+import { useProgrammingLanguage } from '../../hooks/useProgrammingLanguage';
 const LogicEditor = lazy(() => import('./LogicEditor'));
 import './logicPractice.css';
 
@@ -12,10 +12,17 @@ const firstProblems = [1, 217, 242, 704, 121, 20, 125, 206];
 export default function LogicPractice() {
   const { id } = useParams();
   const [query, setQuery] = useSearchParams();
-  const [stored, setStored] = useLocalStorage<'python' | 'javascript'>('lc-language', 'python');
+  const [selectedLanguage, setLanguage] = useProgrammingLanguage();
   const requested = query.get('language');
-  const language = requested === 'python' || requested === 'javascript' ? requested : stored === 'javascript' ? 'javascript' : 'python';
-  function changeLanguage(value: 'python' | 'javascript') { setStored(value); const next = new URLSearchParams(query); next.set('language', value); next.delete('draft'); setQuery(next, { replace: true }); }
+  const language = requested === 'python' || requested === 'javascript' ? requested : selectedLanguage;
+  useEffect(() => {
+    if (requested === null) return;
+    if (requested === 'python' || requested === 'javascript') setLanguage(requested);
+    const next = new URLSearchParams(query);
+    next.delete('language');
+    setQuery(next, { replace: true });
+  }, [requested, query, setLanguage, setQuery]);
+  function changeLanguage(value: 'python' | 'javascript') { setLanguage(value); }
   return id ? <ProblemLoader key={id} id={Number(id)} language={language} onLanguageChange={changeLanguage} draft={query.get('draft') === '1'}/> : <PracticeLibrary language={language} onLanguageChange={changeLanguage}/>;
 }
 
@@ -25,7 +32,7 @@ function PracticeLibrary({ language, onLanguageChange }: { language: 'python' | 
   const topics = useMemo(() => Array.from(new Set(logicManifest.map(p => p.topic))), []);
   const matches = logicManifest.filter(p => (topic === 'All topics' || p.topic === topic) && `${p.id} ${p.title} ${p.topic}`.toLowerCase().includes(query.toLowerCase()));
   const recommended = firstProblems.map(id => logicManifest.find(p => p.id === id)).filter(Boolean);
-  const cards = (items: typeof matches) => items.map(p => <Link key={p.id} to={`/practice/${p.id}?language=${language}`} className="logic-problem-card">
+  const cards = (items: typeof matches) => items.map(p => <Link key={p.id} to={`/practice/${p.id}`} className="logic-problem-card">
     <span><small>#{p.id} · {p.topic}</small><strong>{p.title}</strong></span>
     <span className={`logic-difficulty logic-difficulty-${p.difficulty.toLowerCase()}`}>{p.difficulty}</span>
   </Link>);
@@ -57,5 +64,5 @@ function ProblemLoader({ id, language, onLanguageChange, draft }: { id: number; 
   }, [id, attempt]);
   if (!hasLogicProblem(id)) return <div className="logic-library"><h1>Choose a NeetCode 250 problem</h1><p>Guided practice covers the NeetCode 250.</p><Link to="/practice">Browse practice problems</Link></div>;
   if (!problem) return <div className="logic-library"><Link to="/practice">← Practice problems</Link><p role={error ? 'alert' : 'status'}>{error || 'Loading problem…'}</p>{error && <button onClick={() => setAttempt(n => n + 1)}>Retry</button>}</div>;
-  return draft ? <><Link to={`/practice/${id}?language=${language}`} className="guided-saved-draft">← Guided practice</Link><Suspense fallback={<p role="status">Loading your saved draft…</p>}><LogicEditor key={id} problem={problem}/></Suspense></> : <GuidedPractice problem={problem} language={language} onLanguageChange={onLanguageChange}/>;
+  return draft ? <><Link to={`/practice/${id}`} className="guided-saved-draft">← Guided practice</Link><Suspense fallback={<p role="status">Loading your saved draft…</p>}><LogicEditor key={id} problem={problem}/></Suspense></> : <GuidedPractice problem={problem} language={language} onLanguageChange={onLanguageChange}/>;
 }

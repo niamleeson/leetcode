@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { lessons } from '../data/lessons';
-import { useLocalStorage } from '../hooks/useLocalStorage';
+import { useProgrammingLanguage } from '../hooks/useProgrammingLanguage';
+import LanguageToggle from './ProgrammingLanguageToggle';
 import CodeBlock from './CodeBlock';
 import GlossaryHighlighter from './GlossaryHighlighter';
 
@@ -29,7 +30,7 @@ interface LessonPanelProps {
 export default function LessonPanel({ topic }: LessonPanelProps) {
   const lesson = lessons[topic];
   const [expanded, setExpanded] = useState(true);
-  const [language, setLanguage] = useLocalStorage<'python' | 'javascript'>('lc-language', 'javascript');
+  const [language, setLanguage] = useProgrammingLanguage();
 
   if (!lesson) return null;
 
@@ -78,32 +79,11 @@ export default function LessonPanel({ topic }: LessonPanelProps) {
 
           {/* Code Template */}
           <div>
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
               <h4 className="text-sm font-semibold text-blue-300 light:text-blue-700">
                 {showJs ? 'JavaScript' : 'Python'} Template
               </h4>
-              <div className="inline-flex rounded-md bg-gray-800 light:bg-gray-100 p-0.5">
-                <button
-                  onClick={() => setLanguage('javascript')}
-                  className={`px-2.5 py-1 text-xs font-medium rounded transition-colors ${
-                    language === 'javascript'
-                      ? 'bg-yellow-600 text-white'
-                      : 'text-gray-400 light:text-gray-600 hover:text-gray-200 light:hover:text-gray-800'
-                  }`}
-                >
-                  JavaScript
-                </button>
-                <button
-                  onClick={() => setLanguage('python')}
-                  className={`px-2.5 py-1 text-xs font-medium rounded transition-colors ${
-                    language === 'python'
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-400 light:text-gray-600 hover:text-gray-200 light:hover:text-gray-800'
-                  }`}
-                >
-                  Python
-                </button>
-              </div>
+              <LanguageToggle language={language} setLanguage={setLanguage}/>
             </div>
             <CodeBlock
               code={showJs ? lesson.jsTemplate! : lesson.template}
