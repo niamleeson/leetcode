@@ -19,6 +19,7 @@ const output = process.env.LEETCODE_SCREENSHOTS || '/tmp/leetcode-browser-check'
     const choices = page.locator('.guided-choice');
     const feedback = page.getByLabel('Answer feedback', { exact: true });
     async function answer(question, correct = true) {
+      await page.locator(`[data-question-id=${JSON.stringify(question.id)}]`).waitFor();
       await page.getByRole('heading', { name: question.prompt, exact: true }).waitFor();
       await choices.nth(question.choices.findIndex(choice => choice.correct === correct)).tap();
     }
@@ -42,6 +43,10 @@ const output = process.env.LEETCODE_SCREENSHOTS || '/tmp/leetcode-browser-check'
     await choices.nth(7).waitFor();
     await page.waitForLoadState('networkidle');
     assert.equal(await choices.count(), 8);
+    assert(await page.locator('.logic-question').evaluate(element => element.open), 'Problem and examples should start expanded');
+    const jsToggle = await page.getByRole('button', { name: 'JavaScript', exact: true }).boundingBox();
+    const pyToggle = await page.getByRole('button', { name: 'Python', exact: true }).boundingBox();
+    assert(jsToggle.x < pyToggle.x, 'JavaScript should be to the left of Python');
     assert.equal(await page.locator('.guided-context, .guided-runner').count(), 0);
     assert.equal(requests.filter(value => value.includes('/logic/lessons/')).length, 1);
     assert(!requests.some(value => /\/solutions\/|\/vendor\/pyodide\/|\.worker-/.test(value)));
@@ -56,7 +61,7 @@ const output = process.env.LEETCODE_SCREENSHOTS || '/tmp/leetcode-browser-check'
     assert.equal(await choices.count(), 4);
     assert.match(await feedback.innerText(), /Correct/);
     await answer(js.questions[1], false);
-    await page.getByRole('alert').filter({ hasText: 'Try another approach' }).waitFor();
+    await page.getByRole('alert').filter({ hasText: 'Not quite' }).waitFor();
     await answer(js.questions[1]);
     const firstImplementation = js.questions[2];
     await answer(firstImplementation, false);
@@ -65,6 +70,8 @@ const output = process.env.LEETCODE_SCREENSHOTS || '/tmp/leetcode-browser-check'
     await page.getByText('This choice produces', { exact: true }).waitFor();
     await page.screenshot({ path: path.join(output, 'guided-feedback-mobile.png'), fullPage: true });
     await page.reload();
+    await answer(js.questions[0]);
+    await answer(js.questions[1]);
     await page.getByRole('heading', { name: firstImplementation.prompt, exact: true }).waitFor();
     await page.getByRole('button', { name: 'Python', exact: true }).tap();
     await choices.nth(7).waitFor();
@@ -72,6 +79,8 @@ const output = process.env.LEETCODE_SCREENSHOTS || '/tmp/leetcode-browser-check'
     await answer(py.questions[0]);
     await page.getByRole('heading', { name: py.questions[1].prompt, exact: true }).waitFor();
     await page.getByRole('button', { name: 'JavaScript', exact: true }).tap();
+    await answer(js.questions[0]);
+    await answer(js.questions[1]);
     await page.getByRole('heading', { name: firstImplementation.prompt, exact: true }).waitFor();
     const reference = page.getByRole('region', { name: 'Reference solution', exact: true });
     await reference.getByRole('button', { name: 'Reveal solution', exact: true }).tap();
@@ -87,6 +96,7 @@ const output = process.env.LEETCODE_SCREENSHOTS || '/tmp/leetcode-browser-check'
     await page.getByLabel('JavaScript execution debugger', { exact: true }).scrollIntoViewIfNeeded();
     await page.screenshot({ path: path.join(output, 'guided-javascript-debugger.png'), fullPage: true });
     await page.getByRole('button', { name: 'Python', exact: true }).tap();
+    await answer(py.questions[0]);
     await page.getByRole('heading', { name: py.questions[1].prompt, exact: true }).waitFor();
     await reference.getByRole('button', { name: 'Reveal solution', exact: true }).tap();
     await reference.getByRole('heading', { name: 'Python solution', exact: true }).waitFor();
@@ -98,8 +108,10 @@ const output = process.env.LEETCODE_SCREENSHOTS || '/tmp/leetcode-browser-check'
     await page.getByLabel('Python execution debugger', { exact: true }).scrollIntoViewIfNeeded();
     await page.screenshot({ path: path.join(output, 'guided-python-debugger.png'), fullPage: true });
     await page.reload();
-    await page.getByRole('button', { name: 'Run tests', exact: true }).waitFor();
+    await choices.nth(7).waitFor();
+    assert.equal(await page.getByRole('button', { name: 'Run tests', exact: true }).count(), 0, 'Completed lesson skipped the opening quiz on revisit');
     assert.equal(await page.getByText('6 / 6 practice tests passed', { exact: true }).count(), 0, 'Reload automatically ran code');
+    await answer(py.questions[0]);
     await page.getByRole('button', { name: 'Start again', exact: true }).tap();
     await choices.nth(7).waitFor();
     assert.equal(await page.locator('.guided-runner').count(), 0);
@@ -122,6 +134,25 @@ const output = process.env.LEETCODE_SCREENSHOTS || '/tmp/leetcode-browser-check'
     await page.unroute('**/solutions/217-*.json');
     await reference.getByRole('button', { name: 'Retry solution', exact: true }).tap();
     await reference.locator('pre code').waitFor();
+    // Daily Temperatures previously ended at the while condition. Exercise the
+    // actual tail in each language, and ensure no intermediate card completes it.
+    for (const language of ['javascript', 'python']) {
+      const daily = lesson(739, language);
+      await page.goto(`${url}#/practice/739?language=${language}`);
+      await answer(daily.questions[0]);
+      assert.equal(await page.getByLabel('Implementation context', { exact: true }).count(), 0);
+      await page.screenshot({ path: path.join(output, `daily-structure-${language}.png`), fullPage: true });
+      await answer(daily.questions[1]);
+      assert(daily.questions.slice(2).some(question => question.choices.some(choice => choice.correct && /(?:stack\.pop|stack\.push|stack\.append)/.test(choice.code))), 'Missing stack update decision');
+      const finish = daily.questions.at(-1);
+      assert.match(finish.choices.find(choice => choice.correct).code, /return result/);
+      for (const question of daily.questions.slice(2)) {
+        assert.equal(await page.getByRole('button', { name: 'Run tests', exact: true }).count(), 0, 'Daily Temperatures completed before its final decision');
+        if (question === finish) await page.screenshot({ path: path.join(output, `daily-finish-${language}.png`), fullPage: true });
+        await answer(question);
+      }
+      await runAndDebug(language === 'python' ? 'Python' : 'JavaScript', daily.validation.correctCases);
+    }
     for (const [id, language] of [[208, 'python'], [705, 'javascript'], [1584, 'javascript']]) {
       const document = lesson(id, language);
       await page.goto(`${url}#/practice/${id}?language=${language}`);
@@ -138,7 +169,7 @@ const output = process.env.LEETCODE_SCREENSHOTS || '/tmp/leetcode-browser-check'
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.screenshot({ path: path.join(output, 'guided-desktop.png'), fullPage: true });
     assert.deepEqual(errors, []);
-    const report = { passed: true, revision, initialRequests, checks: ['8 patterns, structure, implementation', 'wrong stays, correct advances', 'real counterexamples', 'independent persistent language progress', 'matching reveal and retry', 'real Python and JavaScript tests and stepping', 'no runtime before Run', 'no Python downloads for JavaScript', 'restart', 'mobile touch, dark/light, desktop', 'library language links'] };
+    const report = { passed: true, revision, initialRequests, checks: ['8 patterns, code structure, full implementation', 'Daily Temperatures tail and final return in both languages', 'opening quiz before saved implementation resumes', 'wrong stays, correct advances', 'real counterexamples', 'independent persistent language progress', 'matching reveal and retry', 'real Python and JavaScript tests and stepping', 'no runtime before Run', 'no Python downloads for JavaScript', 'restart', 'mobile touch, dark/light, desktop', 'library language links'] };
     fs.writeFileSync(path.join(output, 'guided-browser-report.json'), JSON.stringify(report, null, 2));
     console.log(JSON.stringify(report, null, 2));
   } finally { await browser.close(); }

@@ -8,11 +8,11 @@ const fixture = { name: 'Pair', entry: 'twoSum', args: [[2, 7], 9], expected: [0
 function lesson() {
   const witness = actual => ({ fixtureIndex: 0, name: fixture.name, input: fixture.args, expected: fixture.expected, actual });
   return { id: 1, language: 'javascript', source, sourceHash: crypto.createHash('sha256').update(source).digest('hex'), execution: instrument(source),
-    questions: [{ id: 'return', stage: 'implementation', line: 2, endLine: 2, choices: [
+    questions: [{ id: 'return', stage: 'implementation', line: 2, endLine: 2, coveredLines: [2], decisionLines: [2], choices: [
       { id: 'correct', correct: true, code: '  return [0,1];' },
       { id: 'reuse', correct: false, code: '  return [0,0];', witness: witness([0, 0]) },
       { id: 'missing', correct: false, code: '  return [];', witness: witness([]) },
-    ] }], validation: { correctCases: 1, wrongChoices: 2, testedWitnesses: 2 } };
+    ] }], coverage: {requiredLines: [2], coveredLines: [2], terminalLines: [2]}, validation: { correctCases: 1, wrongChoices: 2, testedWitnesses: 2 } };
 }
 const check = value => auditLessons({ 1: value }, [{ id: 1, javascript: source, fixtures: [fixture] }]);
 test('audits physical replacements and every independently executed witness', () => {

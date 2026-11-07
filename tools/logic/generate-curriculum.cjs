@@ -3,6 +3,7 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const assert = require('node:assert/strict');
 const { problems, solutionMap } = require('../walkthroughs/load.cjs');
+const { buildStructureOutlines } = require('./guided-structure.cjs');
 const base = __dirname;
 const read = name => fs.readFileSync(path.join(base, name), 'utf8');
 const hash = value => crypto.createHash('sha256').update(value).digest('hex');
@@ -21,6 +22,7 @@ function rows(name, width) {
 const plans = rows('guided-plans.tsv', 3);
 const mistakes = rows('guided-distractors.tsv', 4);
 const javascriptPlans = rows('guided-javascript-plans.tsv', 3);
+const outlines = buildStructureOutlines(problems, solutionMap);
 const ids = new Set(problems.map(problem => problem.id));
 assert.equal(ids.size, 250);
 for (const [name, map] of [['plans', plans], ['mistakes', mistakes]]) {
@@ -48,7 +50,28 @@ const family = {
 function shuffled(items, seed) {
   return items.map(item => ({item, key:hash(`${seed}:${item.id}`)})).sort((a,b)=>a.key.localeCompare(b.key)).map(x=>x.item);
 }
-function meta(problem, language, selectedPlan, override = false) {
+function maskedOutline(outline) {
+  const declaration = outline.split('\n').find(line => /^(?:operation|class) /.test(line));
+  return `${declaration ? declaration.split(':')[0] + ':' : 'operation:'}\n  [Choose the body organization below.]`;
+}
+function dailyTemperatureStructure(planId, plan, language) {
+  const prepare = 'prepare zero waits and an empty stack of day indices';
+  const scan = 'for each day, from left to right:';
+  const resolve = "today resolves the last pending day";
+  const remove = '    remove that pending day';
+  const record = '    record its waiting distance';
+  const remember = "  add today's index to the pending days";
+  const finish = 'return all waits after the scan';
+  const correct = [prepare, scan, `  while ${resolve}:`, remove, record, remember, finish].join('\n');
+  const options = [
+    { id:planId,label:'Resolve all possible pending days before remembering today.',code:correct,feedback:'One warmer day can resolve several pending days. Recording each resolved day before remembering today preserves the pending stack; returning after the scan includes every day.',feedbackCode:correct },
+    { id:'outline-resolve-once',label:'Resolve at most one pending day per new day.',code:[prepare,scan,`  if ${resolve}:`,remove,record,remember,finish].join('\n'),feedback:'One warmer day can resolve several earlier days. With [73,72,74], resolving only one leaves the first day unresolved: [0,1,0] instead of [2,1,0].' },
+    { id:'outline-push-first',label:'Remember today before trying to resolve pending days.',code:[prepare,scan,remember,`  while ${resolve}:`,remove,record,finish].join('\n'),feedback:'Today becomes the last pending day and is not warmer than itself, so it blocks earlier days from being resolved. With [73,74], this leaves [0,0] instead of [1,0].' },
+    { id:'outline-return-early',label:'Return the waits after processing the first day.',code:[prepare,scan,`  while ${resolve}:`,remove,record,remember,'  return all waits now'].join('\n'),feedback:'Returning inside the day loop stops before later temperatures can resolve earlier days. With [73,74], this returns [0,0] instead of [1,0].' },
+  ];
+  return {prompt:'Which code organization processes every day and resolves all waiting days it can?',options:shuffled(options,`739:structure:${language}`),correctId:planId};
+}
+function meta(problem, language, selectedPlan) {
   const [patternId, plan] = selectedPlan;
   assert(patternById.has(patternId), `Unknown pattern ${patternId}`);
   assert(plan.length > 35 && plan.length <= 400, `Plan length ${problem.id}: ${plan.length}`);
@@ -63,7 +86,7 @@ function meta(problem, language, selectedPlan, override = false) {
       : `Not the approach practiced here. The selected pattern works this way: ${correctPattern.summary}`,
   })), `${problem.id}:patterns:${patternId}`);
   const correctPlanId = `plan-${hash(plan).slice(0,12)}`;
-  const structureOptions = [{id:correctPlanId,label:plan,feedback:`That matches the selected approach. ${plan}`}];
+  const structureOptions = [{id:correctPlanId,label:plan,feedback:`That matches the selected approach. ${plan}`,feedbackCode:outlines[problem.id][language]}];
   for (const mistake of mistakes.get(problem.id)) {
     const [label, feedback, ...extra] = mistake.split('~');
     assert(!extra.length && label?.length > 15 && feedback?.length > 20, `Invalid misconception ${problem.id}`);
@@ -78,8 +101,9 @@ function meta(problem, language, selectedPlan, override = false) {
       prompt:'Which main pattern should guide this worked solution?',
       options,correctId:patternId,
     },
-    structureQuestion:{
-      prompt:`Which overall plan matches the ${correctPattern.label.toLowerCase()} approach for ${problem.title}?`,
+    structureQuestion:problem.id === 739 ? dailyTemperatureStructure(correctPlanId,plan,language) : {
+      prompt:`How should the code be organized for the ${correctPattern.label.toLowerCase()} approach to ${problem.title}?`,
+      context:maskedOutline(outlines[problem.id][language]),
       options:shuffled(structureOptions,`${problem.id}:structure:${language}`),correctId:correctPlanId,
     },
   };
@@ -94,10 +118,11 @@ for (const problem of problems) {
     assert.equal(sourceHashes[language],reviewed[language], `Source changed for ${problem.id} ${language}; review its plan and distractors before updating the audit hash`);
   }
   const lesson = {id:problem.id,title:problem.title,sourceHashes,...meta(problem,'python',plans.get(problem.id))};
-  if(javascriptPlans.has(problem.id)) lesson.languages={javascript:meta(problem,'javascript',javascriptPlans.get(problem.id),true)};
+  // The algorithm plan may be shared; source organization remains language-specific.
+  lesson.languages={javascript:meta(problem,'javascript',javascriptPlans.get(problem.id) || plans.get(problem.id))};
   lessons[problem.id] = lesson;
 }
-const output={version:1,scope:'NeetCode 250',approachNotice:'Follow one worked approach; other approaches can also be valid.',patterns,lessons};
+const output={version:1,scope:'NeetCode 250',approachNotice:'Follow one worked approach; other approaches can also be valid.',algorithmPlanOverrides:[...javascriptPlans.keys()].sort((a,b)=>a-b),patterns,lessons};
 const serialized=JSON.stringify(output,null,2)+'\n';
 const target=path.join(base,'guided-curriculum.json');
 if(process.argv.includes('--check')) assert.equal(fs.readFileSync(target,'utf8'),serialized,'Guided curriculum is stale; regenerate after reviewing source changes.');

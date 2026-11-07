@@ -13,6 +13,13 @@ exec((ROOT / 'tools/walkthroughs/python-runtime.py').read_text(), NAMESPACE)
 exec((ROOT / 'src/components/logic/runtime/pythonRunner.py').read_text(), NAMESPACE)
 
 
+def stable_error_message(message):
+    # Object identity addresses and the harness module name are incidental to
+    # the same missing-node key; preserve the class and every other message.
+    return re.sub(r'<[^\n]*?\.([A-Za-z_][A-Za-z_0-9]*) object at 0x[0-9a-fA-F]+>',
+                  r'<\1 object>', message)
+
+
 def replace_lines(source, question, replacement):
     lines = source.split('\n')
     first, last = question.get('line'), question.get('endLine')
@@ -71,7 +78,7 @@ def audit_lessons(lessons, references):
             report['implementationQuestions'] += 1
             correct = [choice for choice in question['choices'] if choice['correct']]
             wrong = [choice for choice in question['choices'] if not choice['correct']]
-            if len(correct) != 1 or len(wrong) < 2:
+            if len(correct) != 1 or len(wrong) < 1:
                 error('invalid_choice_count', question=question['id'])
             if len({choice.get('code', '').strip() for choice in question['choices']}) != len(question['choices']):
                 error('duplicate_choices', question=question['id'])
@@ -117,7 +124,7 @@ def audit_lessons(lessons, references):
                 if failure:
                     report['runtimeErrors'][failure['type']] = report['runtimeErrors'].get(failure['type'], 0) + 1
                     recorded = witness.get('error')
-                    if not recorded or recorded['type'] != failure['type'] or recorded['message'] != failure['message']:
+                    if not recorded or recorded['type'] != failure['type'] or stable_error_message(recorded['message']) != stable_error_message(failure['message']):
                         error('witness_error_drift', recorded=recorded, actual=failure, **detail)
                 else:
                     only_errors = False

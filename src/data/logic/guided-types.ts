@@ -17,6 +17,8 @@ export interface GuidedChoice {
   code?: string;
   correct: boolean;
   feedback: string;
+  /** A completed structure outline shown only after a correct decision. */
+  feedbackCode?: string;
   witness?: GuidedWitness;
 }
 
@@ -29,7 +31,19 @@ export interface GuidedQuestion {
   /** Inclusive, one-based source rows replaced by an implementation choice. */
   line?: number;
   endLine?: number;
+  coveredLines?: number[];
+  /** Source lines genuinely changed by a tested wrong alternative. */
+  decisionLines?: number[];
+  /** A witnessed change to the direct if guard of a bare return. */
+  guardedReturns?: { line: number; guardLine: number; choiceId: string }[];
   choices: GuidedChoice[];
+}
+
+export interface GuidedCoverage {
+  requiredLines: number[];
+  coveredLines: number[];
+  terminalLines: number[];
+  contextOnly?: { line: number; endLine: number; reason: string }[];
 }
 
 export interface GuidedJavaScriptExecution {
@@ -53,6 +67,7 @@ export interface GuidedLesson {
   sourceHash: string;
   patternId: string;
   questions: GuidedQuestion[];
+  coverage: GuidedCoverage;
   execution?: GuidedJavaScriptExecution;
   validation: {
     correctCases: number;

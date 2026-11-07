@@ -2,6 +2,7 @@
 import argparse
 import ast
 import copy
+import difflib
 from concurrent.futures import ProcessPoolExecutor, as_completed
 import hashlib
 import json
@@ -15,7 +16,7 @@ import textwrap
 sys.dont_write_bytecode = True
 ROOT = Path(__file__).resolve().parents[2]
 CACHE = Path('/tmp/leetcode-guided-cache/python')
-GENERATOR_VERSION = 'python-decisions-5'
+GENERATOR_VERSION = 'python-complete-5'
 RUNTIME = None
 DISALLOWED_ERRORS = {'NameError', 'UnboundLocalError', 'ReferenceError', 'SyntaxError', 'IndentationError', 'LogicExecutionLimit', 'RecursionError', 'MemoryError', 'TimeoutError'}
 
@@ -57,6 +58,9 @@ def expression_variants(node):
     if isinstance(node, ast.Compare):
         for index, operator in enumerate(node.ops):
             family = [ast.In, ast.NotIn] if isinstance(operator, (ast.In, ast.NotIn)) else [ast.Is, ast.IsNot] if isinstance(operator, (ast.Is, ast.IsNot)) else [ast.Eq, ast.NotEq, ast.Lt, ast.LtE, ast.Gt, ast.GtE]
+            nearest = {ast.Lt: ast.LtE, ast.LtE: ast.Lt, ast.Gt: ast.GtE, ast.GtE: ast.Gt, ast.Eq: ast.NotEq, ast.NotEq: ast.Eq}.get(type(operator))
+            if nearest in family:
+                family = [nearest] + [kind for kind in family if kind is not nearest]
             for kind in family:
                 if isinstance(operator, kind):
                     continue
@@ -117,12 +121,17 @@ def expression_variants(node):
         if function == 'sorted' and node.args:
             yield 'list(' + expression_text(node.args[0]) + ')', 'This keeps the original order instead of sorting.'
             yield 'sorted(' + expression_text(node.args[0]) + ', reverse=True)', 'This orders values in the opposite direction.'
+        if function in ('heapq.heappop', 'heappop') and len(node.args) == 1:
+            yield expression_text(node.args[0]) + '.pop()', 'Removing an arbitrary heap-array entry changes which extreme value is discarded.'
+        if function in ('heapq.heappush', 'heappush') and len(node.args) == 2:
+            yield expression_text(node.args[0]) + '.append(' + expression_text(node.args[1]) + ')', 'Appending without restoring heap order changes later priority removals.'
         if function in ('Counter', 'set', 'list', 'tuple') and node.args:
             for alternative in ('set', 'list', 'tuple'):
                 if alternative != function:
                     yield alternative + '(' + expression_text(node.args[0]) + ')', 'Changing the collection representation changes the information this step retains.'
         if isinstance(node.func, ast.Attribute):
-            replacements = {'append': ['appendleft'], 'appendleft': ['append'], 'popleft': ['pop'], 'pop': ['popleft']}
+            replacements = {'append': ['appendleft'], 'appendleft': ['append'], 'popleft': ['pop'], 'pop': ['popleft'],
+                            'add': ['discard'], 'discard': ['add'], 'remove': ['add']}
             for name in replacements.get(node.func.attr, []):
                 changed = copy.deepcopy(node)
                 changed.func.attr = name
@@ -131,16 +140,28 @@ def expression_variants(node):
                 yield expression_text(node.func.value) + '.insert(0, ' + expression_text(node.args[0]) + ')', 'Prepending instead of appending changes the order of accumulated values.'
             if node.func.attr == 'pop' and not node.args:
                 yield expression_text(node.func.value) + '.pop(0)', 'Removing the first item instead of the last changes the processing order.'
+            if node.func.attr == 'sort':
+                changed = copy.deepcopy(node)
+                changed.keywords = [keyword for keyword in changed.keywords if keyword.arg != 'reverse']
+                changed.keywords.append(ast.keyword(arg='reverse', value=ast.Constant(value=True)))
+                yield expression_text(changed), 'Sorting in descending order changes the order used by the later traversal.'
     elif isinstance(node, ast.Subscript) and not isinstance(node.slice, ast.Slice):
         for index in ['0', '-1', '(' + expression_text(node.slice) + ') + 1', '(' + expression_text(node.slice) + ') - 1']:
             yield expression_text(node.value) + '[' + index + ']', 'This reads or writes a different position in the state.'
     elif isinstance(node, (ast.List, ast.Tuple)):
         elements = node.elts
-        if elements:
+        if not elements and isinstance(node, ast.List):
+            for value in ['[0]', '[-1]', '[1]']:
+                yield value, 'Starting with an extra entry changes the initial stack, queue, or result state.'
+        elif elements:
             for items in [[], elements[1:], elements[:-1], list(reversed(elements))]:
                 changed = copy.deepcopy(node)
                 changed.elts = items
                 yield expression_text(changed), 'This changes the elements or their order in the constructed value.'
+    elif isinstance(node, ast.Attribute):
+        replacement = {'next': 'prev', 'prev': 'next', 'left': 'right', 'right': 'left', 'head': 'tail', 'tail': 'head'}.get(node.attr)
+        if replacement:
+            yield expression_text(node.value) + '.' + replacement, 'This follows or stores the opposite link in the maintained structure.'
 
 
 def statement_root(statement):
@@ -150,6 +171,10 @@ def statement_root(statement):
         return statement.test
     if isinstance(statement, (ast.For, ast.AsyncFor)):
         return statement.iter
+    if isinstance(statement, ast.Assert):
+        return statement.test
+    if isinstance(statement, ast.Raise):
+        return statement.exc
     return None
 
 
@@ -191,11 +216,9 @@ def statement_prompt(statement, category):
     return 'Which operation should update the state at this step?'
 
 
-def statement_candidates(source, statement):
+def statement_candidates(source, statement, row=None):
     root = statement_root(statement)
-    if root is None:
-        return []
-    line, end_line = statement.lineno, root.end_lineno
+    line, end_line = statement.lineno, root.end_lineno if root is not None else statement.end_lineno
     lines = source.splitlines(keepends=True)
     offsets = [0]
     for value in lines:
@@ -219,7 +242,77 @@ def statement_candidates(source, statement):
                 return
             candidates.append({'code': code, 'source': candidate, 'reason': reason})
 
-    expressions = [node for node in ast.walk(root) if isinstance(node, ast.expr) and hasattr(node, 'end_lineno')]
+    def whole(replacement, reason):
+        indent = original[:len(original) - len(original.lstrip())]
+        code = indent + replacement
+        if code in seen:
+            return
+        candidate = patch_lines(source, line, end_line, code)
+        try:
+            compile(candidate, '<guided-candidate>', 'exec')
+        except (SyntaxError, ValueError):
+            return
+        seen.add(code)
+        candidates.append({'code': code, 'source': candidate, 'reason': reason})
+
+    # Return decisions use values of the same broad shape before generic
+    # sentinels. This makes the final output a real decision through completion.
+    if isinstance(statement, ast.Return) and root is not None:
+        value = expression_text(root)
+        expected = [fixture.get('expected') for fixture in (row or {}).get('fixtures', [])]
+        annotation = (row or {}).get('_questionReturnType', '')
+        if isinstance(root, ast.Constant) and root.value is None:
+            known_names = {node.id for node in ast.walk(ast.parse(source)) if isinstance(node, ast.Name)}
+            for constructor in ['TreeNode', 'ListNode', 'Node']:
+                if constructor in known_names or re.search(r'\b' + constructor + r'\b', source) or constructor == 'TreeNode' and any(f.get('output') == 'tree' for f in (row or {}).get('fixtures', [])):
+                    add(root, constructor + '(0)', 'Creating a node for an absent subtree or list changes the returned structure.')
+        elif re.search(r'\bbool\b', annotation) or isinstance(root, ast.Constant) and isinstance(root.value, bool) or expected and all(isinstance(item, bool) for item in expected):
+            add(root, 'not (' + value + ')', 'This reverses the boolean answer for this completed path.')
+        elif re.search(r'^(?:int|float)\b', annotation) or isinstance(root, ast.Constant) and isinstance(root.value, (int, float)) or expected and all(isinstance(item, (int, float)) and not isinstance(item, bool) for item in expected):
+            for replacement in ['(' + value + ') + 1', '(' + value + ') - 1', '-(' + value + ')']:
+                add(root, replacement, 'This changes the count, distance, index, or numerical result returned to the caller.')
+        else:
+            for replacement in ['(' + value + ')[1:]', '(' + value + ')[:-1]', '(' + value + ')[::-1]']:
+                add(root, replacement, 'This returns a different portion or order of the completed result.')
+            for attribute in ['next', 'left', 'right']:
+                if '.' + attribute in source:
+                    add(root, '(' + value + ').' + attribute, 'This returns a neighboring node instead of the completed structure.')
+    # Seed a collection with a value of the structure actually stored by this
+    # implementation. These alternatives remain ordinary valid Python state,
+    # and are retained only if a real operation exposes the incorrect contents.
+    if isinstance(statement, (ast.Assign, ast.AnnAssign)) and root is not None:
+        if isinstance(root, ast.Call) and expression_text(root.func) == 'deque' and not root.args:
+            for seed in ['0', '1']:
+                add(root, 'deque([' + seed + '])', 'Starting with an existing queue entry introduces a value before any push.')
+        if isinstance(root, ast.List) and not root.elts:
+            targets = statement.targets if isinstance(statement, ast.Assign) else [statement.target]
+            target_names = {expression_text(target) for target in targets}
+            for call in ast.walk(ast.parse(source)):
+                if isinstance(call, ast.Call) and isinstance(call.func, ast.Attribute) and call.func.attr == 'append' and expression_text(call.func.value) in target_names and call.args and isinstance(call.args[0], ast.Tuple):
+                    width = len(call.args[0].elts)
+                    for first in [0, 1, -1]:
+                        seed = [first] + [1] * (width - 1)
+                        add(root, repr([tuple(seed)]), 'Starting with a stored record counts an item that has not been processed.')
+        if isinstance(root, ast.Dict) and not root.keys:
+            operations = [operation for fixture in (row or {}).get('fixtures', []) for operation in fixture.get('operations', [])]
+            if "node['#']" in source or 'node["#"]' in source:
+                for method, arguments in operations:
+                    if method in ('search', 'startsWith') and arguments and isinstance(arguments[0], str) and '.' not in arguments[0]:
+                        seed = {'#': True}
+                        for character in reversed(arguments[0]):
+                            seed = {character: seed}
+                        add(root, repr(seed), 'Prepopulating this trie accepts a word or prefix before it has been inserted.')
+            elif 'timestamp' in source:
+                for method, arguments in operations:
+                    if method == 'get' and len(arguments) == 2 and isinstance(arguments[0], str):
+                        add(root, repr({arguments[0]: [(arguments[1], 'seed')]}), 'Prepopulating this history returns a value that was never stored.')
+    if isinstance(statement, ast.Return) and isinstance(root, ast.Call) and isinstance(root.func, ast.Attribute) and root.func.attr == 'join' and root.args:
+        add(root.func.value, repr('|'), 'Changing the serialization separator changes the representation expected by the decoder.')
+        add(root.args[0], '(' + expression_text(root.args[0]) + ')[1:]', 'Skipping the first serialized token changes the representation of the root and its descendants.')
+    expressions = [node for node in ast.walk(root) if isinstance(node, ast.expr) and hasattr(node, 'end_lineno')] if root is not None else []
+    if isinstance(statement, (ast.Assign, ast.AnnAssign, ast.AugAssign)):
+        targets = statement.targets if isinstance(statement, ast.Assign) else [statement.target]
+        expressions += [node for target in targets for node in ast.walk(target) if isinstance(node, (ast.Subscript, ast.Attribute))]
     # Comparison/update operators are usually more instructive than arbitrary
     # constant changes buried in a larger expression.
     priority = {ast.Compare: 0, ast.BoolOp: 1, ast.BinOp: 2, ast.Call: 3, ast.Subscript: 4, ast.Constant: 5}
@@ -229,7 +322,7 @@ def statement_candidates(source, statement):
             parsed = ast.parse(replacement, mode='eval').body
             atomic = isinstance(parsed, (ast.Name, ast.Constant, ast.Call, ast.Attribute, ast.Subscript, ast.List, ast.Tuple, ast.Dict, ast.Set))
             add(expression, replacement if expression is root or atomic else '(' + replacement + ')', reason)
-    if isinstance(statement, (ast.If, ast.While)):
+    if isinstance(statement, (ast.If, ast.While)) and root is not None:
         for replacement in ['not (' + expression_text(root) + ')', 'True', 'False']:
             add(root, replacement, 'Changing this condition changes which inputs enter this branch or loop.')
     elif isinstance(statement, ast.For):
@@ -249,12 +342,33 @@ def statement_candidates(source, statement):
             variants += ['list(' + expression_text(root) + ')[1:]', 'list(' + expression_text(root) + ')[:-1]']
         for replacement in variants:
             add(root, replacement, 'Changing this iteration changes which values are processed or their order.')
-    elif isinstance(statement, (ast.Assign, ast.AnnAssign, ast.Return)):
+    elif isinstance(statement, (ast.Assign, ast.AnnAssign, ast.Return)) and root is not None:
         for replacement in ['0', '1', '-1', 'False', 'True', '[]', '{}', 'None', '""']:
             add(root, replacement, 'Substituting this value changes the state or result for this path.')
-    elif isinstance(statement, ast.AugAssign):
+    elif isinstance(statement, ast.AugAssign) and root is not None:
         for replacement in ['0', '1', '-1', '(' + expression_text(root) + ') + 1']:
             add(root, replacement, 'Changing the update amount changes the state accumulated by this step.')
+        for operator in ['+=', '-=', '*=']:
+            whole(expression_text(statement.target) + ' ' + operator + ' ' + expression_text(root), 'Using a different update operation changes the maintained state.')
+    if isinstance(statement, (ast.Expr, ast.Delete)):
+        whole('pass', 'Skipping this operation leaves the state unchanged when the algorithm needs to update it.')
+        if isinstance(statement, ast.Expr) and isinstance(root, ast.Call):
+            whole(expression_text(root) + '; ' + expression_text(root), 'Repeating this update changes the state twice in a single step.')
+    if isinstance(statement, ast.Break):
+        whole('continue', 'Continuing the loop changes when this path finishes processing.')
+        whole('pass', 'Removing the exit allows the loop to process additional states.')
+    if isinstance(statement, ast.Continue):
+        whole('break', 'Stopping the loop prevents later entries from being processed.')
+        whole('pass', 'Removing this skip allows the rest of this iteration to run.')
+    if isinstance(statement, ast.Return) and root is None:
+        whole('return False', 'This returns a boolean result from a path that has no result value.')
+        whole('pass', 'Removing this control-flow exit lets the following statements run on this case.')
+        for prior in ast.walk(ast.parse(source)):
+            if isinstance(prior, ast.Expr) and isinstance(prior.value, ast.Call) and prior.end_lineno == statement.lineno - 1:
+                whole('return ' + expression_text(prior.value), 'Repeating the preceding update while returning changes the completed state a second time.')
+        for call in ast.walk(ast.parse(source)):
+            if isinstance(call, ast.Call) and isinstance(call.func, ast.Attribute) and call.func.attr == 'pop' and not call.args:
+                whole('return ' + expression_text(call), 'Removing another saved choice while returning changes the state before the caller resumes.')
     return line, end_line, original, candidates
 
 
@@ -266,12 +380,34 @@ def concise(value, limit=160):
 def semantic_failure(witness):
     # In-place/prefix, clone, and round-trip oracles raise AssertionError when a
     # program returns a structurally wrong result; these are logic witnesses.
-    return 'error' not in witness or witness['error']['type'] == 'AssertionError'
+    return 'error' not in witness or witness['error']['type'] in ('AssertionError', 'IndexError', 'KeyError')
+
+
+def meaningful_failure(candidate):
+    witness = candidate['witness']
+    if semantic_failure(witness):
+        return True
+    error = witness.get('error', {})
+    reason = candidate.get('reason', '').lower()
+    structural_change = any(value in reason for value in ('condition', 'comparison', 'boolean', 'opposite link', 'skipping this operation', 'control-flow exit'))
+    if structural_change and error.get('type') in ('AttributeError', 'TypeError') and 'NoneType' in error.get('message', ''):
+        return True
+    return error.get('type') == 'ValueError' and (('representation' in reason or 'serialization' in reason) or structural_change and bool(re.search(r'cycle|clone|linked|node|structure', error.get('message', ''), re.I)))
 
 
 def counterexample(row, source):
     fallback = None
-    for index, fixture in enumerate(row['fixtures']):
+    indexed_fixtures = list(enumerate(row['fixtures']))
+    if row['id'] == 127 and re.search(r'(?m)^\s*neighbors = \{\}\s*$', source):
+        # A plain dict fails on the first wildcard key visited by a set. Prefer
+        # a valid case whose words share that first key, so both the failure and
+        # its displayed KeyError are stable across Python hash seeds.
+        def fixed_first_key(item):
+            fixture = item[1]
+            begin, end, words = fixture.get('args', [None, None, []])
+            return bool(begin and end in words and len({word[1:] for word in [begin, *words]}) == 1)
+        indexed_fixtures.sort(key=lambda item: (not fixed_first_key(item), len(item[1].get('args', [None, None, []])[2])))
+    for index, fixture in indexed_fixtures:
         result = execute(row, source, [fixture])['tests'][0]
         if result['passed']:
             continue
@@ -304,7 +440,11 @@ def explanatory_sentence(row, original):
 
 
 def question_for(row, source, statement, parents):
-    proposed = statement_candidates(source, statement)
+    ancestor = parents.get(statement)
+    while ancestor is not None and not isinstance(ancestor, (ast.FunctionDef, ast.AsyncFunctionDef)):
+        ancestor = parents.get(ancestor)
+    annotation = expression_text(ancestor.returns) if ancestor is not None and ancestor.returns is not None else ''
+    proposed = statement_candidates(source, statement, {**row, '_questionReturnType': annotation})
     if not proposed:
         return None
     line, end_line, original, candidates = proposed
@@ -317,10 +457,11 @@ def question_for(row, source, statement, parents):
             continue
         candidate['witness'] = witness
         wrong.append(candidate)
-        if sum(semantic_failure(item['witness']) for item in wrong) >= 3:
+        if sum(meaningful_failure(item) for item in wrong) >= 3:
             break
-    wrong.sort(key=lambda item: (not semantic_failure(item['witness']), len(item['code'])))
-    if len(wrong) < 2 or not any(semantic_failure(item['witness']) for item in wrong):
+    wrong = [item for item in wrong if meaningful_failure(item)]
+    wrong.sort(key=lambda item: ('error' in item['witness'], len(item['code'])))
+    if not wrong:
         return None
     wrong = wrong[:3]
     category = statement_category(statement, parents)
@@ -336,27 +477,97 @@ def question_for(row, source, statement, parents):
     random.Random(seed).shuffle(choices)
     for index, choice in enumerate(choices):
         choice['label'] = 'Option ' + chr(65 + index)
-    prior = source.splitlines()[max(0, line - 4):line - 1]
+    prior = [value for value in source.splitlines()[max(0, line - 4):line - 1] if not value.lstrip().startswith('#')]
     indent = len(original) - len(original.lstrip())
     context = '\n'.join(prior + [' ' * indent + '# Choose the missing statement'])
     return {'id': 'python-line-' + str(line), 'stage': 'implementation', 'prompt': statement_prompt(statement, category),
             'context': context, 'line': line, 'endLine': end_line, 'choices': choices, '_category': category}
 
 
-def generate_python(row):
-    source = row['source']
-    cache_key = digest(GENERATOR_VERSION + source + compact(row['fixtures']) + row.get('explanation', ''))[:20]
-    cache_file = CACHE / (str(row['id']) + '-' + cache_key + '.json')
-    if cache_file.exists():
-        return json.loads(cache_file.read_text())
-    baseline = execute(row, source, baseline=True)
-    if baseline['passed'] != baseline['total']:
-        failures = [{key: test.get(key) for key in ('name', 'actual', 'expected', 'error')} for test in baseline['tests'] if not test['passed']]
-        raise AssertionError(str(row['id']) + ': reference failed ' + compact(failures))
-    tree = ast.parse(source)
+def decision_lines(question):
+    original = next(choice['code'] for choice in question['choices'] if choice['correct']).splitlines()
+    changed = set()
+    for choice in question['choices']:
+        if choice['correct']:
+            continue
+        for tag, start, end, _other_start, _other_end in difflib.SequenceMatcher(a=original, b=choice['code'].splitlines(), autojunk=False).get_opcodes():
+            if tag in ('replace', 'delete'):
+                changed.update(range(question['line'] + start, question['line'] + end))
+    return sorted(changed)
+
+
+def guarded_returns(source, question):
+    """Credit a bare exit only when its direct guard is the sole AST change."""
+    original = ast.parse(source)
+    parents = {child: node for node in ast.walk(original) for child in ast.iter_child_nodes(node)}
+    records = []
+    for node in ast.walk(original):
+        guard = parents.get(node)
+        if not isinstance(node, ast.Return) or node.value is not None or not isinstance(guard, ast.If):
+            continue
+        if not question['line'] <= guard.lineno <= node.lineno <= question['endLine']:
+            continue
+        for choice in question['choices']:
+            if choice['correct'] or not choice.get('witness'):
+                continue
+            candidate = ast.parse(patch_lines(source, question['line'], question['endLine'], choice['code']))
+            changed_guard = next((item for item in ast.walk(candidate) if isinstance(item, ast.If) and item.lineno == guard.lineno), None)
+            if changed_guard is None or ast.dump(changed_guard.test) == ast.dump(guard.test):
+                continue
+            changed_guard.test = copy.deepcopy(guard.test)
+            if ast.dump(candidate) == ast.dump(original):
+                records.append({'line': node.lineno, 'guardLine': guard.lineno, 'choiceId': choice['id']})
+                break
+    return records
+
+
+def graded_lines(questions):
+    return {line for question in questions for line in question['decisionLines']} | {item['line'] for question in questions for item in question.get('guardedReturns', [])}
+
+
+def code_context(source, line, language="python"):
+    result = []
+    for text in source.splitlines()[max(0, line - 5):line - 1]:
+        if language == 'javascript' and text.lstrip().startswith(('//', '/*', '*')):
+            continue
+        quote = None
+        escaped = False
+        for index, character in enumerate(text):
+            if escaped:
+                escaped = False
+            elif character == '\\' and quote:
+                escaped = True
+            elif quote and character == quote:
+                quote = None
+            elif not quote and character in ('"', "'"):
+                quote = character
+            elif not quote and (character == '#' if language == 'python' else text[index:index + 2] == '//'):
+                text = text[:index].rstrip()
+                break
+        if text.strip():
+            result.append(text)
+    indent = len(source.splitlines()[line - 1]) - len(source.splitlines()[line - 1].lstrip())
+    return '\n'.join(result[-3:] + [' ' * indent + ('// Choose the missing code' if language == 'javascript' else '# Choose the missing code')])
+
+
+def expand_question(source, question, line, end_line, required, language="python"):
+    result = copy.deepcopy(question)
+    lines = source.splitlines()
+    prefix = lines[line - 1:question['line'] - 1]
+    suffix = lines[question['endLine']:end_line]
+    for choice in result['choices']:
+        choice['code'] = '\n'.join(prefix + choice['code'].splitlines() + suffix)
+    result['line'], result['endLine'] = line, end_line
+    result['coveredLines'] = [value for value in required if line <= value <= end_line]
+    result['decisionLines'] = decision_lines(result)
+    result['context'] = code_context(source, line, language)
+    result.pop('_category', None)
+    return result
+
+
+def python_inventory(row):
+    tree = ast.parse(row['source'])
     parents = {child: node for node in ast.walk(tree) for child in ast.iter_child_nodes(node)}
-    statements = [node for node in ast.walk(tree) if isinstance(node, (ast.Assign, ast.AnnAssign, ast.AugAssign, ast.Return, ast.If, ast.While, ast.For, ast.Expr)) and statement_root(node) is not None]
-    statements = [node for node in statements if not isinstance(node, ast.Expr) or isinstance(node.value, ast.Call)]
     public_classes = {interface['className'] for interface in row.get('interfaces', []) if 'className' in interface}
     def relevant(statement):
         ancestor = parents.get(statement)
@@ -365,39 +576,162 @@ def generate_python(row):
                 return ancestor.name in public_classes
             ancestor = parents.get(ancestor)
         return True
-    statements = [node for node in statements if relevant(node)]
+    def scope(statement):
+        ancestor = parents.get(statement)
+        while ancestor is not None:
+            if isinstance(ancestor, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                return ancestor.lineno
+            ancestor = parents.get(ancestor)
+        return None
+    kinds = (ast.Assign, ast.AnnAssign, ast.AugAssign, ast.Return, ast.If, ast.While, ast.For,
+             ast.Expr, ast.Delete, ast.Break, ast.Continue, ast.Assert, ast.Raise)
+    statements = [node for node in ast.walk(tree) if isinstance(node, kinds) and relevant(node)]
+    statements = [node for node in statements if not isinstance(node, ast.Expr) or not isinstance(node.value, ast.Constant)]
     statements.sort(key=lambda node: (node.lineno, node.col_offset))
-    # One decision for a one-line algorithm; otherwise cover distinct roles
-    # before adding extra boundaries or updates.
-    desired = min(5, 1 if len(statements) <= 2 else 3 if len(statements) < 12 else 4 if len(statements) < 24 else 5)
-    categories = ['state', 'iteration', 'condition', 'update', 'result']
-    ordered = []
-    for category in categories:
-        match = next((node for node in statements if statement_category(node, parents) == category), None)
-        if match:
-            ordered.append(match)
-    ordered += [node for node in statements if node not in ordered]
-    questions, lines = [], set()
-    for statement in ordered:
-        if any(statement.lineno <= end and statement_root(statement).end_lineno >= start for start, end in lines):
+    context_only = []
+    # These tails are outside the stated input guarantees, not merely absent
+    # from a small fixture set. They still appear in the finishing code block.
+    defensive = {
+        1: ('[]', 'The problem guarantees one valid pair, so valid inputs return from inside the scan. This final empty-list return is a defensive fallback.'),
+        4: ('0.0', 'Sorted inputs with a nonempty combined array always have a valid partition. This zero return after exhausting the partition search is defensive.'),
+        167: ('[]', 'The sorted input guarantees exactly one valid pair; the two-pointer search returns it before this defensive empty-list fallback.'),
+        230: ('-1', 'The problem guarantees 1 <= k <= the number of tree nodes, so the inorder traversal returns the kth node before this defensive fallback.'),
+        235: ('None', 'Both requested nodes exist in the BST, so their lowest common ancestor is found before this defensive null fallback.'),
+        347: ('result', 'The requested k does not exceed the number of distinct values. The bucket traversal reaches k results and returns inside the loop, before this fallback.'),
+        374: ('lo', 'The picked number is guaranteed to lie in 1..n. Consistent guesses locate it inside the binary-search loop, so this final bound return is defensive.'),
+        684: ('[]', 'A connected graph with n vertices and n edges contains a cycle. A cycle edge has an alternate path, so the reverse scan finds an edge before this empty-list fallback.'),
+        1631: ('0', 'Every valid nonempty rectangular grid has a four-direction path to its destination. The priority search reaches it before the frontier can be exhausted.'),
+        778: ('-1', 'The nonempty square grid has no blocked cells; at a sufficiently high elevation a path always exists. The priority search reaches the destination before this fallback.'),
+    }
+    excluded = set()
+    if row['id'] in defensive and statements:
+        expression, reason = defensive[row['id']]
+        last = statements[-1]
+        if isinstance(last, ast.Return) and last.value is not None and expression_text(last.value) == expression:
+            excluded.add(last.lineno)
+            context_only.append({'line': last.lineno, 'endLine': last.end_lineno, 'reason': reason})
+    if row['id'] == 146:
+        for statement in statements:
+            if isinstance(statement, ast.Assign) and ast.unparse(statement) == 'self.tail.prev = self.head':
+                excluded.add(statement.lineno)
+                context_only.append({'line': statement.lineno, 'endLine': statement.end_lineno,
+                                     'reason': 'With the required positive capacity, the first valid put calls _add_to_front, which overwrites tail.prev before any operation reads it. This redundant sentinel initialization remains visible in the setup block.'})
+    if row['id'] == 460:
+        for statement in statements:
+            if isinstance(statement, ast.Assign) and ast.unparse(statement) == 'self.min_freq = 0':
+                excluded.add(statement.lineno)
+                context_only.append({'line': statement.lineno, 'endLine': statement.end_lineno, 'reason': 'With zero capacity, put returns without reading min_freq. With positive capacity, the first insertion writes min_freq = 1 before eviction or frequency updates read it. The initial zero is redundant setup retained in context.'})
+    if row['id'] == 1140:
+        for statement in statements:
+            if isinstance(statement, ast.If) and expression_text(statement.test) == 'i >= n':
+                excluded.update(range(statement.lineno, statement.end_lineno + 1))
+                context_only.append({'line': statement.lineno, 'endLine': statement.end_lineno, 'reason': 'The initial pile index is zero and piles are nonempty. Recursion occurs only when i + 2*m < n, with each chosen x <= 2*m, so every child i+x remains below n. This empty-suffix base case is defensive.'})
+    if row['id'] == 212:
+        for statement in statements:
+            if isinstance(statement, ast.Delete) and ast.unparse(statement) == 'del node[c]':
+                excluded.add(statement.lineno)
+                context_only.append({'line': statement.lineno, 'endLine': statement.end_lineno, 'reason': 'This optional pruning removes an already-empty trie branch after all words under it have been reported. Terminal word markers were already popped, so keeping this empty branch only adds unsuccessful future traversal and does not alter the output.'})
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ClassDef) and node.name not in public_classes:
+            context_only.append({'line': node.lineno, 'endLine': node.end_lineno, 'reason': 'This supplied node container defines the fixed value and link fields used by the public algorithm. Its infrastructure remains part of the completed source; the public operations and their mutations are taught in the decision blocks.'})
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            for decorator in node.decorator_list:
+                context_only.append({'line': decorator.lineno, 'endLine': decorator.end_lineno, 'reason': 'This supplied memoization decorator avoids recomputing identical argument states and is part of the stated time complexity. The decisions cover recursive states, transitions, and returned results; the wrapper stays in the completed source.'})
+    nonempty = {14: 'strs', 26: 'nums', 42: 'height', 76: 't', 200: 'grid', 130: 'board',
+                309: 'prices', 286: 'rooms', 253: 'intervals'}
+    if row['id'] in nonempty:
+        variable = nonempty[row['id']]
+        for statement in statements:
+            if not isinstance(statement, ast.If) or not isinstance(parents.get(statement), (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            condition = expression_text(statement.test)
+            if condition == 'not ' + variable or condition.startswith('not ' + variable + ' or '):
+                if statement.body and all(isinstance(child, ast.Return) for child in statement.body):
+                    excluded.update(range(statement.lineno, statement.end_lineno + 1))
+                    context_only.append({'line': statement.lineno, 'endLine': statement.end_lineno,
+                                         'reason': 'The problem constraints require ' + variable + ' to be nonempty. This outer empty-input guard is defensive and remains visible with the following setup.'})
+    units = []
+    for statement in statements:
+        root = statement_root(statement)
+        line, end_line = statement.lineno, root.end_lineno if root is not None else statement.end_lineno
+        item = {'line': line, 'endLine': end_line, 'statements': [statement], 'scope': scope(statement)}
+        if units and line <= units[-1]['endLine']:
+            units[-1]['endLine'] = max(units[-1]['endLine'], end_line)
+            units[-1]['statements'].append(statement)
+        else:
+            units.append(item)
+    required = sorted({statement.lineno for statement in statements if statement.lineno not in excluded})
+    last_by_scope = {}
+    for unit in units:
+        eligible = [value for value in required if unit['line'] <= value <= unit['endLine']]
+        if unit['scope'] is not None and eligible:
+            last_by_scope[unit['scope']] = max(eligible)
+    return_lines = {statement.lineno for statement in statements if isinstance(statement, ast.Return) and statement.lineno not in excluded}
+    return units, required, sorted(set(last_by_scope.values()) | return_lines), context_only, parents
+
+
+def generate_python(row):
+    source = row['source']
+    cache_key = digest(GENERATOR_VERSION + (':stable-first-wildcard-v1' if row['id'] == 127 else '') + source + compact(row['fixtures']) + row.get('explanation', ''))[:20]
+    cache_file = CACHE / (str(row['id']) + '-' + cache_key + '.json')
+    if cache_file.exists():
+        cached = json.loads(cache_file.read_text())
+        context_only = python_inventory(row)[3]
+        old_ranges = [(item['line'], item['endLine']) for item in cached['coverage'].get('contextOnly', [])]
+        new_ranges = [(item['line'], item['endLine']) for item in context_only]
+        if old_ranges == new_ranges:
+            cached['coverage']['contextOnly'] = context_only
+            return cached
+    baseline = execute(row, source, baseline=True)
+    if baseline['passed'] != baseline['total']:
+        failures = [{key: test.get(key) for key in ('name', 'actual', 'expected', 'error')} for test in baseline['tests'] if not test['passed']]
+        raise AssertionError(str(row['id']) + ': reference failed ' + compact(failures))
+    units, required, terminal, context_only, parents = python_inventory(row)
+    anchors = []
+    for index, unit in enumerate(units):
+        if not any(unit['line'] <= value <= unit['endLine'] for value in required):
             continue
-        question = question_for(row, source, statement, parents)
-        if question:
-            questions.append(question)
-            lines.add((question['line'], question['endLine']))
-        if len(questions) >= desired:
-            break
-    if not questions:
-        raise AssertionError(str(row['id']) + ': no implementation decisions with two tested distractors')
-    questions.sort(key=lambda value: value['line'])
+        for statement in unit['statements']:
+            question = question_for(row, source, statement, parents)
+            if question:
+                anchors.append((index, expand_question(source, question, unit['line'], unit['endLine'], required)))
+                break
+    if not anchors:
+        raise AssertionError(str(row['id']) + ': no meaningful implementation question has a tested wrong alternative')
+    questions = []
+    for index, (unit_index, question) in enumerate(anchors):
+        start = units[0]['line'] if index == 0 else units[unit_index]['line']
+        last_unit = anchors[index + 1][0] - 1 if index + 1 < len(anchors) else len(units) - 1
+        questions.append(expand_question(source, question, start, units[last_unit]['endLine'], required))
+    # Absorb a bare return into its direct guard's decision block when the
+    # exit's returned value is intentionally ignored by the judge.
+    for statement, guard in parents.items():
+        if not isinstance(statement, ast.Return) or statement.value is not None or not isinstance(guard, ast.If):
+            continue
+        if statement.lineno in graded_lines(questions):
+            continue
+        start_index = next((i for i, q in enumerate(questions) if q['line'] <= guard.lineno <= q['endLine']), None)
+        end_index = next((i for i, q in enumerate(questions) if q['line'] <= statement.lineno <= q['endLine']), None)
+        if start_index is not None and end_index is not None and start_index <= end_index:
+            merged = expand_question(source, questions[start_index], questions[start_index]['line'], questions[end_index]['endLine'], required)
+            records = guarded_returns(source, merged)
+            if any(item['line'] == statement.lineno for item in records):
+                merged['guardedReturns'] = records
+                questions[start_index:end_index + 1] = [merged]
     for question in questions:
-        question.pop('_category', None)
-        # Context must not expose a line belonging to a later decision.
-        assert all(other['line'] >= question['line'] or other['endLine'] < question['line'] for other in questions)
+        records = guarded_returns(source, question)
+        if records:
+            question['guardedReturns'] = records
+    covered = sorted({line for question in questions for line in question['coveredLines']})
+    missing_terminal = [line for line in terminal if line not in graded_lines(questions)]
     wrong_count = sum(not choice['correct'] for question in questions for choice in question['choices'])
     document = {'id': row['id'], 'language': 'python', 'source': source, 'sourceHash': digest(source),
-                'questions': questions, 'validation': {'correctCases': baseline['total'], 'wrongChoices': wrong_count,
+                'questions': questions, 'coverage': {'requiredLines': required, 'coveredLines': covered, 'terminalLines': terminal,
+                                                    'contextOnly': context_only},
+                'validation': {'correctCases': baseline['total'], 'wrongChoices': wrong_count,
                                                       'testedWitnesses': wrong_count}}
+    if missing_terminal:
+        document['_generationIssues'] = {'ungradedTerminalLines': missing_terminal}
     CACHE.mkdir(parents=True, exist_ok=True)
     cache_file.write_text(compact(document) + '\n')
     return document
@@ -433,28 +767,21 @@ def curriculum_questions(row, language, curriculum):
         assert len(specification['options']) == expected_count
         assert sum(option['id'] == specification['correctId'] for option in specification['options']) == 1
         choices = [{'id': option['id'], 'label': option['label'], 'correct': option['id'] == specification['correctId'],
-                    'feedback': option['feedback']} for option in specification['options']]
+                    'feedback': option['feedback'], **({'code': option['code']} if 'code' in option else {}),
+                    **({'feedbackCode': option['feedbackCode']} if 'feedbackCode' in option else {})} for option in specification['options']]
         random.Random(int(digest(str(row['id']) + ':' + language + ':' + stage)[:16], 16)).shuffle(choices)
-        questions.append({'id': stage, 'stage': stage, 'prompt': specification['prompt'], 'choices': choices})
+        questions.append({'id': stage, 'stage': stage, 'prompt': specification['prompt'], 'choices': choices,
+                          **({'context': specification['context']} if 'context' in specification else {})})
     return metadata, questions
-
-
-SENTINEL_RETURN = re.compile(r'^\s*return\s+(?:null|None|false|true|False|True|[012-]+|\[\]|\{\})\s*;?\s*$')
-
-
-def weak_return_question(question):
-    correct = next((choice for choice in question['choices'] if choice['correct']), None)
-    wrong = [choice for choice in question['choices'] if not choice['correct']]
-    return bool(correct and re.match(r'^\s*return\b', correct.get('code', '')) and
-                not SENTINEL_RETURN.fullmatch(correct['code']) and wrong and
-                all(SENTINEL_RETURN.fullmatch(choice.get('code', '')) for choice in wrong))
 
 
 def current_operation_feedback(question, language):
     """Explain only this decision; never copy a later algorithm step as feedback."""
     code = next(choice['code'] for choice in question['choices'] if choice['correct']).strip()
     prompt = question['prompt'].lower()
-    if code.startswith('return ') or 'return' in prompt:
+    if code == 'return':
+        explanation = 'This stops the current helper at this case without executing the remaining operations.'
+    elif code.startswith('return ') or 'return' in prompt:
         explanation = 'The caller receives the computed value for this path, and the current function stops immediately.'
     elif re.match(r'^(?:for|for await)\b', code) or 'loop' in prompt and code.startswith('for'):
         explanation = 'This header specifies the values, bounds, and order of the loop. Those choices determine which inputs the body processes.'
@@ -487,6 +814,12 @@ def current_operation_feedback(question, language):
     return 'For this guided approach: ' + explanation
 
 
+def normalize_runtime_message(message):
+    # Object identity addresses and the recorder module name are incidental to
+    # a missing-key proof. Keep the class and error type, not process addresses.
+    return re.sub(r'<(?:[\w.]+\.)?([A-Za-z_]\w*) object at 0x[0-9a-fA-F]+>', r'<\1 object>', message)
+
+
 def review_implementation(row, document, overrides, feedback_reviews=None):
     reviewed = copy.deepcopy(document)
     authored_ids = set()
@@ -496,12 +829,14 @@ def review_implementation(row, document, overrides, feedback_reviews=None):
         assert override['sourceHash'] == document['sourceHash'], str(row['id']) + ': quality override source is stale'
         replacement = override['question']
         indexes = [index for index, question in enumerate(reviewed['questions']) if question['id'] in {override['replaceQuestionId'], replacement['id']}]
+        if not indexes:
+            indexes = [index for index, question in enumerate(reviewed['questions']) if question['line'] <= replacement['line'] and question['endLine'] >= replacement['endLine']]
         assert len(indexes) == 1, str(row['id']) + ': quality override does not identify exactly one question'
-        reviewed['questions'][indexes[0]] = copy.deepcopy(replacement)
+        existing = reviewed['questions'][indexes[0]]
+        replacement = expand_question(reviewed['source'], replacement, existing['line'], existing['endLine'], reviewed['coverage']['requiredLines'], reviewed['language'])
+        replacement['id'] = existing['id']
+        reviewed['questions'][indexes[0]] = replacement
         authored_ids.add(replacement['id'])
-    substantive = [question for question in reviewed['questions'] if not weak_return_question(question)]
-    if len(substantive) >= 2:
-        reviewed['questions'] = substantive
     for question in reviewed['questions']:
         if question['id'] not in authored_ids:
             for choice in question['choices']:
@@ -515,6 +850,25 @@ def review_implementation(row, document, overrides, feedback_reviews=None):
         assert len(targets) == 1 and item['feedback'].strip(), str(row['id']) + ': feedback targets a missing or ambiguous question'
         next(choice for choice in targets[0]['choices'] if choice['correct'])['feedback'] = item['feedback']
     reviewed['questions'].sort(key=lambda question: question['line'])
+    for question in reviewed['questions']:
+        question['decisionLines'] = decision_lines(question)
+        if reviewed['language'] == 'python':
+            question.pop('guardedReturns', None)
+            records = guarded_returns(reviewed['source'], question)
+            if records:
+                question['guardedReturns'] = records
+        for choice in question['choices']:
+            choice['feedback'] = normalize_runtime_message(choice['feedback'])
+            if 'witness' in choice:
+                witness = choice['witness']
+                witness['name'] = row['fixtures'][witness['fixtureIndex']]['name']
+                if 'error' in witness:
+                    witness['error']['message'] = normalize_runtime_message(witness['error']['message'])
+    reviewed['coverage']['coveredLines'] = sorted({line for question in reviewed['questions'] for line in question['coveredLines']})
+    missing = sorted(set(reviewed['coverage']['terminalLines']) - graded_lines(reviewed['questions']))
+    reviewed.pop('_generationIssues', None)
+    if missing:
+        reviewed['_generationIssues'] = {'ungradedTerminalLines': missing}
     wrong_count = sum(not choice['correct'] for question in reviewed['questions'] for choice in question['choices'])
     reviewed['validation'] = {'correctCases': len(row['fixtures']), 'wrongChoices': wrong_count, 'testedWitnesses': wrong_count}
     return reviewed
@@ -525,7 +879,22 @@ def validate_implementation(row, document, execute_witnesses=False):
     source = row['source'] if document['language'] == 'python' else row['javascript']
     assert document['source'] == source and document['sourceHash'] == digest(source)
     questions = document['questions']
-    assert 1 <= len(questions) <= 5, str(row['id']) + ': expected 1–5 implementation decisions'
+    assert len(questions) >= 1, str(row['id']) + ': missing implementation decisions'
+    assert not document.get('_generationIssues'), str(row['id']) + ': unresolved complete-coverage issues: ' + compact(document.get('_generationIssues'))
+    coverage = document['coverage']
+    for key in ('requiredLines', 'coveredLines', 'terminalLines'):
+        assert isinstance(coverage[key], list) and coverage[key] == sorted(set(coverage[key]))
+        assert all(isinstance(line, int) and 1 <= line <= len(source.splitlines()) for line in coverage[key])
+    assert coverage['requiredLines'] and coverage['requiredLines'] == coverage['coveredLines']
+    assert set(coverage['terminalLines']) <= set(coverage['requiredLines'])
+    if document['language'] == 'python':
+        units, required, terminal, context_only, _parents = python_inventory(row)
+        assert coverage['requiredLines'] == required and coverage['terminalLines'] == terminal and coverage.get('contextOnly', []) == context_only, str(row['id']) + ': Python coverage inventory is stale'
+        assert questions[-1]['endLine'] >= units[-1]['endLine'], str(row['id']) + ': lesson stops before its physical ending'
+    for exemption in coverage.get('contextOnly', []):
+        assert isinstance(exemption['reason'], str) and len(exemption['reason']) >= 20
+        assert 1 <= exemption['line'] <= exemption['endLine'] <= len(source.splitlines())
+        assert not set(range(exemption['line'], exemption['endLine'] + 1)) & set(coverage['requiredLines'])
     wrong_count = 0
     previous_end = 0
     for question in questions:
@@ -533,7 +902,15 @@ def validate_implementation(row, document, execute_witnesses=False):
         assert 1 <= question['line'] <= question['endLine'] <= len(source.splitlines())
         assert question['line'] > previous_end, str(row['id']) + ': overlapping or unordered decision lines'
         previous_end = question['endLine']
-        assert 3 <= len(question['choices']) <= 4
+        assert 2 <= len(question['choices']) <= 4
+        assert question['coveredLines'] == [line for line in coverage['requiredLines'] if question['line'] <= line <= question['endLine']]
+        assert question['decisionLines'] == decision_lines(question), str(row['id']) + ': decisionLines are not backed by tested code differences'
+        if document['language'] == 'python':
+            assert question.get('guardedReturns', []) == guarded_returns(source, question), str(row['id']) + ': invalid direct-guard return dependency'
+        for dependency in question.get('guardedReturns', []):
+            assert question['line'] <= dependency['guardLine'] <= dependency['line'] <= question['endLine']
+            assert dependency['guardLine'] in question['decisionLines']
+            assert any(choice['id'] == dependency['choiceId'] and not choice['correct'] and choice.get('witness') for choice in question['choices'])
         assert len({choice['id'] for choice in question['choices']}) == len(question['choices'])
         assert sum(choice['correct'] is True for choice in question['choices']) == 1
         for choice in question['choices']:
@@ -565,6 +942,8 @@ def validate_implementation(row, document, execute_witnesses=False):
     assert document['validation']['wrongChoices'] == wrong_count
     assert document['validation']['testedWitnesses'] == wrong_count
     assert document['validation']['correctCases'] == len(row['fixtures'])
+    assert sorted({line for question in questions for line in question['coveredLines']}) == coverage['requiredLines']
+    assert set(coverage['terminalLines']) <= graded_lines(questions), str(row['id']) + ': a terminal operation has no tested finishing alternative'
 
 
 def publish(rows, python_documents, javascript_documents, curriculum, overrides, feedback_reviews):

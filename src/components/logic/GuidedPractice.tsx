@@ -11,7 +11,7 @@ const GuidedCodeRunner = lazy(() => import('./GuidedCodeRunner'));
 type Language = 'python' | 'javascript';
 interface Props { problem: LogicProblem; language: Language; onLanguageChange: (language: Language) => void }
 interface Progress { revision: string; answered: string[]; attempts: number; }
-interface Feedback { correct: boolean; text: string; question: string; stage: GuidedQuestion['stage']; witness?: GuidedChoice['witness'] }
+interface Feedback { correct: boolean; text: string; code?: string; question: string; stage: GuidedQuestion['stage']; witness?: GuidedChoice['witness'] }
 const display = (value: unknown) => {
   const compact = JSON.stringify(value) ?? 'No result';
   if (compact.length <= 100) return compact;
@@ -24,7 +24,7 @@ function readProgress(lesson: GuidedLesson, language: Language): Progress {
   const empty = { revision: lesson.revision, answered: [], attempts: 0 };
   try {
     const saved = JSON.parse(localStorage.getItem(storageKey(lesson.id, language)) || 'null');
-    if (!saved || saved.revision !== lesson.revision || !Array.isArray(saved.answered) || saved.answered.length > lesson.questions.length || !Number.isSafeInteger(saved.attempts) || saved.attempts < 0) return empty;
+    if (!saved || saved.revision !== lesson.revision || !Array.isArray(saved.answered) || saved.answered.length >= lesson.questions.length || !Number.isSafeInteger(saved.attempts) || saved.attempts < 0) return empty;
     if (saved.answered.some((id: unknown, index: number) => id !== lesson.questions[index].id)) return empty;
     return { revision: lesson.revision, answered: [...saved.answered], attempts: saved.attempts };
   } catch { return empty; }
@@ -55,6 +55,9 @@ export function LanguageToggle({ language, onChange }: { language: Language; onC
 }
 function GuidedSession({ problem, language, lesson }: { problem: LogicProblem; language: Language; lesson: GuidedLesson }) {
   const [progress, setProgress] = useState(() => readProgress(lesson, language));
+  // Revisit the plan before resuming saved implementation work. A finished
+  // lesson starts a fresh attempt rather than opening directly into its code.
+  const [openingIndex, setOpeningIndex] = useState(0);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [wrongChoices, setWrongChoices] = useState<string[]>([]);
   const [saved, setSaved] = useState(true);
@@ -63,7 +66,8 @@ function GuidedSession({ problem, language, lesson }: { problem: LogicProblem; l
   const feedbackElement = useRef<HTMLElement>(null);
   const focusAfterRestart = useRef(false);
   const answeredNow = useRef<string | null>(null);
-  const question = lesson.questions[progress.answered.length];
+  const questionIndex = openingIndex < 2 ? openingIndex : progress.answered.length;
+  const question = lesson.questions[questionIndex];
   const complete = !question;
   const correctStructure = lesson.questions.find(item => item.stage === 'structure')?.choices.find(choice => choice.correct);
   useEffect(() => {
@@ -75,16 +79,17 @@ function GuidedSession({ problem, language, lesson }: { problem: LogicProblem; l
       heading.current?.focus();
       focusAfterRestart.current = false;
     } else if (feedback?.correct) heading.current?.focus({ preventScroll: true });
-  }, [question?.id]);
+  }, [question?.id, revealKey]);
   useEffect(() => {
     if (feedback) feedbackElement.current?.scrollIntoView({ block: 'nearest' });
   }, [feedback]);
   function answer(choice: GuidedChoice) {
     if (!question || answeredNow.current === question.id) return;
-    setFeedback({ correct: choice.correct, text: choice.feedback, question: question.prompt, stage: question.stage, witness: choice.witness });
+    setFeedback({ correct: choice.correct, text: choice.feedback, code: choice.feedbackCode, question: question.prompt, stage: question.stage, witness: choice.witness });
     if (choice.correct) {
       answeredNow.current = question.id;
-      setProgress(value => ({ ...value, attempts: value.attempts + 1, answered: [...value.answered, question.id] }));
+      setProgress(value => ({ ...value, attempts: value.attempts + 1, answered: value.answered.includes(question.id) ? value.answered : [...value.answered, question.id] }));
+      if (openingIndex < 2) setOpeningIndex(value => value + 1);
       setWrongChoices([]);
     } else {
       setProgress(value => ({ ...value, attempts: value.attempts + 1 }));
@@ -93,27 +98,31 @@ function GuidedSession({ problem, language, lesson }: { problem: LogicProblem; l
   }
   function restart() {
     focusAfterRestart.current = true;
-    setProgress({ revision: lesson.revision, answered: [], attempts: 0 }); setFeedback(null); setWrongChoices([]); setRevealKey(value => value + 1); answeredNow.current = null;
+    setOpeningIndex(0); setProgress({ revision: lesson.revision, answered: [], attempts: 0 }); setFeedback(null); setWrongChoices([]); setRevealKey(value => value + 1); answeredNow.current = null;
   }
+  const stageDone = (stage: GuidedQuestion['stage']) => stage === 'pattern' ? openingIndex >= 1
+    : stage === 'structure' ? openingIndex >= 2 : complete;
   return <>
-    <div className="guided-progress"><ol>{(['pattern','structure','implementation'] as const).map(stage => <li key={stage} data-active={question?.stage === stage} data-done={complete || lesson.questions.filter(q => q.stage === stage).every(q => progress.answered.includes(q.id))}><span aria-hidden="true">{complete || lesson.questions.filter(q => q.stage === stage).every(q => progress.answered.includes(q.id)) ? '✓' : '•'}</span>{stageNames[stage]}</li>)}</ol><span>{complete ? `${lesson.questions.length} decisions complete` : `Question ${progress.answered.length + 1} of ${lesson.questions.length}`}</span></div>
+    <div className="guided-progress"><ol>{(['pattern','structure','implementation'] as const).map(stage => <li key={stage} data-active={question?.stage === stage} data-done={stageDone(stage)}><span aria-hidden="true">{stageDone(stage) ? '✓' : '•'}</span>{stageNames[stage]}</li>)}</ol><span>{complete ? `${lesson.questions.length} decisions complete` : `Question ${questionIndex + 1} of ${lesson.questions.length}`}</span></div>
+    {openingIndex < 2 && progress.answered.length > 2 && <p className="guided-question-note">Review the approach and code structure first, then continue your saved implementation.</p>}
     {feedback && <section ref={feedbackElement} className={`guided-feedback ${feedback.correct ? 'guided-feedback-correct' : 'guided-feedback-incorrect'}`} role={feedback.correct ? 'status' : 'alert'} aria-label="Answer feedback">
-      <strong>{feedback.correct ? 'Correct' : feedback.stage === 'pattern' || feedback.stage === 'structure' ? 'Try another approach' : 'Not quite'}</strong>
+      <strong>{feedback.correct ? 'Correct' : feedback.stage === 'pattern' ? 'Try another approach' : 'Not quite'}</strong>
       {feedback.correct && !complete && <small>Previous decision</small>}<p>{feedback.text}</p>
+      {feedback.code && <pre className="guided-context" aria-label="Chosen code structure"><code>{feedback.code}</code></pre>}
       {feedback.witness && <details><summary>See the counterexample</summary><dl><div><dt>Input</dt><dd>{display(feedback.witness.input)}</dd></div>{feedback.witness.operations && <div><dt>Calls</dt><dd>{display(feedback.witness.operations)}</dd></div>}<div><dt>Expected</dt><dd>{display(feedback.witness.expected)}</dd></div><div><dt>This choice produces</dt><dd>{feedback.witness.error ? `${feedback.witness.error.type}: ${feedback.witness.error.message}` : display(feedback.witness.actual)}</dd></div></dl></details>}
     </section>}
-    {question ? <section className="guided-question-card" aria-label={`${stageNames[question.stage]} question`}>
+    {question ? <section className="guided-question-card" data-question-id={question.id} aria-label={`${stageNames[question.stage]} question`}>
       <div className="logic-eyebrow">{stageNames[question.stage]}{question.stage === 'implementation' ? ` · ${language === 'python' ? 'Python' : 'JavaScript'}` : ''}</div>
       <h2 ref={heading} tabIndex={-1}>{question.prompt}</h2>
       {question.stage === 'pattern' && <p className="guided-question-note">Choose one of eight patterns. This lesson follows one worked approach; other approaches can also be valid.</p>}
-      {question.context && <pre className="guided-context" aria-label="Implementation context"><code>{question.context}</code></pre>}
-      <div className={`guided-choices ${question.stage === 'implementation' ? 'guided-code-choices' : ''}`}>{question.choices.map((choice, index) => <button key={`${question.id}:${choice.id}`} type="button" className="guided-choice" data-attempted={wrongChoices.includes(choice.id)} onClick={() => answer(choice)}>
+      {question.context && <pre className="guided-context" aria-label={question.stage === 'structure' ? 'Code structure scaffold' : 'Implementation context'}><code>{question.context}</code></pre>}
+      <div className={`guided-choices ${question.stage === 'implementation' || question.stage === 'structure' && question.choices.some(choice => choice.code) ? 'guided-code-choices' : ''}`}>{question.choices.map((choice, index) => <button key={`${question.id}:${choice.id}`} type="button" className="guided-choice" data-attempted={wrongChoices.includes(choice.id)} onClick={() => answer(choice)}>
         <span className="guided-choice-letter" aria-hidden="true">{String.fromCharCode(65 + index)}</span>
-        <span>{choice.code ? <code>{choice.code.trim()}</code> : <strong>{choice.label}</strong>}{wrongChoices.includes(choice.id) && <small>Try a different choice</small>}</span>
+        <span>{choice.code ? <>{question.stage === 'structure' && <strong>{choice.label}</strong>}<code>{choice.code.trim()}</code></> : <strong>{choice.label}</strong>}{wrongChoices.includes(choice.id) && <small>Try a different choice</small>}</span>
       </button>)}</div>
       <p className="guided-question-note">Tap an answer for feedback. A correct answer moves to the next decision.</p>
     </section> : <>
-      <section className="guided-complete"><div className="logic-eyebrow">DECISIONS COMPLETE</div><h2 ref={heading} tabIndex={-1}>Now see the implementation run.</h2><p>You chose the approach, structure, and key implementation details. Step through an example and connect each decision to its effect.</p></section>
+      <section className="guided-complete"><div className="logic-eyebrow">DECISIONS COMPLETE</div><h2 ref={heading} tabIndex={-1}>Now see the implementation run.</h2><p>You worked through the approach, code structure, and implementation to the end. Step through an example and connect each decision to its effect.</p></section>
       <Suspense fallback={<p role="status" className="logic-solution-status">Loading the completed implementation…</p>}><GuidedCodeRunner problem={problem} code={lesson.source} language={language} execution={lesson.execution}/></Suspense>
       <details className="guided-review"><summary>Review your decisions</summary><ol>{lesson.questions.map(item => { const correct=item.choices.find(choice => choice.correct)!; return <li key={item.id}><strong>{item.prompt}</strong>{correct.code ? <pre><code>{correct.code.trim()}</code></pre> : <p>{correct.label}</p>}<p>{correct.feedback}</p></li>; })}</ol></details>
     </>}

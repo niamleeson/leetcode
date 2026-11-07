@@ -5,6 +5,7 @@ const vm = require('node:vm');
 const { root, problems, solutionMap } = require('../walkthroughs/load.cjs');
 const { instrument } = require('../walkthroughs/instrument.cjs');
 const { runJavaScript } = require('../../src/components/logic/runtime/javascriptExecution.ts');
+const { auditDocument, javascriptInventory } = require('./check-guided-coverage.cjs');
 const { logicRevision } = require('../../src/data/logic/manifest.ts');
 
 const digest = source => crypto.createHash('sha256').update(source).digest('hex');
@@ -45,6 +46,9 @@ function auditLessons(lessons, references) {
       report.correctCases += result.total; report.correctCasesPassed += result.passed;
       for (const test of result.tests) if (!test.passed) problemError('correct_source_failed', { name: test.name, actual: test.actual, error: test.error });
     } catch (error) { problemError('correct_source_crashed', { message: error.message }); }
+    const coverageDocument = lesson.questions[0]?.stage === 'pattern' ? lesson : { ...lesson, questions: [{ id: 'pattern', stage: 'pattern' }, { id: 'structure', stage: 'structure' }, ...lesson.questions] };
+    const coverage = auditDocument(coverageDocument, javascriptInventory(coverageDocument), reference.javascript);
+    for (const issue of coverage.issues) problemError('coverage_failure', { detail: issue });
     const questions = lesson.questions.filter(question => question.stage === 'implementation');
     if (!questions.length) problemError('missing_implementation_question');
     let lessonWrong = 0, lessonWitnesses = 0;
@@ -53,7 +57,7 @@ function auditLessons(lessons, references) {
       const errorFor = (kind, detail = {}) => problemError(kind, { question: question.id, ...detail });
       const correct = question.choices.filter(choice => choice.correct);
       const wrong = question.choices.filter(choice => !choice.correct);
-      if (correct.length !== 1 || wrong.length < 2) errorFor('invalid_choice_count');
+      if (correct.length !== 1 || wrong.length < 1) errorFor('invalid_choice_count');
       if (new Set(question.choices.map(choice => choice.code?.trim())).size !== question.choices.length) errorFor('duplicate_choices');
       try {
         if (correct.length === 1 && replaceLines(lesson.source, question, correct[0].code) === lesson.source) report.correctReplacements++;
@@ -129,7 +133,7 @@ function repairLessons(lessons, references) {
           return false;
         }
       });
-      if (question.choices.filter(choice => choice.correct).length !== 1 || question.choices.filter(choice => !choice.correct).length < 2) {
+      if (question.choices.filter(choice => choice.correct).length !== 1 || question.choices.filter(choice => !choice.correct).length < 1) {
         changes.removedQuestions.push({ id: reference.id, question: question.id });
         return false;
       }

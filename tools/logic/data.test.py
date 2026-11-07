@@ -7,7 +7,7 @@ import sys
 import unittest
 
 sys.dont_write_bytecode = True
-from adversarial import anagram, cases, duplicate, max_subarray, parentheses, product_except_self, robber, search, stairs, stock, two_sum
+from adversarial import anagram, cases, daily_temperatures, duplicate, max_subarray, parentheses, product_except_self, robber, search, stairs, stock, two_sum
 from generate import assert_skeleton, extract_interfaces
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -75,10 +75,29 @@ class Solution:
             for interface in document['interfaces']:
                 self.assertEqual(set(interface) - {'kind', 'className', 'name', 'parameters', 'returnType', 'signature'}, set())
                 ast.parse(interface['signature'] + '\n    pass')
-        self.assertEqual(total, 670)
+        self.assertEqual(total, 730)
 
 
 class AdversarialOracleTests(unittest.TestCase):
+    def test_daily_temperatures_cases_distinguish_strictness_distance_and_all_pending_days(self):
+        self.assertEqual(daily_temperatures([70, 70, 71]), [2, 1, 0])
+        self.assertEqual(daily_temperatures([75, 74, 73]), [0, 0, 0])
+        self.assertEqual(daily_temperatures([70]), [0])
+        self.assertEqual(daily_temperatures([75, 70, 65, 80]), [3, 2, 1, 0])
+        def candidate(temperatures, equal=False, pop_all=True, reverse_distance=False):
+            result = [0] * len(temperatures)
+            stack = []
+            for i, temperature in enumerate(temperatures):
+                while stack and (temperature >= temperatures[stack[-1]] if equal else temperature > temperatures[stack[-1]]):
+                    j = stack.pop()
+                    result[j] = j - i if reverse_distance else i - j
+                    if not pop_all:
+                        break
+                stack.append(i)
+            return result
+        for options in ({'equal': True}, {'pop_all': False}, {'reverse_distance': True}):
+            self.assertTrue(any(candidate(*case['args'], **options) != case['expected'] for case in cases()[739]), options)
+
     def test_independent_oracles_on_small_known_cases(self):
         self.assertEqual(two_sum([0, 4, 3, 0], 0), [0, 3])
         self.assertTrue(duplicate([-2, 1, -2]))

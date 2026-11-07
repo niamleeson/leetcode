@@ -4,17 +4,31 @@
 
 The default `/practice/:id` flow covers all 250 NeetCode problems in both
 languages. Each lesson starts with eight pattern choices, then four overall
-plans, followed by a few implementation decisions. Incorrect choices stay on
+plans, followed by implementation decisions through the end of the solution.
+Related operations can share a code-block question; there is no question-count
+cap that can cut off the later steps. Incorrect choices stay on
 the question with feedback; correct choices advance immediately. The approach
 is specific to the worked solution, and the UI acknowledges that other
 algorithms can be valid. Pattern feedback does not reveal the next plan.
+Structure questions use a masked interface scaffold or balanced pseudocode
+choices; the completed organization outline appears only after the right answer.
 
 Implementation distractors are source mutations with independently replayed
 counterexamples. The learner can inspect input, expected output, and the actual
 result or exception. These are individual substitutions into the reference
 implementation. They are not an unrestricted judge of alternate whole programs.
-Weak return questions that can be answered from output type alone are removed
-where substantive decisions remain, or replaced with reviewed alternatives.
+Choices test state, conditions, updates, and returned results. The coverage
+checks inventory source operations and require finishing decisions, including
+public design methods, rather than accepting a sampled prefix of the code.
+Any provably unreachable defensive fallback is reported separately and shown
+as context, not falsely counted as a tested decision. A return missing from the
+available examples is not sufficient evidence that it is unreachable.
+A bare early return can be tested through its direct guard in the same question:
+the independent audit reparses the wrong program and requires restoring only
+that guard to recover the original AST. This does not credit unrelated earlier
+edits or ignored return-value changes. Standard supplied nodes, heap helpers,
+and memoization declarations, plus proven redundant operations, are explicitly
+listed as context rather than counted as tested logic decisions.
 
 After the decisions, learners can run the finished code and step through real
 source statements and variables. Both languages run in workers; JavaScript
@@ -22,7 +36,9 @@ uses build-time instrumentation and Python uses the existing WebAssembly
 runtime. Neither worker runs before Run tests is pressed. Reveal solution is
 available throughout, matches the selected language, and leaves progress intact.
 Progress is saved separately for each problem and language, and invalidates
-when lesson content changes. Passing does not automatically mark mastery.
+when lesson content changes. Reopening an unfinished lesson quizzes the approach
+and structure again before resuming the saved implementation. A completed lesson
+starts a fresh attempt on its next visit. Passing does not automatically mark mastery.
 
 Only the requested lesson JSON, including its worked source, is downloaded;
 the library does not fetch all 500 lessons. The separate solution explanation,
@@ -46,7 +62,11 @@ LEETCODE_TEST_URL=http://127.0.0.1:5182/leetcode/ node tools/logic/browser-guide
 ```
 
 `generate-guided.cjs --check-artifacts` is a fast build guard for coverage,
-source hashes, choices, curriculum, and content revision. The full `--check`
+source hashes, choices, curriculum, and content revision. The separate
+`check-guided-coverage.cjs` audit parses every published source independently,
+checks ordered code-block replay, and rejects missing executable lines or
+finishing decisions. Supplied infrastructure and provably defensive lines are
+reported separately from tested decisions. The full `--check`
 executes the Python witnesses. `verify-guided-javascript.cjs` independently
 executes JavaScript references and wrong choices using the browser runtime
 adapter. Timeouts, recursion limits, and syntax/name errors are excluded as
@@ -100,19 +120,22 @@ methods. The generic builder can use these interfaces without loading the
 reference algorithm. Static content is requested per problem from a versioned
 directory; only the small metadata manifest loads initially.
 
-The suite adds 76 distinct counterexamples to 18 early problems. Their expected
-values come from simple exhaustive oracles in `adversarial.py`, independently
-of the reference solutions. Tests establish that these cases distinguish eight
+The suite adds 136 additional cases across 62 problems. Their expected
+values come from simple exhaustive oracles or directly checked edge cases in
+`adversarial.py`, independently of the reference solutions. Tests establish that these cases distinguish eight
 common mistakes, including reusing a Two Sum index, losing anagram counts,
 missing binary-search endpoints, permitting a sale before purchase, allowing
 multiple stock transactions, allowing an empty maximum subarray, and dividing
 by zero in product-except-self. This is practice feedback, not a replica of
 LeetCode's private judge or proof of correctness for every valid input.
 
-The runtime audit executes all 250 reference implementations against all 670
+The runtime audit executes all 250 reference implementations against all 730
 practice cases in the actual WebAssembly CPython runtime. It also requires
 eight intentionally incorrect programs to fail and accepts a brute-force Two
 Sum implementation with reversed valid indices and a linear-search alternative.
+Daily Temperatures also has cases for equal temperatures, no warmer day,
+a single day, and resolving several pending indices. Their expected results
+come from a straightforward suffix scan independent of the stack algorithm.
 This tests execution and feedback independently of the preferred solution text.
 The report is written to `/tmp/logic-reference-wasm-report.json`.
 

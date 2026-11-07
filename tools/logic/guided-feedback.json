@@ -35,6 +35,146 @@
       "questionId": "implementation-7",
       "sourceHash": "e98e9e921f37be501eff961dd1fbc9b383763f0169f26b78b807787c60866a76",
       "feedback": "Correct. The partner must satisfy partner + currentNum = target. Subtracting currentNum gives the value to look up among earlier elements."
+    },
+    {
+      "id": 739,
+      "language": "python",
+      "questionId": "python-line-2",
+      "sourceHash": "ad16c4f9a41103ec09874e96d93552e44b2d55a452c31223631e0e8f73af6391",
+      "feedback": "Correct. Use the number of temperatures so every day gets an answer slot and a visit."
+    },
+    {
+      "id": 739,
+      "language": "python",
+      "questionId": "python-line-3",
+      "sourceHash": "ad16c4f9a41103ec09874e96d93552e44b2d55a452c31223631e0e8f73af6391",
+      "feedback": "Correct. Zero is the required answer when no warmer day is found. Later updates replace it only for days whose wait is resolved."
+    },
+    {
+      "id": 739,
+      "language": "python",
+      "questionId": "python-line-4",
+      "sourceHash": "ad16c4f9a41103ec09874e96d93552e44b2d55a452c31223631e0e8f73af6391",
+      "feedback": "Correct. Start with no pending days. Store indices so you can calculate the distance between an earlier day and its first warmer day."
+    },
+    {
+      "id": 739,
+      "language": "python",
+      "questionId": "python-line-5",
+      "sourceHash": "ad16c4f9a41103ec09874e96d93552e44b2d55a452c31223631e0e8f73af6391",
+      "feedback": "Correct. Visit days from left to right, beginning with day zero. This makes the current day the earliest possible answer for each pending day it resolves."
+    },
+    {
+      "id": 739,
+      "language": "python",
+      "questionId": "python-line-6",
+      "sourceHash": "ad16c4f9a41103ec09874e96d93552e44b2d55a452c31223631e0e8f73af6391",
+      "feedback": "Correct. Keep resolving pending days while today is strictly warmer. Equal temperatures do not qualify, and one warmer day may resolve several earlier days."
+    },
+    {
+      "id": 739,
+      "language": "python",
+      "questionId": "python-line-7",
+      "sourceHash": "ad16c4f9a41103ec09874e96d93552e44b2d55a452c31223631e0e8f73af6391",
+      "feedback": "Correct. Remove the most recent pending day whose warmer day has now been found. Its index identifies the answer to update."
+    },
+    {
+      "id": 739,
+      "language": "python",
+      "questionId": "python-line-8",
+      "sourceHash": "ad16c4f9a41103ec09874e96d93552e44b2d55a452c31223631e0e8f73af6391",
+      "feedback": "Correct. Write the distance at the earlier day\u2019s index: current index minus earlier index. This counts the days it waited."
+    },
+    {
+      "id": 739,
+      "language": "python",
+      "questionId": "python-line-9",
+      "sourceHash": "ad16c4f9a41103ec09874e96d93552e44b2d55a452c31223631e0e8f73af6391",
+      "feedback": "Correct. After resolving earlier days, remember today\u2019s index. Its own warmer day must come later."
+    },
+    {
+      "id": 739,
+      "language": "python",
+      "questionId": "python-line-10",
+      "sourceHash": "ad16c4f9a41103ec09874e96d93552e44b2d55a452c31223631e0e8f73af6391",
+      "feedback": "Correct. Return the whole result after scanning all days. Unresolved days keep zero because no warmer future day exists."
+    },
+    {
+      "id": 739,
+      "language": "javascript",
+      "questionId": "implementation-2",
+      "sourceHash": "a39eefb2b9e77a71d0c662f3412c7cd7871f89cee761acd04bb0fab6b00fe000",
+      "feedback": "Correct. Use the number of temperatures so every day gets an answer slot and a visit."
+    },
+    {
+      "id": 739,
+      "language": "javascript",
+      "questionId": "implementation-3",
+      "sourceHash": "a39eefb2b9e77a71d0c662f3412c7cd7871f89cee761acd04bb0fab6b00fe000",
+      "feedback": "Correct. Zero is the required answer when no warmer day is found. Later updates replace it only for days whose wait is resolved."
+    },
+    {
+      "id": 739,
+      "language": "javascript",
+      "questionId": "implementation-7",
+      "sourceHash": "a39eefb2b9e77a71d0c662f3412c7cd7871f89cee761acd04bb0fab6b00fe000",
+      "feedback": "Correct. Start with no pending days. Store indices so you can calculate the distance between an earlier day and its first warmer day."
+    },
+    {
+      "id": 739,
+      "language": "javascript",
+      "questionId": "implementation-9",
+      "sourceHash": "a39eefb2b9e77a71d0c662f3412c7cd7871f89cee761acd04bb0fab6b00fe000",
+      "feedback": "Correct. Visit days from left to right, beginning with day zero. This makes the current day the earliest possible answer for each pending day it resolves."
+    },
+    {
+      "id": 739,
+      "language": "javascript",
+      "questionId": "implementation-10",
+      "sourceHash": "a39eefb2b9e77a71d0c662f3412c7cd7871f89cee761acd04bb0fab6b00fe000",
+      "feedback": "Correct. Read today\u2019s temperature using its index; compare temperatures to decide warmth and indices to calculate waiting time."
+    },
+    {
+      "id": 739,
+      "language": "javascript",
+      "questionId": "implementation-13",
+      "sourceHash": "a39eefb2b9e77a71d0c662f3412c7cd7871f89cee761acd04bb0fab6b00fe000",
+      "feedback": "Correct. Keep resolving pending days while today is strictly warmer. Equal temperatures do not qualify, and one warmer day may resolve several earlier days."
+    },
+    {
+      "id": 739,
+      "language": "javascript",
+      "questionId": "implementation-14",
+      "sourceHash": "a39eefb2b9e77a71d0c662f3412c7cd7871f89cee761acd04bb0fab6b00fe000",
+      "feedback": "Correct. Remove the most recent pending day whose warmer day has now been found. Its index identifies the answer to update."
+    },
+    {
+      "id": 739,
+      "language": "javascript",
+      "questionId": "implementation-15",
+      "sourceHash": "a39eefb2b9e77a71d0c662f3412c7cd7871f89cee761acd04bb0fab6b00fe000",
+      "feedback": "Correct. Subtract the earlier index from today\u2019s index. The difference is the number of days waited, not a temperature difference."
+    },
+    {
+      "id": 739,
+      "language": "javascript",
+      "questionId": "implementation-16",
+      "sourceHash": "a39eefb2b9e77a71d0c662f3412c7cd7871f89cee761acd04bb0fab6b00fe000",
+      "feedback": "Correct. Store that wait for the earlier day that was just resolved. Today\u2019s own answer is still unknown."
+    },
+    {
+      "id": 739,
+      "language": "javascript",
+      "questionId": "implementation-20",
+      "sourceHash": "a39eefb2b9e77a71d0c662f3412c7cd7871f89cee761acd04bb0fab6b00fe000",
+      "feedback": "Correct. After resolving earlier days, remember today\u2019s index. Its own warmer day must come later."
+    },
+    {
+      "id": 739,
+      "language": "javascript",
+      "questionId": "implementation-24",
+      "sourceHash": "a39eefb2b9e77a71d0c662f3412c7cd7871f89cee761acd04bb0fab6b00fe000",
+      "feedback": "Correct. Return the whole result after scanning all days. Unresolved days keep zero because no warmer future day exists."
     }
   ]
 }

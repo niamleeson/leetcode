@@ -4,6 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const { spawnSync } = require('node:child_process');
+const vm = require('node:vm');
 const { problems, solutionMap } = require('../walkthroughs/load.cjs');
 const curriculum = require('./guided-curriculum.json');
 const audit = require('./guided-source-audit.json');
@@ -69,9 +70,9 @@ test('source-specific patterns override misleading topic categories', () => {
   assert.equal(merged(767,'javascript').patternId,'priority-sort');
 });
 
-test('eight implementation differences have explicit JavaScript structure overrides', () => {
-  const overrides=Object.values(curriculum.lessons).filter(l=>l.languages?.javascript).map(l=>l.id).sort((a,b)=>a-b);
-  assert.deepEqual(overrides,[84,190,242,355,371,767,1929,3133]);
+test('all languages have their own organization outline while eight algorithm plans differ', () => {
+  assert.equal(Object.values(curriculum.lessons).filter(l=>l.languages?.javascript).length,250);
+  assert.deepEqual(curriculum.algorithmPlanOverrides,[84,190,242,355,371,767,1929,3133]);
   const correct=(id,language)=>{const q=merged(id,language).structureQuestion;return q.options.find(o=>o.id===q.correctId).label;};
   assert.match(correct(1929,'python'),/Concatenate/);
   assert.match(correct(1929,'javascript'),/Copy each original value/);
@@ -82,6 +83,94 @@ test('eight implementation differences have explicit JavaScript structure overri
   assert.match(correct(84,'javascript'),/earliest possible left edge/);
   assert.match(correct(371,'javascript'),/coercion/);
   assert.match(correct(3133,'javascript'),/BigInt/);
+});
+
+test('structure questions conceal completed outlines until the correct answer', () => {
+  for (const id of Object.keys(curriculum.lessons)) for (const language of ['python','javascript']) {
+    const question=merged(id,language).structureQuestion;
+    const correct=question.options.find(option=>option.id===question.correctId);
+    assert(correct.feedbackCode?.length>10,`${id} ${language}: missing completed outline`);
+    assert(correct.feedbackCode.split('\n').length<=14,`${id} ${language}: organization outline is too long for the question flow`);
+    assert(!/[<>=+*%]|\b(?:true|false|True|False|null|None)\b/.test(correct.feedbackCode),`${id} ${language}: an exact expression leaked into the organization outline`);
+    for(const option of question.options.filter(option=>option.id!==question.correctId)) assert(!option.feedbackCode,`${id}: wrong choice reveals the correct outline`);
+    if(Number(id)===739) {
+      assert(!question.context);
+      assert(question.options.every(option=>option.code?.split('\n').length===7));
+    } else {
+      assert.match(question.context,/\[Choose the body organization below\.\]/);
+      assert.equal(question.context.split('\n').length,2);
+      assert(question.context.split('\n')[0].endsWith(':'));
+      assert(!/\b(?:if|while|for|return)\b/.test(question.context),`${id}: completed control flow leaked before choosing a plan`);
+      assert(question.options.every(option=>!option.code),`${id}: mixed prose/code choices give away the answer`);
+    }
+  }
+});
+
+test('organization outlines use the public entry rather than an unrelated helper class', () => {
+  const fixtures=require('../walkthroughs/fixtures.json');
+  for(const problem of problems) for(const language of ['python','javascript']) {
+    const fixture=fixtures[problem.id][0],question=merged(problem.id,language).structureQuestion;
+    const correct=question.options.find(option=>option.id===question.correctId);
+    if(problem.id!==739) assert(question.context.startsWith('operation '+fixture.entry+':') || question.context.startsWith('class '+fixture.entry+':'),`${problem.id} ${language}: wrong public interface`);
+    for(const operation of fixture.operations || []) {
+      assert(correct.feedbackCode.includes(operation[0]+':'),`${problem.id} ${language}: missing public operation ${operation[0]}`);
+    }
+  }
+});
+
+test('Daily Temperatures outlines cover resolving, recording, remembering, and final return', () => {
+  for(const language of ['python','javascript']) {
+    const question=merged(739,language).structureQuestion;
+    const correct=question.options.find(option=>option.id===question.correctId).code;
+    assert.match(correct,/\n  while today resolves/);
+    assert.match(correct,/remove that pending day\n    record its waiting distance\n  add today's index/);
+    assert.match(correct,/\nreturn all waits after the scan$/);
+    const wrong=new Map(question.options.filter(option=>option.id!==question.correctId).map(option=>[option.id,option]));
+    assert.match(wrong.get('outline-resolve-once').code,/\n  if today resolves/);
+    assert.match(wrong.get('outline-push-first').code,/add today's index.*\n  while/);
+    assert.match(wrong.get('outline-return-early').code,/\n  return all waits now$/);
+  }
+});
+
+test('Daily Temperatures structure feedback describes actual failures in both source languages', () => {
+  const source=solutionMap[739];
+  const oracle=temperatures=>temperatures.map((temperature,index)=>{
+    for(let future=index+1;future<temperatures.length;future++) if(temperatures[future]>temperature) return future-index;
+    return 0;
+  });
+  const cases={once:[73,72,74],'push-first':[73,74],'return-early':[73,74]};
+  const actualByVariant={once:[0,1,0],'push-first':[0,0],'return-early':[0,0]};
+  const javascript={
+    once:source.jsCode.replace('while (stack.length','if (stack.length'),
+    'push-first':source.jsCode.replace('        stack.push(i);','').replace('    for (let i = 0; i < n; i++) {','    for (let i = 0; i < n; i++) {\n        stack.push(i);'),
+    'return-early':source.jsCode.replace('        stack.push(i);','        stack.push(i);\n        return result;'),
+  };
+  for(const [variant,code] of Object.entries(javascript)) {
+    assert.notEqual(code,source.jsCode);
+    const actual=JSON.parse(JSON.stringify(vm.runInNewContext(code+'; dailyTemperatures('+JSON.stringify(cases[variant])+')',{}, {timeout:1000})));
+    assert.deepEqual(actual,actualByVariant[variant]);
+    assert.notDeepEqual(actual,oracle(cases[variant]));
+  }
+  const python=spawnSync('python3',['-c',String.raw`
+import json,sys
+source=json.load(sys.stdin)
+variants={
+    'once':source.replace('while stack and','if stack and'),
+    'push-first':source.replace('        stack.append(i)\n','').replace('    for i in range(n):\n','    for i in range(n):\n        stack.append(i)\n'),
+    'return-early':source.replace('        stack.append(i)','        stack.append(i)\n        return result'),
+}
+output={}
+for variant,code in variants.items():
+    assert code!=source
+    namespace={}
+    exec(code,namespace)
+    output[variant]=namespace['dailyTemperatures']([73,72,74] if variant=='once' else [73,74])
+print(json.dumps(output))
+`],{input:JSON.stringify(source.code),encoding:'utf8',timeout:2000});
+  assert.equal(python.status,0,python.stderr);
+  const actual=JSON.parse(python.stdout);
+  assert.deepEqual(actual,actualByVariant);
+  for(const [variant,result] of Object.entries(actual)) assert.notDeepEqual(result,oracle(cases[variant]));
 });
 
 test('known equivalent alternatives are not falsely labeled as broken plans', () => {

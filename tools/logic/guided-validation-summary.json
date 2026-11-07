@@ -2,9 +2,9 @@
   "problems": 250,
   "languages": 2,
   "lessons": 500,
-  "revision": "b85711f8f1a986f3",
-  "questions": 2671,
-  "referenceCases": 1340,
-  "testedWrongChoices": 4897,
-  "bytes": 7289737
+  "revision": "182def1f806c1055",
+  "questions": 6891,
+  "referenceCases": 1460,
+  "testedWrongChoices": 16117,
+  "bytes": 14844669
 }
