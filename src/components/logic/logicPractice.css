@@ -147,3 +147,15 @@ html.light .logic-fail { color:#92400e; }
 .logic-variant-panel > div:last-child button { min-height:44px; text-align:left; padding:8px; background:var(--lp-card); border-radius:5px; font-size:11px; overflow-wrap:anywhere; }
 .logic-case-values .logic-operation-list { grid-column:1 / -1; }
 .logic-current-statement { font:12px/1.6 ui-monospace,monospace; white-space:pre-wrap; overflow-wrap:anywhere; border-left:2px solid #fbbf24; padding:9px 10px; margin:8px 0 12px; background:var(--lp-bg); border-radius:4px; }
+.logic-reference { min-width:0; border:1px solid var(--lp-line); border-radius:10px; background:var(--lp-panel); overflow:hidden; }
+.logic-reveal-button { display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%; min-height:46px; padding:10px 13px; color:var(--lp-accent); text-align:left; font-size:13px!important; }
+.logic-reveal-button[aria-expanded="true"] { border-bottom:1px solid var(--lp-line); }
+.logic-solution-content { min-width:0; padding:14px; font-size:13px; line-height:1.65; }
+.logic-solution-content h2 { font-size:15px; font-weight:650; margin:0 0 10px; }
+.logic-solution-content h3 { font-size:12px; font-weight:650; margin:16px 0 5px; }
+.logic-solution-content p { color:var(--lp-muted); white-space:pre-line; }
+.logic-solution-content pre { max-width:100%; }
+.logic-solution-content dl { display:flex; flex-wrap:wrap; gap:12px 24px; margin-top:14px; }
+.logic-solution-content dt { font-size:11px; color:var(--lp-muted); }
+.logic-solution-content dd { font:12px/1.5 ui-monospace,monospace; }
+.logic-solution-status { color:var(--lp-muted); padding:14px; font-size:13px; }

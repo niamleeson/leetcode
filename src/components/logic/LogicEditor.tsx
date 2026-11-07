@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { LogicProblem } from '../../data/logic/types';
 import { createBuilder, restoreBuilder, assembleSourceWithMap, getActionGroups, selectAction, insertLine, updateLine, deleteLine, moveLine, indentLine, setCursor, selectUnit, tokenChoices, replaceToken } from './builder';
@@ -7,6 +7,7 @@ import { createPythonRunner } from './runtime/pythonRunner';
 import type { LogicRunResult, LogicTestResult } from './runtime/types';
 
 const STORAGE_VERSION = 1;
+const PracticeSolution = lazy(() => import('./PracticeSolution'));
 const display = (value: unknown) => JSON.stringify(value, null, 2) ?? 'No return value';
 
 function initialProgram(problem: LogicProblem): BuilderProgram {
@@ -38,6 +39,7 @@ export default function LogicEditor({ problem }: { problem: LogicProblem }) {
   const [error, setError] = useState('');
   const [caseIndex, setCaseIndex] = useState(0);
   const [step, setStep] = useState(-1);
+  const [solutionRevealed, setSolutionRevealed] = useState(false);
   const runner = useRef<ReturnType<typeof createPythonRunner> | null>(null);
   const mounted = useRef(true);
   const codeArea = useRef<HTMLDivElement>(null);
@@ -179,6 +181,17 @@ export default function LogicEditor({ problem }: { problem: LogicProblem }) {
       <div className="logic-run-meta" role="status">{runStatus === 'loading' ? <span className="logic-runtime-status">Starting Python… First run downloads the runner.</span> : runStatus === 'running' ? <span className="logic-runtime-status">Running your code…</span> : <>{problem.fixtures.length} practice tests · Runs on your device<br/>Python downloads only when you press Run.</>}</div>
       <button className="logic-small-button" disabled={busy || !program.units.some(u => u.lines.length)} onClick={() => change(createBuilder(problem.starter, problem.interfaces))}>Clear</button>
     </div>
+    <section className="logic-reference" aria-label="Reference solution">
+      <button type="button" className="logic-reveal-button" aria-expanded={solutionRevealed}
+        aria-controls={`practice-solution-${problem.id}`} onClick={() => setSolutionRevealed(value => !value)}>
+        <span>{solutionRevealed ? 'Hide solution' : 'Reveal solution'}</span><span aria-hidden="true">{solutionRevealed ? '−' : '+'}</span>
+      </button>
+      <div id={`practice-solution-${problem.id}`} hidden={!solutionRevealed}>
+        {solutionRevealed && <Suspense fallback={<p className="logic-solution-status" role="status">Loading solution…</p>}>
+          <PracticeSolution id={problem.id} />
+        </Suspense>}
+      </div>
+    </section>
     {error && <p className="logic-error" role="alert">{error}</p>}
     {result && <section className="logic-results" ref={resultsArea} aria-label="Test results">
       <div className="logic-results-heading"><strong className={result.passed === result.total ? 'logic-pass' : 'logic-fail'}>{result.passed} / {result.total} practice tests passed</strong><small>Your code, actually executed</small></div>
