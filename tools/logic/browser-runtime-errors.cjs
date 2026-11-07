@@ -1,0 +1,26 @@
+const {chromium}=require('playwright');
+const assert=require('node:assert/strict');
+const url=process.env.LEETCODE_TEST_URL || 'http://127.0.0.1:5181/leetcode/';
+(async()=>{
+ const browser=await chromium.launch({executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true});
+ const page=await browser.newPage({viewport:{width:390,height:844}});
+ await page.goto(`${url}#/practice/1`);await page.getByRole('heading',{name:'Two Sum',exact:true}).waitFor();
+ await page.context().route('**/*.wasm',route=>route.abort());
+ await page.getByRole('button',{name:'Run tests',exact:true}).click();
+ await page.getByRole('alert').waitFor({timeout:60000});
+ assert.match(await page.getByRole('alert').innerText(),/Python|load|network|fetch/i); console.log('Missing WASM handled');
+ await page.context().unroute('**/*.wasm');
+ await page.getByRole('button',{name:'Run tests',exact:true}).click();
+ await page.getByText('0 / 6 practice tests passed',{exact:true}).waitFor({timeout:60000});
+ console.log('Retry succeeded'); await page.getByRole('button',{name:'Custom statement…',exact:true}).click();
+ await page.getByLabel('Add Python statements',{exact:true}).fill('while True:\n    pass');
+ await page.getByRole('button',{name:'Add statement',exact:true}).click();
+ await page.getByRole('button',{name:'Run tests',exact:true}).click();
+ await page.getByRole('button',{name:'Stop',exact:true}).click();
+ await page.getByRole('alert').waitFor();assert.match(await page.getByRole('alert').innerText(),/stopped/);
+ await page.getByRole('button',{name:'Clear',exact:true}).click();
+ await page.getByRole('button',{name:'Run tests',exact:true}).click();await page.getByText('0 / 6 practice tests passed',{exact:true}).waitFor({timeout:60000});
+ await page.reload();await page.getByRole('heading',{name:'Two Sum',exact:true}).waitFor();assert.equal(await page.locator('.logic-source-line').count(),0);
+ console.log('Production browser error checks passed: lazy WASM failure, successful retry, Stop during an infinite loop, subsequent fresh run, cleared draft restoration.');
+ await browser.close();
+})().catch(error=>{console.error(error);process.exit(1)});

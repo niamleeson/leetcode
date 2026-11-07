@@ -5,6 +5,7 @@ import { usePersistedOpenSet } from '../hooks/usePersistedOpenSet';
 import { NeetCodeTopic, NeetCodeTemplate, NeetCodeProblem, NeetCodeReference } from '../data/neetcode250';
 import { uniqueProblems } from '../data/problems';
 import { hasSolution as hasStoredSolution } from '../data/solutions/lazy';
+import { hasLogicProblem } from '../data/logic';
 import CodeBlock from './CodeBlock';
 import './neetcodeView.css';
 
@@ -78,6 +79,9 @@ function ProblemRow({
           {problem.title}
         </button>
         <span className={`text-xs font-medium ${difficultyColor(problem.difficulty)}`}>{problem.difficulty}</span>
+        {hasLogicProblem(problem.id) && <Link to={`/practice/${problem.id}`}
+          className="py-2 text-xs font-medium text-cyan-400 light:text-cyan-700"
+          aria-label={`Build Python for ${problem.title}`}>Build</Link>}
         <a
           href={problem.url}
           target="_blank"

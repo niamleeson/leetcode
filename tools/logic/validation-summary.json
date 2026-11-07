@@ -1,0 +1,64 @@
+{
+  "date": "2026-11-07",
+  "scope": "Automated execution and browser interaction; not a learner-retention study",
+  "logicTests": 52,
+  "existingWalkthroughTests": 823,
+  "catalogTests": 7,
+  "dataOracleTests": 6,
+  "problemsExecutedInWebAssembly": 250,
+  "practiceCases": 670,
+  "browser": {
+    "exercises": [
+      {
+        "title": "Two Sum",
+        "constructionTaps": 9,
+        "runMs": 1329,
+        "passed": 6
+      },
+      {
+        "title": "Contains Duplicate",
+        "constructionTaps": 12,
+        "runMs": 1327,
+        "passed": 7
+      },
+      {
+        "title": "Valid Anagram",
+        "constructionTaps": 2,
+        "runMs": 1320,
+        "passed": 7
+      },
+      {
+        "title": "Binary Search",
+        "constructionTaps": 27,
+        "runMs": 1328,
+        "passed": 9
+      },
+      {
+        "title": "Stock profit",
+        "constructionTaps": 11,
+        "runMs": 1325,
+        "passed": 9
+      }
+    ],
+    "errors": [],
+    "warmRunMs": 979
+  },
+  "loading": [
+    {
+      "route": "/",
+      "startupJsGzipBytes": 254594,
+      "jsFiles": 1,
+      "problemRequests": [],
+      "pythonRequests": []
+    },
+    {
+      "route": "/practice/1",
+      "startupJsGzipBytes": 272796,
+      "jsFiles": 3,
+      "problemRequests": [
+        "/leetcode/logic/problems/73632f68e86962f3/1.json"
+      ],
+      "pythonRequests": []
+    }
+  ]
+}

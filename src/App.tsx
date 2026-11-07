@@ -22,11 +22,13 @@ const SDIVol1Reference = lazy(() => import('./components/SDIVol1Reference'));
 const GlossaryPage = lazy(() => import('./components/GlossaryPage'));
 const AskClaudePanel = lazy(() => import('./components/AskClaudePanel'));
 const StudyMode = lazy(() => import('./components/study/StudyMode'));
+const LogicPractice = lazy(() => import('./components/logic/LogicPractice'));
 
 export default function App() {
   const store = useAppStore();
   const { pathname } = useLocation();
   const isNeetCodePage = ['/neetcode', '/neetcode150', '/blind75'].includes(pathname.replace(/\/+$/, ''));
+  const isLogicPage = pathname === '/practice' || pathname.startsWith('/practice/');
   const [highlighted, setHighlighted] = useState('');
   const [panelPos, setPanelPos] = useState<{ top: number; left: number } | null>(null);
   const panelLockedRef = useRef(false);
@@ -96,7 +98,7 @@ export default function App() {
         dailyGoal={store.dailyGoal}
         getTopicStats={store.getTopicStats}
       />
-      <main className={`mx-auto ${isNeetCodePage ? 'neetcode-main' : 'p-2 md:p-6 pt-14 overflow-y-auto max-w-5xl'}`}>
+      <main className={`mx-auto ${isLogicPage ? 'logic-main' : isNeetCodePage ? 'neetcode-main' : 'p-2 md:p-6 pt-14 overflow-y-auto max-w-5xl'}`}>
         <Suspense fallback={<p role="status" className="p-4 text-sm text-gray-400 light:text-gray-600">Loading page…</p>}>
         <Routes>
           <Route path="/" element={
@@ -130,6 +132,7 @@ export default function App() {
           } />
           <Route path="/dsa" element={<DSAReference />} />
           <Route path="/neetcode" element={<NeetCode250 />} />
+          <Route path="/practice/:id?" element={<LogicPractice />} />
           <Route path="/neetcode150" element={<NeetCode150 />} />
           <Route path="/blind75" element={<NeetCodeBlind75 />} />
           <Route path="/system-design" element={<SystemDesignReference />} />

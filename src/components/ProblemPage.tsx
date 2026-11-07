@@ -2,6 +2,7 @@ import { lazy, Suspense, useState } from 'react';
 import { Link, useParams, Navigate } from 'react-router-dom';
 import { uniqueProblems } from '../data/problems';
 import { hasSolution } from '../data/solutions/lazy';
+import { hasLogicProblem } from '../data/logic';
 import { useProblemSolution } from '../hooks/useProblemSolution';
 import { ProblemProgress } from '../types';
 import { useLocalStorage } from '../hooks/useLocalStorage';
@@ -139,6 +140,9 @@ export default function ProblemPage({ getProgress, onRate, onUpdateNotes, onRese
           </div>
         </div>
       </div>
+
+      {hasLogicProblem(problem.id) && <Link to={`/practice/${problem.id}`}
+        className="inline-flex items-center min-h-11 px-4 py-2 rounded-lg bg-cyan-600 text-white font-medium text-sm">Build your Python solution</Link>}
 
       {solution ? (
         <>

@@ -15,6 +15,7 @@ interface SidebarProps {
 const navItems = [
   { path: '/', label: 'Dashboard' },
   { path: '/study', label: 'Study Session', badgeKey: 'due' as const },
+  { path: '/practice', label: 'Build Python' },
   { path: '/problems', label: 'All Problems' },
   { path: '/dsa', label: 'DSA Reference' },
   { path: '/blind75', label: 'NeetCode Blind 75' },
@@ -119,6 +120,8 @@ export default function Sidebar({
         <nav className="p-2 space-y-0.5 shrink-0 max-h-[55vh] overflow-y-auto">
           {navItems.map(item => {
             const isActive = location.pathname === item.path || (
+              item.path === '/practice' && location.pathname.startsWith('/practice/')
+            ) || (
               item.path === '/hackerrank-react' && location.pathname.startsWith('/hackerrank-react/')
             );
             const badge = item.badgeKey === 'due' ? dueCount : 0;

@@ -7,7 +7,7 @@
     "dev": "ollama serve & node server.mjs & vite",
     "dev:vite": "vite",
     "dev:server": "node server.mjs",
-    "build": "node tools/walkthroughs/check-artifacts.cjs && node tools/walkthroughs/check-python-artifacts.cjs && node tools/solutions/generate.cjs && node tools/catalog/check-catalog.cjs && tsc -b && vite build",
+    "build": "node tools/walkthroughs/check-artifacts.cjs && node tools/walkthroughs/check-python-artifacts.cjs && node tools/solutions/generate.cjs && node tools/catalog/check-catalog.cjs && node tools/logic/generate.cjs --check && tsc -b && vite build",
     "preview": "vite preview",
     "hackerrank:test": "vitest run --config vitest.hackerrank.config.ts",
     "walkthroughs:generate": "node tools/walkthroughs/verify.cjs --write && node tools/walkthroughs/verify-python.cjs --write",
@@ -18,7 +18,10 @@
     "walkthroughs:audit": "node tools/walkthroughs/audit-recordings.cjs && node tools/walkthroughs/debugger-audit.cjs",
     "solutions:generate": "node tools/solutions/generate.cjs --write",
     "catalog:check": "node tools/catalog/check-catalog.cjs",
-    "catalog:test": "vitest run --config vitest.catalog.config.ts"
+    "catalog:test": "vitest run --config vitest.catalog.config.ts",
+    "logic:test": "vitest run --config vitest.logic.config.ts",
+    "logic:data": "node tools/logic/generate.cjs --check && python3 -B tools/logic/data.test.py",
+    "logic:verify": "node tools/logic/verify-runtime.mjs"
   },
   "dependencies": {
     "@excalidraw/excalidraw": "^0.18.0",
