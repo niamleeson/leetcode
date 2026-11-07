@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Topic } from '../types';
 import { uniqueProblems, STUDY_ORDER } from '../data/problems';
-import { topicToSlug } from '../App';
+import { topicToSlug } from '../utils/topic-routing';
 import ProgressBar from './ProgressBar';
 
 interface DashboardProps {

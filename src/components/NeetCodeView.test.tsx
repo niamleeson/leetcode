@@ -1,5 +1,6 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { NeetCodeTopic, neetcodeTopics } from '../data/neetcode250';
 import NeetCodeView from './NeetCodeView';
@@ -27,16 +28,40 @@ function showPage(storagePrefix = 'nc250') {
   );
 }
 
-beforeEach(() => localStorage.clear());
-afterEach(cleanup);
+beforeEach(() => {
+  localStorage.clear();
+  vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+    const filename = String(url).match(/\/solutions\/([^/]+\.json)$/)?.[1];
+    if (!filename) throw new Error(`Unexpected request: ${url}`);
+    return new Response(readFileSync(`public/solutions/${filename}`, 'utf8'));
+  }));
+});
+afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
-it('switches the Kth Largest Stream constructor analysis with the selected code language', () => {
+it('requests only the selected solution after expansion and reuses it after collapse', async () => {
+  const problem = neetcodeTopics.flatMap(topic => topic.problems).find(problem => problem.id === 1)!;
+  const topic: NeetCodeTopic = { name: 'Arrays', problems: [problem], templates: [{ ...topics[0].templates[0], problemIds: [1] }] };
+  render(<MemoryRouter><NeetCodeView topics={[topic]} storagePrefix="nc250" title="NeetCode" description="Templates" /></MemoryRouter>);
+  expect(fetch).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: /^Arrays 1 template/ }));
+  expect(fetch).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: 'Expand solution' }));
+  await screen.findByRole('slider', { name: 'Two Sum step' });
+  expect(fetch).toHaveBeenCalledTimes(1);
+  expect(vi.mocked(fetch).mock.calls[0][0]).toMatch(/\/solutions\/1-[a-f\d]+\.json$/);
+  fireEvent.click(screen.getByRole('button', { name: 'Collapse solution' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Expand solution' }));
+  await screen.findByRole('slider', { name: 'Two Sum step' });
+  expect(fetch).toHaveBeenCalledTimes(1);
+});
+
+it('switches the Kth Largest Stream constructor analysis with the selected code language', async () => {
   const problem = neetcodeTopics.flatMap(topic => topic.problems).find(problem => problem.id === 703)!;
   const topic: NeetCodeTopic = { name: 'Heaps', problems: [problem], templates: [{ ...topics[0].templates[0], problemIds: [703] }] };
   render(<MemoryRouter><NeetCodeView topics={[topic]} storagePrefix="nc250" title="NeetCode" description="Templates" /></MemoryRouter>);
   fireEvent.click(screen.getByRole('button', { name: /^Heaps 1 template/ }));
   fireEvent.click(screen.getByRole('button', { name: 'Expand solution' }));
-  expect(document.querySelectorAll('.complexity-equation')).toHaveLength(2);
+  await waitFor(() => expect(document.querySelectorAll('.complexity-equation')).toHaveLength(2));
   expect(screen.getByText('Constructor')).toBeTruthy();
   expect(screen.getByText('add', { selector: 'p' })).toBeTruthy();
   expect(screen.getByText(/Call add for every initial value/)).toBeTruthy();
@@ -49,28 +74,28 @@ it('switches the Kth Largest Stream constructor analysis with the selected code 
   expect(screen.getByText(/Call add for every initial value/)).toBeTruthy();
 });
 
-it('renders separate operation equations for both stack-using-queue versions', () => {
+it('renders separate operation equations for both stack-using-queue versions', async () => {
   const problem = neetcodeTopics.flatMap(topic => topic.problems).find(problem => problem.id === 225)!;
   const topic: NeetCodeTopic = { name: 'Stack', problems: [problem], templates: [{ ...topics[0].templates[0], problemIds: [225] }] };
   localStorage.setItem('nc250-language', JSON.stringify('python'));
   render(<MemoryRouter><NeetCodeView topics={[topic]} storagePrefix="nc250" title="NeetCode" description="Templates" /></MemoryRouter>);
   fireEvent.click(screen.getByRole('button', { name: /^Stack 1 template/ }));
   fireEvent.click(screen.getByRole('button', { name: 'Expand solution' }));
-  expect(document.querySelectorAll('.solution-complexity')).toHaveLength(2);
+  await waitFor(() => expect(document.querySelectorAll('.solution-complexity')).toHaveLength(2));
   expect(document.querySelectorAll('.complexity-equation')).toHaveLength(6);
   expect(screen.getByText(/Move the n previous values to the helper queue/)).toBeTruthy();
   expect(screen.getByText(/Rotate the n previous values/)).toBeTruthy();
   expect(screen.getAllByText('pop / top / empty')).toHaveLength(2);
 });
 
-it('shows the Accounts Merge sum and simplification for BFS, with a separate union-find derivation in either language', () => {
+it('shows the Accounts Merge sum and simplification for BFS, with a separate union-find derivation in either language', async () => {
   const problem = neetcodeTopics.flatMap(topic => topic.problems).find(problem => problem.id === 721)!;
   const topic: NeetCodeTopic = { name: 'Graphs', problems: [problem], templates: [{ ...topics[0].templates[0], problemIds: [721] }] };
   render(<MemoryRouter><NeetCodeView topics={[topic]} storagePrefix="nc250" title="NeetCode" description="Templates" /></MemoryRouter>);
   fireEvent.click(screen.getByRole('button', { name: /^Graphs 1 template/ }));
   fireEvent.click(screen.getByRole('button', { name: 'Expand solution' }));
   const equations = () => [...document.querySelectorAll('.complexity-equation')].map(element => element.textContent);
-  expect(equations()).toHaveLength(2);
+  await waitFor(() => expect(equations()).toHaveLength(2));
   expect(equations()[0]).toBe('O(T) + O(U + T) + O(U log U) + O(U)\n= O(T) + O(T) + O(U log U) + O(U)\n= O(T + U log U)');
   expect(equations()[1]).toContain('O(T log U)');
   expect(equations()[1]).not.toContain('O(U + T)');
@@ -106,7 +131,7 @@ it.each([323,684,721,1462,1489,1584,2709])('shows BFS first for #%i and loads th
   render(<MemoryRouter><NeetCodeView topics={[topic]} storagePrefix="nc250" title="NeetCode" description="Templates"/></MemoryRouter>);
   fireEvent.click(screen.getByRole('button',{name:/^Graphs 1 template/}));
   fireEvent.click(screen.getByRole('button',{name:'Expand solution'}));
-  const firstHeading=screen.getByRole('heading',{name:`${solution.solutionTitle} · JavaScript Solution`});
+  const firstHeading=await screen.findByRole('heading',{name:`${solution.solutionTitle} · JavaScript Solution`});
   const secondHeading=screen.getByRole('heading',{name:`${alternative.label}: ${alternative.title}`});
   expect(firstHeading.compareDocumentPosition(secondHeading)&Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   await screen.findByRole('slider',{name:`${problem.title} step`});
@@ -145,7 +170,7 @@ it('shows both island solutions, loads independent players, and shares the highl
   render(<MemoryRouter><NeetCodeView topics={[islandTopic]} storagePrefix="nc250" title="NeetCode" description="Templates"/></MemoryRouter>);
   fireEvent.click(screen.getByRole('button',{name:/^Graphs 1 template/}));
   fireEvent.click(screen.getByRole('button',{name:'Expand solution'}));
-  expect(screen.getByRole('heading',{name:'Recursive DFS · JavaScript Solution'})).toBeTruthy();
+  expect(await screen.findByRole('heading',{name:'Recursive DFS · JavaScript Solution'})).toBeTruthy();
   expect(screen.getByRole('heading',{name:'Alternative: Iterative DFS (explicit stack)'})).toBeTruthy();
   await screen.findByRole('slider',{name:/Number of Islands · Iterative DFS/});
   await screen.findByRole('slider',{name:'Number of Islands step'});

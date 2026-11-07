@@ -1,0 +1,28 @@
+.catalog-section-title { margin-bottom: .75rem; color: #94a3b8; font-size: .75rem; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; }
+.catalog-prose { min-width: 0; color: #d1d5db; font-size: .875rem; line-height: 1.75; overflow-wrap: anywhere; }
+.catalog-prose > * + * { margin-top: 1rem; }
+.catalog-prose h2, .catalog-prose h3, .catalog-prose h4 { color: #f3f4f6; font-weight: 600; }
+.catalog-prose ul, .catalog-prose ol { padding-left: 1.5rem; }
+.catalog-prose ul { list-style-type: disc; }
+.catalog-prose ol { list-style-type: decimal; }
+.catalog-prose li + li { margin-top: .35rem; }
+.catalog-prose pre { overflow-x: auto; padding: 1rem; border: 1px solid #374151; border-radius: .5rem; white-space: pre-wrap; background: #030712; }
+.catalog-prose code { font-size: .85em; color: #bae6fd; }
+.catalog-prose table { display: block; max-width: 100%; overflow-x: auto; border-collapse: collapse; }
+.catalog-prose th, .catalog-prose td { padding: .5rem .75rem; border: 1px solid #374151; text-align: left; }
+.catalog-prose th { font-weight: 600; background: #111827; }
+.catalog-prose img { max-width: 100%; height: auto; border-radius: .25rem; }
+.catalog-prose a, .catalog-attribution a { color: #60a5fa; text-decoration: underline; }
+.catalog-prose blockquote { border-left: 3px solid #475569; padding-left: 1rem; color: #94a3b8; }
+.catalog-prose .katex-display { max-width: 100%; overflow-x: auto; overflow-y: hidden; padding: .25rem 0; }
+.catalog-attribution { border-top: 1px solid #374151; padding-top: 1rem; font-size: .75rem; color: #9ca3af; line-height: 1.6; }
+.catalog-attribution summary { cursor: pointer; }
+.catalog-loading { padding: 1rem; color: #9ca3af; font-size: .875rem; }
+.catalog-loading button { margin-top: .75rem; border: 1px solid #475569; border-radius: .375rem; padding: .4rem .8rem; color: #60a5fa; }
+.light .catalog-prose { color: #374151; }
+.light .catalog-prose h2, .light .catalog-prose h3, .light .catalog-prose h4 { color: #111827; }
+.light .catalog-prose code { color: #075985; }
+.light .catalog-prose pre, .light .catalog-prose th { background: #f9fafb; }
+.light .catalog-prose pre, .light .catalog-prose th, .light .catalog-prose td, .light .catalog-attribution { border-color: #d1d5db; }
+.light .catalog-section-title, .light .catalog-attribution, .light .catalog-loading { color: #4b5563; }
+.light .catalog-prose a, .light .catalog-attribution a, .light .catalog-loading button { color: #1d4ed8; }

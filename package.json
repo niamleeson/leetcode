@@ -7,7 +7,7 @@
     "dev": "ollama serve & node server.mjs & vite",
     "dev:vite": "vite",
     "dev:server": "node server.mjs",
-    "build": "node tools/walkthroughs/check-artifacts.cjs && node tools/walkthroughs/check-python-artifacts.cjs && tsc -b && vite build",
+    "build": "node tools/walkthroughs/check-artifacts.cjs && node tools/walkthroughs/check-python-artifacts.cjs && node tools/solutions/generate.cjs && node tools/catalog/check-catalog.cjs && tsc -b && vite build",
     "preview": "vite preview",
     "hackerrank:test": "vitest run --config vitest.hackerrank.config.ts",
     "walkthroughs:generate": "node tools/walkthroughs/verify.cjs --write && node tools/walkthroughs/verify-python.cjs --write",
@@ -15,22 +15,34 @@
     "walkthroughs:python:test": "python3 -B -m unittest discover -s tools/walkthroughs -p python_runtime_test.py",
     "walkthroughs:verify": "npm run walkthroughs:python:test && node --test tools/walkthroughs/runtime.test.cjs && node tools/walkthroughs/verify.cjs && node tools/walkthroughs/check-artifacts.cjs && node tools/walkthroughs/verify-python.cjs && node tools/walkthroughs/check-python-artifacts.cjs",
     "walkthroughs:test": "vitest run --config vitest.walkthrough.config.ts",
-    "walkthroughs:audit": "node tools/walkthroughs/audit-recordings.cjs && node tools/walkthroughs/debugger-audit.cjs"
+    "walkthroughs:audit": "node tools/walkthroughs/audit-recordings.cjs && node tools/walkthroughs/debugger-audit.cjs",
+    "solutions:generate": "node tools/solutions/generate.cjs --write",
+    "catalog:check": "node tools/catalog/check-catalog.cjs",
+    "catalog:test": "vitest run --config vitest.catalog.config.ts"
   },
   "dependencies": {
     "@excalidraw/excalidraw": "^0.18.0",
     "@types/prismjs": "^1.26.6",
     "cors": "^2.8.6",
     "express": "^5.2.1",
+    "katex": "^0.19.1",
     "mermaid": "^11.13.0",
     "prismjs": "^1.30.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-markdown": "^10.1.0",
     "react-router-dom": "^7.13.1",
-    "remark-gfm": "^4.0.1"
+    "rehype-katex": "^7.0.1",
+    "rehype-raw": "^7.0.0",
+    "rehype-sanitize": "^6.0.0",
+    "remark-gfm": "^4.0.1",
+    "remark-math": "^6.0.0"
   },
   "devDependencies": {
+    "@babel/generator": "^7.29.1",
+    "@babel/parser": "^7.29.0",
+    "@babel/traverse": "^7.29.0",
+    "@babel/types": "^7.29.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/cors": "^2.8.19",
@@ -44,10 +56,9 @@
     "tailwindcss": "^3.4.16",
     "typescript": "^5.6.3",
     "vite": "^6.0.3",
-    "vitest": "^4.1.0",
-    "@babel/parser": "^7.29.0",
-    "@babel/traverse": "^7.29.0",
-    "@babel/generator": "^7.29.1",
-    "@babel/types": "^7.29.0"
+    "vitest": "^4.1.0"
+  },
+  "overrides": {
+    "hast-util-raw": "9.0.4"
   }
 }

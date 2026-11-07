@@ -9,6 +9,8 @@ interface SearchViewProps {
 
 export default function SearchView({ getProgress }: SearchViewProps) {
   const [query, setQuery] = useState('');
+  const [page, setPage] = useState(0);
+  const pageSize = 50;
 
   const results = useMemo(() => {
     if (!query.trim()) return [];
@@ -22,10 +24,12 @@ export default function SearchView({ getProgress }: SearchViewProps) {
         return { problem: p, score: matchCount };
       })
       .filter(r => r.score > 0)
-      .sort((a, b) => b.score - a.score)
-      .map(r => r.problem)
-      .slice(0, 50);
+      .sort((a, b) => b.score - a.score || a.problem.id - b.problem.id)
+      .map(r => r.problem);
   }, [query]);
+  const totalPages = Math.ceil(results.length / pageSize);
+  const safePage = Math.min(page, Math.max(0, totalPages - 1));
+  const visibleResults = results.slice(safePage * pageSize, (safePage + 1) * pageSize);
 
   return (
     <div className="space-y-4">
@@ -34,7 +38,7 @@ export default function SearchView({ getProgress }: SearchViewProps) {
         <input
           type="text"
           value={query}
-          onChange={e => setQuery(e.target.value)}
+          onChange={e => { setQuery(e.target.value); setPage(0); }}
           placeholder="Search by problem name, number, topic, or difficulty..."
           className="w-full bg-gray-900 light:bg-white border border-gray-700 light:border-gray-300 rounded-lg px-4 py-3 text-white light:text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:outline-none text-sm"
           autoFocus
@@ -46,7 +50,7 @@ export default function SearchView({ getProgress }: SearchViewProps) {
       )}
 
       <div className="space-y-2">
-        {results.map(p => (
+        {visibleResults.map(p => (
           <ProblemCard key={p.id} problem={p} progress={getProgress(p.id)} />
         ))}
         {query.trim() && results.length === 0 && (
@@ -60,6 +64,11 @@ export default function SearchView({ getProgress }: SearchViewProps) {
           </div>
         )}
       </div>
+      {totalPages > 1 && <nav aria-label="Search result pages" className="flex items-center justify-center gap-3 pb-6 text-sm text-gray-300 light:text-gray-700">
+        <button type="button" disabled={safePage === 0} onClick={() => setPage(safePage - 1)} className="rounded bg-gray-800 px-3 py-2 disabled:opacity-30 light:bg-gray-100">Prev</button>
+        <span>Page {safePage + 1} of {totalPages}</span>
+        <button type="button" disabled={safePage === totalPages - 1} onClick={() => setPage(safePage + 1)} className="rounded bg-gray-800 px-3 py-2 disabled:opacity-30 light:bg-gray-100">Next</button>
+      </nav>}
     </div>
   );
 }

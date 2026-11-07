@@ -2,6 +2,7 @@ import { useMemo, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ProblemProgress, Difficulty } from '../types';
 import { uniqueProblems } from '../data/problems';
+import { catalogManifest } from '../data/catalog';
 import ProblemCard from './ProblemCard';
 import ProgressBar from './ProgressBar';
 
@@ -64,7 +65,7 @@ export default function AllProblems({ getProgress, stats }: AllProblemsProps) {
       });
     }
 
-    return result.sort((a, b) => a.id - b.id);
+    return [...result].sort((a, b) => a.id - b.id);
   }, [filterDifficulty, filterStatus, getProgress, today]);
 
   const totalPages = Math.ceil(filtered.length / pageSize);
@@ -75,7 +76,7 @@ export default function AllProblems({ getProgress, stats }: AllProblemsProps) {
     <div className="space-y-4">
       <div>
         <h2 className="text-2xl font-bold text-white light:text-gray-900">All Problems</h2>
-        <p className="text-sm text-gray-400 light:text-gray-600">{uniqueProblems.length} problems</p>
+        <p className="text-sm text-gray-400 light:text-gray-600">{catalogManifest.total.toLocaleString()} LeetCode problems · {uniqueProblems.length - catalogManifest.total} additional study problems</p>
       </div>
 
       <ProgressBar solved={stats.solved} attempted={stats.attempted} total={stats.total} />

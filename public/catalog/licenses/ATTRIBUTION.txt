@@ -1,0 +1,6 @@
+Catalog statements and doocs explanations/implementations: doocs/leetcode contributors, CC BY-SA 4.0.
+Imported content has been selected and reformatted; HTML has been sanitized.
+Original explanatory additions in tools/catalog are also CC BY-SA 4.0.
+Fallback implementations: Peng-Yu Chen (walkccc), MIT; kamyu104/LeetCode-Solutions contributors, MIT.
+Every catalog document contains source links pinned to the exact imported commits.
+Original problem links identify LeetCode; no affiliation or endorsement is implied.

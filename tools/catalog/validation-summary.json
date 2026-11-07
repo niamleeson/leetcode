@@ -1,0 +1,38 @@
+{
+  "pythonWalkthroughs": {
+    "problems": 250,
+    "implementations": 263,
+    "examples": 662,
+    "steps": 66652
+  },
+  "authoredExplanationChecks": {
+    "runtimeAgent": 67888,
+    "uiAgent": {
+      "4069": 5910,
+      "4072": 1092,
+      "4073": "Exhaustive definition-generated sets for lengths 1\u201312",
+      "4077": 1956,
+      "4081": 1250
+    },
+    "root": {
+      "4082": 800,
+      "4095": 9840,
+      "4096": 23442,
+      "4100": 2000
+    }
+  },
+  "cppCompilation": {
+    "total": 116,
+    "cpp20Exact": 100,
+    "cpp23Exact": 3,
+    "platformDependencies": 13,
+    "correctedLifetimeDefects": 9,
+    "adaptedProblemIds": [
+      3605,
+      3933,
+      3953,
+      4029
+    ]
+  },
+  "scope": "Content coverage and syntax checks cover the imported catalog. Independent execution tests cover the authored gaps and representative adapted C++ cases; they do not establish that every imported solution passes every judge test."
+}

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Topic } from '../types';
 import { STUDY_ORDER } from '../data/problems';
-import { topicToSlug } from '../App';
+import { topicToSlug } from '../utils/topic-routing';
 import { useTheme } from '../hooks/useTheme';
 
 interface SidebarProps {

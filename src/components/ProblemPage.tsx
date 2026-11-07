@@ -1,13 +1,16 @@
-import { useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { Link, useParams, Navigate } from 'react-router-dom';
 import { uniqueProblems } from '../data/problems';
-import { solutionMap } from '../data/solutions';
+import { hasSolution } from '../data/solutions/lazy';
+import { useProblemSolution } from '../hooks/useProblemSolution';
 import { ProblemProgress } from '../types';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import CodeBlock from './CodeBlock';
 import GlossaryHighlighter from './GlossaryHighlighter';
 import FollowUpSolution from './FollowUpSolution';
 import SolutionComplexity from './SolutionComplexity';
+
+const CatalogProblemContent = lazy(() => import('./CatalogProblemContent'));
 
 interface ProblemPageProps {
   getProgress: (id: number) => ProblemProgress;
@@ -103,10 +106,10 @@ export default function ProblemPage({ getProgress, onRate, onUpdateNotes, onRese
   const [language, setLanguage] = useLocalStorage<'python' | 'javascript'>('lc-language', 'javascript');
 
   const problemId = Number(id);
+  const { solution, error, retry } = useProblemSolution(problemId);
   const problem = uniqueProblems.find(p => p.id === problemId);
   if (!problem) return <Navigate to="/problems" replace />;
 
-  const solution = solutionMap[problem.id];
   const progress = getProgress(problem.id);
 
   return (
@@ -259,13 +262,15 @@ export default function ProblemPage({ getProgress, onRate, onUpdateNotes, onRese
           <SolutionComplexity solution={solution} language={language === 'javascript' && solution.jsCode ? 'javascript' : 'python'} />
           {solution.followUp && <FollowUpSolution solution={solution.followUp} language={language} problemId={solution.id} />}
         </>
-      ) : (
+      ) : hasSolution(problem.id) ? (
         <div className="text-sm text-gray-500 light:text-gray-500">
-          <p>Solution content not yet available for this problem.</p>
-          <a href={problem.url} target="_blank" rel="noopener noreferrer" className="text-blue-400 light:text-blue-700 hover:underline">
-            View on LeetCode
-          </a>
+          <p role="status">{error ? 'The solution could not load.' : 'Loading solution…'}</p>
+          {error && <button type="button" onClick={retry} className="mt-2 text-blue-400 light:text-blue-700 hover:underline">Retry solution</button>}
         </div>
+      ) : (
+        <Suspense fallback={<p role="status" className="text-sm text-gray-400 light:text-gray-600">Loading problem…</p>}>
+          <CatalogProblemContent key={problem.id} id={problem.id}/>
+        </Suspense>
       )}
 
       {/* ── Rating ── */}

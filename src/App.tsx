@@ -3,36 +3,25 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAppStore } from './store/useStore';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
-import TopicView from './components/TopicView';
-import StudySession from './components/StudySession';
-import AllProblems from './components/AllProblems';
-import SearchView from './components/SearchView';
-import ProblemPage from './components/ProblemPage';
-import DSAReference from './components/DSAReference';
-import NeetCode250 from './components/NeetCode250';
-import NeetCode150 from './components/NeetCode150';
-import NeetCodeBlind75 from './components/NeetCodeBlind75';
-import SystemDesignReference from './components/SystemDesignReference';
-import SDIVol1Reference from './components/SDIVol1Reference';
-import StudyMode from './components/study/StudyMode';
-import AskClaudePanel from './components/AskClaudePanel';
-import GlossaryPage from './components/GlossaryPage';
-import { Topic } from './types';
-import { STUDY_ORDER } from './data/problems';
+import { slugToTopic } from './utils/topic-routing';
 import { useParams } from 'react-router-dom';
-
-function topicToSlug(topic: string): string {
-  return topic.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+$/, '');
-}
-
-function slugToTopic(slug: string): Topic | null {
-  return (STUDY_ORDER.find(t => topicToSlug(t) === slug) as Topic) || null;
-}
-
-export { topicToSlug, slugToTopic };
 
 const ENABLE_ASK_CLAUDE = false;
 const HackerRankReact = lazy(() => import('./components/HackerRankReact'));
+const TopicView = lazy(() => import('./components/TopicView'));
+const StudySession = lazy(() => import('./components/StudySession'));
+const AllProblems = lazy(() => import('./components/AllProblems'));
+const SearchView = lazy(() => import('./components/SearchView'));
+const ProblemPage = lazy(() => import('./components/ProblemPage'));
+const DSAReference = lazy(() => import('./components/DSAReference'));
+const NeetCode250 = lazy(() => import('./components/NeetCode250'));
+const NeetCode150 = lazy(() => import('./components/NeetCode150'));
+const NeetCodeBlind75 = lazy(() => import('./components/NeetCodeBlind75'));
+const SystemDesignReference = lazy(() => import('./components/SystemDesignReference'));
+const SDIVol1Reference = lazy(() => import('./components/SDIVol1Reference'));
+const GlossaryPage = lazy(() => import('./components/GlossaryPage'));
+const AskClaudePanel = lazy(() => import('./components/AskClaudePanel'));
+const StudyMode = lazy(() => import('./components/study/StudyMode'));
 
 export default function App() {
   const store = useAppStore();
@@ -108,6 +97,7 @@ export default function App() {
         getTopicStats={store.getTopicStats}
       />
       <main className={`mx-auto ${isNeetCodePage ? 'neetcode-main' : 'p-2 md:p-6 pt-14 overflow-y-auto max-w-5xl'}`}>
+        <Suspense fallback={<p role="status" className="p-4 text-sm text-gray-400 light:text-gray-600">Loading page…</p>}>
         <Routes>
           <Route path="/" element={
             <Dashboard
@@ -165,17 +155,18 @@ export default function App() {
           } />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        </Suspense>
       </main>
 
       {/* Ask Claude panel - appears on text selection (dev only) */}
       {ENABLE_ASK_CLAUDE && highlighted && panelPos && (
         <div data-ask-claude-panel>
-          <AskClaudePanel
+          <Suspense fallback={null}><AskClaudePanel
             highlighted={highlighted}
             position={panelPos}
             onClose={handleClose}
             onLoadingChange={(v) => { panelLockedRef.current = v; }}
-          />
+          /></Suspense>
         </div>
       )}
     </div>

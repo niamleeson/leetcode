@@ -1,0 +1,23 @@
+{
+  "doocs": {
+    "commit": "8c8da55de17fd7ce04f0cc3f84cf82fc56e7e3d1",
+    "directory": "leetcode-8c8da55de17fd7ce04f0cc3f84cf82fc56e7e3d1",
+    "repository": "doocs/leetcode",
+    "license": "CC-BY-SA-4.0",
+    "licenseFile": "LICENSE"
+  },
+  "walkccc": {
+    "commit": "9b85aa15e086d0b5dc1ead7184bca547942e6ff6",
+    "directory": "LeetCode-9b85aa15e086d0b5dc1ead7184bca547942e6ff6",
+    "repository": "walkccc/LeetCode",
+    "license": "MIT",
+    "licenseFile": "LICENSE"
+  },
+  "kamyu": {
+    "commit": "a5bad320840b8f8f54c2b8619ca929c504381aaf",
+    "directory": "LeetCode-Solutions-a5bad320840b8f8f54c2b8619ca929c504381aaf",
+    "repository": "kamyu104/LeetCode-Solutions",
+    "license": "MIT",
+    "licenseFile": "LICENSE.md"
+  }
+}

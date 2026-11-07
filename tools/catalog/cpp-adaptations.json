@@ -1,0 +1,194 @@
+{
+  "3569": {
+    "replacements": [],
+    "note": "Requires GNU libstdc++ __lg integer-log extension. Compiler/library dependency preserved; remaining syntax verified using an explicitly documented diagnostic-only portability copy.",
+    "label": "GNU C++20",
+    "modifications": [],
+    "standard": "GNU C++20"
+  },
+  "3605": {
+    "replacements": [
+      {
+        "old": "const function<int (int, int)>& fn;",
+        "new": "const function<int (int, int)> fn;",
+        "from": "const function<int (int, int)>& fn;",
+        "to": "const function<int (int, int)> fn;"
+      }
+    ],
+    "note": "Requires GNU libstdc++ __lg integer-log extension. Compiler/library dependency preserved; remaining syntax verified using an explicitly documented diagnostic-only portability copy. Adapted SparseTable to own its std::function instead of retaining a dangling reference to a constructor parameter.",
+    "label": "GNU C++20",
+    "modifications": [
+      "Adapted SparseTable to own its std::function instead of retaining a dangling reference to a constructor parameter."
+    ],
+    "standard": "GNU C++20"
+  },
+  "3621": {
+    "replacements": [],
+    "note": "Requires GNU libstdc++ __lg integer-log extension. Compiler/library dependency preserved; remaining syntax verified using an explicitly documented diagnostic-only portability copy.",
+    "label": "GNU C++20",
+    "modifications": [],
+    "standard": "GNU C++20"
+  },
+  "3624": {
+    "replacements": [],
+    "note": "Requires GNU libstdc++ __lg integer-log extension. Compiler/library dependency preserved; remaining syntax verified using an explicitly documented diagnostic-only portability copy.",
+    "label": "GNU C++20",
+    "modifications": [],
+    "standard": "GNU C++20"
+  },
+  "3630": {
+    "replacements": [],
+    "note": "Requires GNU libstdc++ __lg integer-log extension. Compiler/library dependency preserved; remaining syntax verified using an explicitly documented diagnostic-only portability copy.",
+    "label": "GNU C++20",
+    "modifications": [],
+    "standard": "GNU C++20"
+  },
+  "3632": {
+    "replacements": [],
+    "note": "Requires GNU libstdc++ __lg integer-log extension. Compiler/library dependency preserved; remaining syntax verified using an explicitly documented diagnostic-only portability copy.",
+    "label": "GNU C++20",
+    "modifications": [],
+    "standard": "GNU C++20"
+  },
+  "3670": {
+    "replacements": [],
+    "note": "Requires GNU libstdc++ __lg integer-log extension. Compiler/library dependency preserved; remaining syntax verified using an explicitly documented diagnostic-only portability copy.",
+    "label": "GNU C++20",
+    "modifications": [],
+    "standard": "GNU C++20"
+  },
+  "3681": {
+    "replacements": [],
+    "note": "Requires GNU libstdc++ __lg integer-log extension. Compiler/library dependency preserved; remaining syntax verified using an explicitly documented diagnostic-only portability copy.",
+    "label": "GNU C++20",
+    "modifications": [],
+    "standard": "GNU C++20"
+  },
+  "3757": {
+    "replacements": [],
+    "note": "Requires GNU libstdc++ __lg integer-log extension. Compiler/library dependency preserved; remaining syntax verified using an explicitly documented diagnostic-only portability copy.",
+    "label": "GNU C++20",
+    "modifications": [],
+    "standard": "GNU C++20"
+  },
+  "3786": {
+    "replacements": [],
+    "note": "Uses C++23 explicit-object lambda parameters; compiled successfully with Apple clang 21 in C++23 mode.",
+    "label": "C++23",
+    "modifications": [],
+    "standard": "C++23"
+  },
+  "3933": {
+    "replacements": [
+      {
+        "old": "const auto& r1 = max(r - x, 0);",
+        "new": "const auto r1 = max(r - x, 0);",
+        "from": "const auto& r1 = max(r - x, 0);",
+        "to": "const auto r1 = max(r - x, 0);"
+      },
+      {
+        "old": "const auto& r2 = min(r + x, n - 1);",
+        "new": "const auto r2 = min(r + x, n - 1);",
+        "from": "const auto& r2 = min(r + x, n - 1);",
+        "to": "const auto r2 = min(r + x, n - 1);"
+      },
+      {
+        "old": "const auto& c1 = max(c - x, 0);",
+        "new": "const auto c1 = max(c - x, 0);",
+        "from": "const auto& c1 = max(c - x, 0);",
+        "to": "const auto c1 = max(c - x, 0);"
+      },
+      {
+        "old": "const auto& c2 = min(c + x, m - 1);",
+        "new": "const auto c2 = min(c + x, m - 1);",
+        "from": "const auto& c2 = min(c + x, m - 1);",
+        "to": "const auto c2 = min(c + x, m - 1);"
+      }
+    ],
+    "note": "Requires GNU libstdc++ __lg integer-log extension. Compiler/library dependency preserved; remaining syntax verified using an explicitly documented diagnostic-only portability copy. Adapted four computed query boundaries to store integer values instead of references returned by min/max on temporary arguments.",
+    "label": "GNU C++20",
+    "modifications": [
+      "Adapted four computed query boundaries to store integer values instead of references returned by min/max on temporary arguments."
+    ],
+    "standard": "GNU C++20"
+  },
+  "3949": {
+    "replacements": [],
+    "note": "Uses C++23 explicit-object lambda parameters; compiled successfully with Apple clang 21 in C++23 mode.",
+    "label": "C++23",
+    "modifications": [],
+    "standard": "C++23"
+  },
+  "3953": {
+    "replacements": [
+      {
+        "old": "const auto& mx = max(ranges::max(nums), maxVal);",
+        "new": "const auto mx = max(ranges::max(nums), maxVal);",
+        "from": "const auto& mx = max(ranges::max(nums), maxVal);",
+        "to": "const auto mx = max(ranges::max(nums), maxVal);"
+      }
+    ],
+    "note": "Adapted the computed maximum to store its integer value instead of a potentially dangling min/max reference.",
+    "label": "C++20",
+    "modifications": [
+      "Adapted the computed maximum to store its integer value instead of a potentially dangling min/max reference."
+    ],
+    "standard": "C++20"
+  },
+  "3967": {
+    "replacements": [],
+    "note": "Uses C++23 explicit-object lambda parameters; compiled successfully with Apple clang 21 in C++23 mode.",
+    "label": "C++23",
+    "modifications": [],
+    "standard": "C++23"
+  },
+  "3989": {
+    "replacements": [],
+    "note": "Requires GNU libstdc++ bitset::_Find_first / _Find_next extensions. Compiler/library dependency preserved; remaining syntax verified using an explicitly documented diagnostic-only portability copy.",
+    "label": "GNU C++20",
+    "modifications": [],
+    "standard": "GNU C++20"
+  },
+  "4029": {
+    "replacements": [
+      {
+        "old": "const auto& diff1 = max(start - pairs[0].first, 0);",
+        "new": "const auto diff1 = max(start - pairs[0].first, 0);",
+        "from": "const auto& diff1 = max(start - pairs[0].first, 0);",
+        "to": "const auto diff1 = max(start - pairs[0].first, 0);"
+      },
+      {
+        "old": "const auto& diff2 = max(pairs.back().first - start, 0);",
+        "new": "const auto diff2 = max(pairs.back().first - start, 0);",
+        "from": "const auto& diff2 = max(pairs.back().first - start, 0);",
+        "to": "const auto diff2 = max(pairs.back().first - start, 0);"
+      },
+      {
+        "old": "const auto& left = max<int64_t>(mx, min(2 * diff1 + diff2, diff1 + 2 * diff2));",
+        "new": "const auto left = max<int64_t>(mx, min(2 * diff1 + diff2, diff1 + 2 * diff2));",
+        "from": "const auto& left = max<int64_t>(mx, min(2 * diff1 + diff2, diff1 + 2 * diff2));",
+        "to": "const auto left = max<int64_t>(mx, min(2 * diff1 + diff2, diff1 + 2 * diff2));"
+      }
+    ],
+    "note": "Adapted three bounds in the alternative Solution2 implementation to store values instead of dangling min/max references.",
+    "label": "C++20",
+    "modifications": [
+      "Adapted three bounds in the alternative Solution2 implementation to store values instead of dangling min/max references."
+    ],
+    "standard": "C++20"
+  },
+  "4055": {
+    "replacements": [],
+    "note": "Requires C++23 views::enumerate, unavailable in the tested Apple libc++. Compiler/library dependency preserved; remaining syntax verified using an explicitly documented diagnostic-only portability copy.",
+    "label": "C++23",
+    "modifications": [],
+    "standard": "C++23"
+  },
+  "4058": {
+    "replacements": [],
+    "note": "Requires C++23 views::enumerate, unavailable in the tested Apple libc++. Compiler/library dependency preserved; remaining syntax verified using an explicitly documented diagnostic-only portability copy.",
+    "label": "C++23",
+    "modifications": [],
+    "standard": "C++23"
+  }
+}

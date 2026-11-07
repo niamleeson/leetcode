@@ -1,0 +1,1 @@
+import{c as n}from"./index-C4oDk9JU.js";function m(){const[o,s]=n("lc-glossary",[]);return{entries:o,addEntry:e=>{s(t=>[{...e,createdAt:new Date().toISOString()},...t.filter(r=>r.term.toLowerCase()!==e.term.toLowerCase())])},removeEntry:e=>{s(t=>t.filter(r=>r.term.toLowerCase()!==e.toLowerCase()))},findEntry:e=>o.find(t=>t.term.toLowerCase()===e.toLowerCase())}}export{m as u};

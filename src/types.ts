@@ -1,6 +1,9 @@
+import type { CatalogTopic } from './data/catalog/topics';
+
 export type Difficulty = 'Easy' | 'Medium' | 'Hard';
 
 export type Topic =
+  | CatalogTopic
   | 'Arrays & Hashing'
   | 'Two Pointers'
   | 'Sliding Window'
@@ -43,6 +46,8 @@ export interface Problem {
   topics: Topic[];
   url: string;
   isPremium?: boolean;
+  /** Original LeetCode tags, retained alongside the app's study-topic names. */
+  sourceTopics?: string[];
 }
 
 export interface ProblemProgress {

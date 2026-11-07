@@ -1,4 +1,6 @@
-import { Problem } from '../types';
+import { Problem, Topic } from '../types';
+import { catalogProblems } from './catalog/metadata';
+import { catalogTopics } from './catalog/topics';
 import { problemsBatch2 } from './problems-batch2';
 import { problemsBatch3 } from './problems-batch3';
 import { systemDesignProblems } from './problems-system-design';
@@ -775,15 +777,19 @@ export const problems: Problem[] = [
 ];
 
 // Merge all batches and deduplicate by problem id
-const allProblems = [...problems, ...problemsBatch2, ...problemsBatch3, ...systemDesignProblems];
+const allProblems = [...problems, ...problemsBatch2, ...problemsBatch3, ...systemDesignProblems, ...catalogProblems];
+const officialById = new Map(catalogProblems.map(problem => [problem.id, problem]));
 const seen = new Set<number>();
 export const uniqueProblems: Problem[] = allProblems.filter(p => {
   if (seen.has(p.id)) return false;
   seen.add(p.id);
   return true;
+}).map(problem => {
+  const official = officialById.get(problem.id);
+  return official ? { ...problem, isPremium: official.isPremium, sourceTopics: official.sourceTopics } : problem;
 });
 
-export const TOPICS = [
+const curatedTopics = [
   'Arrays & Hashing',
   'Two Pointers',
   'Sliding Window',
@@ -819,6 +825,8 @@ export const TOPICS = [
   'Topological Sort',
   'System Design',
 ] as const;
+
+export const TOPICS: Topic[] = [...new Set<Topic>([...curatedTopics, ...catalogTopics])];
 
 // Recommended study order (topics listed from foundational to advanced)
 export const STUDY_ORDER: string[] = [

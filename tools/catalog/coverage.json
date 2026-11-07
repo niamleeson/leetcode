@@ -1,0 +1,54 @@
+{
+  "revision": "85fc25d54ade6e2d",
+  "snapshotDate": "2026-11-07",
+  "total": 4101,
+  "contentBase": "catalog/85fc25d54ade6e2d",
+  "licenseBase": "catalog/licenses",
+  "sources": {
+    "doocs": {
+      "commit": "8c8da55de17fd7ce04f0cc3f84cf82fc56e7e3d1",
+      "directory": "leetcode-8c8da55de17fd7ce04f0cc3f84cf82fc56e7e3d1",
+      "repository": "doocs/leetcode",
+      "license": "CC-BY-SA-4.0",
+      "licenseFile": "LICENSE"
+    },
+    "walkccc": {
+      "commit": "9b85aa15e086d0b5dc1ead7184bca547942e6ff6",
+      "directory": "LeetCode-9b85aa15e086d0b5dc1ead7184bca547942e6ff6",
+      "repository": "walkccc/LeetCode",
+      "license": "MIT",
+      "licenseFile": "LICENSE"
+    },
+    "kamyu": {
+      "commit": "a5bad320840b8f8f54c2b8619ca929c504381aaf",
+      "directory": "LeetCode-Solutions-a5bad320840b8f8f54c2b8619ca929c504381aaf",
+      "repository": "kamyu104/LeetCode-Solutions",
+      "license": "MIT",
+      "licenseFile": "LICENSE.md"
+    }
+  },
+  "implementationCounts": {
+    "doocs": 3897,
+    "walkccc": 88,
+    "kamyu": 116
+  },
+  "authoredExplanationIds": [
+    4047,
+    4054,
+    4055,
+    4058,
+    4059,
+    4069,
+    4072,
+    4073,
+    4077,
+    4081,
+    4082,
+    4095,
+    4096,
+    4100
+  ],
+  "missingIds": [],
+  "totalSolutions": 19887,
+  "contentBytes": 31110800
+}
