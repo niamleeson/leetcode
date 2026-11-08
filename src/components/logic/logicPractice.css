@@ -158,4 +158,11 @@ html.light .logic-fail { color:#92400e; }
 .logic-solution-content dl { display:flex; flex-wrap:wrap; gap:12px 24px; margin-top:14px; }
 .logic-solution-content dt { font-size:11px; color:var(--lp-muted); }
 .logic-solution-content dd { font:12px/1.5 ui-monospace,monospace; }
+.logic-solution-content .complexity-variables { margin-top:8px; }
 .logic-solution-status { color:var(--lp-muted); padding:14px; font-size:13px; }
+.logic-problem-navigation { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; max-width:880px; margin:20px auto; }
+.logic-problem-navigation .logic-problem-link { display:flex; flex-direction:column; align-items:flex-start; justify-content:center; gap:5px; min-height:68px; min-width:0; padding:12px 14px; border:1px solid var(--lp-line); border-radius:10px; background:var(--lp-panel); color:var(--lp-text); font-size:12px; text-align:left; }
+.logic-problem-link strong { color:var(--lp-muted); font-size:11px; font-weight:500; overflow-wrap:anywhere; }
+.logic-problem-link[data-direction="next"] { align-items:flex-end; text-align:right; }
+.logic-problem-link:hover:not(:disabled) { border-color:var(--lp-accent); color:var(--lp-accent); }
+.logic-problem-link:disabled { opacity:.45; cursor:not-allowed; }

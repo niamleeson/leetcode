@@ -4,11 +4,10 @@ import { hasLogicProblem, loadLogicProblem, logicManifest } from '../../data/log
 import type { LogicProblem } from '../../data/logic/types';
 import GuidedPractice, { LanguageToggle } from './GuidedPractice';
 import { useProgrammingLanguage } from '../../hooks/useProgrammingLanguage';
+import { orderedLogicProblems } from '../../data/logic/order';
+import ProblemNavigation from './ProblemNavigation';
 const LogicEditor = lazy(() => import('./LogicEditor'));
 import './logicPractice.css';
-
-const difficultyOrder = { Easy: 0, Medium: 1, Hard: 2 };
-const laterTopics = new Set(['1-D Dynamic Programming', '2-D Dynamic Programming', 'Math & Geometry', 'Bit Manipulation']);
 
 export default function LogicPractice() {
   const { id } = useParams();
@@ -31,10 +30,7 @@ function PracticeLibrary({ language, onLanguageChange }: { language: 'python' | 
   const [query, setQuery] = useState('');
   const [topic, setTopic] = useState('All topics');
   const topics = useMemo(() => Array.from(new Set(logicManifest.map(p => p.topic))), []);
-  const matches = logicManifest
-    .filter(p => (topic === 'All topics' || p.topic === topic) && `${p.id} ${p.title} ${p.topic}`.toLowerCase().includes(query.toLowerCase()))
-    .sort((a, b) => Number(laterTopics.has(a.topic)) - Number(laterTopics.has(b.topic))
-      || difficultyOrder[a.difficulty] - difficultyOrder[b.difficulty] || a.id - b.id);
+  const matches = orderedLogicProblems.filter(p => (topic === 'All topics' || p.topic === topic) && `${p.id} ${p.title} ${p.topic}`.toLowerCase().includes(query.toLowerCase()));
   const cards = (items: typeof matches) => items.map(p => <Link key={p.id} to={`/practice/${p.id}`} className="logic-problem-card">
     <span><small>#{p.id} · {p.topic}</small><strong>{p.title}</strong></span>
     <span className={`logic-difficulty logic-difficulty-${p.difficulty.toLowerCase()}`}>{p.difficulty}</span>
@@ -66,5 +62,8 @@ function ProblemLoader({ id, language, onLanguageChange, draft }: { id: number; 
   }, [id, attempt]);
   if (!hasLogicProblem(id)) return <div className="logic-library"><h1>Choose a NeetCode 250 problem</h1><p>Guided practice covers the NeetCode 250.</p><Link to="/practice">Browse practice problems</Link></div>;
   if (!problem) return <div className="logic-library"><Link to="/practice">← Practice problems</Link><p role={error ? 'alert' : 'status'}>{error || 'Loading problem…'}</p>{error && <button onClick={() => setAttempt(n => n + 1)}>Retry</button>}</div>;
-  return draft ? <><Link to={`/practice/${id}`} className="guided-saved-draft">← Guided practice</Link><Suspense fallback={<p role="status">Loading your saved draft…</p>}><LogicEditor key={id} problem={problem}/></Suspense></> : <GuidedPractice problem={problem} language={language} onLanguageChange={onLanguageChange}/>;
+  return <>
+    {draft ? <><Link to={`/practice/${id}`} className="guided-saved-draft">← Guided practice</Link><Suspense fallback={<p role="status">Loading your saved draft…</p>}><LogicEditor key={id} problem={problem}/></Suspense></> : <GuidedPractice problem={problem} language={language} onLanguageChange={onLanguageChange}/>}
+    <ProblemNavigation id={id} language={language}/>
+  </>;
 }

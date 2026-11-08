@@ -1,4 +1,5 @@
 import { TimeComplexityBreakdown, TimeComplexityCalculation } from '../data/solutions/types';
+import ComplexityVariables from './ComplexityVariables';
 
 function Calculation({ calculation }: { calculation: TimeComplexityCalculation }) {
   return <>
@@ -24,6 +25,8 @@ export default function SolutionComplexity({ solution, language = 'javascript' }
     timeComplexityBreakdown?: TimeComplexityBreakdown;
     pythonTimeComplexity?: string;
     pythonTimeComplexityBreakdown?: TimeComplexityBreakdown;
+    complexityVariables?: Record<string, string>;
+    pythonComplexityVariables?: Record<string, string>;
   };
 }) {
   const breakdown = language === 'python' ? solution.pythonTimeComplexityBreakdown ?? solution.timeComplexityBreakdown : solution.timeComplexityBreakdown;
@@ -33,6 +36,7 @@ export default function SolutionComplexity({ solution, language = 'javascript' }
     <div className="flex flex-wrap gap-x-5 gap-y-2 text-xs text-gray-500 light:text-gray-500">
       {time && <span>Time: <strong className="text-gray-300 light:text-gray-700">{time}</strong></span>}
       {solution.spaceComplexity && <span>Space: <strong className="text-gray-300 light:text-gray-700">{solution.spaceComplexity}</strong></span>}
+      <ComplexityVariables solution={solution} language={language} />
     </div>
   );
 
@@ -40,6 +44,7 @@ export default function SolutionComplexity({ solution, language = 'javascript' }
     <div className="solution-complexity min-w-0 space-y-2 text-xs leading-relaxed text-gray-400 light:text-gray-600">
       <p className="font-semibold text-gray-300 light:text-gray-700">Time complexity</p>
       <p>{breakdown.variables}</p>
+      <ComplexityVariables solution={solution} language={language} />
       <Calculation calculation={breakdown} />
       {breakdown.operations?.map(operation => <Calculation key={operation.title} calculation={operation} />)}
       {solution.spaceComplexity && (

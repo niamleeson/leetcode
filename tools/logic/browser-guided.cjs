@@ -8,10 +8,142 @@ const revision = fs.readFileSync(path.join(root, 'src/data/logic/guided-manifest
 const lesson = (id, language) => JSON.parse(fs.readFileSync(path.join(root, 'public/logic/lessons', revision, `${id}-${language}.json`)));
 const output = process.env.LEETCODE_SCREENSHOTS || '/tmp/leetcode-browser-check';
 
+async function navigationChecks(browser, language) {
+  const document = lesson(1, language);
+  const questions = document.questions;
+  const firstImplementation = questions.findIndex(question => question.stage === 'implementation');
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+  const page = await context.newPage();
+  const requests = [], errors = [];
+  page.on('request', request => requests.push(request.url()));
+  page.on('pageerror', error => errors.push(error.message));
+  const navigation = page.getByRole('navigation', { name: 'Question navigation', exact: true });
+  const previous = navigation.getByRole('button', { name: 'Previous step', exact: true });
+  const skip = navigation.getByRole('button', { name: 'Skip step', exact: true });
+  const next = navigation.getByRole('button', { name: 'Next step', exact: true });
+  const feedback = page.getByLabel('Answer feedback', { exact: true });
+  const storageKey = `lc-guided-progress-1-${language}`;
+  async function at(index) {
+    await page.locator(`[data-question-id=${JSON.stringify(questions[index].id)}]`).waitFor();
+    await page.getByRole('heading', { name: questions[index].prompt, exact: true }).waitFor();
+  }
+  async function answer(index, correct = true) {
+    await at(index);
+    await page.locator('.guided-choice').nth(questions[index].choices.findIndex(choice => choice.correct === correct)).tap();
+  }
+  async function progress() { return page.evaluate(key => JSON.parse(localStorage.getItem(key)), storageKey); }
+  async function savedState(answered, skipped) {
+    await page.waitForFunction(({ key, answered, skipped }) => {
+      const saved = JSON.parse(localStorage.getItem(key) || 'null');
+      return saved && saved.answered.length === answered.length && saved.skipped?.length === skipped.length
+        && answered.every(id => saved.answered.includes(id)) && skipped.every(id => saved.skipped.includes(id));
+    }, { key: storageKey, answered, skipped });
+  }
+  async function navigationLayout() {
+    assert.equal(await navigation.count(), 1);
+    assert(await navigation.evaluate(element => !element.closest('.guided-question-card')), 'Navigation must be outside the answer card');
+    for (const button of await navigation.getByRole('button').all()) {
+      const box = await button.boundingBox();
+      assert(box && box.height >= 44 && box.width >= 44, 'Navigation controls need 44px touch targets');
+      assert(box.x >= 0 && box.x + box.width <= 391, 'Navigation control is clipped on mobile');
+    }
+    assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'Navigation overflows mobile viewport');
+  }
+  try {
+    await page.goto(`${url}#/practice/1?language=${language}`);
+    await at(0);
+    assert(await previous.isDisabled(), 'Previous must be disabled at the first step');
+    await navigationLayout();
+    await skip.tap();
+    await at(1);
+    assert.equal(await feedback.count(), 0, 'Skipping should not display correct feedback');
+    await savedState([], [questions[0].id]);
+    await previous.tap();
+    await at(0);
+    assert(await previous.isDisabled());
+    assert.equal(await next.count(), 0, 'A skipped step must not be treated as already answered');
+    await answer(0);
+    await at(1);
+    await savedState([questions[0].id], []);
+
+    await answer(1, false);
+    await feedback.filter({ hasText: 'Not quite' }).waitFor();
+    await previous.tap();
+    await at(0);
+    assert.equal(await feedback.count(), 0, 'Previous retained another question’s feedback');
+    assert.equal(await skip.count(), 0, 'Already answered cards should offer Next step');
+    await next.tap();
+    await at(1);
+    assert.equal(await feedback.count(), 0, 'Forward navigation restored stale feedback');
+    for (let index = 1; index < firstImplementation; index++) await answer(index);
+    await at(firstImplementation);
+    await previous.tap();
+    await at(firstImplementation - 1);
+    assert.equal(await feedback.count(), 0, 'Crossing back into structure retained feedback');
+    await next.tap();
+    await at(firstImplementation);
+    await navigationLayout();
+    await page.screenshot({ path: path.join(output, `guided-navigation-${language}-mobile.png`), fullPage: true });
+    await navigation.screenshot({ path: path.join(output, `guided-navigation-${language}-controls.png`) });
+
+    await skip.tap();
+    await at(firstImplementation + 1);
+    await savedState(questions.slice(0, firstImplementation).map(question => question.id), [questions[firstImplementation].id]);
+    await page.reload();
+    await at(0);
+    assert((await progress()).skipped.includes(questions[firstImplementation].id), 'Reload lost the skipped implementation step');
+    for (let index = 0; index < firstImplementation; index++) await answer(index);
+    await at(firstImplementation + 1);
+    await previous.tap();
+    await at(firstImplementation);
+    assert.equal(await next.count(), 0, 'Restored skipped step was marked correct');
+    await answer(firstImplementation);
+    await at(firstImplementation + 1);
+    await savedState(questions.slice(0, firstImplementation + 1).map(question => question.id), []);
+    for (let index = firstImplementation + 1; index < questions.length - 1; index++) await answer(index);
+    await at(questions.length - 1);
+    await skip.tap();
+    await page.getByRole('button', { name: 'Run tests', exact: true }).waitFor();
+    await page.locator('.guided-complete').getByText('END OF WALKTHROUGH', { exact: true }).waitFor();
+    assert.match(await page.locator('.guided-complete').innerText(), new RegExp(`${questions.length - 1} of ${questions.length} decisions answered correctly\\. 1 skipped\\.`));
+    assert.equal(await page.getByText(`${questions.length} decisions complete`, { exact: true }).count(), 0, 'Skipping the final step falsely completed every decision');
+    await savedState(questions.slice(0, -1).map(question => question.id), [questions.at(-1).id]);
+    assert(await previous.isEnabled(), 'Previous must remain available at the end');
+    await navigationLayout();
+    await page.screenshot({ path: path.join(output, `guided-navigation-${language}-skipped-end.png`), fullPage: true });
+
+    await previous.tap();
+    await at(questions.length - 1);
+    assert.equal(await feedback.count(), 0);
+    assert.equal(await page.locator('.guided-runner').count(), 0, 'Going back from the end should restore the question');
+    assert.equal(await next.count(), 0);
+    await answer(questions.length - 1);
+    await page.getByRole('button', { name: 'Run tests', exact: true }).waitFor();
+    await savedState(questions.map(question => question.id), []);
+    await previous.tap();
+    await at(questions.length - 1);
+    assert.equal(await skip.count(), 0);
+    await next.tap();
+    await page.getByRole('button', { name: 'Run tests', exact: true }).waitFor();
+    await page.waitForLoadState('networkidle');
+    assert(!requests.some(value => /\/solutions\/|\/vendor\/pyodide\/|\.worker-/.test(value)), 'Step navigation loaded a solution or execution runtime before Run');
+    assert.deepEqual(errors, []);
+    return { language, questions: questions.length, skippedFinalStepRecovered: true, runtimeRequestsBeforeRun: 0 };
+  } finally { await context.close(); }
+}
+
 (async () => {
   fs.mkdirSync(output, { recursive: true });
   const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: true });
   try {
+    if (process.argv.includes('--navigation-only')) {
+      const navigation = [];
+      for (const language of ['javascript', 'python']) navigation.push(await navigationChecks(browser, language));
+      const report = { passed: true, revision, navigationOnly: true, navigation };
+      fs.writeFileSync(path.join(output, 'guided-navigation-report.json'), JSON.stringify(report, null, 2));
+      console.log(JSON.stringify(report, null, 2));
+      return;
+    }
     const page = await browser.newPage({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
     const requests = [], errors = [];
     page.on('request', request => requests.push(request.url()));
@@ -195,7 +327,9 @@ const output = process.env.LEETCODE_SCREENSHOTS || '/tmp/leetcode-browser-check'
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.screenshot({ path: path.join(output, 'guided-desktop.png'), fullPage: true });
     assert.deepEqual(errors, []);
-    const report = { passed: true, revision, initialRequests, checks: ['8 patterns, one focused structure decision at a time, full implementation', 'Daily Temperatures tail and final return in both languages', 'opening quiz before saved implementation resumes', 'wrong stays, correct advances', 'real counterexamples', 'independent persistent language progress', 'matching reveal and retry', 'real Python and JavaScript tests and stepping', 'no runtime before Run', 'no Python downloads for JavaScript', 'restart', 'mobile touch, dark/light, desktop', 'library language links'] };
+    const navigation = [];
+    for (const language of ['javascript', 'python']) navigation.push(await navigationChecks(browser, language));
+    const report = { passed: true, revision, initialRequests, navigation, checks: ['8 patterns, one focused structure decision at a time, full implementation', 'Daily Temperatures tail and final return in both languages', 'opening quiz before saved implementation resumes', 'wrong stays, correct advances', 'previous, skip, and next across every stage in both languages', 'skipped progress survives reload and is never counted correct', 'return from completion and answer skipped final decisions', '44px mobile navigation controls outside the card', 'real counterexamples', 'independent persistent language progress', 'matching reveal and retry', 'real Python and JavaScript tests and stepping', 'no runtime before Run', 'no Python downloads for JavaScript', 'restart', 'mobile touch, dark/light, desktop', 'library language links'] };
     fs.writeFileSync(path.join(output, 'guided-browser-report.json'), JSON.stringify(report, null, 2));
     console.log(JSON.stringify(report, null, 2));
   } finally { await browser.close(); }

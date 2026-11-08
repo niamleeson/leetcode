@@ -10,7 +10,13 @@ about one decision. Most problems need two to four planning decisions; a single
 operation can need only one.
 Related operations can share a code-block question; there is no question-count
 cap that can cut off the later steps. Incorrect choices stay on
-the question with feedback; correct choices advance immediately. The approach
+the question with feedback; correct choices advance immediately. Previous step
+returns to an earlier decision, Skip step advances without marking it correct,
+and an already answered card offers Next step. These controls stay outside the
+answer card. Skipped decisions are saved separately during an unfinished
+walkthrough and can be answered later, including by going back from the end
+in the same session. Completion reports
+answered and skipped counts separately. The approach
 is specific to the worked solution, and the UI acknowledges that other
 algorithms can be valid. Pattern feedback does not reveal the next plan.
 Structure cards do not display a complete plan, pseudocode outline, or future
@@ -18,6 +24,21 @@ questions. Feedback explains only the current decision. Reveal solution remains
 an explicit way to inspect the full solution. Implementation prompts identify
 the concrete value, test, or operation being chosen; correct feedback states
 what that code actually does instead of generic claims about updating state.
+
+The bottom Previous problem and Next problem links share the library ordering
+in `src/data/logic/order.ts`: common topics first, then 1-D/2-D dynamic
+programming, Math & Geometry, and Bit Manipulation as a combined group. Each
+group sorts by difficulty and numeric problem ID. Links keep the selected
+language and stop at the first and last problem.
+
+Curated solutions include visible meanings for the symbols in their time and
+space estimates. The two `src/data/solutions/complexity-variables-{head,tail}.ts`
+banks cover the NeetCode 250. `withComplexityVariables` attaches definitions to
+the selected implementation and follow-up after source overrides, checking
+every symbol in each language's formulas and calculation breakdowns. These
+definitions travel in each lazy solution document, so editing them requires
+`npm run solutions:generate`; the complete legend bank is not loaded by the
+practice library.
 
 Implementation distractors are source mutations with independently replayed
 counterexamples. The learner can inspect input, expected output, and the actual
@@ -43,8 +64,9 @@ runtime. Neither worker runs before Run tests is pressed. Reveal solution is
 available throughout, matches the selected language, and leaves progress intact.
 Progress is saved separately for each problem and language, and invalidates
 when lesson content changes. Reopening an unfinished lesson quizzes the approach
-and every structure step again before resuming the saved implementation. A completed lesson
-starts a fresh attempt on its next visit. Passing does not automatically mark mastery.
+and every structure step again before resuming the saved implementation. After
+reaching the end, the next visit starts a fresh attempt, including when some
+decisions were skipped. Passing does not automatically mark mastery.
 
 Only the requested lesson JSON, including its worked source, is downloaded;
 the library does not fetch all 500 lessons. The separate solution explanation,
@@ -65,6 +87,8 @@ npm run logic:javascript:verify
 PYTHONHASHSEED=1 python3 -B tools/logic/verify-guided-python.py
 # Production UI check with Playwright and Chrome installed:
 LEETCODE_TEST_URL=http://127.0.0.1:5182/leetcode/ node tools/logic/browser-guided.cjs
+# Focused previous/skip/next regression without running the code:
+LEETCODE_TEST_URL=http://127.0.0.1:5182/leetcode/ node tools/logic/browser-guided.cjs --navigation-only
 ```
 
 `generate-guided.cjs --check-artifacts` is a fast build guard for coverage,
@@ -102,7 +126,10 @@ The checked-in validation summary records the current revision and counts.
 
 Browser checks exercise wrong and correct choices, reload and language
 switching, reveal and failed-download recovery, real runs and debugger steps,
-restart, and mobile/desktop layouts. These checks establish that the learning
+restart, and mobile/desktop layouts. Navigation checks in both languages cover
+all stage boundaries, persisted skips, returning from completion, truthful answer
+counts, cleared feedback, and mobile touch targets without loading a runtime.
+These checks establish that the learning
 flow works; they do not measure long-term retention or independent coding skill.
 
 ## Interface-only legacy draft data

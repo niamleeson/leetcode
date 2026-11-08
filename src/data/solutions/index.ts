@@ -2,6 +2,7 @@ import { ProblemSolution } from './types';
 import { withBfsFirst } from './bfs-first';
 import { withGraphRuntimeBreakdown } from './graph-runtime';
 import { withNeetCodeRuntimeBreakdown } from './neetcode-runtime';
+import { withComplexityVariables } from './complexity-variables';
 
 // Original solution groups
 import { solutions as arraysHashing } from './arrays-hashing';
@@ -70,6 +71,11 @@ const allSolutions: ProblemSolution[] = [
 export const solutionMap: Record<number, ProblemSolution> = {};
 for (const sol of allSolutions) {
   solutionMap[sol.id] = sol;
+}
+// Legends describe the selected implementation after later batches replace
+// earlier versions of the same problem.
+for (const id of Object.keys(solutionMap).map(Number)) {
+  solutionMap[id] = withComplexityVariables(solutionMap[id]);
 }
 
 export type { ProblemSolution };

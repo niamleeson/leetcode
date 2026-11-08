@@ -18,6 +18,31 @@ function lesson(language:'python'|'javascript'='python'):GuidedLesson{return {id
 function show(language:'python'|'javascript'='python'){return render(<MemoryRouter><GuidedPractice problem={problem} language={language} onLanguageChange={()=>{}}/></MemoryRouter>);}
 async function correctPattern(){fireEvent.click(await screen.findByRole('button',{name:/Hash lookup/}));}
 async function correctStructure(){fireEvent.click(await screen.findByRole('button',{name:/Scan and remember/}));}
+function navigationLesson(language: 'python' | 'javascript'): GuidedLesson {
+ const full = lesson(language);
+ const structure = full.questions[1], implementation = full.questions[2];
+ full.questions = [full.questions[0],
+  {...structure, id:'plan-remember', prompt:'What should we remember?'},
+  {...structure, id:'plan-order', prompt:'When should we check the saved values?'},
+  {...implementation, id:'code-first', prompt:'How should the first code step work?'},
+  {...implementation, id:'code-middle', prompt:'How should the middle code step work?'},
+  {...implementation, id:'code-final', prompt:'How should the final code step work?'},
+ ];
+ return full;
+}
+function savedProgress(language: 'python' | 'javascript') {
+ return JSON.parse(localStorage.getItem(`lc-guided-progress-1-${language}`)!);
+}
+function navigateStep(name: 'Previous step' | 'Skip step' | 'Next step') {
+ fireEvent.click(screen.getByRole('button', {name}));
+}
+function expectStageDone(stage: 'pattern' | 'structure' | 'implementation', done: boolean) {
+ const index = ['pattern', 'structure', 'implementation'].indexOf(stage) + 1;
+ expect(document.querySelector(`.guided-progress li:nth-child(${index})`)?.getAttribute('data-done')).toBe(String(done));
+}
+async function correctImplementation() {
+ fireEvent.click(await screen.findByRole('button', {name:/return \[0, 1\]/}));
+}
 beforeEach(()=>{localStorage.clear();vi.clearAllMocks();mocks.load.mockImplementation((_id,lang)=>Promise.resolve(lesson(lang)));Element.prototype.scrollIntoView=vi.fn();});afterEach(cleanup);
 describe('guided approach-to-code workflow',()=>{
  it.each(['python','javascript'] as const)('shows one structure decision at a time in %s and reviews every step before resuming code',async(language)=>{
@@ -104,5 +129,244 @@ describe('guided approach-to-code workflow',()=>{
   fireEvent.click(screen.getByRole('button',{name:/return \[0, 1\]/}));await screen.findByRole('region',{name:'Completed test code'});
   resumed.unmount();mocks.runner.mockClear();show();await screen.findByText('Question 1 of 5');
   await correctPattern();await correctStructure();await screen.findByText('Question 3 of 5');expect(mocks.runner).not.toHaveBeenCalled();
+ });
+});
+
+describe('guided step navigation', () => {
+ beforeEach(() => mocks.load.mockImplementation((_id, language) => Promise.resolve(navigationLesson(language))));
+
+ it.each(['python', 'javascript'] as const)('goes back across stage boundaries in %s without retaining feedback or counting navigation as answers', async language => {
+  show(language);
+  const approach = await screen.findByRole('region', {name:'Approach question'});
+  expect((screen.getByRole('button', {name:'Previous step'}) as HTMLButtonElement).disabled).toBe(true);
+  expect(within(approach).queryByRole('button', {name:'Skip step'})).toBeNull();
+  expect(within(approach).getAllByRole('button')).toHaveLength(8);
+  expect(screen.queryByRole('button', {name:'Next step'})).toBeNull();
+
+  await correctPattern();
+  await correctStructure();
+  await correctStructure();
+  const implementation = await screen.findByRole('region', {name:'Implementation question'});
+  fireEvent.click(within(implementation).getByRole('button', {name:/return \[0, 0\]/}));
+  expect(screen.getByRole('alert').textContent).toContain('This reuses one index.');
+  expect(within(implementation).getByRole('button', {name:/return \[0, 0\]/}).getAttribute('data-attempted')).toBe('true');
+  const beforeNavigation = savedProgress(language);
+  expect(beforeNavigation.attempts).toBe(4);
+
+  navigateStep('Previous step');
+  expect(screen.getByRole('heading', {name:'When should we check the saved values?'})).toBeTruthy();
+  expect(screen.queryByRole('alert')).toBeNull();
+  expect(screen.queryByText('Correct')).toBeNull();
+  expect(screen.queryByRole('button', {name:'Skip step'})).toBeNull();
+  expect(within(screen.getByRole('region', {name:'Structure question'})).queryByRole('button', {name:'Next step'})).toBeNull();
+  navigateStep('Next step');
+  expect(screen.getByRole('heading', {name:'How should the first code step work?'})).toBeTruthy();
+  expect(screen.getByRole('button', {name:/return \[0, 0\]/}).getAttribute('data-attempted')).toBe('false');
+  expect(screen.queryByText('Try a different choice')).toBeNull();
+  expect(screen.queryByRole('button', {name:'Next step'})).toBeNull();
+
+  navigateStep('Previous step');
+  navigateStep('Previous step');
+  expect(screen.getByRole('heading', {name:'What should we remember?'})).toBeTruthy();
+  navigateStep('Previous step');
+  expect(screen.getByRole('heading', {name:'Which approach fits this lesson?'})).toBeTruthy();
+  expect((screen.getByRole('button', {name:'Previous step'}) as HTMLButtonElement).disabled).toBe(true);
+  navigateStep('Next step');
+  expect(screen.getByRole('heading', {name:'What should we remember?'})).toBeTruthy();
+  expect(savedProgress(language)).toEqual(beforeNavigation);
+ });
+
+ it.each(['python', 'javascript'] as const)('can skip through the final %s step, revisit it, answer it, and restart without treating skips as correct', async language => {
+  show(language);
+  await screen.findByRole('region', {name:'Approach question'});
+  const full = navigationLesson(language);
+  for (const question of full.questions) {
+   expect(screen.getByRole('heading', {name:question.prompt})).toBeTruthy();
+   const card = screen.getByRole('region', {name:`${question.stage === 'pattern' ? 'Approach' : question.stage === 'structure' ? 'Structure' : 'Implementation'} question`});
+   expect(within(card).queryByRole('button', {name:'Previous step'})).toBeNull();
+   expect(within(card).queryByRole('button', {name:'Skip step'})).toBeNull();
+   navigateStep('Skip step');
+  }
+  await screen.findByRole('region', {name:'Completed test code'});
+  expect(savedProgress(language)).toMatchObject({answered:[], skipped:full.questions.map(question => question.id), attempts:0});
+  expect(document.querySelector('.guided-complete')?.textContent).toContain('6 skipped');
+  expect(document.querySelector('.guided-complete')?.textContent).not.toContain('DECISIONS COMPLETE');
+  expect(document.querySelector('.guided-progress')?.textContent).toContain('0 answered');
+  expect(document.querySelector('.guided-progress')?.textContent).not.toContain('6 decisions complete');
+  for (const stage of ['pattern', 'structure', 'implementation'] as const) expectStageDone(stage, false);
+  expect((screen.getByRole('button', {name:'Previous step'}) as HTMLButtonElement).disabled).toBe(false);
+  expect(screen.queryByRole('button', {name:'Skip step'})).toBeNull();
+
+  navigateStep('Previous step');
+  expect(screen.getByRole('heading', {name:'How should the final code step work?'})).toBeTruthy();
+  expect(screen.queryByRole('region', {name:'Completed test code'})).toBeNull();
+  await correctImplementation();
+  await screen.findByRole('region', {name:'Completed test code'});
+  expect(savedProgress(language)).toMatchObject({answered:['code-final'], skipped:full.questions.slice(0, -1).map(question => question.id), attempts:1});
+  expect(document.querySelector('.guided-complete')?.textContent).toContain('5 skipped');
+  expectStageDone('implementation', false);
+  navigateStep('Previous step');
+  expect(screen.queryByRole('button', {name:'Skip step'})).toBeNull();
+  navigateStep('Next step');
+  await screen.findByRole('region', {name:'Completed test code'});
+  expect(savedProgress(language).attempts).toBe(1);
+
+  fireEvent.click(screen.getByRole('button', {name:'Start again'}));
+  expect(screen.getByText('Question 1 of 6')).toBeTruthy();
+  expect(screen.queryByRole('region', {name:'Completed test code'})).toBeNull();
+  expect(savedProgress(language)).toMatchObject({answered:[], skipped:[], attempts:0});
+  expect(document.activeElement).toBe(screen.getByRole('heading', {name:'Which approach fits this lesson?'}));
+ });
+
+ it.each(['python', 'javascript'] as const)('marks a %s stage done only after every decision in that stage is answered, including a revisited skip', async language => {
+  show(language);
+  await correctPattern();
+  navigateStep('Skip step');
+  await correctStructure();
+  expectStageDone('pattern', true);
+  expectStageDone('structure', false);
+  await correctImplementation();
+  await correctImplementation();
+  await correctImplementation();
+  await screen.findByRole('region', {name:'Completed test code'});
+  expectStageDone('implementation', true);
+  expectStageDone('structure', false);
+  expect(document.querySelector('.guided-complete')?.textContent).toContain('1 skipped');
+  expect(savedProgress(language)).toMatchObject({skipped:['plan-remember'], attempts:5});
+
+  for (let count = 0; count < 5; count++) navigateStep('Previous step');
+  expect(screen.getByRole('heading', {name:'What should we remember?'})).toBeTruthy();
+  await correctStructure();
+  expect(screen.getByRole('heading', {name:'When should we check the saved values?'})).toBeTruthy();
+  expectStageDone('structure', true);
+  expect(savedProgress(language).skipped).toEqual([]);
+  expect(savedProgress(language).answered).toHaveLength(6);
+  expect(savedProgress(language).attempts).toBe(6);
+  // Answered count must not force completion while the cursor is on an earlier card.
+  expect(screen.queryByRole('region', {name:'Completed test code'})).toBeNull();
+  for (let count = 0; count < 4; count++) navigateStep('Next step');
+  await screen.findByRole('region', {name:'Completed test code'});
+  expect(document.querySelector('.guided-complete')?.textContent).toContain('DECISIONS COMPLETE');
+  expect(savedProgress(language).attempts).toBe(6);
+ });
+
+ it.each(['python', 'javascript'] as const)('replays the opening after reloading %s gaps, resumes the first unvisited code step, and resets a fully traversed session next visit', async language => {
+  const first = show(language);
+  await correctPattern();
+  navigateStep('Skip step');
+  await correctStructure();
+  navigateStep('Skip step');
+  await correctImplementation();
+  expect(screen.getByRole('heading', {name:'How should the final code step work?'})).toBeTruthy();
+  expect(savedProgress(language)).toMatchObject({answered:['pattern', 'plan-order', 'code-middle'], skipped:['plan-remember', 'code-first'], attempts:3});
+  first.unmount();
+
+  const resumed = show(language);
+  await screen.findByRole('heading', {name:'Which approach fits this lesson?'});
+  expect(screen.queryByLabelText('Implementation context')).toBeNull();
+  await correctPattern();
+  expect(screen.getByRole('heading', {name:'What should we remember?'})).toBeTruthy();
+  navigateStep('Skip step');
+  await correctStructure();
+  expect(screen.getByRole('heading', {name:'How should the final code step work?'})).toBeTruthy();
+  expect(savedProgress(language).skipped).toEqual(['plan-remember', 'code-first']);
+  expect(savedProgress(language).answered).toEqual(['pattern', 'plan-order', 'code-middle']);
+  navigateStep('Skip step');
+  await screen.findByRole('region', {name:'Completed test code'});
+  expect(document.querySelector('.guided-complete')?.textContent).toContain('3 skipped');
+  resumed.unmount();
+
+  show(language);
+  await screen.findByRole('heading', {name:'Which approach fits this lesson?'});
+  expect(savedProgress(language)).toMatchObject({answered:[], skipped:[], attempts:0});
+  expect(screen.queryByRole('button', {name:'Next step'})).toBeNull();
+  await correctPattern();
+  await correctStructure();
+  await correctStructure();
+  expect(screen.getByRole('heading', {name:'How should the first code step work?'})).toBeTruthy();
+ });
+
+ it('persists skipped cards independently for Python and JavaScript', async () => {
+  const python = show('python');
+  await screen.findByRole('region', {name:'Approach question'});
+  navigateStep('Skip step');
+  await correctStructure();
+  navigateStep('Skip step');
+  const pythonProgress = savedProgress('python');
+  expect(pythonProgress).toMatchObject({answered:['plan-remember'], skipped:['pattern', 'plan-order'], attempts:1});
+  python.unmount();
+  const javascript = show('javascript');
+  await correctPattern();
+  navigateStep('Skip step');
+  expect(savedProgress('javascript')).toMatchObject({answered:['pattern'], skipped:['plan-remember'], attempts:1});
+  expect(savedProgress('python')).toEqual(pythonProgress);
+  javascript.unmount();
+  show('python');
+  await screen.findByRole('region', {name:'Approach question'});
+  expect(savedProgress('python')).toEqual(pythonProgress);
+  expect(screen.getByRole('button', {name:'Skip step'})).toBeTruthy();
+  expect(screen.queryByRole('button', {name:'Next step'})).toBeNull();
+  expect(savedProgress('javascript').skipped).toEqual(['plan-remember']);
+ });
+
+ it.each(['python', 'javascript'] as const)('accepts legacy answered-only %s progress and resumes after reviewing every opening card', async language => {
+  localStorage.setItem(`lc-guided-progress-1-${language}`, JSON.stringify({revision:'v1', answered:['pattern', 'plan-remember', 'plan-order', 'code-first'], attempts:4}));
+  show(language);
+  await screen.findByRole('region', {name:'Approach question'});
+  expect(savedProgress(language)).toMatchObject({answered:['pattern', 'plan-remember', 'plan-order', 'code-first'], skipped:[], attempts:4});
+  await correctPattern();
+  await correctStructure();
+  await correctStructure();
+  expect(screen.getByRole('heading', {name:'How should the middle code step work?'})).toBeTruthy();
+  expect(savedProgress(language).answered).toHaveLength(4);
+  expect(savedProgress(language).skipped).toEqual([]);
+ });
+
+ it.each(['python', 'javascript'] as const)('reloads %s answers added out of order after returning to a skipped card', async language => {
+  const first = show(language);
+  await correctPattern();
+  navigateStep('Skip step');
+  await correctStructure();
+  await correctImplementation();
+  expect(screen.getByRole('heading', {name:'How should the middle code step work?'})).toBeTruthy();
+  for (let count = 0; count < 3; count++) navigateStep('Previous step');
+  await correctStructure();
+  const saved = savedProgress(language);
+  expect(saved.answered).toEqual(expect.arrayContaining(['pattern', 'plan-remember', 'plan-order', 'code-first']));
+  expect(saved.answered).toHaveLength(4);
+  expect(saved.skipped).toEqual([]);
+  first.unmount();
+
+  show(language);
+  await screen.findByRole('region', {name:'Approach question'});
+  expect(savedProgress(language)).toEqual(saved);
+  await correctPattern();
+  await correctStructure();
+  await correctStructure();
+  expect(screen.getByRole('heading', {name:'How should the middle code step work?'})).toBeTruthy();
+ });
+
+ it.each(['python', 'javascript'] as const)('continues to code after reloading %s progress saved partway through structure', async language => {
+  localStorage.setItem(`lc-guided-progress-1-${language}`, JSON.stringify({revision:'v1', answered:['pattern', 'plan-remember'], skipped:[], attempts:2}));
+  show(language);
+  await correctPattern();
+  await correctStructure();
+  expect(screen.getByRole('heading', {name:'When should we check the saved values?'})).toBeTruthy();
+  await correctStructure();
+  expect(screen.getByRole('heading', {name:'How should the first code step work?'})).toBeTruthy();
+  expect(savedProgress(language).answered).toEqual(['pattern', 'plan-remember', 'plan-order']);
+ });
+
+ it.each([
+  {answered:['pattern'], skipped:'plan-remember'},
+  {answered:['pattern'], skipped:['unknown-question']},
+  {answered:['pattern'], skipped:['pattern']},
+ ])('starts fresh for invalid saved skipped data: %j', async saved => {
+  localStorage.setItem('lc-guided-progress-1-python', JSON.stringify({revision:'v1', attempts:1, ...saved}));
+  show('python');
+  await screen.findByRole('region', {name:'Approach question'});
+  expect(savedProgress('python')).toMatchObject({answered:[], skipped:[], attempts:0});
+  expect(screen.queryByRole('button', {name:'Next step'})).toBeNull();
+  expect(screen.getByRole('button', {name:'Skip step'})).toBeTruthy();
  });
 });

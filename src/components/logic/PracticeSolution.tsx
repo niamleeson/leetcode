@@ -1,5 +1,6 @@
 import { useProblemSolution } from '../../hooks/useProblemSolution';
 import CodeBlock from '../CodeBlock';
+import ComplexityVariables from '../ComplexityVariables';
 
 export default function PracticeSolution({ id, language = 'python', approach, explanation }: { id: number; language?: 'python' | 'javascript'; approach?: string; explanation?: string }) {
   const { solution, loading, error, retry } = useProblemSolution(id);
@@ -27,6 +28,7 @@ export default function PracticeSolution({ id, language = 'python', approach, ex
             <div><dt>Time</dt><dd>{language === 'python' ? solution.pythonTimeComplexity ?? solution.timeComplexity : solution.timeComplexity}</dd></div>
             <div><dt>Space</dt><dd>{solution.spaceComplexity}</dd></div>
           </dl>
+          <ComplexityVariables solution={solution} language={language} />
         </>
       ) : (
         <p>A {languageName} solution is not available for this problem.</p>

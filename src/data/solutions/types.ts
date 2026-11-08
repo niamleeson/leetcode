@@ -24,6 +24,8 @@ export interface SolutionFollowUp {
   pythonTimeComplexity?: string;
   pythonTimeComplexityBreakdown?: TimeComplexityBreakdown;
   spaceComplexity: string;
+  complexityVariables?: Record<string, string>;
+  pythonComplexityVariables?: Record<string, string>;
 }
 
 export interface ProblemSolution {
@@ -43,5 +45,7 @@ export interface ProblemSolution {
   pythonTimeComplexity?: string;
   pythonTimeComplexityBreakdown?: TimeComplexityBreakdown;
   spaceComplexity: string;
+  complexityVariables?: Record<string, string>;
+  pythonComplexityVariables?: Record<string, string>;
   hints: string[];
 }

@@ -1,4 +1,5 @@
 .guided-practice { max-width:880px; margin:0 auto; gap:14px; }
+.guided-practice .logic-heading h1 { outline:none; }
 .guided-problem-summary { font-size:14px; line-height:1.65; color:var(--lp-muted); white-space:pre-line; }
 .guided-progress { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:5px 0; }
 .guided-progress ol { display:flex; gap:12px; margin:0; padding:0; list-style:none; }
@@ -45,8 +46,13 @@ html.light .guided-feedback-incorrect strong { color:#92400e; }
 .guided-review ol { padding:0 18px 18px 32px; list-style:decimal; }
 .guided-review li { margin:14px 0; font-size:12px; line-height:1.6; }
 .guided-review strong { font-weight:650; }
+.guided-review-status { display:block; margin-top:3px; color:var(--lp-muted); font-size:11px; }
 .guided-review p { color:var(--lp-muted); margin:5px 0; white-space:pre-line; }
 .guided-review pre { overflow:auto; font-size:11px; background:var(--lp-bg); padding:8px; border-radius:6px; margin:6px 0; }
+.guided-navigation { display:flex; justify-content:space-between; gap:12px; }
+.guided-navigation button { min-height:44px; padding:10px 16px; border:1px solid var(--lp-line); border-radius:9px; background:var(--lp-panel); color:var(--lp-text); font-size:13px; }
+.guided-navigation button:hover:not(:disabled) { border-color:var(--lp-accent); color:var(--lp-accent); }
+.guided-navigation button:disabled { opacity:.45; cursor:not-allowed; }
 .guided-footer { display:flex; gap:12px; justify-content:space-between; align-items:center; color:var(--lp-muted); font-size:11px; }
 .guided-footer button { min-height:44px; color:var(--lp-accent); padding:8px 12px; }
 .guided-saved-draft { display:inline-flex; min-height:44px; padding:10px 0; }
