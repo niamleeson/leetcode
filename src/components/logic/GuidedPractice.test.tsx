@@ -8,7 +8,7 @@ import type { LogicProblem } from '../../data/logic/types';
 const mocks = vi.hoisted(() => ({ load: vi.fn(), runner: vi.fn() }));
 vi.mock('../../data/logic/guided', () => ({ loadGuidedLesson: mocks.load }));
 vi.mock('./GuidedCodeRunner', () => ({ default: (props: {code:string,language:string}) => { mocks.runner(props); return <section aria-label="Completed test code">{props.language}: {props.code}</section>; } }));
-vi.mock('./SolutionReveal', () => ({ default: () => <button>Reveal solution</button> }));
+vi.mock('./SolutionReveal', () => ({ default: () => <button>Solution</button> }));
 const problem: LogicProblem={id:1,title:'Two Sum',difficulty:'Easy',topic:'Arrays',description:'Find two different indices.',examples:[],starter:'def twoSum(nums, target):\n    pass',parameters:[],interfaces:[],fixtures:[{entry:'twoSum',name:'Example',args:[[2,7],9],expected:[0,1]}],validation:{kind:'practice-cases',count:1,adversarialCount:0}};
 function lesson(language:'python'|'javascript'='python'):GuidedLesson{return {id:1,title:'Two Sum',language,revision:'v1',source:language==='python'?'def twoSum(nums, target):\n    return [0, 1]':'function twoSum(nums,target) { return [0,1]; }',sourceHash:'hash',patternId:'hash',coverage:{requiredLines:[2],coveredLines:[2],terminalLines:[2]},validation:{correctCases:1,wrongChoices:2,testedWitnesses:2},questions:[
 {id:'pattern',stage:'pattern',prompt:'Which approach fits this lesson?',choices:Array.from({length:8},(_,i)=>({id:`pattern-${i}`,label:i===3?'Hash lookup':`Pattern ${i}`,correct:i===3,feedback:i===3?'Remember earlier values for lookup.':'This is a different approach from the one practiced here.'}))},

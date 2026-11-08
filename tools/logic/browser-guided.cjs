@@ -242,10 +242,10 @@ async function navigationChecks(browser, language) {
     await opening(js);
     await page.getByRole('heading', { name: firstImplementation.prompt, exact: true }).waitFor();
     const reference = page.getByRole('region', { name: 'Reference solution', exact: true });
-    await reference.getByRole('button', { name: 'Reveal solution', exact: true }).tap();
+    await reference.getByRole('button', { name: 'Solution', exact: true }).tap();
     await reference.getByRole('heading', { name: 'JavaScript solution', exact: true }).waitFor();
     assert.equal((await reference.locator('pre code').innerText()).trim(), js.source.trim());
-    await reference.getByRole('button', { name: 'Hide solution', exact: true }).tap();
+    await reference.getByRole('button', { name: 'Solution', exact: true }).tap();
     assert.equal(await reference.locator('pre code').count(), 0);
     assert(!requests.some(value => /\/vendor\/pyodide\/|\.worker-/.test(value)));
     await finish(js, implementationStart(js));
@@ -257,10 +257,10 @@ async function navigationChecks(browser, language) {
     await page.getByRole('button', { name: 'Python', exact: true }).tap();
     await answer(py.questions[0]);
     await page.getByRole('heading', { name: py.questions[1].prompt, exact: true }).waitFor();
-    await reference.getByRole('button', { name: 'Reveal solution', exact: true }).tap();
+    await reference.getByRole('button', { name: 'Solution', exact: true }).tap();
     await reference.getByRole('heading', { name: 'Python solution', exact: true }).waitFor();
     assert.equal((await reference.locator('pre code').innerText()).trim(), py.source.trim());
-    await reference.getByRole('button', { name: 'Hide solution', exact: true }).tap();
+    await reference.getByRole('button', { name: 'Solution', exact: true }).tap();
     await finish(py, 1);
     assert(!requests.some(value => value.includes('/vendor/pyodide/')), 'Python loaded before Run');
     await runAndDebug('Python');
@@ -288,7 +288,7 @@ async function navigationChecks(browser, language) {
     await page.getByRole('button', { name: 'Retry questions', exact: true }).tap();
     await choices.nth(7).waitFor();
     await page.route('**/solutions/217-*.json', route => route.abort());
-    await reference.getByRole('button', { name: 'Reveal solution', exact: true }).tap();
+    await reference.getByRole('button', { name: 'Solution', exact: true }).tap();
     await reference.getByRole('alert').waitFor();
     await page.unroute('**/solutions/217-*.json');
     await reference.getByRole('button', { name: 'Retry solution', exact: true }).tap();

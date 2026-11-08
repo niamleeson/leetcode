@@ -20,7 +20,7 @@ answered and skipped counts separately. The approach
 is specific to the worked solution, and the UI acknowledges that other
 algorithms can be valid. Pattern feedback does not reveal the next plan.
 Structure cards do not display a complete plan, pseudocode outline, or future
-questions. Feedback explains only the current decision. Reveal solution remains
+questions. Feedback explains only the current decision. Solution remains
 an explicit way to inspect the full solution. Implementation prompts identify
 the concrete value, test, or operation being chosen; correct feedback states
 what that code actually does instead of generic claims about updating state.
@@ -60,7 +60,7 @@ listed as context rather than counted as tested logic decisions.
 After the decisions, learners can run the finished code and step through real
 source statements and variables. Both languages run in workers; JavaScript
 uses build-time instrumentation and Python uses the existing WebAssembly
-runtime. Neither worker runs before Run tests is pressed. Reveal solution is
+runtime. Neither worker runs before Run tests is pressed. Solution is
 available throughout, matches the selected language, and leaves progress intact.
 Progress is saved separately for each problem and language, and invalidates
 when lesson content changes. Reopening an unfinished lesson quizzes the approach

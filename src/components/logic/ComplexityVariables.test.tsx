@@ -73,11 +73,11 @@ describe('complexity variable meanings beside the estimates', () => {
     expect(screen.getAllByText('O(1)')).toHaveLength(2);
   });
 
-  it('loads definitions only after guided Reveal solution and switches their language with the solution', async () => {
+  it('loads definitions only after guided Solution and switches their language with the solution', async () => {
     const view = render(<SolutionReveal id={49} language="javascript" />);
     expect(loadSolution).not.toHaveBeenCalled();
     expect(screen.queryByRole('list', { name: 'Complexity variables' })).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Reveal solution' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Solution' }));
     await screen.findByRole('list', { name: 'Complexity variables' });
     expect(loadSolution).toHaveBeenCalledWith(49);
     expect(screen.getByText('O(N × L)')).toBeTruthy();
@@ -86,7 +86,7 @@ describe('complexity variable meanings beside the estimates', () => {
 
     view.rerender(<SolutionReveal id={49} language="python" />);
     expect(screen.queryByRole('list', { name: 'Complexity variables' })).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Reveal solution' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Solution' }));
     await screen.findByRole('heading', { name: 'Python solution' });
     await screen.findByText('O(w²)');
     expect(legend().textContent).toBe('w — Number of words compared');
