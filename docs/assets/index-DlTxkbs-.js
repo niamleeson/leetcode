@@ -1,0 +1,1 @@
+import{e as t}from"./index-BUfjCgML.js";const a={total:4101,contentBase:"catalog/85fc25d54ade6e2d"},e=new Set(t.map(o=>o.id));function n(o){return e.has(o)}function c(o){if(!n(o))throw new Error(`No catalog entry for problem ${o}`);return`/leetcode/${a.contentBase}/${o}.json`}export{c as a,a as c};

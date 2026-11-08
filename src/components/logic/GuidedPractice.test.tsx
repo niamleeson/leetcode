@@ -5,10 +5,14 @@ import { MemoryRouter } from 'react-router-dom';
 import GuidedPractice from './GuidedPractice';
 import type { GuidedLesson } from '../../data/logic/guided-types';
 import type { LogicProblem } from '../../data/logic/types';
-const mocks = vi.hoisted(() => ({ load: vi.fn(), runner: vi.fn() }));
+const mocks = vi.hoisted(() => ({ load: vi.fn(), runner: vi.fn(), recovery: new Map<string, () => boolean>() }));
 vi.mock('../../data/logic/guided', () => ({ loadGuidedLesson: mocks.load }));
 vi.mock('./GuidedCodeRunner', () => ({ default: (props: {code:string,language:string}) => { mocks.runner(props); return <section aria-label="Completed test code">{props.language}: {props.code}</section>; } }));
 vi.mock('./SolutionReveal', () => ({ default: () => <button>Solution</button> }));
+vi.mock('../RecoverableLazy', () => ({ default: ({children, errorTitle, onBeforeReload}: {children: React.ReactNode; errorTitle: string; onBeforeReload: () => boolean}) => {
+ mocks.recovery.set(errorTitle, onBeforeReload);
+ return children;
+} }));
 const problem: LogicProblem={id:1,title:'Two Sum',difficulty:'Easy',topic:'Arrays',description:'Find two different indices.',examples:[],starter:'def twoSum(nums, target):\n    pass',parameters:[],interfaces:[],fixtures:[{entry:'twoSum',name:'Example',args:[[2,7],9],expected:[0,1]}],validation:{kind:'practice-cases',count:1,adversarialCount:0}};
 function lesson(language:'python'|'javascript'='python'):GuidedLesson{return {id:1,title:'Two Sum',language,revision:'v1',source:language==='python'?'def twoSum(nums, target):\n    return [0, 1]':'function twoSum(nums,target) { return [0,1]; }',sourceHash:'hash',patternId:'hash',coverage:{requiredLines:[2],coveredLines:[2],terminalLines:[2]},validation:{correctCases:1,wrongChoices:2,testedWitnesses:2},questions:[
 {id:'pattern',stage:'pattern',prompt:'Which approach fits this lesson?',choices:Array.from({length:8},(_,i)=>({id:`pattern-${i}`,label:i===3?'Hash lookup':`Pattern ${i}`,correct:i===3,feedback:i===3?'Remember earlier values for lookup.':'This is a different approach from the one practiced here.'}))},
@@ -43,7 +47,7 @@ function expectStageDone(stage: 'pattern' | 'structure' | 'implementation', done
 async function correctImplementation() {
  fireEvent.click(await screen.findByRole('button', {name:/return \[0, 1\]/}));
 }
-beforeEach(()=>{localStorage.clear();vi.clearAllMocks();mocks.load.mockImplementation((_id,lang)=>Promise.resolve(lesson(lang)));Element.prototype.scrollIntoView=vi.fn();});afterEach(cleanup);
+beforeEach(()=>{localStorage.clear();sessionStorage.clear();vi.clearAllMocks();mocks.recovery.clear();mocks.load.mockImplementation((_id,lang)=>Promise.resolve(lesson(lang)));Element.prototype.scrollIntoView=vi.fn();});afterEach(()=>{cleanup();vi.restoreAllMocks();});
 describe('guided approach-to-code workflow',()=>{
  it.each(['python','javascript'] as const)('shows one structure decision at a time in %s and reviews every step before resuming code',async(language)=>{
   const full=lesson(language), implementation=full.questions[2];
@@ -368,5 +372,171 @@ describe('guided step navigation', () => {
   expect(savedProgress('python')).toMatchObject({answered:[], skipped:[], attempts:0});
   expect(screen.queryByRole('button', {name:'Next step'})).toBeNull();
   expect(screen.getByRole('button', {name:'Skip step'})).toBeTruthy();
+ });
+});
+
+describe('recovering a failed lazy download without losing the lesson', () => {
+ const checkpointKey = (language: 'python' | 'javascript') => `lc-guided-recovery-1-${language}`;
+ const saveCheckpoint = (section: 'runner' | 'solution' = 'runner') => mocks.recovery.get(section === 'runner' ? "The code runner couldn't open." : "The solution couldn't open.")!();
+ const showStrict = (language: 'python' | 'javascript') => render(<React.StrictMode><MemoryRouter><GuidedPractice problem={problem} language={language} onLanguageChange={() => {}}/></MemoryRouter></React.StrictMode>);
+
+ it.each(['python', 'javascript'] as const)('keeps the final %s answer through recovery and consumes the checkpoint once under StrictMode', async language => {
+  const first = show(language);
+  await correctPattern();
+  await correctStructure();
+  await correctImplementation();
+  await screen.findByRole('region', {name:'Completed test code'});
+  const completed = savedProgress(language);
+  expect(completed).toMatchObject({answered:lesson(language).questions.map(question => question.id), skipped:[], attempts:3});
+  expect(saveCheckpoint()).toBe(true);
+  first.unmount();
+
+  const recovered = showStrict(language);
+  await screen.findByRole('region', {name:'Completed test code'});
+  expect(screen.queryByRole('region', {name:'Approach question'})).toBeNull();
+  expect(savedProgress(language)).toEqual(completed);
+  expect(sessionStorage.getItem(checkpointKey(language))).toBeNull();
+  navigateStep('Previous step');
+  expect(screen.getByRole('heading', {name:'Which result should we return?'})).toBeTruthy();
+  navigateStep('Next step');
+  await screen.findByRole('region', {name:'Completed test code'});
+  expect(savedProgress(language)).toEqual(completed);
+  recovered.unmount();
+
+  show(language);
+  await screen.findByRole('region', {name:'Approach question'});
+  expect(savedProgress(language)).toMatchObject({answered:[], skipped:[], attempts:0});
+ });
+
+ it.each(['python', 'javascript'] as const)('preserves a skipped final %s step and lets it be answered after recovery', async language => {
+  const first = show(language);
+  await correctPattern();
+  await correctStructure();
+  navigateStep('Skip step');
+  await screen.findByRole('region', {name:'Completed test code'});
+  expect(saveCheckpoint()).toBe(true);
+  first.unmount();
+
+  show(language);
+  await screen.findByRole('region', {name:'Completed test code'});
+  expect(document.querySelector('.guided-complete')?.textContent).toContain('1 skipped');
+  expect(savedProgress(language)).toMatchObject({answered:['pattern', 'structure'], skipped:[`implementation-${language}`], attempts:2});
+  navigateStep('Previous step');
+  await correctImplementation();
+  await screen.findByRole('region', {name:'Completed test code'});
+  expect(document.querySelector('.guided-complete')?.textContent).toContain('DECISIONS COMPLETE');
+  expect(savedProgress(language)).toMatchObject({skipped:[], attempts:3});
+ });
+
+ it('recovers a solution download failure at the current cursor, including going back to structure', async () => {
+  mocks.load.mockResolvedValue(navigationLesson('python'));
+  const first = show();
+  await correctPattern();
+  await correctStructure();
+  await correctStructure();
+  await correctImplementation();
+  navigateStep('Previous step');
+  navigateStep('Previous step');
+  expect(screen.getByRole('heading', {name:'When should we check the saved values?'})).toBeTruthy();
+  const progress = savedProgress('python');
+  expect(saveCheckpoint('solution')).toBe(true);
+  first.unmount();
+
+  show();
+  await screen.findByRole('heading', {name:'When should we check the saved values?'});
+  expect(savedProgress('python')).toEqual(progress);
+  navigateStep('Next step');
+  expect(screen.getByRole('heading', {name:'How should the first code step work?'})).toBeTruthy();
+ });
+
+ it('keeps the resume target when recovery happens during the opening review', async () => {
+  mocks.load.mockResolvedValue(navigationLesson('javascript'));
+  localStorage.setItem('lc-guided-progress-1-javascript', JSON.stringify({revision:'v1', answered:['pattern', 'plan-remember', 'plan-order', 'code-first'], skipped:[], attempts:4}));
+  const first = show('javascript');
+  await correctPattern();
+  expect(screen.getByRole('heading', {name:'What should we remember?'})).toBeTruthy();
+  expect(saveCheckpoint('solution')).toBe(true);
+  first.unmount();
+
+  show('javascript');
+  await screen.findByRole('heading', {name:'What should we remember?'});
+  await correctStructure();
+  await correctStructure();
+  expect(screen.getByRole('heading', {name:'How should the middle code step work?'})).toBeTruthy();
+  expect(savedProgress('javascript').attempts).toBe(7);
+ });
+
+ it('recovers a fresh attempt after restarting previously resumed progress', async () => {
+  mocks.load.mockResolvedValue(navigationLesson('python'));
+  localStorage.setItem('lc-guided-progress-1-python', JSON.stringify({revision:'v1', answered:['pattern', 'plan-remember', 'plan-order', 'code-first'], skipped:[], attempts:4}));
+  const first = show();
+  await screen.findByRole('region', {name:'Approach question'});
+  fireEvent.click(screen.getByRole('button', {name:'Start again'}));
+  await correctPattern();
+  expect(saveCheckpoint('solution')).toBe(true);
+  first.unmount();
+
+  show();
+  await screen.findByRole('heading', {name:'What should we remember?'});
+  expect(savedProgress('python')).toMatchObject({answered:['pattern'], skipped:[], attempts:1});
+  await correctStructure();
+  await correctStructure();
+  expect(screen.getByRole('heading', {name:'How should the first code step work?'})).toBeTruthy();
+ });
+
+ it.each([
+  {id:2},
+  {language:'javascript'},
+  {questionIndex:4},
+  {questionIndex:-1},
+  {resumeAt:4},
+  {reviewingOpening:true},
+  {progress:{revision:'old', answered:['pattern', 'structure', 'implementation-python'], skipped:[], attempts:3}},
+  {progress:{revision:'v1', answered:['pattern', 'pattern', 'implementation-python'], skipped:[], attempts:3}},
+  {progress:{revision:'v1', answered:['implementation-python'], skipped:[], attempts:1}},
+ ])('ignores an invalid recovery checkpoint: %j', async invalid => {
+  sessionStorage.setItem(checkpointKey('python'), JSON.stringify({id:1, language:'python', progress:{revision:'v1', answered:lesson().questions.map(question => question.id), skipped:[], attempts:3}, questionIndex:3, resumeAt:0, reviewingOpening:false, ...invalid}));
+  show();
+  await screen.findByRole('region', {name:'Approach question'});
+  expect(savedProgress('python')).toMatchObject({answered:[], skipped:[], attempts:0});
+  expect(sessionStorage.getItem(checkpointKey('python'))).toBeNull();
+ });
+
+ it('keeps the completed page available when a recovery checkpoint cannot be saved', async () => {
+  show();
+  await correctPattern();
+  await correctStructure();
+  await correctImplementation();
+  await screen.findByRole('region', {name:'Completed test code'});
+  const original = Storage.prototype.setItem;
+  vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function(this: Storage, key: string, value: string) {
+   if (this === sessionStorage) throw new Error('Storage unavailable');
+   return original.call(this, key, value);
+  });
+  expect(saveCheckpoint()).toBe(false);
+  expect(screen.getByRole('region', {name:'Completed test code'})).toBeTruthy();
+  expect(screen.getByRole('button', {name:'Previous step'})).toBeTruthy();
+  expect(sessionStorage.getItem(checkpointKey('python'))).toBeNull();
+ });
+
+ it('can recover using session storage when ordinary progress storage is unavailable', async () => {
+  const original = Storage.prototype.setItem;
+  vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function(this: Storage, key: string, value: string) {
+   if (this === localStorage) throw new Error('Progress storage unavailable');
+   return original.call(this, key, value);
+  });
+  const first = show('javascript');
+  await correctPattern();
+  await correctStructure();
+  await correctImplementation();
+  await screen.findByRole('region', {name:'Completed test code'});
+  expect(screen.getByText('Progress could not be saved')).toBeTruthy();
+  expect(saveCheckpoint()).toBe(true);
+  first.unmount();
+
+  show('javascript');
+  await screen.findByRole('region', {name:'Completed test code'});
+  expect(document.querySelector('.guided-complete')?.textContent).toContain('DECISIONS COMPLETE');
+  expect(sessionStorage.getItem(checkpointKey('javascript'))).toBeNull();
  });
 });

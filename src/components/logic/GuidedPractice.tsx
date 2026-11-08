@@ -5,12 +5,14 @@ import { loadGuidedLesson } from '../../data/logic/guided';
 import type { GuidedChoice, GuidedLesson, GuidedQuestion } from '../../data/logic/guided-types';
 import SolutionReveal from './SolutionReveal';
 import ProgrammingLanguageToggle from '../ProgrammingLanguageToggle';
+import RecoverableLazy from '../RecoverableLazy';
 import './guidedPractice.css';
 
 const GuidedCodeRunner = lazy(() => import('./GuidedCodeRunner'));
 type Language = 'python' | 'javascript';
 interface Props { problem: LogicProblem; language: Language; onLanguageChange: (language: Language) => void }
 interface Progress { revision: string; answered: string[]; skipped: string[]; attempts: number; }
+interface Recovery { progress: Progress; questionIndex: number; resumeAt: number; reviewingOpening: boolean; }
 interface Feedback { correct: boolean; text: string; question: string; stage: GuidedQuestion['stage']; witness?: GuidedChoice['witness'] }
 const display = (value: unknown) => {
   const compact = JSON.stringify(value) ?? 'No result';
@@ -20,24 +22,46 @@ const display = (value: unknown) => {
 };
 const stageNames = { pattern: 'Approach', structure: 'Structure', implementation: 'Implementation' };
 const storageKey = (id: number, language: Language) => `lc-guided-progress-${id}-${language}`;
+const recoveryKey = (id: number, language: Language) => `lc-guided-recovery-${id}-${language}`;
+function normalizeProgress(value: unknown, lesson: GuidedLesson, allowCompleted = false): Progress | null {
+  if (!value || typeof value !== 'object') return null;
+  const saved = value as Partial<Progress>;
+  if (saved.revision !== lesson.revision || !Array.isArray(saved.answered) || typeof saved.attempts !== 'number' || !Number.isSafeInteger(saved.attempts) || saved.attempts < 0) return null;
+  const answered = saved.answered;
+  const skipped = saved.skipped === undefined ? [] : saved.skipped;
+  if (!Array.isArray(skipped)) return null;
+  const visited = [...answered, ...skipped];
+  const visitedIds = new Set(visited);
+  if (visited.length > lesson.questions.length || (!allowCompleted && visited.length === lesson.questions.length) || visitedIds.size !== visited.length ||
+    !lesson.questions.slice(0, visited.length).every(question => visitedIds.has(question.id))) return null;
+  return {
+    revision: lesson.revision,
+    answered: lesson.questions.filter(question => answered.includes(question.id)).map(question => question.id),
+    skipped: lesson.questions.filter(question => skipped.includes(question.id)).map(question => question.id),
+    attempts: saved.attempts,
+  };
+}
 function readProgress(lesson: GuidedLesson, language: Language): Progress {
-  const empty = { revision: lesson.revision, answered: [], skipped: [], attempts: 0 };
   try {
-    const saved = JSON.parse(localStorage.getItem(storageKey(lesson.id, language)) || 'null');
-    if (!saved || saved.revision !== lesson.revision || !Array.isArray(saved.answered) || !Number.isSafeInteger(saved.attempts) || saved.attempts < 0) return empty;
-    const skipped = saved.skipped === undefined ? [] : saved.skipped;
-    if (!Array.isArray(skipped)) return empty;
-    const visited = [...saved.answered, ...skipped];
-    const visitedIds = new Set(visited);
-    if (visited.length >= lesson.questions.length || visitedIds.size !== visited.length ||
-      !lesson.questions.slice(0, visited.length).every(question => visitedIds.has(question.id))) return empty;
-    return {
-      revision: lesson.revision,
-      answered: lesson.questions.filter(question => saved.answered.includes(question.id)).map(question => question.id),
-      skipped: lesson.questions.filter(question => skipped.includes(question.id)).map(question => question.id),
-      attempts: saved.attempts,
-    };
-  } catch { return empty; }
+    const saved = normalizeProgress(JSON.parse(localStorage.getItem(storageKey(lesson.id, language)) || 'null'), lesson);
+    if (saved) return saved;
+  } catch { /* A new attempt remains available when storage is unavailable. */ }
+  return { revision: lesson.revision, answered: [], skipped: [], attempts: 0 };
+}
+function readRecovery(lesson: GuidedLesson, language: Language): Recovery | null {
+  try {
+    const saved = JSON.parse(sessionStorage.getItem(recoveryKey(lesson.id, language)) || 'null');
+    if (!saved || saved.id !== lesson.id || saved.language !== language) return null;
+    const progress = normalizeProgress(saved.progress, lesson, true);
+    if (!progress) return null;
+    const visited = progress.answered.length + progress.skipped.length;
+    const implementationStart = lesson.questions.findIndex(item => item.stage === 'implementation');
+    if (!Number.isSafeInteger(saved.questionIndex) || saved.questionIndex < 0 || saved.questionIndex > visited ||
+      !Number.isSafeInteger(saved.resumeAt) || saved.resumeAt < 0 || saved.resumeAt > visited ||
+      typeof saved.reviewingOpening !== 'boolean' ||
+      (saved.reviewingOpening && (saved.questionIndex >= implementationStart || saved.resumeAt <= implementationStart))) return null;
+    return { progress, questionIndex: saved.questionIndex, resumeAt: saved.resumeAt, reviewingOpening: saved.reviewingOpening };
+  } catch { return null; }
 }
 function hasSavedDraft(id: number) {
   try { return !!JSON.parse(localStorage.getItem(`lc-logic-draft-${id}`) || 'null')?.program?.units?.some((unit: { lines?: unknown[] }) => unit.lines?.length); } catch { return false; }
@@ -72,12 +96,13 @@ export function LanguageToggle({ language, onChange }: { language: Language; onC
 function GuidedSession({ problem, language, lesson }: { problem: LogicProblem; language: Language; lesson: GuidedLesson }) {
   const implementationStart = lesson.questions.findIndex(item => item.stage === 'implementation');
   const structureCount = implementationStart - 1;
-  const [progress, setProgress] = useState(() => readProgress(lesson, language));
+  const [recovery] = useState(() => readRecovery(lesson, language));
+  const [progress, setProgress] = useState(() => recovery?.progress ?? readProgress(lesson, language));
   // Revisit the plan before resuming saved implementation work. A finished
   // lesson starts a fresh attempt rather than opening directly into its code.
-  const [resumeAt] = useState(() => progress.answered.length + progress.skipped.length);
-  const [reviewingOpening, setReviewingOpening] = useState(resumeAt > implementationStart);
-  const [questionIndex, setQuestionIndex] = useState(0);
+  const [resumeAt] = useState(() => recovery?.resumeAt ?? progress.answered.length + progress.skipped.length);
+  const [reviewingOpening, setReviewingOpening] = useState(recovery?.reviewingOpening ?? resumeAt > implementationStart);
+  const [questionIndex, setQuestionIndex] = useState(recovery?.questionIndex ?? 0);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [wrongChoices, setWrongChoices] = useState<string[]>([]);
   const [saved, setSaved] = useState(true);
@@ -91,6 +116,11 @@ function GuidedSession({ problem, language, lesson }: { problem: LogicProblem; l
   const correctPattern = lesson.questions[0].choices.find(choice => choice.correct);
   const revealedPlan = lesson.questions.filter(item => item.stage === 'structure')
     .map(item => item.choices.find(choice => choice.correct)!.feedback).join('\n\n');
+  useEffect(() => {
+    // Consume only after mount so React StrictMode's second initialization sees
+    // the same checkpoint. A later ordinary visit still starts a new attempt.
+    try { sessionStorage.removeItem(recoveryKey(problem.id, language)); } catch { /* Storage can be disabled. */ }
+  }, [problem.id, language]);
   useEffect(() => {
     try { localStorage.setItem(storageKey(problem.id, language), JSON.stringify(progress)); setSaved(true); } catch { setSaved(false); }
   }, [problem.id, language, progress]);
@@ -150,6 +180,12 @@ function GuidedSession({ problem, language, lesson }: { problem: LogicProblem; l
     setReviewingOpening(false); setQuestionIndex(0);
     setProgress({ revision: lesson.revision, answered: [], skipped: [], attempts: 0 }); setFeedback(null); setWrongChoices([]); setRevealKey(value => value + 1); answeredNow.current = null;
   }
+  function saveRecovery() {
+    try {
+      sessionStorage.setItem(recoveryKey(problem.id, language), JSON.stringify({ id: problem.id, language, progress, questionIndex, resumeAt: reviewingOpening ? resumeAt : 0, reviewingOpening }));
+      return true;
+    } catch { return false; }
+  }
   const stageDone = (stage: GuidedQuestion['stage']) => lesson.questions.filter(item => item.stage === stage).every(item => progress.answered.includes(item.id));
   const navigation = <nav className="guided-navigation" aria-label="Question navigation">
     <button type="button" disabled={questionIndex === 0} onClick={previous}><span aria-hidden="true">← </span>Previous step</button>
@@ -176,10 +212,14 @@ function GuidedSession({ problem, language, lesson }: { problem: LogicProblem; l
     </section>{navigation}</> : <>
       <section className="guided-complete"><div className="logic-eyebrow">{progress.skipped.length ? 'END OF WALKTHROUGH' : 'DECISIONS COMPLETE'}</div><h2 ref={heading} tabIndex={-1}>Now see the implementation run.</h2><p>{progress.skipped.length ? `${progress.answered.length} of ${lesson.questions.length} decisions answered correctly. ${progress.skipped.length} skipped. Use Previous step to revisit a decision, or run the reference implementation.` : 'You worked through the approach, code structure, and implementation to the end. Step through an example and connect each decision to its effect.'}</p></section>
       {navigation}
-      <Suspense fallback={<p role="status" className="logic-solution-status">Loading the completed implementation…</p>}><GuidedCodeRunner problem={problem} code={lesson.source} language={language} execution={lesson.execution}/></Suspense>
+      <RecoverableLazy errorTitle="The code runner couldn't open." onBeforeReload={saveRecovery}>
+        <Suspense fallback={<p role="status" className="logic-solution-status">Loading the completed implementation…</p>}><GuidedCodeRunner problem={problem} code={lesson.source} language={language} execution={lesson.execution}/></Suspense>
+      </RecoverableLazy>
       <details className="guided-review"><summary>Review your decisions</summary><ol>{lesson.questions.map(item => { const correct=item.choices.find(choice => choice.correct)!; return <li key={item.id}><strong>{item.prompt}</strong><small className="guided-review-status">{progress.answered.includes(item.id) ? 'Answered correctly' : 'Skipped'}</small>{correct.code ? <pre><code>{correct.code.trim()}</code></pre> : <p>{correct.label}</p>}<p>{correct.feedback}</p></li>; })}</ol></details>
     </>}
-    <SolutionReveal key={revealKey} id={problem.id} language={language} approach={correctPattern?.label} explanation={revealedPlan}/>
+    <RecoverableLazy key={revealKey} errorTitle="The solution couldn't open." onBeforeReload={saveRecovery}>
+      <SolutionReveal id={problem.id} language={language} approach={correctPattern?.label} explanation={revealedPlan}/>
+    </RecoverableLazy>
     {(!saved || progress.answered.length + progress.skipped.length > 0) && <div className="guided-footer">{!saved && <span role="status">Progress could not be saved</span>}{progress.answered.length + progress.skipped.length > 0 && <button type="button" onClick={restart}>Start again</button>}</div>}
   </>;
 }

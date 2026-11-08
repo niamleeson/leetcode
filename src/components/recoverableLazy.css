@@ -1,0 +1,8 @@
+.lazy-recovery { margin:16px 0; padding:18px; border:1px solid var(--lp-line, #374151); border-radius:12px; background:var(--lp-panel, #111827); color:var(--lp-text, #e5e7eb); }
+.lazy-recovery h2 { font-size:17px; line-height:1.4; font-weight:650; }
+.lazy-recovery p { margin:8px 0; color:var(--lp-muted, #9ca3af); font-size:13px; line-height:1.6; }
+.lazy-recovery button { min-height:44px; padding:10px 16px; margin-top:6px; border:1px solid var(--lp-line, #374151); border-radius:9px; color:var(--lp-accent, #67e8d1); cursor:pointer; touch-action:manipulation; }
+.lazy-recovery button:focus-visible { outline:2px solid var(--lp-accent, #67e8d1); outline-offset:3px; }
+html.light .lazy-recovery { background:var(--lp-panel, #fff); border-color:var(--lp-line, #cbd5e1); color:var(--lp-text, #17243b); }
+html.light .lazy-recovery p { color:var(--lp-muted, #52627b); }
+html.light .lazy-recovery button { border-color:var(--lp-line, #cbd5e1); color:var(--lp-accent, #075e53); }
