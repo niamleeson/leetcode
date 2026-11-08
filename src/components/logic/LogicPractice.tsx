@@ -7,8 +7,6 @@ import { useProgrammingLanguage } from '../../hooks/useProgrammingLanguage';
 const LogicEditor = lazy(() => import('./LogicEditor'));
 import './logicPractice.css';
 
-const firstProblems = [1, 217, 242, 704, 121, 20, 125, 206];
-
 export default function LogicPractice() {
   const { id } = useParams();
   const [query, setQuery] = useSearchParams();
@@ -31,7 +29,6 @@ function PracticeLibrary({ language, onLanguageChange }: { language: 'python' | 
   const [topic, setTopic] = useState('All topics');
   const topics = useMemo(() => Array.from(new Set(logicManifest.map(p => p.topic))), []);
   const matches = logicManifest.filter(p => (topic === 'All topics' || p.topic === topic) && `${p.id} ${p.title} ${p.topic}`.toLowerCase().includes(query.toLowerCase()));
-  const recommended = firstProblems.map(id => logicManifest.find(p => p.id === id)).filter(Boolean);
   const cards = (items: typeof matches) => items.map(p => <Link key={p.id} to={`/practice/${p.id}`} className="logic-problem-card">
     <span><small>#{p.id} · {p.topic}</small><strong>{p.title}</strong></span>
     <span className={`logic-difficulty logic-difficulty-${p.difficulty.toLowerCase()}`}>{p.difficulty}</span>
@@ -41,7 +38,6 @@ function PracticeLibrary({ language, onLanguageChange }: { language: 'python' | 
     <h1>Decide the logic.</h1>
     <p className="logic-intro">Choose an approach, plan the structure, and work through the implementation. Get feedback after every decision, then run and debug the completed code.</p>
     <div className="logic-library-note">All 250 problems in Python and JavaScript. Start with eight pattern choices. Your progress stays on this device.</div>
-    {!query && topic === 'All topics' && <section aria-labelledby="logic-start"><h2 id="logic-start">Start here</h2><div className="logic-card-list">{cards(recommended as typeof matches)}</div></section>}
     <section aria-labelledby="logic-library-title">
       <h2 id="logic-library-title">NeetCode 250 <span>{matches.length} problems</span></h2>
       <div className="logic-library-filters"><input type="search" aria-label="Find a practice problem" placeholder="Find a problem…" value={query} onChange={e => setQuery(e.target.value)} />
