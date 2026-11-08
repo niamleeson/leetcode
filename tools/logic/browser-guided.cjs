@@ -198,7 +198,11 @@ async function navigationChecks(browser, language) {
     await choices.nth(7).waitFor();
     await page.waitForLoadState('networkidle');
     assert.equal(await choices.count(), 8);
-    assert(await page.locator('.logic-question').evaluate(element => element.open), 'Problem and examples should start expanded');
+    const problemStatement = page.getByRole('region', { name: 'Full problem & examples', exact: true });
+    assert(await problemStatement.isVisible(), 'Problem and examples must stay visible');
+    assert(await problemStatement.evaluate(element => !element.closest('details') && getComputedStyle(element).borderTopWidth === '0px' && getComputedStyle(element).backgroundColor === 'rgba(0, 0, 0, 0)'), 'Problem and examples should be unboxed');
+    assert.equal(await page.locator('.guided-problem-summary').count(), 0, 'Problem summary should not repeat the full statement');
+    assert.equal(await page.getByText('Progress saved on this device', { exact: true }).count(), 0);
     const jsToggle = await page.getByRole('button', { name: 'JavaScript', exact: true }).boundingBox();
     const pyToggle = await page.getByRole('button', { name: 'Python', exact: true }).boundingBox();
     assert(jsToggle.x < pyToggle.x, 'JavaScript should be to the left of Python');

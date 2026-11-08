@@ -1,6 +1,9 @@
 .guided-practice { max-width:880px; margin:0 auto; gap:14px; }
 .guided-practice .logic-heading h1 { outline:none; }
-.guided-problem-summary { font-size:14px; line-height:1.65; color:var(--lp-muted); white-space:pre-line; }
+.guided-problem { font-size:14px; line-height:1.7; }
+.guided-problem h2 { margin:8px 0 10px; font-size:13px; font-weight:600; color:var(--lp-muted); }
+.guided-problem-description { white-space:pre-line; }
+.guided-problem-example { margin:14px 0; font:12px/1.65 ui-monospace,SFMono-Regular,Menlo,monospace; white-space:pre-wrap; overflow-wrap:anywhere; color:var(--lp-muted); }
 .guided-progress { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:5px 0; }
 .guided-progress ol { display:flex; gap:12px; margin:0; padding:0; list-style:none; }
 .guided-progress li { display:flex; gap:5px; align-items:center; font-size:12px; color:var(--lp-muted); }
@@ -54,7 +57,7 @@ html.light .guided-feedback-incorrect strong { color:#92400e; }
 .guided-navigation button:hover:not(:disabled) { border-color:var(--lp-accent); color:var(--lp-accent); }
 .guided-navigation button:disabled { opacity:.45; cursor:not-allowed; }
 .guided-footer { display:flex; gap:12px; justify-content:space-between; align-items:center; color:var(--lp-muted); font-size:11px; }
-.guided-footer button { min-height:44px; color:var(--lp-accent); padding:8px 12px; }
+.guided-footer button { min-height:44px; color:var(--lp-accent); padding:8px 12px; margin-left:auto; }
 .guided-saved-draft { display:inline-flex; min-height:44px; padding:10px 0; }
 @media(max-width:600px) {
  .guided-practice { gap:10px; }
@@ -70,5 +73,5 @@ html.light .guided-feedback-incorrect strong { color:#92400e; }
  .guided-progress li { font-size:11px; }
  .guided-context { font-size:11px; padding:10px; }
  .guided-code-choices .guided-choice code { font-size:11px; }
- .guided-problem-summary { font-size:13px; }
+ .guided-problem { font-size:13px; }
 }

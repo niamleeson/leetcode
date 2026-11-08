@@ -57,8 +57,12 @@ export default function GuidedPractice(props: Props) {
   }, [problem.id, language, retry]);
   return <div className="logic-editor guided-practice">
     <header className="logic-heading"><div><Link to="/practice">← Practice problems</Link><h1 ref={problemHeading} tabIndex={-1}>{problem.title}</h1><div className="logic-heading-meta">#{problem.id} · {problem.difficulty}</div></div><LanguageToggle language={language} onChange={props.onLanguageChange}/></header>
-    <p className="guided-problem-summary">{problem.description.split('\n').find(line => line.trim())}</p>
-    <details className="logic-question" open><summary>Full problem & examples</summary><div className="logic-question-content"><p>{problem.description}</p>{problem.examples.slice(0, 2).map((example, i) => <pre key={i}>{example.name}{'\n'}Input: {display(example.input)}{example.operations && `\nCalls: ${display(example.operations)}`}{'\n'}Expected: {display(example.expected)}</pre>)}{hasSavedDraft(problem.id) && <Link className="guided-saved-draft" to={`/practice/${problem.id}?draft=1`}>Open your saved Python draft</Link>}</div></details>
+    <section className="guided-problem" aria-labelledby="guided-problem-title">
+      <h2 id="guided-problem-title">Full problem & examples</h2>
+      <p className="guided-problem-description">{problem.description}</p>
+      {problem.examples.slice(0, 2).map((example, i) => <pre className="guided-problem-example" key={i}>{example.name}{'\n'}Input: {display(example.input)}{example.operations && `\nCalls: ${display(example.operations)}`}{'\n'}Expected: {display(example.expected)}</pre>)}
+      {hasSavedDraft(problem.id) && <Link className="guided-saved-draft" to={`/practice/${problem.id}?draft=1`}>Open your saved Python draft</Link>}
+    </section>
     {!currentLesson ? <section className="guided-question-card"><p role={error ? 'alert' : 'status'}>{error || 'Loading guided questions…'}</p>{error && <button type="button" className="logic-small-button" onClick={() => setRetry(value => value + 1)}>Retry questions</button>}</section> : <GuidedSession key={`${problem.id}:${language}:${currentLesson.revision}`} problem={problem} language={language} lesson={currentLesson}/>}
   </div>;
 }
@@ -176,6 +180,6 @@ function GuidedSession({ problem, language, lesson }: { problem: LogicProblem; l
       <details className="guided-review"><summary>Review your decisions</summary><ol>{lesson.questions.map(item => { const correct=item.choices.find(choice => choice.correct)!; return <li key={item.id}><strong>{item.prompt}</strong><small className="guided-review-status">{progress.answered.includes(item.id) ? 'Answered correctly' : 'Skipped'}</small>{correct.code ? <pre><code>{correct.code.trim()}</code></pre> : <p>{correct.label}</p>}<p>{correct.feedback}</p></li>; })}</ol></details>
     </>}
     <SolutionReveal key={revealKey} id={problem.id} language={language} approach={correctPattern?.label} explanation={revealedPlan}/>
-    <div className="guided-footer"><span role="status">{saved ? 'Progress saved on this device' : 'Progress could not be saved'}</span>{progress.answered.length + progress.skipped.length > 0 && <button type="button" onClick={restart}>Start again</button>}</div>
+    {(!saved || progress.answered.length + progress.skipped.length > 0) && <div className="guided-footer">{!saved && <span role="status">Progress could not be saved</span>}{progress.answered.length + progress.skipped.length > 0 && <button type="button" onClick={restart}>Start again</button>}</div>}
   </>;
 }
