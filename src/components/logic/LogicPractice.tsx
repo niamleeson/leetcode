@@ -7,6 +7,9 @@ import { useProgrammingLanguage } from '../../hooks/useProgrammingLanguage';
 const LogicEditor = lazy(() => import('./LogicEditor'));
 import './logicPractice.css';
 
+const difficultyOrder = { Easy: 0, Medium: 1, Hard: 2 };
+const laterTopics = new Set(['1-D Dynamic Programming', '2-D Dynamic Programming', 'Math & Geometry', 'Bit Manipulation']);
+
 export default function LogicPractice() {
   const { id } = useParams();
   const [query, setQuery] = useSearchParams();
@@ -28,7 +31,10 @@ function PracticeLibrary({ language, onLanguageChange }: { language: 'python' | 
   const [query, setQuery] = useState('');
   const [topic, setTopic] = useState('All topics');
   const topics = useMemo(() => Array.from(new Set(logicManifest.map(p => p.topic))), []);
-  const matches = logicManifest.filter(p => (topic === 'All topics' || p.topic === topic) && `${p.id} ${p.title} ${p.topic}`.toLowerCase().includes(query.toLowerCase()));
+  const matches = logicManifest
+    .filter(p => (topic === 'All topics' || p.topic === topic) && `${p.id} ${p.title} ${p.topic}`.toLowerCase().includes(query.toLowerCase()))
+    .sort((a, b) => Number(laterTopics.has(a.topic)) - Number(laterTopics.has(b.topic))
+      || difficultyOrder[a.difficulty] - difficultyOrder[b.difficulty] || a.id - b.id);
   const cards = (items: typeof matches) => items.map(p => <Link key={p.id} to={`/practice/${p.id}`} className="logic-problem-card">
     <span><small>#{p.id} · {p.topic}</small><strong>{p.title}</strong></span>
     <span className={`logic-difficulty logic-difficulty-${p.difficulty.toLowerCase()}`}>{p.difficulty}</span>
