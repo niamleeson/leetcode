@@ -1,112 +1,61 @@
-// These skeletons preserve source organization, not implementation expressions.
-// They are shared question context: every answer still uses its audited plan.
+// Reviewed small planning decisions. A structure card contains one decision,
+// never the complete source outline or the full plan for later decisions.
+const fs = require('node:fs');
 const path = require('node:path');
-const { spawnSync } = require('node:child_process');
-const parser = require('@babel/parser');
-const t = require('@babel/types');
-const fixtures = require('../walkthroughs/fixtures.json');
+const assert = require('node:assert/strict');
+const files = ['head', 'middle', 'tail'];
+const read = name => JSON.parse(fs.readFileSync(path.join(__dirname, `guided-structure-steps-${name}.json`), 'utf8'));
 
-function javascriptOutline(source, entry, roundtrip, limit = 12) {
-  const ast = parser.parse(source);
-  const children = node => node?.type === 'BlockStatement' ? node.body : node ? [node] : [];
-  function summary(nodes) {
-    const kinds = new Set();
-    for (const node of nodes) t.traverseFast(node, child => kinds.add(child.type));
-    const roles = [];
-    if (['IfStatement', 'ConditionalExpression', 'SwitchStatement'].some(kind => kinds.has(kind))) roles.push('check cases');
-    if (['ForStatement', 'ForOfStatement', 'ForInStatement', 'WhileStatement', 'DoWhileStatement'].some(kind => kinds.has(kind))) roles.push('traverse the required work');
-    if (kinds.has('CallExpression') || kinds.has('NewExpression')) roles.push('apply operations or helper calls');
-    if (['VariableDeclaration', 'AssignmentExpression', 'UpdateExpression'].some(kind => kinds.has(kind))) roles.push('update working state');
-    if (kinds.has('ReturnStatement')) roles.push('return the computed result');
-    return roles.join('; ') || 'perform this operation';
+function validateStep(step, problemId) {
+  const at = `${problemId}:${step.id}`;
+  assert(/^[a-z][a-z0-9-]*$/.test(step.id), `${at}: invalid stable step id`);
+  for (const key of ['prompt', 'correct', 'explanation']) {
+    assert(typeof step[key] === 'string' && step[key].trim().length > (key === 'correct' ? 0 : 4), `${at}: missing ${key}`);
+    assert(!/[\n\r]/.test(step[key]), `${at}: a planning card must not contain an outline`);
   }
-  const name = node => node?.type === 'Identifier' ? node.name
-    : node?.type === 'MemberExpression' ? [name(node.object), name(node.property)].filter(Boolean).join('.') : 'helper';
-  let roots = ast.program.body;
-  if (entry) {
-    const names = new Set([entry, roundtrip].filter(Boolean));
-    roots = roots.filter(node => names.has(node.id?.name)
-      || node.type === 'VariableDeclaration' && node.declarations.some(declaration => names.has(declaration.id?.name))
-      || node.type === 'ExpressionStatement' && node.expression.type === 'AssignmentExpression' && name(node.expression.left).startsWith(entry + '.prototype.'));
-    if (!roots.length) throw Error('Missing public JavaScript entry: ' + entry);
+  assert(step.prompt.length <= 160, `${at}: overlong prompt`);
+  assert(step.correct.length <= 180, `${at}: overlong correct choice`);
+  assert(step.explanation.length <= 260, `${at}: overlong explanation`);
+  assert(Array.isArray(step.wrong) && step.wrong.length >= 2 && step.wrong.length <= 3, `${at}: need two or three meaningful alternatives`);
+  const labels = [step.correct];
+  for (const option of step.wrong) {
+    const label = typeof option === 'string' ? option : option.label;
+    assert(typeof label === 'string' && label.trim().length > 0 && label.length <= 180 && !/[\n\r]/.test(label), `${at}: invalid alternative`);
+    if (typeof option !== 'string' && option.feedback !== undefined) assert(typeof option.feedback === 'string' && option.feedback.length > 10 && option.feedback.length <= 260 && !/[\n\r]/.test(option.feedback), `${at}: invalid alternative explanation`);
+    labels.push(label);
   }
-
-  function block(nodes, indent, depth, maximum) {
-    const lines = [];
-    let pending = false;
-    const line = value => lines.push('  '.repeat(indent) + value);
-    const flush = () => { if (pending) line('prepare or update working state'); pending = false; };
-    const body = nodes => {
-      if (!nodes.length) return;
-      if (depth >= maximum) lines.push('  '.repeat(indent + 1) + summary(nodes));
-      else lines.push(...block(nodes, indent + 1, depth + 1, maximum));
-    };
-    for (const node of nodes) {
-      if (['EmptyStatement', 'ImportDeclaration'].includes(node.type)) continue;
-      if (node.type === 'FunctionDeclaration' || node.type === 'ClassMethod') {
-        flush(); line(`operation ${name(node.id || node.key)}:`); body(children(node.body));
-      } else if (node.type === 'VariableDeclaration' && node.declarations.length === 1 && ['FunctionExpression', 'ArrowFunctionExpression'].includes(node.declarations[0].init?.type)) {
-        flush(); line(`operation ${name(node.declarations[0].id)}:`);
-        const expression = node.declarations[0].init.body;
-        body(expression.type === 'BlockStatement' ? expression.body : [{ type: 'ReturnStatement', argument: expression }]);
-      } else if (node.type === 'ExpressionStatement' && node.expression.type === 'AssignmentExpression' && ['FunctionExpression', 'ArrowFunctionExpression'].includes(node.expression.right.type)) {
-        flush(); line(`operation ${name(node.expression.left)}:`); body(children(node.expression.right.body));
-      } else if (node.type === 'ClassDeclaration') {
-        flush(); line(`class ${name(node.id)}:`); body(node.body.body);
-      } else if (['ForStatement', 'ForOfStatement', 'ForInStatement', 'WhileStatement', 'DoWhileStatement'].includes(node.type)) {
-        flush();
-        line(node.type.startsWith('For') ? 'for each item in the traversal:' : node.type === 'DoWhileStatement' ? 'repeat, then check whether to continue:' : 'while the continuation test holds:');
-        body(children(node.body));
-      } else if (node.type === 'IfStatement') {
-        flush(); line('if this case applies:'); body(children(node.consequent));
-        if (node.alternate) { line('otherwise:'); body(children(node.alternate)); }
-      } else if (node.type === 'ReturnStatement') {
-        flush(); line('return the computed result');
-      } else if (['BreakStatement', 'ContinueStatement', 'ThrowStatement'].includes(node.type)) {
-        flush(); line({ BreakStatement: 'leave this loop', ContinueStatement: 'continue with the next item', ThrowStatement: 'reject this case' }[node.type]);
-      } else if (node.type === 'SwitchStatement') {
-        flush(); line('choose a case:');
-        for (const branch of node.cases) body(branch.consequent);
-      } else if (node.type === 'TryStatement') {
-        flush(); line('try this operation:'); body(children(node.block));
-        if (node.handler) { line('handle a failure:'); body(children(node.handler.body)); }
-        if (node.finalizer) { line('always finish with:'); body(children(node.finalizer)); }
-      } else pending = true;
-    }
-    flush();
-    return lines;
-  }
-  let lines;
-  for (const maximum of [4, 3, 2, 1]) {
-    lines = block(roots, 0, 0, maximum);
-    if (lines.length <= limit) break;
-  }
-  // Prototype-based designs have multiple public operations. Summarize each
-  // operation's body without dropping its name or the final operations.
-  if (lines.length > limit && roots.length > 1) lines = block(roots, 0, 0, 0);
-  if (lines.length > limit) {
-    const compact = [];
-    for(let index=0;index<lines.length;index++) {
-      if(lines[index].trimStart().startsWith('operation ') && lines[index+1] && !lines[index+1].endsWith(':')) compact.push(lines[index]+' '+lines[++index].trim());
-      else compact.push(lines[index]);
-    }
-    lines=compact;
-  }
-  if (!lines.length) throw Error('No structural outline for JavaScript source');
-  return lines.join('\n');
+  assert.equal(new Set(labels).size, labels.length, `${at}: repeated choices`);
+  assert(!('code' in step) && !('context' in step) && !('feedbackCode' in step), `${at}: do not present the whole structure`);
 }
 
-function buildStructureOutlines(problems, solutionMap) {
-  const python = spawnSync('python3', [path.join(__dirname, 'guided-structure.py')], {
-    input: JSON.stringify(Object.fromEntries(problems.map(problem => [problem.id, {source:solutionMap[problem.id].code,entry:fixtures[problem.id][0].entry,roundtrip:fixtures[problem.id][0].roundtrip}]))),
-    encoding: 'utf8', maxBuffer: 4 * 1024 * 1024,
-  });
-  if (python.status !== 0) throw Error(python.stderr || 'Python outline generation failed');
-  const pythonOutlines = JSON.parse(python.stdout);
-  return Object.fromEntries(problems.map(problem => [problem.id, {
-    python: pythonOutlines[problem.id],
-    javascript: javascriptOutline(solutionMap[problem.id].jsCode, fixtures[problem.id][0].entry, fixtures[problem.id][0].roundtrip),
-  }]));
+function loadStructureSteps(problemIds) {
+  const base = {};
+  for (const file of files) for (const [id, steps] of Object.entries(read(file))) {
+    assert(!base[id], `Duplicate structure authoring for ${id}`);
+    base[id] = steps;
+  }
+  const expected = [...problemIds].map(Number).sort((a,b)=>a-b);
+  assert.deepEqual(Object.keys(base).map(Number).sort((a,b)=>a-b), expected, 'Every NeetCode problem needs authored structure decisions');
+  const javascript = read('javascript');
+  for (const [language, bank] of [['base', base], ['javascript', javascript]]) for (const [id, steps] of Object.entries(bank)) {
+    assert(expected.includes(Number(id)), `${language}: unknown problem ${id}`);
+    assert(Array.isArray(steps) && steps.length >= 1 && steps.length <= 4, `${id}: use one to four focused decisions`);
+    assert.equal(new Set(steps.map(step=>step.id)).size, steps.length, `${id}: repeated step IDs`);
+    for (const step of steps) validateStep(step, id);
+  }
+  return { base, javascript };
 }
 
-module.exports = { buildStructureOutlines, javascriptOutline };
+function structureQuestions(steps, id, language, shuffled) {
+  return steps.map(step => ({
+    id: step.id,
+    prompt: step.prompt,
+    options: shuffled([
+      {id:'correct',label:step.correct,feedback:step.explanation},
+      ...step.wrong.map((option,index)=>({id:`alternative-${index+1}`,label:typeof option==='string'?option:option.label,feedback:typeof option==='string'?step.explanation:option.feedback || step.explanation})),
+    ], `${id}:structure:${language}:${step.id}`),
+    correctId: 'correct',
+  }));
+}
+
+module.exports = { loadStructureSteps, structureQuestions, validateStep };

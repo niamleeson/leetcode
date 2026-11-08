@@ -1,0 +1,1612 @@
+{
+  "427": [
+    {
+      "id": "step-1",
+      "prompt": "What should a region containing one grid cell become?",
+      "correct": "A leaf containing that cell’s value.",
+      "wrong": [
+        "An internal node with four empty children.",
+        "A leaf whose value is always one."
+      ],
+      "explanation": "One cell already has one uniform value, so it needs no smaller regions."
+    },
+    {
+      "id": "step-2",
+      "prompt": "How should a larger square be divided for recursion?",
+      "correct": "Into four equal square quadrants.",
+      "wrong": [
+        "Into two unequal strips.",
+        "Into overlapping squares around each cell."
+      ],
+      "explanation": "Halving the side length creates the four nonoverlapping quadrants represented by a quad-tree node."
+    },
+    {
+      "id": "step-3",
+      "prompt": "When can the four child nodes be replaced by one leaf?",
+      "correct": "When all four are leaves with the same value.",
+      "wrong": [
+        "When any two children have the same value.",
+        "When the four children have equal sizes."
+      ],
+      "explanation": "Only four equal-valued leaves prove that every cell in the entire region has the same value."
+    }
+  ],
+  "1448": [
+    {
+      "id": "step-1",
+      "prompt": "What information must travel from a parent to each child?",
+      "correct": "The largest value on that path so far.",
+      "wrong": [
+        "The largest value anywhere in the tree.",
+        "The value of the immediately previous visited node."
+      ],
+      "explanation": "A good node is compared with its own ancestors, not nodes from other branches."
+    },
+    {
+      "id": "step-2",
+      "prompt": "When should the current node count as good?",
+      "correct": "When its value is at least the path maximum.",
+      "wrong": [
+        "Only when its value is strictly greater than the path maximum.",
+        "When its value is smaller than the path maximum."
+      ],
+      "explanation": "Equal values qualify: no ancestor may have a value greater than the current node."
+    },
+    {
+      "id": "step-3",
+      "prompt": "What maximum should be passed to each child?",
+      "correct": "The larger of the inherited maximum and this node’s value.",
+      "wrong": [
+        "This node’s value, even if an ancestor was larger.",
+        "One shared maximum updated by either subtree."
+      ],
+      "explanation": "Each child inherits the maximum along its own root-to-parent path. The sibling subtree must not affect it."
+    }
+  ],
+  "98": [
+    {
+      "id": "step-1",
+      "prompt": "Which limits should each node be checked against?",
+      "correct": "Strict lower and upper bounds from all its ancestors.",
+      "wrong": [
+        "Only its parent’s value.",
+        "Only the values of its immediate children."
+      ],
+      "explanation": "A node must satisfy every ancestor’s ordering requirement, so one parent comparison is not enough."
+    },
+    {
+      "id": "step-2",
+      "prompt": "What upper bound applies when visiting a left child?",
+      "correct": "The current node’s value.",
+      "wrong": [
+        "The original upper bound without any change.",
+        "The current node’s value plus one."
+      ],
+      "explanation": "Every value in the left subtree must be strictly smaller than the current node, while the inherited lower bound still applies."
+    },
+    {
+      "id": "step-3",
+      "prompt": "What makes the entire tree valid after checking this node?",
+      "correct": "Both subtrees must satisfy their updated bounds.",
+      "wrong": [
+        "Either subtree satisfying its bounds is enough.",
+        "Only the subtree containing more nodes must be checked."
+      ],
+      "explanation": "A violation in either subtree invalidates the BST. Both recursive checks must succeed."
+    }
+  ],
+  "230": [
+    {
+      "id": "step-1",
+      "prompt": "Which traversal visits BST values in increasing order?",
+      "correct": "Left subtree, node, then right subtree.",
+      "wrong": [
+        "Node, then left and right subtrees.",
+        "Right subtree, node, then left subtree."
+      ],
+      "explanation": "Inorder traversal places every smaller left-subtree value before the node and every larger right-subtree value after it."
+    },
+    {
+      "id": "step-2",
+      "prompt": "When should the remaining rank k decrease?",
+      "correct": "When a node is popped for its inorder visit.",
+      "wrong": [
+        "Whenever a node is first pushed on the stack.",
+        "Only when the traversal reaches a leaf."
+      ],
+      "explanation": "Pushing prepares a later visit. The rank counts nodes in their actual inorder visit order."
+    },
+    {
+      "id": "step-3",
+      "prompt": "What should happen when the remaining rank reaches zero?",
+      "correct": "Return the value of the node just visited.",
+      "wrong": [
+        "Return the number of nodes still on the stack.",
+        "Keep visiting and return the final node’s value."
+      ],
+      "explanation": "The current inorder visit is the requested kth position, so its value is the answer."
+    }
+  ],
+  "105": [
+    {
+      "id": "step-1",
+      "prompt": "Where does the next subtree root come from?",
+      "correct": "The next unused value in preorder.",
+      "wrong": [
+        "The next unused value in inorder.",
+        "The largest value in the remaining traversal."
+      ],
+      "explanation": "Preorder visits a root before either of its subtrees."
+    },
+    {
+      "id": "step-2",
+      "prompt": "How does the root’s inorder position divide the subtree?",
+      "correct": "Values before it belong left; values after it belong right.",
+      "wrong": [
+        "Split the remaining values into two equal-sized halves.",
+        "Put every smaller value left and every larger value right."
+      ],
+      "explanation": "This is not necessarily a BST. The inorder position, rather than value comparisons or equal sizes, determines the two subtree ranges."
+    },
+    {
+      "id": "step-3",
+      "prompt": "Which subtree should consume preorder values first?",
+      "correct": "The left subtree before the right subtree.",
+      "wrong": [
+        "The right subtree before the left subtree.",
+        "Whichever subtree has more nodes."
+      ],
+      "explanation": "Preorder lists the root, then its complete left subtree, then its complete right subtree."
+    }
+  ],
+  "337": [
+    {
+      "id": "step-1",
+      "prompt": "What two results should each subtree return?",
+      "correct": "The best total when its root is robbed and when it is skipped.",
+      "wrong": [
+        "The smallest and largest house values in the subtree.",
+        "The totals at the deepest and shallowest levels."
+      ],
+      "explanation": "The parent needs to know whether it may rob the child’s root, so one unconditional total would lose necessary information."
+    },
+    {
+      "id": "step-2",
+      "prompt": "If this node is robbed, which child totals can be used?",
+      "correct": "Only the totals that skip each child’s root.",
+      "wrong": [
+        "The better total from each child regardless of its root.",
+        "Only the totals that rob each child’s root."
+      ],
+      "explanation": "A robbed house cannot have a robbed immediate child."
+    },
+    {
+      "id": "step-3",
+      "prompt": "If this node is skipped, how should the child totals be chosen?",
+      "correct": "Take each child’s better robbed-or-skipped total.",
+      "wrong": [
+        "Require both child roots to be robbed.",
+        "Ignore both children and take only grandchildren."
+      ],
+      "explanation": "Skipping the current house imposes no restriction on whether a child root is robbed."
+    }
+  ],
+  "1325": [
+    {
+      "id": "step-1",
+      "prompt": "When should a parent be checked for deletion?",
+      "correct": "After both child subtrees have been processed.",
+      "wrong": [
+        "Before processing either child subtree.",
+        "Only before any nodes in the tree have been deleted."
+      ],
+      "explanation": "Removing children can turn their parent into a new leaf that must also be checked."
+    },
+    {
+      "id": "step-2",
+      "prompt": "Which current nodes should be deleted?",
+      "correct": "Nodes with the target value and no remaining children.",
+      "wrong": [
+        "Every node with the target value.",
+        "Every leaf, regardless of its value."
+      ],
+      "explanation": "The problem removes target-valued leaves, not target-valued internal nodes or leaves with other values."
+    },
+    {
+      "id": "step-3",
+      "prompt": "How should a deleted subtree be represented to its parent?",
+      "correct": "Return an empty child reference.",
+      "wrong": [
+        "Keep the node and change its value.",
+        "Return its original reference unchanged."
+      ],
+      "explanation": "Returning no node lets the parent replace its child link and detect whether it has become a leaf."
+    }
+  ],
+  "124": [
+    {
+      "id": "step-1",
+      "prompt": "What path value may a node return to its parent?",
+      "correct": "The node plus its better nonnegative child branch.",
+      "wrong": [
+        "The node plus both child branches.",
+        "Only the best path anywhere below it."
+      ],
+      "explanation": "A path continuing through the parent can enter this node and leave through at most one child."
+    },
+    {
+      "id": "step-2",
+      "prompt": "Which candidate should update the best answer at this node?",
+      "correct": "The node plus both nonnegative child branches.",
+      "wrong": [
+        "Only the node’s own value.",
+        "The sum of every value in both subtrees."
+      ],
+      "explanation": "A complete path can turn at this node and use one downward branch on each side."
+    },
+    {
+      "id": "step-3",
+      "prompt": "How should a negative child contribution be handled?",
+      "correct": "Leave that branch out of the path.",
+      "wrong": [
+        "Include it because the child exists.",
+        "Replace the entire path by an empty path."
+      ],
+      "explanation": "A negative branch lowers the sum. The current node still contributes, so the selected path remains nonempty."
+    }
+  ],
+  "297": [
+    {
+      "id": "step-1",
+      "prompt": "Which order should serialization record?",
+      "correct": "A node, then its left subtree, then its right subtree.",
+      "wrong": [
+        "Only leaf nodes from left to right.",
+        "All node values sorted from smallest to largest."
+      ],
+      "explanation": "Preorder preserves a recursive root-then-children order that deserialization can follow."
+    },
+    {
+      "id": "step-2",
+      "prompt": "What must be written for a missing child?",
+      "correct": "An explicit null marker in that child’s position.",
+      "wrong": [
+        "Nothing; omit all missing children.",
+        "The parent’s value a second time."
+      ],
+      "explanation": "Null markers distinguish different tree shapes that otherwise have the same preorder values."
+    },
+    {
+      "id": "step-3",
+      "prompt": "How should deserialization use the token sequence?",
+      "correct": "Consume one token, then recursively build left and right children.",
+      "wrong": [
+        "Sort the tokens before inserting their values into a BST.",
+        "Treat every token as a separate root."
+      ],
+      "explanation": "Each recursive call consumes exactly the tokens for one subtree in the same order serialization wrote them."
+    }
+  ],
+  "703": [
+    {
+      "id": "step-1",
+      "prompt": "Which stream values should the heap retain?",
+      "correct": "The largest k values seen so far.",
+      "wrong": [
+        "The smallest k values seen so far.",
+        "Only the most recently added k values."
+      ],
+      "explanation": "Among the largest k values, the smallest is exactly the kth largest overall."
+    },
+    {
+      "id": "step-2",
+      "prompt": "What should be removed when an insertion makes the heap too large?",
+      "correct": "The smallest retained value.",
+      "wrong": [
+        "The largest retained value.",
+        "The oldest retained value."
+      ],
+      "explanation": "Removing the smallest of k+1 candidates leaves the largest k values."
+    },
+    {
+      "id": "step-3",
+      "prompt": "Which retained value should add return?",
+      "correct": "The smallest value in the retained heap.",
+      "wrong": [
+        "The largest value in the retained heap.",
+        "The value that was just inserted."
+      ],
+      "explanation": "The min-heap root is the smallest of the largest k values, which is the requested rank."
+    }
+  ],
+  "1046": [
+    {
+      "id": "step-1",
+      "prompt": "Which two stones should be taken for each smash?",
+      "correct": "The two largest remaining stones.",
+      "wrong": [
+        "The two smallest remaining stones.",
+        "The two stones that appeared first in the input."
+      ],
+      "explanation": "Each turn is defined by the two heaviest stones, so the heap must provide those first."
+    },
+    {
+      "id": "step-2",
+      "prompt": "What should be put back after unequal stones are smashed?",
+      "correct": "One stone whose weight is their difference.",
+      "wrong": [
+        "One stone whose weight is their sum.",
+        "Both stones with one unit removed."
+      ],
+      "explanation": "The lighter stone is destroyed, and the heavier stone loses exactly the lighter stone’s weight."
+    },
+    {
+      "id": "step-3",
+      "prompt": "What should be returned when smashing stops?",
+      "correct": "The remaining weight, or zero if no stone remains.",
+      "wrong": [
+        "The number of turns performed.",
+        "The heaviest weight from the original input."
+      ],
+      "explanation": "The answer describes the final remaining stone, not the original stones or the number of operations."
+    }
+  ],
+  "973": [
+    {
+      "id": "step-1",
+      "prompt": "Which distance should be used to compare points?",
+      "correct": "x squared plus y squared.",
+      "wrong": [
+        "x plus y.",
+        "The larger of x and y without taking absolute values."
+      ],
+      "explanation": "Squared Euclidean distance has the same ordering as Euclidean distance and avoids taking square roots."
+    },
+    {
+      "id": "step-2",
+      "prompt": "Which retained point should be available for removal at the heap’s root?",
+      "correct": "The farthest of the retained points.",
+      "wrong": [
+        "The nearest of the retained points.",
+        "The point inserted earliest."
+      ],
+      "explanation": "When there are too many candidates, the farthest retained point is the one to discard."
+    },
+    {
+      "id": "step-3",
+      "prompt": "When the heap grows beyond k points, what should happen?",
+      "correct": "Remove its farthest point.",
+      "wrong": [
+        "Remove its nearest point.",
+        "Discard every point tied with the newest point."
+      ],
+      "explanation": "Discarding only the farthest of k+1 candidates keeps k closest points seen so far."
+    }
+  ],
+  "215": [
+    {
+      "id": "step-1",
+      "prompt": "What zero-based ascending rank corresponds to kth largest?",
+      "correct": "The array length minus k.",
+      "wrong": [
+        "k minus one.",
+        "The array length minus k minus one."
+      ],
+      "explanation": "The largest value has ascending index length minus one, so rank k corresponds to length minus k."
+    },
+    {
+      "id": "step-2",
+      "prompt": "How should each partition group values around the pivot?",
+      "correct": "Smaller than, equal to, and larger than the pivot.",
+      "wrong": [
+        "Negative, zero, and positive values.",
+        "Earlier, current, and later original indices."
+      ],
+      "explanation": "Three value groups let the search handle duplicate pivot values together."
+    },
+    {
+      "id": "step-3",
+      "prompt": "After partitioning, which group needs further searching?",
+      "correct": "Only the group containing the target rank.",
+      "wrong": [
+        "Both the smaller and larger groups every time.",
+        "Always the smaller group."
+      ],
+      "explanation": "The partition positions reveal where the target rank lies. If it lies in the equal group, the pivot is already the answer."
+    }
+  ],
+  "621": [
+    {
+      "id": "step-1",
+      "prompt": "Which frequency determines the most demanding cooldown spacing?",
+      "correct": "The largest occurrence count of any task type.",
+      "wrong": [
+        "The number of distinct task types.",
+        "The smallest occurrence count of any task type."
+      ],
+      "explanation": "The most frequent task must have enough space between each pair of its executions."
+    },
+    {
+      "id": "step-2",
+      "prompt": "What must be counted for the final group of most frequent tasks?",
+      "correct": "How many task types share the largest frequency.",
+      "wrong": [
+        "How many task types occur exactly once.",
+        "How many task names come first alphabetically."
+      ],
+      "explanation": "Every task tied for the largest frequency occupies a slot in the final group."
+    },
+    {
+      "id": "step-3",
+      "prompt": "How should the cooldown-based bound be combined with the total task count?",
+      "correct": "Return the larger of the two.",
+      "wrong": [
+        "Return the smaller of the two.",
+        "Always return only the cooldown-based bound."
+      ],
+      "explanation": "There must be at least one time slot per task, even when other tasks fill every potential idle slot."
+    }
+  ],
+  "355": [
+    {
+      "id": "step-1",
+      "prompt": "Whose tweets can appear in a user’s feed?",
+      "correct": "Their own tweets and tweets from users they follow.",
+      "wrong": [
+        "Tweets from users who follow them.",
+        "Every user’s tweets, regardless of following."
+      ],
+      "explanation": "Following determines which other users the feed includes; a user’s own tweets are included too."
+    },
+    {
+      "id": "step-2",
+      "prompt": "Which tweet should the heap choose next for the feed?",
+      "correct": "The newest available tweet among the current user streams.",
+      "wrong": [
+        "The tweet with the largest tweet ID.",
+        "The oldest available tweet among the current user streams."
+      ],
+      "explanation": "The feed is ordered by posting time. Tweet IDs do not establish that order."
+    },
+    {
+      "id": "step-3",
+      "prompt": "After taking a tweet from one user, what candidate should replace it?",
+      "correct": "That same user’s next older tweet, if one exists.",
+      "wrong": [
+        "Every remaining tweet from every user.",
+        "That same user’s newest tweet again."
+      ],
+      "explanation": "Each user’s tweets are already ordered. Advancing only the selected stream avoids revisiting its newest tweet."
+    }
+  ],
+  "1834": [
+    {
+      "id": "step-1",
+      "prompt": "Which tasks should enter the available-task heap at the current time?",
+      "correct": "All unprocessed tasks whose arrival time has been reached.",
+      "wrong": [
+        "All tasks, including those that have not arrived.",
+        "Only tasks arriving at exactly the current time."
+      ],
+      "explanation": "A task may run once it has arrived, including tasks that have been waiting while another task ran."
+    },
+    {
+      "id": "step-2",
+      "prompt": "How should an available task be selected?",
+      "correct": "Shortest processing time, then smallest original index.",
+      "wrong": [
+        "Earliest arrival time, then largest original index.",
+        "Longest processing time, then smallest original index."
+      ],
+      "explanation": "The CPU’s specified tie-break uses original indices only after comparing processing times."
+    },
+    {
+      "id": "step-3",
+      "prompt": "What should happen when no task is available but future tasks remain?",
+      "correct": "Advance the clock to the next arrival time.",
+      "wrong": [
+        "Finish and ignore the future tasks.",
+        "Run the next task before its arrival time."
+      ],
+      "explanation": "The CPU must wait while idle. Jumping to the next arrival skips time during which no work is possible."
+    }
+  ],
+  "767": [
+    {
+      "id": "step-1",
+      "prompt": "Which letter should be temporarily excluded after it is appended?",
+      "correct": "The letter just appended.",
+      "wrong": [
+        "The least frequent remaining letter.",
+        "Every letter that has already appeared anywhere."
+      ],
+      "explanation": "Holding out the previous letter prevents equal neighboring characters while allowing it to be used again later."
+    },
+    {
+      "id": "step-2",
+      "prompt": "Among the allowed letters, which should the heap prefer?",
+      "correct": "The one with the most occurrences remaining.",
+      "wrong": [
+        "The one with the fewest occurrences remaining.",
+        "The one earliest in the alphabet regardless of its count."
+      ],
+      "explanation": "Using the most frequent available letter avoids leaving too many copies of it to separate later."
+    },
+    {
+      "id": "step-3",
+      "prompt": "When may the held-out letter become available again?",
+      "correct": "After a different letter has been appended.",
+      "wrong": [
+        "Immediately before choosing the next letter.",
+        "Only after every other letter is exhausted."
+      ],
+      "explanation": "One different intervening letter is enough to separate two occurrences of the held-out letter."
+    }
+  ],
+  "1405": [
+    {
+      "id": "step-1",
+      "prompt": "Which available letter should normally be tried first?",
+      "correct": "The letter with the highest remaining count.",
+      "wrong": [
+        "The letter with the lowest remaining count.",
+        "Always the letter a if any copies remain."
+      ],
+      "explanation": "Using plentiful letters early helps avoid leaving unusable excess copies at the end."
+    },
+    {
+      "id": "step-2",
+      "prompt": "When must that preferred letter be postponed?",
+      "correct": "When the last two appended letters already equal it.",
+      "wrong": [
+        "Whenever the last appended letter equals it once.",
+        "Whenever the letter has appeared anywhere earlier."
+      ],
+      "explanation": "Two equal neighbors are allowed; a third consecutive copy is forbidden."
+    },
+    {
+      "id": "step-3",
+      "prompt": "What should happen if the preferred letter would make three in a row?",
+      "correct": "Use the next available letter, or stop if none exists.",
+      "wrong": [
+        "Append it anyway and delete one of the earlier letters.",
+        "Discard every remaining copy of the preferred letter."
+      ],
+      "explanation": "A different letter allows the frequent letter to be used later. Without another letter, no valid continuation is possible."
+    }
+  ],
+  "1094": [
+    {
+      "id": "step-1",
+      "prompt": "What should be recorded at each trip’s endpoints?",
+      "correct": "Add passengers at pickup and subtract them at drop-off.",
+      "wrong": [
+        "Add passengers at both pickup and drop-off.",
+        "Subtract passengers at pickup and add them at drop-off."
+      ],
+      "explanation": "Passengers occupy seats from pickup until drop-off; the endpoint changes represent entering and leaving."
+    },
+    {
+      "id": "step-2",
+      "prompt": "In what order should those changes be accumulated?",
+      "correct": "Increasing location order.",
+      "wrong": [
+        "The order trips appear in the input.",
+        "Largest passenger count first."
+      ],
+      "explanation": "Capacity depends on who is in the vehicle at each position along the route."
+    },
+    {
+      "id": "step-3",
+      "prompt": "Which running total makes the trips impossible?",
+      "correct": "An occupancy strictly greater than capacity.",
+      "wrong": [
+        "An occupancy equal to capacity.",
+        "Any decrease in occupancy at a drop-off."
+      ],
+      "explanation": "Exactly filling the vehicle is allowed; exceeding the capacity at any location is not."
+    }
+  ],
+  "295": [
+    {
+      "id": "step-1",
+      "prompt": "What should the two heaps represent?",
+      "correct": "A lower half and an upper half of the numbers.",
+      "wrong": [
+        "Odd numbers and even numbers.",
+        "Earlier arrivals and later arrivals."
+      ],
+      "explanation": "The median lies at the boundary between the lower and upper halves sorted by value."
+    },
+    {
+      "id": "step-2",
+      "prompt": "Which heap-size rule must hold after an insertion?",
+      "correct": "Their sizes may differ by at most one.",
+      "wrong": [
+        "The lower half must always contain all but one number.",
+        "Both heaps must always have equal sizes, even for odd totals."
+      ],
+      "explanation": "Keeping the sizes within one makes the middle value or middle pair accessible at the heap roots."
+    },
+    {
+      "id": "step-3",
+      "prompt": "How should the median be read when the heaps have equal sizes?",
+      "correct": "Average the largest lower-half value and the smallest upper-half value.",
+      "wrong": [
+        "Return the largest value across both heaps.",
+        "Average the sums of all values in the two heaps."
+      ],
+      "explanation": "For an even count, the median is the average of the two central values."
+    }
+  ],
+  "502": [
+    {
+      "id": "step-1",
+      "prompt": "Which projects should be available for selection this round?",
+      "correct": "Unchosen projects whose required capital is at most current capital.",
+      "wrong": [
+        "Every unchosen project, regardless of required capital.",
+        "Only projects whose required capital equals current capital."
+      ],
+      "explanation": "Having more capital than a project requires is sufficient; unaffordable projects cannot be chosen yet."
+    },
+    {
+      "id": "step-2",
+      "prompt": "Among affordable projects, which one should be selected?",
+      "correct": "The project with the largest profit.",
+      "wrong": [
+        "The project with the largest required capital.",
+        "The project with the smallest profit."
+      ],
+      "explanation": "Taking the largest available profit increases the capital available for later rounds."
+    },
+    {
+      "id": "step-3",
+      "prompt": "When should project selection stop early?",
+      "correct": "When no unchosen project is currently affordable.",
+      "wrong": [
+        "Whenever a project requires zero capital.",
+        "Only after selecting every project in the input."
+      ],
+      "explanation": "Without an affordable project, capital cannot increase, so waiting cannot unlock another project."
+    }
+  ],
+  "1863": [
+    {
+      "id": "step-1",
+      "prompt": "What two branches should be explored for each input value?",
+      "correct": "Exclude it from the subset or include it in the subset.",
+      "wrong": [
+        "Replace it by zero or duplicate it twice.",
+        "Choose it only if it is larger than the previous value."
+      ],
+      "explanation": "Every subset is determined by independently including or excluding each input position."
+    },
+    {
+      "id": "step-2",
+      "prompt": "What should the include branch carry forward?",
+      "correct": "The current XOR combined with this value using XOR.",
+      "wrong": [
+        "The current XOR plus this value using addition.",
+        "Only this value, discarding the earlier XOR."
+      ],
+      "explanation": "The running value must be the XOR of all elements currently included in the subset."
+    },
+    {
+      "id": "step-3",
+      "prompt": "What should happen after all input positions have been considered?",
+      "correct": "Return the completed subset’s XOR to be summed with other branches.",
+      "wrong": [
+        "Return one regardless of the subset’s values.",
+        "Return only the largest XOR from all branches."
+      ],
+      "explanation": "The question asks for the sum of subset XOR totals, so every completed branch contributes its own XOR."
+    }
+  ],
+  "78": [
+    {
+      "id": "step-1",
+      "prompt": "When should the current subset be added to the answers?",
+      "correct": "At every recursive call, including the initial empty subset.",
+      "wrong": [
+        "Only when it contains every input value.",
+        "Only when it contains exactly one value."
+      ],
+      "explanation": "Every partial selection is itself a valid subset, including the empty selection."
+    },
+    {
+      "id": "step-2",
+      "prompt": "Which positions may be chosen next after an index has been chosen?",
+      "correct": "Only later input positions.",
+      "wrong": [
+        "Any position, including ones already chosen.",
+        "Only the immediately next position."
+      ],
+      "explanation": "Increasing indices give each subset one construction order and prevent reusing a position."
+    },
+    {
+      "id": "step-3",
+      "prompt": "What should happen after returning from a branch that appended a value?",
+      "correct": "Remove that value before trying the next choice.",
+      "wrong": [
+        "Leave that value in place for every later branch.",
+        "Clear the entire result list."
+      ],
+      "explanation": "Undoing the most recent choice restores the parent subset so sibling branches start from the same selection."
+    }
+  ],
+  "39": [
+    {
+      "id": "step-1",
+      "prompt": "After choosing a candidate, where may the next search begin?",
+      "correct": "At the same candidate index, so it can be reused.",
+      "wrong": [
+        "Only after that index, forbidding reuse.",
+        "At the first index every time, allowing different orders of the same combination."
+      ],
+      "explanation": "Starting at the current index permits repeated use while keeping candidate indices nondecreasing."
+    },
+    {
+      "id": "step-2",
+      "prompt": "When is the current combination complete?",
+      "correct": "When its remaining target is zero.",
+      "wrong": [
+        "When every candidate has been used once.",
+        "When it contains exactly target numbers."
+      ],
+      "explanation": "A remaining target of zero means the selected values add to the requested sum."
+    },
+    {
+      "id": "step-3",
+      "prompt": "What should happen after exploring a chosen candidate?",
+      "correct": "Remove it before trying a different candidate.",
+      "wrong": [
+        "Keep it in the current combination for all later alternatives.",
+        "Remove every earlier choice as well."
+      ],
+      "explanation": "Only the most recent choice belongs to the finished branch; undo it to restore the parent combination."
+    }
+  ],
+  "40": [
+    {
+      "id": "step-1",
+      "prompt": "After choosing a candidate position, where should the next search begin?",
+      "correct": "At the following position.",
+      "wrong": [
+        "At the same position so it can be reused.",
+        "At the first position regardless of previous choices."
+      ],
+      "explanation": "Each input position can be used at most once in a combination."
+    },
+    {
+      "id": "step-2",
+      "prompt": "How should equal candidate values at one recursion depth be handled?",
+      "correct": "Try the first and skip later equal alternatives at that depth.",
+      "wrong": [
+        "Try every equal alternative as a separate first choice.",
+        "Remove all duplicate values before searching."
+      ],
+      "explanation": "Skipping sibling duplicates prevents repeated combinations, while distinct equal-valued positions may still be used deeper in a branch."
+    },
+    {
+      "id": "step-3",
+      "prompt": "When should the selected values be copied into the answers?",
+      "correct": "When the remaining target reaches zero.",
+      "wrong": [
+        "Whenever a selected value is smaller than the target.",
+        "Only after all input positions have been selected."
+      ],
+      "explanation": "Only a selection with the requested total is a completed answer."
+    }
+  ],
+  "77": [
+    {
+      "id": "step-1",
+      "prompt": "What order should the selected values follow?",
+      "correct": "Strictly increasing order from 1 through n.",
+      "wrong": [
+        "Any order, including repeated values.",
+        "Strictly decreasing order starting from 1."
+      ],
+      "explanation": "Increasing choices produce each combination once without reusing a value."
+    },
+    {
+      "id": "step-2",
+      "prompt": "When should a combination be saved?",
+      "correct": "As soon as it contains exactly k values.",
+      "wrong": [
+        "Whenever it contains at least one value.",
+        "Only after every number from 1 through n is selected."
+      ],
+      "explanation": "Each answer must contain exactly k distinct values."
+    },
+    {
+      "id": "step-3",
+      "prompt": "When should larger next choices stop being considered?",
+      "correct": "When too few larger values remain to reach k choices.",
+      "wrong": [
+        "Whenever one branch has already produced an answer.",
+        "Whenever the next value is greater than k."
+      ],
+      "explanation": "A branch cannot finish if its remaining available values are fewer than its remaining required slots."
+    }
+  ],
+  "46": [
+    {
+      "id": "step-1",
+      "prompt": "Which values may fill the next position of a permutation?",
+      "correct": "Any input position not already used in this branch.",
+      "wrong": [
+        "Only positions after the most recent choice.",
+        "Any input position, including those already used."
+      ],
+      "explanation": "Unlike combinations, permutations must consider different orders, while using each input position once."
+    },
+    {
+      "id": "step-2",
+      "prompt": "What must be remembered while a value is selected in this branch?",
+      "correct": "That its input position is currently used.",
+      "wrong": [
+        "That its value is banned from every future branch.",
+        "Only that the most recent value was selected."
+      ],
+      "explanation": "The used-position set describes the current partial permutation, not all permutations previously explored."
+    },
+    {
+      "id": "step-3",
+      "prompt": "What should be undone after a recursive choice returns?",
+      "correct": "Remove the last value and mark its position unused.",
+      "wrong": [
+        "Remove the last value but keep its position marked used.",
+        "Clear all previously saved permutations."
+      ],
+      "explanation": "The next branch needs both the earlier partial permutation and the earlier availability of input positions."
+    }
+  ],
+  "90": [
+    {
+      "id": "step-1",
+      "prompt": "Why should the input be sorted before constructing subsets?",
+      "correct": "To place equal values together for duplicate-choice checks.",
+      "wrong": [
+        "To remove all repeated values from the input.",
+        "To ensure only subsets of consecutive values are produced."
+      ],
+      "explanation": "Sorting groups equal alternatives without discarding repeated positions that may belong in a valid subset."
+    },
+    {
+      "id": "step-2",
+      "prompt": "Which equal values should be skipped at a given recursion depth?",
+      "correct": "Later equal alternatives to the first choice at that depth.",
+      "wrong": [
+        "Every equal value anywhere deeper in the recursion.",
+        "None; every identical branch should produce another answer."
+      ],
+      "explanation": "Sibling choices with the same value create duplicate subsets. Equal values can still be selected together at different depths."
+    },
+    {
+      "id": "step-3",
+      "prompt": "When should the current subset be recorded?",
+      "correct": "At every call, including the empty subset.",
+      "wrong": [
+        "Only when it uses every input position.",
+        "Only when it contains no repeated values."
+      ],
+      "explanation": "Subsets of every size are valid, and a subset may contain multiple copies when the input has them."
+    }
+  ],
+  "47": [
+    {
+      "id": "step-1",
+      "prompt": "How should repeated input values be prepared for duplicate checks?",
+      "correct": "Sort them so equal values are adjacent.",
+      "wrong": [
+        "Delete every duplicate value before searching.",
+        "Keep the original order and compare only neighboring input positions."
+      ],
+      "explanation": "The duplicate rule relies on adjacent equal values, and each repeated input position must still be available for use."
+    },
+    {
+      "id": "step-2",
+      "prompt": "When should an unused value equal to its predecessor be skipped?",
+      "correct": "When that equal predecessor has not been used in this branch.",
+      "wrong": [
+        "Whenever its equal predecessor has been used.",
+        "Always, even after all earlier copies are used."
+      ],
+      "explanation": "Requiring equal copies to be chosen in index order avoids duplicate permutations without losing valid repeated-value arrangements."
+    },
+    {
+      "id": "step-3",
+      "prompt": "What should happen when returning from a chosen position?",
+      "correct": "Remove its value and mark that position unused again.",
+      "wrong": [
+        "Keep the position marked so later branches cannot use it.",
+        "Mark every equal-valued position as used."
+      ],
+      "explanation": "Only the selected position belongs to that recursive choice; undoing it restores the parent branch."
+    }
+  ],
+  "22": [
+    {
+      "id": "step-1",
+      "prompt": "When may an opening parenthesis be added?",
+      "correct": "While fewer than n opening parentheses have been used.",
+      "wrong": [
+        "Only when more closers than openers have been used.",
+        "Whenever fewer than 2n total characters have been used."
+      ],
+      "explanation": "The final string needs exactly n openers; the length limit alone does not enforce that count."
+    },
+    {
+      "id": "step-2",
+      "prompt": "When may a closing parenthesis be added?",
+      "correct": "When fewer closers than openers have been used.",
+      "wrong": [
+        "Whenever fewer than n closers have been used, regardless of openers.",
+        "Only after all n openers have been placed."
+      ],
+      "explanation": "Each prefix must have an unmatched opener available for the next closer."
+    },
+    {
+      "id": "step-3",
+      "prompt": "When is the current string a complete answer?",
+      "correct": "When it has n openers and n closers.",
+      "wrong": [
+        "When its first and last characters are different.",
+        "As soon as the number of openers equals the number of closers."
+      ],
+      "explanation": "An early balanced prefix can still be too short; a complete answer must use every required pair."
+    }
+  ],
+  "79": [
+    {
+      "id": "step-1",
+      "prompt": "Where should a search for the first word character begin?",
+      "correct": "At every board cell that might match it.",
+      "wrong": [
+        "Only at the top-left cell.",
+        "Only at cells on the outer border."
+      ],
+      "explanation": "A valid word path can begin anywhere on the board."
+    },
+    {
+      "id": "step-2",
+      "prompt": "Which cells may be used for the next character?",
+      "correct": "Adjacent horizontal or vertical cells not used by this path.",
+      "wrong": [
+        "Any matching cell anywhere on the board.",
+        "Adjacent cells even when this path has already used them."
+      ],
+      "explanation": "The path must move to a neighboring cell and may use each cell at most once."
+    },
+    {
+      "id": "step-3",
+      "prompt": "What should happen to a cell’s used mark after its branch finishes?",
+      "correct": "Restore the cell before trying another path.",
+      "wrong": [
+        "Keep it marked for every later starting cell.",
+        "Remove marks from every cell currently on the path."
+      ],
+      "explanation": "A cell is unavailable only within the current path. Other search branches may need it."
+    }
+  ],
+  "131": [
+    {
+      "id": "step-1",
+      "prompt": "Which piece may be chosen next from the remaining string?",
+      "correct": "A prefix that reads the same forward and backward.",
+      "wrong": [
+        "Any substring anywhere in the remaining string.",
+        "Only the longest prefix, whether or not it is a palindrome."
+      ],
+      "explanation": "A partition must cover the string in order, and each selected piece must be a palindrome."
+    },
+    {
+      "id": "step-2",
+      "prompt": "Where should recursion continue after choosing a piece?",
+      "correct": "Immediately after the end of that piece.",
+      "wrong": [
+        "At the beginning of that same piece.",
+        "At the next character after the piece’s beginning."
+      ],
+      "explanation": "The next call must cover exactly the unprocessed suffix, without overlap or gaps."
+    },
+    {
+      "id": "step-3",
+      "prompt": "What should happen when every character has been covered?",
+      "correct": "Save a copy of the chosen palindrome pieces.",
+      "wrong": [
+        "Save only the last chosen piece.",
+        "Keep adding empty pieces to the partition."
+      ],
+      "explanation": "At the end, the chosen pieces form one complete partition of the original string."
+    }
+  ],
+  "17": [
+    {
+      "id": "step-1",
+      "prompt": "What should one recursion level choose?",
+      "correct": "One mapped letter for the current digit.",
+      "wrong": [
+        "One letter for every remaining digit at once.",
+        "Any alphabet letter, regardless of the current digit."
+      ],
+      "explanation": "Each digit contributes exactly one letter from its own keypad mapping."
+    },
+    {
+      "id": "step-2",
+      "prompt": "After choosing a letter, which digit should be processed next?",
+      "correct": "The next digit in the input.",
+      "wrong": [
+        "The same digit again.",
+        "The digit with the largest keypad group."
+      ],
+      "explanation": "Preserving digit order makes each resulting string correspond to the original input positions."
+    },
+    {
+      "id": "step-3",
+      "prompt": "When should the assembled string be saved?",
+      "correct": "After every input digit has contributed a letter.",
+      "wrong": [
+        "After the first digit contributes a letter.",
+        "Whenever two consecutive letters are different."
+      ],
+      "explanation": "A complete letter combination has exactly one letter for each input digit."
+    }
+  ],
+  "473": [
+    {
+      "id": "step-1",
+      "prompt": "What length must each of the four sides have?",
+      "correct": "One quarter of the total stick length, with no remainder.",
+      "wrong": [
+        "The longest individual stick’s length.",
+        "The total stick length divided by the number of sticks."
+      ],
+      "explanation": "Using every stick for four equal sides requires the total length to divide evenly by four."
+    },
+    {
+      "id": "step-2",
+      "prompt": "Which side may receive the current stick?",
+      "correct": "Any side whose new total would not exceed the target length.",
+      "wrong": [
+        "Only a side that already has the largest total.",
+        "Any side, even if it becomes longer than the target."
+      ],
+      "explanation": "A side that exceeds its final target cannot be repaired later because stick lengths are positive."
+    },
+    {
+      "id": "step-3",
+      "prompt": "What should happen when a stick placement leads to failure?",
+      "correct": "Undo that placement and try another side.",
+      "wrong": [
+        "Leave the stick there and try placing another copy.",
+        "Reject the entire input after the first failed placement."
+      ],
+      "explanation": "A failed choice does not rule out other side assignments. Restore the side length before exploring an alternative."
+    }
+  ],
+  "698": [
+    {
+      "id": "step-1",
+      "prompt": "What total must each of the k subsets reach?",
+      "correct": "The overall sum divided by k, provided it divides evenly.",
+      "wrong": [
+        "The largest input value multiplied by k.",
+        "The number of input values divided by k."
+      ],
+      "explanation": "Equal subset sums require the total sum to be a multiple of k."
+    },
+    {
+      "id": "step-2",
+      "prompt": "Which bucket can receive the current value?",
+      "correct": "A bucket whose new sum stays at or below the target.",
+      "wrong": [
+        "Only a bucket that already contains a value.",
+        "Any bucket, including one that would exceed the target."
+      ],
+      "explanation": "All values are positive, so a bucket cannot later shrink back to the target after exceeding it."
+    },
+    {
+      "id": "step-3",
+      "prompt": "What should be restored after a failed recursive placement?",
+      "correct": "Subtract the current value from the bucket where it was placed.",
+      "wrong": [
+        "Clear every bucket, including earlier valid placements.",
+        "Keep the value there while trying the next bucket."
+      ],
+      "explanation": "Undo only this branch’s placement so alternatives start from the same earlier bucket totals."
+    }
+  ],
+  "51": [
+    {
+      "id": "step-1",
+      "prompt": "What should one level of recursion decide?",
+      "correct": "The column for a queen in the current row.",
+      "wrong": [
+        "The row for every remaining queen at once.",
+        "A cell without regard to which rows already contain queens."
+      ],
+      "explanation": "Placing one queen per row makes the row constraint automatic."
+    },
+    {
+      "id": "step-2",
+      "prompt": "Which occupied lines must be checked before placing that queen?",
+      "correct": "Its column and both diagonals.",
+      "wrong": [
+        "Only its column.",
+        "Only the row above it."
+      ],
+      "explanation": "Queens attack along columns and both diagonal directions; different rows alone do not prevent attacks."
+    },
+    {
+      "id": "step-3",
+      "prompt": "What must be restored after exploring a queen placement?",
+      "correct": "Remove the queen and its column and diagonal marks.",
+      "wrong": [
+        "Remove the queen but keep all attack marks.",
+        "Keep the queen and clear every other row."
+      ],
+      "explanation": "The next candidate column needs the board and attack sets exactly as they were before this choice."
+    },
+    {
+      "id": "step-4",
+      "prompt": "What should be saved when every row has a queen?",
+      "correct": "A separate copy of the complete board.",
+      "wrong": [
+        "The same mutable board object for every answer.",
+        "Only the column chosen in the final row."
+      ],
+      "explanation": "Later backtracking changes the working board, so each answer must preserve its own completed arrangement."
+    }
+  ],
+  "52": [
+    {
+      "id": "step-1",
+      "prompt": "What should the search choose for the next row?",
+      "correct": "One column that is not under attack.",
+      "wrong": [
+        "Every column, whether attacked or not.",
+        "Only the same column used in the previous row."
+      ],
+      "explanation": "Each row needs one queen, and its column and diagonals must avoid previously placed queens."
+    },
+    {
+      "id": "step-2",
+      "prompt": "How much should a fully placed board contribute to the answer?",
+      "correct": "One valid arrangement.",
+      "wrong": [
+        "The number of queens on that board.",
+        "The number of empty squares on that board."
+      ],
+      "explanation": "The result counts arrangements, not queens or squares."
+    },
+    {
+      "id": "step-3",
+      "prompt": "How should the counts from different legal columns be combined?",
+      "correct": "Add the counts returned by those branches.",
+      "wrong": [
+        "Keep only the largest branch count.",
+        "Stop after the first successful branch."
+      ],
+      "explanation": "Each legal branch represents a different placement choice, and every valid arrangement must be counted."
+    }
+  ],
+  "140": [
+    {
+      "id": "step-1",
+      "prompt": "What should be cached for each starting string index?",
+      "correct": "All valid sentences formed from the suffix starting there.",
+      "wrong": [
+        "Only whether that suffix can be split.",
+        "Only the shortest word beginning at that index."
+      ],
+      "explanation": "This problem asks for every sentence, so caching just a yes-or-no answer would lose the combinations."
+    },
+    {
+      "id": "step-2",
+      "prompt": "Which prefix should be allowed as the next word?",
+      "correct": "Any prefix of the current suffix that is in the dictionary.",
+      "wrong": [
+        "Only the longest dictionary prefix.",
+        "Any dictionary word appearing anywhere later in the string."
+      ],
+      "explanation": "Trying every matching prefix keeps all valid word boundaries while consuming the string in order."
+    },
+    {
+      "id": "step-3",
+      "prompt": "What should the end-of-string base case return?",
+      "correct": "One empty continuation that the previous word can finish.",
+      "wrong": [
+        "No continuations at all.",
+        "Another copy of the original string."
+      ],
+      "explanation": "A completed split is one successful continuation. An empty result list would erase the sentence that reaches this base case."
+    }
+  ],
+  "208": [
+    {
+      "id": "step-1",
+      "prompt": "How should words be represented in the trie?",
+      "correct": "One character edge at each successive level.",
+      "wrong": [
+        "One node containing only a word’s final character.",
+        "A sorted list of all characters without their order."
+      ],
+      "explanation": "Following edges in order preserves the prefix shared by words."
+    },
+    {
+      "id": "step-2",
+      "prompt": "What must distinguish a complete word from a stored prefix?",
+      "correct": "A separate end-of-word marker at its final node.",
+      "wrong": [
+        "The mere existence of its character path.",
+        "The number of children at its final node."
+      ],
+      "explanation": "A path may exist only because it is the beginning of a longer word; a complete-word search needs the marker."
+    },
+    {
+      "id": "step-3",
+      "prompt": "What does a prefix query need to verify?",
+      "correct": "That every character edge in the prefix exists.",
+      "wrong": [
+        "That the final node also has an end-of-word marker.",
+        "That the prefix is longer than every stored word."
+      ],
+      "explanation": "A prefix does not need to be a whole stored word; reaching its final character is sufficient."
+    }
+  ],
+  "211": [
+    {
+      "id": "step-1",
+      "prompt": "How should ordinary letters in a search pattern be handled?",
+      "correct": "Follow the edge for that exact letter.",
+      "wrong": [
+        "Try every child edge even for an ordinary letter.",
+        "Ignore the letter and stay at the same trie node."
+      ],
+      "explanation": "An ordinary character must match exactly; only a dot permits multiple choices."
+    },
+    {
+      "id": "step-2",
+      "prompt": "What should a dot in the search pattern do?",
+      "correct": "Try each character child for that one position.",
+      "wrong": [
+        "Match any number of characters, including none.",
+        "Match only a literal dot stored in a word."
+      ],
+      "explanation": "A dot matches exactly one arbitrary letter, so each recursive branch advances by one pattern position."
+    },
+    {
+      "id": "step-3",
+      "prompt": "After every pattern character is matched, what confirms success?",
+      "correct": "The current node has an end-of-word marker.",
+      "wrong": [
+        "The current node has at least one child.",
+        "The trie contains any word of any length."
+      ],
+      "explanation": "Matching a prefix alone does not prove that a complete word with this pattern length was stored."
+    }
+  ],
+  "2707": [
+    {
+      "id": "step-1",
+      "prompt": "What should the DP value for a prefix represent?",
+      "correct": "The fewest extra characters in that prefix.",
+      "wrong": [
+        "The number of dictionary words found anywhere in the string.",
+        "The longest dictionary word that ends in that prefix."
+      ],
+      "explanation": "The objective is to minimize uncovered characters, so each DP entry stores that minimum for a smaller prefix."
+    },
+    {
+      "id": "step-2",
+      "prompt": "What is the default choice for a newly added last character?",
+      "correct": "Count it as one extra character after the previous prefix.",
+      "wrong": [
+        "Treat it as covered without checking the dictionary.",
+        "Discard the entire previous prefix’s answer."
+      ],
+      "explanation": "Even when no word ends here, keeping the previous solution and paying for one extra character is valid."
+    },
+    {
+      "id": "step-3",
+      "prompt": "If a dictionary word ends at this prefix boundary, which earlier result can be reused?",
+      "correct": "The minimum extra count before that word starts.",
+      "wrong": [
+        "The count immediately before the word’s final character.",
+        "The largest count from every earlier prefix."
+      ],
+      "explanation": "The matched word covers all its own characters, so only the prefix before it contributes extra characters."
+    }
+  ],
+  "212": [
+    {
+      "id": "step-1",
+      "prompt": "What shared structure should the target words form before searching the board?",
+      "correct": "A trie containing their character prefixes.",
+      "wrong": [
+        "One sorted string containing every letter.",
+        "A set containing only each word’s first letter."
+      ],
+      "explanation": "A trie lets one board path continue only while it matches a prefix of at least one target word."
+    },
+    {
+      "id": "step-2",
+      "prompt": "When should a board path stop immediately?",
+      "correct": "When the next cell’s character has no edge in the current trie node.",
+      "wrong": [
+        "Only after visiting every board cell.",
+        "Whenever the path has found one word, even if longer words share it."
+      ],
+      "explanation": "Without a matching edge, no target word can continue along that path. A completed shorter word may still have longer continuations."
+    },
+    {
+      "id": "step-3",
+      "prompt": "How should cell reuse be prevented during a path?",
+      "correct": "Mark each current-path cell, then restore it when returning.",
+      "wrong": [
+        "Mark cells permanently across every search path.",
+        "Allow a cell to be reused if the next letter matches."
+      ],
+      "explanation": "The same cell cannot appear twice in one word path, but other independent paths may use it."
+    },
+    {
+      "id": "step-4",
+      "prompt": "How should a found word be kept from appearing twice in the output?",
+      "correct": "Remove its terminal word marker after recording it.",
+      "wrong": [
+        "Delete every trie node that shares its first letter.",
+        "Stop searching the entire board after the first word."
+      ],
+      "explanation": "Removing only the word marker suppresses repeated output while keeping other words that share its prefix."
+    }
+  ],
+  "463": [
+    {
+      "id": "step-1",
+      "prompt": "How much perimeter should a land cell contribute before checking neighbors?",
+      "correct": "Four sides.",
+      "wrong": [
+        "One side.",
+        "Zero sides unless it touches the grid border."
+      ],
+      "explanation": "An isolated land cell has four exposed sides, so shared edges can be subtracted from that starting count."
+    },
+    {
+      "id": "step-2",
+      "prompt": "When checking only the already visited upper and left neighbors, what is removed per land neighbor?",
+      "correct": "Two sides for the shared edge.",
+      "wrong": [
+        "One side for the shared edge.",
+        "Four sides for the entire neighboring cell."
+      ],
+      "explanation": "That shared edge was included once for each of its two cells. Checking upper and left neighbors counts each adjacency only once."
+    }
+  ],
+  "953": [
+    {
+      "id": "step-1",
+      "prompt": "What lookup should be prepared from the alien alphabet?",
+      "correct": "A mapping from each character to its position in that alphabet.",
+      "wrong": [
+        "A count of how often each character appears in the words.",
+        "A mapping from each character to its normal English position."
+      ],
+      "explanation": "Character order must come from the supplied alphabet, which may differ from English order."
+    },
+    {
+      "id": "step-2",
+      "prompt": "Which character comparison determines the order of two unequal adjacent words?",
+      "correct": "Their first differing character, using alien ranks.",
+      "wrong": [
+        "Their last differing character, using alien ranks.",
+        "The sum of all character ranks in each word."
+      ],
+      "explanation": "Lexicographic order is decided by the earliest position where the words differ."
+    },
+    {
+      "id": "step-3",
+      "prompt": "If all compared characters match, when is the word pair out of order?",
+      "correct": "When the first word is longer than the second.",
+      "wrong": [
+        "When the first word is shorter than the second.",
+        "Whenever the two words have different lengths."
+      ],
+      "explanation": "A word must come before a longer word that starts with exactly that word."
+    }
+  ],
+  "997": [
+    {
+      "id": "step-1",
+      "prompt": "How should a trust edge from a to b affect the balances?",
+      "correct": "Decrease a’s balance and increase b’s balance.",
+      "wrong": [
+        "Increase both balances.",
+        "Increase a’s balance and decrease b’s balance."
+      ],
+      "explanation": "The judge receives trust but gives none, so incoming and outgoing trust must affect the balance in opposite directions."
+    },
+    {
+      "id": "step-2",
+      "prompt": "Which balance identifies a judge candidate among n people?",
+      "correct": "n minus one.",
+      "wrong": [
+        "n.",
+        "Zero for every value of n."
+      ],
+      "explanation": "Receiving trust from all other n minus one people and trusting nobody gives the required balance."
+    },
+    {
+      "id": "step-3",
+      "prompt": "What should happen if no person has that balance?",
+      "correct": "Return minus one.",
+      "wrong": [
+        "Return the person with the largest balance anyway.",
+        "Return the first person listed in the trust edges."
+      ],
+      "explanation": "The judge must meet the full condition. The closest balance is not sufficient."
+    }
+  ],
+  "200": [
+    {
+      "id": "step-1",
+      "prompt": "When should the island count increase during the grid scan?",
+      "correct": "When an unvisited land cell starts a new flood search.",
+      "wrong": [
+        "Whenever any land cell is encountered, even if visited.",
+        "Whenever a land cell touches water."
+      ],
+      "explanation": "One search covers a complete connected island, so only the start of that search adds one island."
+    },
+    {
+      "id": "step-2",
+      "prompt": "When should a cell be marked visited?",
+      "correct": "Before recursively exploring its land neighbors.",
+      "wrong": [
+        "Only after all its neighbors have finished searching.",
+        "Only after the entire grid scan is complete."
+      ],
+      "explanation": "Marking on entry prevents neighboring cells from repeatedly recursing back into each other."
+    },
+    {
+      "id": "step-3",
+      "prompt": "Which cells should that flood search visit next?",
+      "correct": "Unvisited land directly above, below, left, or right.",
+      "wrong": [
+        "Every land cell anywhere in the grid.",
+        "Only land cells diagonal to the current cell."
+      ],
+      "explanation": "An island is connected through horizontal and vertical land neighbors."
+    }
+  ],
+  "695": [
+    {
+      "id": "step-1",
+      "prompt": "What should one flood search calculate?",
+      "correct": "The number of connected land cells in that island.",
+      "wrong": [
+        "The number of islands in the entire grid.",
+        "The number of water cells touching the island."
+      ],
+      "explanation": "Island area counts land cells belonging to that one connected component."
+    },
+    {
+      "id": "step-2",
+      "prompt": "How should the current cell contribute during recursion?",
+      "correct": "Count one, then add areas from its unvisited land neighbors.",
+      "wrong": [
+        "Count one for every neighbor, including water.",
+        "Return only the largest single neighbor’s area."
+      ],
+      "explanation": "Every reachable land cell contributes to the area, so the branches are added rather than compared."
+    },
+    {
+      "id": "step-3",
+      "prompt": "How should areas from separate islands be combined?",
+      "correct": "Keep the largest island area.",
+      "wrong": [
+        "Add all island areas together.",
+        "Keep only the area of the last island scanned."
+      ],
+      "explanation": "The problem asks for the maximum area of one island, not the total land area."
+    }
+  ],
+  "133": [
+    {
+      "id": "step-1",
+      "prompt": "What should the clone map associate with each original node?",
+      "correct": "Its corresponding newly created node.",
+      "wrong": [
+        "Only that node’s numeric value.",
+        "The most recently visited node in the graph."
+      ],
+      "explanation": "The map preserves node identity so different edges can point to the same cloned node."
+    },
+    {
+      "id": "step-2",
+      "prompt": "When should a new clone be entered into the map?",
+      "correct": "Before exploring that node’s neighbors.",
+      "wrong": [
+        "Only after every neighbor is completely cloned.",
+        "Only after the entire graph has been traversed."
+      ],
+      "explanation": "A cycle may return to the node during neighbor exploration; its clone must already be available."
+    },
+    {
+      "id": "step-3",
+      "prompt": "What should happen when an already mapped original node is reached?",
+      "correct": "Reuse its existing clone.",
+      "wrong": [
+        "Create another clone for this incoming edge.",
+        "Skip the edge entirely."
+      ],
+      "explanation": "Reusing the clone preserves shared neighbors and cycles without duplicating nodes or dropping edges."
+    }
+  ],
+  "286": [
+    {
+      "id": "step-1",
+      "prompt": "Which cells should initialize the breadth-first search queue?",
+      "correct": "Every gate, each with distance zero.",
+      "wrong": [
+        "Only the first gate found in the grid.",
+        "Every empty room with distance zero."
+      ],
+      "explanation": "Starting from all gates allows each room to be reached from whichever gate is closest."
+    },
+    {
+      "id": "step-2",
+      "prompt": "Which neighboring rooms should be added to the queue?",
+      "correct": "Only empty rooms that still have the unfilled-distance value.",
+      "wrong": [
+        "All rooms, including walls and previously filled rooms.",
+        "Only rooms that already have a finite distance."
+      ],
+      "explanation": "An unfilled empty room needs a distance; gates, walls, and already reached rooms should not be overwritten."
+    },
+    {
+      "id": "step-3",
+      "prompt": "What distance should a newly reached room receive?",
+      "correct": "The current room’s distance plus one.",
+      "wrong": [
+        "The current room’s distance without adding one.",
+        "The total number of rooms currently in the queue."
+      ],
+      "explanation": "Each horizontal or vertical move adds one step. Breadth-first order makes the first assigned distance the shortest."
+    }
+  ],
+  "994": [
+    {
+      "id": "step-1",
+      "prompt": "Which oranges should be in the initial spread queue?",
+      "correct": "All oranges that are already rotten.",
+      "wrong": [
+        "Only the first rotten orange found.",
+        "Every fresh orange."
+      ],
+      "explanation": "All initially rotten oranges spread rot simultaneously."
+    },
+    {
+      "id": "step-2",
+      "prompt": "What should one minute of spreading process?",
+      "correct": "Exactly the oranges in the queue at the start of that minute.",
+      "wrong": [
+        "Every orange added to the queue during that same minute as well.",
+        "Only one orange, regardless of how many are ready."
+      ],
+      "explanation": "Newly rotten oranges spread on the next minute, so each breadth-first layer must be kept separate."
+    },
+    {
+      "id": "step-3",
+      "prompt": "What should be returned if fresh oranges remain after spreading stops?",
+      "correct": "Minus one.",
+      "wrong": [
+        "Zero.",
+        "The number of fresh oranges left."
+      ],
+      "explanation": "Remaining fresh oranges are unreachable from the initial rotten oranges, so the required time does not exist."
+    }
+  ]
+}

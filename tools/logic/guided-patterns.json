@@ -2,171 +2,171 @@
   {
     "id": "scan",
     "label": "Direct scan or simulation",
-    "summary": "Follow the input operations or visit each required position directly."
+    "summary": "Visit the needed input positions or carry out the listed operations in order."
   },
   {
     "id": "hash",
     "label": "Hash map or set",
-    "summary": "Remember values, counts, or identities for direct lookup."
+    "summary": "Use keys to look up stored values or counts; use a set to test whether a value has been seen."
   },
   {
     "id": "two-pointers",
     "label": "Two pointers",
-    "summary": "Move coordinated positions while preserving an ordering or partition invariant."
+    "summary": "Track two positions or node references and move them according to the values being compared."
   },
   {
     "id": "window",
     "label": "Sliding window",
-    "summary": "Maintain state for a changing contiguous range."
+    "summary": "Track a contiguous part of the input, adding at its right end and removing from its left end."
   },
   {
     "id": "binary-search",
     "label": "Binary search",
-    "summary": "Use sorted order or a monotone condition to discard part of the search range."
+    "summary": "Compare a middle candidate, then eliminate the half that cannot contain the answer."
   },
   {
     "id": "stack",
     "label": "Stack",
-    "summary": "Resolve the most recently opened or unfinished operation first."
+    "summary": "Process the most recently added item first, removing it from the top of the stack."
   },
   {
     "id": "monotonic",
     "label": "Monotonic stack or deque",
-    "summary": "Keep ordered candidates and discard those that can no longer help."
+    "summary": "Keep stack or deque values in increasing or decreasing order by removing entries that break that order."
   },
   {
     "id": "queue",
     "label": "Queue simulation",
-    "summary": "Maintain the order in which pending operations take their turns."
+    "summary": "Add items at the back and process them from the front, in the order they arrived."
   },
   {
     "id": "heap",
     "label": "Heap / priority queue",
-    "summary": "Repeatedly select an extreme item while candidates change."
+    "summary": "Keep the smallest or largest available item at the top so it can be selected as items are added and removed."
   },
   {
     "id": "quickselect",
     "label": "Quickselect partitioning",
-    "summary": "Partition around a pivot and continue only where the requested rank lies."
+    "summary": "Split values around a pivot, then continue only in the part containing the requested sorted position."
   },
   {
     "id": "prefix",
     "label": "Prefix / suffix accumulation",
-    "summary": "Reuse aggregate information from before or after each position."
+    "summary": "Store sums, products, or counts accumulated before or after positions so those totals can be reused."
   },
   {
     "id": "voting",
     "label": "Candidate cancellation",
-    "summary": "Cancel competing occurrences while preserving possible majority candidates."
+    "summary": "Increase support for matching candidate values and cancel that support when competing values appear."
   },
   {
     "id": "index-placement",
     "label": "Value-to-index placement",
-    "summary": "Move each in-range value to its designated array position."
+    "summary": "Place each allowed value at the array index assigned to that value, then inspect missing or repeated placements."
   },
   {
     "id": "linked-list",
     "label": "Linked-list pointer updates",
-    "summary": "Save and rewire node links without losing the remaining list."
+    "summary": "Save the next node before changing a link so the unprocessed list stays reachable."
   },
   {
     "id": "fast-slow",
     "label": "Fast and slow pointers",
-    "summary": "Move at different speeds to detect a cycle or locate a meeting point."
+    "summary": "Move one pointer one step and another two steps to detect a cycle or identify a list position."
   },
   {
     "id": "cache",
     "label": "Indexed state with recency / frequency",
-    "summary": "Combine key lookup with an order that implements the eviction rule."
+    "summary": "Look up entries by key and track access order or access counts to decide which entry to remove."
   },
   {
     "id": "dfs",
     "label": "Depth-first traversal",
-    "summary": "Explore a branch before returning to its siblings, recursively or with a stack."
+    "summary": "Follow one branch as far as needed before returning to explore the next branch."
   },
   {
     "id": "bfs",
     "label": "Breadth-first traversal",
-    "summary": "Explore a graph frontier or distance layer before moving farther."
+    "summary": "Use a queue to visit all nodes in the current distance layer before nodes one edge farther away."
   },
   {
     "id": "bst",
     "label": "Binary search tree ordering",
-    "summary": "Use lower/greater value bounds to select branches or validate structure."
+    "summary": "Use the rule that left-subtree values are smaller and right-subtree values are larger than a node."
   },
   {
     "id": "divide-conquer",
     "label": "Divide and conquer",
-    "summary": "Split a region into smaller independent regions and combine their results."
+    "summary": "Split the input into smaller parts, solve those parts, and combine their answers."
   },
   {
     "id": "backtracking",
     "label": "Backtracking",
-    "summary": "Try a choice, explore it, then undo it before trying alternatives."
+    "summary": "Choose an option, explore the choices after it, then undo it before trying another option."
   },
   {
     "id": "trie",
     "label": "Trie / prefix tree",
-    "summary": "Share character prefixes and advance through matching branches."
+    "summary": "Store words along shared character-by-character paths, with markers for complete words."
   },
   {
     "id": "topological",
     "label": "Topological ordering",
-    "summary": "Process dependency-free vertices and release their dependents."
+    "summary": "Start with nodes that have no unmet prerequisites, then reduce the remaining prerequisites of their dependents."
   },
   {
     "id": "shortest-path",
     "label": "Weighted path optimization",
-    "summary": "Relax path costs while respecting edge costs or an edge-count budget."
+    "summary": "Compare route costs through neighboring nodes and update a best-known cost when a cheaper route is found."
   },
   {
     "id": "mst",
     "label": "Minimum spanning tree",
-    "summary": "Choose low-cost connections that connect every vertex without cycles."
+    "summary": "Connect all graph nodes with the minimum total edge cost, without adding cycles."
   },
   {
     "id": "dp",
     "label": "Dynamic programming",
-    "summary": "Define reusable subproblem states and combine already solved dependencies."
+    "summary": "Store answers to smaller repeated problems and use those answers when computing larger ones."
   },
   {
     "id": "center",
     "label": "Expand around centers",
-    "summary": "Grow matching intervals from each odd and even center."
+    "summary": "Start at a character or a gap between characters and extend outward while the two sides match."
   },
   {
     "id": "greedy",
     "label": "Greedy invariant",
-    "summary": "Make a locally justified choice that preserves a globally useful invariant."
+    "summary": "Choose the best currently available option using a rule that keeps an optimal final answer possible."
   },
   {
     "id": "intervals",
     "label": "Ordered interval processing",
-    "summary": "Process interval boundaries in order and merge, reuse, or discard overlaps."
+    "summary": "Process start and end positions in order to identify overlaps, gaps, and completed intervals."
   },
   {
     "id": "math",
     "label": "Arithmetic or counting identity",
-    "summary": "Use a numerical identity, digit rule, or counting bound to compute the result."
+    "summary": "Compute the result using arithmetic relationships, digit positions, or counting formulas."
   },
   {
     "id": "bits",
     "label": "Bit manipulation",
-    "summary": "Use bitwise identities, masks, shifts, or bit-position contributions."
+    "summary": "Inspect and change binary digits using AND, OR, XOR, masks, and shifts."
   },
   {
     "id": "euler",
     "label": "Eulerian edge traversal",
-    "summary": "Consume every edge once and assemble the route in reverse finishing order."
+    "summary": "Use each graph edge once and finish a node only after its unused outgoing edges have been explored."
   },
   {
     "id": "priority-sort",
     "label": "Sort candidates by priority",
-    "summary": "Re-sort the available candidate pool and take its currently best item."
+    "summary": "Sort the available items by the needed priority and take the first item, repeating as the available set changes."
   },
   {
     "id": "union-find",
     "label": "Union-find components",
-    "summary": "Merge disjoint components and use representative roots to test connectivity."
+    "summary": "Track each connected group by a representative, merging representatives when a new connection joins two groups."
   }
 ]

@@ -5,6 +5,7 @@ import copy
 import difflib
 from concurrent.futures import ProcessPoolExecutor, as_completed
 import hashlib
+import importlib.util
 import json
 from pathlib import Path
 import random
@@ -19,6 +20,9 @@ CACHE = Path('/tmp/leetcode-guided-cache/python')
 GENERATOR_VERSION = 'python-complete-5'
 RUNTIME = None
 DISALLOWED_ERRORS = {'NameError', 'UnboundLocalError', 'ReferenceError', 'SyntaxError', 'IndentationError', 'LogicExecutionLimit', 'RecursionError', 'MemoryError', 'TimeoutError'}
+WORDING_SPEC = importlib.util.spec_from_file_location('guided_wording', Path(__file__).with_name('guided-wording.py'))
+WORDING = importlib.util.module_from_spec(WORDING_SPEC)
+WORDING_SPEC.loader.exec_module(WORDING)
 
 
 def compact(value):
@@ -754,64 +758,52 @@ def prepare(rows, workers=4):
     return documents
 
 
+def implementation_start(questions):
+    """Require the whole plan before the first implementation decision."""
+    assert questions and questions[0]['stage'] == 'pattern', 'A lesson must begin with its approach question'
+    index = 1
+    while index < len(questions) and questions[index]['stage'] == 'structure':
+        index += 1
+    assert index > 1, 'A lesson needs at least one structure decision'
+    assert index < len(questions), 'A lesson must continue into implementation decisions'
+    assert all(question['stage'] == 'implementation' for question in questions[index:]), 'Structure decisions must remain together before implementation'
+    assert len({question['id'] for question in questions}) == len(questions), 'Question IDs must be unique'
+    return index
+
+
 def curriculum_questions(row, language, curriculum):
     base = curriculum['lessons'][str(row['id'])]
     expected_hash = base['sourceHashes'][language]
     source = row['source'] if language == 'python' else row['javascript']
     assert digest(source) == expected_hash, str(row['id']) + ': curriculum audit does not match ' + language + ' source'
     metadata = {**base, **base.get('languages', {}).get(language, {})}
+    structures = metadata['structureQuestions']
+    assert isinstance(structures, list) and 1 <= len(structures) <= 4, str(row['id']) + ': use one to four focused structure decisions'
+    specifications = [('pattern', 'pattern', metadata['patternQuestion'])]
+    for index, specification in enumerate(structures, 1):
+        step_id = specification.get('id', str(index))
+        assert isinstance(step_id, str) and step_id.strip(), str(row['id']) + ': missing structure step ID'
+        specifications.append(('structure', 'structure-' + step_id, specification))
     questions = []
-    for stage in ['pattern', 'structure']:
-        specification = metadata[stage + 'Question']
-        expected_count = 8 if stage == 'pattern' else 4
-        assert len(specification['options']) == expected_count
-        assert sum(option['id'] == specification['correctId'] for option in specification['options']) == 1
+    for stage, question_id, specification in specifications:
+        options = specification['options']
+        assert (len(options) == 8) if stage == 'pattern' else (3 <= len(options) <= 4)
+        assert len({option['id'] for option in options}) == len(options)
+        assert len({option['label'].strip() for option in options}) == len(options)
+        assert sum(option['id'] == specification['correctId'] for option in options) == 1
+        assert specification['prompt'].strip()
+        if stage == 'structure':
+            # The learner decides one plan step at a time. Neither an option
+            # nor its immediate feedback may reveal a full code outline.
+            assert not specification.get('context'), str(row['id']) + ': structure context exposes an outline'
+            assert all(not option.get('code') and not option.get('feedbackCode') for option in options), str(row['id']) + ': structure choices must be focused plain-language decisions'
+            assert all('\n' not in option['label'] and '\n' not in option['feedback'] for option in options)
         choices = [{'id': option['id'], 'label': option['label'], 'correct': option['id'] == specification['correctId'],
-                    'feedback': option['feedback'], **({'code': option['code']} if 'code' in option else {}),
-                    **({'feedbackCode': option['feedbackCode']} if 'feedbackCode' in option else {})} for option in specification['options']]
-        random.Random(int(digest(str(row['id']) + ':' + language + ':' + stage)[:16], 16)).shuffle(choices)
-        questions.append({'id': stage, 'stage': stage, 'prompt': specification['prompt'], 'choices': choices,
-                          **({'context': specification['context']} if 'context' in specification else {})})
+                    'feedback': option['feedback']} for option in options]
+        random.Random(int(digest(str(row['id']) + ':' + language + ':' + question_id)[:16], 16)).shuffle(choices)
+        questions.append({'id': question_id, 'stage': stage, 'prompt': specification['prompt'], 'choices': choices})
+    assert len({question['id'] for question in questions}) == len(questions), str(row['id']) + ': duplicate structure step IDs'
     return metadata, questions
-
-
-def current_operation_feedback(question, language):
-    """Explain only this decision; never copy a later algorithm step as feedback."""
-    code = next(choice['code'] for choice in question['choices'] if choice['correct']).strip()
-    prompt = question['prompt'].lower()
-    if code == 'return':
-        explanation = 'This stops the current helper at this case without executing the remaining operations.'
-    elif code.startswith('return ') or 'return' in prompt:
-        explanation = 'The caller receives the computed value for this path, and the current function stops immediately.'
-    elif re.match(r'^(?:for|for await)\b', code) or 'loop' in prompt and code.startswith('for'):
-        explanation = 'This header specifies the values, bounds, and order of the loop. Those choices determine which inputs the body processes.'
-    elif re.match(r'^(?:if|elif|else if|while)\b', code):
-        if '<=' in code or '>=' in code:
-            explanation = 'The non-strict comparison includes equality. Using a strict comparison would change the boundary case.'
-        elif ' not in ' in code:
-            explanation = 'This membership test distinguishes values absent from the collection from values already recorded there.'
-        elif ' in ' in code or '.has(' in code:
-            explanation = 'This membership test checks the collection as it exists at this step, before the branch changes the state.'
-        elif code.startswith('while'):
-            explanation = 'The condition is checked before each iteration. The loop continues while it holds and stops when it becomes false.'
-        else:
-            explanation = 'This condition selects the next branch. Its comparisons and boolean operators determine which path the current input takes.'
-    elif code.startswith('break'):
-        explanation = 'This exits the innermost loop or switch at this point.' if language == 'javascript' else 'This exits the innermost loop at this point.'
-    elif code.startswith('continue'):
-        explanation = 'This skips the rest of the current iteration and advances to the next iteration check.'
-    elif 'initializ' in prompt:
-        if any(token in code for token in ['Map(', 'Set(', 'set(', '{}', '[]', 'dict(', 'deque(']):
-            explanation = 'This creates the state used by later steps. The container determines which lookup and update operations are available.'
-        else:
-            explanation = 'This sets the starting state. Later calculations and boundary checks depend on that initial value.'
-    elif re.search(r'\.(?:append|appendleft|add|push|unshift|set|pop|popleft|shift)\s*\(', code):
-        explanation = 'This operation updates the collection. The selected value, key, and end of the collection determine what state is available afterward.'
-    elif code.startswith('del ') or '.delete(' in code:
-        explanation = 'This removes the selected entry from the maintained state, so subsequent lookups reflect that change.'
-    else:
-        explanation = 'This updates the state using its current values. The operands and target position determine which stored result changes.'
-    return 'For this guided approach: ' + explanation
 
 
 def normalize_runtime_message(message):
@@ -822,7 +814,6 @@ def normalize_runtime_message(message):
 
 def review_implementation(row, document, overrides, feedback_reviews=None):
     reviewed = copy.deepcopy(document)
-    authored_ids = set()
     for override in overrides.get('overrides', []):
         if override['id'] != row['id'] or override['language'] != document['language']:
             continue
@@ -836,12 +827,7 @@ def review_implementation(row, document, overrides, feedback_reviews=None):
         replacement = expand_question(reviewed['source'], replacement, existing['line'], existing['endLine'], reviewed['coverage']['requiredLines'], reviewed['language'])
         replacement['id'] = existing['id']
         reviewed['questions'][indexes[0]] = replacement
-        authored_ids.add(replacement['id'])
-    for question in reviewed['questions']:
-        if question['id'] not in authored_ids:
-            for choice in question['choices']:
-                if choice['correct']:
-                    choice['feedback'] = current_operation_feedback(question, reviewed['language'])
+    reviewed = WORDING.improve_implementation_wording(row, reviewed)
     for item in (feedback_reviews or {}).get('feedback', []):
         if item['id'] != row['id'] or item['language'] != reviewed['language']:
             continue
@@ -946,7 +932,23 @@ def validate_implementation(row, document, execute_witnesses=False):
     assert set(coverage['terminalLines']) <= graded_lines(questions), str(row['id']) + ': a terminal operation has no tested finishing alternative'
 
 
-def publish(rows, python_documents, javascript_documents, curriculum, overrides, feedback_reviews):
+def implementation_proof(document):
+    """Fingerprint executable choices and coverage independently of lesson prose."""
+    question_keys = ('id', 'stage', 'line', 'endLine', 'coveredLines', 'decisionLines', 'guardedReturns')
+    choice_keys = ('id', 'code', 'correct', 'witness')
+    proof = {key: document[key] for key in ('source', 'sourceHash', 'coverage', 'validation')}
+    if 'execution' in document:
+        proof['execution'] = document['execution']
+    proof['questions'] = [
+        {**{key: question[key] for key in question_keys if key in question},
+         'choices': [{key: choice[key] for key in choice_keys if key in choice} for choice in question['choices']]}
+        for question in document['questions'] if question['stage'] == 'implementation'
+    ]
+    return digest(json.dumps(proof, sort_keys=True, separators=(',', ':')))
+
+
+def publish(rows, python_documents, javascript_documents, curriculum, overrides, feedback_reviews, preserve_implementation=False):
+    WORDING.prepare_wording(rows)
     assert len(rows) == 250
     expected_ids = {str(row['id']) for row in rows}
     assert set(python_documents) == expected_ids, 'Python lesson coverage is incomplete'
@@ -955,11 +957,15 @@ def publish(rows, python_documents, javascript_documents, curriculum, overrides,
     documents = []
     for row in sorted(rows, key=lambda item: item['id']):
         for language, implementations in [('python', python_documents), ('javascript', javascript_documents)]:
-            implementation = review_implementation(row, implementations[str(row['id'])], overrides, feedback_reviews)
+            original = implementations[str(row['id'])]
+            implementation = review_implementation(row, original, overrides, feedback_reviews)
+            if preserve_implementation:
+                assert implementation_proof(implementation) == implementation_proof(original), str(row['id']) + ': wording refresh changed verified implementation choices or coverage'
             validate_implementation(row, implementation)
             metadata, opening = curriculum_questions(row, language, curriculum)
             document = {**implementation, 'title': row['title'], 'patternId': metadata['patternId'],
                         'questions': opening + implementation['questions']}
+            assert implementation_start(document['questions']) == len(opening)
             documents.append(document)
     revision = digest(''.join(compact(document) for document in documents))[:16]
     folder = ROOT / 'public/logic/lessons' / revision
@@ -975,6 +981,8 @@ def publish(rows, python_documents, javascript_documents, curriculum, overrides,
             shutil.rmtree(previous)
     report = {'problems': 250, 'languages': 2, 'lessons': len(documents), 'revision': revision,
               'questions': sum(len(document['questions']) for document in documents),
+              'structureQuestions': sum(question['stage'] == 'structure' for document in documents for question in document['questions']),
+              'implementationQuestions': sum(question['stage'] == 'implementation' for document in documents for question in document['questions']),
               'referenceCases': sum(document['validation']['correctCases'] for document in documents),
               'testedWrongChoices': sum(document['validation']['testedWitnesses'] for document in documents),
               'bytes': sum(len(compact(document).encode()) for document in documents)}
@@ -983,6 +991,7 @@ def publish(rows, python_documents, javascript_documents, curriculum, overrides,
 
 
 def check_published(rows, curriculum, overrides, feedback_reviews, execute_witnesses=True):
+    WORDING.prepare_wording(rows)
     manifest = (ROOT / 'src/data/logic/guided-manifest.ts').read_text()
     revision = re.search(r'guidedRevision = "([a-f0-9]{16})"', manifest).group(1)
     folder = ROOT / 'public/logic/lessons' / revision
@@ -994,8 +1003,9 @@ def check_published(rows, curriculum, overrides, feedback_reviews, execute_witne
             document = json.loads((folder / (str(row['id']) + '-' + language + '.json')).read_text())
             assert document['revision'] == revision and document['id'] == row['id'] and document['language'] == language
             metadata, opening = curriculum_questions(row, language, curriculum)
-            assert document['questions'][:2] == opening and document['patternId'] == metadata['patternId']
-            implementation = {**document, 'questions': document['questions'][2:]}
+            boundary = implementation_start(document['questions'])
+            assert boundary == len(opening) and document['questions'][:boundary] == opening and document['patternId'] == metadata['patternId']
+            implementation = {**document, 'questions': document['questions'][boundary:]}
             reviewed = review_implementation(row, implementation, overrides, feedback_reviews)
             assert reviewed['questions'] == implementation['questions'] and reviewed['validation'] == implementation['validation'], str(row['id']) + ': stale quality review or feedback'
             validate_implementation(row, implementation, execute_witnesses=execute_witnesses)
@@ -1008,9 +1018,26 @@ def check_published(rows, curriculum, overrides, feedback_reviews, execute_witne
     return {'checkedLessons': len(expected_files), 'revision': revision, 'pythonWitnessesExecuted': execute_witnesses}
 
 
+def published_implementations(rows):
+    """Reuse verified choices when only lesson wording or plan questions change."""
+    manifest = (ROOT / 'src/data/logic/guided-manifest.ts').read_text()
+    revision = re.search(r'guidedRevision = "([a-f0-9]{16})"', manifest).group(1)
+    directory = ROOT / 'public/logic/lessons' / revision
+    documents = {language: {} for language in ('python', 'javascript')}
+    for row in rows:
+        for language in documents:
+            document = json.loads((directory / (str(row['id']) + '-' + language + '.json')).read_text())
+            document.pop('revision', None)
+            document['questions'] = [question for question in document['questions'] if question['stage'] == 'implementation']
+            validate_implementation(row, document)
+            documents[language][str(row['id'])] = document
+    return documents['python'], documents['javascript']
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--prepare', action='store_true')
+    parser.add_argument('--reuse-published', action='store_true', help='Republish wording/opening changes without regenerating verified implementation choices')
     parser.add_argument('--only')
     parser.add_argument('--workers', type=int, default=4)
     parser.add_argument('--check', action='store_true')
@@ -1027,16 +1054,21 @@ def main():
         feedback_reviews = json.loads((ROOT / 'tools/logic/guided-feedback.json').read_text())
         print(compact(check_published(rows, curriculum, overrides, feedback_reviews, execute_witnesses=args.check)))
         return
-    documents = prepare(rows, args.workers)
+    if args.reuse_published:
+        assert not args.prepare and not args.only, '--reuse-published requires the complete curriculum'
+        documents, javascript = published_implementations(rows)
+    else:
+        documents = prepare(rows, args.workers)
     if args.prepare:
         print(compact({'pythonProblems': len(documents), 'questions': sum(len(document['questions']) for document in documents.values()),
                        'wrongChoices': sum(document['validation']['wrongChoices'] for document in documents.values())}))
     else:
         curriculum = json.loads((ROOT / 'tools/logic/guided-curriculum.json').read_text())
-        javascript = json.loads(Path(args.javascript).read_text())
+        if not args.reuse_published:
+            javascript = json.loads(Path(args.javascript).read_text())
         overrides = json.loads((ROOT / 'tools/logic/guided-quality-overrides.json').read_text())
         feedback_reviews = json.loads((ROOT / 'tools/logic/guided-feedback.json').read_text())
-        print(compact(publish(rows, documents, javascript, curriculum, overrides, feedback_reviews)))
+        print(compact(publish(rows, documents, javascript, curriculum, overrides, feedback_reviews, preserve_implementation=args.reuse_published)))
 
 
 if __name__ == '__main__':

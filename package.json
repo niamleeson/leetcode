@@ -24,7 +24,7 @@
     "logic:verify": "node tools/logic/verify-runtime.mjs",
     "logic:guided:check": "node tools/logic/generate-curriculum.cjs --check && node tools/logic/generate-guided.cjs --check-artifacts && node tools/logic/check-guided-coverage.cjs",
     "logic:guided:verify": "node tools/logic/generate-guided.cjs --check && node tools/logic/verify-guided-javascript.cjs",
-    "logic:guided:test": "python3 -B tools/logic/guided.test.py && node --test tools/logic/verify-guided-javascript.test.cjs tools/logic/curriculum.test.cjs tools/logic/check-guided-coverage.test.cjs tools/logic/generate-guided-javascript.test.cjs",
+    "logic:guided:test": "python3 -B tools/logic/guided.test.py && python3 -B tools/logic/guided-wording.test.py && node --test tools/logic/verify-guided-javascript.test.cjs tools/logic/curriculum.test.cjs tools/logic/check-guided-coverage.test.cjs tools/logic/generate-guided-javascript.test.cjs",
     "logic:javascript:verify": "node tools/logic/generate-javascript-adapter.cjs --check && node tools/logic/verify-javascript-runtime.cjs"
   },
   "dependencies": {

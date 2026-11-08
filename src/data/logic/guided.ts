@@ -25,12 +25,15 @@ function validSequence(lesson: GuidedLesson): boolean {
   const validLine = (line: number) => Number.isInteger(line) && line >= 1 && line <= sourceLines.length;
   const covered = new Set<number>();
   let previousEnd = 0;
+  const implementationStart = lesson.questions.findIndex(question => question?.stage === 'implementation');
+  if (implementationStart < 2) return false;
   for (const [index, question] of lesson.questions.entries()) {
-    const stage = index === 0 ? 'pattern' : index === 1 ? 'structure' : 'implementation';
+    const stage = index === 0 ? 'pattern' : index < implementationStart ? 'structure' : 'implementation';
     if (!question || question.stage !== stage || !Array.isArray(question.choices) ||
-      question.choices.length < (stage === 'pattern' ? 8 : stage === 'structure' ? 4 : 2) ||
+      question.choices.length < (stage === 'pattern' ? 8 : stage === 'structure' ? 3 : 2) ||
       question.choices.length > (stage === 'pattern' ? 8 : 4) ||
       question.choices.filter(choice => choice?.correct === true).length !== 1) return false;
+    if (stage === 'structure' && (question.context || question.choices.some(choice => choice.code || choice.feedbackCode))) return false;
     if (stage !== 'implementation') continue;
     const { line, endLine } = question;
     if (line === undefined || endLine === undefined || !validLine(line) || !validLine(endLine) ||

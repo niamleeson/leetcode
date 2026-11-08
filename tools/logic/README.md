@@ -3,15 +3,21 @@
 ## Guided Python and JavaScript practice
 
 The default `/practice/:id` flow covers all 250 NeetCode problems in both
-languages. Each lesson starts with eight pattern choices, then four overall
-plans, followed by implementation decisions through the end of the solution.
+languages. Each lesson starts with eight pattern choices, followed by a short
+sequence of focused structure questions, then implementation decisions through
+the end of the solution. Each structure question offers three short text choices
+about one decision. Most problems need two to four planning decisions; a single
+operation can need only one.
 Related operations can share a code-block question; there is no question-count
 cap that can cut off the later steps. Incorrect choices stay on
 the question with feedback; correct choices advance immediately. The approach
 is specific to the worked solution, and the UI acknowledges that other
 algorithms can be valid. Pattern feedback does not reveal the next plan.
-Structure questions use a masked interface scaffold or balanced pseudocode
-choices; the completed organization outline appears only after the right answer.
+Structure cards do not display a complete plan, pseudocode outline, or future
+questions. Feedback explains only the current decision. Reveal solution remains
+an explicit way to inspect the full solution. Implementation prompts identify
+the concrete value, test, or operation being chosen; correct feedback states
+what that code actually does instead of generic claims about updating state.
 
 Implementation distractors are source mutations with independently replayed
 counterexamples. The learner can inspect input, expected output, and the actual
@@ -37,7 +43,7 @@ runtime. Neither worker runs before Run tests is pressed. Reveal solution is
 available throughout, matches the selected language, and leaves progress intact.
 Progress is saved separately for each problem and language, and invalidates
 when lesson content changes. Reopening an unfinished lesson quizzes the approach
-and structure again before resuming the saved implementation. A completed lesson
+and every structure step again before resuming the saved implementation. A completed lesson
 starts a fresh attempt on its next visit. Passing does not automatically mark mastery.
 
 Only the requested lesson JSON, including its worked source, is downloaded;
@@ -73,14 +79,19 @@ adapter. Timeouts, recursion limits, and syntax/name errors are excluded as
 proof that a choice is logically wrong. Runtime acceptance includes valid
 unordered or nonunique outputs where the problem permits them.
 
-The curriculum is authored in `guided-patterns.json`, `guided-plans.tsv`,
-`guided-distractors.tsv`, and `guided-javascript-plans.tsv`; source audit hashes
+The focused structure curriculum is authored in the three
+`guided-structure-steps-{head,middle,tail}.json` banks, with language-specific
+plans in `guided-structure-steps-javascript.json`. `guided-patterns.json` explains
+the pattern choices; the reviewed TSV plans identify each source algorithm. Source audit hashes
 in `guided-source-audit.json` require re-review when an algorithm changes.
 `guided-quality-overrides.json` contains reviewed implementation choices with
 replayed counterexamples; `guided-feedback.json` supplies focused
 explanations for selected correct choices without changing their code.
 `curriculum.test.cjs` checks all 500 language-specific lesson metadata records,
-source hashes, eight/four choice counts, algorithm differences, and answer leaks. To regenerate, export inputs with
+source hashes, focused choice counts, algorithm differences, and answer leaks.
+For wording or planning edits, `node tools/logic/generate-guided.cjs --reuse-published`
+reuses the verified implementation code and witnesses. No mutation search is
+needed when those behaviors are unchanged. To regenerate executable choices, export inputs with
 `node tools/logic/generate-guided.cjs --input-only`, generate the JavaScript
 cache with `node tools/logic/generate-guided-javascript.cjs`, audit/repair that
 cache with `node tools/logic/verify-guided-javascript.cjs

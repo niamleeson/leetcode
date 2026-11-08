@@ -1,0 +1,2282 @@
+{
+  "1929": [
+    {
+      "id": "copies",
+      "prompt": "How should the two copies appear in the result?",
+      "correct": "The original order, followed by the same order again.",
+      "wrong": [
+        "Each value twice before the next value.",
+        "The original order, followed by its reverse."
+      ],
+      "explanation": "Concatenation appends a complete second copy without changing either copy's order."
+    }
+  ],
+  "217": [
+    {
+      "id": "remember",
+      "prompt": "What should the set remember as we scan?",
+      "correct": "All values seen at earlier positions.",
+      "wrong": [
+        "Only the immediately previous value.",
+        "Only values already seen twice."
+      ],
+      "explanation": "Equal values can be separated by several other values."
+    },
+    {
+      "id": "check",
+      "prompt": "When should we check whether a value is already in the set?",
+      "correct": "Before inserting the current value.",
+      "wrong": [
+        "After inserting the current value.",
+        "Only after inserting every value."
+      ],
+      "explanation": "Checking before insertion distinguishes an earlier occurrence from the current position."
+    }
+  ],
+  "242": [
+    {
+      "id": "counts",
+      "prompt": "What information must the counting approach preserve?",
+      "correct": "How many times each character occurs.",
+      "wrong": [
+        "Which distinct characters occur, without counts.",
+        "Which character appears at each position."
+      ],
+      "explanation": "Anagrams may reorder characters, but every character must keep the same frequency."
+    },
+    {
+      "id": "compare",
+      "prompt": "What must agree between the two frequency maps?",
+      "correct": "Every character and its complete count.",
+      "wrong": [
+        "Only the number of different characters.",
+        "Only the count of the most frequent character."
+      ],
+      "explanation": "Matching a few totals can miss a different count for another character."
+    }
+  ],
+  "1": [
+    {
+      "id": "remember",
+      "prompt": "What should the lookup table remember?",
+      "correct": "Each earlier number and its original index.",
+      "wrong": [
+        "Each earlier number without its index.",
+        "Each earlier index without its number."
+      ],
+      "explanation": "The number supports lookup; its original index identifies the position to return."
+    },
+    {
+      "id": "lookup",
+      "prompt": "When should we store the current number in the table?",
+      "correct": "After looking for its needed partner.",
+      "wrong": [
+        "Before looking for its needed partner.",
+        "Only after reaching the last number."
+      ],
+      "explanation": "Looking up the partner first prevents pairing the current position with itself."
+    },
+    {
+      "id": "result",
+      "prompt": "What should we return when the partner is found?",
+      "correct": "The two original input indices.",
+      "wrong": [
+        "The two matching number values.",
+        "Their positions after sorting the numbers."
+      ],
+      "explanation": "The problem asks for positions in the original input."
+    }
+  ],
+  "14": [
+    {
+      "id": "compare",
+      "prompt": "At one character position, which strings must we compare?",
+      "correct": "Every string against the first string.",
+      "wrong": [
+        "Only the first two strings.",
+        "Only strings with the maximum length."
+      ],
+      "explanation": "A prefix must agree across every input string."
+    },
+    {
+      "id": "stop",
+      "prompt": "When should the prefix scan stop?",
+      "correct": "At the first mismatch or a string's end.",
+      "wrong": [
+        "Only when two existing characters differ.",
+        "Only after the longest string ends."
+      ],
+      "explanation": "A common prefix cannot pass a mismatch or extend beyond any string."
+    }
+  ],
+  "49": [
+    {
+      "id": "key",
+      "prompt": "What key should identify an anagram group?",
+      "correct": "The word's characters sorted into order.",
+      "wrong": [
+        "The word's length alone.",
+        "The word's distinct character set."
+      ],
+      "explanation": "A sorted character sequence preserves both character identity and repeated-letter counts."
+    },
+    {
+      "id": "store",
+      "prompt": "What should each group retain?",
+      "correct": "Every original word with that key.",
+      "wrong": [
+        "One representative word for that key.",
+        "Only the sorted key, with no original words."
+      ],
+      "explanation": "The output must contain every input word, including duplicate words."
+    }
+  ],
+  "27": [
+    {
+      "id": "write",
+      "prompt": "What does the write position track?",
+      "correct": "The next place for a value we keep.",
+      "wrong": [
+        "The next value to examine in the input.",
+        "The number of values equal to the target."
+      ],
+      "explanation": "Kept values are copied into a consecutive prefix of the same array."
+    },
+    {
+      "id": "advance",
+      "prompt": "When should the write position advance?",
+      "correct": "Only after keeping a non-target value.",
+      "wrong": [
+        "After examining every value.",
+        "Only after finding a target value."
+      ],
+      "explanation": "Advancing only for retained values prevents gaps in the output prefix."
+    }
+  ],
+  "169": [
+    {
+      "id": "balance",
+      "prompt": "How should a value different from the candidate affect its balance?",
+      "correct": "Decrease the candidate's balance by one.",
+      "wrong": [
+        "Increase the candidate's balance by one.",
+        "Replace the candidate immediately."
+      ],
+      "explanation": "One different value cancels one unit of support, not all previous support."
+    },
+    {
+      "id": "replace",
+      "prompt": "When can a new candidate take over?",
+      "correct": "When the current balance is zero.",
+      "wrong": [
+        "Whenever a larger number appears.",
+        "Whenever the next value is different."
+      ],
+      "explanation": "A zero balance means earlier competing values have canceled one another."
+    }
+  ],
+  "705": [
+    {
+      "id": "collision",
+      "prompt": "What must a hash bucket support?",
+      "correct": "Several different keys with the same hash.",
+      "wrong": [
+        "Only one key, replacing earlier collisions.",
+        "Only a flag saying the bucket is occupied."
+      ],
+      "explanation": "Different keys can have the same hash and must remain distinguishable."
+    },
+    {
+      "id": "query",
+      "prompt": "How should a membership query use its bucket?",
+      "correct": "Check for the exact requested key.",
+      "wrong": [
+        "Accept any nonempty bucket.",
+        "Compare only the keys' hash values."
+      ],
+      "explanation": "A hash collision does not mean two keys are equal."
+    },
+    {
+      "id": "remove",
+      "prompt": "What should removing one key change?",
+      "correct": "Only that matching key in its bucket.",
+      "wrong": [
+        "Every key in that bucket.",
+        "The first key in that bucket."
+      ],
+      "explanation": "Colliding keys represent separate set members."
+    }
+  ],
+  "706": [
+    {
+      "id": "pairs",
+      "prompt": "What information should a bucket retain?",
+      "correct": "Full keys paired with their values.",
+      "wrong": [
+        "Values without their full keys.",
+        "Only the latest pair for that hash."
+      ],
+      "explanation": "The full key distinguishes different entries that share a bucket."
+    },
+    {
+      "id": "update",
+      "prompt": "What should put do when the key already exists?",
+      "correct": "Replace the value in its matching pair.",
+      "wrong": [
+        "Append another pair with the same key.",
+        "Leave the old value unchanged."
+      ],
+      "explanation": "Keeping one current pair per key prevents a lookup from finding a stale value."
+    },
+    {
+      "id": "remove",
+      "prompt": "Which pair should remove delete from a bucket?",
+      "correct": "The pair whose full key matches.",
+      "wrong": [
+        "The first pair, regardless of its key.",
+        "Every pair sharing the same hash."
+      ],
+      "explanation": "Only the requested key should disappear when other keys collide with it."
+    }
+  ],
+  "912": [
+    {
+      "id": "heap",
+      "prompt": "Which heap puts the next largest value at its root?",
+      "correct": "A max-heap over the unsorted prefix.",
+      "wrong": [
+        "A min-heap over the unsorted prefix.",
+        "A max-heap over the already sorted suffix."
+      ],
+      "explanation": "The largest remaining value belongs at the last free position in ascending order."
+    },
+    {
+      "id": "restore",
+      "prompt": "After moving that root to the end, what should heap repair include?",
+      "correct": "Only the smaller unsorted prefix.",
+      "wrong": [
+        "The entire array, including placed values.",
+        "Only the sorted suffix."
+      ],
+      "explanation": "The sorted suffix is finished; repairing it could move a placed maximum again."
+    }
+  ],
+  "75": [
+    {
+      "id": "regions",
+      "prompt": "What do the three positions separate?",
+      "correct": "Zeros, then ones, then unclassified values, then twos.",
+      "wrong": [
+        "Only zeros and nonzeros, with no region for ones.",
+        "Only values already visited, regardless of their value."
+      ],
+      "explanation": "Each value must be placed in its correct zero, one, or two region."
+    },
+    {
+      "id": "incoming",
+      "prompt": "After swapping a two with the high end, what happens to the middle position?",
+      "correct": "Keep it there to examine the incoming value.",
+      "wrong": [
+        "Advance it without examining the incoming value.",
+        "Move it left past an already classified value."
+      ],
+      "explanation": "The value swapped in from the high end has not been classified yet."
+    }
+  ],
+  "347": [
+    {
+      "id": "count",
+      "prompt": "What should determine a value's bucket?",
+      "correct": "Its total occurrence count.",
+      "wrong": [
+        "Its numeric magnitude.",
+        "The index of its first occurrence."
+      ],
+      "explanation": "This problem ranks values by frequency rather than by numeric size or position."
+    },
+    {
+      "id": "collect",
+      "prompt": "In which order should we collect frequency buckets?",
+      "correct": "Highest frequency to lowest, stopping after k values.",
+      "wrong": [
+        "Lowest frequency to highest, stopping after k values.",
+        "Input order, stopping after k occurrences."
+      ],
+      "explanation": "The result needs the k most frequent distinct values."
+    }
+  ],
+  "271": [
+    {
+      "id": "boundary",
+      "prompt": "How should the encoding identify each string's boundary?",
+      "correct": "Write its length before its contents.",
+      "wrong": [
+        "Put the same separator between all strings.",
+        "Write only whether the string is empty."
+      ],
+      "explanation": "A length prefix still works when the contents contain the separator."
+    },
+    {
+      "id": "decode",
+      "prompt": "After reading a length, how much text should decoding consume?",
+      "correct": "Exactly that many characters.",
+      "wrong": [
+        "Characters only until the next separator.",
+        "One character, regardless of the length."
+      ],
+      "explanation": "The length identifies the next string even if its contents contain separators or digits."
+    }
+  ],
+  "304": [
+    {
+      "id": "table",
+      "prompt": "What does each prefix-table entry represent?",
+      "correct": "The sum of the rectangle above and left of that boundary.",
+      "wrong": [
+        "Only the sum of its own row.",
+        "Only the value of its corresponding cell."
+      ],
+      "explanation": "A two-dimensional prefix sum summarizes all cells in that upper-left rectangle."
+    },
+    {
+      "id": "overlap",
+      "prompt": "When adding the top and left prefix areas, how should their overlap be handled?",
+      "correct": "Subtract it once.",
+      "wrong": [
+        "Add it once more.",
+        "Leave it counted twice."
+      ],
+      "explanation": "Both prefix areas already include the upper-left overlap."
+    },
+    {
+      "id": "query",
+      "prompt": "After subtracting the top and left strips of a query, what happens to their shared corner?",
+      "correct": "Add that corner back once.",
+      "wrong": [
+        "Subtract that corner once more.",
+        "Keep it removed twice."
+      ],
+      "explanation": "The shared corner was included in both subtracted strips."
+    }
+  ],
+  "238": [
+    {
+      "id": "forward",
+      "prompt": "What should the forward pass store at each index?",
+      "correct": "The product strictly before that index.",
+      "wrong": [
+        "The product including that index.",
+        "The sum of values before that index."
+      ],
+      "explanation": "Each answer must exclude the value at its own index."
+    },
+    {
+      "id": "backward",
+      "prompt": "What should the backward pass do to each stored product?",
+      "correct": "Multiply by the product strictly after the index.",
+      "wrong": [
+        "Multiply by the current value and everything after it.",
+        "Replace it with only the product on the right."
+      ],
+      "explanation": "Combining the left and right products includes every other value exactly once."
+    }
+  ],
+  "36": [
+    {
+      "id": "regions",
+      "prompt": "Which regions need separate seen-digit tracking?",
+      "correct": "Each row, each column, and each box.",
+      "wrong": [
+        "Rows and columns only.",
+        "The entire board as one region."
+      ],
+      "explanation": "A digit can be valid in different regions but cannot repeat within any one of its three regions."
+    },
+    {
+      "id": "empty",
+      "prompt": "How should an empty cell affect the seen-digit sets?",
+      "correct": "Skip it without recording a digit.",
+      "wrong": [
+        "Record the dot like any other digit.",
+        "Reject the board immediately."
+      ],
+      "explanation": "Empty cells are allowed and do not count as repeated digits."
+    }
+  ],
+  "128": [
+    {
+      "id": "start",
+      "prompt": "Which values should start a consecutive-run search?",
+      "correct": "Values whose predecessor is absent from the set.",
+      "wrong": [
+        "Every occurrence, including duplicates.",
+        "Only the minimum value in the whole set."
+      ],
+      "explanation": "Starting at the beginning of each run avoids repeatedly scanning its interior."
+    },
+    {
+      "id": "extend",
+      "prompt": "What makes the current consecutive run longer?",
+      "correct": "Finding the next integer in the set.",
+      "wrong": [
+        "Finding another copy of the same integer.",
+        "Finding any larger integer in the set."
+      ],
+      "explanation": "A consecutive run advances by exactly one and does not gain length from duplicates."
+    }
+  ],
+  "122": [
+    {
+      "id": "rises",
+      "prompt": "Which neighboring price differences should contribute profit?",
+      "correct": "Only positive differences.",
+      "wrong": [
+        "Both positive and negative differences.",
+        "Only the largest positive difference."
+      ],
+      "explanation": "Multiple transactions are allowed, so every profitable rise can contribute without keeping losses."
+    },
+    {
+      "id": "order",
+      "prompt": "Which price order must the scan preserve?",
+      "correct": "The original day order.",
+      "wrong": [
+        "Prices sorted from lowest to highest.",
+        "Prices sorted from highest to lowest."
+      ],
+      "explanation": "Buying and selling must follow time order; sorting would change the available trades."
+    }
+  ],
+  "229": [
+    {
+      "id": "candidates",
+      "prompt": "How many candidate balances are needed for the n/3 threshold?",
+      "correct": "Two candidate balances.",
+      "wrong": [
+        "One candidate balance.",
+        "One candidate for every distinct value in this cancellation method."
+      ],
+      "explanation": "At most two values can each occur more than one third of the time."
+    },
+    {
+      "id": "verify",
+      "prompt": "What must happen before returning the surviving candidates?",
+      "correct": "Recount them and verify each exceeds n/3.",
+      "wrong": [
+        "Return both without checking their counts.",
+        "Keep candidates occurring exactly n/3 times."
+      ],
+      "explanation": "Cancellation leaves possible winners, so their actual frequencies still need verification."
+    }
+  ],
+  "560": [
+    {
+      "id": "history",
+      "prompt": "What should the prefix-sum table store?",
+      "correct": "How many earlier prefixes have each sum.",
+      "wrong": [
+        "Only whether a sum has appeared.",
+        "Only the largest prefix sum so far."
+      ],
+      "explanation": "Several identical prefix sums can produce different valid subarrays."
+    },
+    {
+      "id": "timing",
+      "prompt": "When should the current prefix sum be recorded?",
+      "correct": "After counting its matching earlier prefixes.",
+      "wrong": [
+        "Before counting its matching earlier prefixes.",
+        "Only after all input values are processed."
+      ],
+      "explanation": "Recording it first could count an empty subarray when k is zero."
+    }
+  ],
+  "41": [
+    {
+      "id": "destination",
+      "prompt": "Where does a value v between 1 and n belong?",
+      "correct": "At index v minus one.",
+      "wrong": [
+        "At index v.",
+        "At the first currently empty-looking position."
+      ],
+      "explanation": "The arrangement associates value 1 with index 0, value 2 with index 1, and so on."
+    },
+    {
+      "id": "duplicate",
+      "prompt": "When should swapping a value into its place stop?",
+      "correct": "When that destination already contains the same value.",
+      "wrong": [
+        "Only after swapping the same pair twice.",
+        "Never while the value is between 1 and n."
+      ],
+      "explanation": "Swapping equal duplicates cannot improve the arrangement and can repeat forever."
+    },
+    {
+      "id": "result",
+      "prompt": "If all positions contain 1 through n, what is missing?",
+      "correct": "n plus one.",
+      "wrong": [
+        "n.",
+        "Zero."
+      ],
+      "explanation": "When every positive value through n is present, the next positive value is the answer."
+    }
+  ],
+  "344": [
+    {
+      "id": "movement",
+      "prompt": "After swapping the outer characters, how should the pointers move?",
+      "correct": "Both inward, toward each other.",
+      "wrong": [
+        "Both rightward, keeping their gap.",
+        "Both outward, away from each other."
+      ],
+      "explanation": "Moving inward visits the next unprocessed mirrored pair."
+    },
+    {
+      "id": "stop",
+      "prompt": "When should the swapping stop?",
+      "correct": "When the pointers meet or cross.",
+      "wrong": [
+        "Only after the left pointer scans the whole array.",
+        "Before the first pair is swapped."
+      ],
+      "explanation": "Swapping each mirrored pair once reverses the array; swapping it twice would undo the reversal."
+    }
+  ],
+  "125": [
+    {
+      "id": "skip",
+      "prompt": "Which characters should the two-pointer comparison skip?",
+      "correct": "Non-letter, non-digit characters on either side.",
+      "wrong": [
+        "Non-letter, non-digit characters only on the left.",
+        "All digits on either side."
+      ],
+      "explanation": "The problem ignores punctuation but keeps both letters and digits."
+    },
+    {
+      "id": "compare",
+      "prompt": "How should the remaining character pair be compared?",
+      "correct": "Ignoring differences in letter case.",
+      "wrong": [
+        "Exactly as written, including letter case.",
+        "By whether both are letters, ignoring their actual values."
+      ],
+      "explanation": "Letter case is ignored, but the two characters must still represent the same letter or digit."
+    }
+  ],
+  "680": [
+    {
+      "id": "mismatch",
+      "prompt": "At the first mismatch, which deletion choices must we consider?",
+      "correct": "Delete the left character or delete the right character.",
+      "wrong": [
+        "Always delete the left character.",
+        "Delete both mismatching characters together."
+      ],
+      "explanation": "Either single deletion may succeed, but deleting both would exceed the limit."
+    },
+    {
+      "id": "remaining",
+      "prompt": "After using one deletion, what must the remaining interval satisfy?",
+      "correct": "It must already be a palindrome.",
+      "wrong": [
+        "It may use one more deletion at every mismatch.",
+        "Only its outer pair needs to match."
+      ],
+      "explanation": "The whole input permits at most one deletion."
+    }
+  ],
+  "1768": [
+    {
+      "id": "alternate",
+      "prompt": "At each shared position, which character should be appended first?",
+      "correct": "The first string's character, if it exists.",
+      "wrong": [
+        "The second string's character, if it exists.",
+        "Whichever character is alphabetically smaller."
+      ],
+      "explanation": "The requested alternating order starts with the first string."
+    },
+    {
+      "id": "remainder",
+      "prompt": "What should happen when one string ends?",
+      "correct": "Keep appending characters from the longer string.",
+      "wrong": [
+        "Stop immediately and discard the remainder.",
+        "Restart the shorter string from its beginning."
+      ],
+      "explanation": "Every character from both original strings must appear in the merged result."
+    }
+  ],
+  "88": [
+    {
+      "id": "direction",
+      "prompt": "In this in-place merge, which free position should we fill first?",
+      "correct": "The final free position in nums1.",
+      "wrong": [
+        "The first position in nums1.",
+        "The first position in nums2."
+      ],
+      "explanation": "Writing backward avoids overwriting an unread value in nums1."
+    },
+    {
+      "id": "selection",
+      "prompt": "Which unused value belongs in that final free position?",
+      "correct": "The larger of the two last unused values.",
+      "wrong": [
+        "The smaller of the two last unused values.",
+        "The next unused value from nums1 regardless of nums2."
+      ],
+      "explanation": "The result is sorted, so the largest remaining value belongs at its remaining end."
+    }
+  ],
+  "26": [
+    {
+      "id": "prefix",
+      "prompt": "What should the write position mark?",
+      "correct": "The end of the unique-value prefix.",
+      "wrong": [
+        "The end of all values examined, including duplicates.",
+        "The position of the first repeated value only."
+      ],
+      "explanation": "The output prefix must contain each distinct sorted value once."
+    },
+    {
+      "id": "advance",
+      "prompt": "When should another value be copied into that prefix?",
+      "correct": "When it differs from the last retained value.",
+      "wrong": [
+        "When it equals the last retained value.",
+        "Whenever the input position advances."
+      ],
+      "explanation": "Equal neighboring values are duplicates in a sorted array."
+    }
+  ],
+  "167": [
+    {
+      "id": "move",
+      "prompt": "If the two selected values sum to less than the target, which pointer moves?",
+      "correct": "The left pointer moves right.",
+      "wrong": [
+        "The right pointer moves left.",
+        "Both pointers move inward immediately."
+      ],
+      "explanation": "Increasing the smaller end can raise the sum; decreasing the larger end cannot help."
+    },
+    {
+      "id": "indices",
+      "prompt": "Which positions should a found pair return?",
+      "correct": "Two different one-based positions.",
+      "wrong": [
+        "Two different zero-based positions.",
+        "The same position twice if its value works."
+      ],
+      "explanation": "This problem requires two distinct positions numbered from one."
+    }
+  ],
+  "15": [
+    {
+      "id": "search",
+      "prompt": "After fixing one value in the sorted array, where should the other two pointers search?",
+      "correct": "Only the positions after that fixed value.",
+      "wrong": [
+        "The whole array, including the fixed position.",
+        "Only positions before the fixed value."
+      ],
+      "explanation": "Searching the suffix keeps all three positions distinct and gives each triplet an ordered starting point."
+    },
+    {
+      "id": "duplicates",
+      "prompt": "What should happen after recording a matching value triplet?",
+      "correct": "Skip repeated values before finding another distinct triplet.",
+      "wrong": [
+        "Record the same values again for every matching index triple.",
+        "Return immediately after the first match."
+      ],
+      "explanation": "The task asks for all unique value triplets, not repeated index combinations."
+    }
+  ],
+  "18": [
+    {
+      "id": "positions",
+      "prompt": "After fixing two positions, where may the moving pair search?",
+      "correct": "Only positions after both fixed positions.",
+      "wrong": [
+        "Anywhere, including either fixed position.",
+        "Only between the two fixed positions."
+      ],
+      "explanation": "All four positions must be different."
+    },
+    {
+      "id": "target",
+      "prompt": "What should the four selected values be compared with?",
+      "correct": "The supplied target.",
+      "wrong": [
+        "Zero for every input.",
+        "The value at the first fixed position."
+      ],
+      "explanation": "Unlike 3Sum, this problem accepts an arbitrary target sum."
+    }
+  ],
+  "189": [
+    {
+      "id": "distance",
+      "prompt": "How should a rotation distance larger than the array length be handled?",
+      "correct": "Use its remainder after division by the length.",
+      "wrong": [
+        "Use the original distance without adjustment.",
+        "Replace every such distance with zero."
+      ],
+      "explanation": "A full array-length rotation returns to the same arrangement."
+    },
+    {
+      "id": "reverse",
+      "prompt": "After reversing the whole array, which parts should be reversed next?",
+      "correct": "The first k values and the remaining values separately.",
+      "wrong": [
+        "Only the first k values.",
+        "The whole array again."
+      ],
+      "explanation": "The two segment reversals restore order within the parts moved by the rotation."
+    }
+  ],
+  "11": [
+    {
+      "id": "area",
+      "prompt": "Which height limits the water between two boundaries?",
+      "correct": "The shorter boundary's height.",
+      "wrong": [
+        "The taller boundary's height.",
+        "The average of both heights."
+      ],
+      "explanation": "Water would spill over the shorter boundary."
+    },
+    {
+      "id": "move",
+      "prompt": "After measuring that container, which boundary should move inward?",
+      "correct": "A boundary with the smaller height.",
+      "wrong": [
+        "A boundary with the larger height.",
+        "Both boundaries regardless of height."
+      ],
+      "explanation": "Keeping the shorter height while reducing width cannot improve the area."
+    }
+  ],
+  "881": [
+    {
+      "id": "assign",
+      "prompt": "Which remaining person should get a boat on each iteration?",
+      "correct": "The heaviest remaining person.",
+      "wrong": [
+        "Only the lightest remaining person.",
+        "Both heaviest people without checking the limit."
+      ],
+      "explanation": "The heaviest person must use a boat, so decide whether someone else can share it."
+    },
+    {
+      "id": "pair",
+      "prompt": "When should the lightest person share that boat?",
+      "correct": "When their combined weight is within the limit.",
+      "wrong": [
+        "Whenever at least two people remain.",
+        "Only when both people have equal weight."
+      ],
+      "explanation": "The boat may carry both only if their total weight fits."
+    }
+  ],
+  "42": [
+    {
+      "id": "bounds",
+      "prompt": "What height information is needed from the two ends?",
+      "correct": "The highest boundary seen from each end.",
+      "wrong": [
+        "Only the height of the immediately previous bar.",
+        "Only the highest boundary from the left."
+      ],
+      "explanation": "Water depends on boundaries on both sides, not just a neighboring bar."
+    },
+    {
+      "id": "side",
+      "prompt": "Which boundary maximum lets us safely process its side next?",
+      "correct": "The smaller of the two known maxima.",
+      "wrong": [
+        "The larger of the two known maxima.",
+        "Whichever side has more bars remaining."
+      ],
+      "explanation": "The smaller known boundary supplies the current limiting water level."
+    }
+  ],
+  "219": [
+    {
+      "id": "window",
+      "prompt": "Which earlier positions should the set represent?",
+      "correct": "Only the previous at most k positions.",
+      "wrong": [
+        "Every earlier position forever.",
+        "Only the immediately previous position."
+      ],
+      "explanation": "A matching value counts only when its index distance is at most k."
+    },
+    {
+      "id": "check",
+      "prompt": "When should we test the current value for a duplicate?",
+      "correct": "Before adding the current position to the set.",
+      "wrong": [
+        "After adding the current position to the set.",
+        "Only after removing every earlier value."
+      ],
+      "explanation": "Adding first would match the position against itself."
+    }
+  ],
+  "121": [
+    {
+      "id": "minimum",
+      "prompt": "Which buy price should be remembered for a sale today?",
+      "correct": "The minimum price from today or earlier.",
+      "wrong": [
+        "The minimum price anywhere, including future days.",
+        "Only the price on the first day."
+      ],
+      "explanation": "The purchase cannot happen after the sale."
+    },
+    {
+      "id": "profit",
+      "prompt": "How should today's possible sale update the answer?",
+      "correct": "Compare its profit with the best single-trade profit.",
+      "wrong": [
+        "Add its profit to every earlier profitable trade.",
+        "Replace the answer even when its profit is smaller."
+      ],
+      "explanation": "Only one buy-sell pair is allowed, so we retain the best single profit."
+    }
+  ],
+  "3": [
+    {
+      "id": "window",
+      "prompt": "What must remain true inside the character window?",
+      "correct": "Every character appears at most once.",
+      "wrong": [
+        "Only the two end characters differ.",
+        "The window contains at most two character types."
+      ],
+      "explanation": "The whole substring must contain no repeated character."
+    },
+    {
+      "id": "shrink",
+      "prompt": "When a repeated character arrives, how far should the left boundary move?",
+      "correct": "Until the earlier copy leaves the window.",
+      "wrong": [
+        "Exactly one position, regardless of the earlier copy.",
+        "All the way past the new character every time."
+      ],
+      "explanation": "A single removal may leave the duplicate inside; removing too much can lose a valid longer suffix."
+    }
+  ],
+  "424": [
+    {
+      "id": "counts",
+      "prompt": "What determines the fewest replacements for the current window?",
+      "correct": "Its length minus its largest character count.",
+      "wrong": [
+        "Its number of distinct character types.",
+        "The number of unequal neighboring pairs."
+      ],
+      "explanation": "Keeping the most frequent character requires replacing every other position."
+    },
+    {
+      "id": "shrink",
+      "prompt": "When must the left boundary move in this worked window method?",
+      "correct": "When length minus the tracked best frequency exceeds k.",
+      "wrong": [
+        "Whenever the window contains two different characters.",
+        "Only when every character in the window differs."
+      ],
+      "explanation": "The allowed replacement budget limits how many positions may differ from the chosen character."
+    }
+  ],
+  "567": [
+    {
+      "id": "length",
+      "prompt": "How long should the comparison window in s2 be?",
+      "correct": "Exactly the length of s1.",
+      "wrong": [
+        "The full length of s2.",
+        "Any length containing the same distinct letters."
+      ],
+      "explanation": "A permutation uses exactly the same number of characters as s1."
+    },
+    {
+      "id": "match",
+      "prompt": "What must match between s1 and the window?",
+      "correct": "Every character's frequency.",
+      "wrong": [
+        "Only the set of distinct characters.",
+        "The characters in their original order."
+      ],
+      "explanation": "A permutation may change order but cannot change any character's count."
+    }
+  ],
+  "209": [
+    {
+      "id": "valid",
+      "prompt": "Once the sum reaches the target, how should shrinking proceed?",
+      "correct": "Keep shrinking while the sum still reaches the target.",
+      "wrong": [
+        "Remove only one value, then always expand.",
+        "Stop searching and return that first window."
+      ],
+      "explanation": "Several removals may keep the sum valid and produce a shorter window."
+    },
+    {
+      "id": "best",
+      "prompt": "Which valid window length should be retained?",
+      "correct": "The smallest valid length seen.",
+      "wrong": [
+        "The length of the first valid window.",
+        "The largest valid length seen."
+      ],
+      "explanation": "A later window can meet the target using fewer elements."
+    }
+  ],
+  "658": [
+    {
+      "id": "starts",
+      "prompt": "Which starting positions can hold a full k-element window?",
+      "correct": "Zero through n minus k, inclusive.",
+      "wrong": [
+        "Zero through n minus one, inclusive.",
+        "Only the first k starting positions."
+      ],
+      "explanation": "A start after n minus k leaves fewer than k elements."
+    },
+    {
+      "id": "tie",
+      "prompt": "When two competing boundary values are equally far from x, which window wins?",
+      "correct": "The window farther left.",
+      "wrong": [
+        "The window farther right.",
+        "Whichever window contains a larger value."
+      ],
+      "explanation": "Equal distances favor smaller values, which lie farther left in the sorted array."
+    }
+  ],
+  "76": [
+    {
+      "id": "coverage",
+      "prompt": "What makes a window cover the target?",
+      "correct": "It contains every required character with enough copies.",
+      "wrong": [
+        "It contains each distinct required character once.",
+        "Its length is at least the target length."
+      ],
+      "explanation": "Repeated target characters require matching multiplicities."
+    },
+    {
+      "id": "shrink",
+      "prompt": "While the window still covers the target, what should happen to its left boundary?",
+      "correct": "Move it right while recording shorter valid windows.",
+      "wrong": [
+        "Keep it fixed until the input ends.",
+        "Move it right even after coverage becomes invalid."
+      ],
+      "explanation": "Shrinking a valid window can improve the minimum; lost coverage requires expanding again."
+    }
+  ],
+  "239": [
+    {
+      "id": "indices",
+      "prompt": "Why should the deque keep indices rather than only values?",
+      "correct": "To tell when a candidate leaves the window.",
+      "wrong": [
+        "To sort the output by the original positions.",
+        "To count how often each numeric value appears."
+      ],
+      "explanation": "An index tells whether a candidate is still inside the current k-element window."
+    },
+    {
+      "id": "smaller",
+      "prompt": "Where should smaller candidates be removed when a new value arrives?",
+      "correct": "From the back, while they are smaller than the new value.",
+      "wrong": [
+        "From the front only.",
+        "From either end without comparing their values."
+      ],
+      "explanation": "A newer larger value outlasts those smaller trailing candidates; the front retains the maximum."
+    }
+  ],
+  "682": [
+    {
+      "id": "history",
+      "prompt": "What history should the stack contain?",
+      "correct": "The currently valid numeric scores.",
+      "wrong": [
+        "Every operation string, including canceled scores.",
+        "Only the running total."
+      ],
+      "explanation": "Later operations need the most recent scores that still count."
+    },
+    {
+      "id": "cancel",
+      "prompt": "What should a cancellation remove?",
+      "correct": "The last valid score.",
+      "wrong": [
+        "The last operation string only.",
+        "Every earlier score."
+      ],
+      "explanation": "Removing the score also changes which scores future doubling and addition operations use."
+    }
+  ],
+  "20": [
+    {
+      "id": "match",
+      "prompt": "Which opening bracket must a closing bracket match?",
+      "correct": "The most recent unmatched opener.",
+      "wrong": [
+        "The oldest unmatched opener.",
+        "Any opener of the same type anywhere earlier."
+      ],
+      "explanation": "Nested brackets close in last-in-first-out order."
+    },
+    {
+      "id": "finish",
+      "prompt": "After all characters are processed, what must be true?",
+      "correct": "The opener stack is empty.",
+      "wrong": [
+        "Opening and closing counts are equal, regardless of order.",
+        "The last character was a closing bracket."
+      ],
+      "explanation": "Any remaining opener is an unclosed bracket."
+    }
+  ],
+  "225": [
+    {
+      "id": "push",
+      "prompt": "Where should a newly pushed value go relative to old queued values?",
+      "correct": "Before all old values in the helper queue.",
+      "wrong": [
+        "After all old values in the helper queue.",
+        "At the same position as the oldest value, replacing it."
+      ],
+      "explanation": "The newest pushed value must become the next value removed by the stack."
+    },
+    {
+      "id": "swap",
+      "prompt": "After transferring the old values, how should the queues be used?",
+      "correct": "Make the helper the active queue and leave the other empty.",
+      "wrong": [
+        "Keep reading from the old, now-empty active queue.",
+        "Keep both queues as duplicate active copies."
+      ],
+      "explanation": "The active queue's front must now hold the newest pushed value."
+    }
+  ],
+  "232": [
+    {
+      "id": "transfer",
+      "prompt": "When should the input stack be transferred to the output stack?",
+      "correct": "Only when the output stack is empty.",
+      "wrong": [
+        "Before every pop, even if the output stack has values.",
+        "Whenever either stack contains one value."
+      ],
+      "explanation": "Transferring onto a nonempty output stack would place newer values ahead of older queued values."
+    },
+    {
+      "id": "read",
+      "prompt": "Which stack should provide the next queued value?",
+      "correct": "The output stack after any needed transfer.",
+      "wrong": [
+        "The input stack whenever it is nonempty.",
+        "The stack with the larger size."
+      ],
+      "explanation": "The transfer reverses input order so the oldest queued value is at the output top."
+    }
+  ],
+  "155": [
+    {
+      "id": "minima",
+      "prompt": "What should the minimum stack remember at each depth?",
+      "correct": "The minimum for all values through that depth.",
+      "wrong": [
+        "Only the smallest value ever pushed.",
+        "Only a minimum when its value differs from the previous minimum."
+      ],
+      "explanation": "Each depth needs its own minimum, including repeated equal minima."
+    },
+    {
+      "id": "pop",
+      "prompt": "How should popping a value affect the minimum stack?",
+      "correct": "Pop its corresponding minimum too.",
+      "wrong": [
+        "Leave every stored minimum untouched.",
+        "Clear every minimum entry."
+      ],
+      "explanation": "The value and minimum stacks must describe the same remaining depth."
+    }
+  ],
+  "150": [
+    {
+      "id": "operands",
+      "prompt": "For subtraction or division, what role does the first popped value have?",
+      "correct": "The right operand.",
+      "wrong": [
+        "The left operand.",
+        "Whichever operand is numerically smaller."
+      ],
+      "explanation": "The second popped value is the left operand in reverse Polish notation."
+    },
+    {
+      "id": "division",
+      "prompt": "How should integer division round its result?",
+      "correct": "Toward zero.",
+      "wrong": [
+        "Down toward negative infinity.",
+        "To the nearest integer."
+      ],
+      "explanation": "The problem requires truncation toward zero, including negative quotients."
+    }
+  ],
+  "735": [
+    {
+      "id": "collision",
+      "prompt": "Which two neighboring directions can cause a collision?",
+      "correct": "An earlier right-moving asteroid and a new left-moving asteroid.",
+      "wrong": [
+        "An earlier left-moving asteroid and a new right-moving asteroid.",
+        "Any pair with opposite signs, regardless of order."
+      ],
+      "explanation": "Only the first pair moves toward each other; the reversed pair moves apart."
+    },
+    {
+      "id": "repeat",
+      "prompt": "After the new asteroid destroys a smaller one, what should happen?",
+      "correct": "Compare it with the next surviving asteroid it could hit.",
+      "wrong": [
+        "Always stop after that one collision.",
+        "Discard the new asteroid regardless of its size."
+      ],
+      "explanation": "One incoming asteroid can collide with several earlier survivors."
+    }
+  ],
+  "739": [
+    {
+      "id": "remember",
+      "prompt": "What should the stack remember for days still waiting for warmer weather?",
+      "correct": "Their day indices.",
+      "wrong": [
+        "Only their temperatures.",
+        "Only how many such days exist."
+      ],
+      "explanation": "Indices let us look up each temperature and later calculate the number of days waited."
+    },
+    {
+      "id": "repeat",
+      "prompt": "When should we keep popping days from the stack?",
+      "correct": "While it is nonempty and today's temperature is higher than the temperature of the day at its top.",
+      "wrong": [
+        "While it is nonempty and today's temperature is equal to the temperature of the day at its top.",
+        "At most once per day, even if more earlier days are colder."
+      ],
+      "explanation": "A warmer day can answer several earlier days; an equal temperature does not count as warmer."
+    },
+    {
+      "id": "push",
+      "prompt": "When should today's index be added to the stack?",
+      "correct": "After comparing today with the earlier days already in the stack.",
+      "wrong": [
+        "Before comparing today with the earlier days already in the stack.",
+        "Only when no earlier day is waiting for warmer weather."
+      ],
+      "explanation": "Adding today first would make the top refer to today, which is not warmer than itself."
+    },
+    {
+      "id": "finish",
+      "prompt": "When should we return the list of waiting times?",
+      "correct": "After visiting every day.",
+      "wrong": [
+        "After finding the first warmer day.",
+        "After visiting the first day without a warmer temperature."
+      ],
+      "explanation": "Later temperatures can still answer earlier days. Days left unanswered keep zero."
+    }
+  ],
+  "901": [
+    {
+      "id": "entry",
+      "prompt": "What should each stock-stack entry contain?",
+      "correct": "A price and the consecutive-day span it represents.",
+      "wrong": [
+        "A price and its total frequency anywhere in history.",
+        "Only the price, with every entry counted as one day."
+      ],
+      "explanation": "One entry can summarize several consecutive days that were already combined."
+    },
+    {
+      "id": "include",
+      "prompt": "Which earlier prices can join today's span?",
+      "correct": "Consecutive prices less than or equal to today's price.",
+      "wrong": [
+        "Only prices strictly less than today's price.",
+        "Every lower price in history, even across a higher price."
+      ],
+      "explanation": "The span includes equal prices but stops at the first earlier higher price."
+    }
+  ],
+  "853": [
+    {
+      "id": "order",
+      "prompt": "In what order should cars be processed for this fleet comparison?",
+      "correct": "Nearest to the target first.",
+      "wrong": [
+        "Farthest from the target first, using the same comparison.",
+        "Lowest speed first, regardless of position."
+      ],
+      "explanation": "Each car must be compared with the already processed fleet ahead of it."
+    },
+    {
+      "id": "fleet",
+      "prompt": "When does a car form a new fleet?",
+      "correct": "When its arrival time is greater than the fleet ahead.",
+      "wrong": [
+        "When its arrival time equals the fleet ahead.",
+        "Whenever its speed differs from the fleet ahead."
+      ],
+      "explanation": "A car arriving no later catches that fleet by the target and joins it."
+    }
+  ],
+  "71": [
+    {
+      "id": "component",
+      "prompt": "Which path component moves to the parent directory?",
+      "correct": "The exact component '..'.",
+      "wrong": [
+        "Any component containing a dot.",
+        "The exact component '.', as well as '..'."
+      ],
+      "explanation": "A single dot stays in place, while other dotted names can be ordinary directories."
+    },
+    {
+      "id": "parent",
+      "prompt": "What should a parent step do at the root directory?",
+      "correct": "Stay at the root.",
+      "wrong": [
+        "Create a directory named '..'.",
+        "Remove the leading root separator."
+      ],
+      "explanation": "There is no directory above the root."
+    }
+  ],
+  "394": [
+    {
+      "id": "save",
+      "prompt": "What should be saved when an opening bracket is reached?",
+      "correct": "The repetition count and the text built before the bracket.",
+      "wrong": [
+        "Only the repetition count.",
+        "Only the text inside the bracket so far."
+      ],
+      "explanation": "Closing the bracket needs both the repeat count and the outer text to continue correctly."
+    },
+    {
+      "id": "close",
+      "prompt": "What should a closing bracket do with the completed inner text?",
+      "correct": "Repeat it by the saved count and append it to the saved outer text.",
+      "wrong": [
+        "Repeat the entire outer and inner text together.",
+        "Append the inner text once and discard the saved count."
+      ],
+      "explanation": "The count applies only to the bracketed text, including nested groups already decoded."
+    }
+  ],
+  "895": [
+    {
+      "id": "frequency",
+      "prompt": "Which frequency level should pop choose?",
+      "correct": "The highest frequency currently present.",
+      "wrong": [
+        "The lowest frequency currently present.",
+        "The highest frequency that has ever existed, even if empty."
+      ],
+      "explanation": "The result must be a value with maximum frequency in the current stack."
+    },
+    {
+      "id": "tie",
+      "prompt": "How should equal-frequency values be ordered for popping?",
+      "correct": "Most recently pushed first.",
+      "wrong": [
+        "Smallest numeric value first.",
+        "Earliest pushed first."
+      ],
+      "explanation": "The problem breaks frequency ties by stack recency."
+    }
+  ],
+  "84": [
+    {
+      "id": "order",
+      "prompt": "What height order should this stack maintain?",
+      "correct": "Heights that stay equal or increase from bottom to top.",
+      "wrong": [
+        "Decreasing heights from bottom to top.",
+        "The original order without removing any entries."
+      ],
+      "explanation": "A shorter incoming bar ends the possible right extension of taller bars at the top."
+    },
+    {
+      "id": "width",
+      "prompt": "When a taller bar is popped, what should determine its rectangle's width?",
+      "correct": "Its nearest shorter boundaries on the left and right.",
+      "wrong": [
+        "Only its own position.",
+        "The full histogram width regardless of other bars."
+      ],
+      "explanation": "A rectangle at that height cannot cross a shorter bar on either side."
+    }
+  ],
+  "704": [
+    {
+      "id": "range",
+      "prompt": "Which positions must remain eligible in an inclusive search interval?",
+      "correct": "Both boundary positions and everything between them.",
+      "wrong": [
+        "Only positions strictly between the boundaries.",
+        "Only the left boundary and the middle."
+      ],
+      "explanation": "Either endpoint may contain the target."
+    },
+    {
+      "id": "discard",
+      "prompt": "After a middle value is checked and differs from the target, how should the interval change?",
+      "correct": "Discard the impossible half, including that checked middle.",
+      "wrong": [
+        "Keep the checked middle as a boundary without moving past it.",
+        "Discard both halves and stop immediately."
+      ],
+      "explanation": "The checked middle is not a match and must be excluded so the search makes progress."
+    }
+  ],
+  "35": [
+    {
+      "id": "boundary",
+      "prompt": "Which position should this search find?",
+      "correct": "The first value at least as large as the target.",
+      "wrong": [
+        "The first value strictly greater than the target.",
+        "The last value smaller than the target."
+      ],
+      "explanation": "An existing equal value is the insertion position; otherwise insertion goes before the first larger value."
+    },
+    {
+      "id": "after",
+      "prompt": "What position must remain possible when the target exceeds every value?",
+      "correct": "Index n, after the array.",
+      "wrong": [
+        "Only index n minus one.",
+        "Only index zero."
+      ],
+      "explanation": "Insertion after the last value is a valid result."
+    }
+  ],
+  "374": [
+    {
+      "id": "feedback",
+      "prompt": "If the guess API says the guess is too high, where should we continue?",
+      "correct": "Below that guess.",
+      "wrong": [
+        "Above that guess.",
+        "At the same guess repeatedly."
+      ],
+      "explanation": "A too-high result eliminates that guess and every larger number."
+    },
+    {
+      "id": "range",
+      "prompt": "What values belong in the initial candidate range?",
+      "correct": "One through n, inclusive.",
+      "wrong": [
+        "Zero through n minus one.",
+        "Only values strictly between one and n."
+      ],
+      "explanation": "The hidden number may be either endpoint of the stated range."
+    }
+  ],
+  "69": [
+    {
+      "id": "boundary",
+      "prompt": "Which boundary does this worked binary search look for?",
+      "correct": "The first integer whose square exceeds x.",
+      "wrong": [
+        "The first integer whose square is at least x.",
+        "The largest integer whose square exceeds x."
+      ],
+      "explanation": "Finding the first square above x places the floor square root immediately before it."
+    },
+    {
+      "id": "result",
+      "prompt": "What should be returned from that first-too-large boundary?",
+      "correct": "The preceding integer.",
+      "wrong": [
+        "The boundary itself.",
+        "The next integer."
+      ],
+      "explanation": "The floor square root must still have a square no greater than x."
+    }
+  ],
+  "74": [
+    {
+      "id": "flatten",
+      "prompt": "How should a flattened middle index map back to the matrix?",
+      "correct": "Divide by the column count for the row; use the remainder for the column.",
+      "wrong": [
+        "Divide by the row count for both coordinates.",
+        "Use the middle index directly as both coordinates."
+      ],
+      "explanation": "Each flattened row contains exactly the number of columns in the matrix."
+    },
+    {
+      "id": "compare",
+      "prompt": "After reading that middle cell, how should the search proceed?",
+      "correct": "Keep the flattened half that can contain the target.",
+      "wrong": [
+        "Search both halves after every comparison.",
+        "Stop if the middle cell differs from the target."
+      ],
+      "explanation": "The matrix's global sorted order makes one half impossible after each unequal comparison."
+    }
+  ],
+  "875": [
+    {
+      "id": "hours",
+      "prompt": "How should hours for separate banana piles be counted?",
+      "correct": "Round each pile's time up, then add those times.",
+      "wrong": [
+        "Add exact pile times and round only the final total.",
+        "Round each pile's time down, then add those times."
+      ],
+      "explanation": "Even a partly used hour belongs to one pile; leftover time cannot be shared with another pile."
+    },
+    {
+      "id": "speed",
+      "prompt": "If a candidate speed finishes within h hours, what should the search try next?",
+      "correct": "A smaller speed that might also work.",
+      "wrong": [
+        "A larger speed only.",
+        "Stop immediately at that first working speed."
+      ],
+      "explanation": "The goal is the minimum feasible speed, not merely any feasible speed."
+    }
+  ],
+  "1011": [
+    {
+      "id": "lower",
+      "prompt": "What is the smallest capacity worth considering?",
+      "correct": "The weight of the heaviest single package.",
+      "wrong": [
+        "Zero, regardless of package weights.",
+        "The lightest package's weight."
+      ],
+      "explanation": "A package cannot be split across days, so each package must fit by itself."
+    },
+    {
+      "id": "days",
+      "prompt": "How should a candidate capacity be tested?",
+      "correct": "Load packages in their original order and start a new day when needed.",
+      "wrong": [
+        "Sort packages from lightest to heaviest before loading.",
+        "Split any package that exceeds the remaining space."
+      ],
+      "explanation": "The shipping order must be preserved and packages cannot be split."
+    }
+  ],
+  "153": [
+    {
+      "id": "compare",
+      "prompt": "Which comparison locates the rotation minimum in this worked search?",
+      "correct": "Compare the middle value with the rightmost value.",
+      "wrong": [
+        "Compare only the two middle indices numerically.",
+        "Compare the middle value with the target value."
+      ],
+      "explanation": "There is no target value here; the right boundary helps identify the side containing the minimum."
+    },
+    {
+      "id": "retain",
+      "prompt": "If the middle value may itself be the minimum, what should happen?",
+      "correct": "Keep that middle position in the candidate range.",
+      "wrong": [
+        "Discard it before searching left.",
+        "Return the rightmost value immediately."
+      ],
+      "explanation": "A possible answer must remain in the range even while the range shrinks."
+    }
+  ],
+  "33": [
+    {
+      "id": "sorted",
+      "prompt": "Before choosing a half of a rotated array, what should we identify?",
+      "correct": "Which half is sorted.",
+      "wrong": [
+        "Which half has more positions.",
+        "Which half begins at the lower index only."
+      ],
+      "explanation": "Sorted bounds reveal whether that half can contain the target."
+    },
+    {
+      "id": "keep",
+      "prompt": "How should a sorted half be kept or discarded?",
+      "correct": "Check whether the target lies within its value bounds.",
+      "wrong": [
+        "Keep it whenever the target differs from the middle.",
+        "Discard it whenever it contains the array's first value."
+      ],
+      "explanation": "The target's value, not just the positions, determines whether that sorted half is possible."
+    }
+  ],
+  "81": [
+    {
+      "id": "equal",
+      "prompt": "What should happen when an equal left boundary hides which half is sorted?",
+      "correct": "Skip that duplicate left boundary and continue.",
+      "wrong": [
+        "Assume the whole left half contains the target.",
+        "Reject the target immediately."
+      ],
+      "explanation": "Equal values can hide the rotation; removing one ambiguous duplicate keeps the remaining possibilities."
+    },
+    {
+      "id": "finish",
+      "prompt": "When does this search prove that the target is absent?",
+      "correct": "When the candidate range becomes empty.",
+      "wrong": [
+        "Whenever the middle value differs from the target.",
+        "Whenever the two boundary values are equal."
+      ],
+      "explanation": "A mismatch or equal endpoints can still leave unexamined target positions."
+    }
+  ],
+  "981": [
+    {
+      "id": "history",
+      "prompt": "How should each key's values be stored?",
+      "correct": "As that key's ordered timestamp-value history.",
+      "wrong": [
+        "Only as that key's latest value.",
+        "In one shared history without the keys."
+      ],
+      "explanation": "Queries can ask for an earlier time and must use the requested key's history."
+    },
+    {
+      "id": "query",
+      "prompt": "Which timestamp should a query select?",
+      "correct": "The latest timestamp no greater than the requested time.",
+      "wrong": [
+        "The earliest timestamp greater than the requested time.",
+        "The stored timestamp nearest in absolute distance."
+      ],
+      "explanation": "A query cannot use a value that was written after the requested time."
+    }
+  ],
+  "410": [
+    {
+      "id": "bound",
+      "prompt": "What quantity should the binary search choose a bound for?",
+      "correct": "The largest allowed sum of any group.",
+      "wrong": [
+        "The number of elements in every group.",
+        "The total sum of all groups combined."
+      ],
+      "explanation": "Splitting does not change the total; the objective minimizes the largest individual group sum."
+    },
+    {
+      "id": "test",
+      "prompt": "How should a candidate sum bound be tested?",
+      "correct": "Greedily count contiguous groups without exceeding the bound.",
+      "wrong": [
+        "Sort values and combine any positions that fit.",
+        "Require every group to have exactly the same sum."
+      ],
+      "explanation": "Groups must be contiguous, and their sums may differ as long as each stays within the bound."
+    }
+  ],
+  "4": [
+    {
+      "id": "size",
+      "prompt": "How should the two array partitions be sized together?",
+      "correct": "Together, the left parts hold half the total values, rounded up.",
+      "wrong": [
+        "Each array must independently be split into equal-length halves.",
+        "The left part must contain every value from the shorter array."
+      ],
+      "explanation": "The median separates the combined ordering, so the two left sizes must be coordinated."
+    },
+    {
+      "id": "ordered",
+      "prompt": "What comparison proves that the combined partition is correctly ordered?",
+      "correct": "Every left boundary value is no greater than every right boundary value.",
+      "wrong": [
+        "Only each array's own left boundary is no greater than its own right boundary.",
+        "Both left boundary values must be equal."
+      ],
+      "explanation": "The cross-array boundary comparisons are needed to separate the lower and upper combined halves."
+    }
+  ],
+  "1095": [
+    {
+      "id": "peak",
+      "prompt": "What must be found before choosing the two binary-search directions?",
+      "correct": "The mountain's peak index.",
+      "wrong": [
+        "The smallest value's index.",
+        "The first index equal to either endpoint."
+      ],
+      "explanation": "The peak separates the increasing part from the decreasing part."
+    },
+    {
+      "id": "order",
+      "prompt": "Which side should be searched first for the smallest matching index?",
+      "correct": "The increasing side.",
+      "wrong": [
+        "The decreasing side.",
+        "Whichever side has fewer elements."
+      ],
+      "explanation": "If the target appears on both sides, its index on the increasing side is smaller."
+    }
+  ],
+  "206": [
+    {
+      "id": "save",
+      "prompt": "Before reversing the current node's link, what must be saved?",
+      "correct": "Its original next node.",
+      "wrong": [
+        "Only its value.",
+        "The list's original tail value."
+      ],
+      "explanation": "Overwriting the link without saving its target loses the unprocessed remainder."
+    },
+    {
+      "id": "head",
+      "prompt": "After all links are reversed, which node is the new head?",
+      "correct": "The last node processed.",
+      "wrong": [
+        "The original head.",
+        "The missing next node after the loop."
+      ],
+      "explanation": "The original tail becomes the first node of the reversed list."
+    }
+  ],
+  "21": [
+    {
+      "id": "choose",
+      "prompt": "Which current node should be appended to the merged list?",
+      "correct": "The smaller of the two current nodes.",
+      "wrong": [
+        "The larger of the two current nodes.",
+        "Both nodes before comparing their values."
+      ],
+      "explanation": "Choosing the smaller remaining value preserves ascending order."
+    },
+    {
+      "id": "advance",
+      "prompt": "After selecting a node, which input should advance?",
+      "correct": "Only the input that supplied that node.",
+      "wrong": [
+        "Both inputs, regardless of which node was chosen.",
+        "Neither input until both current values are equal."
+      ],
+      "explanation": "Advancing the unselected input would skip a node that still belongs in the result."
+    }
+  ],
+  "141": [
+    {
+      "id": "speeds",
+      "prompt": "How should the two cycle-detection pointers advance?",
+      "correct": "One link and two links per iteration.",
+      "wrong": [
+        "One link each, starting together.",
+        "Two links each, starting together."
+      ],
+      "explanation": "Different speeds allow a later meeting to reveal a cycle rather than automatic equal positions."
+    },
+    {
+      "id": "stop",
+      "prompt": "What proves there is no cycle?",
+      "correct": "The fast pointer reaches a missing node or next link.",
+      "wrong": [
+        "The pointers have different values.",
+        "The pointers fail to meet on the first iteration."
+      ],
+      "explanation": "A missing link ends the list; unequal current values say nothing about a later cycle."
+    }
+  ],
+  "143": [
+    {
+      "id": "halves",
+      "prompt": "Before reversing the second half, how should the halves be connected?",
+      "correct": "Detach the second half from the first.",
+      "wrong": [
+        "Keep the original link between both halves.",
+        "Connect the second half's tail back to the head."
+      ],
+      "explanation": "Separating the halves prevents the later alternating merge from retaining a cycle or stale link."
+    },
+    {
+      "id": "merge",
+      "prompt": "After reversing the second half, how should nodes be joined?",
+      "correct": "Alternate one node from each half.",
+      "wrong": [
+        "Append the entire reversed half after the first half.",
+        "Alternate two nodes from each half."
+      ],
+      "explanation": "The required order pairs the first remaining node with the last remaining original node."
+    }
+  ],
+  "19": [
+    {
+      "id": "gap",
+      "prompt": "In this dummy-node method, how far ahead should the fast pointer start?",
+      "correct": "n plus one links ahead of the slow pointer.",
+      "wrong": [
+        "n minus one links ahead of the slow pointer.",
+        "At the same node as the slow pointer."
+      ],
+      "explanation": "The extra link leaves the slow pointer just before the node that must be removed."
+    },
+    {
+      "id": "remove",
+      "prompt": "When the fast pointer reaches the end, which link should change?",
+      "correct": "Bypass the node immediately after the slow pointer.",
+      "wrong": [
+        "Bypass the slow pointer's own node.",
+        "Remove every node after the slow pointer."
+      ],
+      "explanation": "The maintained gap identifies exactly the predecessor of the requested node."
+    }
+  ],
+  "138": [
+    {
+      "id": "clones",
+      "prompt": "What should the first copying pass create?",
+      "correct": "A clone for every original node and an identity map.",
+      "wrong": [
+        "Clones only for nodes with non-null random links.",
+        "One clone reused for all nodes with equal values."
+      ],
+      "explanation": "Different original nodes remain different nodes even when their values are equal."
+    },
+    {
+      "id": "links",
+      "prompt": "Where should a clone's next and random links point?",
+      "correct": "To the mapped clones of the original link targets.",
+      "wrong": [
+        "Directly to the original link targets.",
+        "To newly created independent nodes for every link."
+      ],
+      "explanation": "All copied links must stay within one consistent cloned graph."
+    }
+  ],
+  "2": [
+    {
+      "id": "carry",
+      "prompt": "What information must pass from one digit position to the next?",
+      "correct": "The carry from the previous digit sum.",
+      "wrong": [
+        "Only the previous output digit.",
+        "The total number of nodes already visited."
+      ],
+      "explanation": "Adding two digits can create an extra ten that contributes to the next position."
+    },
+    {
+      "id": "continue",
+      "prompt": "When should the digit loop continue?",
+      "correct": "While either list has a digit or a carry remains.",
+      "wrong": [
+        "Only while both lists still have digits.",
+        "Only while the first list still has digits."
+      ],
+      "explanation": "An uneven list or a final carry can still contribute output digits."
+    }
+  ],
+  "287": [
+    {
+      "id": "links",
+      "prompt": "How should the array be viewed for this cycle method?",
+      "correct": "Each value is the index of the next position to visit.",
+      "wrong": [
+        "Each index is a value to subtract from its neighbor.",
+        "Equal neighboring values are the only possible cycle."
+      ],
+      "explanation": "The repeated value makes two paths point to the same next position."
+    },
+    {
+      "id": "entry",
+      "prompt": "After a cycle meeting, how should its entry be found?",
+      "correct": "Reset one pointer to the start and move both one step at a time.",
+      "wrong": [
+        "Return the first meeting position immediately.",
+        "Keep moving one pointer twice as fast forever."
+      ],
+      "explanation": "The first meeting may be inside the cycle; equal-speed movement from the start locates its entry."
+    }
+  ],
+  "92": [
+    {
+      "id": "anchor",
+      "prompt": "Which node should be located before reversing the selected segment?",
+      "correct": "The node immediately before the segment.",
+      "wrong": [
+        "Only the final node of the whole list.",
+        "The node immediately after the segment, without its predecessor."
+      ],
+      "explanation": "The predecessor provides the fixed link where moved segment nodes can be inserted."
+    },
+    {
+      "id": "move",
+      "prompt": "Which node should be moved to the segment's front on each iteration?",
+      "correct": "The node after the segment's original first node.",
+      "wrong": [
+        "The node before the whole list's head.",
+        "The segment's predecessor itself."
+      ],
+      "explanation": "The original first node stays as the growing reversed segment's tail while later nodes move before it."
+    }
+  ],
+  "622": [
+    {
+      "id": "full",
+      "prompt": "What should distinguish a full circular queue from an empty one?",
+      "correct": "The stored item count compared with capacity.",
+      "wrong": [
+        "Only whether head equals tail.",
+        "Only whether an array slot contains zero."
+      ],
+      "explanation": "The same wrapped index relation can occur in both states, and zero may be valid data."
+    },
+    {
+      "id": "wrap",
+      "prompt": "How should an index move past the final array slot?",
+      "correct": "Wrap back using the capacity as the modulus.",
+      "wrong": [
+        "Grow the array by one slot every time.",
+        "Leave the index beyond the array."
+      ],
+      "explanation": "The fixed-size storage is reused as a circle."
+    }
+  ],
+  "146": [
+    {
+      "id": "lookup",
+      "prompt": "What should the key map point to in this LRU design?",
+      "correct": "The key's node in the recency list.",
+      "wrong": [
+        "Only the key's current frequency.",
+        "Only the node's numeric position in the input."
+      ],
+      "explanation": "Direct access to the node lets a lookup also update its place in the recency order."
+    },
+    {
+      "id": "recent",
+      "prompt": "How should a successful access affect recency?",
+      "correct": "Move that key's node to the most-recent end.",
+      "wrong": [
+        "Leave its node at the same place.",
+        "Move it to the least-recent end."
+      ],
+      "explanation": "An access makes the key recently used even when its value does not change."
+    },
+    {
+      "id": "evict",
+      "prompt": "When capacity is exceeded, which key should be removed?",
+      "correct": "The least recently used key.",
+      "wrong": [
+        "The most recently used key.",
+        "The smallest numeric key."
+      ],
+      "explanation": "LRU eviction is determined by the last access time, not by key size."
+    }
+  ],
+  "460": [
+    {
+      "id": "priority",
+      "prompt": "Which key has the first eviction priority?",
+      "correct": "A key with the lowest current access frequency.",
+      "wrong": [
+        "A key with the highest current access frequency.",
+        "A key with the smallest numeric value."
+      ],
+      "explanation": "LFU removes the least frequently used key first."
+    },
+    {
+      "id": "tie",
+      "prompt": "If several keys share that lowest frequency, which one leaves?",
+      "correct": "The least recently used among those keys.",
+      "wrong": [
+        "The most recently used among those keys.",
+        "Every key at that frequency."
+      ],
+      "explanation": "Recency breaks ties only within the lowest-frequency group."
+    }
+  ],
+  "23": [
+    {
+      "id": "heap",
+      "prompt": "Which nodes should initially enter the min-heap?",
+      "correct": "The first node of each nonempty list.",
+      "wrong": [
+        "Every node from only the first list.",
+        "Only the first node of the longest list."
+      ],
+      "explanation": "Each sorted list contributes its smallest currently available node."
+    },
+    {
+      "id": "next",
+      "prompt": "After removing the smallest node, what should be added to the heap?",
+      "correct": "That node's successor, if it exists.",
+      "wrong": [
+        "The original head of the same list again.",
+        "The successor from every list at once."
+      ],
+      "explanation": "Only the list that supplied the selected node exposes a new candidate."
+    }
+  ],
+  "25": [
+    {
+      "id": "group",
+      "prompt": "What must be checked before reversing a group?",
+      "correct": "At least k nodes remain.",
+      "wrong": [
+        "At least one node remains.",
+        "The next k values are all different."
+      ],
+      "explanation": "A final group shorter than k must remain unchanged."
+    },
+    {
+      "id": "reconnect",
+      "prompt": "After reversing a full group, where should its old head point?",
+      "correct": "To the processed remainder of the list.",
+      "wrong": [
+        "Back to the new head of the same group.",
+        "To null even when later groups remain."
+      ],
+      "explanation": "The old head becomes the group's tail and must connect to the remaining groups."
+    }
+  ],
+  "94": [
+    {
+      "id": "descend",
+      "prompt": "Before visiting a node in iterative inorder traversal, what should the stack follow?",
+      "correct": "Its left-child chain.",
+      "wrong": [
+        "Its right-child chain.",
+        "Only nodes with values smaller than the root."
+      ],
+      "explanation": "Inorder visits the entire left subtree before the node itself."
+    },
+    {
+      "id": "after",
+      "prompt": "After visiting a popped node, where should traversal continue?",
+      "correct": "Into that node's right subtree.",
+      "wrong": [
+        "Back into its completed left subtree.",
+        "Only to the next node already on the stack, ignoring the right subtree."
+      ],
+      "explanation": "The inorder sequence is left subtree, node, then right subtree."
+    }
+  ],
+  "144": [
+    {
+      "id": "visit",
+      "prompt": "When should preorder traversal record a popped node?",
+      "correct": "Before processing either child subtree.",
+      "wrong": [
+        "Only after processing both child subtrees.",
+        "Only after processing its left subtree."
+      ],
+      "explanation": "Preorder visits the node before its children."
+    },
+    {
+      "id": "push",
+      "prompt": "To visit the left child first with a stack, which child should be pushed first?",
+      "correct": "The right child, then the left child.",
+      "wrong": [
+        "The left child, then the right child.",
+        "Only the right child."
+      ],
+      "explanation": "A stack processes the most recently pushed child first."
+    }
+  ],
+  "145": [
+    {
+      "id": "collect",
+      "prompt": "Which temporary order should this stack method collect?",
+      "correct": "Node, then right subtree, then left subtree.",
+      "wrong": [
+        "Node, then left subtree, then right subtree.",
+        "Left subtree, then node, then right subtree."
+      ],
+      "explanation": "Reversing node-right-left gives the required left-right-node postorder."
+    },
+    {
+      "id": "finish",
+      "prompt": "What should happen to that temporary sequence at the end?",
+      "correct": "Reverse it.",
+      "wrong": [
+        "Sort it by node value.",
+        "Return it without changing its order."
+      ],
+      "explanation": "The reversal puts each node after both of its child subtrees."
+    }
+  ],
+  "226": [
+    {
+      "id": "swap",
+      "prompt": "What local change should be made at each nonempty node?",
+      "correct": "Swap its left and right child links.",
+      "wrong": [
+        "Swap only the children's values.",
+        "Replace both children with the left child."
+      ],
+      "explanation": "Tree inversion changes where whole child subtrees attach, not just their root values."
+    },
+    {
+      "id": "recurse",
+      "prompt": "After that swap, which subtrees should also be inverted?",
+      "correct": "Both child subtrees.",
+      "wrong": [
+        "Only the left child subtree.",
+        "Only the larger child value's subtree."
+      ],
+      "explanation": "Every level of both sides must be inverted."
+    },
+    {
+      "id": "result",
+      "prompt": "Which root reference should the completed call return?",
+      "correct": "The same root node, with its children inverted.",
+      "wrong": [
+        "The original left child.",
+        "The original right child."
+      ],
+      "explanation": "Inverting a tree changes its links but keeps that root as the root of the result."
+    }
+  ],
+  "104": [
+    {
+      "id": "empty",
+      "prompt": "What depth should a missing node contribute?",
+      "correct": "Zero.",
+      "wrong": [
+        "One.",
+        "Minus one."
+      ],
+      "explanation": "A missing subtree contains no nodes."
+    },
+    {
+      "id": "combine",
+      "prompt": "How should a nonempty node combine its child depths?",
+      "correct": "One plus the larger child depth.",
+      "wrong": [
+        "One plus the sum of both child depths.",
+        "The smaller child depth without adding one."
+      ],
+      "explanation": "Depth counts one longest root-to-leaf branch, including the current node."
+    }
+  ],
+  "543": [
+    {
+      "id": "upward",
+      "prompt": "What should each recursive call return to its parent?",
+      "correct": "Its subtree height.",
+      "wrong": [
+        "Its subtree's full diameter.",
+        "The total number of nodes in its subtree."
+      ],
+      "explanation": "A parent needs one downward height from each child to form paths through itself."
+    },
+    {
+      "id": "diameter",
+      "prompt": "What candidate should update the best diameter at a node?",
+      "correct": "The sum of its two child heights.",
+      "wrong": [
+        "Only its larger child height.",
+        "The product of its child heights."
+      ],
+      "explanation": "A longest path through this node can join one downward branch from each side."
+    }
+  ],
+  "110": [
+    {
+      "id": "order",
+      "prompt": "When should a node's balance be checked?",
+      "correct": "After obtaining both child heights.",
+      "wrong": [
+        "Before either child subtree is examined.",
+        "Only when the node has two leaves."
+      ],
+      "explanation": "Balance depends on subtree heights and on whether either child is already unbalanced."
+    },
+    {
+      "id": "propagate",
+      "prompt": "If a child reports an imbalance, what should the parent return?",
+      "correct": "An imbalance marker, not a normal height.",
+      "wrong": [
+        "A normal height that ignores the bad child.",
+        "Zero, as if the child were missing."
+      ],
+      "explanation": "An imbalance anywhere below means the whole tree is not balanced."
+    }
+  ],
+  "100": [
+    {
+      "id": "missing",
+      "prompt": "How should missing corresponding nodes be compared?",
+      "correct": "Both missing matches; exactly one missing does not.",
+      "wrong": [
+        "Any missing node matches any existing node.",
+        "Missing nodes can always be ignored."
+      ],
+      "explanation": "Tree equality includes the presence and position of children."
+    },
+    {
+      "id": "children",
+      "prompt": "If two node values match, what must still be checked?",
+      "correct": "Both corresponding child subtrees.",
+      "wrong": [
+        "Only the total node counts.",
+        "Only the left child values."
+      ],
+      "explanation": "Equal roots alone do not prove equal structure or values farther down."
+    }
+  ],
+  "572": [
+    {
+      "id": "candidate",
+      "prompt": "What must be compared at each possible subtree root?",
+      "correct": "The complete corresponding structure and values.",
+      "wrong": [
+        "Only that node's value.",
+        "Only the total number of nodes below it."
+      ],
+      "explanation": "A subtree match includes every corresponding node and missing child."
+    },
+    {
+      "id": "search",
+      "prompt": "If that candidate root does not match, where should the search continue?",
+      "correct": "Both child subtrees of the main tree.",
+      "wrong": [
+        "Only the left child subtree.",
+        "Nowhere, because the whole search has failed."
+      ],
+      "explanation": "A matching subtree may begin below a different node."
+    }
+  ],
+  "235": [
+    {
+      "id": "branch",
+      "prompt": "If both target values are smaller than the current BST value, where should we move?",
+      "correct": "Into the left subtree.",
+      "wrong": [
+        "Into the right subtree.",
+        "Down both subtrees without using the value ordering."
+      ],
+      "explanation": "Both targets must lie on the smaller-value side of a valid BST."
+    },
+    {
+      "id": "stop",
+      "prompt": "When have we found the lowest common ancestor in this walk?",
+      "correct": "When the targets split across sides or one equals the current node.",
+      "wrong": [
+        "Whenever the current node has two children.",
+        "Only when both target values equal each other."
+      ],
+      "explanation": "At that point, moving farther down one side would lose at least one target."
+    }
+  ],
+  "701": [
+    {
+      "id": "descend",
+      "prompt": "How should the next insertion branch be chosen?",
+      "correct": "Compare the new value with the current node's value.",
+      "wrong": [
+        "Always take the subtree with fewer nodes.",
+        "Alternate left and right regardless of values."
+      ],
+      "explanation": "BST placement is determined by value ordering."
+    },
+    {
+      "id": "attach",
+      "prompt": "When a missing child position is reached, what should be returned?",
+      "correct": "A new node that the parent reconnects as that child.",
+      "wrong": [
+        "The original root without adding a node.",
+        "A node that replaces the parent and drops its other child."
+      ],
+      "explanation": "The returned subtree must be connected back into the existing tree."
+    }
+  ],
+  "450": [
+    {
+      "id": "find",
+      "prompt": "How should the key's location be searched in the BST?",
+      "correct": "Use smaller/larger comparisons to choose a child.",
+      "wrong": [
+        "Search only the left subtree at every node.",
+        "Delete the root whenever its value differs from the key."
+      ],
+      "explanation": "BST ordering identifies the only side that can contain the key."
+    },
+    {
+      "id": "twochildren",
+      "prompt": "How should deletion handle a node with two children in this approach?",
+      "correct": "Copy its inorder successor, then delete that successor from the right subtree.",
+      "wrong": [
+        "Copy its successor but leave the original successor in place.",
+        "Delete both child subtrees with the node."
+      ],
+      "explanation": "Removing the copied successor avoids leaving a duplicate while preserving BST order."
+    }
+  ],
+  "102": [
+    {
+      "id": "batch",
+      "prompt": "How should one tree level's queue batch be bounded?",
+      "correct": "By the queue size at the start of that level.",
+      "wrong": [
+        "By the queue size after every new child is added.",
+        "By a fixed batch of two nodes."
+      ],
+      "explanation": "Newly enqueued children belong to the next level, not the current batch."
+    },
+    {
+      "id": "record",
+      "prompt": "How should node values be grouped in the output?",
+      "correct": "One value list per completed level.",
+      "wrong": [
+        "One value list per individual node.",
+        "One flat list without level boundaries."
+      ],
+      "explanation": "The requested output preserves each breadth-first level as its own group."
+    }
+  ],
+  "199": [
+    {
+      "id": "levels",
+      "prompt": "How should the tree be processed to identify its visible right side?",
+      "correct": "One complete level at a time, left to right.",
+      "wrong": [
+        "Only by following right-child links.",
+        "Only by following left-child links."
+      ],
+      "explanation": "A visible node may belong to a left subtree when no node lies farther right at that depth."
+    },
+    {
+      "id": "visible",
+      "prompt": "Which node should each left-to-right level batch contribute?",
+      "correct": "Its final node.",
+      "wrong": [
+        "Its first node.",
+        "Every node in the batch."
+      ],
+      "explanation": "The final node is the rightmost node present at that depth."
+    }
+  ]
+}

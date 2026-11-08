@@ -108,7 +108,9 @@ function auditDocument(document, inventory, expectedSource) {
   const questions=document.questions.filter(question=>question.stage==='implementation');
   if(new Set(document.questions.map(question=>question.id)).size!==document.questions.length) issue('duplicate-question-id',{});
   if(document.source!==expectedSource || document.sourceHash!==digest(expectedSource)) issue('source-mismatch',{});
-  if(document.questions[0]?.stage!=='pattern'||document.questions[1]?.stage!=='structure'||document.questions.slice(2).some(q=>q.stage!=='implementation')) issue('stage-order',{});
+  let implementationStart=1;
+  while(document.questions[implementationStart]?.stage==='structure') implementationStart++;
+  if(document.questions[0]?.stage!=='pattern'||implementationStart===1||implementationStart===document.questions.length||document.questions.slice(implementationStart).some(q=>q.stage!=='implementation')) issue('stage-order',{});
   const covered=new Set(),decisions=new Set(),guardedReturns=new Set(),claimed=new Set(document.coverage?.requiredLines || []);
   for(const key of ['requiredLines','coveredLines','terminalLines']) for(const line of document.coverage?.[key] || []) {
     if(!Number.isInteger(line)||line<1||line>lines.length) issue('invalid-coverage-line',{key,line});

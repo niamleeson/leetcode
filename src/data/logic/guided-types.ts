@@ -17,7 +17,7 @@ export interface GuidedChoice {
   code?: string;
   correct: boolean;
   feedback: string;
-  /** A completed structure outline shown only after a correct decision. */
+  /** Optional code feedback for a single implementation decision. */
   feedbackCode?: string;
   witness?: GuidedWitness;
 }

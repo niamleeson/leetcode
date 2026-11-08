@@ -1,0 +1,2282 @@
+{
+  "417": [
+    {
+      "id": "starts",
+      "prompt": "Where should the two searches begin?",
+      "correct": "At each ocean's border cells, using a separate visited set for each ocean.",
+      "wrong": [
+        "At the highest cell, using one shared visited set.",
+        "At every inland cell, stopping after reaching either ocean."
+      ],
+      "explanation": "A separate border search records exactly which cells can send water to each ocean."
+    },
+    {
+      "id": "direction",
+      "prompt": "Which neighboring heights may a search move to when starting from an ocean?",
+      "correct": "Equal or higher heights than the current cell.",
+      "wrong": [
+        "Only lower heights than the current cell.",
+        "Only strictly higher heights than the current cell."
+      ],
+      "explanation": "The search runs backward along possible water paths, so equal heights must also remain reachable."
+    },
+    {
+      "id": "result",
+      "prompt": "Which cells belong in the answer?",
+      "correct": "Cells visited by both ocean searches.",
+      "wrong": [
+        "Cells visited by either ocean search.",
+        "Only cells directly on both ocean borders."
+      ],
+      "explanation": "A cell must have a water path to each ocean; membership in both visited sets establishes that."
+    }
+  ],
+  "130": [
+    {
+      "id": "safe",
+      "prompt": "Which O cells should be marked safe first?",
+      "correct": "Every O connected to any border O.",
+      "wrong": [
+        "Only O cells with four O neighbors.",
+        "Every O connected to the center cell."
+      ],
+      "explanation": "A region touching the border cannot be surrounded entirely by X cells."
+    },
+    {
+      "id": "finish",
+      "prompt": "After marking safe cells, which cells should become X?",
+      "correct": "Only the O cells that were not marked safe.",
+      "wrong": [
+        "All original O cells, including border cells.",
+        "Only the O cells touching an X directly."
+      ],
+      "explanation": "Unmarked O cells have no connection to a border; safe cells must be restored to O."
+    }
+  ],
+  "752": [
+    {
+      "id": "order",
+      "prompt": "In what order should lock states be explored?",
+      "correct": "By increasing number of wheel turns, using a queue.",
+      "wrong": [
+        "By smallest numeric lock value, using a sorted list.",
+        "Along one complete path before trying other first moves."
+      ],
+      "explanation": "Every wheel turn costs one move, so queue layers correspond to increasing move counts."
+    },
+    {
+      "id": "neighbors",
+      "prompt": "Which next states should be added to the queue?",
+      "correct": "Unvisited, non-deadend states reached by turning one wheel one position.",
+      "wrong": [
+        "Any unvisited state differing in one or more wheel positions.",
+        "All one-wheel neighbors, even if they were visited earlier."
+      ],
+      "explanation": "A valid edge is exactly one wheel turn; excluding deadends and visited states prevents invalid or repeated work."
+    }
+  ],
+  "207": [
+    {
+      "id": "edges",
+      "prompt": "How should a prerequisite pair be represented?",
+      "correct": "An edge from the prerequisite to its dependent course, plus the dependent's prerequisite count.",
+      "wrong": [
+        "An edge from each course to every course with a smaller number.",
+        "An undirected edge, with the same prerequisite count at both ends."
+      ],
+      "explanation": "The count must represent prerequisites that still need completion for that course."
+    },
+    {
+      "id": "ready",
+      "prompt": "Which courses are ready to take next?",
+      "correct": "Courses whose remaining prerequisite count is zero.",
+      "wrong": [
+        "Courses with the largest remaining prerequisite count.",
+        "Courses already removed from the graph."
+      ],
+      "explanation": "Only zero-count courses have no unmet prerequisites."
+    },
+    {
+      "id": "finish",
+      "prompt": "What proves that all courses can be finished?",
+      "correct": "The process removes every course.",
+      "wrong": [
+        "At least one course has no prerequisites initially.",
+        "The graph has fewer edges than courses."
+      ],
+      "explanation": "A cycle leaves some courses blocked, so success requires removing all courses."
+    }
+  ],
+  "210": [
+    {
+      "id": "ready",
+      "prompt": "Which courses should enter the queue first?",
+      "correct": "Every course with zero incoming prerequisite edges.",
+      "wrong": [
+        "Only course zero, regardless of its prerequisites.",
+        "Every course that is a prerequisite for another course."
+      ],
+      "explanation": "A course can start only when no required earlier course remains."
+    },
+    {
+      "id": "record",
+      "prompt": "When should a course be added to the returned order?",
+      "correct": "When it is removed from the ready queue.",
+      "wrong": [
+        "When any edge first mentions it.",
+        "Only after all its dependent courses are removed."
+      ],
+      "explanation": "Removing a ready course records a position after all its prerequisites."
+    },
+    {
+      "id": "cycle",
+      "prompt": "What should happen if the recorded order contains fewer than all courses?",
+      "correct": "Return an empty order because some courses remain in a cycle.",
+      "wrong": [
+        "Return the partial order as a complete schedule.",
+        "Append the remaining courses by their numeric labels."
+      ],
+      "explanation": "A partial order cannot satisfy prerequisites for courses that never become ready."
+    }
+  ],
+  "261": [
+    {
+      "id": "cycle",
+      "prompt": "Which visited neighbor indicates a cycle in an undirected DFS?",
+      "correct": "A visited neighbor other than the current node's parent.",
+      "wrong": [
+        "Any visited neighbor, including the parent.",
+        "Only a neighbor with a smaller numeric label."
+      ],
+      "explanation": "The edge back to the parent is the same undirected edge used to arrive, not a new cycle."
+    },
+    {
+      "id": "connected",
+      "prompt": "What else must hold after a cycle-free traversal?",
+      "correct": "Every vertex was reached.",
+      "wrong": [
+        "Every vertex has at most two neighbors.",
+        "The starting vertex has no parent."
+      ],
+      "explanation": "A tree must be connected as well as acyclic; disconnected vertices fail that requirement."
+    }
+  ],
+  "1462": [
+    {
+      "id": "prepare",
+      "prompt": "What should be precomputed for each course?",
+      "correct": "All courses reachable by following its prerequisite-to-dependent edges.",
+      "wrong": [
+        "Only courses directly connected by one edge.",
+        "All courses connected when edge directions are ignored."
+      ],
+      "explanation": "A prerequisite relation can span several directed edges."
+    },
+    {
+      "id": "query",
+      "prompt": "How should a query asking whether u is a prerequisite of v be answered?",
+      "correct": "Check whether v is in the directed reachability set starting from u.",
+      "wrong": [
+        "Check whether u is in the directed reachability set starting from v.",
+        "Compare the numeric labels of u and v."
+      ],
+      "explanation": "The direction from prerequisite to dependent determines the answer."
+    }
+  ],
+  "323": [
+    {
+      "id": "count",
+      "prompt": "When should the component count increase?",
+      "correct": "When a traversal starts at a vertex not visited before.",
+      "wrong": [
+        "Every time a graph edge is examined.",
+        "Only when a vertex has no neighbors."
+      ],
+      "explanation": "One traversal covers one whole component, including an isolated vertex."
+    },
+    {
+      "id": "visit",
+      "prompt": "Which vertices should that traversal mark?",
+      "correct": "Every vertex reachable from its starting vertex.",
+      "wrong": [
+        "Only the starting vertex and its immediate neighbors.",
+        "Only vertices with larger labels than the start."
+      ],
+      "explanation": "Marking the whole component prevents counting the same component again."
+    }
+  ],
+  "684": [
+    {
+      "id": "candidate",
+      "prompt": "In what order should candidate edges be tested?",
+      "correct": "From the last input edge toward the first.",
+      "wrong": [
+        "From the first input edge toward the last.",
+        "By smallest endpoint label first."
+      ],
+      "explanation": "The required answer is the last suitable edge in input order."
+    },
+    {
+      "id": "test",
+      "prompt": "What makes a tested edge removable without disconnecting its endpoints?",
+      "correct": "A path still connects its endpoints when that edge is excluded.",
+      "wrong": [
+        "The endpoints have different numeric labels.",
+        "Its endpoints cannot reach each other without it."
+      ],
+      "explanation": "An alternate path means the tested edge completes a cycle."
+    }
+  ],
+  "721": [
+    {
+      "id": "connect",
+      "prompt": "What should create connections between email addresses?",
+      "correct": "Email addresses appearing in the same account.",
+      "wrong": [
+        "Accounts having the same person's name alone.",
+        "Email addresses having the same domain."
+      ],
+      "explanation": "An account's emails identify one connected group; names alone do not uniquely identify people."
+    },
+    {
+      "id": "output",
+      "prompt": "How should one connected email group be returned?",
+      "correct": "Sort its distinct emails and attach the associated account name.",
+      "wrong": [
+        "Keep only the first email encountered.",
+        "Combine it with every other group having the same name."
+      ],
+      "explanation": "Each connected component represents one merged account, with sorted unique addresses."
+    }
+  ],
+  "399": [
+    {
+      "id": "edges",
+      "prompt": "For an equation a / b = value, what graph edges are needed?",
+      "correct": "a to b with value, and b to a with its reciprocal.",
+      "wrong": [
+        "Both directions with the same value.",
+        "Only a to b, with no way to traverse backward."
+      ],
+      "explanation": "Traversing an equation backward divides by its ratio, so the reverse edge needs the reciprocal."
+    },
+    {
+      "id": "combine",
+      "prompt": "How should ratios be combined along a query path?",
+      "correct": "Multiply the edge ratios from source to destination.",
+      "wrong": [
+        "Add the edge ratios from source to destination.",
+        "Keep only the final edge's ratio."
+      ],
+      "explanation": "Intermediate variables cancel when ratios are multiplied along the path."
+    }
+  ],
+  "310": [
+    {
+      "id": "start",
+      "prompt": "Which tree vertices should be removed in the first layer?",
+      "correct": "All current leaves, whose degree is one.",
+      "wrong": [
+        "Only the leaf with the smallest label.",
+        "Every vertex with degree greater than one."
+      ],
+      "explanation": "Removing all leaves together shortens every outer branch by one layer."
+    },
+    {
+      "id": "stop",
+      "prompt": "When should leaf removal stop?",
+      "correct": "When only one or two vertices remain.",
+      "wrong": [
+        "As soon as one branch reaches the root used by the input.",
+        "Only after every vertex has been removed."
+      ],
+      "explanation": "A tree's minimum-height roots are its one or two central vertices."
+    }
+  ],
+  "127": [
+    {
+      "id": "neighbors",
+      "prompt": "How should words that differ by one character be grouped?",
+      "correct": "By patterns formed by replacing one character with a wildcard.",
+      "wrong": [
+        "By their first character alone.",
+        "By sorting their letters into an anagram key."
+      ],
+      "explanation": "Sharing a one-position wildcard pattern identifies a possible one-letter transformation."
+    },
+    {
+      "id": "order",
+      "prompt": "How should newly discovered words be explored?",
+      "correct": "One distance layer at a time with a queue.",
+      "wrong": [
+        "One complete transformation chain at a time with a stack.",
+        "In alphabetical order regardless of distance."
+      ],
+      "explanation": "Every word change costs one step, so BFS reaches the target with the fewest changes."
+    }
+  ],
+  "1631": [
+    {
+      "id": "cost",
+      "prompt": "What should the cost of a path represent?",
+      "correct": "The largest absolute height difference on any edge of that path.",
+      "wrong": [
+        "The sum of every height difference on the path.",
+        "The height of its destination cell alone."
+      ],
+      "explanation": "Effort is defined by the hardest step, rather than the total climbing distance."
+    },
+    {
+      "id": "next",
+      "prompt": "Which cell should be expanded next?",
+      "correct": "The cell with the smallest best-known path effort.",
+      "wrong": [
+        "The cell with the smallest elevation.",
+        "The most recently discovered cell."
+      ],
+      "explanation": "The heap orders candidates by the effort needed to reach them, not by elevation alone."
+    }
+  ],
+  "743": [
+    {
+      "id": "queue",
+      "prompt": "What should the min-heap prioritize?",
+      "correct": "The earliest known signal arrival time at a node.",
+      "wrong": [
+        "The smallest node label.",
+        "The edge with the lowest weight, ignoring time already traveled."
+      ],
+      "explanation": "Arrival time includes the entire path from the starting node."
+    },
+    {
+      "id": "finish",
+      "prompt": "What should be returned after all reachable nodes are processed?",
+      "correct": "The latest arrival time if every node was reached; otherwise minus one.",
+      "wrong": [
+        "The earliest arrival time among reached nodes.",
+        "The latest arrival time even if some nodes were unreachable."
+      ],
+      "explanation": "All nodes receive the signal only when every node is reached; the last arrival determines the delay."
+    }
+  ],
+  "332": [
+    {
+      "id": "tickets",
+      "prompt": "How should outgoing tickets be selected during traversal?",
+      "correct": "Use destinations in lexical order and consume each ticket once.",
+      "wrong": [
+        "Keep reusing the smallest destination without removing its ticket.",
+        "Select destinations by shortest airport-name length."
+      ],
+      "explanation": "Ticket multiplicity matters: each ticket is an edge that can be used exactly once."
+    },
+    {
+      "id": "record",
+      "prompt": "When should an airport be appended to the route being built?",
+      "correct": "After all of its outgoing tickets have been used.",
+      "wrong": [
+        "Immediately when first arriving, with no later reordering.",
+        "Only when it is the final destination of the last input ticket."
+      ],
+      "explanation": "Appending after exhausting outgoing tickets builds the itinerary backward; reversing it gives the route."
+    }
+  ],
+  "1584": [
+    {
+      "id": "order",
+      "prompt": "How should candidate connections between points be ordered?",
+      "correct": "By increasing Manhattan distance.",
+      "wrong": [
+        "By increasing horizontal distance only.",
+        "By the original order of the points."
+      ],
+      "explanation": "The connection cost uses both coordinate differences, so that full cost must determine the order."
+    },
+    {
+      "id": "accept",
+      "prompt": "When should the next connection be accepted?",
+      "correct": "When its endpoints are not already connected by accepted edges.",
+      "wrong": [
+        "Whenever its cost is equal to the last accepted cost.",
+        "Whenever its endpoints have been seen before."
+      ],
+      "explanation": "Joining separate components adds connectivity without creating a cycle."
+    }
+  ],
+  "778": [
+    {
+      "id": "cost",
+      "prompt": "What water level is required by a path to a neighboring cell?",
+      "correct": "The larger of the current path's required level and that neighbor's elevation.",
+      "wrong": [
+        "The sum of the current level and the neighbor's elevation.",
+        "Only the absolute difference between the two elevations."
+      ],
+      "explanation": "The water must cover every cell on the path, including its highest elevation."
+    },
+    {
+      "id": "next",
+      "prompt": "Which candidate cell should be processed next?",
+      "correct": "The one with the smallest required water level so far.",
+      "wrong": [
+        "The one reached with the fewest moves so far.",
+        "The first unvisited cell in row-major order."
+      ],
+      "explanation": "The optimization target is the required water level, not the number of moves."
+    }
+  ],
+  "269": [
+    {
+      "id": "edges",
+      "prompt": "Which letters create an ordering constraint between adjacent words?",
+      "correct": "The first pair of differing letters.",
+      "wrong": [
+        "Every pair of letters at matching positions.",
+        "The final letters of both words regardless of earlier differences."
+      ],
+      "explanation": "The first difference determines dictionary order; later differences do not create additional constraints."
+    },
+    {
+      "id": "prefix",
+      "prompt": "What if an earlier word is longer than, and starts with, the later word?",
+      "correct": "Reject the ordering as invalid.",
+      "wrong": [
+        "Ignore that pair because their common letters match.",
+        "Put the extra letters before every other letter."
+      ],
+      "explanation": "A word cannot precede its own shorter prefix in dictionary order."
+    },
+    {
+      "id": "order",
+      "prompt": "How should letters be chosen for the final alphabet order?",
+      "correct": "Repeatedly choose a letter with no remaining incoming constraints.",
+      "wrong": [
+        "Choose the letter that occurs most often.",
+        "Choose letters in their ordinary alphabetic order."
+      ],
+      "explanation": "Zero incoming constraints means no still-unplaced letter must come before that letter."
+    }
+  ],
+  "787": [
+    {
+      "id": "rounds",
+      "prompt": "How many edge-relaxation rounds are allowed for at most k stops?",
+      "correct": "k plus one rounds.",
+      "wrong": [
+        "Exactly k rounds.",
+        "As many rounds as needed until no price improves."
+      ],
+      "explanation": "A route with k intermediate stops has at most k plus one flights."
+    },
+    {
+      "id": "copy",
+      "prompt": "Where should each round read its previous prices from?",
+      "correct": "An unchanged copy of the prices from the preceding round.",
+      "wrong": [
+        "The same prices array being updated during this round.",
+        "Only the price at the flight's destination."
+      ],
+      "explanation": "Using only previous-round prices prevents one round from chaining multiple flights."
+    }
+  ],
+  "1489": [
+    {
+      "id": "baseline",
+      "prompt": "What should be computed before classifying individual edges?",
+      "correct": "The cost of a minimum spanning tree using all available edges.",
+      "wrong": [
+        "The sum of every graph edge's weight.",
+        "The cost of a shortest path between the first and last vertices."
+      ],
+      "explanation": "The minimum tree cost is the reference for deciding whether an edge is necessary or can belong to an optimal tree."
+    },
+    {
+      "id": "critical",
+      "prompt": "How should an edge be tested for being critical?",
+      "correct": "Exclude it and check whether the best tree becomes more expensive or impossible.",
+      "wrong": [
+        "Force it into a tree and check whether it is the first selected edge.",
+        "Check whether its weight is the smallest in the graph."
+      ],
+      "explanation": "A critical edge cannot be removed while preserving the optimal spanning-tree cost."
+    },
+    {
+      "id": "optional",
+      "prompt": "How should a noncritical edge be tested for belonging to some minimum tree?",
+      "correct": "Force it into the tree and compare the resulting cost with the baseline.",
+      "wrong": [
+        "Exclude every edge with the same weight.",
+        "Check whether either endpoint has degree one."
+      ],
+      "explanation": "An edge is pseudo-critical when an optimal-cost spanning tree can still be built with that edge included."
+    }
+  ],
+  "2392": [
+    {
+      "id": "orders",
+      "prompt": "How should row and column constraints be processed?",
+      "correct": "Build two separate topological orders, one for rows and one for columns.",
+      "wrong": [
+        "Combine both constraint lists into one shared order.",
+        "Use row constraints for rows and reverse them for columns."
+      ],
+      "explanation": "Row precedence and column precedence are independent requirements."
+    },
+    {
+      "id": "place",
+      "prompt": "Where should each number be placed after both orders are found?",
+      "correct": "At its row-order position and its column-order position.",
+      "wrong": [
+        "On the main diagonal at its row-order position.",
+        "In the next unused cell while scanning the matrix."
+      ],
+      "explanation": "Each order assigns one coordinate; their intersection satisfies both sets of precedence constraints."
+    }
+  ],
+  "2709": [
+    {
+      "id": "connect",
+      "prompt": "Which indices should be connected in the graph?",
+      "correct": "Indices whose values share a prime factor.",
+      "wrong": [
+        "Indices whose values have the same number of digits.",
+        "Only adjacent indices in the input."
+      ],
+      "explanation": "Two values have a GCD greater than one exactly when they share a prime factor."
+    },
+    {
+      "id": "finish",
+      "prompt": "What should the graph traversal verify?",
+      "correct": "Every input index can be reached from one starting index.",
+      "wrong": [
+        "Every input value is prime.",
+        "Every pair of values has a GCD greater than one directly."
+      ],
+      "explanation": "Paths may use intermediate indices, so overall connectivity is enough even without a direct connection between every pair."
+    }
+  ],
+  "70": [
+    {
+      "id": "state",
+      "prompt": "Which earlier results are needed to count ways to reach the next stair?",
+      "correct": "The counts for the previous two stairs.",
+      "wrong": [
+        "Only the count for the immediately previous stair.",
+        "The largest count found at any stair."
+      ],
+      "explanation": "The final move comes from one stair back or two stairs back, so both counts contribute."
+    },
+    {
+      "id": "update",
+      "prompt": "How should the next stair's count be formed?",
+      "correct": "Add the previous two counts, then advance the two-stair window.",
+      "wrong": [
+        "Multiply the previous two counts.",
+        "Keep only the larger of the previous two counts."
+      ],
+      "explanation": "The one-step and two-step endings are separate sets of paths, so their counts are added."
+    }
+  ],
+  "746": [
+    {
+      "id": "direction",
+      "prompt": "Which direction should the cost calculation follow?",
+      "correct": "Backward from the last stairs toward the starting stairs.",
+      "wrong": [
+        "Forward, always choosing the cheaper immediate next stair.",
+        "From the cheapest stair anywhere in the array."
+      ],
+      "explanation": "Working backward makes both possible future finishing costs available before solving the current stair."
+    },
+    {
+      "id": "choice",
+      "prompt": "How should the finishing cost at a stair be computed?",
+      "correct": "Its cost plus the smaller finishing cost of the next one or two stairs.",
+      "wrong": [
+        "Its cost plus both future finishing costs.",
+        "Only the smaller immediate price of the next two stairs."
+      ],
+      "explanation": "Each choice must include the entire remaining route, and only one of those routes is taken."
+    }
+  ],
+  "1137": [
+    {
+      "id": "state",
+      "prompt": "How many previous Tribonacci values must be kept?",
+      "correct": "Three consecutive values.",
+      "wrong": [
+        "Only the most recent value.",
+        "Two consecutive values."
+      ],
+      "explanation": "Each new Tribonacci value is defined as the sum of the previous three."
+    },
+    {
+      "id": "advance",
+      "prompt": "How should that window advance?",
+      "correct": "Drop the oldest value and append the sum of the three old values.",
+      "wrong": [
+        "Drop the newest value and append the oldest one.",
+        "Replace all three entries with their sum."
+      ],
+      "explanation": "The next iteration needs the newest three consecutive terms, including the newly computed sum."
+    }
+  ],
+  "198": [
+    {
+      "id": "state",
+      "prompt": "Which earlier totals are needed before considering a house?",
+      "correct": "Best totals up to the previous house and up to the house before it.",
+      "wrong": [
+        "The largest house value seen and the sum of all earlier house values.",
+        "The money in the previous two houses, without totals for earlier houses."
+      ],
+      "explanation": "Skipping or taking the current house depends on optimal prefix totals, not just individual house values."
+    },
+    {
+      "id": "choice",
+      "prompt": "What two choices should be compared for the current house?",
+      "correct": "Skip it, or take its money plus the best total from two houses earlier.",
+      "wrong": [
+        "Take it with the previous house, or skip both houses.",
+        "Always take it when it exceeds the previous house's value."
+      ],
+      "explanation": "Taking adjacent houses is forbidden; taking this house must use a prefix that excludes its immediate neighbor."
+    }
+  ],
+  "213": [
+    {
+      "id": "split",
+      "prompt": "How should the circle be reduced to linear robbery problems when there is more than one house?",
+      "correct": "Solve once without the first house and once without the last house.",
+      "wrong": [
+        "Solve the whole list once and allow both endpoints.",
+        "Solve the first half and second half independently, then add them."
+      ],
+      "explanation": "The first and last houses are neighbors, so every valid solution excludes at least one endpoint."
+    },
+    {
+      "id": "combine",
+      "prompt": "How should the two linear results be combined?",
+      "correct": "Take the larger result.",
+      "wrong": [
+        "Add the two results.",
+        "Take the smaller result."
+      ],
+      "explanation": "The two runs are alternative choices for the same houses; adding them would count houses twice."
+    }
+  ],
+  "5": [
+    {
+      "id": "centers",
+      "prompt": "Which centers should be tested for palindrome expansion?",
+      "correct": "Every character and every gap between adjacent characters.",
+      "wrong": [
+        "Only individual characters.",
+        "Only gaps between equal adjacent characters."
+      ],
+      "explanation": "Palindromes can have odd or even lengths, requiring both kinds of center."
+    },
+    {
+      "id": "expand",
+      "prompt": "When should expansion around one center continue?",
+      "correct": "While both endpoints exist and their characters match.",
+      "wrong": [
+        "While the left character is alphabetically smaller than the right.",
+        "Until one endpoint reaches the middle of the string."
+      ],
+      "explanation": "Matching outer characters extend a palindrome; a mismatch or boundary ends that center's expansion."
+    }
+  ],
+  "647": [
+    {
+      "id": "centers",
+      "prompt": "Which starting centers are needed to count all palindromic substrings?",
+      "correct": "Every single-character center and every adjacent-pair center.",
+      "wrong": [
+        "Only the center of the whole string.",
+        "Only positions containing repeated characters."
+      ],
+      "explanation": "Odd-length and even-length palindromes have different center shapes."
+    },
+    {
+      "id": "count",
+      "prompt": "When should the substring count increase during expansion?",
+      "correct": "Once for every successful matching expansion.",
+      "wrong": [
+        "Only once for each center, regardless of how far it expands.",
+        "Only when the expanded substring is longer than every earlier one."
+      ],
+      "explanation": "Different successful endpoint pairs represent distinct substring occurrences, even when they share a center."
+    }
+  ],
+  "91": [
+    {
+      "id": "base",
+      "prompt": "How many decoding completions should the empty suffix represent?",
+      "correct": "One completion.",
+      "wrong": [
+        "Zero completions.",
+        "Twenty-six completions."
+      ],
+      "explanation": "Finishing exactly at the end is one completed decoding, so it contributes one way."
+    },
+    {
+      "id": "branches",
+      "prompt": "Which next groups can contribute decoding ways?",
+      "correct": "A digit from 1 to 9, or a two-digit number from 10 to 26.",
+      "wrong": [
+        "Any single digit, including zero, and any pair of digits.",
+        "Only two-digit groups, even when one digit remains."
+      ],
+      "explanation": "The allowed groups correspond exactly to letters 1 through 26; zero cannot start a valid group."
+    }
+  ],
+  "322": [
+    {
+      "id": "state",
+      "prompt": "What should the table store for each amount?",
+      "correct": "The smallest number of coins needed to make that amount.",
+      "wrong": [
+        "The number of different coin orders making that amount.",
+        "The largest coin that fits into that amount."
+      ],
+      "explanation": "The problem minimizes a count of coins, so each state must store that minimum."
+    },
+    {
+      "id": "transition",
+      "prompt": "How should a fitting coin be considered for an amount?",
+      "correct": "Use one coin plus the best result for the amount remaining after removing that coin.",
+      "wrong": [
+        "Always choose the largest fitting coin and stop considering alternatives.",
+        "Add the coin's face value to the previous minimum coin count."
+      ],
+      "explanation": "Any coin could be the final coin; comparing all such choices avoids an incorrect greedy commitment."
+    }
+  ],
+  "152": [
+    {
+      "id": "state",
+      "prompt": "Which products ending at the current position must be tracked?",
+      "correct": "Both the largest and the smallest product.",
+      "wrong": [
+        "Only the largest product.",
+        "Only the product since the last positive value."
+      ],
+      "explanation": "Multiplying by a negative number can turn the smallest product into the next largest product."
+    },
+    {
+      "id": "restart",
+      "prompt": "What possibilities should be compared when reading the next number?",
+      "correct": "Start with that number, or extend either previous ending product with it.",
+      "wrong": [
+        "Only extend the previous largest product.",
+        "Always restart whenever the number is negative."
+      ],
+      "explanation": "A best nonempty subarray may begin at the current number or extend a previously tracked subarray."
+    }
+  ],
+  "139": [
+    {
+      "id": "base",
+      "prompt": "Which prefix should be considered segmentable before reading any characters?",
+      "correct": "The empty prefix.",
+      "wrong": [
+        "Only a prefix equal to the first dictionary word.",
+        "Every prefix of the string."
+      ],
+      "explanation": "The empty prefix is the valid starting point before choosing any words."
+    },
+    {
+      "id": "extend",
+      "prompt": "When is a longer prefix segmentable?",
+      "correct": "When its final dictionary word follows a prefix already known to be segmentable.",
+      "wrong": [
+        "When it contains any dictionary word somewhere.",
+        "When its final character appears in any dictionary word."
+      ],
+      "explanation": "A valid split requires both an exact final word and a valid segmentation of everything before it."
+    }
+  ],
+  "300": [
+    {
+      "id": "state",
+      "prompt": "What should one entry in the tails list represent?",
+      "correct": "The smallest possible ending value for a subsequence of that length.",
+      "wrong": [
+        "The largest value ever seen at that input index.",
+        "A mandatory element of the final reconstructed subsequence."
+      ],
+      "explanation": "A smaller ending value leaves more room for later values to extend a subsequence of the same length."
+    },
+    {
+      "id": "place",
+      "prompt": "For a new value, which tail position should binary search find?",
+      "correct": "The first tail greater than or equal to the new value.",
+      "wrong": [
+        "The first tail strictly less than the new value.",
+        "The final tail regardless of its value."
+      ],
+      "explanation": "Replacing the first tail at least as large preserves strict increase; an equal value must not extend the length."
+    }
+  ],
+  "416": [
+    {
+      "id": "target",
+      "prompt": "Which target sum should be attempted if the total is even?",
+      "correct": "Half the total sum.",
+      "wrong": [
+        "The largest input value.",
+        "The total sum minus the smallest value."
+      ],
+      "explanation": "Two equal-sum groups each need exactly half of the total."
+    },
+    {
+      "id": "usage",
+      "prompt": "How should each input number contribute to the reachable sums?",
+      "correct": "Use it at most once, extending sums from before that number was processed.",
+      "wrong": [
+        "Reuse it repeatedly until half the total is reached.",
+        "Include it in every previously reachable sum and discard all old sums."
+      ],
+      "explanation": "Each array position can belong to a subset once, and excluding it must remain possible."
+    }
+  ],
+  "377": [
+    {
+      "id": "state",
+      "prompt": "What should the count for a target amount represent?",
+      "correct": "The number of ordered sequences adding to that amount.",
+      "wrong": [
+        "The number of unordered sets of distinct numbers.",
+        "The smallest count of numbers adding to that amount."
+      ],
+      "explanation": "Different orders are different answers in this problem."
+    },
+    {
+      "id": "order",
+      "prompt": "Which loop organization counts those ordered sequences?",
+      "correct": "Process totals in increasing order and try every possible final number for each total.",
+      "wrong": [
+        "Process one number completely before moving to the next number.",
+        "Only consider numbers in sorted increasing order within each sequence."
+      ],
+      "explanation": "Trying the final number at each total counts all preceding sequences and preserves order distinctions."
+    }
+  ],
+  "279": [
+    {
+      "id": "state",
+      "prompt": "What should the table store for each total?",
+      "correct": "The fewest perfect squares needed to make that total.",
+      "wrong": [
+        "The greatest perfect square no larger than the total.",
+        "The number of possible ordered square sequences."
+      ],
+      "explanation": "Each state must capture the minimum number of summands."
+    },
+    {
+      "id": "choices",
+      "prompt": "Which last square should be considered for a total?",
+      "correct": "Every perfect square no larger than that total.",
+      "wrong": [
+        "Only the largest perfect square that fits.",
+        "Only square numbers whose roots are even."
+      ],
+      "explanation": "The largest fitting square is not always part of an optimal sum, so all fitting squares must be compared."
+    }
+  ],
+  "343": [
+    {
+      "id": "small",
+      "prompt": "Why should the smallest inputs be handled separately?",
+      "correct": "The number must be split into at least two positive integers.",
+      "wrong": [
+        "The factors must all be distinct.",
+        "The split must use exactly three integers."
+      ],
+      "explanation": "For very small inputs, returning the unsplit number would violate the mandatory split."
+    },
+    {
+      "id": "factors",
+      "prompt": "Which factor choice should be repeated while the remainder exceeds four?",
+      "correct": "Take a factor of three, leaving a final remainder of two, three, or four.",
+      "wrong": [
+        "Take factors of one until only one unit remains.",
+        "Keep taking three even when that leaves a remainder of one."
+      ],
+      "explanation": "Factors of three maximize the product except that a leftover four is better kept as two times two than three times one."
+    }
+  ],
+  "1406": [
+    {
+      "id": "state",
+      "prompt": "What should a solved suffix store?",
+      "correct": "The best score advantage the player moving next can achieve.",
+      "wrong": [
+        "Only Alice's total score from that suffix.",
+        "The sum of the three largest stones anywhere in that suffix."
+      ],
+      "explanation": "The player to move changes after each turn, so a relative score advantage describes either player's position."
+    },
+    {
+      "id": "turn",
+      "prompt": "How should taking one, two, or three stones be evaluated?",
+      "correct": "Taken stone total minus the opponent's best advantage on the remaining suffix.",
+      "wrong": [
+        "Taken stone total plus the opponent's best advantage.",
+        "Always choose three stones without comparing smaller takes."
+      ],
+      "explanation": "The opponent's advantage works against the current player, so it must be subtracted."
+    }
+  ],
+  "62": [
+    {
+      "id": "state",
+      "prompt": "What should each entry in the one-row table represent?",
+      "correct": "The number of paths reaching that column in the row being processed.",
+      "wrong": [
+        "The shortest distance to that column.",
+        "Whether that column has been visited at least once."
+      ],
+      "explanation": "The table counts paths, so multiple ways of reaching the same cell must be retained."
+    },
+    {
+      "id": "update",
+      "prompt": "Where do paths into an interior cell come from?",
+      "correct": "The cell above and the cell immediately to the left.",
+      "wrong": [
+        "The cells below and to the right.",
+        "Only the neighboring cell with more paths."
+      ],
+      "explanation": "Allowed moves are down and right, so incoming path counts from above and left are added."
+    }
+  ],
+  "63": [
+    {
+      "id": "obstacle",
+      "prompt": "What should happen to a cell's stored path count when that cell is an obstacle?",
+      "correct": "Set it to zero.",
+      "wrong": [
+        "Keep the count from the cell above.",
+        "Copy the count from the left even though the cell is blocked."
+      ],
+      "explanation": "No valid path may enter a blocked cell, regardless of how many paths reach its neighbors."
+    },
+    {
+      "id": "open",
+      "prompt": "For an open cell, which counts should be combined?",
+      "correct": "Paths from above and from the left, when those positions exist.",
+      "wrong": [
+        "Paths from all four neighboring cells.",
+        "Only paths from whichever neighbor is closer to the start."
+      ],
+      "explanation": "Downward and rightward movement allow arrival only from above or left."
+    }
+  ],
+  "64": [
+    {
+      "id": "order",
+      "prompt": "In which order should the grid's minimum path costs be computed?",
+      "correct": "From top-left toward bottom-right.",
+      "wrong": [
+        "From the grid's cheapest cell outward.",
+        "In descending order of cell values."
+      ],
+      "explanation": "The permitted predecessors above and left must be solved before a cell uses their costs."
+    },
+    {
+      "id": "transition",
+      "prompt": "How should a cell's minimum cost be calculated?",
+      "correct": "Its own cost plus the smaller reachable cost from above or left.",
+      "wrong": [
+        "Its own cost plus both predecessor costs.",
+        "Only the smaller neighboring cell value, without the earlier path cost."
+      ],
+      "explanation": "A path enters from one predecessor; its full accumulated cost, not just its last cell, determines the better choice."
+    }
+  ],
+  "1143": [
+    {
+      "id": "state",
+      "prompt": "What should one table entry represent?",
+      "correct": "The longest common subsequence length for two chosen prefixes.",
+      "wrong": [
+        "The longest matching substring starting at those positions.",
+        "The number of times the two current characters appear."
+      ],
+      "explanation": "Subsequences may skip characters, so the state must summarize whole prefixes rather than one continuous match."
+    },
+    {
+      "id": "match",
+      "prompt": "How should matching last characters extend the answer?",
+      "correct": "Add one to the answer for the two shorter prefixes.",
+      "wrong": [
+        "Add one to the largest value anywhere in the table.",
+        "Keep the previous value without counting the match."
+      ],
+      "explanation": "Using both matching characters extends a subsequence that ended before both of them."
+    },
+    {
+      "id": "mismatch",
+      "prompt": "What should happen when the two last characters differ?",
+      "correct": "Compare the answers after dropping one last character from either prefix.",
+      "wrong": [
+        "Always drop both last characters and use the answer for those shorter prefixes.",
+        "Reset the count to zero because a mismatch breaks the current matching sequence."
+      ],
+      "explanation": "A mismatch cannot extend the same subsequence, but skipping either character may preserve a better earlier match."
+    }
+  ],
+  "1049": [
+    {
+      "id": "target",
+      "prompt": "Which subset sums are useful to track?",
+      "correct": "Achievable sums up to half the total stone weight.",
+      "wrong": [
+        "Only sums equal to an individual stone's weight.",
+        "Every ordered sequence of smashed stones."
+      ],
+      "explanation": "A split as close to half the total as possible minimizes the difference between the two groups."
+    },
+    {
+      "id": "result",
+      "prompt": "How should the best tracked sum be converted into the remaining weight?",
+      "correct": "Total weight minus twice the largest achievable sum at most half.",
+      "wrong": [
+        "Total weight minus that sum once.",
+        "Twice the total weight minus that sum."
+      ],
+      "explanation": "The chosen subset and its complement have weights best and total minus best; their difference is total minus twice best."
+    }
+  ],
+  "309": [
+    {
+      "id": "states",
+      "prompt": "Which situations should be tracked separately for each day?",
+      "correct": "Holding a stock, selling today, and resting without holding a stock.",
+      "wrong": [
+        "Only the highest profit seen so far.",
+        "Holding two stocks, holding one stock, and holding none."
+      ],
+      "explanation": "Selling today must stay separate from resting because a sale creates a cooldown day."
+    },
+    {
+      "id": "timing",
+      "prompt": "Which day's values should be used to compute the new daily states?",
+      "correct": "Only the previous day's saved states.",
+      "wrong": [
+        "Values already updated earlier in the same day.",
+        "Only the previous day's closing price."
+      ],
+      "explanation": "Reading the old states keeps same-day updates from accidentally allowing a purchase during the cooldown."
+    }
+  ],
+  "518": [
+    {
+      "id": "base",
+      "prompt": "How many combinations should amount zero have before processing coins?",
+      "correct": "One: choosing no coins.",
+      "wrong": [
+        "Zero, because no coin has been chosen.",
+        "One for each available coin denomination."
+      ],
+      "explanation": "The empty choice is one valid starting combination from which positive amounts can be built."
+    },
+    {
+      "id": "loops",
+      "prompt": "Which loop organization avoids counting coin-order duplicates?",
+      "correct": "Process one coin at a time, updating amounts upward for that coin.",
+      "wrong": [
+        "Process each amount and try every possible final coin.",
+        "Process coins in every possible permutation."
+      ],
+      "explanation": "A fixed coin-processing order counts each combination once; upward amount updates still permit reusing that coin."
+    }
+  ],
+  "494": [
+    {
+      "id": "state",
+      "prompt": "What should be stored for each reachable total?",
+      "correct": "How many sign assignments produce that total.",
+      "wrong": [
+        "Only whether that total appeared at least once.",
+        "The largest number used to reach that total."
+      ],
+      "explanation": "Several different sign assignments can reach the same total, and each must be counted."
+    },
+    {
+      "id": "update",
+      "prompt": "How should a new number change the counts?",
+      "correct": "Build new counts by adding both plus-number and minus-number choices to each old total.",
+      "wrong": [
+        "Update the same counts repeatedly until no totals change.",
+        "Choose only the sign that moves each total closer to the target."
+      ],
+      "explanation": "Each number receives exactly one sign, so both alternatives use the counts from before that number was processed."
+    }
+  ],
+  "97": [
+    {
+      "id": "state",
+      "prompt": "Which positions define one interleaving state?",
+      "correct": "How many characters have been consumed from each source string.",
+      "wrong": [
+        "Only the position in the combined string.",
+        "Only which source supplied the most recent character."
+      ],
+      "explanation": "The two source positions determine the next available characters and the combined position as their sum."
+    },
+    {
+      "id": "advance",
+      "prompt": "When may a source contribute the next character?",
+      "correct": "When its next character matches the next required combined character.",
+      "wrong": [
+        "Whenever its remaining suffix is longer.",
+        "Whenever it differs from the other source's next character."
+      ],
+      "explanation": "Each move must match the combined string while preserving the character order inside its own source."
+    }
+  ],
+  "877": [
+    {
+      "id": "state",
+      "prompt": "What should a solved interval store?",
+      "correct": "The best score advantage for the player whose turn starts on that interval.",
+      "wrong": [
+        "Only the largest pile inside the interval.",
+        "Alice's score without accounting for the next player."
+      ],
+      "explanation": "A score difference describes the position consistently as the players alternate."
+    },
+    {
+      "id": "choice",
+      "prompt": "How should taking an end pile be evaluated?",
+      "correct": "The chosen pile minus the opponent's best advantage on the remaining interval.",
+      "wrong": [
+        "The chosen pile plus the opponent's best advantage.",
+        "The larger end pile, without considering what remains."
+      ],
+      "explanation": "The opponent plays optimally on the remainder, and that advantage reduces the current player's gain."
+    }
+  ],
+  "1140": [
+    {
+      "id": "state",
+      "prompt": "Which values must identify a saved game result?",
+      "correct": "The next pile index and the current value of M.",
+      "wrong": [
+        "Only the next pile index.",
+        "Only the number of piles already taken by Alice."
+      ],
+      "explanation": "Different M values allow different moves at the same pile index, so both values are needed."
+    },
+    {
+      "id": "choice",
+      "prompt": "How should an allowed take be scored?",
+      "correct": "The current suffix total minus the opponent's best score after that take.",
+      "wrong": [
+        "Only the sum of the piles taken immediately.",
+        "The current suffix total plus the opponent's best score."
+      ],
+      "explanation": "All remaining stones go to one of the two players, so subtracting the opponent's best share gives the current player's share."
+    }
+  ],
+  "329": [
+    {
+      "id": "memo",
+      "prompt": "What result should be saved for each cell?",
+      "correct": "The longest increasing path starting from that cell.",
+      "wrong": [
+        "The longest path found anywhere before visiting that cell.",
+        "Only whether the cell has ever been entered."
+      ],
+      "explanation": "The best path from a cell depends on its larger neighbors and can be reused whenever another path reaches that cell."
+    },
+    {
+      "id": "neighbors",
+      "prompt": "Which neighbors may extend a path?",
+      "correct": "Only neighbors with a strictly larger value.",
+      "wrong": [
+        "Neighbors with an equal or larger value.",
+        "Any unvisited neighbor, regardless of its value."
+      ],
+      "explanation": "Strictly larger values satisfy the increasing rule and prevent a path from cycling back to a smaller value."
+    }
+  ],
+  "115": [
+    {
+      "id": "state",
+      "prompt": "What should the table count for a source prefix and a target prefix?",
+      "correct": "Ways to choose the target prefix as a subsequence of the source prefix.",
+      "wrong": [
+        "The longest common substring between those prefixes.",
+        "Only whether the two prefixes have equal lengths."
+      ],
+      "explanation": "Different selections of source positions are distinct subsequences and must be counted."
+    },
+    {
+      "id": "choices",
+      "prompt": "What choices are available for the current source character?",
+      "correct": "Always skip it; also use it when it matches the current target character.",
+      "wrong": [
+        "Use it whenever the target still has characters, even on a mismatch.",
+        "Always use it on a match and discard the skip choice."
+      ],
+      "explanation": "A matching character may be used or skipped; both choices can lead to different valid source-position selections."
+    }
+  ],
+  "72": [
+    {
+      "id": "base",
+      "prompt": "How should distances involving an empty prefix be initialized?",
+      "correct": "To the length of the other prefix.",
+      "wrong": [
+        "To zero regardless of the other prefix.",
+        "To one whenever the other prefix is nonempty."
+      ],
+      "explanation": "Changing an empty string into a prefix requires inserting every character, and the reverse requires deleting every character."
+    },
+    {
+      "id": "transition",
+      "prompt": "When the last characters differ, which possibilities must be compared?",
+      "correct": "One plus the best result for insertion, deletion, or replacement.",
+      "wrong": [
+        "Only deleting both mismatching characters.",
+        "The diagonal value without charging for a replacement."
+      ],
+      "explanation": "Each permitted edit costs one and leads to its corresponding smaller-prefix problem."
+    }
+  ],
+  "312": [
+    {
+      "id": "order",
+      "prompt": "What choice should define a balloon interval's subproblems?",
+      "correct": "Which balloon is burst last inside that interval.",
+      "wrong": [
+        "Which balloon has the largest current value anywhere.",
+        "Which balloon is first in the original array."
+      ],
+      "explanation": "Choosing the last balloon keeps the two outer neighbors fixed while the left and right subintervals are solved."
+    },
+    {
+      "id": "combine",
+      "prompt": "How should one last-balloon choice be scored?",
+      "correct": "Its final boundary product plus the best scores of the left and right subintervals.",
+      "wrong": [
+        "Only its original three-balloon product.",
+        "Its final product multiplied by the two subinterval scores."
+      ],
+      "explanation": "Coins from the two subintervals and the final burst are separate gains, so they are added."
+    }
+  ],
+  "10": [
+    {
+      "id": "state",
+      "prompt": "What should one matching state represent?",
+      "correct": "Whether a string prefix matches a pattern prefix.",
+      "wrong": [
+        "Whether the two entire strings contain the same characters.",
+        "Whether the current characters are identical, ignoring earlier positions."
+      ],
+      "explanation": "Earlier tokens and star choices affect whether the current prefixes can match."
+    },
+    {
+      "id": "star",
+      "prompt": "What two possibilities must be considered for a starred token?",
+      "correct": "Use zero copies, or consume one matching character while keeping that token available.",
+      "wrong": [
+        "Always consume exactly one character.",
+        "Remove the star and treat its preceding token as mandatory once."
+      ],
+      "explanation": "A star allows zero or more occurrences, so consuming one occurrence must leave the same starred token usable."
+    }
+  ],
+  "860": [
+    {
+      "id": "state",
+      "prompt": "Which cash should be tracked as customers arrive?",
+      "correct": "Available five-dollar and ten-dollar bills.",
+      "wrong": [
+        "Only total cash received.",
+        "Only the largest bill received so far."
+      ],
+      "explanation": "Having enough money in total does not guarantee that the needed change can be made with available denominations."
+    },
+    {
+      "id": "twenty",
+      "prompt": "When giving fifteen dollars in change, which option should be preferred if available?",
+      "correct": "One ten-dollar bill and one five-dollar bill.",
+      "wrong": [
+        "Three five-dollar bills even when a ten is available.",
+        "A twenty-dollar bill from the current payment."
+      ],
+      "explanation": "Using a ten with a five preserves five-dollar bills needed by future ten-dollar customers."
+    }
+  ],
+  "53": [
+    {
+      "id": "state",
+      "prompt": "Which two sums should be tracked during the scan?",
+      "correct": "The best sum ending here and the best nonempty sum seen anywhere.",
+      "wrong": [
+        "Only the sum of positive values.",
+        "The sum of the full array and the smallest element."
+      ],
+      "explanation": "The best subarray may end before the final position, so its answer must be saved separately from the running ending sum."
+    },
+    {
+      "id": "restart",
+      "prompt": "When should the previous running prefix be discarded?",
+      "correct": "When its sum is negative.",
+      "wrong": [
+        "Whenever the next value is negative.",
+        "Only when the full array sum is negative."
+      ],
+      "explanation": "A negative prefix lowers any sum it is attached to, so a new subarray should start without it."
+    }
+  ],
+  "918": [
+    {
+      "id": "paths",
+      "prompt": "Which two kinds of answer should be compared?",
+      "correct": "A normal maximum subarray and the total minus a minimum subarray.",
+      "wrong": [
+        "The largest prefix and the largest suffix considered separately.",
+        "Only subarrays that cross the array boundary."
+      ],
+      "explanation": "A wrapping subarray uses everything except one nonwrapping middle segment."
+    },
+    {
+      "id": "negative",
+      "prompt": "What must be handled separately when every value is negative?",
+      "correct": "Return the normal maximum nonempty subarray sum.",
+      "wrong": [
+        "Return zero by excluding the whole array.",
+        "Use the sum of the entire array regardless of its largest value."
+      ],
+      "explanation": "Excluding the entire array would leave an empty subarray, which the problem does not allow."
+    }
+  ],
+  "978": [
+    {
+      "id": "state",
+      "prompt": "Which ending lengths should be tracked?",
+      "correct": "A length ending with an upward comparison and one ending with a downward comparison.",
+      "wrong": [
+        "Only the length of a strictly increasing run.",
+        "Only the length of the longest run anywhere, without its ending direction."
+      ],
+      "explanation": "The next comparison must alternate with the previous direction, so both ending possibilities are useful."
+    },
+    {
+      "id": "equal",
+      "prompt": "What should happen when neighboring values are equal?",
+      "correct": "Reset both ending lengths to one.",
+      "wrong": [
+        "Extend whichever ending length is larger.",
+        "Keep alternating as if equality were a strict decrease."
+      ],
+      "explanation": "Equal values satisfy neither a strict increase nor a strict decrease, so a turbulent run cannot cross that pair."
+    }
+  ],
+  "55": [
+    {
+      "id": "state",
+      "prompt": "What should the scan remember about reachability?",
+      "correct": "The farthest index reachable from the positions processed so far.",
+      "wrong": [
+        "Only the size of the most recent jump.",
+        "The largest jump value anywhere in the input."
+      ],
+      "explanation": "A jump value helps only if the index containing it can itself be reached."
+    },
+    {
+      "id": "gap",
+      "prompt": "What if the next index is beyond the farthest reachable index?",
+      "correct": "Return false because that gap cannot be crossed.",
+      "wrong": [
+        "Skip it and use a larger jump farther to the right.",
+        "Reset the farthest position to that index."
+      ],
+      "explanation": "An unreachable position cannot supply a jump that helps reach itself or later positions."
+    }
+  ],
+  "45": [
+    {
+      "id": "layer",
+      "prompt": "What should one scan layer represent?",
+      "correct": "Positions reachable using the current number of jumps.",
+      "wrong": [
+        "Positions with the same jump value.",
+        "A fixed group of two neighboring positions."
+      ],
+      "explanation": "Considering every position reachable with the same jump count allows choosing the best next reach."
+    },
+    {
+      "id": "advance",
+      "prompt": "When should the jump count increase?",
+      "correct": "When the scan reaches the end of the current reachable layer.",
+      "wrong": [
+        "At every visited index.",
+        "Only when a zero-valued position is encountered."
+      ],
+      "explanation": "Crossing a layer boundary uses one more jump; the next boundary is the farthest reach found within that layer."
+    }
+  ],
+  "1871": [
+    {
+      "id": "window",
+      "prompt": "Which earlier positions can make the current position reachable?",
+      "correct": "Reachable positions between minJump and maxJump steps behind it.",
+      "wrong": [
+        "Every reachable earlier position, regardless of distance.",
+        "Only the immediately previous position."
+      ],
+      "explanation": "The distance limits define a moving range of possible previous jump positions."
+    },
+    {
+      "id": "reach",
+      "prompt": "When should the current position be marked reachable?",
+      "correct": "Its character is zero and the allowed earlier range contains at least one reachable position.",
+      "wrong": [
+        "Its character is zero, regardless of previous reachability.",
+        "The allowed range is nonempty, even if its positions are all unreachable."
+      ],
+      "explanation": "An allowed landing cell still needs an actual reachable position from which to jump."
+    }
+  ],
+  "134": [
+    {
+      "id": "total",
+      "prompt": "What should be checked before selecting a start station?",
+      "correct": "Whether total gas is at least total travel cost.",
+      "wrong": [
+        "Whether the first station has more gas than cost.",
+        "Whether any single station can pay for the entire trip."
+      ],
+      "explanation": "If the total gas is insufficient, changing the start cannot make the whole circuit possible."
+    },
+    {
+      "id": "restart",
+      "prompt": "When the running gas balance becomes negative, where should the next candidate start be?",
+      "correct": "Immediately after the failed segment.",
+      "wrong": [
+        "At the same start, with the balance reset to zero.",
+        "At the station with the largest gas value already seen."
+      ],
+      "explanation": "No start inside that failed segment can complete it, so the next candidate begins after the failure."
+    }
+  ],
+  "846": [
+    {
+      "id": "start",
+      "prompt": "Which card should start the next group?",
+      "correct": "The smallest card that still has an unused copy.",
+      "wrong": [
+        "The card with the largest remaining count.",
+        "Any card chosen from the middle of the remaining values."
+      ],
+      "explanation": "The smallest remaining card cannot be placed after a missing smaller card, so it must begin a group."
+    },
+    {
+      "id": "consume",
+      "prompt": "What must be available to complete a group of the required size?",
+      "correct": "One unused copy of every consecutive value starting at that card.",
+      "wrong": [
+        "Enough cards in total, regardless of gaps.",
+        "One card of each different value anywhere in the hand."
+      ],
+      "explanation": "A group needs consecutive values; a missing required value cannot be replaced by a later card."
+    }
+  ],
+  "649": [
+    {
+      "id": "state",
+      "prompt": "What should each party's queue hold?",
+      "correct": "The turn positions of its remaining senators.",
+      "wrong": [
+        "Only the total number of senators in that party.",
+        "The names of senators ordered alphabetically."
+      ],
+      "explanation": "Turn positions determine which of the next opposing senators acts before the other."
+    },
+    {
+      "id": "round",
+      "prompt": "After comparing the next opposing turn positions, what happens to the earlier senator?",
+      "correct": "It bans the opponent and rejoins its queue one full round later.",
+      "wrong": [
+        "It is removed while the later senator remains.",
+        "It immediately acts again at the front of the queue."
+      ],
+      "explanation": "The acting senator survives, but its next opportunity comes after the current round's remaining turns."
+    }
+  ],
+  "1899": [
+    {
+      "id": "filter",
+      "prompt": "Which triplets must be excluded before checking the target?",
+      "correct": "Triplets exceeding the target in any coordinate.",
+      "wrong": [
+        "Triplets smaller than the target in any coordinate.",
+        "Triplets that do not already equal the entire target."
+      ],
+      "explanation": "A coordinate-wise maximum cannot undo a value that already exceeds the target."
+    },
+    {
+      "id": "coverage",
+      "prompt": "What must the remaining triplets provide?",
+      "correct": "At least one exact match for each target coordinate.",
+      "wrong": [
+        "One triplet with the smallest total sum.",
+        "A triplet larger than the target in each coordinate."
+      ],
+      "explanation": "The coordinate-wise maximum reaches a target coordinate only if some allowed triplet supplies that exact value."
+    }
+  ],
+  "763": [
+    {
+      "id": "prepare",
+      "prompt": "What information should be recorded for each character?",
+      "correct": "Its final position in the string.",
+      "wrong": [
+        "Only its first position.",
+        "Only its total frequency."
+      ],
+      "explanation": "A partition must extend far enough to contain the last occurrence of every character inside it."
+    },
+    {
+      "id": "close",
+      "prompt": "When may the current partition end?",
+      "correct": "When the scan reaches the farthest final position required by its characters.",
+      "wrong": [
+        "When the next character differs from the current one.",
+        "Whenever a repeated character is encountered."
+      ],
+      "explanation": "At that boundary, none of the partition's characters needs to appear in a later partition."
+    }
+  ],
+  "678": [
+    {
+      "id": "range",
+      "prompt": "What uncertainty should be tracked while reading stars?",
+      "correct": "The smallest and largest possible counts of unmatched opening parentheses.",
+      "wrong": [
+        "Only the count obtained by treating every star as empty.",
+        "Only the total number of stars seen so far."
+      ],
+      "explanation": "Each star can change the open-parenthesis count in several ways, so a range represents all still-possible balances."
+    },
+    {
+      "id": "reject",
+      "prompt": "Which condition makes the current prefix impossible to repair?",
+      "correct": "Even the largest possible unmatched-open count becomes negative.",
+      "wrong": [
+        "The smallest possible count reaches zero.",
+        "The largest possible count is positive."
+      ],
+      "explanation": "A negative maximum means every interpretation already has too many closing parentheses."
+    },
+    {
+      "id": "finish",
+      "prompt": "What must be possible after reading the whole string?",
+      "correct": "An unmatched-open count of zero.",
+      "wrong": [
+        "The maximum unmatched-open count must equal zero.",
+        "At least one star must have been used as an opening parenthesis."
+      ],
+      "explanation": "The minimum possible count being zero means at least one interpretation closes every opening parenthesis."
+    }
+  ],
+  "135": [
+    {
+      "id": "passes",
+      "prompt": "How should both neighbor constraints be handled?",
+      "correct": "Use a left-to-right pass and a right-to-left pass.",
+      "wrong": [
+        "Use only a left-to-right pass.",
+        "Assign candies by sorting children into rating order."
+      ],
+      "explanation": "The two passes check increasing ratings from each direction while preserving the original neighbor relationships."
+    },
+    {
+      "id": "preserve",
+      "prompt": "When the reverse pass requires more candies, how should the earlier assignment be handled?",
+      "correct": "Keep the larger of the existing count and the count required by the right neighbor.",
+      "wrong": [
+        "Replace it with the right-neighbor requirement even when that is smaller.",
+        "Reset it to one before checking the right neighbor."
+      ],
+      "explanation": "Reducing an already sufficient left-neighbor assignment could break the constraint established by the first pass."
+    }
+  ],
+  "57": [
+    {
+      "id": "before",
+      "prompt": "What should happen to intervals ending before the new interval starts?",
+      "correct": "Copy them to the answer unchanged.",
+      "wrong": [
+        "Merge them into the new interval anyway.",
+        "Discard them because they do not overlap."
+      ],
+      "explanation": "These intervals are entirely before the insertion and cannot be changed by merging overlaps."
+    },
+    {
+      "id": "overlap",
+      "prompt": "How should an overlapping interval change the new interval?",
+      "correct": "Extend it to the smaller start and the larger end.",
+      "wrong": [
+        "Keep only the common intersection.",
+        "Extend only its start while leaving its end fixed."
+      ],
+      "explanation": "Merging preserves every covered point from both intervals, requiring their full combined span."
+    }
+  ],
+  "56": [
+    {
+      "id": "order",
+      "prompt": "How should intervals be ordered before the merge scan?",
+      "correct": "By increasing start time.",
+      "wrong": [
+        "By increasing duration.",
+        "By decreasing end time."
+      ],
+      "explanation": "Sorting starts lets the scan compare each new interval with the final merged interval."
+    },
+    {
+      "id": "merge",
+      "prompt": "When the next interval overlaps the last merged interval, what should change?",
+      "correct": "Extend the last merged interval's end to the larger end.",
+      "wrong": [
+        "Replace the last interval with only the overlapping intersection.",
+        "Start a new output interval anyway."
+      ],
+      "explanation": "The existing start is already earlier; the merged interval must cover whichever end reaches farther."
+    }
+  ],
+  "435": [
+    {
+      "id": "order",
+      "prompt": "How should intervals be arranged for this scan?",
+      "correct": "By increasing start position.",
+      "wrong": [
+        "By decreasing interval length.",
+        "By their original input order."
+      ],
+      "explanation": "Ordered starts make overlap with the retained previous interval detectable during one forward scan."
+    },
+    {
+      "id": "overlap",
+      "prompt": "When two intervals overlap, which end should be retained?",
+      "correct": "The smaller end.",
+      "wrong": [
+        "The larger end.",
+        "Always the end of the interval encountered first."
+      ],
+      "explanation": "The earlier end leaves more room for later intervals, minimizing future removals."
+    }
+  ],
+  "252": [
+    {
+      "id": "order",
+      "prompt": "How should meetings be ordered before checking conflicts?",
+      "correct": "By increasing start time.",
+      "wrong": [
+        "By decreasing meeting length.",
+        "By their names or original labels."
+      ],
+      "explanation": "After sorting by start, a conflict can be detected against the preceding meeting's end."
+    },
+    {
+      "id": "conflict",
+      "prompt": "Which comparison indicates that attendance is impossible?",
+      "correct": "A meeting starts before the previous meeting ends.",
+      "wrong": [
+        "A meeting starts exactly when the previous one ends.",
+        "The current meeting ends later than the previous one."
+      ],
+      "explanation": "Only an overlap in occupied time prevents attending both; touching endpoints are allowed."
+    }
+  ],
+  "253": [
+    {
+      "id": "heap",
+      "prompt": "What should each heap entry represent?",
+      "correct": "The time at which one allocated room becomes available.",
+      "wrong": [
+        "The duration of one meeting.",
+        "The number of people attending one meeting."
+      ],
+      "explanation": "Room availability times let the earliest reusable room be found quickly."
+    },
+    {
+      "id": "reuse",
+      "prompt": "When can the earliest available room be reused?",
+      "correct": "Its availability time is at or before the next meeting's start.",
+      "wrong": [
+        "Its availability time is after the next meeting's start.",
+        "The next meeting is shorter than the preceding meeting."
+      ],
+      "explanation": "A room is reusable only when its earlier meeting has already ended."
+    }
+  ],
+  "2402": [
+    {
+      "id": "rooms",
+      "prompt": "How should free rooms and busy rooms be prioritized?",
+      "correct": "Free rooms by room number; busy rooms by finish time, then room number.",
+      "wrong": [
+        "Both groups only by room number.",
+        "Free rooms by latest use; busy rooms by longest meeting duration."
+      ],
+      "explanation": "The tie rules require the smallest available room, or the earliest finishing room with the smallest number."
+    },
+    {
+      "id": "delay",
+      "prompt": "If every room is busy, how should the next meeting be delayed?",
+      "correct": "Start when the earliest room frees, preserving the meeting's original duration.",
+      "wrong": [
+        "Keep its original end time even though its start is delayed.",
+        "Shorten it enough to finish before the following meeting starts."
+      ],
+      "explanation": "Delaying changes the start time, but the meeting must still occupy a room for its full original duration."
+    }
+  ],
+  "1851": [
+    {
+      "id": "order",
+      "prompt": "Why should queries be processed in increasing value order?",
+      "correct": "So intervals can be added once their starts are reached.",
+      "wrong": [
+        "So answers can always be returned in sorted query order.",
+        "So the interval ends never need to be checked."
+      ],
+      "explanation": "An advancing query value allows a single forward pass through intervals sorted by start."
+    },
+    {
+      "id": "heap",
+      "prompt": "Which interval should be read from the heap for a query?",
+      "correct": "The shortest candidate after removing heap-front intervals whose ends are before the query.",
+      "wrong": [
+        "The first interval ever added, regardless of its end.",
+        "The interval with the latest ending point."
+      ],
+      "explanation": "The heap prioritizes interval length, but an expired front candidate must be removed before choosing an answer."
+    }
+  ],
+  "168": [
+    {
+      "id": "numbering",
+      "prompt": "What adjustment is needed before each base-26 digit is taken?",
+      "correct": "Subtract one from the current column number.",
+      "wrong": [
+        "Add one to the current column number.",
+        "Use the number unchanged as a zero-based digit."
+      ],
+      "explanation": "Column labels use digits A through Z for values one through twenty-six, rather than zero through twenty-five."
+    },
+    {
+      "id": "order",
+      "prompt": "How should the collected letters be arranged at the end?",
+      "correct": "Reverse them because remainders produce the least-significant letters first.",
+      "wrong": [
+        "Leave them in the order their remainders were found.",
+        "Sort them alphabetically."
+      ],
+      "explanation": "Repeated division removes letters from the right end of the label, so their collection order is reversed."
+    }
+  ],
+  "1071": [
+    {
+      "id": "compatible",
+      "prompt": "What must be checked before choosing a common divisor prefix?",
+      "correct": "Both concatenation orders produce the same string.",
+      "wrong": [
+        "The first characters match.",
+        "The two strings have the same length."
+      ],
+      "explanation": "Matching concatenations establish that both strings consist of repetitions of a common base."
+    },
+    {
+      "id": "length",
+      "prompt": "If that compatibility check passes, which prefix length should be returned?",
+      "correct": "The greatest common divisor of the two string lengths.",
+      "wrong": [
+        "The smaller string length in every case.",
+        "The difference between the two string lengths."
+      ],
+      "explanation": "A repeat-unit length must divide both lengths; their greatest common divisor gives the longest possible shared divisor."
+    }
+  ],
+  "2807": [
+    {
+      "id": "insert",
+      "prompt": "What value should be inserted between each original neighboring pair?",
+      "correct": "The greatest common divisor of those two node values.",
+      "wrong": [
+        "Their sum.",
+        "Their least common multiple."
+      ],
+      "explanation": "The problem requires the largest positive integer dividing both original neighboring values."
+    },
+    {
+      "id": "advance",
+      "prompt": "After inserting the new node, where should traversal continue?",
+      "correct": "At the saved next original node.",
+      "wrong": [
+        "At the inserted node, treating it as an original node.",
+        "At the head of the list again."
+      ],
+      "explanation": "Skipping the inserted node preserves the original adjacent pairs and prevents repeatedly inserting between newly created nodes."
+    }
+  ],
+  "867": [
+    {
+      "id": "shape",
+      "prompt": "What dimensions should the new matrix have?",
+      "correct": "The original column count as rows and the original row count as columns.",
+      "wrong": [
+        "The same dimensions as the original matrix in every case.",
+        "A square shape using the larger original dimension."
+      ],
+      "explanation": "Transposing swaps the two coordinate directions, including the dimensions of a rectangular matrix."
+    },
+    {
+      "id": "copy",
+      "prompt": "Where should a value from original row r and column c go?",
+      "correct": "New row c and column r.",
+      "wrong": [
+        "New row r and column c.",
+        "The diagonally opposite corner of the new matrix."
+      ],
+      "explanation": "A transpose exchanges row and column positions without reversing their order."
+    }
+  ],
+  "48": [
+    {
+      "id": "first",
+      "prompt": "What should the first pass do for this clockwise-rotation approach?",
+      "correct": "Transpose the matrix across its main diagonal, swapping each pair once.",
+      "wrong": [
+        "Reverse all columns first and keep each row in its original order.",
+        "Swap every off-diagonal pair twice, once from each row containing it."
+      ],
+      "explanation": "Transposing exchanges row and column coordinates; swapping a pair twice would undo that change."
+    },
+    {
+      "id": "second",
+      "prompt": "What should follow the transpose to complete a clockwise quarter-turn?",
+      "correct": "Reverse every row.",
+      "wrong": [
+        "Reverse every column.",
+        "Transpose across the main diagonal again."
+      ],
+      "explanation": "Reversing rows after transposing places each original column into its clockwise-rotated row."
+    }
+  ],
+  "54": [
+    {
+      "id": "bounds",
+      "prompt": "What should be tracked as the spiral scan moves inward?",
+      "correct": "The top, bottom, left, and right boundaries not yet visited.",
+      "wrong": [
+        "Only the current row index.",
+        "A separate sorted list of cell values."
+      ],
+      "explanation": "Four boundaries describe the remaining rectangle after each outside edge is visited."
+    },
+    {
+      "id": "guard",
+      "prompt": "Why must the lower and left passes recheck the remaining boundaries?",
+      "correct": "A single remaining row or column may already have been consumed.",
+      "wrong": [
+        "The matrix values might have become negative.",
+        "The traversal direction must reverse after every cell."
+      ],
+      "explanation": "Rechecking prevents reading the same cells twice when the remaining rectangle collapses."
+    }
+  ],
+  "73": [
+    {
+      "id": "markers",
+      "prompt": "Where should row and column zero markers be stored?",
+      "correct": "In the first row and first column, with their original-zero status saved separately.",
+      "wrong": [
+        "Only in the bottom-right cell.",
+        "Directly overwrite every row and column as soon as a zero is found."
+      ],
+      "explanation": "Separate original-zero flags prevent marker writes from being mistaken for zeros originally present in the first boundaries."
+    },
+    {
+      "id": "clear",
+      "prompt": "When should the marked interior rows and columns be cleared?",
+      "correct": "After the full scan has recorded all original zero positions.",
+      "wrong": [
+        "Immediately after the first marker is written.",
+        "Before scanning for any original zero."
+      ],
+      "explanation": "Delaying the clearing pass prevents newly written zeros from creating extra, incorrect zero markers."
+    }
+  ],
+  "202": [
+    {
+      "id": "transition",
+      "prompt": "What operation produces the next number in the sequence?",
+      "correct": "Sum the squares of the current number's decimal digits.",
+      "wrong": [
+        "Square the whole current number.",
+        "Sum the digits without squaring them."
+      ],
+      "explanation": "The happy-number process repeatedly applies the digit-square sum, not a whole-number square."
+    },
+    {
+      "id": "cycle",
+      "prompt": "How should a repeating sequence be detected with two moving values?",
+      "correct": "Advance one by one digit-square transition and the other by two.",
+      "wrong": [
+        "Advance both by exactly one transition every time.",
+        "Move one upward and one downward by one."
+      ],
+      "explanation": "Different speeds reveal a repeated cycle without storing every previous number."
+    }
+  ],
+  "66": [
+    {
+      "id": "start",
+      "prompt": "At which end should adding one begin?",
+      "correct": "At the final, least-significant digit.",
+      "wrong": [
+        "At the first, most-significant digit.",
+        "At every digit simultaneously."
+      ],
+      "explanation": "Only the last digit increases initially; any overflow then carries leftward."
+    },
+    {
+      "id": "carry",
+      "prompt": "What if a digit is nine while a carry reaches it?",
+      "correct": "Write zero there and continue carrying to the digit on its left.",
+      "wrong": [
+        "Leave nine there and stop.",
+        "Write ten into that single digit position."
+      ],
+      "explanation": "A decimal digit cannot hold ten; its zero remains while one is carried into the next place."
+    }
+  ],
+  "13": [
+    {
+      "id": "scan",
+      "prompt": "How should Roman numeral symbols be inspected?",
+      "correct": "From left to right, comparing a symbol with the following symbol when one exists.",
+      "wrong": [
+        "After sorting them by numeric value.",
+        "By counting each distinct symbol and ignoring positions."
+      ],
+      "explanation": "Roman numeral value depends on symbol order, especially when a smaller symbol comes before a larger one."
+    },
+    {
+      "id": "subtract",
+      "prompt": "When should the current symbol's value be subtracted?",
+      "correct": "When the following symbol has a larger value.",
+      "wrong": [
+        "Whenever the current symbol is I, X, or C.",
+        "Whenever the previous symbol has the same value."
+      ],
+      "explanation": "A smaller symbol immediately before a larger one forms a subtractive pair; otherwise its value is added."
+    }
+  ],
+  "50": [
+    {
+      "id": "negative",
+      "prompt": "How should a negative exponent be handled first?",
+      "correct": "Invert the base and make the exponent positive.",
+      "wrong": [
+        "Negate the base and leave the exponent negative.",
+        "Return zero for every negative exponent."
+      ],
+      "explanation": "A negative exponent represents the reciprocal of the corresponding positive power."
+    },
+    {
+      "id": "halve",
+      "prompt": "How should a positive exponent be reduced efficiently?",
+      "correct": "Square the base and halve the exponent, multiplying the result when the exponent is odd.",
+      "wrong": [
+        "Subtract one repeatedly without changing the base.",
+        "Multiply the result by the squared base on every iteration."
+      ],
+      "explanation": "Each exponent bit decides whether its corresponding squared power contributes to the result."
+    }
+  ],
+  "43": [
+    {
+      "id": "layout",
+      "prompt": "What should each pair of input digits contribute to?",
+      "correct": "The output positions determined by the two digits' place values.",
+      "wrong": [
+        "Only one shared running total with no place-value positions.",
+        "The position of the larger digit regardless of its location."
+      ],
+      "explanation": "Multiplication must preserve decimal alignment, so every digit pair contributes at its combined place value."
+    },
+    {
+      "id": "carry",
+      "prompt": "How should a value greater than nine in an output position be handled?",
+      "correct": "Keep its remainder modulo ten as the digit and carry the rest to the preceding position.",
+      "wrong": [
+        "Store the whole value as a single decimal digit.",
+        "Discard every value greater than nine."
+      ],
+      "explanation": "Each output position holds one decimal digit, and the higher tens must move into the next place."
+    }
+  ],
+  "2013": [
+    {
+      "id": "state",
+      "prompt": "What information must be retained about stored points?",
+      "correct": "How many times each coordinate has been added.",
+      "wrong": [
+        "Only a set of distinct coordinates.",
+        "Only the largest x and y values seen."
+      ],
+      "explanation": "Repeatedly added points create multiple square choices, so their multiplicities matter."
+    },
+    {
+      "id": "partners",
+      "prompt": "Which stored points can be horizontal partners for a queried corner?",
+      "correct": "Points with the same y coordinate and a different x coordinate.",
+      "wrong": [
+        "Points with both the same x and the same y.",
+        "Any point at a different coordinate, regardless of direction."
+      ],
+      "explanation": "A horizontal square side must have positive length and keep the y coordinate unchanged."
+    },
+    {
+      "id": "count",
+      "prompt": "How should the number of squares for three required stored corners be counted?",
+      "correct": "Multiply the three corner counts.",
+      "wrong": [
+        "Add the three corner counts.",
+        "Count one square whenever all three coordinates exist."
+      ],
+      "explanation": "Any copy of each required corner can be combined with copies of the other two, producing a product of counts."
+    }
+  ],
+  "136": [
+    {
+      "id": "start",
+      "prompt": "What value should the XOR accumulator start with?",
+      "correct": "Zero.",
+      "wrong": [
+        "One.",
+        "The array length."
+      ],
+      "explanation": "XOR with zero leaves a value unchanged, so zero adds no extra contribution."
+    },
+    {
+      "id": "combine",
+      "prompt": "Why should every array value be XORed into the accumulator?",
+      "correct": "Equal pairs cancel, leaving the value that occurs once.",
+      "wrong": [
+        "XOR sorts values so duplicates become adjacent.",
+        "XOR always returns the largest distinct value."
+      ],
+      "explanation": "A value XORed with itself is zero; combining all pairs removes their contributions."
+    }
+  ],
+  "191": [
+    {
+      "id": "clear",
+      "prompt": "How should each iteration remove one set bit?",
+      "correct": "Take bitwise AND of n and the value n minus one.",
+      "wrong": [
+        "Subtract one from n without any bitwise operation.",
+        "Shift n left by one."
+      ],
+      "explanation": "Bitwise AND of n with n minus one clears exactly the lowest one-bit while preserving the others."
+    },
+    {
+      "id": "count",
+      "prompt": "What should the answer count?",
+      "correct": "How many one-bit clearing operations occur before n reaches zero.",
+      "wrong": [
+        "How many total bit positions n occupies.",
+        "How many times n is divisible by two."
+      ],
+      "explanation": "Each iteration removes one set bit, so the iteration count equals the number of one-bits."
+    }
+  ],
+  "338": [
+    {
+      "id": "base",
+      "prompt": "What bit count should be stored for zero?",
+      "correct": "Zero.",
+      "wrong": [
+        "One.",
+        "The maximum bit width of the input range."
+      ],
+      "explanation": "Zero has no set bits and supplies the starting value for later counts."
+    },
+    {
+      "id": "reuse",
+      "prompt": "How should the bit count for a positive number be obtained?",
+      "correct": "Use the count for the number shifted right once, then add its lowest bit.",
+      "wrong": [
+        "Use only the previous number's count plus one.",
+        "Count the number's decimal digits."
+      ],
+      "explanation": "Shifting right removes the lowest binary digit; adding that digit reconstructs the full set-bit count."
+    }
+  ],
+  "67": [
+    {
+      "id": "direction",
+      "prompt": "In which direction should the input strings be read?",
+      "correct": "From right to left, carrying into higher positions.",
+      "wrong": [
+        "From left to right, without saving a carry.",
+        "In whichever string has fewer digits first."
+      ],
+      "explanation": "Binary addition begins with the least-significant digits, and its carry moves toward the left."
+    },
+    {
+      "id": "finish",
+      "prompt": "When should digit addition stop?",
+      "correct": "Only when both strings are exhausted and no carry remains.",
+      "wrong": [
+        "As soon as the shorter string is exhausted.",
+        "As soon as both strings are exhausted, even if a carry remains."
+      ],
+      "explanation": "Unused digits and a final carry still contribute result bits."
+    }
+  ],
+  "190": [
+    {
+      "id": "steps",
+      "prompt": "How many bit positions must be processed?",
+      "correct": "Exactly thirty-two.",
+      "wrong": [
+        "Only until the input becomes zero.",
+        "Only the number of set bits in the input."
+      ],
+      "explanation": "Leading zeros also change position when reversing a fixed thirty-two-bit representation."
+    },
+    {
+      "id": "append",
+      "prompt": "How should one iteration build the reversed result?",
+      "correct": "Shift the result left and append the input's current lowest bit.",
+      "wrong": [
+        "Append the input's highest decimal digit.",
+        "Shift the result right and append the input's highest bit."
+      ],
+      "explanation": "Reading low bits and appending them on the right of a left-shifted result reverses their order."
+    }
+  ],
+  "268": [
+    {
+      "id": "range",
+      "prompt": "Which expected numbers should be XORed with the array values?",
+      "correct": "Every number from zero through n, including n.",
+      "wrong": [
+        "Only zero through n minus one.",
+        "Only the numbers already present in the array."
+      ],
+      "explanation": "There are n array entries but n plus one possible values, so the expected range includes both endpoints."
+    },
+    {
+      "id": "cancel",
+      "prompt": "Why does XORing both collections reveal the missing number?",
+      "correct": "Present values occur on both sides and cancel, leaving only the absent value.",
+      "wrong": [
+        "XOR converts the array into sorted order.",
+        "The missing number is always the largest XOR operand."
+      ],
+      "explanation": "Every present number contributes twice, while the missing number contributes once from the complete expected range."
+    }
+  ],
+  "371": [
+    {
+      "id": "parts",
+      "prompt": "Which two intermediate values should replace ordinary addition?",
+      "correct": "XOR for the sum without carries, and shifted AND for the carries.",
+      "wrong": [
+        "OR for the full sum, with no carry calculation.",
+        "AND for the sum and XOR for the carry."
+      ],
+      "explanation": "XOR adds differing bits without carrying; shared one-bits produce carries into the next position."
+    },
+    {
+      "id": "repeat",
+      "prompt": "When is the addition process finished?",
+      "correct": "When no carry bits remain.",
+      "wrong": [
+        "After exactly one XOR operation.",
+        "Only when both intermediate values become zero."
+      ],
+      "explanation": "Once carry is zero, the sum-without-carry already contains the final bit pattern."
+    }
+  ],
+  "7": [
+    {
+      "id": "digits",
+      "prompt": "From which end should digits be extracted to build the reversed number?",
+      "correct": "The original number's least-significant end, using division toward zero.",
+      "wrong": [
+        "The original number's most-significant end.",
+        "The middle digit first, then alternating ends."
+      ],
+      "explanation": "Removing the final original digit makes it the next leading contribution in the reversed result, including for negative inputs."
+    },
+    {
+      "id": "overflow",
+      "prompt": "When should the signed thirty-two-bit bounds be checked?",
+      "correct": "Before multiplying the current result by ten and appending the next digit.",
+      "wrong": [
+        "Only after every digit has been appended.",
+        "Only when the original input is negative."
+      ],
+      "explanation": "The next append can overflow even when the current partial result is in range."
+    }
+  ],
+  "201": [
+    {
+      "id": "common",
+      "prompt": "What remains unchanged across every number in the range?",
+      "correct": "The shared high-bit prefix of the two endpoints.",
+      "wrong": [
+        "Every bit set in either endpoint.",
+        "The lower bits of the smaller endpoint."
+      ],
+      "explanation": "Lower positions that vary anywhere across the range cannot survive a bitwise AND of every value."
+    },
+    {
+      "id": "shift",
+      "prompt": "How should that shared prefix be found?",
+      "correct": "Shift both endpoints right until they match, remembering the shift count.",
+      "wrong": [
+        "Shift only the smaller endpoint until it becomes zero.",
+        "Add the endpoint values and divide by two."
+      ],
+      "explanation": "Removing differing lower positions exposes the common prefix; shifting it back fills those positions with zeros."
+    }
+  ],
+  "3133": [
+    {
+      "id": "fixed",
+      "prompt": "Which bits must remain set in every candidate final value?",
+      "correct": "Every bit already set in x.",
+      "wrong": [
+        "Only the highest set bit of x.",
+        "Only bits that are zero in x."
+      ],
+      "explanation": "Preserving x as the array's bitwise AND requires retaining all of its one-bits."
+    },
+    {
+      "id": "insert",
+      "prompt": "Where should the bits of n minus one be placed?",
+      "correct": "Into the zero-bit positions of x, from low to high.",
+      "wrong": [
+        "Over the existing one-bit positions of x.",
+        "Into every bit position of x without skipping any."
+      ],
+      "explanation": "The zero positions can vary while x's one-bits stay fixed; filling them in order enumerates the allowed values."
+    }
+  ]
+}

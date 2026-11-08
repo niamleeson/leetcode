@@ -19,8 +19,8 @@
 .guided-choice small { display:block; margin-top:5px; font-size:10px; color:#fda4af; }
 .guided-choice[data-attempted="true"] { border-color:#9f4c5b; background:#7f1d1d1a; }
 html.light .guided-choice small { color:#9f1239; }
-.guided-code-choices { grid-template-columns:minmax(0,1fr); }
-.guided-code-choices .guided-choice { min-height:56px; }
+.guided-code-choices, .guided-structure-choices { grid-template-columns:minmax(0,1fr); }
+.guided-code-choices .guided-choice, .guided-structure-choices .guided-choice { min-height:56px; }
 .guided-context { padding:14px; background:var(--lp-bg); border:1px solid var(--lp-line); border-radius:9px; font:12px/1.7 ui-monospace,SFMono-Regular,Menlo,monospace; overflow:auto; max-height:290px; margin:14px 0; color:var(--lp-muted); }
 .guided-feedback { padding:13px 16px; border:1px solid var(--lp-line); border-radius:10px; font-size:13px; line-height:1.55; scroll-margin-top:75px; }
 .guided-question-card h2 { scroll-margin-top:75px; }

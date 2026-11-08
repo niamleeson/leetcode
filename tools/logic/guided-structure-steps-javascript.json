@@ -1,0 +1,228 @@
+{
+  "1929": [
+    {
+      "id": "size",
+      "prompt": "How large should the JavaScript output array be?",
+      "correct": "Twice the input length.",
+      "wrong": [
+        "The same as the input length.",
+        "One more than the input length."
+      ],
+      "explanation": "Two complete copies require space for every original value twice."
+    },
+    {
+      "id": "copy",
+      "prompt": "Where should the value at input index i be copied?",
+      "correct": "To output positions i and i plus n.",
+      "wrong": [
+        "To output positions twice i and twice i plus one.",
+        "To output position i only."
+      ],
+      "explanation": "The second copy begins n positions after the first while preserving the same order."
+    }
+  ],
+  "242": [
+    {
+      "id": "length",
+      "prompt": "What should happen if the string lengths differ?",
+      "correct": "Return false before counting.",
+      "wrong": [
+        "Ignore the extra characters in the longer string.",
+        "Count only the shared number of positions."
+      ],
+      "explanation": "Anagrams must contain the same total number of characters."
+    },
+    {
+      "id": "counts",
+      "prompt": "Which counts does this JavaScript solution prepare before scanning the second string?",
+      "correct": "Counts of characters in the first string.",
+      "wrong": [
+        "One presence flag per character in the first string.",
+        "Counts based only on each character's position."
+      ],
+      "explanation": "The second string must consume exactly the available number of each character."
+    },
+    {
+      "id": "consume",
+      "prompt": "When scanning a character in the second string, when must we reject?",
+      "correct": "When its remaining count is missing or zero.",
+      "wrong": [
+        "Only when the character differs from the same position in the first string.",
+        "Only after every count becomes negative."
+      ],
+      "explanation": "A missing available copy means the second string has more of that character than the first."
+    }
+  ],
+  "84": [
+    {
+      "id": "entries",
+      "prompt": "What should each JavaScript stack entry remember?",
+      "correct": "A height and its earliest possible left index.",
+      "wrong": [
+        "A height and only its most recent index.",
+        "A height and its total frequency anywhere."
+      ],
+      "explanation": "The left index determines how far a rectangle at that height can extend."
+    },
+    {
+      "id": "left",
+      "prompt": "After popping taller bars, which left index should the new height inherit?",
+      "correct": "The earliest left index of the popped entries.",
+      "wrong": [
+        "The current index only.",
+        "The index immediately after the current bar."
+      ],
+      "explanation": "The shorter height can span the earlier positions where those taller bars stood."
+    }
+  ],
+  "355": [
+    {
+      "id": "users",
+      "prompt": "Whose tweets can appear in a user's feed?",
+      "correct": "Their own tweets and tweets from users they follow.",
+      "wrong": [
+        "Tweets from users who follow them.",
+        "Every user's tweets regardless of following."
+      ],
+      "explanation": "Following selects other users for the feed, while the user's own tweets remain included."
+    },
+    {
+      "id": "priority",
+      "prompt": "How should the JavaScript candidate list choose the next tweet?",
+      "correct": "Sort the current candidates by time and select the newest.",
+      "wrong": [
+        "Sort the candidates by tweet ID and select the largest.",
+        "Select the oldest tweet among the current candidates."
+      ],
+      "explanation": "Posting time determines recency; tweet IDs do not establish the feed order."
+    },
+    {
+      "id": "advance",
+      "prompt": "After choosing one user's tweet, which candidate should replace it?",
+      "correct": "That user's next older tweet, if it exists.",
+      "wrong": [
+        "That user's newest tweet again.",
+        "Every remaining tweet from that user at once."
+      ],
+      "explanation": "Advancing that one ordered stream makes its next possible contribution available."
+    }
+  ],
+  "767": [
+    {
+      "id": "count",
+      "prompt": "How should the available JavaScript candidates be prioritized?",
+      "correct": "Sort by remaining count and choose the most frequent available letter.",
+      "wrong": [
+        "Sort alphabetically and choose the first letter.",
+        "Sort by remaining count and choose the least frequent letter."
+      ],
+      "explanation": "Using a frequent available letter avoids leaving too many copies to separate later."
+    },
+    {
+      "id": "hold",
+      "prompt": "Which letter should be kept out of the next selection?",
+      "correct": "The letter just appended.",
+      "wrong": [
+        "The least frequent remaining letter.",
+        "Every letter already used anywhere in the result."
+      ],
+      "explanation": "Keeping the previous letter out prevents equal adjacent characters."
+    },
+    {
+      "id": "release",
+      "prompt": "When should that held-out letter become available again?",
+      "correct": "After a different letter has been appended.",
+      "wrong": [
+        "Before choosing the very next letter.",
+        "Only when no other letters remain."
+      ],
+      "explanation": "One different letter between its uses is enough to prevent equal neighbors."
+    }
+  ],
+  "371": [
+    {
+      "id": "partial",
+      "prompt": "Which operation adds the two bit patterns without carrying?",
+      "correct": "XOR.",
+      "wrong": [
+        "OR.",
+        "AND."
+      ],
+      "explanation": "XOR keeps positions with exactly one set bit; positions with two set bits need a carry instead."
+    },
+    {
+      "id": "carry",
+      "prompt": "How should the carry bits be formed?",
+      "correct": "AND the inputs and shift the result left once.",
+      "wrong": [
+        "XOR the inputs and shift the result right once.",
+        "OR the inputs without shifting."
+      ],
+      "explanation": "A pair of set bits creates a carry into the next higher bit position."
+    },
+    {
+      "id": "signed",
+      "prompt": "What keeps this JavaScript loop within signed 32-bit arithmetic?",
+      "correct": "JavaScript's bitwise operations apply signed 32-bit conversion.",
+      "wrong": [
+        "Ordinary Number addition preserves an unlimited number of bits.",
+        "Converting every intermediate result to a decimal string."
+      ],
+      "explanation": "This implementation relies on JavaScript's signed 32-bit bitwise behavior, including the sign bit."
+    }
+  ],
+  "190": [
+    {
+      "id": "width",
+      "prompt": "How many bit positions must this reversal process?",
+      "correct": "Exactly 32, including leading zeros.",
+      "wrong": [
+        "Only positions through the highest set bit.",
+        "Only the input's set bits."
+      ],
+      "explanation": "The result reverses a fixed-width 32-bit pattern, so zero positions also affect where bits land."
+    },
+    {
+      "id": "unsigned",
+      "prompt": "How should JavaScript shift the remaining input and interpret the final result?",
+      "correct": "Use unsigned right shifts and return an unsigned 32-bit result.",
+      "wrong": [
+        "Use sign-extending right shifts and keep a signed final result.",
+        "Stop when the intermediate Number becomes negative."
+      ],
+      "explanation": "Unsigned conversion prevents the high bit from being interpreted as a negative final answer."
+    }
+  ],
+  "3133": [
+    {
+      "id": "precision",
+      "prompt": "Which JavaScript number type should construct the high-bit result?",
+      "correct": "BigInt.",
+      "wrong": [
+        "Number bitwise operators throughout.",
+        "A signed 32-bit integer throughout."
+      ],
+      "explanation": "The required bit positions can exceed the 32-bit range used by Number bitwise operators."
+    },
+    {
+      "id": "positions",
+      "prompt": "Where should the bits of n minus one be inserted?",
+      "correct": "Into x's zero-bit positions, from low to high.",
+      "wrong": [
+        "Into x's set-bit positions, overwriting them.",
+        "Into every position while ignoring x."
+      ],
+      "explanation": "Every result must retain all set bits of x; its zero positions provide the variable choices."
+    },
+    {
+      "id": "convert",
+      "prompt": "When should the BigInt result be converted back to Number?",
+      "correct": "After all bit positions are constructed.",
+      "wrong": [
+        "Before shifting or combining any high bits.",
+        "After every individual bit insertion."
+      ],
+      "explanation": "Keeping construction in BigInt avoids truncating high bits during intermediate operations."
+    }
+  ]
+}

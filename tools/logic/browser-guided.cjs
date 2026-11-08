@@ -24,6 +24,29 @@ const output = process.env.LEETCODE_SCREENSHOTS || '/tmp/leetcode-browser-check'
       await choices.nth(question.choices.findIndex(choice => choice.correct === correct)).tap();
     }
     async function noOverflow() { assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'Page overflows mobile viewport'); }
+    const implementationStart = document => document.questions.findIndex(question => question.stage === 'implementation');
+    async function structureSteps(document, start = 1, screenshots = false) {
+      const end = implementationStart(document);
+      for (let index = start; index < end; index++) {
+        const question = document.questions[index];
+        await page.locator(`[data-question-id=${JSON.stringify(question.id)}]`).waitFor();
+        assert.equal(await page.locator('.guided-question-card').count(), 1, 'Only one structure decision should be visible');
+        assert.equal(await page.locator('.guided-context, .guided-question-card pre, .guided-question-card code, .guided-runner').count(), 0, 'Structure should not show a code outline');
+        await page.getByText(`Structure · Step ${index} of ${end - 1}`, { exact: true }).waitFor();
+        const cardText = await page.locator('.guided-question-card').innerText();
+        assert(!/today resolves|continuation test holds|working state|this case applies/i.test(cardText));
+        if (index + 1 < end) assert.equal(await page.getByRole('heading', { name: document.questions[index + 1].prompt, exact: true }).count(), 0, 'Future structure question shown early');
+        if (screenshots) {
+          await page.screenshot({path:path.join(output, `daily-structure-${document.language}-${index}.png`),fullPage:true});
+          await page.locator('.guided-question-card').screenshot({path:path.join(output, `daily-structure-${document.language}-${index}-card.png`)});
+        }
+        await answer(question);
+      }
+    }
+    async function opening(document) {
+      await answer(document.questions[0]);
+      await structureSteps(document);
+    }
     async function finish(document, start = 0) {
       for (const question of document.questions.slice(start)) await answer(question);
       await page.getByRole('button', { name: 'Run tests', exact: true }).waitFor();
@@ -49,6 +72,7 @@ const output = process.env.LEETCODE_SCREENSHOTS || '/tmp/leetcode-browser-check'
     assert(jsToggle.x < pyToggle.x, 'JavaScript should be to the left of Python');
     assert.equal(await page.locator('.guided-context, .guided-runner').count(), 0);
     assert.equal(requests.filter(value => value.includes('/logic/lessons/')).length, 1);
+    assert(requests.some(value => value.includes(`/logic/lessons/${revision}/1-javascript.json`)), 'Unexpected deployed lesson revision');
     assert(!requests.some(value => /\/solutions\/|\/vendor\/pyodide\/|\.worker-/.test(value)));
     const initialRequests = [...requests];
     await page.screenshot({ path: path.join(output, 'guided-pattern-mobile.png'), fullPage: true });
@@ -58,20 +82,20 @@ const output = process.env.LEETCODE_SCREENSHOTS || '/tmp/leetcode-browser-check'
     assert.equal(await choices.count(), 8);
     await answer(js.questions[0]);
     await page.getByRole('heading', { name: js.questions[1].prompt, exact: true }).waitFor();
-    assert.equal(await choices.count(), 4);
+    assert.equal(await choices.count(), js.questions[1].choices.length);
     assert.match(await feedback.innerText(), /Correct/);
     await answer(js.questions[1], false);
     await page.getByRole('alert').filter({ hasText: 'Not quite' }).waitFor();
     await answer(js.questions[1]);
-    const firstImplementation = js.questions[2];
+    await structureSteps(js, 2);
+    const firstImplementation = js.questions[implementationStart(js)];
     await answer(firstImplementation, false);
     await page.getByRole('alert').filter({ hasText: 'Not quite' }).waitFor();
     await page.getByText('See the counterexample', { exact: true }).tap();
     await page.getByText('This choice produces', { exact: true }).waitFor();
     await page.screenshot({ path: path.join(output, 'guided-feedback-mobile.png'), fullPage: true });
     await page.reload();
-    await answer(js.questions[0]);
-    await answer(js.questions[1]);
+    await opening(js);
     await page.getByRole('heading', { name: firstImplementation.prompt, exact: true }).waitFor();
     await page.getByRole('button', { name: 'Python', exact: true }).tap();
     await choices.nth(7).waitFor();
@@ -79,8 +103,7 @@ const output = process.env.LEETCODE_SCREENSHOTS || '/tmp/leetcode-browser-check'
     await answer(py.questions[0]);
     await page.getByRole('heading', { name: py.questions[1].prompt, exact: true }).waitFor();
     await page.getByRole('button', { name: 'JavaScript', exact: true }).tap();
-    await answer(js.questions[0]);
-    await answer(js.questions[1]);
+    await opening(js);
     await page.getByRole('heading', { name: firstImplementation.prompt, exact: true }).waitFor();
     const reference = page.getByRole('region', { name: 'Reference solution', exact: true });
     await reference.getByRole('button', { name: 'Reveal solution', exact: true }).tap();
@@ -89,7 +112,7 @@ const output = process.env.LEETCODE_SCREENSHOTS || '/tmp/leetcode-browser-check'
     await reference.getByRole('button', { name: 'Hide solution', exact: true }).tap();
     assert.equal(await reference.locator('pre code').count(), 0);
     assert(!requests.some(value => /\/vendor\/pyodide\/|\.worker-/.test(value)));
-    await finish(js, 2);
+    await finish(js, implementationStart(js));
     assert(!requests.some(value => /\.worker-/.test(value)), 'Worker loaded before Run');
     await runAndDebug('JavaScript');
     assert(!requests.some(value => value.includes('/vendor/pyodide/')), 'JavaScript downloaded Python');
@@ -141,22 +164,25 @@ const output = process.env.LEETCODE_SCREENSHOTS || '/tmp/leetcode-browser-check'
       await page.goto(`${url}#/practice/739?language=${language}`);
       await answer(daily.questions[0]);
       assert.equal(await page.getByLabel('Implementation context', { exact: true }).count(), 0);
-      await page.screenshot({ path: path.join(output, `daily-structure-${language}.png`), fullPage: true });
-      await answer(daily.questions[1]);
-      assert(daily.questions.slice(2).some(question => question.choices.some(choice => choice.correct && /(?:stack\.pop|stack\.push|stack\.append)/.test(choice.code))), 'Missing stack update decision');
+      await structureSteps(daily, 1, true);
+      assert(daily.questions.slice(implementationStart(daily)).some(question => question.choices.some(choice => choice.correct && /(?:stack\.pop|stack\.push|stack\.append)/.test(choice.code))), 'Missing stack update decision');
       const finish = daily.questions.at(-1);
       assert.match(finish.choices.find(choice => choice.correct).code, /return result/);
-      for (const question of daily.questions.slice(2)) {
+      for (const question of daily.questions.slice(implementationStart(daily))) {
         assert.equal(await page.getByRole('button', { name: 'Run tests', exact: true }).count(), 0, 'Daily Temperatures completed before its final decision');
         if (question === finish) await page.screenshot({ path: path.join(output, `daily-finish-${language}.png`), fullPage: true });
         await answer(question);
       }
       await runAndDebug(language === 'python' ? 'Python' : 'JavaScript', daily.validation.correctCases);
     }
-    for (const [id, language] of [[208, 'python'], [705, 'javascript'], [1584, 'javascript']]) {
+    for (const [id, language] of [[208, 'python'], [705, 'javascript'], [1584, 'javascript'], [104, 'python'], [198, 'javascript']]) {
       const document = lesson(id, language);
       await page.goto(`${url}#/practice/${id}?language=${language}`);
-      await finish(document);
+      await answer(document.questions[0]);
+      await page.locator(`[data-question-id=${JSON.stringify(document.questions[1].id)}]`).waitFor();
+      if (id === 104 || id === 198) await page.locator('.guided-question-card').screenshot({ path: path.join(output, `structure-${id}-${language}.png`) });
+      await structureSteps(document);
+      await finish(document, implementationStart(document));
       await runAndDebug(language === 'python' ? 'Python' : 'JavaScript', document.validation.correctCases);
       if (id === 208 || id === 705) await page.getByText('Constructor and calls in order', { exact: true }).waitFor();
     }
@@ -169,7 +195,7 @@ const output = process.env.LEETCODE_SCREENSHOTS || '/tmp/leetcode-browser-check'
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.screenshot({ path: path.join(output, 'guided-desktop.png'), fullPage: true });
     assert.deepEqual(errors, []);
-    const report = { passed: true, revision, initialRequests, checks: ['8 patterns, code structure, full implementation', 'Daily Temperatures tail and final return in both languages', 'opening quiz before saved implementation resumes', 'wrong stays, correct advances', 'real counterexamples', 'independent persistent language progress', 'matching reveal and retry', 'real Python and JavaScript tests and stepping', 'no runtime before Run', 'no Python downloads for JavaScript', 'restart', 'mobile touch, dark/light, desktop', 'library language links'] };
+    const report = { passed: true, revision, initialRequests, checks: ['8 patterns, one focused structure decision at a time, full implementation', 'Daily Temperatures tail and final return in both languages', 'opening quiz before saved implementation resumes', 'wrong stays, correct advances', 'real counterexamples', 'independent persistent language progress', 'matching reveal and retry', 'real Python and JavaScript tests and stepping', 'no runtime before Run', 'no Python downloads for JavaScript', 'restart', 'mobile touch, dark/light, desktop', 'library language links'] };
     fs.writeFileSync(path.join(output, 'guided-browser-report.json'), JSON.stringify(report, null, 2));
     console.log(JSON.stringify(report, null, 2));
   } finally { await browser.close(); }

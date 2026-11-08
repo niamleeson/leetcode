@@ -67,12 +67,31 @@ describe('guided lesson loading', () => {
     expect((await loader.loadGuidedLesson(1, 'python')).id).toBe(1);
   });
 
-  it('accepts a two-choice implementation decision while preserving eight patterns and four plans', async () => {
+  it('accepts a two-choice implementation decision while preserving eight patterns', async () => {
     const loader = await import('./guided');
     const value = lesson(1, 'python', loader.guidedRevision);
     value.questions[2].choices.pop();
     fetchMock.mockResolvedValueOnce({ok: true, json: async () => value});
     expect((await loader.loadGuidedLesson(1, 'python')).questions[2].choices).toHaveLength(2);
+  });
+
+  it('accepts several small structure questions before implementation, but rejects later structure cards or a full outline', async () => {
+    const loader = await import('./guided');
+    const value = lesson(1, 'python', loader.guidedRevision);
+    const structure = value.questions[1];
+    structure.choices.pop();
+    value.questions.splice(2,0,{...structure,id:'structure-next'});
+    const misplaced = structuredClone(value);
+    misplaced.questions.push({...structure,id:'structure-too-late'});
+    fetchMock.mockResolvedValueOnce({ok:true,json:async()=>misplaced});
+    await expect(loader.loadGuidedLesson(1,'python')).rejects.toThrow('does not match');
+    const outline = structuredClone(value);
+    outline.questions[1].choices[0].feedbackCode='for every item:\n  process it\nreturn answer';
+    fetchMock.mockResolvedValueOnce({ok:true,json:async()=>outline});
+    await expect(loader.loadGuidedLesson(1,'python')).rejects.toThrow('does not match');
+    fetchMock.mockResolvedValueOnce({ok:true,json:async()=>value});
+    expect((await loader.loadGuidedLesson(1,'python')).questions.map(question=>question.stage))
+      .toEqual(['pattern','structure','structure','implementation']);
   });
 
   it('rejects a truncated implementation even when its metadata claims the final line is covered', async () => {

@@ -33,6 +33,18 @@ test('independent replay accepts complete grouped decisions and ignores signatur
   assert.equal(report.activelyContrastedLines,2);
 });
 
+test('multiple structure decisions must form one block before the full implementation',()=>{
+  const document=lesson();
+  document.questions.splice(2,0,{id:'structure-loop',stage:'structure',choices:[]},{id:'structure-finish',stage:'structure',choices:[]});
+  assert.deepEqual(check(document).issues,[]);
+  const misplaced=structuredClone(document);
+  misplaced.questions.push(misplaced.questions.splice(2,1)[0]);
+  assert(check(misplaced).issues.some(issue=>issue.kind==='stage-order'));
+  const missing=structuredClone(document);
+  missing.questions=missing.questions.filter(question=>question.stage!=='structure');
+  assert(check(missing).issues.some(issue=>issue.kind==='stage-order'));
+});
+
 test('the audit rejects a covered but never contrasted final return',()=>{
   const document=lesson();
   document.questions[2].choices[2].code=document.questions[2].choices[0].code.replace('total = 0','total = 1');

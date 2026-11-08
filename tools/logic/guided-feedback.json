@@ -6,175 +6,175 @@
       "language": "python",
       "questionId": "python-line-3",
       "sourceHash": "12b5b3cadc60e331a80a4db17ec4dea79bf6219f2a46f0751a2c4ce058144e9f",
-      "feedback": "Correct. Visit every value in its original order while retaining its original index. That index is what the answer must return."
+      "feedback": "Visit every value in its original order while retaining its original index. That index is what the answer must return."
     },
     {
       "id": 1,
       "language": "python",
       "questionId": "python-line-4",
       "sourceHash": "12b5b3cadc60e331a80a4db17ec4dea79bf6219f2a46f0751a2c4ce058144e9f",
-      "feedback": "Correct. The partner must satisfy partner + num = target, so subtract the current value from the target to find the needed partner."
+      "feedback": "The partner must satisfy partner + num = target, so subtract the current value from the target to find the needed partner."
     },
     {
       "id": 1,
       "language": "python",
       "questionId": "python-line-5",
       "sourceHash": "12b5b3cadc60e331a80a4db17ec4dea79bf6219f2a46f0751a2c4ce058144e9f",
-      "feedback": "Correct. The map contains earlier values. Finding the complement there provides a previously visited index, so the pair uses two different elements."
+      "feedback": "The map contains earlier values. Finding the complement there provides a previously visited index, so the pair uses two different elements."
     },
     {
       "id": 1,
       "language": "javascript",
       "questionId": "implementation-5",
       "sourceHash": "e98e9e921f37be501eff961dd1fbc9b383763f0169f26b78b807787c60866a76",
-      "feedback": "Correct. Start at index zero, stop before length, and advance by one so every original position can serve as one member of the pair."
+      "feedback": "Start at index zero, stop before length, and advance by one so every original position can serve as one member of the pair."
     },
     {
       "id": 1,
       "language": "javascript",
       "questionId": "implementation-7",
       "sourceHash": "e98e9e921f37be501eff961dd1fbc9b383763f0169f26b78b807787c60866a76",
-      "feedback": "Correct. The partner must satisfy partner + currentNum = target. Subtracting currentNum gives the value to look up among earlier elements."
+      "feedback": "The partner must satisfy partner + currentNum = target. Subtracting currentNum gives the value to look up among earlier elements."
     },
     {
       "id": 739,
       "language": "python",
       "questionId": "python-line-2",
       "sourceHash": "ad16c4f9a41103ec09874e96d93552e44b2d55a452c31223631e0e8f73af6391",
-      "feedback": "Correct. Use the number of temperatures so every day gets an answer slot and a visit."
+      "feedback": "Use the number of temperatures so every day gets an answer slot and a visit."
     },
     {
       "id": 739,
       "language": "python",
       "questionId": "python-line-3",
       "sourceHash": "ad16c4f9a41103ec09874e96d93552e44b2d55a452c31223631e0e8f73af6391",
-      "feedback": "Correct. Zero is the required answer when no warmer day is found. Later updates replace it only for days whose wait is resolved."
+      "feedback": "Start every answer at zero. Zero stays in place if no warmer day is found later."
     },
     {
       "id": 739,
       "language": "python",
       "questionId": "python-line-4",
       "sourceHash": "ad16c4f9a41103ec09874e96d93552e44b2d55a452c31223631e0e8f73af6391",
-      "feedback": "Correct. Start with no pending days. Store indices so you can calculate the distance between an earlier day and its first warmer day."
+      "feedback": "Start with an empty stack. It will hold indices of earlier days that have not yet found a warmer day."
     },
     {
       "id": 739,
       "language": "python",
       "questionId": "python-line-5",
       "sourceHash": "ad16c4f9a41103ec09874e96d93552e44b2d55a452c31223631e0e8f73af6391",
-      "feedback": "Correct. Visit days from left to right, beginning with day zero. This makes the current day the earliest possible answer for each pending day it resolves."
+      "feedback": "Visit every day from left to right. Each day you read comes after the earlier indices already stored in the stack."
     },
     {
       "id": 739,
       "language": "python",
       "questionId": "python-line-6",
       "sourceHash": "ad16c4f9a41103ec09874e96d93552e44b2d55a452c31223631e0e8f73af6391",
-      "feedback": "Correct. Keep resolving pending days while today is strictly warmer. Equal temperatures do not qualify, and one warmer day may resolve several earlier days."
+      "feedback": "Continue while the stack is not empty and today\u2019s temperature is higher than the temperature of the day at the top. Equal temperatures do not count as warmer."
     },
     {
       "id": 739,
       "language": "python",
       "questionId": "python-line-7",
       "sourceHash": "ad16c4f9a41103ec09874e96d93552e44b2d55a452c31223631e0e8f73af6391",
-      "feedback": "Correct. Remove the most recent pending day whose warmer day has now been found. Its index identifies the answer to update."
+      "feedback": "Pop the earlier day at the top of the stack. Today is warmer than that day, so its waiting time can now be calculated."
     },
     {
       "id": 739,
       "language": "python",
       "questionId": "python-line-8",
       "sourceHash": "ad16c4f9a41103ec09874e96d93552e44b2d55a452c31223631e0e8f73af6391",
-      "feedback": "Correct. Write the distance at the earlier day\u2019s index: current index minus earlier index. This counts the days it waited."
+      "feedback": "Store today\u2019s index minus the earlier day\u2019s index. For example, day 5 minus day 2 means a wait of 3 days."
     },
     {
       "id": 739,
       "language": "python",
       "questionId": "python-line-9",
       "sourceHash": "ad16c4f9a41103ec09874e96d93552e44b2d55a452c31223631e0e8f73af6391",
-      "feedback": "Correct. After resolving earlier days, remember today\u2019s index. Its own warmer day must come later."
+      "feedback": "Push today\u2019s index after checking the earlier days. Only a later day can tell us how long today must wait."
     },
     {
       "id": 739,
       "language": "python",
       "questionId": "python-line-10",
       "sourceHash": "ad16c4f9a41103ec09874e96d93552e44b2d55a452c31223631e0e8f73af6391",
-      "feedback": "Correct. Return the whole result after scanning all days. Unresolved days keep zero because no warmer future day exists."
+      "feedback": "Return all the waiting times after the scan. A day with no warmer day later keeps its starting answer of zero."
     },
     {
       "id": 739,
       "language": "javascript",
       "questionId": "implementation-2",
       "sourceHash": "a39eefb2b9e77a71d0c662f3412c7cd7871f89cee761acd04bb0fab6b00fe000",
-      "feedback": "Correct. Use the number of temperatures so every day gets an answer slot and a visit."
+      "feedback": "Use the number of temperatures so every day gets an answer slot and a visit."
     },
     {
       "id": 739,
       "language": "javascript",
       "questionId": "implementation-3",
       "sourceHash": "a39eefb2b9e77a71d0c662f3412c7cd7871f89cee761acd04bb0fab6b00fe000",
-      "feedback": "Correct. Zero is the required answer when no warmer day is found. Later updates replace it only for days whose wait is resolved."
+      "feedback": "Start every answer at zero. Zero stays in place if no warmer day is found later."
     },
     {
       "id": 739,
       "language": "javascript",
       "questionId": "implementation-7",
       "sourceHash": "a39eefb2b9e77a71d0c662f3412c7cd7871f89cee761acd04bb0fab6b00fe000",
-      "feedback": "Correct. Start with no pending days. Store indices so you can calculate the distance between an earlier day and its first warmer day."
+      "feedback": "Start with an empty stack. It will hold indices of earlier days that have not yet found a warmer day."
     },
     {
       "id": 739,
       "language": "javascript",
       "questionId": "implementation-9",
       "sourceHash": "a39eefb2b9e77a71d0c662f3412c7cd7871f89cee761acd04bb0fab6b00fe000",
-      "feedback": "Correct. Visit days from left to right, beginning with day zero. This makes the current day the earliest possible answer for each pending day it resolves."
+      "feedback": "Visit every day from left to right. Each day you read comes after the earlier indices already stored in the stack."
     },
     {
       "id": 739,
       "language": "javascript",
       "questionId": "implementation-10",
       "sourceHash": "a39eefb2b9e77a71d0c662f3412c7cd7871f89cee761acd04bb0fab6b00fe000",
-      "feedback": "Correct. Read today\u2019s temperature using its index; compare temperatures to decide warmth and indices to calculate waiting time."
+      "feedback": "Read the temperature at today\u2019s index. Temperatures decide which day is warmer; indices measure how many days apart they are."
     },
     {
       "id": 739,
       "language": "javascript",
       "questionId": "implementation-13",
       "sourceHash": "a39eefb2b9e77a71d0c662f3412c7cd7871f89cee761acd04bb0fab6b00fe000",
-      "feedback": "Correct. Keep resolving pending days while today is strictly warmer. Equal temperatures do not qualify, and one warmer day may resolve several earlier days."
+      "feedback": "Continue while the stack is not empty and today\u2019s temperature is higher than the temperature of the day at the top. Equal temperatures do not count as warmer."
     },
     {
       "id": 739,
       "language": "javascript",
       "questionId": "implementation-14",
       "sourceHash": "a39eefb2b9e77a71d0c662f3412c7cd7871f89cee761acd04bb0fab6b00fe000",
-      "feedback": "Correct. Remove the most recent pending day whose warmer day has now been found. Its index identifies the answer to update."
+      "feedback": "Pop the earlier day at the top of the stack. Today is warmer than that day, so its waiting time can now be calculated."
     },
     {
       "id": 739,
       "language": "javascript",
       "questionId": "implementation-15",
       "sourceHash": "a39eefb2b9e77a71d0c662f3412c7cd7871f89cee761acd04bb0fab6b00fe000",
-      "feedback": "Correct. Subtract the earlier index from today\u2019s index. The difference is the number of days waited, not a temperature difference."
+      "feedback": "Subtract the earlier day\u2019s index from today\u2019s index. For example, day 5 minus day 2 means a wait of 3 days."
     },
     {
       "id": 739,
       "language": "javascript",
       "questionId": "implementation-16",
       "sourceHash": "a39eefb2b9e77a71d0c662f3412c7cd7871f89cee761acd04bb0fab6b00fe000",
-      "feedback": "Correct. Store that wait for the earlier day that was just resolved. Today\u2019s own answer is still unknown."
+      "feedback": "Store the waiting time at prevDayIndex, the earlier day that just found its first warmer day."
     },
     {
       "id": 739,
       "language": "javascript",
       "questionId": "implementation-20",
       "sourceHash": "a39eefb2b9e77a71d0c662f3412c7cd7871f89cee761acd04bb0fab6b00fe000",
-      "feedback": "Correct. After resolving earlier days, remember today\u2019s index. Its own warmer day must come later."
+      "feedback": "Push today\u2019s index after checking the earlier days. Only a later day can tell us how long today must wait."
     },
     {
       "id": 739,
       "language": "javascript",
       "questionId": "implementation-24",
       "sourceHash": "a39eefb2b9e77a71d0c662f3412c7cd7871f89cee761acd04bb0fab6b00fe000",
-      "feedback": "Correct. Return the whole result after scanning all days. Unresolved days keep zero because no warmer future day exists."
+      "feedback": "Return all the waiting times after the scan. A day with no warmer day later keeps its starting answer of zero."
     }
   ]
 }

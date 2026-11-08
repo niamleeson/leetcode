@@ -75,6 +75,37 @@ class ExecutableDistractorTests(unittest.TestCase):
         with self.assertRaisesRegex(AssertionError, 'curriculum audit'):
             guided.curriculum_questions(data, 'python', curriculum)
 
+    def test_structure_is_published_as_multiple_focused_decisions(self):
+        data = row()
+        def specification(name, count):
+            return {'id': name, 'prompt': 'Choose ' + name + '.', 'correctId': 'right',
+                    'options': [{'id': 'right' if index == 0 else str(index), 'label': name + str(index),
+                                 'feedback': 'This explains only ' + name + '.'} for index in range(count)]}
+        metadata = {'sourceHashes': {'python': guided.digest(data['source'])}, 'patternId': 'scan',
+                    'patternQuestion': specification('pattern', 8),
+                    'structureQuestions': [specification(name, 3) for name in ['state', 'loop', 'finish']]}
+        curriculum = {'lessons': {str(data['id']): metadata}}
+        _metadata, questions = guided.curriculum_questions(data, 'python', curriculum)
+        self.assertEqual([question['id'] for question in questions], ['pattern', 'structure-state', 'structure-loop', 'structure-finish'])
+        self.assertTrue(all('context' not in question for question in questions))
+        self.assertTrue(all('code' not in choice and 'feedbackCode' not in choice for question in questions for choice in question['choices']))
+        self.assertEqual(guided.implementation_start(questions + [{'id': 'code', 'stage': 'implementation'}]), 4)
+        metadata['structureQuestions'][0]['options'][0]['feedbackCode'] = 'the whole plan'
+        with self.assertRaisesRegex(AssertionError, 'focused plain-language'):
+            guided.curriculum_questions(data, 'python', curriculum)
+
+    def test_opening_decisions_must_all_precede_implementation(self):
+        questions = [{'id': name + str(index), 'stage': name} for index, name in enumerate(
+            ['pattern', 'structure', 'structure', 'implementation', 'implementation'])]
+        self.assertEqual(guided.implementation_start(questions), 3)
+        for stages in [
+            ['pattern', 'implementation'], ['pattern', 'structure'],
+            ['pattern', 'structure', 'implementation', 'structure'],
+            ['pattern', 'structure', 'pattern', 'implementation'],
+        ]:
+            with self.assertRaises(AssertionError):
+                guided.implementation_start([{'id': str(index), 'stage': stage} for index, stage in enumerate(stages)])
+
     def test_unordered_set_iteration_never_uses_hash_dependent_first_or_last_slices(self):
         source = 'def solve(values):\n    items = set(values)\n    count = 0\n    for item in items:\n        count += 1\n    return count\n'
         statement = ast.parse(source).body[0].body[2]
@@ -91,7 +122,7 @@ class ExecutableDistractorTests(unittest.TestCase):
                     'line': line, 'endLine': line, 'coveredLines': [line],
                     'choices': [{'id': 'correct', 'correct': True, 'code': code, 'feedback': 'Old feedback'}] +
                                [{'id': str(index), 'correct': False, 'code': value, 'feedback': 'Wrong',
-                                 'witness': {'fixtureIndex': 0, 'name': 'Old display name'}}
+                                 'witness': {'fixtureIndex': 0, 'name': 'Old display name', 'expected': 1, 'actual': 0}}
                                 for index, value in enumerate(wrong)]}
         setup = question('setup', '    first = value', ['    first = -value'], 2)
         update = question('update', '    result = first + 1', ['    result = first - 1'], 3)
@@ -105,6 +136,23 @@ class ExecutableDistractorTests(unittest.TestCase):
         self.assertEqual(reviewed['validation']['wrongChoices'], 4)
         self.assertEqual(reviewed['coverage']['coveredLines'], [2, 3, 4])
         self.assertEqual(reviewed['questions'][0]['choices'][1]['witness']['name'], 'Zero')
+
+    def test_implementation_proof_ignores_prose_but_keeps_code_witnesses_and_finishing_coverage(self):
+        document = {'source': 'source', 'sourceHash': 'hash', 'coverage': {'terminalLines': [4]},
+                    'validation': {'testedWitnesses': 1}, 'questions': [
+                        {'id': 'finish', 'stage': 'implementation', 'line': 4, 'endLine': 4,
+                         'prompt': 'Old prompt', 'choices': [{'id': 'wrong', 'code': 'return 0', 'correct': False,
+                             'feedback': 'Old feedback', 'witness': {'expected': 1, 'actual': 0}}]}]}
+        original = guided.implementation_proof(document)
+        document['questions'][0]['prompt'] = 'Clear prompt'
+        document['questions'][0]['choices'][0]['feedback'] = 'Clear feedback'
+        document['questions'].insert(0, {'stage': 'structure', 'choices': []})
+        self.assertEqual(guided.implementation_proof(document), original)
+        document['questions'][1]['choices'][0]['witness']['actual'] = 2
+        self.assertNotEqual(guided.implementation_proof(document), original)
+        document['questions'][1]['choices'][0]['witness']['actual'] = 0
+        document['coverage']['terminalLines'] = []
+        self.assertNotEqual(guided.implementation_proof(document), original)
 
     def test_bare_return_credit_requires_its_direct_guard_as_the_only_ast_change(self):
         source = 'def solve(value):\n    if value < 0:\n        return\n    value += 1\n'
@@ -128,13 +176,18 @@ class ExecutableDistractorTests(unittest.TestCase):
         self.assertEqual(required, list(range(2, 10)))
         self.assertIn(9, terminal)
 
-    def test_correct_feedback_explains_current_loop_without_copying_later_answers(self):
-        question = {'prompt': 'Which values should this loop visit?', 'choices': [
-            {'correct': True, 'code': 'for i, num in enumerate(nums):'}]}
-        feedback = guided.current_operation_feedback(question, 'python')
-        self.assertIn('bounds', feedback)
-        self.assertNotIn('target', feedback)
-        self.assertNotIn('complement', feedback)
+    def test_correct_feedback_explains_current_operation_without_copying_later_answers(self):
+        source = 'def solve(nums):\n    total = 0\n    for value in nums:\n        total += value\n    return total\n'
+        document = {'language': 'python', 'source': source, 'questions': [
+            {'id': 'loop', 'stage': 'implementation', 'line': 3, 'endLine': 3, 'decisionLines': [3],
+             'prompt': 'Old vague prompt', 'choices': [{'correct': True, 'code': '    for value in nums:', 'feedback': 'Old vague feedback'}]}]}
+        reviewed = guided.WORDING.improve_implementation_wording(row(source), document)
+        question = reviewed['questions'][0]
+        self.assertIn('value', question['prompt'])
+        self.assertIn('nums', question['choices'][0]['feedback'])
+        self.assertNotIn('total', question['choices'][0]['feedback'])
+        self.assertEqual(question['choices'][0]['code'], document['questions'][0]['choices'][0]['code'])
+        self.assertEqual(guided.WORDING.improve_implementation_wording(row(source), reviewed), reviewed)
 
 
 if __name__ == '__main__':
