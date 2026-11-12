@@ -1,4 +1,5 @@
 import { useProblemSolution } from '../../hooks/useProblemSolution';
+import { solutionProse } from '../../data/solutions/prose';
 import CodeBlock from '../CodeBlock';
 import ComplexityVariables from '../ComplexityVariables';
 
@@ -6,6 +7,7 @@ export default function PracticeSolution({ id, language = 'python', approach, ex
   const { solution, loading, error, retry } = useProblemSolution(id);
   const languageName = language === 'javascript' ? 'JavaScript' : 'Python';
   const code = language === 'javascript' ? solution?.jsCode : solution?.code;
+  const prose = solutionProse(solution, language);
 
   return (
     <div className="logic-solution-content">
@@ -20,10 +22,10 @@ export default function PracticeSolution({ id, language = 'python', approach, ex
       ) : solution && code ? (
         <>
           <h3>Approach</h3>
-          <p className="whitespace-pre-line">{approach ?? solution.approach}</p>
+          <p className="whitespace-pre-line">{approach ?? prose.approach}</p>
           <CodeBlock code={code} language={language} />
           <h3>Explanation</h3>
-          <p className="whitespace-pre-line">{explanation ?? solution.explanation}</p>
+          <p className="whitespace-pre-line">{explanation ?? prose.explanation}</p>
           <dl>
             <div><dt>Time</dt><dd>{language === 'python' ? solution.pythonTimeComplexity ?? solution.timeComplexity : solution.timeComplexity}</dd></div>
             <div><dt>Space</dt><dd>{solution.spaceComplexity}</dd></div>

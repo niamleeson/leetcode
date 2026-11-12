@@ -1,5 +1,6 @@
 1929	scan	Allocate an output array of twice the input length. Copy each original value to its own index and again n positions later.
 242	hash	Reject different lengths, count characters from the first string, then consume those counts with the second. Reject any character whose count is already exhausted.
+69	binary-search	Search integers from 0 through x with inclusive bounds. Return mid when its square equals x. Otherwise save mid when its square is smaller and search larger candidates, or search smaller candidates when its square is larger. Once the bounds cross, return the saved largest valid candidate.
 84	monotonic	Keep increasing heights paired with their earliest possible left edge. When a shorter bar arrives, resolve taller entries and carry their left edge forward; a final zero flushes the stack.
 355	priority-sort	Keep ordered tweets per user and followee sets. Repeatedly sort the current stream candidates by recency, select the newest, and advance only that user's stream.
 767	priority-sort	Count letters and repeatedly sort the available candidates by remaining frequency. Hold the previous letter out for one turn so the next chosen character differs.

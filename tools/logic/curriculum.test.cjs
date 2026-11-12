@@ -91,10 +91,11 @@ test('audited hashes still match all500 canonical source bodies', () => {
   }
 });
 
-test('all eight language-specific algorithms retain their own concrete planning decisions', () => {
-  assert.deepEqual(curriculum.algorithmPlanOverrides,[84,190,242,355,371,767,1929,3133]);
+test('language-specific algorithms retain their own concrete planning decisions', () => {
+  assert.deepEqual(curriculum.algorithmPlanOverrides,[69,84,190,242,355,371,767,1929,3133]);
   const labels=(id,language)=>merged(id,language).structureQuestions.map(answer).join('\n');
   for(const id of curriculum.algorithmPlanOverrides) assert.notEqual(labels(id,'python'),labels(id,'javascript'));
+  assert.match(labels(69,'javascript'),/largest valid candidate saved during the search/);
   assert.match(labels(1929,'javascript'),/output positions i and i plus n/);
   assert.match(labels(242,'javascript'),/characters in the first string/);
   assert.match(labels(84,'javascript'),/earliest possible left index/);

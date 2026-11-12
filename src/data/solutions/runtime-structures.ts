@@ -48,7 +48,7 @@ export const structureRuntimes: Record<string, Runtime> = {
   704: binary(n, 'Halve the range after each comparison', 'Each iteration reads one middle value and discards about half the remaining indices.'),
   35: binary(n, 'Halve the possible insertion positions', 'The function returns an index; it does not insert an element or shift the array.'),
   374: binary('n = maximum candidate number.', 'Make one guess and halve the candidate range', 'Assumes one guess API call takes O(1). There are O(log n) calls.'),
-  69: r('x = input number.', [['Initialize bounds', 'O(1)'], ['Halve the range with one square comparison per iteration', 'O(log(x + 2))']], ['O(1 + log(x + 2))', 'O(log(x + 2))'], 'Adding 2 keeps the expression valid for x = 0 or 1. Arithmetic on the problem’s fixed-width integers is constant time.'),
+  69: r('x = input number.', [['Initialize bounds', 'O(1)'], ['Halve the range with constant work per iteration', 'O(log(x + 2))']], ['O(1 + log(x + 2))', 'O(log(x + 2))'], 'Adding 2 keeps the expression valid for x = 0 or 1. Arithmetic on the problem’s fixed-width integers is constant time.'),
   74: r('m = rows; n = columns.', [['Read dimensions and set virtual index bounds', 'O(1)'], ['Binary-search m × n virtual positions', 'O(log(m × n))']], ['O(1 + log(m × n))', 'O(log(m × n))'], 'Converting a middle index to row and column is O(1). The matrix is not copied or flattened.'),
   875: r('n = piles; M = largest pile.', [['Find M', 'O(n)'], ['Try O(log M) speeds and scan n piles each time', 'O(log M × n)']], ['O(n + n log M)', 'O(n × (1 + log M))'], 'Each trial recomputes totalHours over all piles. The initial maximum scan remains necessary when M = 1.'),
   1011: answerSearch('package weights', 'canShip'),

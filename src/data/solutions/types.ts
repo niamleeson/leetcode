@@ -33,13 +33,16 @@ export interface ProblemSolution {
   description: string;
   examples: string;
   intuition: string;
+  jsIntuition?: string;
   approach: string;
+  jsApproach?: string;
   solutionTitle?: string;
   followUp?: SolutionFollowUp;
   code: string;
   jsCode?: string;
   jsWalkthrough?: string;
   explanation: string;
+  jsExplanation?: string;
   timeComplexity: string;
   timeComplexityBreakdown?: TimeComplexityBreakdown;
   pythonTimeComplexity?: string;

@@ -2937,6 +2937,10 @@ For -2147483648, never take its absolute value: 2147483648 is outside signed 32-
       'Generalized form: Minimize k s.t. k*k > x, then return k - 1. Binary search works perfectly here: you\'re looking for the largest integer whose square is at most x. Using the generalized template with condition k² > x, left converges to the first k where k² > x, so left - 1 is the floor of sqrt(x).',
     approach:
       'Use the generalized binary search template: minimize k s.t. k*k > x, then return k - 1. Initialize right = x + 1 to handle edge cases x = 0 and x = 1. The result left - 1 gives the floor of the square root.',
+    jsIntuition:
+      'The answer is the largest integer whose square is at most x. Squaring nonnegative integers preserves their order, so binary search can discard half the remaining candidates after each comparison. Keep the best valid candidate in answer while looking for a larger one.',
+    jsApproach:
+      'Search the inclusive range from 0 to x and start answer at 0. Return mid immediately when its square equals x. If its square is smaller, save mid in answer and search larger candidates. Otherwise, search smaller candidates. When the range is empty, return answer.',
     code: `class Solution:
     def mySqrt(self, x: int) -> int:
         lo, hi = 0, x + 1
@@ -2948,34 +2952,48 @@ For -2147483648, never take its absolute value: 2147483648 is outside signed 32-
                 lo = mid + 1
         return lo - 1`,
     jsCode: `var mySqrt = function(x) {
-    // Generalized form: minimize k s.t. k*k > x, return k - 1
     let lo = 0;
-    let hi = x + 1; // right = x + 1 to handle x = 0 and x = 1
+    let hi = x;
+    let answer = 0;
 
-    while (lo < hi) {
+    while (lo <= hi) {
         const mid = Math.floor((lo + hi) / 2);
+        const square = mid * mid;
 
-        if (mid * mid > x) {
-            // mid satisfies the condition — could be the answer
-            hi = mid;
-        } else {
-            // mid doesn't satisfy — answer is to the right
+        // Found the exact square root.
+        if (square === x) {
+            return mid;
+        }
+
+        if (square < x) {
+            // mid is a valid answer, but a larger one might fit.
+            answer = mid;
             lo = mid + 1;
+        } else {
+            // mid is too large.
+            hi = mid - 1;
         }
     }
 
-    // lo is the first k where k² > x, so lo - 1 is floor(sqrt(x))
-    return lo - 1;
+    // For a non-perfect square, return the largest valid candidate.
+    return answer;
 };`,
     jsWalkthrough:
-      'Generalized: minimize k s.t. k*k > x, return k-1\n\n' +
       'Input: x = 8\n' +
-      'lo=0, hi=9\n\n' +
-      'mid=4: 16 > 8? Yes → hi=4\n' +
-      'mid=2: 4 > 8? No → lo=3\n' +
-      'mid=3: 9 > 8? Yes → hi=3\n' +
-      'lo===hi=3 → return 3-1 = 2\n\n' +
-      'floor(sqrt(8)) = 2 ✓',
+      'Start: lo = 0, hi = 8, answer = 0.\n\n' +
+      'mid = 4, square = 16: too large, so hi = 3.\n' +
+      'mid = 1, square = 1: valid, so answer = 1 and lo = 2.\n' +
+      'mid = 2, square = 4: valid, so answer = 2 and lo = 3.\n' +
+      'mid = 3, square = 9: too large, so hi = 2.\n' +
+      'Now lo > hi. Return answer = 2.\n\n' +
+      'For x = 4, the first midpoint is 2 and square = 4. Return 2 immediately.',
+    jsExplanation:
+      '1. Initialize lo = 0, hi = x, and answer = 0. Both bounds are included in the search.\n' +
+      '2. While lo <= hi, choose the integer midpoint and calculate square = mid * mid.\n' +
+      '3. If square === x, return mid: it is the exact square root.\n' +
+      '4. If square < x, save answer = mid and set lo = mid + 1 to look for a larger valid candidate.\n' +
+      '5. Otherwise, set hi = mid - 1 because mid and every larger candidate are too large.\n' +
+      '6. When lo > hi, return answer, the largest candidate found whose square does not exceed x.',
     explanation:
       '1. Apply generalized template: minimize k s.t. k² > x.\n' +
       '2. Initialize lo = 0, hi = x + 1 to handle x = 0 and x = 1.\n' +

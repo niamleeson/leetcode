@@ -2,11 +2,11 @@
   "problems": 250,
   "languages": 2,
   "lessons": 500,
-  "revision": "57c83c39348f5569",
-  "questions": 7529,
-  "structureQuestions": 1138,
-  "implementationQuestions": 5891,
+  "revision": "d4c59a11a102967e",
+  "questions": 7536,
+  "structureQuestions": 1140,
+  "implementationQuestions": 5896,
   "referenceCases": 1460,
-  "testedWrongChoices": 16117,
-  "bytes": 14921703
+  "testedWrongChoices": 16132,
+  "bytes": 14932891
 }

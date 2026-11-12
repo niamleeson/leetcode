@@ -68,7 +68,7 @@ export const solutionFiles: Record<number, string> = {
   "66": "66-71642e698cee5f10.json",
   "67": "67-c41507c41d1275ca.json",
   "68": "68-c54860082cb9031e.json",
-  "69": "69-65fafeb9e69b5a6c.json",
+  "69": "69-a83377b964bf1e08.json",
   "70": "70-14aa56d042ec8dff.json",
   "71": "71-6da839006f83abd9.json",
   "72": "72-74e24161dc43bf59.json",

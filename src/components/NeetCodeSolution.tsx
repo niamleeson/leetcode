@@ -1,4 +1,5 @@
 import { ProblemSolution } from '../data/solutions/types';
+import { solutionProse } from '../data/solutions/prose';
 import { useProblemSolution } from '../hooks/useProblemSolution';
 import CodeBlock from './CodeBlock';
 import FollowUpSolution from './FollowUpSolution';
@@ -20,6 +21,7 @@ function InlineSolution({ solution, language }: { solution: ProblemSolution; lan
   const showJs = language === 'javascript' && !!solution.jsCode;
   const code = showJs ? solution.jsCode! : solution.code;
   const codeLang: Lang = showJs ? 'javascript' : 'python';
+  const prose = solutionProse(solution, codeLang);
   const interactive = hasExecutionWalkthrough(solution.id, undefined, codeLang);
 
   return (
@@ -37,19 +39,19 @@ function InlineSolution({ solution, language }: { solution: ProblemSolution; lan
         </pre>
       )}
 
-      {solution.intuition && (
+      {prose.intuition && (
         <div>
           <h4 className="text-[10px] font-semibold text-cyan-400 light:text-cyan-700 uppercase tracking-wider mb-1.5">Intuition</h4>
           <p className="text-xs text-gray-300 light:text-gray-700 leading-relaxed whitespace-pre-line bg-cyan-950/20 light:bg-cyan-50 border border-cyan-900/30 light:border-cyan-200 rounded-md p-3">
-            {solution.intuition}
+            {prose.intuition}
           </p>
         </div>
       )}
 
-      {solution.approach && (
+      {prose.approach && (
         <div>
           <h4 className="text-[10px] font-semibold text-blue-400 light:text-blue-700 uppercase tracking-wider mb-1.5">Approach</h4>
-          <p className="text-xs text-gray-400 light:text-gray-600 leading-relaxed whitespace-pre-line">{solution.approach}</p>
+          <p className="text-xs text-gray-400 light:text-gray-600 leading-relaxed whitespace-pre-line">{prose.approach}</p>
         </div>
       )}
 
@@ -71,10 +73,10 @@ function InlineSolution({ solution, language }: { solution: ProblemSolution; lan
         )}
       </div>
 
-      {solution.explanation && (
+      {prose.explanation && (
         <div>
           <h4 className="text-[10px] font-semibold text-yellow-400 light:text-yellow-700 uppercase tracking-wider mb-1.5">Explanation</h4>
-          <p className="text-xs text-gray-400 light:text-gray-600 leading-relaxed whitespace-pre-line">{solution.explanation}</p>
+          <p className="text-xs text-gray-400 light:text-gray-600 leading-relaxed whitespace-pre-line">{prose.explanation}</p>
         </div>
       )}
 

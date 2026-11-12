@@ -310,7 +310,7 @@
     "69": {
       "title": "Sqrt(x)",
       "python": "ffe0d93a5445782e1393e111be527f3fc21372bbdaf5dac32c6c6236b80303cd",
-      "javascript": "7be9899d1da6e025ab72351cb57751aed732e516d604de95738f082f429bb133"
+      "javascript": "30fa11aeca34639b8f84e95c82b8507477b557a59973e685ebedb92dcc699fe2"
     },
     "74": {
       "title": "Search a 2D Matrix",

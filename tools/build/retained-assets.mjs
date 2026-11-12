@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
+import { lstatSync, mkdirSync, readdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 export const GENERATIONS_TO_KEEP = 6;
@@ -10,14 +10,14 @@ function validName(name) {
     !path.posix.isAbsolute(name) && name.split('/').every(part => part && part !== '.' && part !== '..');
 }
 
-function requireName(name) {
+export function requireName(name) {
   if (!validName(name)) throw new Error(`Unsafe retained asset path: ${JSON.stringify(name)}`);
 }
 
 export function readAssets(outputDirectory) {
   const assets = new Map();
   const root = path.join(outputDirectory, 'assets');
-  if (!existsSync(root)) return assets;
+  if (!lstatSync(root, { throwIfNoEntry: false })) return assets;
   const visit = (directory, prefix = '') => {
     if (!lstatSync(directory).isDirectory()) throw new Error(`Asset directory is not a regular directory: ${directory}`);
     for (const entry of readdirSync(directory, { withFileTypes: true })) {
@@ -43,12 +43,14 @@ export function generationFor(assets) {
   return { id: hash.digest('hex'), files };
 }
 
-export function readHistory(outputDirectory) {
-  const assets = readAssets(outputDirectory);
-  const manifestPath = path.join(outputDirectory, MANIFEST_NAME);
-  if (!existsSync(manifestPath)) {
+export function readHistory(outputDirectory, { readFiles = readAssets, manifestName = MANIFEST_NAME, validateName = requireName } = {}) {
+  const assets = readFiles(outputDirectory);
+  const manifestPath = path.join(outputDirectory, manifestName);
+  const manifestStat = lstatSync(manifestPath, { throwIfNoEntry: false });
+  if (!manifestStat) {
     return { assets, generations: assets.size ? [generationFor(assets)] : [] };
   }
+  if (!manifestStat.isFile()) throw new Error(`Retention manifest is not a regular file: ${manifestPath}`);
   const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
   if (manifest.version !== 1 || !Array.isArray(manifest.generations) || manifest.generations.length > GENERATIONS_TO_KEEP) {
     throw new Error('Invalid asset generation manifest');
@@ -61,7 +63,7 @@ export function readHistory(outputDirectory) {
     }
     const files = new Map();
     for (const name of generation.files) {
-      requireName(name);
+      validateName(name);
       if (!assets.has(name)) throw new Error(`Retained asset is missing: ${name}`);
       if (files.has(name)) throw new Error(`Duplicate retained asset: ${name}`);
       files.set(name, assets.get(name));
@@ -95,30 +97,33 @@ function uniqueGenerations(generations) {
   }).slice(0, GENERATIONS_TO_KEEP);
 }
 
-export function writeHistory(outputDirectory, assets, generations) {
+export function writeHistory(outputDirectory, assets, generations, { readFiles = readAssets, manifestName = MANIFEST_NAME, validateName = requireName, directoryPrefix = 'assets' } = {}) {
+  const manifestPath = path.join(outputDirectory, manifestName);
+  const manifestStat = lstatSync(manifestPath, { throwIfNoEntry: false });
+  if (manifestStat && !manifestStat.isFile()) throw new Error(`Retention manifest is not a regular file: ${manifestPath}`);
   generations = uniqueGenerations(generations);
   const selected = new Map();
   for (const generation of generations) {
     for (const name of generation.files) {
-      requireName(name);
+      validateName(name);
       if (!assets.has(name)) throw new Error(`Cannot publish missing retained asset: ${name}`);
       selected.set(name, assets.get(name));
     }
   }
   // Validate before writing: hashed names must remain immutable across releases.
-  const existing = readAssets(outputDirectory);
+  const existing = readFiles(outputDirectory);
   mergeAssets(existing, selected);
   for (const [name, content] of selected) {
     if (existing.has(name)) continue;
-    const destination = path.join(outputDirectory, 'assets', name);
+    const destination = path.join(outputDirectory, directoryPrefix, name);
     mkdirSync(path.dirname(destination), { recursive: true });
     writeFileSync(destination, content);
   }
   for (const name of existing.keys()) {
-    if (!selected.has(name)) unlinkSync(path.join(outputDirectory, 'assets', name));
+    if (!selected.has(name)) unlinkSync(path.join(outputDirectory, directoryPrefix, name));
   }
   mkdirSync(outputDirectory, { recursive: true });
-  writeFileSync(path.join(outputDirectory, MANIFEST_NAME), `${JSON.stringify({ version: 1, generations }, null, 2)}\n`);
+  writeFileSync(manifestPath, `${JSON.stringify({ version: 1, generations }, null, 2)}\n`);
   return { generations: generations.length, restored: [...selected.keys()].filter(name => !existing.has(name)).length };
 }
 

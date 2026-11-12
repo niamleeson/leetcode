@@ -53,6 +53,72 @@
       "explanation": "A missing available copy means the second string has more of that character than the first."
     }
   ],
+  "69": [
+    {
+      "id": "range",
+      "prompt": "Which candidate integers should the search begin with?",
+      "correct": "Zero through x, including both endpoints.",
+      "wrong": [
+        {
+          "label": "One through x, including both endpoints.",
+          "feedback": "The answer can be zero when x is zero, so zero must remain a candidate."
+        },
+        {
+          "label": "Zero through x minus one.",
+          "feedback": "When x is one, the answer is one. Excluding x would miss it."
+        }
+      ],
+      "explanation": "The floor square root of a nonnegative integer lies between zero and x. Including both endpoints also handles zero and one."
+    },
+    {
+      "id": "exact-match",
+      "prompt": "What should happen if the middle candidate's square equals x?",
+      "correct": "Return that candidate immediately.",
+      "wrong": [
+        {
+          "label": "Keep searching for a larger valid candidate.",
+          "feedback": "A larger nonnegative integer has a larger square, so it cannot fit once an exact square root is found."
+        },
+        {
+          "label": "Return x instead of the candidate.",
+          "feedback": "The requested result is the square root, not the original input. For x equal to nine, return three."
+        }
+      ],
+      "explanation": "An exact square root is already the largest integer whose square does not exceed x."
+    },
+    {
+      "id": "best-candidate",
+      "prompt": "What should we remember when the middle candidate's square is smaller than x?",
+      "correct": "Save that candidate as the best valid answer found so far.",
+      "wrong": [
+        {
+          "label": "Save its square as the answer.",
+          "feedback": "The answer is an integer whose square fits, not the squared value. For x equal to eight, save two rather than four."
+        },
+        {
+          "label": "Discard it because its square does not equal x.",
+          "feedback": "A non-perfect square still needs a rounded-down answer. A candidate with a smaller square may be that answer."
+        }
+      ],
+      "explanation": "This candidate already fits. Keep it while searching larger integers to see whether one of them fits too."
+    },
+    {
+      "id": "finish",
+      "prompt": "If the bounds cross without an exact match, what should we return?",
+      "correct": "The largest valid candidate saved during the search.",
+      "wrong": [
+        {
+          "label": "The smallest integer whose square exceeds x.",
+          "feedback": "That integer rounds the square root up. The problem asks for the rounded-down result."
+        },
+        {
+          "label": "Zero for every non-perfect square.",
+          "feedback": "A non-perfect square can have a positive rounded-down square root. For example, x equal to eight needs two."
+        }
+      ],
+      "explanation": "Crossed bounds mean no untested candidates remain. The saved answer is the largest integer found whose square fits within x."
+    }
+  ],
   "84": [
     {
       "id": "entries",

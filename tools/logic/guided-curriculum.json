@@ -3,6 +3,7 @@
   "scope": "NeetCode 250",
   "approachNotice": "Follow one worked approach; other approaches can also be valid.",
   "algorithmPlanOverrides": [
+    69,
     84,
     190,
     242,
@@ -10074,7 +10075,7 @@
       "title": "Sqrt(x)",
       "sourceHashes": {
         "python": "ffe0d93a5445782e1393e111be527f3fc21372bbdaf5dac32c6c6236b80303cd",
-        "javascript": "7be9899d1da6e025ab72351cb57751aed732e516d604de95738f082f429bb133"
+        "javascript": "30fa11aeca34639b8f84e95c82b8507477b557a59973e685ebedb92dcc699fe2"
       },
       "patternId": "binary-search",
       "patternRationale": "Compare a middle candidate, then eliminate the half that cannot contain the answer.",
@@ -10222,45 +10223,89 @@
           },
           "structureQuestions": [
             {
-              "id": "boundary",
-              "prompt": "Which boundary does this worked binary search look for?",
+              "id": "range",
+              "prompt": "Which candidate integers should the search begin with?",
               "options": [
                 {
                   "id": "correct",
-                  "label": "The first integer whose square exceeds x.",
-                  "feedback": "Finding the first square above x places the floor square root immediately before it."
+                  "label": "Zero through x, including both endpoints.",
+                  "feedback": "The floor square root of a nonnegative integer lies between zero and x. Including both endpoints also handles zero and one."
                 },
                 {
                   "id": "alternative-1",
-                  "label": "The first integer whose square is at least x.",
-                  "feedback": "Finding the first square above x places the floor square root immediately before it."
+                  "label": "One through x, including both endpoints.",
+                  "feedback": "The answer can be zero when x is zero, so zero must remain a candidate."
                 },
                 {
                   "id": "alternative-2",
-                  "label": "The largest integer whose square exceeds x.",
-                  "feedback": "Finding the first square above x places the floor square root immediately before it."
+                  "label": "Zero through x minus one.",
+                  "feedback": "When x is one, the answer is one. Excluding x would miss it."
                 }
               ],
               "correctId": "correct"
             },
             {
-              "id": "result",
-              "prompt": "What should be returned from that first-too-large boundary?",
+              "id": "exact-match",
+              "prompt": "What should happen if the middle candidate's square equals x?",
               "options": [
                 {
-                  "id": "alternative-2",
-                  "label": "The next integer.",
-                  "feedback": "The floor square root must still have a square no greater than x."
+                  "id": "alternative-1",
+                  "label": "Keep searching for a larger valid candidate.",
+                  "feedback": "A larger nonnegative integer has a larger square, so it cannot fit once an exact square root is found."
                 },
                 {
                   "id": "correct",
-                  "label": "The preceding integer.",
-                  "feedback": "The floor square root must still have a square no greater than x."
+                  "label": "Return that candidate immediately.",
+                  "feedback": "An exact square root is already the largest integer whose square does not exceed x."
+                },
+                {
+                  "id": "alternative-2",
+                  "label": "Return x instead of the candidate.",
+                  "feedback": "The requested result is the square root, not the original input. For x equal to nine, return three."
+                }
+              ],
+              "correctId": "correct"
+            },
+            {
+              "id": "best-candidate",
+              "prompt": "What should we remember when the middle candidate's square is smaller than x?",
+              "options": [
+                {
+                  "id": "correct",
+                  "label": "Save that candidate as the best valid answer found so far.",
+                  "feedback": "This candidate already fits. Keep it while searching larger integers to see whether one of them fits too."
                 },
                 {
                   "id": "alternative-1",
-                  "label": "The boundary itself.",
-                  "feedback": "The floor square root must still have a square no greater than x."
+                  "label": "Save its square as the answer.",
+                  "feedback": "The answer is an integer whose square fits, not the squared value. For x equal to eight, save two rather than four."
+                },
+                {
+                  "id": "alternative-2",
+                  "label": "Discard it because its square does not equal x.",
+                  "feedback": "A non-perfect square still needs a rounded-down answer. A candidate with a smaller square may be that answer."
+                }
+              ],
+              "correctId": "correct"
+            },
+            {
+              "id": "finish",
+              "prompt": "If the bounds cross without an exact match, what should we return?",
+              "options": [
+                {
+                  "id": "correct",
+                  "label": "The largest valid candidate saved during the search.",
+                  "feedback": "Crossed bounds mean no untested candidates remain. The saved answer is the largest integer found whose square fits within x."
+                },
+                {
+                  "id": "alternative-1",
+                  "label": "The smallest integer whose square exceeds x.",
+                  "feedback": "That integer rounds the square root up. The problem asks for the rounded-down result."
+                },
+                {
+                  "id": "alternative-2",
+                  "label": "Zero for every non-perfect square.",
+                  "feedback": "A non-perfect square can have a positive rounded-down square root. For example, x equal to eight needs two."
                 }
               ],
               "correctId": "correct"

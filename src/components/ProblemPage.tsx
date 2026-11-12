@@ -2,6 +2,7 @@ import { lazy, Suspense, useState } from 'react';
 import { Link, useParams, Navigate } from 'react-router-dom';
 import { uniqueProblems } from '../data/problems';
 import { hasSolution } from '../data/solutions/lazy';
+import { solutionProse } from '../data/solutions/prose';
 import { hasLogicProblem } from '../data/logic';
 import { useProblemSolution } from '../hooks/useProblemSolution';
 import { ProblemProgress } from '../types';
@@ -113,6 +114,7 @@ export default function ProblemPage({ getProgress, onRate, onUpdateNotes, onRese
   if (!problem) return <Navigate to="/problems" replace />;
 
   const progress = getProgress(problem.id);
+  const prose = solutionProse(solution, language === 'javascript' && solution?.jsCode ? 'javascript' : 'python');
 
   return (
     <div className="space-y-6 max-w-3xl">
@@ -157,17 +159,17 @@ export default function ProblemPage({ getProgress, onRate, onUpdateNotes, onRese
           </section>
 
           {/* ── Intuition ── */}
-          {solution.intuition && (
+          {prose.intuition && (
             <section>
               <h2 className="text-xs font-semibold text-cyan-400 light:text-cyan-700 uppercase tracking-wider mb-2">Intuition</h2>
-              <div className="text-sm text-gray-300 light:text-gray-700 leading-relaxed whitespace-pre-line bg-cyan-950/20 light:bg-cyan-50 border border-cyan-900/30 light:border-cyan-200 rounded-md p-4"><GlossaryHighlighter text={solution.intuition} /></div>
+              <div className="text-sm text-gray-300 light:text-gray-700 leading-relaxed whitespace-pre-line bg-cyan-950/20 light:bg-cyan-50 border border-cyan-900/30 light:border-cyan-200 rounded-md p-4"><GlossaryHighlighter text={prose.intuition} /></div>
             </section>
           )}
 
           {/* ── Approach ── */}
           <section>
             <h2 className="text-xs font-semibold text-blue-400 light:text-blue-700 uppercase tracking-wider mb-2">Approach</h2>
-            <GlossaryHighlighter text={solution.approach} className="text-sm text-gray-400 light:text-gray-600 leading-relaxed" />
+            <GlossaryHighlighter text={prose.approach} className="text-sm text-gray-400 light:text-gray-600 leading-relaxed" />
           </section>
 
           {/* ── Hints ── */}
@@ -220,7 +222,7 @@ export default function ProblemPage({ getProgress, onRate, onUpdateNotes, onRese
 
           {/* ── Pseudocode ── */}
           {(() => {
-            const pseudo = buildPseudocode(solution.approach, solution.explanation);
+            const pseudo = buildPseudocode(prose.approach, prose.explanation);
             return (
               <section>
                 <h2 className="text-xs font-semibold text-purple-400 light:text-purple-700 uppercase tracking-wider mb-2">Pseudocode (for memorization)</h2>
@@ -239,7 +241,7 @@ export default function ProblemPage({ getProgress, onRate, onUpdateNotes, onRese
           {/* ── Explanation ── */}
           <section>
             <h2 className="text-xs font-semibold text-yellow-400 light:text-yellow-700 uppercase tracking-wider mb-2">Explanation</h2>
-            <GlossaryHighlighter text={solution.explanation} className="text-sm text-gray-400 light:text-gray-600 leading-relaxed whitespace-pre-line" />
+            <GlossaryHighlighter text={prose.explanation} className="text-sm text-gray-400 light:text-gray-600 leading-relaxed whitespace-pre-line" />
           </section>
 
           {/* ── Complexity ── */}
