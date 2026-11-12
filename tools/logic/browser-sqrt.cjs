@@ -58,17 +58,23 @@ async function codeFromWalkthrough(page, language) {
     assert.equal(await page.locator('.guided-choice').count(), 8);
     assert.equal(await language('JavaScript').getAttribute('aria-pressed'), 'true');
     assert(await page.getByRole('region', { name: 'Full problem & examples', exact: true }).isVisible());
-    await reference.getByRole('button', { name: 'Solution', exact: true }).tap();
+    assert.equal(await reference.getByRole('button', { name: 'Solution', exact: true }).getAttribute('aria-expanded'), 'true');
     await reference.locator('pre code').waitFor();
     matchesSource(await reference.locator('pre code').innerText(), solution.jsCode);
     await checkJavaScriptProse(reference);
+    assert(requests.filter(url => /\/solutions\//.test(url)).every(url => /\/solutions\/69-[^/]+\.json$/.test(url)), 'Opening a problem downloaded unrelated solutions');
     await reference.getByRole('button', { name: 'Solution', exact: true }).tap();
+    assert.equal(await reference.locator('pre code').count(), 0, 'Solution could not be collapsed');
+    await reference.getByRole('button', { name: 'Solution', exact: true }).tap();
+    await reference.locator('pre code').waitFor();
     assert(!requests.some(url => runtime.test(url)), 'Solution reveal loaded the execution runtime');
 
     const implementationStart = js.questions.findIndex(question => question.stage === 'implementation');
     for (let index = 0; index < js.questions.length; index++) {
       const question = js.questions[index];
       await at(question);
+      assert.equal(await reference.getByRole('button', { name: 'Solution', exact: true }).getAttribute('aria-expanded'), 'true', 'Solution closed while advancing the quiz');
+      assert(await reference.locator('pre code').isVisible());
       assert.equal(await page.getByRole('button', { name: 'Run tests', exact: true }).count(), 0, 'Runner appeared before the final answer');
       if (question.stage === 'structure') {
         assert.equal(await page.locator('.guided-question-card').count(), 1);
@@ -108,6 +114,10 @@ async function codeFromWalkthrough(page, language) {
     assert(!requests.some(url => url.includes('/vendor/pyodide/')), 'JavaScript downloaded Python');
     await noOverflow();
     await page.screenshot({ path: path.join(output, 'sqrt-guided-completed-mobile.png'), fullPage: true });
+    await page.getByRole('button', { name: 'Start again', exact: true }).tap();
+    await at(js.questions[0]);
+    await reference.locator('pre code').waitFor();
+    assert.equal(await reference.getByRole('button', { name: 'Solution', exact: true }).getAttribute('aria-expanded'), 'true', 'Restart collapsed the solution');
 
     await page.goto(`${base}#/problem/69`);
     await page.getByRole('heading', { name: 'JavaScript Solution', exact: true }).waitFor();
@@ -150,13 +160,19 @@ async function codeFromWalkthrough(page, language) {
     assert.equal(await language('JavaScript').getAttribute('aria-pressed'), 'true', 'Practice link lost the shared JavaScript selection');
     await language('Python').tap();
     await at(python.questions[0]);
-    await reference.getByRole('button', { name: 'Solution', exact: true }).tap();
+    assert.equal(await reference.getByRole('button', { name: 'Solution', exact: true }).getAttribute('aria-expanded'), 'true', 'Changing language collapsed the solution');
     await reference.getByRole('heading', { name: 'Python solution', exact: true }).waitFor();
     matchesSource(await reference.locator('pre code').innerText(), solution.code);
+    await choose(python.questions[0]);
+    assert(await reference.locator('pre code').isVisible(), 'Python solution closed while advancing');
+    await page.goto(`${base}#/practice/1?language=python`);
+    await reference.getByRole('heading', { name: 'Python solution', exact: true }).waitFor();
+    assert.equal(await reference.getByRole('button', { name: 'Solution', exact: true }).getAttribute('aria-expanded'), 'true', 'Changing problems collapsed the solution');
+    assert.match(await reference.locator('pre code').innerText(), /def twoSum/);
     await page.waitForLoadState('networkidle');
     assert.deepEqual(errors, []);
     assert.deepEqual(failures, []);
-    const report = { passed: true, revision, patternChoices: 8, structureQuestions: 4, implementationQuestions: 12, questions: js.questions.length, wrongAnswersStay: true, completedCodeMatchesCanonical: true, debugCases, pages: ['guided practice', 'problem detail', 'NeetCode 250'], javascriptProseMatches: true, sharedLanguage: true, pythonCodeUnchanged: true, runtimeBeforeRun: false, failedResources: 0 };
+    const report = { passed: true, revision, patternChoices: 8, structureQuestions: 4, implementationQuestions: 12, questions: js.questions.length, wrongAnswersStay: true, completedCodeMatchesCanonical: true, debugCases, pages: ['guided practice', 'problem detail', 'NeetCode 250'], javascriptProseMatches: true, sharedLanguage: true, pythonCodeUnchanged: true, solutionOpenByDefault: true, solutionStaysOpenDuringQuiz: true, optionalCollapseWorks: true, runtimeBeforeRun: false, failedResources: 0 };
     fs.writeFileSync(path.join(output, 'sqrt-browser-report.json'), JSON.stringify(report, null, 2));
     console.log(JSON.stringify(report, null, 2));
   } catch (error) {

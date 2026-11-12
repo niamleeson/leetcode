@@ -193,7 +193,7 @@ async function solutionRecoveryCheck(browser, language, reviewingOpening) {
       await page.getByText('Review the approach and each structure step, then continue your saved implementation.', { exact: true }).waitFor();
     }
     const expectedProgress = await page.evaluate(key => JSON.parse(localStorage.getItem(key)), storageKey(language));
-    await page.getByRole('button', { name: 'Solution', exact: true }).tap();
+    // The default-open solution can fail immediately; the quiz remains usable.
     const reload = page.getByRole('button', { name: 'Reload page', exact: true });
     await reload.waitFor();
     await at(page, document.questions[currentIndex]);
@@ -208,7 +208,7 @@ async function solutionRecoveryCheck(browser, language, reviewingOpening) {
       await at(page, document.questions[resumeAt]);
       assert.equal(await page.getByText('Review the approach and each structure step, then continue your saved implementation.', { exact: true }).count(), 0);
     }
-    await page.getByRole('button', { name: 'Solution', exact: true }).tap();
+    assert.equal(await page.getByRole('button', { name: 'Solution', exact: true }).getAttribute('aria-expanded'), 'true');
     await page.getByRole('heading', { name: `${language === 'python' ? 'Python' : 'JavaScript'} solution`, exact: true }).waitFor();
     await page.locator('.logic-solution-content code').first().waitFor();
     assert(!requests.some(url => runtimePattern.test(url)), 'Showing the solution downloaded an execution runtime');

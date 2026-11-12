@@ -5,7 +5,7 @@ export default function SolutionReveal(props: Props) {
   return <RevealContent key={`${props.id}:${props.language ?? 'python'}`} {...props} />;
 }
 function RevealContent({ id, language = 'python', approach, explanation }: Props) {
-  const [revealed, setRevealed] = useState(false);
+  const [revealed, setRevealed] = useState(true);
   const target = `practice-solution-${id}-${language}`;
   return <section className="logic-reference" aria-label="Reference solution">
     <button type="button" className="logic-reveal-button" aria-expanded={revealed} aria-controls={target} onClick={() => setRevealed(value => !value)}>

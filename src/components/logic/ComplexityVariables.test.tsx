@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { cleanup, render, screen, within } from '@testing-library/react';
 import SolutionComplexity from '../SolutionComplexity';
 import SolutionReveal from './SolutionReveal';
 import { loadSolution } from '../../data/solutions/lazy';
@@ -73,11 +73,9 @@ describe('complexity variable meanings beside the estimates', () => {
     expect(screen.getAllByText('O(1)')).toHaveLength(2);
   });
 
-  it('loads definitions only after guided Solution and switches their language with the solution', async () => {
+  it('shows definitions in the open Solution by default and switches their language with the solution', async () => {
     const view = render(<SolutionReveal id={49} language="javascript" />);
-    expect(loadSolution).not.toHaveBeenCalled();
-    expect(screen.queryByRole('list', { name: 'Complexity variables' })).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Solution' }));
+    expect(screen.getByRole('button', { name: 'Solution' }).getAttribute('aria-expanded')).toBe('true');
     await screen.findByRole('list', { name: 'Complexity variables' });
     expect(loadSolution).toHaveBeenCalledWith(49);
     expect(screen.getByText('O(N × L)')).toBeTruthy();
@@ -85,8 +83,7 @@ describe('complexity variable meanings beside the estimates', () => {
     expect(legend().closest('[hidden]')).toBeNull();
 
     view.rerender(<SolutionReveal id={49} language="python" />);
-    expect(screen.queryByRole('list', { name: 'Complexity variables' })).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Solution' }));
+    expect(screen.getByRole('button', { name: 'Solution' }).getAttribute('aria-expanded')).toBe('true');
     await screen.findByRole('heading', { name: 'Python solution' });
     await screen.findByText('O(w²)');
     expect(legend().textContent).toBe('w — Number of words compared');
