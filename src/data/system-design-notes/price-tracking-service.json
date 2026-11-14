@@ -1,0 +1,234 @@
+{
+  "title": "Price Tracking Service",
+  "sections": [
+    {
+      "title": "Understanding the Problem",
+      "level": 3,
+      "points": [
+        "Track product prices over time and notify users when a price crosses their chosen threshold.",
+        "Discovery, trustworthy price collection, time-series storage, and notification fanout are separate parts of the pipeline."
+      ],
+      "diagrams": []
+    },
+    {
+      "title": "Functional Requirements",
+      "level": 3,
+      "points": [
+        "Show price history from a website or browser extension.",
+        "Subscribe to price-drop notifications for a product and threshold.",
+        "Continuously discover and refresh product prices."
+      ],
+      "diagrams": []
+    },
+    {
+      "title": "Non-functional Requirements",
+      "level": 3,
+      "points": [
+        "Scale to a catalog of around 500 million products without polling every product at the same high frequency.",
+        "Return chart data quickly and avoid duplicate or misleading alerts.",
+        "Treat extension-provided prices as untrusted observations, not automatically authoritative prices."
+      ],
+      "diagrams": [
+        {
+          "filename": "01.svg",
+          "caption": "CamelCamelCamel Requirements",
+          "revision": "e74e0186b85c",
+          "width": 1084.6055318378533,
+          "height": 170.0
+        }
+      ]
+    },
+    {
+      "title": "Core Entities",
+      "level": 3,
+      "points": [
+        "Product identifies a marketplace item and canonical URL.",
+        "PriceObservation records price, currency, timestamp, source, and validation state.",
+        "Subscription links a user and product to a threshold and delivery preferences.",
+        "CrawlJob and Notification track scheduled collection and retry-safe delivery."
+      ],
+      "diagrams": [
+        {
+          "filename": "02.svg",
+          "caption": "CamelCamelCamel Entities",
+          "revision": "f9ac63c685a4",
+          "width": 154.37986755371094,
+          "height": 170.0
+        }
+      ]
+    },
+    {
+      "title": "API",
+      "level": 3,
+      "points": [
+        "Query product history over a time range and requested chart resolution.",
+        "Create, update, or remove a threshold subscription.",
+        "Submit extension observations with product identity and evidence for validation.",
+        "Return subscription state and distinguish accepted observations from verified prices."
+      ],
+      "diagrams": []
+    },
+    {
+      "title": "High-Level Design",
+      "level": 3,
+      "points": [],
+      "diagrams": []
+    },
+    {
+      "title": "1) History and collection",
+      "level": 4,
+      "points": [
+        "Collect prices through permitted source interfaces, scheduled fetches, and extension observations.",
+        "Normalize product identity, currency, and timestamps before storing a time series.",
+        "Index history by product and time; serve a bounded number of chart points rather than every raw observation."
+      ],
+      "diagrams": [
+        {
+          "filename": "03.svg",
+          "caption": "CamelCamelCamel High Level Design - Price History",
+          "revision": "c428c5836e40",
+          "width": 2039.4987814380963,
+          "height": 613.248592686864
+        }
+      ]
+    },
+    {
+      "title": "2) Subscriptions and alerts",
+      "level": 4,
+      "points": [
+        "Store subscriptions indexed by product and threshold so a price change can locate eligible subscribers.",
+        "Publish verified price-change events and process notification work asynchronously.",
+        "Define whether an alert fires on crossing the threshold, every lower price, or once until rearmed."
+      ],
+      "diagrams": [
+        {
+          "filename": "04.svg",
+          "caption": "CamelCamelCamel High Level Design - Subscriptions",
+          "revision": "b5b41ad19438",
+          "width": 2039.498781438096,
+          "height": 755.2839132748306
+        }
+      ]
+    },
+    {
+      "title": "Deep Dives",
+      "level": 3,
+      "points": [],
+      "diagrams": []
+    },
+    {
+      "title": "1) Discover and refresh products",
+      "level": 4,
+      "points": [
+        "A naive full-catalog crawl wastes work on unpopular products whose prices rarely change.",
+        "Prioritize tracked products, recently active products, and those with frequent price changes.",
+        "Use user activity and extension observations as discovery signals, then schedule authoritative verification where needed.",
+        "Keep per-source limits, retry backoff, and crawl state so failures do not restart the entire catalog scan.",
+        "Partition collection tasks by product or source while avoiding concentrated load on one publisher endpoint."
+      ],
+      "diagrams": [
+        {
+          "filename": "05.svg",
+          "caption": "Naive Web Crawler",
+          "revision": "d2344132a164",
+          "width": 2317.1933629782798,
+          "height": 879.0463212829757
+        },
+        {
+          "filename": "06.svg",
+          "caption": "Pareto",
+          "revision": "ae55bc196e2d",
+          "width": 606.7265063139585,
+          "height": 471.2283956623743
+        },
+        {
+          "filename": "07.svg",
+          "caption": "Priority Queue",
+          "revision": "c63d32583027",
+          "width": 2317.1933629782798,
+          "height": 879.0463212829758
+        },
+        {
+          "filename": "08.svg",
+          "caption": "Extension Crowdsource",
+          "revision": "15ac4e7a0d7e",
+          "width": 2317.1933629782798,
+          "height": 879.0463212829759
+        }
+      ]
+    },
+    {
+      "title": "2) Validate malicious observations",
+      "level": 4,
+      "points": [
+        "Authenticate clients where possible, rate-limit submissions, and compare observations with historical ranges and independent sources.",
+        "A single extreme report should trigger verification rather than immediately notify thousands of subscribers.",
+        "Store provenance and confidence so suspicious data can be corrected without losing the audit trail."
+      ],
+      "diagrams": []
+    },
+    {
+      "title": "3) Notify efficiently",
+      "level": 4,
+      "points": [
+        "For a new price, query subscriptions whose threshold is satisfied using an indexed access path.",
+        "Batch recipient work and enqueue delivery jobs so a popular product does not block price ingestion.",
+        "Deduplicate by subscription and qualifying price event, then honor current notification preferences at delivery time.",
+        "Retry provider failures with backoff and retain a terminal failure state for inspection."
+      ],
+      "diagrams": [
+        {
+          "filename": "09.svg",
+          "caption": "Database Change Data Capture",
+          "revision": "da6cd78ddd50",
+          "width": 2317.1933629782798,
+          "height": 895.91288719471
+        }
+      ]
+    },
+    {
+      "title": "4) Fast historical charts",
+      "level": 4,
+      "points": [
+        "Partition time-series data by product and time to keep range scans bounded.",
+        "Precompute hourly or daily aggregates for long ranges, retaining recent detailed samples where useful.",
+        "Cache popular product/range combinations and ensure the resolution matches the displayed chart width.",
+        "Preserve meaningful minima and maxima when downsampling so a short-lived price drop is not erased."
+      ],
+      "diagrams": [
+        {
+          "filename": "10.svg",
+          "caption": "Scheduled Pre-Aggregation",
+          "revision": "0d3b311ef346",
+          "width": 2317.1933629782798,
+          "height": 929.7123056136124
+        },
+        {
+          "filename": "11.svg",
+          "caption": "TimescaleDB",
+          "revision": "0bd9b3f59adc",
+          "width": 2317.1933629782798,
+          "height": 895.0399114567238
+        }
+      ]
+    },
+    {
+      "title": "Final Design",
+      "level": 3,
+      "points": [
+        "Adaptive collection and validation produce trustworthy price-change events.",
+        "Time-series storage and downsampled views serve history; indexed subscriptions drive asynchronous alerts.",
+        "Provenance, deduplication, and explicit alert semantics prevent noisy collection from becoming misleading notifications."
+      ],
+      "diagrams": [
+        {
+          "filename": "12.svg",
+          "caption": "Final Design",
+          "revision": "0bd9b3f59adc",
+          "width": 2317.1933629782798,
+          "height": 895.0399114567238
+        }
+      ]
+    }
+  ]
+}

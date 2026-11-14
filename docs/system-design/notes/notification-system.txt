@@ -1,0 +1,69 @@
+Understanding the Problem
+- Provide a shared delivery service for immediate notifications, scheduled messages, and campaigns across multiple channels.
+- Accepting a request, sending it to a provider, and confirming delivery are different lifecycle stages.
+
+Functional Requirements
+- Accept immediate or scheduled notifications from upstream services.
+- Expand campaigns to a defined user segment.
+- Respect users' channel preferences, opt-outs, and relevant delivery rules.
+
+Non-functional Requirements
+- Never silently drop an accepted notification; persist it before acknowledging acceptance.
+- Deliver high-priority messages within about five seconds even during large campaign blasts.
+- Tolerate provider outages and duplicate queue delivery while keeping user-visible duplication rare.
+
+Core Entities
+- Notification records recipient, template, payload, channel, priority, schedule, idempotency key, and state.
+- Campaign identifies a segment and expansion progress.
+- Preference stores consent and channel rules; DeliveryAttempt records provider request and response identifiers.
+
+API
+- Submit a notification with recipient, template parameters, priority, schedule, and idempotency key.
+- Create a campaign and query its expansion and delivery status.
+- Update user preferences and query notification state.
+- Authenticate sending services and enforce tenant-specific quotas and authorized templates.
+
+High-Level Design
+
+
+1) Immediate and scheduled delivery
+- Validate and persist the request, then enqueue eligible work reliably.
+- Scheduled requests remain durable until a scheduler makes them eligible at the requested time.
+- Channel-specific workers render templates, recheck preferences, and call email, SMS, or push providers.
+- Record provider acceptance and callbacks separately from the initial API acknowledgement.
+
+2) Campaign expansion
+- Resolve the target segment and expand it into bounded batches of recipient work.
+- Track a cursor or checkpoint so restarting expansion neither skips users nor recreates unlimited duplicates.
+- Keep campaign throughput separate from transactional delivery capacity.
+
+3) Preferences
+- Store preferences centrally and cache them with an explicit freshness policy.
+- Recheck at delivery time because users can unsubscribe after a campaign was scheduled.
+- Treat mandatory transactional messages and optional marketing messages according to the product's defined rules.
+
+Deep Dives
+
+
+1) Do not lose accepted work
+- A database write followed by an independent queue publish can fail between the two operations.
+- Use an outbox or another recoverable publication mechanism so committed requests are eventually enqueued.
+- Acknowledge queue messages only after recording the delivery outcome; retry transient failures and quarantine persistent failures.
+- Track age and state transitions so stuck work is observable instead of silently disappearing.
+
+2) Priority and provider capacity
+- Separate high-priority and bulk queues or reserve worker capacity for urgent notifications.
+- Apply provider- and tenant-specific rate limits so campaigns cannot exhaust a shared provider quota.
+- Use backpressure, bounded retries, and circuit breaking during provider outages.
+- A priority label alone is insufficient if urgent work still waits behind a large non-preemptible batch.
+
+3) Duplicate prevention
+- Deduplicate API requests using an idempotency key scoped to the sender and logical notification.
+- Queue consumers also need deduplication because at-least-once delivery can repeat work after a crash.
+- If a provider accepts a send but the response is lost, local state alone cannot prove whether another send is safe.
+- Use provider idempotency or status lookup when supported, and reconcile ambiguous outcomes instead of promising universal exactly-once delivery.
+
+Final Design
+- Durable request storage and reliable queue publication form the acceptance boundary.
+- Scheduled and campaign producers feed priority-aware channel workers.
+- Delivery-time preference checks, provider-aware retries, and end-to-end idempotency keep the service dependable under both bursts and failures.

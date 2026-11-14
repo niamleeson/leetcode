@@ -1,0 +1,68 @@
+Understanding the Problem
+- Continuously identify the most-viewed videos for specified time windows.
+- The challenge is aggregating a high-volume event stream and answering ranking queries without sorting the full video catalog each time.
+
+Functional Requirements
+- Return top K videos, with K bounded to a maximum such as 1,000.
+- Support all-time totals and tumbling windows such as an hour, day, or month.
+- Consider sliding windows and approximate answers as extensions with different state and accuracy costs.
+
+Non-functional Requirements
+- Ingest a very large number of view events while keeping ranking queries fast.
+- Define freshness and accuracy explicitly; a recently updated cached ranking is different from an exact count at the current instant.
+- Recover stream processing after failures without permanently losing or double-counting events.
+
+Core Entities
+- ViewEvent contains video ID, event ID, and event time.
+- WindowCount stores a video's aggregate for a specific window.
+- RankingSnapshot stores the top candidates and their counts for a completed or current window.
+
+API
+- Ingest a view event or batch with a stable event identity where deduplication is required.
+- Query top K for a window type and time boundary, returning ranking freshness metadata.
+- Validate supported windows and K limits to avoid unbounded query work.
+
+High-Level Design
+
+
+1) All-time and windowed counts
+- Persist events to a durable log, aggregate by video, and write compact counts to queryable storage.
+- Tumbling windows assign each event to a non-overlapping time interval.
+- Maintain a materialized ranking view instead of scanning every counter for each user query.
+- Event time and processing time differ; specify how delayed events affect published rankings.
+
+Deep Dives
+
+
+1) Reduce repeated reads
+- Cache the top results per window and refresh them on a defined cadence.
+- Precomputing rankings trades freshness for much lower query cost.
+- Reuse a larger top list to answer smaller K values rather than caching every possible K independently.
+
+2) Ingestion and writes
+- Partition events by video ID so each video's count is combined consistently.
+- Batch local increments before writing downstream, reducing network and database write amplification.
+- A viral video is a hot key; split its ingestion into partial counters and merge them before final ranking.
+- Preserve event identity or use checkpointed processing with compatible sinks when exact counting is required.
+
+3) Efficient top K
+- A heap or sorted structure maintains a small candidate set more efficiently than repeatedly sorting every video.
+- Compute local top K on disjoint partitions, then merge candidates to obtain the global top K.
+- This works only when each video's complete score belongs to one partition at the ranking stage; partial counts must be combined first.
+- Keep durable aggregate state so a cache or ranker restart does not require guessing historical totals.
+
+4) Sliding windows
+- A sliding window continuously includes new events and removes expired contributions.
+- Bucket time into smaller intervals and combine the buckets covering the requested range, accepting boundary approximation if buckets are coarse.
+- Finer buckets improve precision but increase state and maintenance work.
+- Define watermarks, allowed lateness, and correction behavior rather than assuming events arrive in order.
+
+5) Approximation and specialized storage
+- Count-Min Sketch estimates frequencies with bounded overestimation, but needs a separate candidate mechanism to enumerate heavy hitters.
+- Approximate algorithms reduce memory when exact ranking is unnecessary; explain their error and behavior near tied counts.
+- An analytical database can simplify window queries, but it still needs a scalable ingestion path and a justified freshness budget.
+
+Final Design
+- A durable event log feeds partitioned aggregation and materialized window counts.
+- Hierarchical candidate merging and cached ranking snapshots make queries cheap.
+- Hot-key splitting, recovery semantics, and explicit window/accuracy contracts determine correctness at scale.

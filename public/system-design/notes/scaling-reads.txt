@@ -1,0 +1,59 @@
+The Problem
+- Read latency and throughput degrade when queries scan too much data, perform expensive joins, or compete for limited database resources.
+- Identify the dominant query and freshness requirement before adding caches or shards.
+
+The Solution
+
+
+1) Optimize the existing database
+- Add indexes matching filters and ordering, and inspect query plans to verify they reduce work.
+- Composite index column order matters; an index that helps one query may not serve another access pattern.
+- More indexes consume storage and increase write cost, so measure rather than indexing every field.
+- Increase memory or faster storage when the working set or I/O path is the bottleneck.
+- Denormalize frequently joined fields or maintain materialized views when read savings justify update and consistency complexity.
+
+2) Scale database reads horizontally
+- Read replicas distribute queries but may lag the primary; route reads requiring immediate freshness appropriately.
+- Replicas do not increase the primary's write capacity and each may still need the full dataset.
+- Sharding splits the dataset and workload, but cross-shard joins, transactions, and fanout queries become harder.
+- Choose partition keys that match common reads and avoid concentrating traffic on one tenant or resource.
+
+3) Application caching
+- Cache-aside checks the cache, loads a miss from the database, and stores the result with an expiry.
+- Cache popular, expensive, reusable results; include all relevant filters and authorization scope in the key.
+- Define TTL, invalidation, memory limits, and behavior when the cache is unavailable.
+- The cache is a derived view unless the design explicitly supplies its durability guarantees.
+
+4) CDN and edge caching
+- Serve static assets and eligible shared responses near users to reduce origin load and geographic latency.
+- Correct cache-control and cache-key configuration are essential, especially for personalized or authenticated responses.
+- Version immutable assets and use bounded expiration or invalidation for mutable content.
+
+When to Use
+- Apply read scaling to feeds, search, profiles, product pages, and dashboards when measurements show repeated expensive reads.
+- A small workload with efficient indexed queries may not need another distributed subsystem.
+- Keep consistency requirements explicit: stale stock displays may be acceptable, but checkout must still validate authoritative inventory.
+
+Common Deep Dives
+
+
+1) Growing datasets
+- Inspect query complexity, index selectivity, rows scanned, and pagination strategy before assuming hardware is the only fix.
+- Cursor pagination and partition pruning avoid scanning increasing offsets or irrelevant historical data.
+- Rollups and materialized views are useful for repeated aggregate queries.
+
+2) Hot keys and stampedes
+- One popular cached key can overwhelm a shard; local replicas or replicated hot values spread reads.
+- Coalesce concurrent misses so only one worker rebuilds an entry while others wait or receive acceptable stale data.
+- Add expiry jitter and consider proactive refresh to avoid synchronized expiration.
+- Bound fallback traffic to the database during cache failures; an empty cache can be an availability incident.
+
+3) Invalidation races
+- A reader can fetch old database data and refill a cache after a writer invalidates it.
+- Use versions, conditional cache writes, coordinated updates, or an explicit staleness bound to address that race.
+- TTL limits staleness but does not provide immediate consistency.
+- If a read must observe the latest committed state, use an authoritative path or a protocol that actually enforces that guarantee.
+
+Conclusion
+- Start with efficient queries, then use replicas, derived views, caches, or sharding for the measured bottleneck.
+- Explain cache failure and freshness behavior as carefully as the normal fast path.

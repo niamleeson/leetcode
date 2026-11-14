@@ -1,0 +1,221 @@
+{
+  "title": "Online Chess",
+  "sections": [
+    {
+      "title": "Understanding the Problem",
+      "level": 3,
+      "points": [
+        "Match players by skill, run real-time chess games, and maintain global rankings.",
+        "The server is authoritative for legal moves, turn order, clocks, and game results."
+      ],
+      "diagrams": []
+    },
+    {
+      "title": "Functional Requirements",
+      "level": 3,
+      "points": [
+        "Enter matchmaking and start a game with an appropriate opponent.",
+        "Exchange moves and receive current game state in real time.",
+        "View global leaderboard positions and personal rank."
+      ],
+      "diagrams": []
+    },
+    {
+      "title": "Non-functional Requirements",
+      "level": 3,
+      "points": [
+        "Keep move acknowledgement and opponent updates low latency.",
+        "Support around 500,000 concurrent games and a leaderboard with millions of players.",
+        "Prevent double matching, duplicated moves, inconsistent results, and client-manipulated clocks."
+      ],
+      "diagrams": [
+        {
+          "filename": "01.svg",
+          "caption": "Non-Functional Requirements",
+          "revision": "465964b7f5ed",
+          "width": 1003.1331229101056,
+          "height": 173.0
+        }
+      ]
+    },
+    {
+      "title": "Core Entities",
+      "level": 3,
+      "points": [
+        "Player stores identity and rating; MatchmakingEntry stores mode, rating range, and wait time.",
+        "Game stores players, board, turn, clocks, version, and terminal state.",
+        "Move records a game sequence, player, move, and authoritative timing.",
+        "RatingChange and LeaderboardEntry connect finalized results to rankings."
+      ],
+      "diagrams": [
+        {
+          "filename": "02.svg",
+          "caption": "Core Entities",
+          "revision": "489154e067cf",
+          "width": 202.0,
+          "height": 173.0
+        }
+      ]
+    },
+    {
+      "title": "API",
+      "level": 3,
+      "points": [
+        "Join or leave matchmaking using a stable request ID.",
+        "Send a move with game ID and expected version or sequence; receive accepted state or a conflict.",
+        "Reconnect to fetch a current snapshot and subsequent moves.",
+        "Query top players and a player's rank with defined ordering and tie rules."
+      ],
+      "diagrams": []
+    },
+    {
+      "title": "High-Level Design",
+      "level": 3,
+      "points": [],
+      "diagrams": []
+    },
+    {
+      "title": "1) Match players",
+      "level": 4,
+      "points": [
+        "Queue eligible players by game mode and rating band, widening acceptable ranges as waiting time grows.",
+        "Atomically claim both players before creating a game so concurrent matchers cannot pair one player twice.",
+        "Remove or mark claimed queue entries and recover abandoned claims after failures."
+      ],
+      "diagrams": [
+        {
+          "filename": "03.svg",
+          "caption": "Matchmaking",
+          "revision": "c2764745a780",
+          "width": 1562.6163863134311,
+          "height": 316.35057023360486
+        }
+      ]
+    },
+    {
+      "title": "2) Run games",
+      "level": 4,
+      "points": [
+        "Route both players to the game owner or authoritative processing partition.",
+        "Validate turn, legal movement, promotion, and game-ending conditions before persisting a move.",
+        "Apply a move once using its sequence or ID, then broadcast the resulting state.",
+        "On reconnect, restore from a snapshot plus durable moves rather than trusting a client's board."
+      ],
+      "diagrams": [
+        {
+          "filename": "04.svg",
+          "caption": "Real-time gameplay",
+          "revision": "304de148449b",
+          "width": 1562.6163863134311,
+          "height": 458.778842683369
+        }
+      ]
+    },
+    {
+      "title": "3) Rankings",
+      "level": 4,
+      "points": [
+        "Finalized results trigger rating updates according to the selected rating system.",
+        "Store authoritative results durably and maintain a derived sorted leaderboard.",
+        "Deduplicate result application so retries do not change ratings twice for one game."
+      ],
+      "diagrams": [
+        {
+          "filename": "05.svg",
+          "caption": "Add leaderboard reads to the existing game design",
+          "revision": "e4165c85fa2b",
+          "width": 1562.6163863134311,
+          "height": 458.778842683369
+        }
+      ]
+    },
+    {
+      "title": "Deep Dives",
+      "level": 3,
+      "points": [],
+      "diagrams": []
+    },
+    {
+      "title": "1) Matchmaking consistency",
+      "level": 4,
+      "points": [
+        "A check-then-delete queue operation has races; use transactions, conditional claims, or atomic queue operations.",
+        "Include claim ownership and expiration so a delayed matcher cannot create a game after its claim was reassigned.",
+        "Rejoining and cancellation need defined transitions when a match is already being committed."
+      ],
+      "diagrams": []
+    },
+    {
+      "title": "2) Game-server scale",
+      "level": 4,
+      "points": [
+        "Partition by game ID and keep each game's updates serialized at one owner.",
+        "Separate persistent connection gateways from game state processing if connection scale and compute scale differ.",
+        "Use ownership epochs or fencing during failover to prevent two servers from accepting moves for the same game.",
+        "A durable move log and periodic snapshots let replacement owners recover quickly."
+      ],
+      "diagrams": [
+        {
+          "filename": "06.svg",
+          "caption": "Routing both players to the same game server",
+          "revision": "bc585b4513c3",
+          "width": 1562.6163863134311,
+          "height": 579.2380368979647
+        },
+        {
+          "filename": "07.svg",
+          "caption": "Game servers sharing state in Postgres and delivering moves through Redis pub/sub",
+          "revision": "3b6469e5ee95",
+          "width": 1562.74629758839,
+          "height": 553.9065762224358
+        }
+      ]
+    },
+    {
+      "title": "3) Fair clocks",
+      "level": 4,
+      "points": [
+        "Server time determines remaining time; client timers are estimates for display.",
+        "Define when time starts and stops around move acceptance, and cap any lag compensation policy.",
+        "Process flags and moves under the same authoritative ordering so a delayed client cannot revive an expired game."
+      ],
+      "diagrams": []
+    },
+    {
+      "title": "4) Leaderboard scale",
+      "level": 4,
+      "points": [
+        "A sorted set supports top ranges and rank lookup, while durable ratings remain the rebuild source.",
+        "Update both players' ratings consistently from the finalized result and preserve tie-breakers.",
+        "Partition or specialize ranking workloads only when the single ranking structure becomes the measured bottleneck."
+      ],
+      "diagrams": [
+        {
+          "filename": "08.svg",
+          "caption": "Add a derived Redis rating index to the game-server fleet",
+          "revision": "0e918dfd407e",
+          "width": 1562.6163863134311,
+          "height": 586.1630843979116
+        }
+      ]
+    },
+    {
+      "title": "Final Design",
+      "level": 3,
+      "points": [
+        "Atomic matchmaking hands players to partitioned, authoritative game servers.",
+        "Durable moves and ownership fencing support reconnects and failover.",
+        "Idempotent result processing updates ratings and a fast derived leaderboard without allowing client state to decide outcomes."
+      ],
+      "diagrams": [
+        {
+          "filename": "09.svg",
+          "caption": "Final online chess design",
+          "revision": "0e918dfd407e",
+          "width": 1562.6163863134311,
+          "height": 586.1630843979116
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,67 @@
+Understanding the Problem
+- Design the cache itself: a distributed in-memory key-value service with expiration, eviction, and failure handling.
+- Clarify whether cached data is reconstructible from another store before choosing persistence and consistency guarantees.
+
+Functional Requirements
+- Set, retrieve, and delete key-value pairs.
+- Support per-key TTL and evict entries under memory pressure using an LRU policy.
+- Distribute keys across nodes while providing a usable client interface.
+
+Non-functional Requirements
+- Keep operations low latency with high throughput and bounded memory usage.
+- Scale horizontally and remain available through node failures.
+- Explain whether stale reads or loss of recently cached writes is acceptable; replication policy depends on that contract.
+
+Core Entities
+- CacheEntry stores key, value, expiry, and eviction metadata.
+- Node owns a subset of keys and optional replicas; cluster membership maps keys to owners.
+- A client or routing layer locates the responsible node for each operation.
+
+API
+- get(key) returns a value or a miss; set(key, value, ttl) writes or replaces an entry.
+- delete(key) removes an entry idempotently.
+- Define key/value size limits and behavior for expired entries; an expired item must never be returned as a valid hit.
+
+High-Level Design
+
+
+1) In-memory operations
+- Use a hash table for average constant-time key lookup.
+- Store values in memory and limit allocations and copying on the request path.
+- Synchronize concurrent mutations so the hash table and eviction bookkeeping remain consistent.
+
+2) TTL and eviction
+- Lazy expiration checks TTL on access; background cleanup reclaims expired entries that are never read again.
+- An LRU list plus hash table supports efficient promotion and removal, although strict global LRU creates coordination overhead.
+- Approximate or segmented eviction can reduce bookkeeping cost under high concurrency.
+- Eviction is distinct from expiration: an unexpired item may be removed because memory is full.
+
+Deep Dives
+
+
+1) Availability and replication
+- Replicate entries to survive node loss and define how a replacement owner is selected.
+- Synchronous replication improves acknowledgement durability but adds latency and reduces availability during failures.
+- Asynchronous replication is faster but can lose recent writes or expose stale values after failover.
+- If the cache is reconstructible, controlled misses may be preferable to expensive strong consistency; protect the backing store during recovery.
+
+2) Distribution and growth
+- Modulo hashing remaps many keys when node count changes. Consistent hashing limits movement to affected ranges.
+- Virtual nodes improve balance and let larger machines own more ranges.
+- Membership changes require routing updates and careful migration so clients do not treat every moved key as permanently missing.
+
+3) Hot keys
+- A popular read key remains hot even when the overall keyspace is evenly partitioned.
+- Replicate hot values or add bounded local caches, accepting explicit invalidation and freshness costs.
+- Hot writes are harder because replicas must coordinate changes; batching, aggregation, or application-specific key splitting may help.
+- Do not claim arbitrary writes to one key become scalable merely by adding shards.
+
+4) Performance and recovery
+- Use connection reuse, pipelining, compact serialization, and batching where the client can tolerate it.
+- Bound request and value sizes so one large value cannot monopolize a server.
+- Measure tail latency, eviction rate, hit rate, replication lag, and rebalancing pressure.
+
+Final Design
+- Hash-table storage, TTL cleanup, and bounded eviction form each cache node.
+- Consistent hashing and virtual nodes distribute ownership; replicas provide the chosen failure semantics.
+- Hot-key handling and backing-store protection are explicit extensions rather than assumptions hidden behind horizontal scaling.

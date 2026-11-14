@@ -1,0 +1,51 @@
+The Problem
+- Large photos, videos, and documents stress application bandwidth, memory, request timeouts, and relational storage.
+- Separate the control plane for permissions and metadata from the data plane carrying bytes.
+
+The Solution
+- Store blobs in object storage and lightweight metadata in a database.
+- Give clients short-lived, scoped transfer authorization so bytes can bypass application servers.
+- Use a CDN for appropriate downloads and multipart transfer for large or unreliable uploads.
+
+1) Direct upload
+- The client requests an upload session with expected size, type, and ownership information.
+- The server validates the request, creates pending metadata, and returns signed storage instructions.
+- The client transfers directly to storage; the backend verifies completion before marking the object available.
+- Signed URLs grant bounded access to a particular operation and object, not unrestricted storage credentials.
+
+2) Direct download
+- Authenticate the caller and check object permissions before issuing a signed download URL.
+- Deliver through object storage or an authorized CDN path.
+- Keep URL lifetime and caching policy aligned with the sensitivity of the content and expected revocation behavior.
+- A previously issued bearer URL may remain valid until expiry, even if the application later changes permissions.
+
+3) Resumable uploads
+- Split the upload into numbered parts and track an upload ID plus confirmed part metadata.
+- Retry only missing or failed parts, then ask storage to finalize the object.
+- Bound concurrency and part size to avoid exhausting client memory or network connections.
+- Expire abandoned upload sessions and remove incomplete parts to control storage cost.
+
+4) State synchronization
+- Database metadata and object storage do not share one transaction, so pending and completed states are necessary.
+- Treat client completion messages as claims to verify with storage APIs or trusted storage events.
+- Events can be duplicated or delayed; make completion transitions idempotent and run reconciliation for stuck uploads.
+- Multipart provider events may fire only for the completed object, so per-part verification needs the provider's multipart APIs.
+
+Cloud Provider Terminology
+- Providers use different names for signed URLs, multipart uploads, object versions, and completion checks.
+- Explain the required capability and failure behavior rather than relying on a product name alone.
+
+Common Deep Dives
+- A transfer failing at 99% should resume from verified parts, not restart from byte zero.
+- Apply user quotas, maximum object sizes, allowed content types, and bounded session lifetimes before granting upload authority.
+- Store metadata such as owner, object key, size, checksum, version, and processing state separately from the blob.
+- Do not assume an ETag is always a whole-file content hash; its semantics depend on provider and upload mode.
+
+Metadata and Download Performance
+- Immutable object versions simplify caching and avoid serving mixed content during replacement.
+- Use range requests, CDN caching, and suitable media variants where the client does not need the entire original object immediately.
+- Keep background scanning, thumbnailing, or transcoding outside the interactive metadata request path.
+
+Conclusion
+- Direct signed transfers remove application bandwidth bottlenecks, but verification and lifecycle state remain application responsibilities.
+- Multipart recovery, cleanup, access control, and reconciliation complete the design beyond simply adding an object-storage box.

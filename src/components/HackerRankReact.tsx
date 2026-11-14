@@ -1,6 +1,6 @@
 import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { reactChallenges, type ReactChallenge } from '../data/hackerrank-react';
+import { reactChallenges, archivedReactChallenges, type ReactChallenge } from '../data/hackerrank-react';
 import CodeBlock from './CodeBlock';
 
 const basePath = '/hackerrank-react';
@@ -10,11 +10,9 @@ const heading = 'text-lg font-semibold text-white light:text-gray-900';
 const link = 'text-sm text-blue-400 hover:underline light:text-blue-700';
 type GreatFrontendSort = 'default' | 'easy-first' | 'hard-first';
 const difficultyOrder = { Easy: 0, Medium: 1, Hard: 2 };
-const collections = ['HackerRank', 'Suno', 'Anduril', 'GreatFrontEnd', 'Practice', 'Reference'] as const;
+const collections = ['Games', 'GreatFrontEnd', 'Practice', 'Reference'] as const;
 const collectionTitles = {
-  HackerRank: 'HackerRank React',
-  Suno: 'Another AI interview questions',
-  Anduril: 'Other interview questions',
+  Games: 'React interview games',
   GreatFrontEnd: 'GreatFrontEnd React',
   Practice: 'Additional practice',
   Reference: 'Interview reference',
@@ -60,10 +58,7 @@ function ChallengeIndex({ query, onQueryChange, greatFrontendSort, onSortChange,
         <p className={`mt-2 ${muted}`}>
           {reactChallenges.length} questions and references for React and JavaScript interviews, with solutions, explanations, and examples.
         </p>
-        <a className={`mt-3 inline-block ${link}`} href="https://www.hackerrank.com/domains/react" target="_blank" rel="noopener noreferrer">
-          Open HackerRank’s React catalog ↗
-        </a>
-        <a className={`mt-3 ml-4 inline-block ${link}`} href="https://www.greatfrontend.com/questions/react-coding-interview-questions" target="_blank" rel="noopener noreferrer">
+        <a className={`mt-3 inline-block ${link}`} href="https://www.greatfrontend.com/questions/react-coding-interview-questions" target="_blank" rel="noopener noreferrer">
           Open GreatFrontEnd’s React catalog ↗
         </a>
       </header>
@@ -98,8 +93,7 @@ function ChallengeIndex({ query, onQueryChange, greatFrontendSort, onSortChange,
             <section key={collection} aria-labelledby={`collection-${collection}`} className="space-y-4">
               <div>
                 <h2 id={`collection-${collection}`} className={heading}>{collectionTitles[collection]}</h2>
-                {collection === 'Suno' && <p className={`mt-2 ${muted}`}>Reported UI tasks, JavaScript algorithms, and design exercises. Each entry identifies the candidate’s role and separates reported requirements from practice assumptions. Difficulty labels are study estimates.</p>}
-                {collection === 'Anduril' && <p className={`mt-2 ${muted}`}>Candidate reports establish the broad tasks. Each practice solution states its assumptions where the original requirements are unavailable. Difficulty labels are study estimates.</p>}
+                {collection === 'Games' && <p className={`mt-2 ${muted}`}>Five React interview exercises with complete solutions, game rules, state modeling, and edge cases.</p>}
                 {collection === 'GreatFrontEnd' && <p className={`mt-2 ${muted}`}>40 UI problems and 31 hooks, keeping the highest numbered level in each series. Original study solutions include summarized prompts, examples, and explicit assumptions.</p>}
                 {collection === 'GreatFrontEnd' && (
                   <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -177,6 +171,7 @@ function ChallengeDetail({ challenge }: { challenge: ReactChallenge }) {
             onChange={event => navigate(`${basePath}/${event.target.value}`)}
             className="max-w-full rounded-md border border-gray-700 bg-gray-900 px-2 py-2 text-sm text-gray-200 light:border-gray-300 light:bg-white light:text-gray-800"
           >
+            {index < 0 && <option value={challenge.slug}>{challenge.title}</option>}
             {reactChallenges.map((item, i) => <option key={item.slug} value={item.slug}>{i + 1}. {item.title}</option>)}
           </select>
         </label>
@@ -184,7 +179,7 @@ function ChallengeDetail({ challenge }: { challenge: ReactChallenge }) {
 
       <header>
         <div className="mb-3 flex items-center gap-3">
-          <span className="text-xs text-gray-500">Question {index + 1} of {reactChallenges.length} · {challenge.collection ?? 'HackerRank'}</span>
+          <span className="text-xs text-gray-500">{index < 0 ? 'Archived question' : `Question ${index + 1} of ${reactChallenges.length}`} · {challenge.collection ?? 'HackerRank'}</span>
           <Difficulty value={challenge.difficulty} />
         </div>
         <h1 className="text-2xl font-bold text-white light:text-gray-900">{challenge.title}</h1>
@@ -343,7 +338,7 @@ export default function HackerRankReact() {
   }, [slug, saveListScroll]);
 
   if (!slug) return <ChallengeIndex query={query} onQueryChange={setQuery} greatFrontendSort={greatFrontendSort} onSortChange={setGreatFrontendSort} onOpenQuestion={saveListScroll} />;
-  const challenge = reactChallenges.find(item => item.slug === slug);
+  const challenge = reactChallenges.find(item => item.slug === slug) ?? archivedReactChallenges.find(item => item.slug === slug);
   if (!challenge) {
     return <div className="space-y-3"><h1 className={heading}>React question not found</h1><Link className={link} to={basePath}>View all React questions</Link></div>;
   }

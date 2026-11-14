@@ -12,6 +12,7 @@ import { sunoDesignBriefChallenge, sunoNotificationChallenge } from './sunoDesig
 import { sunoReferralChallenge, sunoDagChallenge } from './sunoAlgorithms';
 import { sunoIntervalChallenge } from './sunoInterval';
 import type { ReactChallenge } from './types';
+import { gameChallenges } from './games';
 
 const challengeOrder = [
   'item-list-manager',
@@ -30,7 +31,7 @@ const hackerRankChallenges = [...basicChallenges, ...formChallenges]
   .map(challenge => ({ ...challenge, images: promptImages[challenge.slug] }))
   .sort((a, b) => challengeOrder.indexOf(a.slug) - challengeOrder.indexOf(b.slug));
 
-export const reactChallenges: ReactChallenge[] = [
+export const archivedReactChallenges: ReactChallenge[] = [
   ...hackerRankChallenges,
   sunoAudioChallenge,
   sunoFeedChallenge,
@@ -41,6 +42,10 @@ export const reactChallenges: ReactChallenge[] = [
   sunoNotificationChallenge,
   ...andurilBasicChallenges,
   ...andurilAdvancedChallenges,
+];
+
+export const reactChallenges: ReactChallenge[] = [
+  ...gameChallenges,
   ...greatFrontendChallenges,
   spreadsheetChallenge,
   ariaReferenceChallenge,

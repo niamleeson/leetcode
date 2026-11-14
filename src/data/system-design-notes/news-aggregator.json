@@ -1,0 +1,234 @@
+{
+  "title": "News Aggregator",
+  "sections": [
+    {
+      "title": "Understanding the Problem",
+      "level": 3,
+      "points": [
+        "Aggregate article metadata from many publishers into a fast, scrollable feed that links readers to the original publication.",
+        "Separate publisher ingestion from serving the feed so slow or failing publishers do not delay user requests."
+      ],
+      "diagrams": []
+    },
+    {
+      "title": "Functional Requirements",
+      "level": 3,
+      "points": [
+        "Display an aggregated feed from thousands of publishers.",
+        "Support continuous pagination and redirect readers to the publisher for full content.",
+        "Consider categories and personalization as extensions to the baseline feed."
+      ],
+      "diagrams": []
+    },
+    {
+      "title": "Non-functional Requirements",
+      "level": 3,
+      "points": [
+        "Target feed reads below 200 ms and ingestion within 30 minutes of publication.",
+        "Remain available during breaking-news traffic spikes and isolate individual publisher failures.",
+        "Deduplicate repeated ingestion and preserve stable pagination as new articles arrive."
+      ],
+      "diagrams": [
+        {
+          "filename": "01.svg",
+          "caption": "IG Requirements",
+          "revision": "030d7a28d44a",
+          "width": 884.1986389160156,
+          "height": 170.0
+        }
+      ]
+    },
+    {
+      "title": "Core Entities",
+      "level": 3,
+      "points": [
+        "Publisher stores source URLs, polling state, rate limits, and health.",
+        "Article stores canonical URL, publisher, title, publication time, summary, and media references.",
+        "FeedEntry stores ordering or ranking information; UserPreference and ReadingEvent support optional personalization."
+      ],
+      "diagrams": [
+        {
+          "filename": "02.svg",
+          "caption": "News Feed Entities",
+          "revision": "44e3dad78ca8",
+          "width": 183.4296875,
+          "height": 230.83047485351562
+        }
+      ]
+    },
+    {
+      "title": "API",
+      "level": 3,
+      "points": [
+        "Fetch a feed with cursor, limit, and optional category or preferences.",
+        "Retrieve article metadata and its publisher URL without proxying the entire publisher article.",
+        "Ingestion workers submit normalized article records using canonical identifiers for deduplication.",
+        "A cursor must include a stable tie-breaker and the ordering context used to construct the page."
+      ],
+      "diagrams": []
+    },
+    {
+      "title": "High-Level Design",
+      "level": 3,
+      "points": [],
+      "diagrams": []
+    },
+    {
+      "title": "1) Ingest and serve articles",
+      "level": 4,
+      "points": [
+        "A scheduler enqueues publisher-fetch jobs; workers read feeds or supported publication endpoints.",
+        "Normalize timestamps, canonical URLs, and metadata, then deduplicate before storage.",
+        "Build an indexed feed view and serve common pages from cache.",
+        "Publisher fetch errors retry independently with backoff; one unavailable publisher must not block all ingestion.",
+        "Clicking an article redirects to its original publisher, keeping the aggregator focused on discovery metadata."
+      ],
+      "diagrams": [
+        {
+          "filename": "03.svg",
+          "caption": "Data Collection",
+          "revision": "1196bb95fbf4",
+          "width": 632.0300069385418,
+          "height": 743.8321224803001
+        },
+        {
+          "filename": "04.svg",
+          "caption": "Query Articles",
+          "revision": "62bf1b400500",
+          "width": 1609.5436796707897,
+          "height": 841.2887240745027
+        }
+      ]
+    },
+    {
+      "title": "Deep Dives",
+      "level": 3,
+      "points": [],
+      "diagrams": []
+    },
+    {
+      "title": "1) Pagination consistency",
+      "level": 4,
+      "points": [
+        "Offset pagination shifts when new articles arrive and becomes expensive at large offsets.",
+        "Use a stable sort key plus article ID and a cursor identifying the last item.",
+        "For mutable rankings, retain a snapshot or ranking-version context, or explicitly accept bounded feed movement."
+      ],
+      "diagrams": []
+    },
+    {
+      "title": "2) Low-latency feeds",
+      "level": 4,
+      "points": [
+        "Index the feed's ordering and filter fields and fetch only the columns required for a page.",
+        "Cache shared top pages or precomputed feeds; hydrate article metadata in batches.",
+        "Separate personalized cache keys from shared keys so users do not receive another user's feed.",
+        "Invalidate or refresh derived views asynchronously with an explicit freshness target."
+      ],
+      "diagrams": [
+        {
+          "filename": "05.svg",
+          "caption": "Redis Cache",
+          "revision": "b5f5b2974988",
+          "width": 1609.5436796707897,
+          "height": 899.0157842496819
+        },
+        {
+          "filename": "06.svg",
+          "caption": "Real-time Cached Feeds with CDC",
+          "revision": "04aad0cfe20c",
+          "width": 1609.54367967079,
+          "height": 899.0157842496818
+        }
+      ]
+    },
+    {
+      "title": "3) Publication freshness",
+      "level": 4,
+      "points": [
+        "Poll publishers according to publication frequency and priority rather than using one interval for everyone.",
+        "Use push or webhook mechanisms where available and polling as recovery.",
+        "Track last successful fetch, discovered publication time, and queue age to detect stale sources.",
+        "Rate-limit outbound fetches per publisher and reuse conditional requests to avoid downloading unchanged feeds."
+      ],
+      "diagrams": [
+        {
+          "filename": "07.svg",
+          "caption": "Increased RSS Polling Frequency",
+          "revision": "0e2ab297c890",
+          "width": 1715.2705676423343,
+          "height": 899.3426462548937
+        },
+        {
+          "filename": "08.svg",
+          "caption": "Intelligent Web Scraping",
+          "revision": "338235d2e7b1",
+          "width": 1780.1605627238573,
+          "height": 899.3426462548938
+        },
+        {
+          "filename": "09.svg",
+          "caption": "Publisher Webhooks with Fallback Polling",
+          "revision": "3fdd83738a82",
+          "width": 1745.19569108897,
+          "height": 899.3426462548939
+        }
+      ]
+    },
+    {
+      "title": "4) Media and breaking news",
+      "level": 4,
+      "points": [
+        "Serve thumbnails through an appropriate CDN or cached media path with bounded size and processing.",
+        "Keep slow media fetching outside the feed request path and show usable metadata while media is unavailable.",
+        "Breaking-news spikes require cache protection, request coalescing, and independent scaling of ingestion and serving.",
+        "A popular article is a hot object even when article storage is well partitioned."
+      ],
+      "diagrams": [
+        {
+          "filename": "10.svg",
+          "caption": "S3 + CloudFront CDN with Multiple Sizes",
+          "revision": "5a7b70aff46b",
+          "width": 1745.1956910889703,
+          "height": 899.3426462548939
+        },
+        {
+          "filename": "11.svg",
+          "caption": "Redis Scaling",
+          "revision": "4b03b2da97ab",
+          "width": 639.7734865760743,
+          "height": 652.8633430482637
+        }
+      ]
+    },
+    {
+      "title": "5) Categories and personalization",
+      "level": 4,
+      "points": [
+        "Classify articles once during ingestion and maintain category-specific feed indexes.",
+        "Capture reading events asynchronously and use them to produce candidate preferences or rankings.",
+        "Blend cached shared candidates with user-specific ranking rather than building every page from the entire corpus.",
+        "Preserve a useful generic feed for new users or unavailable personalization services."
+      ],
+      "diagrams": []
+    },
+    {
+      "title": "Final Design",
+      "level": 3,
+      "points": [
+        "Scheduled ingestion normalizes and deduplicates publisher data into durable article storage.",
+        "Indexed or precomputed feeds, stable cursors, and caches provide fast reads.",
+        "Independent media handling and measured source freshness keep both breaking-news traffic and publisher failures manageable."
+      ],
+      "diagrams": [
+        {
+          "filename": "12.svg",
+          "caption": "Final Design",
+          "revision": "5a7b70aff46b",
+          "width": 1745.1956910889703,
+          "height": 899.3426462548939
+        }
+      ]
+    }
+  ]
+}

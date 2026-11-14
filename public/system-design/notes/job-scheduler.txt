@@ -1,0 +1,66 @@
+Understanding the Problem
+- Build a service that accepts immediate, future, and recurring jobs, then executes them reliably near their scheduled times.
+- Scheduling decides when work becomes eligible; execution decides which worker runs it and how failures are retried.
+
+Functional Requirements
+- Submit jobs for immediate execution, a future time, or a recurring schedule.
+- Execute due jobs and let users inspect their status.
+- Retry failed attempts according to policy and retain execution history.
+
+Non-functional Requirements
+- Aim to begin jobs within about two seconds of their scheduled time.
+- Support around 10,000 jobs per second in the scenario and tolerate scheduler or worker crashes.
+- Provide at-least-once execution; side effects require idempotency because a crashed worker may have completed work before losing its acknowledgement.
+
+Core Entities
+- Job describes the task, payload reference, owner, and schedule.
+- Execution identifies one scheduled occurrence with due time, status, attempt count, and result.
+- Lease or claim state records which worker currently owns an attempt and when that ownership expires.
+- Recurring definitions are separate from concrete executions so retries do not create extra scheduled occurrences.
+
+API
+- Submit a job with schedule and retry policy, returning a durable job ID.
+- Query job and execution status, including failures and next scheduled time.
+- Cancel or update pending work with version checks; define behavior if execution has already begun.
+- Use an idempotency key when submitting to avoid creating duplicate jobs after a timeout.
+
+High-Level Design
+
+
+1) Schedule and dispatch
+- Persist job definitions and due executions before acknowledging acceptance.
+- A scheduler finds upcoming work using a due-time index and places eligible executions on a durable queue.
+- Workers claim queued executions, run the task, persist the result, and acknowledge successful processing.
+- Keep the payload small; large inputs live in storage and are referenced by the job.
+
+2) Monitor status
+- Store transitions such as scheduled, queued, running, succeeded, and failed with timestamps.
+- Expose status without forcing clients to inspect the queue itself.
+- Correlate logs and results by execution ID so repeated attempts remain distinguishable.
+
+Deep Dives
+
+
+1) Scheduling precision
+- Repeatedly scanning the entire jobs table cannot satisfy tight timing at scale.
+- Partition or index by scheduled time and poll a bounded upcoming interval.
+- Use a short-term priority queue or timing structure for imminent jobs while retaining durable state for restart recovery.
+- Handle clock skew and scheduler failover; persisted due times remain the authority after a process restarts.
+
+2) Throughput
+- Partition scheduled work and assign disjoint scheduler ownership to avoid duplicate dispatch storms.
+- Horizontally scale workers independently from scheduling and separate queues for different resource classes.
+- Apply backpressure and monitor oldest-job age; queue depth alone does not tell whether timing targets are being met.
+- Recurring jobs create future execution records using stable occurrence IDs so retries do not schedule the same occurrence twice.
+
+3) At-least-once execution
+- A visibility timeout or lease allows abandoned jobs to become eligible again after a worker crash.
+- Long-running workers renew leases; completion must be conditional on the current attempt or fencing token.
+- Retry transient failures with backoff and move repeatedly failing executions to a dead-letter or inspection state.
+- If an external side effect succeeded before a crash, replay may execute it again. Use downstream idempotency keys or transactional deduplication.
+- Persist completion before acknowledging queue delivery, accepting that a lost acknowledgement can cause a safe duplicate attempt.
+
+Final Design
+- Durable schedule storage feeds partitioned schedulers and execution queues.
+- Leased worker attempts provide recovery, while explicit status records support monitoring and cancellation.
+- Stable occurrence IDs and idempotent task effects turn at-least-once delivery into predictable application behavior.

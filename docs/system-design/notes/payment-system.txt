@@ -1,0 +1,71 @@
+Understanding the Problem
+- Accept merchant payment requests, coordinate external payment processing, and expose reliable payment status.
+- External networks are asynchronous: a timeout can leave an unknown outcome, and retries must not cause duplicate charges.
+
+Functional Requirements
+- Let merchants create payment requests and customers pay with cards.
+- Track and expose payment lifecycle status.
+- Deliver asynchronous merchant updates, including webhooks where required.
+
+Non-functional Requirements
+- Preserve durable, auditable transaction history and financial integrity.
+- Protect payment credentials and isolate sensitive handling from ordinary application services.
+- Scale to high transaction volume while retaining a clear correctness boundary for each payment.
+
+Core Entities
+- PaymentIntent describes amount, currency, merchant, customer, and requested operation.
+- PaymentAttempt records an external submission, idempotency key, provider reference, and outcome.
+- LedgerEntry records durable financial movement; state transitions and webhook events retain an audit trail.
+- PaymentMethod stores a provider token or reference rather than exposing raw credentials throughout the system.
+
+API
+- Create a payment intent with amount, currency, merchant reference, and an idempotency key.
+- Confirm or submit a payment method through an appropriate tokenized flow.
+- Query payment status and register authenticated webhook endpoints.
+- Reject reuse of an idempotency key with incompatible parameters instead of treating it as a new payment.
+
+High-Level Design
+
+
+1) Create and execute payments
+- Validate and durably store the payment intent before coordinating external work.
+- Use an explicit state machine for pending, processing, successful, failed, and unresolved states.
+- Persist the attempt and provider request identifier so a crash does not erase knowledge of an in-flight charge.
+- Use a durable workflow or queue for retries and reconciliation; do not hold a database transaction open while waiting for a payment network.
+
+2) Status updates
+- Apply provider callbacks idempotently and verify their authenticity.
+- Persist status transitions before notifying the merchant or customer.
+- Poll or reconcile with the provider when callbacks are missing, delayed, or contradictory.
+- A network timeout is an unknown outcome, not definitive proof of failure.
+
+Deep Dives
+
+
+1) Security
+- Use tokenization or hosted collection to minimize where raw card data is handled.
+- Encrypt sensitive data in transit and at rest, restrict service access, and keep secrets out of logs.
+- Authenticate merchants and callbacks and validate amounts and ownership on the server.
+- Separate security boundaries and operational responsibilities explicitly rather than assuming encryption alone protects the workflow.
+
+2) Durability and auditability
+- Write immutable financial records and use compensating entries for corrections instead of erasing history.
+- Keep ledger invariants within transactional boundaries and distinguish ledger state from a mutable UI status.
+- Replication, backups, and tested recovery protect records; an event log also enables investigation and reconciliation.
+
+3) Transaction safety
+- Deduplicate customer requests, worker retries, and provider callbacks at their respective boundaries.
+- Use provider-supported idempotency and query existing attempts before issuing an uncertain replacement charge.
+- Reconcile local records with provider settlement or status reports to identify missing and mismatched outcomes.
+- Exactly-once queue processing does not by itself guarantee exactly one external financial side effect.
+
+4) Scale and webhooks
+- Partition independent payment workflows while keeping each payment's transitions serialized.
+- Deliver webhooks through a durable queue with signatures, event IDs, retry backoff, and delivery history.
+- Merchants must tolerate duplicate and out-of-order webhooks; expose an API for fetching current authoritative status.
+- Isolate slow merchant endpoints and providers so they do not block unrelated payments.
+
+Final Design
+- Durable intents, attempts, and ledger records form the source of truth.
+- Retry-safe workflows coordinate external providers, with reconciliation resolving uncertainty.
+- Tokenized credential handling and asynchronous status delivery support scale without weakening transaction safety.

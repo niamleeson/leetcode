@@ -1,0 +1,68 @@
+Understanding the Problem
+- Record advertisement clicks, redirect users promptly, and expose aggregate click metrics to advertisers.
+- The user-facing redirect should remain fast while durable event collection and aggregation run asynchronously.
+
+Functional Requirements
+- Accept an ad click and redirect to the configured destination.
+- Query click totals over time at one-minute granularity.
+- Address duplicate events and repeated-click abuse according to explicit counting rules.
+
+Non-functional Requirements
+- Handle around 10,000 clicks per second in the scenario with low redirect latency.
+- Avoid losing accepted click data and support rebuilding aggregates.
+- Serve analytics queries quickly without scanning every raw click.
+
+Core Entities
+- Ad identifies advertiser and authorized destination.
+- ClickEvent includes event ID, ad ID, timestamp, and permitted attribution fields.
+- MinuteAggregate stores an ad/window count; raw event storage supports audit and reconciliation.
+
+API and Data Flow
+- A click endpoint resolves the ad destination, records the event through a durable path, and returns a redirect.
+- A metrics endpoint accepts ad ID and time range and returns bounded aggregate buckets.
+- Validate destinations from stored ad metadata instead of accepting an unrestricted redirect URL from the caller.
+- Ingestion flows through a durable stream to aggregators and query storage, with raw events retained separately.
+
+High-Level Design
+
+
+1) Click ingestion
+- Assign a stable event ID and append to durable transport before treating the event as accepted.
+- Keep slow aggregate updates off the redirect path.
+- Define the failure policy if durable ingestion is unavailable; fast redirects and guaranteed recording can conflict during an outage.
+
+2) Aggregation
+- Scanning raw clicks for every query is simple but expensive as history grows.
+- Stream processors group by ad and minute, then materialize counts for efficient range reads.
+- Event-time windows need an explicit late-event policy and correction mechanism.
+- Store raw events independently so aggregate bugs or failures can be repaired by replay.
+
+Deep Dives
+
+
+1) Scale ingestion and hot ads
+- Partition events by ad ID for aggregation locality, but a viral ad can overload one partition.
+- Salt hot ad keys into partial counters, then combine them into the final ad/window aggregate.
+- Batch increments to reduce sink writes while bounding how stale query results become.
+- Apply backpressure and monitor consumer lag instead of allowing buffers to grow indefinitely.
+
+2) Durability and reconciliation
+- Replicate the event log and commit consumer progress only after recoverable aggregate state is safe.
+- Retries can duplicate events; deduplicate by event ID or use a processing/sink protocol with compatible transactional guarantees.
+- Periodically reconcile materialized totals against retained raw events.
+- Reprocessing must replace or idempotently update affected windows, not add the same historical counts again.
+
+3) Abuse and repeated clicks
+- Transport deduplication removes repeated delivery of one event; it does not automatically detect separate fraudulent clicks.
+- Define counting windows and identity signals for repeated-click filtering, respecting the data available to the product.
+- Keep suspicious events distinguishable from valid billable counts so rules can be audited and revised.
+
+4) Query latency
+- Index aggregates by advertiser/ad and time, cache frequent ranges, and preaggregate longer periods when appropriate.
+- Restrict query ranges and response bucket counts to avoid expensive unbounded scans.
+- Report freshness or provisional windows so consumers understand that recent counts can change.
+
+Final Design
+- Durable click ingestion feeds a replayable stream and raw archive.
+- Partitioned processors maintain minute-level aggregates with late-event and duplicate handling.
+- A dedicated query store and cache serve advertiser metrics independently of redirect traffic.

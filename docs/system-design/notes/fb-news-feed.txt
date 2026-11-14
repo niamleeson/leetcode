@@ -1,0 +1,67 @@
+Understanding the Problem
+- Design a chronological feed of posts from accounts a user follows.
+- The main tradeoff is whether to assemble feeds when users read them or distribute post references when authors publish.
+
+Functional Requirements
+- Create posts and follow other accounts.
+- View a feed containing posts from followed accounts.
+- Page through older feed entries without repeatedly fetching the same results.
+- Personalized ranking and media processing can be separate extensions.
+
+Non-functional Requirements
+- Feed reads must have low latency despite users following many accounts.
+- Support a large user graph with heavily skewed follower counts and popular posts.
+- Favor availability and bounded feed delay; posts and follow edges must remain durable.
+
+Core Entities
+- User and Post represent authors and durable content with creation timestamps.
+- Follow edges support both listing a user's followees and listing an author's followers.
+- FeedEntry stores a recipient, post ID, and ordering key; it is a derived view that can be rebuilt.
+- A separate post cache lets many feeds reference the same content without copying it repeatedly.
+
+API
+- Create a post and return its ID after the durable write.
+- Follow or unfollow an account using the authenticated user's identity.
+- Fetch feed entries with a cursor and page size; batch-fetch the referenced post objects.
+- Use stable ordering such as creation time plus post ID, rather than a mutable numeric offset.
+
+High-Level Design
+
+
+1) Posts and follows
+- Route requests through stateless services to the post store and follow graph.
+- Maintain indexes in both directions of the follow relationship because read-time and write-time fanout need different queries.
+- Emit a post-created event after persistence; reliable publication avoids losing feed work when a process crashes after writing the post.
+
+2) Assemble and paginate feeds
+- A simple read-time feed fetches recent posts from followed users and merges the sorted results.
+- Fetch enough candidates to fill the page after applying visibility and deletion checks.
+- Return a cursor identifying the last ordering position. New posts can appear at the top without shifting previously read offsets.
+- Keep authoritative posts separate from feed indexes so edits or deletions do not require rewriting every full feed entry.
+
+Deep Dives
+
+
+1) Users following many accounts
+- Precompute feed lists by distributing new post IDs to followers asynchronously.
+- A read then fetches one recipient's ordered list, reducing scattered queries across many authors.
+- Bound the number of stored entries and backfill older pages from durable data when necessary.
+- Precomputation trades storage and write work for predictable read latency; it is most useful for active readers.
+
+2) Users with many followers
+- Synchronously writing millions of feed entries delays post creation and overloads the write path.
+- Queue fanout work and process recipient batches with idempotent writes, retry limits, and lag monitoring.
+- Use hybrid feeds: distribute ordinary posts on write, fetch celebrity posts on read, and merge both sets.
+- Choose thresholds from fanout cost and traffic patterns, rather than assuming one policy fits every account.
+
+3) Uneven post reads
+- Hashing post IDs spreads different posts across cache nodes but cannot spread traffic to one extremely hot post.
+- Replicate hot post values across multiple cache locations or serve them from local caches with bounded staleness.
+- Distinguish cache partitioning from replication: more partitions alone do not fix a single hot key.
+- Coalesce cache misses and protect the database during cache expiry or failure so viral traffic does not become a stampede.
+- Invalidate deleted or restricted content promptly; cached feed IDs must not bypass access checks.
+
+Final Design
+- Durable post and follow stores feed asynchronous workers and derived feed lists.
+- The read service merges precomputed ordinary posts with celebrity posts, then hydrates content from a shared cache.
+- Stable cursors, bounded lists, idempotent fanout, and hot-object replication make the design scalable without treating the cache as the only copy.

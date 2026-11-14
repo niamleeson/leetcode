@@ -1,0 +1,72 @@
+Understanding the Problem
+- Sell a very limited inventory item when a large crowd arrives simultaneously.
+- The critical invariant is that successful reservations and purchases never exceed available units.
+
+Functional Requirements
+- View the sale item and sale timing.
+- Reserve an available unit for a limited checkout period.
+- Complete payment for a valid reservation and release expired or abandoned claims.
+
+Non-functional Requirements
+- Preserve inventory consistency under extreme contention.
+- Keep admission and reservation feedback responsive during traffic spikes.
+- Recover payment and reservation failures without double-selling or holding inventory forever.
+
+Core Entities
+- SaleItem stores product metadata, sale window, and inventory definition.
+- Reservation records unit or quantity, owner, expiration, token/version, and state.
+- Order and PaymentAttempt track checkout and external payment outcomes.
+- AdmissionToken controls entry from the waiting room into the reservation path.
+
+API
+- Fetch cached sale details and approximate availability.
+- Request a reservation with an idempotency key and valid admission token where required.
+- Complete checkout for a specific reservation token and query order status.
+- Verify server time, ownership, sale state, and reservation validity on every authoritative transition.
+
+High-Level Design
+
+
+1) Browse and reserve
+- Serve stable product details through caches or a CDN so browsers do not overload inventory storage.
+- Claim inventory with an atomic conditional update or transaction.
+- Persist a reservation with an explicit expiry instead of holding a database lock while the customer enters payment information.
+- Cached availability is advisory; only a successful reservation grants a temporary claim.
+
+2) Complete payment
+- Coordinate payment through durable order state and stable provider idempotency keys.
+- Convert the current reservation to purchased only through a valid conditional transition.
+- Handle payment success racing reservation expiry explicitly, using a defined confirmation, reconciliation, or compensation policy.
+- Notify the client asynchronously and allow status recovery after a lost response.
+
+Deep Dives
+
+
+1) Contention
+- A single inventory counter becomes a serialization hot spot even if the rest of the database is sharded.
+- Redis atomic coordination can reduce latency, but durable purchase correctness must survive its failure and failover behavior.
+- Represent inventory as independently claimable units or buckets to spread contention, then atomically claim one eligible unit.
+- Include ownership and version checks so a stale client cannot purchase a unit that has already been reassigned.
+- Retry a bounded set of candidates; uncontrolled retries simply turn contention into more load.
+
+2) Expiration
+- Scheduled cleanup jobs are useful, but delays must not make expired inventory permanently unavailable.
+- Reclaim expired reservations during a new claim using an atomic predicate on state, expiration, and version.
+- A delayed cleanup task must verify that it still refers to the same reservation before releasing anything.
+- Define expiry against authoritative server time and keep terminal purchased state immune to reservation cleanup.
+
+3) Crowd admission
+- A basic rate limit protects the backend but gives customers repeated errors and no clear place in line.
+- A virtual waiting room issues signed, expiring admission tokens at a sustainable rate.
+- Keep queue state independent of inventory claims; admission does not guarantee a unit.
+- Bound token reuse and recover reconnecting users without letting refreshes jump the queue.
+
+4) Fairness
+- Define whether admission is first-come-first-served, randomized, or another transparent policy.
+- Enforce per-user purchase limits at the durable order boundary, not solely in browser state.
+- Separate fairness from raw throughput: a fast atomic counter does not prevent one client from making disproportionate attempts.
+
+Final Design
+- Cached browsing and a waiting room control the arrival rate at a short atomic reservation path.
+- Versioned, expiring unit claims spread contention and prevent stale checkout actions.
+- Durable payment workflows and conditional completion preserve the inventory invariant through retries, timeouts, and cleanup.

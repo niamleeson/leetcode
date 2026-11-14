@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="390" viewBox="0 0 880 390" role="img" aria-labelledby="title desc">
+<title id="title">PostgreSQL writes, reads, and recovery</title><desc id="desc">Applications send writes and fresh reads to the primary. Replicas serve reads that tolerate replication lag. Write ahead logs and backups support recovery.</desc>
+<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#475569"/></marker></defs>
+<rect width="880" height="390" rx="12" fill="white"/>
+<g font-family="Arial,sans-serif" fill="#172033" text-anchor="middle">
+<text x="440" y="32" font-size="20" font-weight="bold">PostgreSQL: separate write, read, and recovery paths</text>
+<g fill="#eff6ff" stroke="#64748b" stroke-width="2"><rect x="25" y="115" width="165" height="75" rx="8"/><rect x="335" y="90" width="210" height="120" rx="8"/><rect x="675" y="105" width="180" height="90" rx="8"/><rect x="335" y="290" width="210" height="65" rx="8"/><rect x="675" y="290" width="180" height="65" rx="8"/></g>
+<g font-size="17"><text x="107" y="148">Application</text><text x="107" y="173">connection pool</text><text x="440" y="120" font-weight="bold">Primary</text><text x="440" y="150">Transactions + indexes</text><text x="440" y="178">Write-ahead log (WAL)</text><text x="765" y="139" font-weight="bold">Read replicas</text><text x="765" y="166">May lag the primary</text><text x="440" y="318">Backups + WAL archive</text><text x="440" y="342">Durable recovery data</text><text x="765" y="328">Point-in-time recovery</text></g>
+<g fill="none" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"><path d="M190 150H330"/><path d="M545 150H670"/><path d="M440 210V285"/><path d="M545 323H670"/><path d="M108 115V65H765V100"/></g>
+<g font-size="13"><text x="260" y="127">Writes / fresh reads</text><text x="605" y="131">Replication</text><text x="510" y="250">Archive / backup</text><text x="440" y="59">Reads that tolerate replication lag</text><text x="440" y="379">Failover also needs ownership fencing; replication does not replace backups.</text></g>
+</g></svg>

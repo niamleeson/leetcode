@@ -1,0 +1,3061 @@
+@@ dropbox
+Understanding the Problem
+- Build cloud file storage with uploads, downloads, sharing, and synchronization across a user's devices.
+- Separate file bytes from file metadata. Object storage handles large immutable objects; the application handles ownership, permissions, and versions.
+
+Functional Requirements
+- Upload and download files from any device.
+- Share files with other users and list files shared with the current user.
+- Synchronize local changes to the cloud and cloud changes to other devices.
+- Editing files in the browser and previewing their contents are outside the core scope.
+
+Non-functional Requirements | 1
+- Support files up to 50 GB without restarting an entire upload after a network failure.
+- Prioritize availability, durable storage, secure access, and fast transfers.
+- Metadata may propagate asynchronously, but permission checks and upload completion must remain authoritative.
+
+Core Entities | 2
+- File: raw bytes stored in object storage, identified independently from its display name.
+- FileMetadata: file ID, owner, name, size, content type, storage location, version, and upload status.
+- SharedFiles: user ID and file ID mapping, plus permissions. Index by user to efficiently list incoming shares.
+- ChangeEvent and upload-part records support synchronization and resumable transfers.
+
+API
+- Create an upload session with metadata; return a file ID and signed upload instructions.
+- Request a download URL after authenticating the user and checking access to the file.
+- Share a file with another user and list files owned by or shared with the caller.
+- Fetch changes since the last synchronization cursor; acknowledge or complete an upload only after server verification.
+- Derive the caller's identity from a validated session token, rather than a user ID supplied in the request body.
+
+High-Level Design
+
+1) Upload files | 3,4,5
+- Storing files on an application server couples capacity and availability to that server and makes horizontal scaling difficult.
+- Forwarding every upload through the application to object storage fixes durability but doubles the transfer path and consumes application bandwidth.
+- Prefer a metadata request followed by direct client-to-object-storage transfer using a short-lived presigned URL.
+- Save metadata as pending first. Mark the file available after confirming the object or multipart upload actually exists.
+
+2) Download and share files | 6,7
+- The file service checks permissions and returns a signed object-storage or CDN URL; file bytes bypass application servers.
+- Use a CDN for geographically distributed downloads. Private content still requires signed URLs or equivalent authorization.
+- An embedded share list is simple, but finding all files shared with a user becomes expensive.
+- A separate user-to-file table supports that query directly and avoids maintaining conflicting copies of the share relationship.
+
+3) Synchronize devices | 8,9
+- A local watcher detects changed files and uploads changed content, updating the authoritative metadata version.
+- Other devices consume change events and download newer content. Push notifications improve responsiveness; cursor-based polling recovers missed events.
+- Track create, update, and delete events. Retain tombstones long enough for offline devices to observe deletions.
+- Compare versions before overwriting content; concurrent local edits require an explicit conflict policy rather than silent data loss.
+
+Deep Dives
+
+1) Large files and resumable uploads | 10
+- Split large files into independently retryable parts and record an upload ID, part numbers, and returned ETags.
+- Resume by asking which parts already exist, uploading only missing parts, then completing the multipart upload.
+- Client reports are hints. Verify parts with the storage provider before marking them complete; ordinary object-created events do not report every multipart part.
+- Use file and chunk fingerprints to recognize repeated uploads and avoid transferring unchanged content.
+- Clean up abandoned upload sessions and incomplete parts after a bounded retention period.
+
+2) Transfer performance
+- Upload independent parts concurrently within bandwidth and memory limits; expose progress using confirmed uploaded bytes.
+- Fixed-size chunks are simple, but an insertion shifts subsequent boundaries. Content-defined chunking can preserve reuse after edits.
+- Compress when the bandwidth savings exceed CPU cost; already compressed media may gain little. Compress before encryption.
+- Cache popular downloads near users and avoid caching every private file indefinitely.
+
+3) Security
+- Encrypt transfers with TLS and stored files with storage encryption; keep encryption keys separate from application data.
+- Recheck access before issuing a signed URL and choose a short expiration because an issued bearer URL remains usable until expiry.
+- Verify upload size, type, ownership, and completion on the server. Never trust a client-provided storage key to authorize access.
+
+Final Design | 11
+- Clients transfer file bytes directly to object storage or the CDN; the file service manages metadata, permissions, and signed URLs.
+- Multipart state and server verification make uploads resumable without declaring incomplete files ready.
+- A change feed, device cursors, and version checks connect independent uploads into reliable synchronization.
+- Scale metadata services separately from storage bandwidth and background processing.
+
+@@ yelp
+Understanding the Problem
+- Build a directory where users discover nearby businesses, inspect their details, and contribute reviews.
+- The central challenge is combining geographic search, text filters, and ratings while keeping review writes correct.
+
+Functional Requirements
+- Search businesses by location and query criteria, including category and rating.
+- View a business's details and existing reviews.
+- Submit a rating and review for a business; enforce at most one review per user per business.
+- Advanced recommendations and business-owner management are outside the core design.
+
+Non-functional Requirements | 1
+- Search and detail reads dominate traffic and should remain fast as the directory grows.
+- Favor availability for discovery while preserving durable reviews and correct uniqueness constraints.
+- Search indexes and cached ratings can have bounded freshness lag; describe that lag explicitly.
+
+Core Entities | 2
+- Business: ID, name, description, category, address, coordinates, and aggregate rating fields.
+- Review: business ID, author ID, rating, text, and timestamps.
+- User: authenticated reviewer identity. Enforce a unique composite key on user ID and business ID.
+- Location: a named region and its geometry when supporting city or neighborhood searches.
+
+API
+- Search with query text, latitude/longitude, radius, category, rating filters, and a pagination cursor.
+- Fetch business details and a paginated set of reviews by business ID.
+- Submit or update a review using the authenticated user, business ID, rating, and text.
+- Return the next cursor with stable ordering; avoid a growing offset for large result sets.
+
+High-Level Design
+
+1) Search businesses | 3
+- The search service queries indexed business data and applies distance and other filters.
+- Start with database indexes appropriate to the access patterns; a full scan for every nearby-business query will not scale.
+- Return business summaries and rating aggregates without fetching every review.
+
+2) Read details and write reviews | 4,5
+- Fetch business details by primary key and reviews by business ID; cache popular business pages.
+- Validate review ownership, rating range, and business existence before committing.
+- Keep the review and its effect on aggregate rating consistent through a transaction or a clearly defined asynchronous projection.
+- Invalidate or refresh cached detail data after changes; search freshness may follow a separate update pipeline.
+
+Deep Dives
+
+1) Maintain average ratings | 6,7
+- Computing an average over every review on each search is expensive; store rating sum and review count instead.
+- A scheduled aggregation job reduces write coupling but leaves results stale between runs.
+- Synchronous updates provide fresher results. Use atomic increments or version-checked transactions to prevent concurrent reviews from overwriting each other.
+- On an edited review, add the difference between old and new ratings rather than increasing the review count.
+- Optimistic conflicts require retries with a bound; very popular businesses may need batching or an asynchronous aggregation path.
+
+2) Enforce one review per user
+- An application check followed by insertion has a race: two requests can both observe that no review exists.
+- A database unique constraint on the user/business pair makes the rule hold under concurrency and retries.
+- Decide whether repeat submissions edit the existing review or return a conflict, then make that behavior explicit in the API.
+
+3) Search complex queries | 8,9
+- Elasticsearch combines inverted indexes, text relevance, geospatial filtering, and sorting, but adds a second data model to maintain.
+- Publish database changes to the search index using a reliable change stream or outbox; support retries and reindexing.
+- PostgreSQL with full-text and spatial extensions is a simpler alternative when it meets the workload.
+- Choose based on actual query and scale requirements; specialized search adds operational cost and eventual consistency.
+
+4) Search named locations
+- Resolve a city or neighborhood name to a region or polygon, then run the spatial query within that boundary.
+- Disambiguate duplicate names and distinguish a named area from a simple radius around a point.
+- Cache stable geographic metadata; exact business eligibility still depends on the business coordinates.
+
+Final Design | 10
+- A durable business/review database owns the records and uniqueness rules.
+- Search indexes handle discovery; caches accelerate frequently viewed details.
+- Rating aggregates and index updates use explicit consistency and recovery rules, so performance improvements do not silently lose reviews.
+
+@@ local-delivery-service
+Understanding the Problem
+- Design a service that shows which products can be delivered to a customer and accepts orders from nearby distribution centers.
+- Availability is specific to both location and inventory. A fast browsing result is not a guarantee that checkout will succeed.
+
+Functional Requirements
+- Query items available for delivery to a given location.
+- Place an order for a set of items from an eligible distribution center.
+- Reserve or decrement inventory without overselling when customers order concurrently.
+- Driver dispatch and detailed delivery tracking are outside the core scope.
+
+Non-functional Requirements | 1
+- Availability reads should be fast and scale independently from order writes.
+- Checkout requires consistent inventory updates; stale browsing data is acceptable only if checkout revalidates it.
+- Remain available during traffic spikes and retain durable order records.
+
+Core Entities | 2
+- Item: product description and identifiers shared across locations.
+- DistributionCenter: address, coordinates, and service-area information.
+- Inventory: distribution center, item ID, and quantity available.
+- Order and OrderItem: customer, chosen center, item quantities, price, and fulfillment state.
+
+API | 3
+- Query availability using the customer's location and desired items or search criteria.
+- Create an order with item quantities and an idempotency key; derive customer identity from authentication.
+- Return the accepted order and current status, or a clear conflict if inventory changed before checkout.
+
+High-Level Design
+
+1) Find available items | 4,5,6
+- Identify nearby distribution centers before querying their inventory.
+- Join location eligibility with item availability, returning products that can actually be fulfilled from an eligible center.
+- Index inventory by distribution center and item ID; avoid reading inventory across every center for each request.
+- Distinguish product metadata, which changes slowly, from quantities, which can change on every order.
+
+2) Place an order | 7,8
+- Within one PostgreSQL transaction, verify available quantities, decrement or reserve inventory, and insert the order.
+- Use conditional updates or row locks; checking quantity in application code before a separate write permits overselling.
+- When ordering multiple items, lock them in a consistent order to reduce deadlocks, and roll back the whole order if any item is unavailable.
+- Coordinating two independent databases with a distributed lock creates failure and recovery problems that a single transaction avoids.
+- Keep payment or other slow external calls outside a long-held inventory transaction; represent longer reservations explicitly if required.
+
+Deep Dives
+
+1) Incorporate traffic and driving time | 9,10,11
+- Straight-line distance is a cheap candidate filter but does not represent road layout, bridges, or traffic.
+- Calling a travel-time service for every distribution center is slow and costly.
+- First find a small geographic candidate set, then estimate driving time only for those centers.
+- Cache estimates where appropriate with a bounded lifetime; current traffic can change which center meets the delivery promise.
+
+2) Scale availability reads | 12,13,14
+- Cache product metadata and frequently requested availability views near the application.
+- Quantities in caches or replicas can lag; checkout must still consult the authoritative inventory state.
+- Read replicas reduce primary read load. Partition inventory around distribution centers when the working set or write volume requires it.
+- Avoid a cache key for every arbitrary coordinate. Geographic cells or eligible-center sets improve reuse.
+- Watch hot centers and popular products separately: evenly distributed total traffic can still overload one inventory row.
+
+Final Design
+- A location-aware read path selects eligible centers and serves cached or replicated inventory for browsing.
+- A transactional order path owns stock changes and durable orders.
+- A geographic prefilter plus selective travel-time calls improves delivery eligibility without making every lookup expensive.
+- Scale the read path aggressively while keeping checkout's correctness boundary explicit.
+
+@@ ticketmaster
+Understanding the Problem
+- Build event discovery and ticket booking where many users may compete for the same seats.
+- Separate browsing availability from the authoritative reservation and purchase state of each ticket.
+
+Functional Requirements
+- View events and seating availability.
+- Search events by text, location, date, or other supported filters.
+- Reserve seats temporarily and purchase them after payment.
+- Release abandoned reservations so another customer can buy the tickets.
+
+Non-functional Requirements | 1
+- Never sell a seat to two customers; booking consistency takes priority over accepting every request.
+- Scale browsing for popular events and keep discovery responsive.
+- Support short reservation lifetimes and reliable recovery from payment or application failures.
+- Treat availability shown in search or caches as a hint; the booking operation makes the final decision.
+
+Core Entities | 2
+- Event and Venue describe the performance, schedule, location, and seating layout.
+- Ticket identifies an event seat, price, reservation owner, expiry, and booking status.
+- Booking groups the customer's tickets and payment state under a durable ID.
+- User identifies the authenticated buyer; retry keys distinguish a retried checkout from a new one.
+
+API
+- Fetch an event and its seat map; search with filters and pagination.
+- Reserve selected ticket IDs and return a reservation token plus expiration time.
+- Confirm a booking using the reservation token and payment result; expose booking status for retry recovery.
+- Validate ownership and expiration on every state transition, not just when the reservation is created.
+
+High-Level Design
+
+1) Browse and search | 3,4
+- Event services read durable metadata and serve cacheable descriptions and seating layouts through caches or a CDN.
+- A search index provides text and filter queries; changes flow from the authoritative database into that index.
+- Seat availability changes frequently and has different caching rules from the event description.
+
+2) Book tickets | 5
+- Atomically claim all requested available seats for a reservation; concurrent claims must conflict at the database boundary.
+- Use a short transaction for reservation creation, then perform payment without holding a database transaction open.
+- Confirm the purchase only for the current reservation owner and only if its state allows confirmation.
+- Handle retries idempotently so a lost response cannot create a second purchase or charge.
+
+Deep Dives
+
+1) Reservation expiry | 6
+- Holding a database lock throughout a user's checkout wastes connections and creates long blocking chains.
+- Store reservation status and expiry. A ticket is claimable if unreserved or its reservation has expired, checked atomically during the next claim.
+- A cleanup job improves housekeeping, but correctness must not depend on that job running exactly on time.
+- Redis locks with TTL can coordinate claims, but losing or expiring a lock must not permit two durable purchases.
+- Include reservation ownership or a version in final confirmation to reject stale clients and delayed payment callbacks.
+
+2) Scale event views | 7
+- Horizontally scale stateless read services behind a load balancer.
+- Cache event metadata, partition by event where useful, and isolate booking capacity from browsing spikes.
+- Update or invalidate availability caches promptly, while retaining authoritative checks on reservation writes.
+
+3) Handle high-demand onsales | 8
+- SSE can push seat updates to connected browsers and reduce repeated polling.
+- A virtual waiting room admits customers at a rate the reservation service can sustain.
+- Queue admission needs a signed, expiring token; being in the waiting room does not reserve a seat.
+- Bound queue lifetimes, recover disconnected clients, and define fairness so retries cannot jump ahead.
+
+4) Improve search | 9
+- Begin with database indexes and query optimization, then use full-text indexes or Elasticsearch when query complexity warrants it.
+- Cache repeated searches and stable event details with keys that include every relevant filter.
+- Keep search freshness expectations explicit; a search result can become unavailable before checkout.
+
+Final Design | 10
+- Cached event discovery feeds a separate, strongly controlled reservation and booking path.
+- Expiring reservations, idempotent payment handling, and conditional confirmation protect seat ownership.
+- Waiting-room admission and live availability updates keep popular events usable without overwhelming the database.
+
+@@ instagram
+Understanding the Problem
+- Build a media-sharing application with uploads, follows, and a chronological feed.
+- Media delivery and feed generation have different bottlenecks and should scale separately.
+
+Functional Requirements
+- Create posts with photos or videos and a caption.
+- Follow other users and fetch recent posts from followed accounts.
+- Page through the feed using stable ordering.
+- Ranking, messaging, and other social features are outside the core chronological-feed scope.
+
+Non-functional Requirements | 1
+- Target feed responses below 500 ms and support roughly 500 million daily active users in the interview scenario.
+- Support photos up to 8 MB and videos up to 4 GB without routing their bytes through application servers.
+- Favor availability with eventual feed propagation while preserving durable posts and access controls.
+
+Core Entities | 2
+- User identifies the account and profile.
+- Post stores author, caption, creation time, media references, and processing state.
+- Follow stores a directed follower-to-followee edge with indexes for both access directions.
+- FeedEntry stores a recipient, post ID, and ordering key when feeds are precomputed.
+
+API
+- Create an upload session and then publish a post referencing verified uploaded media.
+- Follow or unfollow an account with an authenticated request.
+- Fetch the feed with a cursor and limit, returning post summaries and media URLs.
+- Use a timestamp plus stable ID as the cursor so simultaneous posts do not create ambiguous boundaries.
+
+High-Level Design
+
+1) Publish posts | 3
+- Upload media directly to object storage using signed URLs; store lightweight post metadata in the database.
+- Process videos and image variants asynchronously, then transition the post to a viewable state.
+- Publish a durable post-created event to drive feed updates and other downstream work.
+
+2) Follow users | 4
+- Store follow edges separately from posts and user records.
+- Index by follower to find followed authors and by author to enumerate recipients during fanout.
+- Handle repeated follow/unfollow requests idempotently and apply visibility rules when serving a feed.
+
+3) Read the chronological feed | 5
+- The simplest approach fetches recent posts from followed authors and merges them by creation time.
+- Fetch post IDs first, then hydrate post metadata in batches and return CDN URLs for media.
+- Cursor pagination avoids expensive offsets and reduces duplication as new posts arrive.
+
+Deep Dives
+
+1) Feed latency and fanout | 6,7
+- Fanout on read avoids write amplification but makes reads expensive for users following many accounts.
+- Fanout on write asynchronously inserts each new post ID into followers' feed lists, making common reads cheap.
+- A celebrity's follower count can make write fanout excessive. Keep those posts on a read-time path and merge them with precomputed entries.
+- Workers process fanout in bounded batches with retries and deduplication; a post ID should not appear twice after a retry.
+- Cache feed IDs separately from shared post objects to avoid copying full post content into every recipient's cache.
+- Limit feed history and rebuild or backfill inactive users instead of maintaining unlimited lists for everyone.
+
+2) Fast media rendering | 8,9,10,11
+- Direct object-storage delivery is durable but can be slow for distant users; a CDN puts popular bytes closer to viewers.
+- Generate appropriately sized thumbnails, image formats, and video variants rather than sending full-resolution media to every device.
+- Use asynchronous processing and publish readiness state; clients should not receive links to outputs that have not been generated.
+- Signed URLs and access checks remain necessary for private content even when a CDN serves the bytes.
+
+3) Scale the system
+- Partition posts and follow data around their dominant access patterns, and isolate celebrity hot spots from ordinary traffic.
+- Scale feed workers using queue lag and keep ingestion responsive during fanout backlogs.
+- Monitor feed latency, propagation delay, cache hit rate, and media-processing failures separately.
+
+Final Design | 12
+- Durable post metadata and object storage form the source of truth.
+- Hybrid feed fanout, shared post caches, and cursor pagination keep reads predictable.
+- Background media processing and CDN delivery handle large files independently of feed computation.
+
+@@ fb-news-feed
+Understanding the Problem
+- Design a chronological feed of posts from accounts a user follows.
+- The main tradeoff is whether to assemble feeds when users read them or distribute post references when authors publish.
+
+Functional Requirements
+- Create posts and follow other accounts.
+- View a feed containing posts from followed accounts.
+- Page through older feed entries without repeatedly fetching the same results.
+- Personalized ranking and media processing can be separate extensions.
+
+Non-functional Requirements | 1
+- Feed reads must have low latency despite users following many accounts.
+- Support a large user graph with heavily skewed follower counts and popular posts.
+- Favor availability and bounded feed delay; posts and follow edges must remain durable.
+
+Core Entities | 2
+- User and Post represent authors and durable content with creation timestamps.
+- Follow edges support both listing a user's followees and listing an author's followers.
+- FeedEntry stores a recipient, post ID, and ordering key; it is a derived view that can be rebuilt.
+- A separate post cache lets many feeds reference the same content without copying it repeatedly.
+
+API
+- Create a post and return its ID after the durable write.
+- Follow or unfollow an account using the authenticated user's identity.
+- Fetch feed entries with a cursor and page size; batch-fetch the referenced post objects.
+- Use stable ordering such as creation time plus post ID, rather than a mutable numeric offset.
+
+High-Level Design
+
+1) Posts and follows | 3,4
+- Route requests through stateless services to the post store and follow graph.
+- Maintain indexes in both directions of the follow relationship because read-time and write-time fanout need different queries.
+- Emit a post-created event after persistence; reliable publication avoids losing feed work when a process crashes after writing the post.
+
+2) Assemble and paginate feeds | 5
+- A simple read-time feed fetches recent posts from followed users and merges the sorted results.
+- Fetch enough candidates to fill the page after applying visibility and deletion checks.
+- Return a cursor identifying the last ordering position. New posts can appear at the top without shifting previously read offsets.
+- Keep authoritative posts separate from feed indexes so edits or deletions do not require rewriting every full feed entry.
+
+Deep Dives
+
+1) Users following many accounts | 6
+- Precompute feed lists by distributing new post IDs to followers asynchronously.
+- A read then fetches one recipient's ordered list, reducing scattered queries across many authors.
+- Bound the number of stored entries and backfill older pages from durable data when necessary.
+- Precomputation trades storage and write work for predictable read latency; it is most useful for active readers.
+
+2) Users with many followers | 7,8
+- Synchronously writing millions of feed entries delays post creation and overloads the write path.
+- Queue fanout work and process recipient batches with idempotent writes, retry limits, and lag monitoring.
+- Use hybrid feeds: distribute ordinary posts on write, fetch celebrity posts on read, and merge both sets.
+- Choose thresholds from fanout cost and traffic patterns, rather than assuming one policy fits every account.
+
+3) Uneven post reads | 9,10,11
+- Hashing post IDs spreads different posts across cache nodes but cannot spread traffic to one extremely hot post.
+- Replicate hot post values across multiple cache locations or serve them from local caches with bounded staleness.
+- Distinguish cache partitioning from replication: more partitions alone do not fix a single hot key.
+- Coalesce cache misses and protect the database during cache expiry or failure so viral traffic does not become a stampede.
+- Invalidate deleted or restricted content promptly; cached feed IDs must not bypass access checks.
+
+Final Design | 12
+- Durable post and follow stores feed asynchronous workers and derived feed lists.
+- The read service merges precomputed ordinary posts with celebrity posts, then hydrates content from a shared cache.
+- Stable cursors, bounded lists, idempotent fanout, and hot-object replication make the design scalable without treating the cache as the only copy.
+
+@@ tinder
+Understanding the Problem
+- Build profile discovery and mutual matching based on preferences, distance, and swipe decisions.
+- Candidate generation can be eventually consistent; recording swipes and creating a mutual match need stronger coordination.
+
+Functional Requirements
+- Create a profile and configure preferences and maximum distance.
+- Browse a stack of eligible profiles.
+- Swipe yes or no once per candidate, and notify both users when their positive swipes form a match.
+- Messaging after a match and recommendation-model training are outside the core design.
+
+Non-functional Requirements | 1
+- Keep swipe acknowledgement and stack retrieval fast.
+- Avoid missing a mutual match when users swipe concurrently, and avoid duplicate match records or notifications.
+- Support geographic queries and large swipe histories without scanning every profile or historical swipe.
+
+Core Entities | 2
+- UserProfile stores preferences, location, and profile metadata; photos live in object storage.
+- Swipe stores swiper, target, decision, and time.
+- Match stores a canonical unordered pair of users and creation time.
+- CandidateStack is a derived, refreshable list of potential profiles for a user.
+
+API
+- Update profile, preferences, and location for the authenticated account.
+- Fetch a bounded candidate stack with a cursor or replenishment token.
+- Submit a swipe with target user ID, decision, and retry-safe request ID.
+- List matches and deliver match notifications through a persistent connection or push service.
+
+High-Level Design
+
+1) Profiles and candidate stacks | 3,4
+- Store profile metadata durably and serve images through object storage and a CDN.
+- Use geographic and preference indexes to generate candidates rather than scanning all users.
+- Filter blocked, ineligible, and previously swiped profiles before presenting the stack.
+- Precompute a limited stack for active users, then replenish as it is consumed or preferences change.
+
+2) Swipes and matches | 5,6
+- Persist the swipe and check the reverse positive swipe.
+- Coordinate both sides so simultaneous swipes cannot each miss the other's write and permanently lose the match.
+- Use a canonical pair key and a unique match constraint; retries must return the same match rather than insert another.
+- Publish a match event reliably and deduplicate notifications independently from the match record.
+
+Deep Dives
+
+1) Consistent low-latency swiping | 7
+- Transactions can coordinate swipe and match updates when the relevant state fits one database boundary.
+- With partitioned storage, choose a canonical pair partition so both users' decisions can be checked together.
+- Cassandra conditional operations can help within a partition, but they have coordination cost and are not general cross-partition transactions.
+- Redis atomic scripts provide another coordination option, but persistence, failover, and replay must protect durable match state.
+- Periodic polling alone is slow and creates repeated work; use it only as recovery or reconciliation if needed.
+
+2) Fast candidate generation | 8,9,10
+- Indexed real-time queries reflect new preferences quickly but become expensive under heavy repeated traffic.
+- Precomputed stacks make reads cheap but can become stale when users move or change preferences.
+- Combine a cached candidate pool with final eligibility checks and background replenishment.
+- Keep pool sizes bounded, expire old stacks, and prioritize active users rather than generating stacks for every dormant account.
+
+3) Exclude previous swipes | 11,12
+- Querying the entire swipe history for every stack request is expensive.
+- Cache recent swipe membership or maintain a compact lookup structure alongside the durable swipe store.
+- A Bloom filter can cheaply reject previously seen candidates, but false positives may hide an unseen profile; it cannot enumerate the history.
+- Decide whether that tradeoff is acceptable, and keep exact records for correctness-sensitive match decisions.
+
+Final Design | 13
+- Indexed profiles and a refreshable candidate cache support discovery.
+- An atomic, retry-safe swipe/match path owns mutual-match correctness.
+- Durable events drive notifications, while cached swipe membership reduces repeated profile filtering work.
+
+@@ leetcode
+Understanding the Problem
+- Design a coding-practice platform that serves problems, runs submitted solutions, and maintains competition standings.
+- User code is untrusted and computationally expensive; execution must be isolated from the API and primary data stores.
+
+Functional Requirements
+- Browse problems and view statements, examples, and starter code.
+- Submit a solution in a supported language and receive test results.
+- View a live competition leaderboard.
+- Retain submission status so users can recover results after reconnecting.
+
+Non-functional Requirements | 1
+- Return submission acceptance quickly and execute jobs with bounded queueing delay.
+- Isolate user code, limit resource usage, and prevent unauthorized network or filesystem access.
+- Support competitions with around 100,000 users and sudden submission bursts.
+- Persist submissions and results reliably; retries must not award competition credit twice.
+
+Core Entities | 2
+- Problem includes statement, language templates, constraints, and references to hidden test cases.
+- Submission records user, problem, source code, language, status, and timestamps.
+- TestResult records pass/fail, runtime, memory, and sanitized diagnostics.
+- Contest and ScoreEntry define participation, scoring, penalties, and ordering.
+
+API
+- List problems with filters and pagination, and fetch a problem by ID.
+- Submit code and receive a submission ID immediately after durable acceptance.
+- Poll submission status or subscribe to updates until a terminal result is available.
+- Query the contest leaderboard and the current user's rank with bounded pagination.
+
+High-Level Design
+
+1) Problem browsing | 3,4
+- Read problem metadata from a database and cache frequently viewed statements.
+- Keep hidden tests private; only trusted execution workers receive them.
+- Editing code happens in the client until submission, reducing unnecessary server writes.
+
+2) Execute submissions | 5,6,7
+- Persist a pending submission, enqueue its ID, and let a worker claim the job.
+- Running code inside the API process allows malicious or accidental behavior to affect the entire service.
+- Use an isolated execution environment such as a hardened container, sandbox, or microVM with explicit CPU, memory, process, and time limits.
+- A normal container alone is not a complete security boundary; restrict privileges, syscalls, mounts, and outbound networking.
+- Store results before acknowledging the job, and make repeat processing safe for the same submission ID.
+
+3) Competition leaderboard | 8
+- Accepted results update contest score and penalty state according to explicit rules.
+- Publish score changes to a derived ranking view rather than sorting every participant on every read.
+- Keep authoritative results durable so the leaderboard can be rebuilt after a cache failure.
+
+Deep Dives
+
+1) Isolation and security | 9
+- Start each execution with a clean filesystem and no application credentials.
+- Enforce execution deadlines, output limits, memory limits, and process limits; terminate the whole process tree on timeout.
+- Prevent user code from accessing hidden tests outside the intended harness or reaching internal services.
+- Sanitize errors and output before rendering them in the browser.
+
+2) Efficient rankings | 10
+- A Redis sorted set provides score updates, top ranges, and rank lookup without repeatedly sorting the entire contest.
+- Encode tie-breaking rules explicitly; score alone may not capture time penalties or equal-score ordering.
+- Periodic polling is sufficient for many leaderboards; use push updates when the freshness requirement justifies persistent connections.
+
+3) Competition bursts | 11,12
+- A durable queue buffers submissions and separates API capacity from execution capacity.
+- Scale worker pools using queue depth and job age; prewarm language runtimes for predictable latency.
+- Apply per-user limits and fair scheduling so one participant cannot monopolize the workers.
+- Retry transient infrastructure failures, but do not repeatedly retry a deterministic compile error or time-limit failure.
+
+4) Test-case execution
+- Compile once where applicable, then run cases through a controlled harness.
+- Decide whether to stop at the first failure or report all results; keep hidden expected outputs private.
+- Normalize only what the problem permits, and measure resources consistently across runs.
+
+Final Design | 13
+- Cached problem reads sit beside a durable submission queue and isolated worker fleet.
+- Results drive retry-safe score updates and a rebuildable leaderboard cache.
+- Security boundaries, queue fairness, and resource limits are as important as raw execution throughput.
+
+@@ whatsapp
+Understanding the Problem
+- Build reliable private and group messaging with real-time delivery, offline recovery, and media attachments.
+- A live connection is only a delivery path. Durable messages and delivery state must survive connection and server failures.
+
+Functional Requirements
+- Create group chats with up to 100 participants and send or receive messages.
+- Deliver messages missed while offline, retaining them for up to 30 days in the interview scope.
+- Support media attachments and multiple devices per user.
+
+Non-functional Requirements | 1
+- Keep online delivery latency low while scaling to a very large number of persistent connections.
+- Avoid losing acknowledged messages; accept retries and deduplicate them rather than assuming networks deliver exactly once.
+- Preserve a defined ordering within each conversation, with durable recovery after disconnection.
+
+Core Entities
+- User, Chat, and ChatMember identify participants and membership permissions.
+- Message includes message ID, chat ID, sender, sequence or ordering key, body, and timestamp.
+- Device and delivery cursor track which messages each connected device has received.
+- Attachment stores metadata and a reference to bytes in object storage.
+
+API | 2
+- Use ordinary authenticated requests for chat creation, membership changes, and upload authorization.
+- Establish a WebSocket for bidirectional message events, acknowledgements, and delivery updates.
+- Send a client-generated message ID so retries can resolve to the same stored message.
+- Reconnect with a durable cursor and fetch messages after that position rather than relying only on live events.
+
+High-Level Design
+
+1) Chats and message delivery | 3,4
+- Verify chat membership before accepting a message, then persist it before acknowledging durable acceptance.
+- Route live events to the servers holding recipients' active connections.
+- Keep undelivered messages or per-device cursors so offline recipients can catch up later.
+- Distinguish server acceptance, device delivery, and read receipts; they are different states.
+
+2) Media attachments | 5,6,7
+- Storing media in the message database or relaying all bytes through chat servers makes storage and bandwidth expensive.
+- Upload directly to object storage using signed instructions, then send an authorized attachment reference in the message.
+- Downloads use signed URLs or equivalent access checks; protect private attachments even when served through a CDN.
+
+Deep Dives
+
+1) Connection routing at scale | 8,9,10
+- Stateless HTTP load balancing does not tell a sender which server owns a recipient's persistent connection.
+- Consistent hashing can assign users to chat servers, but membership changes and failover require reconnect and routing coordination.
+- Pub/sub lets connection servers subscribe to relevant users or conversations and receive events for their local clients.
+- A Kafka topic per user creates excessive coordination overhead; choose partitioned durable streams and a separate live fanout layer where appropriate.
+- Partitioning by chat preserves conversation locality; partitioning by user can simplify device delivery. Explain the fanout and subscription costs of the chosen model.
+
+2) Multiple devices | 11
+- Track sessions and delivery progress per device, not just per user.
+- Fan out to all active devices and retain enough history for an inactive device to resume.
+- Acknowledgement from one device must not incorrectly imply every device received the message.
+
+3) Failures, retries, and ordering
+- Heartbeats detect dead connections sooner than relying on TCP timeouts alone.
+- Retry unacknowledged messages with bounded backoff and stable IDs; clients and servers deduplicate repeated delivery.
+- Use per-chat sequence numbers or a defined ordering policy, and recover gaps from durable storage.
+- Treat pub/sub as a latency optimization when it is nondurable; missed live events must be recoverable from message history.
+- Expire retained messages according to policy and explain what happens when a device reconnects beyond the retention window.
+
+Final Design
+- Durable chat/message storage owns membership, ordering, and recovery state.
+- A horizontally scaled connection tier and routing or pub/sub layer deliver live events.
+- Object storage handles attachments, while device cursors, acknowledgements, and idempotent retries make delivery reliable.
+
+@@ strava
+Understanding the Problem
+- Track runs and rides from mobile GPS samples, then expose completed activities and athlete comparisons.
+- The phone must remain useful without connectivity; cloud synchronization should not interrupt recording.
+
+Functional Requirements
+- Start, pause, stop, and save an activity.
+- Show route, distance, and elapsed time during recording.
+- View personal and friends' completed activities; consider live sharing and leaderboards as deep dives.
+
+Non-functional Requirements | 1
+- Support offline recording and recover uploads without losing or duplicating samples.
+- Scale to around 10 million concurrent activities in the interview scenario.
+- Keep live tracking responsive and completed activities durable while controlling battery and network usage.
+
+Core Entities | 2
+- User and Activity identify the athlete, activity type, start/end times, and summary metrics.
+- LocationSample includes activity ID, sequence, coordinates, timestamp, and optional sensor measurements.
+- Segment and LeaderboardEntry represent a defined route and an athlete's qualifying performance.
+
+API
+- Create an activity and obtain an ID; update its recording state and finalize it when complete.
+- Upload batches of ordered samples with a retry-safe batch or sample identifier.
+- Fetch activity details and a cursor-paginated list of visible activities.
+- Subscribe to an authorized live activity and query segment rankings when those features are enabled.
+
+High-Level Design
+
+1) Record and display activity | 3,4
+- Record samples locally and calculate immediate distance/time feedback on the device.
+- Upload samples asynchronously in batches, retaining unsent data until acknowledged.
+- The server stores raw samples separately from derived summaries and validates activity ownership.
+- Preserve sample timestamps so delayed uploads do not distort the route or duration.
+
+2) Read completed activities | 5
+- Finalization triggers processing to calculate summaries and prepare route data for efficient reads.
+- Store summary fields in a queryable database and larger route payloads in suitable durable storage.
+- Check activity visibility before serving routes or sharing location information with friends.
+
+Deep Dives
+
+1) Offline operation | 6
+- Persist the recording on the device so an app restart does not erase an ongoing activity.
+- Reconnect by resending unacknowledged batches; deduplicate with activity/sample sequence identifiers.
+- Handle pause/resume intervals explicitly rather than treating every gap in uploaded samples as continuous movement.
+- Finalize only after all required batches arrive, or expose an incomplete state that can reconcile later.
+
+2) High write volume | 7
+- Reduce per-sample overhead with batching and partition writes by activity or athlete plus time.
+- Buffer bursts in a durable queue and process raw samples independently from the synchronous API.
+- Avoid one global hot partition and monitor lag before accepting more work than the pipeline can retain.
+- Downsample historical route data for display while keeping the fidelity required for metrics.
+
+3) Live sharing
+- Push recent locations to authorized viewers using SSE or WebSockets.
+- Separate the ephemeral live position from durable activity history; reconnecting viewers can fetch the latest snapshot.
+- Tune reporting frequency to balance freshness, battery drain, and server load.
+
+4) Leaderboards | 8
+- Identify qualifying segment traversals and calculate performance from validated samples.
+- Maintain a sorted ranking structure for fast top results and an athlete's rank.
+- Keep durable performance records so cached rankings can be rebuilt; define ties and whether only personal bests count.
+
+Final Design | 9
+- Local recording feeds a batched, retry-safe ingestion pipeline and durable activity storage.
+- Background processors derive summaries and rankings; cached reads serve completed activities.
+- Live location delivery is a separate authorized path, allowing recording and recovery to work even when live sharing fails.
+
+@@ distributed-cache
+Understanding the Problem
+- Design the cache itself: a distributed in-memory key-value service with expiration, eviction, and failure handling.
+- Clarify whether cached data is reconstructible from another store before choosing persistence and consistency guarantees.
+
+Functional Requirements
+- Set, retrieve, and delete key-value pairs.
+- Support per-key TTL and evict entries under memory pressure using an LRU policy.
+- Distribute keys across nodes while providing a usable client interface.
+
+Non-functional Requirements
+- Keep operations low latency with high throughput and bounded memory usage.
+- Scale horizontally and remain available through node failures.
+- Explain whether stale reads or loss of recently cached writes is acceptable; replication policy depends on that contract.
+
+Core Entities
+- CacheEntry stores key, value, expiry, and eviction metadata.
+- Node owns a subset of keys and optional replicas; cluster membership maps keys to owners.
+- A client or routing layer locates the responsible node for each operation.
+
+API
+- get(key) returns a value or a miss; set(key, value, ttl) writes or replaces an entry.
+- delete(key) removes an entry idempotently.
+- Define key/value size limits and behavior for expired entries; an expired item must never be returned as a valid hit.
+
+High-Level Design
+
+1) In-memory operations | 1
+- Use a hash table for average constant-time key lookup.
+- Store values in memory and limit allocations and copying on the request path.
+- Synchronize concurrent mutations so the hash table and eviction bookkeeping remain consistent.
+
+2) TTL and eviction | 2,3
+- Lazy expiration checks TTL on access; background cleanup reclaims expired entries that are never read again.
+- An LRU list plus hash table supports efficient promotion and removal, although strict global LRU creates coordination overhead.
+- Approximate or segmented eviction can reduce bookkeeping cost under high concurrency.
+- Eviction is distinct from expiration: an unexpired item may be removed because memory is full.
+
+Deep Dives
+
+1) Availability and replication | 4,5,6
+- Replicate entries to survive node loss and define how a replacement owner is selected.
+- Synchronous replication improves acknowledgement durability but adds latency and reduces availability during failures.
+- Asynchronous replication is faster but can lose recent writes or expose stale values after failover.
+- If the cache is reconstructible, controlled misses may be preferable to expensive strong consistency; protect the backing store during recovery.
+
+2) Distribution and growth | 7
+- Modulo hashing remaps many keys when node count changes. Consistent hashing limits movement to affected ranges.
+- Virtual nodes improve balance and let larger machines own more ranges.
+- Membership changes require routing updates and careful migration so clients do not treat every moved key as permanently missing.
+
+3) Hot keys | 8,9
+- A popular read key remains hot even when the overall keyspace is evenly partitioned.
+- Replicate hot values or add bounded local caches, accepting explicit invalidation and freshness costs.
+- Hot writes are harder because replicas must coordinate changes; batching, aggregation, or application-specific key splitting may help.
+- Do not claim arbitrary writes to one key become scalable merely by adding shards.
+
+4) Performance and recovery
+- Use connection reuse, pipelining, compact serialization, and batching where the client can tolerate it.
+- Bound request and value sizes so one large value cannot monopolize a server.
+- Measure tail latency, eviction rate, hit rate, replication lag, and rebalancing pressure.
+
+Final Design | 10
+- Hash-table storage, TTL cleanup, and bounded eviction form each cache node.
+- Consistent hashing and virtual nodes distribute ownership; replicas provide the chosen failure semantics.
+- Hot-key handling and backing-store protection are explicit extensions rather than assumptions hidden behind horizontal scaling.
+
+@@ rate-limiter
+Understanding the Problem
+- Decide whether each request is allowed under configurable limits for a user, API key, IP address, or resource.
+- The limiter sits on a latency-sensitive request path and must define its behavior when shared state is unavailable.
+
+Functional Requirements
+- Identify the requester and applicable rule, update usage, and return allow or deny.
+- Support configurable limits and changes to those limits.
+- Return HTTP 429 with useful retry information when rejecting a request.
+
+Non-functional Requirements | 1
+- Add minimal latency and support around one million requests per second in the scenario.
+- Coordinate usage across application instances so each instance cannot independently grant the full global allowance.
+- Balance exact enforcement, availability, operational cost, and tolerance for small overshoots.
+
+Core Entities
+- Rule defines scope, capacity, interval or refill rate, and priority.
+- ClientKey identifies the authenticated principal or network source plus the relevant endpoint or resource.
+- BucketState holds counters, timestamps, tokens, or recent request times for a client/rule pair.
+
+API
+- allowRequest(clientKey, ruleId, cost) returns a decision, remaining allowance, and retry timing.
+- Rule-management APIs publish versioned configuration separately from request accounting.
+- Do not trust an arbitrary forwarded IP header; derive identity through the trusted gateway and authentication layer.
+
+High-Level Design
+
+1) Identify and route requests | 2,3,4
+- Enforce limits in a gateway or shared middleware before expensive downstream work.
+- User IDs and API keys are more precise than IPs; shared NATs make IP-only limits unfair, while unauthenticated traffic may still need IP protection.
+- Combine relevant scopes, such as per-user and per-endpoint limits, with an explicit rule for conflicting decisions.
+
+2) Choose an algorithm | 5,6,7
+- Fixed windows keep one counter per interval but permit bursts across a window boundary.
+- Sliding-window logs track exact timestamps and provide precise enforcement at a higher memory and processing cost.
+- Token buckets refill at a defined rate, allow controlled bursts up to capacity, and reject requests when insufficient tokens remain.
+- Sliding counters approximate a moving window with less state; choose accuracy based on the product requirement.
+- Make the read-check-update operation atomic, for example with a short Redis script, to prevent concurrent over-admission.
+
+3) Reject clearly
+- Return 429 and a Retry-After value derived from the actual algorithm.
+- Expose remaining quota where useful, but never require clients to calculate authoritative limits themselves.
+- Encourage bounded backoff with jitter rather than synchronized immediate retries.
+
+Deep Dives
+
+1) Throughput | 8
+- Partition limiter state by client/rule key so unrelated clients update independently.
+- Keep scripts small and expire inactive state to bound memory.
+- Local token allocations can reduce shared-store calls, but allocation size controls the possible global overshoot.
+
+2) Availability | 9
+- Fail open preserves service availability but can expose downstream systems to overload or abuse.
+- Fail closed protects strict quotas but can deny legitimate traffic during a limiter outage.
+- Select behavior per endpoint and consider conservative local fallback allowances; document the resulting consistency tradeoff.
+- Replication and failover can lose recent accounting state, so do not promise exact global limits without the required coordination.
+
+3) Latency and hot keys
+- Reuse connections and keep rule lookup local while sharing only the mutable accounting state.
+- A global or viral-resource key can bottleneck one shard; hierarchical quotas or batched token leasing reduce contention.
+- Increasing shard count alone does not distribute a single atomic counter.
+
+4) Dynamic rules | 10
+- Publish versioned rules through a control plane and cache them at enforcement nodes.
+- Define how existing bucket state transitions when capacity or refill rate changes.
+- Observe rejection rate, decision latency, datastore errors, and configuration propagation delay.
+
+Final Design | 11
+- The gateway identifies the request and applies locally cached rules against atomic, partitioned usage state.
+- Token buckets or another justified algorithm define burst behavior.
+- Explicit outage policy, bounded local allowances, and configuration versioning make the limiter predictable under failures as well as normal traffic.
+
+@@ online-auction
+Understanding the Problem
+- Build timed auctions where only a bid higher than the current highest bid is accepted.
+- Bid acceptance and auction closure are correctness-sensitive state transitions, even if auction browsing is eventually consistent.
+
+Functional Requirements
+- Create an auction with item information, starting price, and end time.
+- Place bids and inspect the current highest bid.
+- Show bid updates and determine a winner after the auction closes.
+
+Non-functional Requirements | 1
+- Serialize competing bids for the same auction and preserve durable bid history.
+- Keep bid feedback and live updates responsive while supporting many concurrent auctions.
+- Recover safely from retries and process failures without reopening a completed auction or accepting a stale bid.
+
+Core Entities | 2
+- Auction includes seller, item, end time, state, highest bid, and version.
+- Bid includes auction ID, bidder, amount, request ID, and authoritative acceptance time.
+- User identifies the authenticated seller or bidder; settlement can be a separate workflow.
+
+API
+- Create an auction with validated timing and price parameters.
+- Submit a bid with auction ID, amount, and idempotency key.
+- Fetch auction details and bid history; subscribe to live bid updates.
+- Return whether a bid was accepted, distinguishing that result from merely receiving the request.
+
+High-Level Design
+
+1) Create and view auctions | 3,5
+- Persist auction metadata and serve read-heavy descriptions through cacheable views.
+- The server owns the clock and auction state; client countdowns are only a display.
+- Live notifications update the UI, but the authoritative bid path still checks the database.
+
+2) Accept bids | 4
+- Atomically check that the auction is open, its deadline has not passed, and the bid exceeds the current highest value.
+- Write the accepted bid and update auction state within the same consistency boundary.
+- A separate read followed by an unconditional write allows lower or competing bids to overwrite each other.
+
+Deep Dives
+
+1) Strong consistency | 6,7
+- Row locking or optimistic version checks can serialize updates for a single auction.
+- Optimistic conflicts need retries that re-evaluate the current highest price and deadline, rather than blindly repeating an old update.
+- A per-auction ordered processing stream is an alternative, but the system must distinguish queued bids from accepted bids.
+- Use a unique request ID so retrying after a lost response returns the original outcome.
+
+2) Durability and closing | 8
+- Persist accepted bids before acknowledging them, with replication and recovery appropriate to the durability requirement.
+- Closing the auction must compete atomically with bids; late requests must not be accepted after closure.
+- Use authoritative server time and an explicit rule for bids racing the deadline.
+- Background closing jobs may be delayed, so a stale open flag alone must not allow bids after the end time.
+
+3) Real-time updates | 9
+- Publish accepted bid events to viewers through SSE or WebSockets.
+- Fan out from shared channels to connection servers rather than opening a separate database poll for every viewer.
+- On reconnect, fetch the latest auction snapshot and resume events from a cursor when available.
+- Duplicated or out-of-order notifications must not move the displayed highest bid backward.
+
+4) Scale
+- Partition by auction ID so unrelated auctions proceed independently.
+- A single popular auction is still a hot key; isolate it, control admission, and keep its serialized write path short.
+- Cache static item data separately from rapidly changing bid state.
+
+Final Design | 10
+- A durable transactional auction/bid store decides acceptance and winners.
+- Caches and live event fanout scale the viewing experience independently.
+- Idempotent requests, atomic closure, and recovery records preserve correctness around deadlines and failures.
+
+@@ youtube
+Understanding the Problem
+- Design video upload and playback, including processing media into formats suitable for different devices and network conditions.
+- Application services manage metadata and access; storage, processing workers, and CDNs handle the media bytes.
+
+Functional Requirements
+- Upload videos and track processing readiness.
+- Watch published videos with an appropriate playback representation.
+- Support large uploads and efficient global delivery; recommendations and comments are separate features.
+
+Non-functional Requirements | 1
+- Keep playback startup fast and minimize buffering.
+- Retain durable uploaded originals and tolerate worker or upload failures.
+- Scale storage and delivery independently from expensive transcoding work.
+
+Core Entities | 2
+- Video stores owner, title, status, original location, and available output variants.
+- UploadSession tracks multipart upload progress and completion.
+- ProcessingJob records input, desired rendition, attempts, and output state.
+- Manifest identifies playable segments and bitrate/resolution variants.
+
+API
+- Create an upload session and return a video ID plus signed transfer instructions.
+- Complete the upload after server verification and expose processing status.
+- Fetch video metadata and a playback manifest or authorized CDN URL.
+- Retrying creation or completion uses stable IDs so duplicate jobs do not publish inconsistent outputs.
+
+Background: Video Streaming
+- Video codecs compress content; containers package audio, video, and metadata.
+- Adaptive bitrate streaming divides media into segments at several qualities and lets the player switch based on bandwidth and buffer state.
+- The manifest describes those variants; storing only one large original file does not provide this playback behavior.
+
+High-Level Design
+
+1) Upload and process | 3,4,5
+- Upload directly to object storage rather than forwarding large files through application servers.
+- Once the original is verified, enqueue processing tasks referencing its storage location.
+- Workers decode, transcode, and package outputs, writing them back to storage before marking the video ready.
+- Keep failure and partial-readiness states explicit; never publish a manifest that points to missing output segments.
+
+2) Playback | 6,7
+- Fetch metadata and a manifest, then stream segments through a CDN backed by object storage.
+- The client selects a suitable variant and can switch at segment boundaries.
+- CDN caching lowers geographic latency and origin bandwidth, especially for popular videos.
+- Enforce access control for private videos with appropriate signed requests or tokens.
+
+Deep Dives
+
+1) Adaptive bitrate processing | 8
+- Create a task graph for the required resolutions, codecs, audio tracks, and packaging stages.
+- Parallelize independent outputs while respecting dependencies, such as needing source metadata before segmentation.
+- Make output paths and completion records idempotent so worker retries do not publish conflicting renditions.
+- Queue processing absorbs bursts; scale workers from backlog and job age rather than blocking upload requests.
+
+2) Resumable uploads | 9
+- Split large files into parts with an upload ID and numbered part state.
+- Retry missing parts, verify completion with the storage provider, and assemble the final object.
+- Clean up abandoned sessions and apply size limits before accepting unlimited storage usage.
+- An upload notification may be duplicated; deduplicate the processing trigger by video or upload version.
+
+3) Scale storage and delivery
+- Separate metadata partitioning, worker scheduling, and CDN traffic because each scales differently.
+- Store multiple playback versions deliberately; more formats improve compatibility but increase processing and storage cost.
+- Cache popular media aggressively and keep durable originals available for reprocessing.
+- Monitor processing delay, playback startup time, buffering, and CDN hit rate as separate signals.
+
+Final Design | 10
+- Direct multipart uploads feed durable object storage and an asynchronous processing pipeline.
+- Verified manifests publish completed renditions through a global CDN.
+- Retry-safe jobs and independent metadata, processing, and delivery capacity keep the system recoverable under growth.
+
+@@ job-scheduler
+Understanding the Problem
+- Build a service that accepts immediate, future, and recurring jobs, then executes them reliably near their scheduled times.
+- Scheduling decides when work becomes eligible; execution decides which worker runs it and how failures are retried.
+
+Functional Requirements
+- Submit jobs for immediate execution, a future time, or a recurring schedule.
+- Execute due jobs and let users inspect their status.
+- Retry failed attempts according to policy and retain execution history.
+
+Non-functional Requirements | 1
+- Aim to begin jobs within about two seconds of their scheduled time.
+- Support around 10,000 jobs per second in the scenario and tolerate scheduler or worker crashes.
+- Provide at-least-once execution; side effects require idempotency because a crashed worker may have completed work before losing its acknowledgement.
+
+Core Entities | 2
+- Job describes the task, payload reference, owner, and schedule.
+- Execution identifies one scheduled occurrence with due time, status, attempt count, and result.
+- Lease or claim state records which worker currently owns an attempt and when that ownership expires.
+- Recurring definitions are separate from concrete executions so retries do not create extra scheduled occurrences.
+
+API
+- Submit a job with schedule and retry policy, returning a durable job ID.
+- Query job and execution status, including failures and next scheduled time.
+- Cancel or update pending work with version checks; define behavior if execution has already begun.
+- Use an idempotency key when submitting to avoid creating duplicate jobs after a timeout.
+
+High-Level Design
+
+1) Schedule and dispatch | 3,4
+- Persist job definitions and due executions before acknowledging acceptance.
+- A scheduler finds upcoming work using a due-time index and places eligible executions on a durable queue.
+- Workers claim queued executions, run the task, persist the result, and acknowledge successful processing.
+- Keep the payload small; large inputs live in storage and are referenced by the job.
+
+2) Monitor status | 5
+- Store transitions such as scheduled, queued, running, succeeded, and failed with timestamps.
+- Expose status without forcing clients to inspect the queue itself.
+- Correlate logs and results by execution ID so repeated attempts remain distinguishable.
+
+Deep Dives
+
+1) Scheduling precision | 6,7
+- Repeatedly scanning the entire jobs table cannot satisfy tight timing at scale.
+- Partition or index by scheduled time and poll a bounded upcoming interval.
+- Use a short-term priority queue or timing structure for imminent jobs while retaining durable state for restart recovery.
+- Handle clock skew and scheduler failover; persisted due times remain the authority after a process restarts.
+
+2) Throughput | 8,9,10
+- Partition scheduled work and assign disjoint scheduler ownership to avoid duplicate dispatch storms.
+- Horizontally scale workers independently from scheduling and separate queues for different resource classes.
+- Apply backpressure and monitor oldest-job age; queue depth alone does not tell whether timing targets are being met.
+- Recurring jobs create future execution records using stable occurrence IDs so retries do not schedule the same occurrence twice.
+
+3) At-least-once execution | 11
+- A visibility timeout or lease allows abandoned jobs to become eligible again after a worker crash.
+- Long-running workers renew leases; completion must be conditional on the current attempt or fencing token.
+- Retry transient failures with backoff and move repeatedly failing executions to a dead-letter or inspection state.
+- If an external side effect succeeded before a crash, replay may execute it again. Use downstream idempotency keys or transactional deduplication.
+- Persist completion before acknowledging queue delivery, accepting that a lost acknowledgement can cause a safe duplicate attempt.
+
+Final Design | 12
+- Durable schedule storage feeds partitioned schedulers and execution queues.
+- Leased worker attempts provide recovery, while explicit status records support monitoring and cancellation.
+- Stable occurrence IDs and idempotent task effects turn at-least-once delivery into predictable application behavior.
+
+@@ fb-live-comments
+Understanding the Problem
+- Deliver comments for a live video to viewers in near real time while preserving history for later joins and reconnects.
+- Comment writes are relatively small; fanout to a huge audience is the dominant scaling challenge.
+
+Functional Requirements
+- Post a comment on a live video.
+- Receive comments while watching and fetch comments posted before joining.
+- Recover missed comments after disconnecting.
+
+Non-functional Requirements | 1
+- Keep delivery latency low for millions of concurrent viewers.
+- Persist accepted comments and tolerate connection-server failures.
+- Define ordering within a video and prevent duplicate rendering after replay or reconnection.
+
+Core Entities | 2
+- Video identifies the live stream and its comment channel.
+- Comment stores video ID, author, text, ID, and ordering position.
+- Subscription maps a viewer connection to the live videos it follows.
+- Cursor records the last consumed position for history and reconnection.
+
+API
+- Post a comment through an authenticated request with a retry-safe ID.
+- Fetch paginated history by video ID and before/after cursor.
+- Open an SSE or WebSocket subscription for new comments.
+- Return comment IDs and ordering positions so the client can merge history with live events safely.
+
+High-Level Design
+
+1) Post and store comments | 3
+- Validate the request, persist the comment, and publish an event for fanout.
+- Use reliable publication or an outbox so a crash between database commit and event publication does not permanently hide a comment.
+- Index history by video and ordering key for efficient range reads.
+
+2) Deliver and read history | 4
+- Connection servers maintain viewer subscriptions and push new comments to their connected clients.
+- The history API provides older pages independently of the live channel.
+- Coordinate initial history and live subscription with a cursor or snapshot boundary to avoid a gap between the two.
+
+Deep Dives
+
+1) Real-time transport | 5,6
+- Simple polling is easy but either adds delay or creates many empty requests.
+- SSE fits server-to-client comment delivery while comments can still be submitted over HTTP.
+- WebSockets are appropriate when bidirectional interaction is needed, but add connection and heartbeat management.
+- Transport does not provide durable replay by itself; history storage remains necessary.
+
+2) Audience fanout | 7,8,9
+- Broadcast through pub/sub to the connection servers with interested viewers, then fan out locally.
+- Avoid one database read or upstream subscription for every viewer when many viewers share the same video.
+- Partition channels across infrastructure, but account for a single viral video that exceeds ordinary shard capacity.
+- Replicate or hierarchically distribute a hot channel, batch events where useful, and apply bounded buffers for slow clients.
+- Distinguish a durable event log from ephemeral pub/sub; recover lost live notifications from persisted history.
+
+3) Reconnection and overload
+- Send a last-seen cursor on reconnect and fetch events after it, then resume live delivery.
+- Deduplicate by comment ID because replay can overlap with events already displayed.
+- Use sequence information to detect gaps and keep ordering stable across server handoffs.
+- If an audience cannot consume every comment, define sampling, prioritization, or backlog limits explicitly rather than silently growing memory forever.
+- Heartbeats and bounded reconnection backoff reduce stale connections and synchronized reconnect storms.
+
+Final Design | 10
+- Durable comment storage and an ordered publication path support both history and replay.
+- A shared fanout layer routes each video's comments to a horizontally scaled connection tier.
+- Cursor recovery, deduplication, and hot-channel handling make the live experience reliable at large audience sizes.
+
+@@ news-aggregator
+Understanding the Problem
+- Aggregate article metadata from many publishers into a fast, scrollable feed that links readers to the original publication.
+- Separate publisher ingestion from serving the feed so slow or failing publishers do not delay user requests.
+
+Functional Requirements
+- Display an aggregated feed from thousands of publishers.
+- Support continuous pagination and redirect readers to the publisher for full content.
+- Consider categories and personalization as extensions to the baseline feed.
+
+Non-functional Requirements | 1
+- Target feed reads below 200 ms and ingestion within 30 minutes of publication.
+- Remain available during breaking-news traffic spikes and isolate individual publisher failures.
+- Deduplicate repeated ingestion and preserve stable pagination as new articles arrive.
+
+Core Entities | 2
+- Publisher stores source URLs, polling state, rate limits, and health.
+- Article stores canonical URL, publisher, title, publication time, summary, and media references.
+- FeedEntry stores ordering or ranking information; UserPreference and ReadingEvent support optional personalization.
+
+API
+- Fetch a feed with cursor, limit, and optional category or preferences.
+- Retrieve article metadata and its publisher URL without proxying the entire publisher article.
+- Ingestion workers submit normalized article records using canonical identifiers for deduplication.
+- A cursor must include a stable tie-breaker and the ordering context used to construct the page.
+
+High-Level Design
+
+1) Ingest and serve articles | 3,4
+- A scheduler enqueues publisher-fetch jobs; workers read feeds or supported publication endpoints.
+- Normalize timestamps, canonical URLs, and metadata, then deduplicate before storage.
+- Build an indexed feed view and serve common pages from cache.
+- Publisher fetch errors retry independently with backoff; one unavailable publisher must not block all ingestion.
+- Clicking an article redirects to its original publisher, keeping the aggregator focused on discovery metadata.
+
+Deep Dives
+
+1) Pagination consistency
+- Offset pagination shifts when new articles arrive and becomes expensive at large offsets.
+- Use a stable sort key plus article ID and a cursor identifying the last item.
+- For mutable rankings, retain a snapshot or ranking-version context, or explicitly accept bounded feed movement.
+
+2) Low-latency feeds | 5,6
+- Index the feed's ordering and filter fields and fetch only the columns required for a page.
+- Cache shared top pages or precomputed feeds; hydrate article metadata in batches.
+- Separate personalized cache keys from shared keys so users do not receive another user's feed.
+- Invalidate or refresh derived views asynchronously with an explicit freshness target.
+
+3) Publication freshness | 7,8,9
+- Poll publishers according to publication frequency and priority rather than using one interval for everyone.
+- Use push or webhook mechanisms where available and polling as recovery.
+- Track last successful fetch, discovered publication time, and queue age to detect stale sources.
+- Rate-limit outbound fetches per publisher and reuse conditional requests to avoid downloading unchanged feeds.
+
+4) Media and breaking news | 10,11
+- Serve thumbnails through an appropriate CDN or cached media path with bounded size and processing.
+- Keep slow media fetching outside the feed request path and show usable metadata while media is unavailable.
+- Breaking-news spikes require cache protection, request coalescing, and independent scaling of ingestion and serving.
+- A popular article is a hot object even when article storage is well partitioned.
+
+5) Categories and personalization
+- Classify articles once during ingestion and maintain category-specific feed indexes.
+- Capture reading events asynchronously and use them to produce candidate preferences or rankings.
+- Blend cached shared candidates with user-specific ranking rather than building every page from the entire corpus.
+- Preserve a useful generic feed for new users or unavailable personalization services.
+
+Final Design | 12
+- Scheduled ingestion normalizes and deduplicates publisher data into durable article storage.
+- Indexed or precomputed feeds, stable cursors, and caches provide fast reads.
+- Independent media handling and measured source freshness keep both breaking-news traffic and publisher failures manageable.
+
+@@ price-tracking-service
+Understanding the Problem
+- Track product prices over time and notify users when a price crosses their chosen threshold.
+- Discovery, trustworthy price collection, time-series storage, and notification fanout are separate parts of the pipeline.
+
+Functional Requirements
+- Show price history from a website or browser extension.
+- Subscribe to price-drop notifications for a product and threshold.
+- Continuously discover and refresh product prices.
+
+Non-functional Requirements | 1
+- Scale to a catalog of around 500 million products without polling every product at the same high frequency.
+- Return chart data quickly and avoid duplicate or misleading alerts.
+- Treat extension-provided prices as untrusted observations, not automatically authoritative prices.
+
+Core Entities | 2
+- Product identifies a marketplace item and canonical URL.
+- PriceObservation records price, currency, timestamp, source, and validation state.
+- Subscription links a user and product to a threshold and delivery preferences.
+- CrawlJob and Notification track scheduled collection and retry-safe delivery.
+
+API
+- Query product history over a time range and requested chart resolution.
+- Create, update, or remove a threshold subscription.
+- Submit extension observations with product identity and evidence for validation.
+- Return subscription state and distinguish accepted observations from verified prices.
+
+High-Level Design
+
+1) History and collection | 3
+- Collect prices through permitted source interfaces, scheduled fetches, and extension observations.
+- Normalize product identity, currency, and timestamps before storing a time series.
+- Index history by product and time; serve a bounded number of chart points rather than every raw observation.
+
+2) Subscriptions and alerts | 4
+- Store subscriptions indexed by product and threshold so a price change can locate eligible subscribers.
+- Publish verified price-change events and process notification work asynchronously.
+- Define whether an alert fires on crossing the threshold, every lower price, or once until rearmed.
+
+Deep Dives
+
+1) Discover and refresh products | 5,6,7,8
+- A naive full-catalog crawl wastes work on unpopular products whose prices rarely change.
+- Prioritize tracked products, recently active products, and those with frequent price changes.
+- Use user activity and extension observations as discovery signals, then schedule authoritative verification where needed.
+- Keep per-source limits, retry backoff, and crawl state so failures do not restart the entire catalog scan.
+- Partition collection tasks by product or source while avoiding concentrated load on one publisher endpoint.
+
+2) Validate malicious observations
+- Authenticate clients where possible, rate-limit submissions, and compare observations with historical ranges and independent sources.
+- A single extreme report should trigger verification rather than immediately notify thousands of subscribers.
+- Store provenance and confidence so suspicious data can be corrected without losing the audit trail.
+
+3) Notify efficiently | 9
+- For a new price, query subscriptions whose threshold is satisfied using an indexed access path.
+- Batch recipient work and enqueue delivery jobs so a popular product does not block price ingestion.
+- Deduplicate by subscription and qualifying price event, then honor current notification preferences at delivery time.
+- Retry provider failures with backoff and retain a terminal failure state for inspection.
+
+4) Fast historical charts | 10,11
+- Partition time-series data by product and time to keep range scans bounded.
+- Precompute hourly or daily aggregates for long ranges, retaining recent detailed samples where useful.
+- Cache popular product/range combinations and ensure the resolution matches the displayed chart width.
+- Preserve meaningful minima and maxima when downsampling so a short-lived price drop is not erased.
+
+Final Design | 12
+- Adaptive collection and validation produce trustworthy price-change events.
+- Time-series storage and downsampled views serve history; indexed subscriptions drive asynchronous alerts.
+- Provenance, deduplication, and explicit alert semantics prevent noisy collection from becoming misleading notifications.
+
+@@ notification-system
+Understanding the Problem
+- Provide a shared delivery service for immediate notifications, scheduled messages, and campaigns across multiple channels.
+- Accepting a request, sending it to a provider, and confirming delivery are different lifecycle stages.
+
+Functional Requirements
+- Accept immediate or scheduled notifications from upstream services.
+- Expand campaigns to a defined user segment.
+- Respect users' channel preferences, opt-outs, and relevant delivery rules.
+
+Non-functional Requirements | 1
+- Never silently drop an accepted notification; persist it before acknowledging acceptance.
+- Deliver high-priority messages within about five seconds even during large campaign blasts.
+- Tolerate provider outages and duplicate queue delivery while keeping user-visible duplication rare.
+
+Core Entities | 2
+- Notification records recipient, template, payload, channel, priority, schedule, idempotency key, and state.
+- Campaign identifies a segment and expansion progress.
+- Preference stores consent and channel rules; DeliveryAttempt records provider request and response identifiers.
+
+API
+- Submit a notification with recipient, template parameters, priority, schedule, and idempotency key.
+- Create a campaign and query its expansion and delivery status.
+- Update user preferences and query notification state.
+- Authenticate sending services and enforce tenant-specific quotas and authorized templates.
+
+High-Level Design
+
+1) Immediate and scheduled delivery | 3,4,5
+- Validate and persist the request, then enqueue eligible work reliably.
+- Scheduled requests remain durable until a scheduler makes them eligible at the requested time.
+- Channel-specific workers render templates, recheck preferences, and call email, SMS, or push providers.
+- Record provider acceptance and callbacks separately from the initial API acknowledgement.
+
+2) Campaign expansion | 6
+- Resolve the target segment and expand it into bounded batches of recipient work.
+- Track a cursor or checkpoint so restarting expansion neither skips users nor recreates unlimited duplicates.
+- Keep campaign throughput separate from transactional delivery capacity.
+
+3) Preferences | 7
+- Store preferences centrally and cache them with an explicit freshness policy.
+- Recheck at delivery time because users can unsubscribe after a campaign was scheduled.
+- Treat mandatory transactional messages and optional marketing messages according to the product's defined rules.
+
+Deep Dives
+
+1) Do not lose accepted work | 8
+- A database write followed by an independent queue publish can fail between the two operations.
+- Use an outbox or another recoverable publication mechanism so committed requests are eventually enqueued.
+- Acknowledge queue messages only after recording the delivery outcome; retry transient failures and quarantine persistent failures.
+- Track age and state transitions so stuck work is observable instead of silently disappearing.
+
+2) Priority and provider capacity | 9,10
+- Separate high-priority and bulk queues or reserve worker capacity for urgent notifications.
+- Apply provider- and tenant-specific rate limits so campaigns cannot exhaust a shared provider quota.
+- Use backpressure, bounded retries, and circuit breaking during provider outages.
+- A priority label alone is insufficient if urgent work still waits behind a large non-preemptible batch.
+
+3) Duplicate prevention | 11
+- Deduplicate API requests using an idempotency key scoped to the sender and logical notification.
+- Queue consumers also need deduplication because at-least-once delivery can repeat work after a crash.
+- If a provider accepts a send but the response is lost, local state alone cannot prove whether another send is safe.
+- Use provider idempotency or status lookup when supported, and reconcile ambiguous outcomes instead of promising universal exactly-once delivery.
+
+Final Design | 12
+- Durable request storage and reliable queue publication form the acceptance boundary.
+- Scheduled and campaign producers feed priority-aware channel workers.
+- Delivery-time preference checks, provider-aware retries, and end-to-end idempotency keep the service dependable under both bursts and failures.
+
+@@ youtube-top-k
+Understanding the Problem
+- Continuously identify the most-viewed videos for specified time windows.
+- The challenge is aggregating a high-volume event stream and answering ranking queries without sorting the full video catalog each time.
+
+Functional Requirements | 1
+- Return top K videos, with K bounded to a maximum such as 1,000.
+- Support all-time totals and tumbling windows such as an hour, day, or month.
+- Consider sliding windows and approximate answers as extensions with different state and accuracy costs.
+
+Non-functional Requirements | 2
+- Ingest a very large number of view events while keeping ranking queries fast.
+- Define freshness and accuracy explicitly; a recently updated cached ranking is different from an exact count at the current instant.
+- Recover stream processing after failures without permanently losing or double-counting events.
+
+Core Entities
+- ViewEvent contains video ID, event ID, and event time.
+- WindowCount stores a video's aggregate for a specific window.
+- RankingSnapshot stores the top candidates and their counts for a completed or current window.
+
+API
+- Ingest a view event or batch with a stable event identity where deduplication is required.
+- Query top K for a window type and time boundary, returning ranking freshness metadata.
+- Validate supported windows and K limits to avoid unbounded query work.
+
+High-Level Design
+
+1) All-time and windowed counts | 3,4,5
+- Persist events to a durable log, aggregate by video, and write compact counts to queryable storage.
+- Tumbling windows assign each event to a non-overlapping time interval.
+- Maintain a materialized ranking view instead of scanning every counter for each user query.
+- Event time and processing time differ; specify how delayed events affect published rankings.
+
+Deep Dives
+
+1) Reduce repeated reads | 6,7
+- Cache the top results per window and refresh them on a defined cadence.
+- Precomputing rankings trades freshness for much lower query cost.
+- Reuse a larger top list to answer smaller K values rather than caching every possible K independently.
+
+2) Ingestion and writes | 8,9
+- Partition events by video ID so each video's count is combined consistently.
+- Batch local increments before writing downstream, reducing network and database write amplification.
+- A viral video is a hot key; split its ingestion into partial counters and merge them before final ranking.
+- Preserve event identity or use checkpointed processing with compatible sinks when exact counting is required.
+
+3) Efficient top K | 10,11,12,13
+- A heap or sorted structure maintains a small candidate set more efficiently than repeatedly sorting every video.
+- Compute local top K on disjoint partitions, then merge candidates to obtain the global top K.
+- This works only when each video's complete score belongs to one partition at the ranking stage; partial counts must be combined first.
+- Keep durable aggregate state so a cache or ranker restart does not require guessing historical totals.
+
+4) Sliding windows | 14,15
+- A sliding window continuously includes new events and removes expired contributions.
+- Bucket time into smaller intervals and combine the buckets covering the requested range, accepting boundary approximation if buckets are coarse.
+- Finer buckets improve precision but increase state and maintenance work.
+- Define watermarks, allowed lateness, and correction behavior rather than assuming events arrive in order.
+
+5) Approximation and specialized storage | 16,17
+- Count-Min Sketch estimates frequencies with bounded overestimation, but needs a separate candidate mechanism to enumerate heavy hitters.
+- Approximate algorithms reduce memory when exact ranking is unnecessary; explain their error and behavior near tied counts.
+- An analytical database can simplify window queries, but it still needs a scalable ingestion path and a justified freshness budget.
+
+Final Design | 18
+- A durable event log feeds partitioned aggregation and materialized window counts.
+- Hierarchical candidate merging and cached ranking snapshots make queries cheap.
+- Hot-key splitting, recovery semantics, and explicit window/accuracy contracts determine correctness at scale.
+
+@@ uber
+Understanding the Problem
+- Match riders with available nearby drivers and coordinate the resulting trip lifecycle.
+- Location updates are high-volume, approximate data; assigning a driver is a consistency-sensitive operation.
+
+Functional Requirements
+- Estimate a fare from pickup and destination.
+- Request a ride and match it with a nearby available driver.
+- Let drivers accept or reject offers and progress through pickup and drop-off.
+
+Non-functional Requirements | 1
+- Keep matching latency low and driver locations reasonably fresh.
+- Prevent a driver or rider from being committed to incompatible simultaneous trips.
+- Retain ride requests and recover from connection loss, slow responses, and worker failures.
+
+Core Entities | 2
+- Rider and Driver store identities and relevant profile/state information.
+- DriverLocation records recent coordinates and update time.
+- Ride stores pickup, destination, quoted fare, assigned driver, and lifecycle state.
+- Offer or Reservation records a temporary driver claim, expiry, and attempt identifier.
+
+API
+- Request a fare estimate for pickup and destination.
+- Create a ride using the quote and an idempotency key.
+- Send driver location updates and accept or reject a specific offer token.
+- Subscribe to ride status and retrieve the authoritative ride state after reconnecting.
+
+High-Level Design
+
+1) Estimate and request | 3,4
+- A pricing service estimates distance/time and returns a quote with an explicit validity period.
+- Persist the ride request before acknowledging it and enqueue matching work reliably.
+- Do not reserve a driver merely because a rider requests a quote.
+
+2) Match and accept | 5,6
+- Query a geographic index for nearby available drivers and rank candidates using distance, travel time, and policy.
+- Temporarily claim a candidate, send an offer, and await acceptance or expiration.
+- Commit the driver and ride assignment atomically or through a carefully coordinated state machine.
+- Delayed acceptance must include the current offer token so an expired offer cannot steal a newer assignment.
+
+Deep Dives
+
+1) Location ingestion and proximity | 7
+- Partition locations geographically and use geospatial cells or indexes to bound nearby-driver queries.
+- Nearby searches must include adjacent cells when a rider is near a boundary.
+- Store update timestamps and exclude stale driver locations from matching.
+- Keep high-frequency location state separate from durable trip records so location writes do not overwhelm transactional storage.
+
+2) Manage update volume
+- Adjust reporting frequency to motion and activity; an idle driver need not send identical coordinates continuously.
+- Batch or coalesce updates and discard superseded positions where only the latest location matters.
+- Maintain a freshness budget; aggressive throttling must not make matching rely on obsolete positions.
+
+3) Prevent double assignment | 8
+- Use conditional driver-state transitions or a transactional reservation so two matching workers cannot both claim the same driver.
+- A distributed lock alone is insufficient if a stale worker can still commit after its lease expires.
+- Include ownership/version checks when finalizing the assignment, and release claims safely on rejection or timeout.
+
+4) Reliable matching and timeouts | 9
+- Durable queues prevent requests from being lost during peak demand or worker restarts.
+- Retry matching with a bounded policy and a wider candidate search where appropriate.
+- Persist offer deadlines and process expiry idempotently; recheck current state before releasing a driver.
+- Client notifications are hints; reconnecting clients fetch the authoritative ride state.
+
+Final Design | 10
+- A fast geospatial location service supplies candidates to durable matching workflows.
+- Conditional reservations and offer tokens protect assignment consistency.
+- Persistent ride state, retryable queues, and live status delivery connect estimation, matching, acceptance, and trip progress.
+
+@@ robinhood
+Understanding the Problem
+- Build a brokerage-facing application that streams stock prices and submits customer orders to external trading infrastructure.
+- Displayed prices, submitted orders, exchange acknowledgements, and executions are distinct records with different timing guarantees.
+
+Functional Requirements
+- View live stock prices and manage stock orders.
+- Track order status and resulting account changes.
+- Integrate with external market-data and execution services rather than designing an exchange matching engine.
+
+Non-functional Requirements | 1
+- Keep market-data updates responsive while preserving correct and durable order state.
+- Avoid duplicate order submission after retries and recover ambiguous external outcomes.
+- Scale popular-symbol fanout independently from the transactional order path.
+
+Core Entities | 2
+- Account and Position represent ownership and reserved or available funds/holdings.
+- Order stores customer intent, symbol, side, quantity, type, limit price where applicable, and lifecycle state.
+- Execution records a fill, including quantity, price, external ID, and time.
+- Quote stores symbol, price information, source sequence, and timestamp.
+
+API
+- Subscribe to prices for a set of symbols and fetch a current snapshot.
+- Submit an order with a stable client request ID; return an order ID and current acceptance state.
+- Query orders and positions and request cancellation of an eligible order.
+- Treat cancellation as a request until external confirmation; an order may fill while cancellation is in flight.
+
+High-Level Design
+
+1) Live prices | 3,4,5
+- Ingest market feeds once, normalize updates, and cache the latest value by symbol.
+- Connection servers subscribe to symbols needed by their clients and fan updates out locally.
+- Separate market-data ingestion from browser connections so reconnecting clients do not create new external feed subscriptions.
+- Include timestamps or sequence information so clients can detect stale or reordered updates.
+
+2) Orders | 6,7,8,9
+- Validate the authenticated account, order parameters, and available buying power or holdings.
+- Persist the order and required reservation before submitting to the external execution path.
+- Use stable external/client order identifiers to reconcile retries and avoid duplicate orders.
+- Apply execution reports to durable order, cash, and position state with idempotent processing.
+
+Deep Dives
+
+1) Scale price delivery | 10
+- Popular symbols create hot channels; share subscriptions across clients and replicate fanout capacity.
+- Coalesce updates where the product only needs the latest displayed price, without dropping authoritative execution events.
+- Bound slow-client buffers and provide a fresh snapshot after reconnect rather than replaying an unlimited stale-price backlog.
+
+2) Track order updates | 11
+- Model pending, acknowledged, partially filled, filled, cancelled, and rejected states explicitly.
+- Deduplicate external events using execution/report IDs and preserve cumulative filled quantities.
+- Reconcile against the external provider when an acknowledgement or status update is missing.
+- Publish customer-facing updates after committing state so a notification cannot claim a fill that was never recorded.
+
+3) Order consistency
+- Reserve funds or securities atomically with accepting the relevant order intent.
+- Partial fills, cancellation, and rejection release or consume only the remaining reserved amount.
+- A timeout does not prove the provider rejected the order; query status before deciding whether resubmission is safe.
+- Keep an auditable history of transitions rather than overwriting all evidence with the latest status.
+
+Final Design | 12
+- A dedicated market-data pipeline handles snapshots and high-volume price fanout.
+- A durable order state machine coordinates account reservations, external submission, and execution reports.
+- Idempotency and reconciliation handle the uncertainty inherent in external trading systems.
+
+@@ google-docs
+Understanding the Problem
+- Support multiple people editing one document while seeing each other's changes and cursor positions.
+- Concurrent editing requires an operation-merging model; transmitting whole snapshots is not enough to prevent lost work.
+
+Functional Requirements
+- Create and load documents.
+- Apply concurrent edits and show updates in real time.
+- Display collaborator presence and cursors.
+
+Non-functional Requirements | 1
+- Keep typing responsive with local feedback and low-latency propagation.
+- Converge to a consistent document despite concurrent edits, retries, and reconnects.
+- Persist edits durably and scale connection handling independently from document storage.
+
+Core Entities | 2
+- Document stores identity, permissions, and the latest snapshot/version.
+- Operation records an edit with client identity, operation ID, and ordering or causal metadata.
+- Session tracks an active collaborator; Presence stores ephemeral cursor and availability information.
+
+API
+- Create a document and fetch its snapshot plus synchronization position.
+- Open an authenticated document collaboration channel and submit operations with stable IDs.
+- Receive accepted operations and acknowledgements; reconnect from a known revision or synchronize using the chosen merge protocol.
+- Send presence separately from durable document edits because stale cursor updates can be discarded.
+
+High-Level Design
+
+1) Create and load | 3
+- Persist metadata and an initial snapshot, enforcing document access on both HTTP requests and persistent connections.
+- Load a snapshot and all operations after its position before presenting a fully synchronized document.
+- Buffer live events during initial loading or use a boundary token so edits are not missed between snapshot and subscription.
+
+2) Concurrent editing | 4,5,6
+- Whole-document replacement allows one client's stale snapshot to overwrite another client's work.
+- Operational transformation adjusts incoming operations against concurrent edits, commonly with a server-defined order.
+- CRDTs encode operations or state so replicas can merge and converge under their defined rules.
+- Choose one model and explain its metadata, ordering, and storage costs rather than treating the two approaches as interchangeable boxes.
+- Apply edits locally for responsiveness, then reconcile acknowledgements and remote edits using that model.
+
+3) Broadcast and presence | 7,8
+- Route document operations to the collaboration owner or shared document channel and broadcast accepted edits.
+- Deduplicate operations by ID; reconnect replay must not insert the same text twice.
+- Cursor positions need transformation or stable anchors as text changes around them.
+- Expire presence after missed heartbeats; a disconnected collaborator should not remain permanently online.
+
+Deep Dives
+
+1) Connection scaling | 9,10
+- Partition active documents across collaboration servers and route all participants to the appropriate owner or channel.
+- Separate persistent connection gateways from durable operation storage when needed.
+- A very popular document remains a hot key; limit or specialize its collaboration path rather than assuming more document shards fix it.
+- On owner failure, recover from durable state and force clients to resume from acknowledged positions.
+
+2) Bound storage and replay | 11,12
+- An append-only operation log supports recovery but grows indefinitely and makes cold loads slow.
+- Periodically create a snapshot at a known log position, then replay only later operations.
+- Compact safely: retain what offline clients and the merge algorithm still need, including relevant tombstones or revision history.
+- Publish snapshots atomically with their boundary so readers cannot combine a new snapshot with the wrong operation range.
+
+Final Design | 13
+- Durable snapshots and an operation log support recovery and history.
+- A selected OT or CRDT model defines concurrent edit semantics; collaboration servers deliver its operations in real time.
+- Separate ephemeral presence, bounded replay, and authenticated document routing keep the editing experience responsive and recoverable.
+
+@@ web-crawler
+Understanding the Problem
+- Crawl a large web corpus, retain fetched pages, and discover links for further crawling.
+- The system is a controlled traversal pipeline, not a browser making unlimited parallel requests.
+
+Functional Requirements
+- Accept seed URLs and repeatedly fetch eligible pages.
+- Store fetched HTML and extract links to expand the crawl frontier.
+- Deduplicate URLs and obey per-site crawl policies.
+
+Non-functional Requirements | 1
+- Crawl roughly 10 billion pages within five days in the scenario, requiring substantial parallelism.
+- Remain polite to individual sites and recover without losing large amounts of progress.
+- Bound repeated work, crawler traps, resource consumption, and the impact of slow or failing hosts.
+
+Core Entities
+- URLTask records normalized URL, host, priority, next eligible time, and attempt state.
+- CrawlResult records status, fetch time, content hash, and object-storage location.
+- HostPolicy stores robots rules, crawl delay, and next allowed request time.
+- SeenURL or fingerprint state suppresses duplicate discovery and repeated content.
+
+API and Data Flow
+- Submit seeds or crawl configuration and inspect crawl progress through control-plane APIs.
+- Workers consume URL tasks, fetch pages, persist results, extract links, and enqueue eligible discoveries.
+- Keep large HTML bodies in object storage and pass references through queues.
+
+High-Level Design | 2
+- Normalize discovered URLs and check the visited/frontier state before enqueueing them.
+- A host-aware frontier schedules eligible work; fetchers apply timeouts, response-size limits, and policy checks.
+- Store raw content before acknowledging the task, then parse links and metadata in a retryable stage.
+- Separate fetching from parsing when CPU-heavy parsing would otherwise reduce network utilization.
+- Limit accepted protocols and redirects, and protect workers from access to private infrastructure through arbitrary URLs.
+
+Deep Dives
+
+1) Fault tolerance and progress | 3,4
+- Use a durable queue with visibility timeouts or leases so unfinished work returns after a worker crash.
+- Acknowledge only after required output is persisted; stable task and content identifiers make replay safe.
+- Retry transient failures with backoff and cap attempts for permanently failing URLs.
+- Track visited and in-progress state durably; relying only on worker memory causes widespread recrawling after restarts.
+- A Bloom filter saves memory but can falsely classify a new URL as seen; decide whether that coverage loss is acceptable.
+
+2) Politeness | 5
+- Fetch and cache robots.txt rules per host and respect applicable disallow rules and crawl delays.
+- Coordinate rate limits across all workers contacting the same host; a per-worker limit does not protect the site globally.
+- A domain-oriented frontier or partition assignment makes per-host scheduling practical.
+- Slow down on errors or throttling responses, identify the crawler appropriately, and avoid infinite URL spaces.
+
+3) Throughput and scale
+- Divide target pages by available seconds to estimate required average throughput, then include failures, retries, and peak headroom.
+- Partition the frontier across workers while preserving host-level scheduling constraints.
+- Use asynchronous I/O or bounded concurrency to overlap network waits without opening unlimited connections.
+- Deduplicate both canonical URLs and identical page content; redirects and tracking parameters can otherwise multiply work.
+- Monitor successful pages per second, host error rates, queue age, storage throughput, and duplicate rates independently.
+
+Final Design | 6
+- A durable, host-aware frontier feeds bounded fetch and parse workers.
+- Object storage preserves page content while metadata and deduplication indexes preserve progress.
+- Lease recovery, idempotent output, and coordinated politeness allow large-scale parallel crawling without losing control of individual hosts.
+
+@@ ad-click-aggregator
+Understanding the Problem
+- Record advertisement clicks, redirect users promptly, and expose aggregate click metrics to advertisers.
+- The user-facing redirect should remain fast while durable event collection and aggregation run asynchronously.
+
+Functional Requirements
+- Accept an ad click and redirect to the configured destination.
+- Query click totals over time at one-minute granularity.
+- Address duplicate events and repeated-click abuse according to explicit counting rules.
+
+Non-functional Requirements | 1
+- Handle around 10,000 clicks per second in the scenario with low redirect latency.
+- Avoid losing accepted click data and support rebuilding aggregates.
+- Serve analytics queries quickly without scanning every raw click.
+
+Core Entities
+- Ad identifies advertiser and authorized destination.
+- ClickEvent includes event ID, ad ID, timestamp, and permitted attribution fields.
+- MinuteAggregate stores an ad/window count; raw event storage supports audit and reconciliation.
+
+API and Data Flow
+- A click endpoint resolves the ad destination, records the event through a durable path, and returns a redirect.
+- A metrics endpoint accepts ad ID and time range and returns bounded aggregate buckets.
+- Validate destinations from stored ad metadata instead of accepting an unrestricted redirect URL from the caller.
+- Ingestion flows through a durable stream to aggregators and query storage, with raw events retained separately.
+
+High-Level Design
+
+1) Click ingestion | 2
+- Assign a stable event ID and append to durable transport before treating the event as accepted.
+- Keep slow aggregate updates off the redirect path.
+- Define the failure policy if durable ingestion is unavailable; fast redirects and guaranteed recording can conflict during an outage.
+
+2) Aggregation | 3,4,5
+- Scanning raw clicks for every query is simple but expensive as history grows.
+- Stream processors group by ad and minute, then materialize counts for efficient range reads.
+- Event-time windows need an explicit late-event policy and correction mechanism.
+- Store raw events independently so aggregate bugs or failures can be repaired by replay.
+
+Deep Dives
+
+1) Scale ingestion and hot ads | 6
+- Partition events by ad ID for aggregation locality, but a viral ad can overload one partition.
+- Salt hot ad keys into partial counters, then combine them into the final ad/window aggregate.
+- Batch increments to reduce sink writes while bounding how stale query results become.
+- Apply backpressure and monitor consumer lag instead of allowing buffers to grow indefinitely.
+
+2) Durability and reconciliation | 7,8
+- Replicate the event log and commit consumer progress only after recoverable aggregate state is safe.
+- Retries can duplicate events; deduplicate by event ID or use a processing/sink protocol with compatible transactional guarantees.
+- Periodically reconcile materialized totals against retained raw events.
+- Reprocessing must replace or idempotently update affected windows, not add the same historical counts again.
+
+3) Abuse and repeated clicks
+- Transport deduplication removes repeated delivery of one event; it does not automatically detect separate fraudulent clicks.
+- Define counting windows and identity signals for repeated-click filtering, respecting the data available to the product.
+- Keep suspicious events distinguishable from valid billable counts so rules can be audited and revised.
+
+4) Query latency
+- Index aggregates by advertiser/ad and time, cache frequent ranges, and preaggregate longer periods when appropriate.
+- Restrict query ranges and response bucket counts to avoid expensive unbounded scans.
+- Report freshness or provisional windows so consumers understand that recent counts can change.
+
+Final Design | 9
+- Durable click ingestion feeds a replayable stream and raw archive.
+- Partitioned processors maintain minute-level aggregates with late-event and duplicate handling.
+- A dedicated query store and cache serve advertiser metrics independently of redirect traffic.
+
+@@ fb-post-search
+Understanding the Problem
+- Search a large corpus of social posts by keyword and order results by recency or popularity.
+- Posting and liking update the primary data; a derived search index supports query patterns the primary store cannot serve efficiently.
+
+Functional Requirements
+- Create and like posts.
+- Search by keyword, with multi-keyword and phrase searches as deeper requirements.
+- Sort results by recency or like count and paginate them.
+
+Non-functional Requirements | 1,2
+- Keep queries fast over a very large corpus and accept bounded indexing delay.
+- Handle high post and like write volume, including popular terms and posts.
+- Preserve visibility and deletion rules even when the search index or caches lag.
+
+Core Entities
+- Post stores author, text, creation time, visibility, and authoritative like information.
+- TermPosting maps a normalized term to matching document IDs and optional positions.
+- SearchDocument stores fields needed for filtering and sorting; indexing progress tracks source changes.
+
+API | 3
+- Create a post and like or unlike it through authenticated write APIs.
+- Search with query text, sort order, filters, limit, and a stable continuation cursor.
+- Return post summaries and enforce access controls before exposing restricted content.
+
+High-Level Design
+
+1) Writes and indexing | 4
+- Persist posts and likes in the primary system, then publish change events reliably.
+- Indexing workers tokenize text and update a derived inverted index.
+- Track indexing versions so delayed updates cannot overwrite newer content or resurrect deleted posts.
+
+2) Keyword retrieval | 5,6,7,8
+- Full table scans are unsuitable for frequent keyword searches across a large corpus.
+- An inverted index maps each term to a posting list of matching post IDs.
+- Partition the index and coordinate queries across relevant shards, merging bounded result sets.
+- Hydrate selected results from stored search fields or batched primary/cache reads.
+
+3) Sorting | 9,10
+- Recency ordering can exploit timestamps and time-partitioned data.
+- Popularity ordering requires maintaining sortable like counts or ranking structures as likes arrive.
+- Return stable tie-breakers in cursors because equal timestamps or counts are common.
+
+Deep Dives
+
+1) Read scale | 11,12
+- Replicate query capacity and cache popular queries or posting-list fragments where freshness allows.
+- A popular term can touch enormous posting lists; bound candidate work and avoid transferring every match to a coordinator.
+- Include filters, sort mode, and relevant visibility scope in cache keys.
+
+2) Multiple terms and phrases
+- AND queries intersect posting lists; OR queries union them.
+- Process selective terms first to reduce intermediate candidates.
+- Phrase queries need term positions or a verification phase; matching all words alone does not prove adjacency or order.
+
+3) Write scale | 13,14,15
+- Batch indexing updates and separate post creation from frequent like-count changes.
+- Popularity updates can be coalesced when a small ranking delay is acceptable.
+- Keep durable change streams so rebuilding or resharding the index does not lose concurrent writes.
+- Apply deletions and permission changes reliably; stale index entries must not bypass final visibility checks.
+
+4) Storage efficiency | 16
+- Compress sorted posting lists, use compact document IDs, and avoid duplicating fields that are not needed for search.
+- Partition old data by time and use retention or tiered storage according to product requirements.
+- Index size, query fanout, and update cost should drive the choice of a specialized search engine versus custom infrastructure.
+
+Final Design | 17
+- Primary post storage feeds a versioned, replayable indexing pipeline.
+- Sharded inverted indexes and sortable metadata support retrieval, while query replicas and caches serve reads.
+- Batched popularity updates, compressed postings, and explicit visibility checks control cost without sacrificing access correctness.
+
+@@ payment-system
+Understanding the Problem
+- Accept merchant payment requests, coordinate external payment processing, and expose reliable payment status.
+- External networks are asynchronous: a timeout can leave an unknown outcome, and retries must not cause duplicate charges.
+
+Functional Requirements
+- Let merchants create payment requests and customers pay with cards.
+- Track and expose payment lifecycle status.
+- Deliver asynchronous merchant updates, including webhooks where required.
+
+Non-functional Requirements | 1
+- Preserve durable, auditable transaction history and financial integrity.
+- Protect payment credentials and isolate sensitive handling from ordinary application services.
+- Scale to high transaction volume while retaining a clear correctness boundary for each payment.
+
+Core Entities | 2
+- PaymentIntent describes amount, currency, merchant, customer, and requested operation.
+- PaymentAttempt records an external submission, idempotency key, provider reference, and outcome.
+- LedgerEntry records durable financial movement; state transitions and webhook events retain an audit trail.
+- PaymentMethod stores a provider token or reference rather than exposing raw credentials throughout the system.
+
+API
+- Create a payment intent with amount, currency, merchant reference, and an idempotency key.
+- Confirm or submit a payment method through an appropriate tokenized flow.
+- Query payment status and register authenticated webhook endpoints.
+- Reject reuse of an idempotency key with incompatible parameters instead of treating it as a new payment.
+
+High-Level Design
+
+1) Create and execute payments | 3,4
+- Validate and durably store the payment intent before coordinating external work.
+- Use an explicit state machine for pending, processing, successful, failed, and unresolved states.
+- Persist the attempt and provider request identifier so a crash does not erase knowledge of an in-flight charge.
+- Use a durable workflow or queue for retries and reconciliation; do not hold a database transaction open while waiting for a payment network.
+
+2) Status updates | 5
+- Apply provider callbacks idempotently and verify their authenticity.
+- Persist status transitions before notifying the merchant or customer.
+- Poll or reconcile with the provider when callbacks are missing, delayed, or contradictory.
+- A network timeout is an unknown outcome, not definitive proof of failure.
+
+Deep Dives
+
+1) Security | 6,7,8
+- Use tokenization or hosted collection to minimize where raw card data is handled.
+- Encrypt sensitive data in transit and at rest, restrict service access, and keep secrets out of logs.
+- Authenticate merchants and callbacks and validate amounts and ownership on the server.
+- Separate security boundaries and operational responsibilities explicitly rather than assuming encryption alone protects the workflow.
+
+2) Durability and auditability | 9
+- Write immutable financial records and use compensating entries for corrections instead of erasing history.
+- Keep ledger invariants within transactional boundaries and distinguish ledger state from a mutable UI status.
+- Replication, backups, and tested recovery protect records; an event log also enables investigation and reconciliation.
+
+3) Transaction safety | 10
+- Deduplicate customer requests, worker retries, and provider callbacks at their respective boundaries.
+- Use provider-supported idempotency and query existing attempts before issuing an uncertain replacement charge.
+- Reconcile local records with provider settlement or status reports to identify missing and mismatched outcomes.
+- Exactly-once queue processing does not by itself guarantee exactly one external financial side effect.
+
+4) Scale and webhooks | 11
+- Partition independent payment workflows while keeping each payment's transitions serialized.
+- Deliver webhooks through a durable queue with signatures, event IDs, retry backoff, and delivery history.
+- Merchants must tolerate duplicate and out-of-order webhooks; expose an API for fetching current authoritative status.
+- Isolate slow merchant endpoints and providers so they do not block unrelated payments.
+
+Final Design | 12
+- Durable intents, attempts, and ledger records form the source of truth.
+- Retry-safe workflows coordinate external providers, with reconciliation resolving uncertainty.
+- Tokenized credential handling and asynchronous status delivery support scale without weakening transaction safety.
+
+@@ metrics-monitoring
+Understanding the Problem
+- Ingest service metrics, answer dashboard queries, and evaluate alert rules continuously.
+- Time-series volume depends on both sample rate and label cardinality; many unique label combinations can dominate cost.
+
+Functional Requirements
+- Collect metrics from services and expose time-range queries for dashboards.
+- Let users define threshold-based alert rules.
+- Send notifications when alerts transition into actionable states.
+
+Non-functional Requirements | 1
+- Keep dashboard queries responsive across weeks of data.
+- Detect qualifying alerts in under a minute where required.
+- Remain available during spikes and failures without allowing uncontrolled series growth.
+
+Core Entities | 2
+- MetricSample includes metric name, timestamp, value, and labels.
+- TimeSeries is a metric plus a unique label set.
+- AlertRule defines query, threshold, duration, and recipient policy; AlertState tracks pending, firing, and resolved states.
+- Retention and rollup metadata describe stored resolutions and lifetimes.
+
+API and Data Flow | 3
+- Agents push batches or expose scrape endpoints; collectors normalize and validate incoming samples.
+- Query APIs accept time range, series selectors, aggregation, and resolution.
+- Rule APIs manage alert definitions independently from high-volume sample ingestion.
+- Durable transport feeds time-series storage and alert evaluation, followed by notification delivery.
+
+High-Level Design
+
+1) Ingestion | 4,5,6
+- Pull-based collection centralizes scrape scheduling and target health; push handles environments that cannot be scraped directly.
+- Batch samples, enforce limits, and buffer transient failures with bounded local or durable queues.
+- Partition by series identity and time while watching for uneven tenants or hot series.
+
+2) Dashboards | 7
+- A time-series store indexes labels and organizes samples for efficient time-range scans.
+- Fetch only the resolution needed for the chart rather than every raw sample over weeks.
+- Cache repeated dashboard queries and avoid repeatedly scanning the same recent windows.
+
+3) Alerts and notifications | 8,9
+- Evaluate rules on a schedule or a streaming path with explicit handling of missing and delayed data.
+- Require a condition to persist for a configured duration when useful to reduce transient false alarms.
+- Persist alert state and notify on transitions, with grouping and cooldowns to avoid repeated notification storms.
+
+Deep Dives
+
+1) Long-range queries | 10,11
+- Keep high-resolution recent data and downsample older samples into coarser rollups.
+- Store enough aggregate information for the intended calculations; averaging averages without weights can be incorrect.
+- Prune time partitions and use label indexes to limit the series scanned.
+- Retention policies must align with dashboard and incident-investigation needs.
+
+2) Low-latency alerts | 12
+- A separate alert evaluator avoids waiting behind expensive interactive dashboard queries.
+- Streaming evaluation can reduce delay, but requires window state, late-data policy, and recoverable checkpoints.
+- Track ingestion lag and evaluation lag separately; a fast evaluator cannot detect data that has not arrived.
+
+3) Availability and cardinality | 13
+- Replicate critical ingestion and storage components and bound queues with explicit overload behavior.
+- Avoid unbounded labels such as request IDs or arbitrary URLs; each unique combination creates another series.
+- Enforce per-tenant series and sample quotas, detect sudden cardinality growth, and provide actionable rejection metrics.
+- Dropping low-priority samples may be preferable to losing the entire pipeline, but the product must expose that degradation.
+
+Final Design | 14
+- Collectors feed durable ingestion and partitioned time-series storage with tiered retention.
+- Query services use rollups and caches; independent evaluators maintain durable alert state.
+- Cardinality controls, lag monitoring, and notification deduplication keep the monitoring system useful during the incidents it must report.
+
+@@ online-chess
+Understanding the Problem
+- Match players by skill, run real-time chess games, and maintain global rankings.
+- The server is authoritative for legal moves, turn order, clocks, and game results.
+
+Functional Requirements
+- Enter matchmaking and start a game with an appropriate opponent.
+- Exchange moves and receive current game state in real time.
+- View global leaderboard positions and personal rank.
+
+Non-functional Requirements | 1
+- Keep move acknowledgement and opponent updates low latency.
+- Support around 500,000 concurrent games and a leaderboard with millions of players.
+- Prevent double matching, duplicated moves, inconsistent results, and client-manipulated clocks.
+
+Core Entities | 2
+- Player stores identity and rating; MatchmakingEntry stores mode, rating range, and wait time.
+- Game stores players, board, turn, clocks, version, and terminal state.
+- Move records a game sequence, player, move, and authoritative timing.
+- RatingChange and LeaderboardEntry connect finalized results to rankings.
+
+API
+- Join or leave matchmaking using a stable request ID.
+- Send a move with game ID and expected version or sequence; receive accepted state or a conflict.
+- Reconnect to fetch a current snapshot and subsequent moves.
+- Query top players and a player's rank with defined ordering and tie rules.
+
+High-Level Design
+
+1) Match players | 3
+- Queue eligible players by game mode and rating band, widening acceptable ranges as waiting time grows.
+- Atomically claim both players before creating a game so concurrent matchers cannot pair one player twice.
+- Remove or mark claimed queue entries and recover abandoned claims after failures.
+
+2) Run games | 4
+- Route both players to the game owner or authoritative processing partition.
+- Validate turn, legal movement, promotion, and game-ending conditions before persisting a move.
+- Apply a move once using its sequence or ID, then broadcast the resulting state.
+- On reconnect, restore from a snapshot plus durable moves rather than trusting a client's board.
+
+3) Rankings | 5
+- Finalized results trigger rating updates according to the selected rating system.
+- Store authoritative results durably and maintain a derived sorted leaderboard.
+- Deduplicate result application so retries do not change ratings twice for one game.
+
+Deep Dives
+
+1) Matchmaking consistency
+- A check-then-delete queue operation has races; use transactions, conditional claims, or atomic queue operations.
+- Include claim ownership and expiration so a delayed matcher cannot create a game after its claim was reassigned.
+- Rejoining and cancellation need defined transitions when a match is already being committed.
+
+2) Game-server scale | 6,7
+- Partition by game ID and keep each game's updates serialized at one owner.
+- Separate persistent connection gateways from game state processing if connection scale and compute scale differ.
+- Use ownership epochs or fencing during failover to prevent two servers from accepting moves for the same game.
+- A durable move log and periodic snapshots let replacement owners recover quickly.
+
+3) Fair clocks
+- Server time determines remaining time; client timers are estimates for display.
+- Define when time starts and stops around move acceptance, and cap any lag compensation policy.
+- Process flags and moves under the same authoritative ordering so a delayed client cannot revive an expired game.
+
+4) Leaderboard scale | 8
+- A sorted set supports top ranges and rank lookup, while durable ratings remain the rebuild source.
+- Update both players' ratings consistently from the finalized result and preserve tie-breakers.
+- Partition or specialize ranking workloads only when the single ranking structure becomes the measured bottleneck.
+
+Final Design | 9
+- Atomic matchmaking hands players to partitioned, authoritative game servers.
+- Durable moves and ownership fencing support reconnects and failover.
+- Idempotent result processing updates ratings and a fast derived leaderboard without allowing client state to decide outcomes.
+
+@@ chatgpt
+Understanding the Problem
+- Build a conversational AI product around model inference, durable chat history, and streamed responses.
+- Model training is outside this design; the focus is scheduling expensive inference and delivering recoverable user interactions.
+
+Functional Requirements
+- Submit a prompt and receive a generated response.
+- View past chats and continue a conversation with context from prior turns.
+- Stream output, recover after reconnecting, and cancel an active generation.
+
+Non-functional Requirements | 1
+- Minimize time to first token while keeping GPU utilization efficient.
+- Persist messages and generation state and avoid starting duplicate costly runs after retries.
+- Enforce fairness and tier-aware quotas under demand exceeding inference capacity.
+
+Core Entities | 2
+- Conversation and Message store ownership, ordering, content, and relevant model metadata.
+- Run stores generation state, request ID, model, usage, cancellation, and completion status.
+- StreamEvent records ordered output chunks or lifecycle events for resumable delivery.
+- QueueEntry carries scheduling priority and estimated resource cost.
+
+API
+- Create or select a conversation, then submit a message using an idempotency key.
+- Return a run ID and stream endpoint; query run status separately from the live connection.
+- Fetch paginated conversation history and reconnect to a run using the last event cursor.
+- Cancel a specific run with an authenticated request; cancellation must propagate beyond the browser connection.
+
+High-Level Design
+
+1) Submit and generate | 3
+- Persist the user message and run before enqueueing generation work reliably.
+- Assemble the model context with permissions and token limits, then schedule inference on an appropriate worker.
+- Stream generated output and persist the final assistant message and terminal run state.
+- Keep a lost browser connection from automatically creating another generation on reconnect.
+
+2) History | 4
+- Store messages in conversation order and fetch them with stable pagination.
+- Record incomplete, failed, cancelled, and completed runs explicitly instead of pretending every partial response is final.
+- Context assembly reads committed conversation state and applies the selected truncation or summarization policy.
+
+Deep Dives
+
+1) Token streaming | 5,6
+- SSE fits one-way token delivery while ordinary HTTP handles prompt submission and cancellation.
+- WebSockets support richer bidirectional interactions but require additional connection lifecycle handling.
+- Flush small chunks with sequencing and terminal events; proxy buffering must not delay the whole response until completion.
+
+2) Reconnect and deploy recovery | 7,8,9
+- Separate generation workers from connection servers so a gateway restart does not terminate the underlying run.
+- Redis Pub/Sub is useful for live events but cannot replay messages missed while disconnected.
+- A bounded durable stream such as Redis Streams can retain ordered chunks and resume after a cursor.
+- Persist final output separately and define retention limits; clients older than the replay window fetch the saved result or current snapshot.
+
+3) GPU scheduling | 10
+- A queue absorbs bursts and separates admission from inference capacity.
+- Continuous batching groups active sequences efficiently, adding and removing requests as they start or finish.
+- Bound queue wait, token budgets, and GPU memory use; large contexts and long outputs cost more than short requests.
+- Apply backpressure before the queue becomes an unlimited promise of future GPU work.
+
+4) Fairness and context cost | 11
+- Use per-user and cost-aware quotas rather than only a flat request count.
+- Weighted priorities can improve paid-tier service while preserving capacity for other users.
+- Prefix caching reuses identical context work; rolling summaries reduce context length but can omit details.
+- Retain recent turns and important state deliberately, and separate summary storage from the original durable conversation.
+- Cancellation must stop scheduling or generation and release GPU/KV-cache resources; closing SSE alone does not guarantee that.
+
+Final Design | 12
+- Durable conversations and run state feed a quota-aware inference queue.
+- GPU workers generate independently of the connection tier, with replayable stream events supporting reconnects.
+- Explicit run lifecycle, bounded context, and cost-aware scheduling connect a responsive UI to finite inference capacity.
+
+@@ flash-sale
+Understanding the Problem
+- Sell a very limited inventory item when a large crowd arrives simultaneously.
+- The critical invariant is that successful reservations and purchases never exceed available units.
+
+Functional Requirements
+- View the sale item and sale timing.
+- Reserve an available unit for a limited checkout period.
+- Complete payment for a valid reservation and release expired or abandoned claims.
+
+Non-functional Requirements | 1
+- Preserve inventory consistency under extreme contention.
+- Keep admission and reservation feedback responsive during traffic spikes.
+- Recover payment and reservation failures without double-selling or holding inventory forever.
+
+Core Entities | 2
+- SaleItem stores product metadata, sale window, and inventory definition.
+- Reservation records unit or quantity, owner, expiration, token/version, and state.
+- Order and PaymentAttempt track checkout and external payment outcomes.
+- AdmissionToken controls entry from the waiting room into the reservation path.
+
+API
+- Fetch cached sale details and approximate availability.
+- Request a reservation with an idempotency key and valid admission token where required.
+- Complete checkout for a specific reservation token and query order status.
+- Verify server time, ownership, sale state, and reservation validity on every authoritative transition.
+
+High-Level Design
+
+1) Browse and reserve | 3,4,5
+- Serve stable product details through caches or a CDN so browsers do not overload inventory storage.
+- Claim inventory with an atomic conditional update or transaction.
+- Persist a reservation with an explicit expiry instead of holding a database lock while the customer enters payment information.
+- Cached availability is advisory; only a successful reservation grants a temporary claim.
+
+2) Complete payment | 6,7
+- Coordinate payment through durable order state and stable provider idempotency keys.
+- Convert the current reservation to purchased only through a valid conditional transition.
+- Handle payment success racing reservation expiry explicitly, using a defined confirmation, reconciliation, or compensation policy.
+- Notify the client asynchronously and allow status recovery after a lost response.
+
+Deep Dives
+
+1) Contention | 8,9
+- A single inventory counter becomes a serialization hot spot even if the rest of the database is sharded.
+- Redis atomic coordination can reduce latency, but durable purchase correctness must survive its failure and failover behavior.
+- Represent inventory as independently claimable units or buckets to spread contention, then atomically claim one eligible unit.
+- Include ownership and version checks so a stale client cannot purchase a unit that has already been reassigned.
+- Retry a bounded set of candidates; uncontrolled retries simply turn contention into more load.
+
+2) Expiration | 10
+- Scheduled cleanup jobs are useful, but delays must not make expired inventory permanently unavailable.
+- Reclaim expired reservations during a new claim using an atomic predicate on state, expiration, and version.
+- A delayed cleanup task must verify that it still refers to the same reservation before releasing anything.
+- Define expiry against authoritative server time and keep terminal purchased state immune to reservation cleanup.
+
+3) Crowd admission | 11,12,13
+- A basic rate limit protects the backend but gives customers repeated errors and no clear place in line.
+- A virtual waiting room issues signed, expiring admission tokens at a sustainable rate.
+- Keep queue state independent of inventory claims; admission does not guarantee a unit.
+- Bound token reuse and recover reconnecting users without letting refreshes jump the queue.
+
+4) Fairness
+- Define whether admission is first-come-first-served, randomized, or another transparent policy.
+- Enforce per-user purchase limits at the durable order boundary, not solely in browser state.
+- Separate fairness from raw throughput: a fast atomic counter does not prevent one client from making disproportionate attempts.
+
+Final Design | 14
+- Cached browsing and a waiting room control the arrival rate at a short atomic reservation path.
+- Versioned, expiring unit claims spread contention and prevent stale checkout actions.
+- Durable payment workflows and conditional completion preserve the inventory invariant through retries, timeouts, and cleanup.
+
+@@ real-time-updates
+The Problem
+- Deliver changes to interested clients quickly without forcing every client to repeatedly query the primary database.
+- Solve two separate routing problems: how a client maintains a connection, and how an event reaches the server holding that connection.
+
+The Solution | 1
+- Choose a transport based on direction, latency, update frequency, and infrastructure constraints.
+- Keep durable event state separate from connection state when reconnecting clients must recover missed updates.
+
+Client-Server Connection Protocols
+
+1) Networking and load balancers | 2,3,4
+- TCP establishes a connection between endpoints; HTTP defines requests and responses over a transport.
+- Layer 4 load balancers route connections without understanding application messages.
+- Layer 7 proxies understand HTTP and can terminate connections, apply routing, and create separate upstream connections.
+- Persistent connections require suitable proxy timeouts, keepalives, and a plan for draining connections during deployments.
+
+2) Polling and long polling | 5
+- Simple polling requests updates on an interval. It is easy to implement but trades freshness against repeated empty requests.
+- Long polling holds a request until an update or timeout, then the client opens another request.
+- Long polling lowers idle request volume, but still needs connection capacity, retry handling, and a cursor to avoid missed events between requests.
+- Use ordinary polling when update frequency and latency requirements do not justify persistent infrastructure.
+
+3) SSE and WebSockets | 6
+- SSE sends a stream of server events over HTTP and suits notifications, live feeds, and token streaming.
+- Event IDs can support reconnection, but the server must retain data to replay; transport reconnection alone does not guarantee recovery.
+- WebSockets provide bidirectional messages on one connection and suit chat, collaboration, and interactive games.
+- Both require authentication, subscription authorization, heartbeats or liveness checks, and bounded buffering for slow clients.
+
+4) WebRTC | 7,8
+- WebRTC supports low-latency media or data channels and can connect peers directly when network conditions permit.
+- Signaling exchanges connection information; STUN assists address discovery and TURN relays traffic when direct connectivity fails.
+- It adds networking and media complexity, making it appropriate for calls or interactive media rather than every ordinary notification stream.
+
+Server-Side Push and Pull | 9
+
+1) Pull from shared state | 10
+- Connection servers can poll a shared store for updates and deliver them to local clients.
+- This simplifies routing but adds polling cost and delay; coalesce reads for clients subscribed to the same resource.
+
+2) Route by ownership | 11,12,13,14,15
+- Map a user or channel to a server so producers know where to send events.
+- Simple modulo hashing remaps many owners when the server count changes; consistent hashing reduces that movement.
+- Membership changes, dead owners, and stale routing still require coordination and reconnect handling.
+- A hot channel remains hot even if the total keyspace is evenly distributed.
+
+3) Pub/sub | 16,17
+- Servers subscribe to channels for their connected clients, and publishers send updates through the shared broker.
+- This decouples producers from connection ownership but adds broker cost and subscription management.
+- Ephemeral pub/sub drops messages while a subscriber is absent; use a durable history or log when replay is required.
+- Share upstream subscriptions among local clients instead of duplicating them unnecessarily.
+
+Common Deep Dives | 18
+- On reconnect, authenticate again, fetch a snapshot or resume after a cursor, and deduplicate overlapping events.
+- Use per-resource sequence numbers when ordering matters; timestamps from unrelated machines do not establish a reliable total order.
+- Replicate or hierarchically distribute high-fanout channels and bound slow-consumer queues.
+- Use backoff with jitter to avoid reconnect storms after an outage or deployment.
+
+When to Use and Conclusion | 19
+- Choose the simplest transport that satisfies the product's freshness and direction requirements.
+- Explain connection routing, replay, ordering, and overload behavior as well as the protocol name.
+- Keep ordinary polling for low-frequency updates and introduce persistent delivery where it materially improves the experience.
+
+@@ dealing-with-contention
+The Race Condition | 1
+- A read-check-write sequence is unsafe when multiple requests can act on the same old value.
+- Examples include booking one seat, decrementing inventory, accepting the highest bid, and claiming a driver.
+- State the invariant first, then place its validation and update inside an atomic boundary.
+
+The Solution
+
+1) Conditional writes
+- Make the database update conditional on the current state, such as available quantity being sufficient or a version matching.
+- Check affected-row count to distinguish success from a lost race; do not assume an executed statement changed a row.
+- A unique constraint can enforce one record per logical identity more reliably than a prior application-level existence check.
+
+2) Pessimistic locking | 2
+- Lock the relevant rows, read their current state, apply the update, and commit a short transaction.
+- Competing writers wait rather than independently proceeding with stale state.
+- Acquire multiple locks in a consistent order and handle deadlock or timeout failures with bounded retries.
+- Never hold a transaction open while a person checks out or an external network request runs; represent longer claims as durable reservations.
+
+3) Optimistic concurrency control
+- Read state with a version and write only if that version is unchanged.
+- A conflict means another writer won; reload and re-evaluate the business rule before retrying.
+- This works well with modest contention, but repeated conflicts can waste substantial work on a hot resource.
+- Use a monotonically changing version to detect state that changed and later returned to the same visible value.
+
+4) Isolation levels | 3
+- Read committed prevents dirty reads but does not make every multi-statement invariant safe.
+- Repeatable-read or snapshot isolation provides stable snapshots but can still allow anomalies such as write skew depending on the database.
+- Serializable isolation targets serial-equivalent behavior, often by aborting conflicting transactions that the application must retry.
+- Choose isolation and explicit constraints from the required invariant, not from a vague claim that transactions solve all races.
+
+5) Distributed locks
+- Use shared locks when the protected action cannot fit within one database's transaction or conditional-write boundary.
+- Locks need unique ownership tokens, bounded leases, safe release, and renewal behavior.
+- A paused worker may resume after its lease expires. Fencing tokens let the protected resource reject that stale worker's writes.
+- A lock service cannot make an external side effect transactional; downstream idempotency and recovery still matter.
+
+Choosing the Right Approach
+- Prefer a conditional update for a simple invariant and a database transaction for related records in one store.
+- Use optimistic checks when conflicts are uncommon and short pessimistic transactions when contention makes retries expensive.
+- Introduce distributed coordination only when the protected state actually crosses the simpler boundary.
+- Separate a fast atomic claim from a longer workflow such as payment or fulfillment.
+
+Common Deep Dives | 4,5
+- Prevent deadlocks by ordering locks consistently, limiting lock scope, and retrying aborted transactions.
+- Prevent the ABA problem with versions that change on every transition, even if the visible value returns to its original state.
+- A single highly contested resource has a serialization limit; queues, admission control, partitioned inventory, or combining operations may reduce contention.
+- More application servers do not increase the throughput of one exclusively locked row.
+- Make retries idempotent so a lost response does not repeat an already completed side effect.
+
+Conclusion | 6
+- Describe the invariant, atomic boundary, conflict response, and crash recovery together.
+- The correct primitive is the one that still prevents invalid state under concurrent requests, timeouts, retries, and delayed workers.
+
+@@ multi-step-processes
+The Problem | 1
+- Business workflows often span several services and external systems, so one database transaction cannot cover every step.
+- A process can crash after one side effect succeeds but before recording progress, leaving ambiguous state and unsafe retries.
+
+Solutions
+
+1) Single-server primitives | 2,3
+- Keep related writes in one short transaction when they share a database.
+- A transactional outbox commits business state and a pending event together; a publisher retries delivery independently.
+- The outbox closes the lost-publication gap but consumers still need deduplication because publication can repeat.
+
+2) Saga pattern
+- Represent a workflow as a sequence of local transactions with explicit compensation where later failure must reverse an earlier effect.
+- Compensation is a new business operation, not a time machine: a refund is not the same as erasing a charge.
+- Track progress durably and make forward steps and compensations retry-safe.
+- Define which steps are reversible, which require manual resolution, and which outcomes are merely pending.
+
+3) Event-driven choreography | 4
+- Services react to events and publish subsequent events, distributing workflow logic among participants.
+- Choreography reduces central coupling for simple flows but makes end-to-end progress, failure ownership, and debugging harder as the workflow grows.
+- Use correlation IDs and durable transition records so the workflow can be traced across services.
+- Prevent cycles, duplicated reactions, and unbounded retries rather than assuming an event bus coordinates the whole process.
+
+4) Workflow orchestration | 5
+- A coordinator records current state and directs activities, retries, timers, and compensation.
+- Durable execution engines persist an event history and reconstruct workflow progress after a worker failure.
+- Workflow decisions must replay deterministically; side-effecting I/O runs as activities with recorded results.
+- Long waits use durable timers or external signals instead of holding a thread or transaction open.
+- Managed state-machine systems and code-based workflow engines offer different programming and operational tradeoffs.
+
+When to Use | 6
+- Use this pattern for payment flows, order fulfillment, reservations, onboarding, and other processes with multiple failure-prone steps.
+- Avoid a workflow engine for a simple synchronous operation already covered by one database transaction.
+- State the required recovery behavior before choosing a framework.
+
+Common Deep Dives
+
+1) Crashes and exactly-once effects
+- Persist progress so a replacement worker can determine which steps are complete.
+- An activity may execute more than once if its side effect succeeded but its completion acknowledgement was lost.
+- Use stable business idempotency keys, transactional deduplication, or downstream status lookup to make retries safe.
+- Durable orchestration does not automatically make external payments or emails execute exactly once.
+
+2) Workflow changes
+- Version workflow behavior so old histories can still replay under compatible code.
+- Use explicit migrations or keep old worker versions for in-flight workflows when required.
+- Test deployment behavior against workflows waiting on timers or external events, not only newly started workflows.
+
+3) History size and external events
+- Store large payloads outside workflow history and pass durable references.
+- Bound history through checkpointing or continuation mechanisms supported by the engine.
+- Correlate external callbacks to the correct workflow and deduplicate repeated or late events.
+- Define timeouts and human intervention paths for workflows that cannot complete automatically.
+
+Conclusion
+- Treat a workflow as durable state plus retryable steps, not one long in-memory function.
+- Explicit compensation, idempotency, versioning, and reconciliation make cross-service work recoverable.
+
+@@ scaling-reads
+The Problem
+- Read latency and throughput degrade when queries scan too much data, perform expensive joins, or compete for limited database resources.
+- Identify the dominant query and freshness requirement before adding caches or shards.
+
+The Solution
+
+1) Optimize the existing database | 1,2,3
+- Add indexes matching filters and ordering, and inspect query plans to verify they reduce work.
+- Composite index column order matters; an index that helps one query may not serve another access pattern.
+- More indexes consume storage and increase write cost, so measure rather than indexing every field.
+- Increase memory or faster storage when the working set or I/O path is the bottleneck.
+- Denormalize frequently joined fields or maintain materialized views when read savings justify update and consistency complexity.
+
+2) Scale database reads horizontally | 4,5,6
+- Read replicas distribute queries but may lag the primary; route reads requiring immediate freshness appropriately.
+- Replicas do not increase the primary's write capacity and each may still need the full dataset.
+- Sharding splits the dataset and workload, but cross-shard joins, transactions, and fanout queries become harder.
+- Choose partition keys that match common reads and avoid concentrating traffic on one tenant or resource.
+
+3) Application caching | 7
+- Cache-aside checks the cache, loads a miss from the database, and stores the result with an expiry.
+- Cache popular, expensive, reusable results; include all relevant filters and authorization scope in the key.
+- Define TTL, invalidation, memory limits, and behavior when the cache is unavailable.
+- The cache is a derived view unless the design explicitly supplies its durability guarantees.
+
+4) CDN and edge caching | 8
+- Serve static assets and eligible shared responses near users to reduce origin load and geographic latency.
+- Correct cache-control and cache-key configuration are essential, especially for personalized or authenticated responses.
+- Version immutable assets and use bounded expiration or invalidation for mutable content.
+
+When to Use
+- Apply read scaling to feeds, search, profiles, product pages, and dashboards when measurements show repeated expensive reads.
+- A small workload with efficient indexed queries may not need another distributed subsystem.
+- Keep consistency requirements explicit: stale stock displays may be acceptable, but checkout must still validate authoritative inventory.
+
+Common Deep Dives
+
+1) Growing datasets
+- Inspect query complexity, index selectivity, rows scanned, and pagination strategy before assuming hardware is the only fix.
+- Cursor pagination and partition pruning avoid scanning increasing offsets or irrelevant historical data.
+- Rollups and materialized views are useful for repeated aggregate queries.
+
+2) Hot keys and stampedes
+- One popular cached key can overwhelm a shard; local replicas or replicated hot values spread reads.
+- Coalesce concurrent misses so only one worker rebuilds an entry while others wait or receive acceptable stale data.
+- Add expiry jitter and consider proactive refresh to avoid synchronized expiration.
+- Bound fallback traffic to the database during cache failures; an empty cache can be an availability incident.
+
+3) Invalidation races
+- A reader can fetch old database data and refill a cache after a writer invalidates it.
+- Use versions, conditional cache writes, coordinated updates, or an explicit staleness bound to address that race.
+- TTL limits staleness but does not provide immediate consistency.
+- If a read must observe the latest committed state, use an authoritative path or a protocol that actually enforces that guarantee.
+
+Conclusion
+- Start with efficient queries, then use replicas, derived views, caches, or sharding for the measured bottleneck.
+- Explain cache failure and freshness behavior as carefully as the normal fast path.
+
+@@ scaling-writes
+The Challenge | 1
+- Writes must update durable state, indexes, replication, and sometimes shared invariants.
+- Scaling is constrained by the hottest serialized resource, not merely the total number of application servers.
+
+The Solution
+
+1) Vertical scaling and write optimization
+- Improve CPU, memory, storage, and transaction efficiency before introducing unnecessary distribution.
+- Remove unused indexes, shorten transactions, reuse connections, and batch related writes where semantics permit.
+- B-tree and log-structured storage engines have different read, write, compaction, and space tradeoffs.
+- A database choice must match access patterns and durability needs rather than a generic SQL-versus-NoSQL slogan.
+
+2) Sharding and partitioning | 2,3
+- Horizontal sharding distributes records across independent write owners.
+- Choose a high-cardinality key that spreads traffic and keeps commonly related operations local.
+- Time-only keys can make the newest partition hot; tenant-only keys can overload a single large tenant.
+- Vertical partitioning separates data or services with different update patterns, reducing interference.
+- Cross-shard operations need coordination or redesigned boundaries; sharding does not preserve every single-node convenience.
+
+3) Queues and load shedding | 4,5
+- A durable queue absorbs short bursts and allows workers to process at a sustainable rate.
+- Queues do not fix a permanently insufficient processing rate; backlog age grows without bound unless capacity or admission changes.
+- Return acceptance separately from completion when writes become asynchronous.
+- Reject, defer, or deprioritize work before overload exhausts memory and causes broader failure.
+
+4) Batching and aggregation | 6,7,8,9
+- Combine many small writes into fewer database operations to amortize network and transaction overhead.
+- Batch in clients, intermediate processors, or the database interface according to latency and failure requirements.
+- For counters or metrics, aggregate partial values locally and merge them hierarchically.
+- Preserve ordering and idempotency where required; retrying a batch must not add the same increments twice.
+- Larger batches improve throughput but increase delay and the amount of work replayed after failure.
+
+When to Use
+- Apply this pattern to event ingestion, telemetry, click aggregation, feed fanout, and other write-heavy pipelines.
+- First estimate sustained and burst rates and identify whether the limit is storage I/O, lock contention, CPU, or a hot key.
+- Do not add sharding when a better index, shorter transaction, or modest hardware change solves the actual problem.
+
+Common Deep Dives
+
+1) Resharding
+- Introduce a routing version, copy existing data, and capture concurrent changes during migration.
+- Switch ownership carefully and retain a rollback or reconciliation path.
+- Consistent hashing reduces key movement but does not by itself implement safe data transfer or concurrent-write handling.
+
+2) Hot keys | 10
+- More shards do not divide writes to one atomic key.
+- Split aggregatable counters into subkeys and merge on read or in a second aggregation stage.
+- Dynamic splitting limits overhead to hot keys but requires routing metadata and a safe merge/transition protocol.
+- Some invariants cannot be freely split, such as claiming one unique seat; admission control or a serialized owner remains necessary.
+
+Conclusion | 11
+- Optimize each write, distribute independent work, smooth bursts, and aggregate where the operation allows it.
+- Monitor queue age, per-partition load, retries, and compaction or replication lag rather than only total throughput.
+- Make the consistency and latency cost of each scaling step explicit.
+
+@@ handling-large-blobs
+The Problem | 1
+- Large photos, videos, and documents stress application bandwidth, memory, request timeouts, and relational storage.
+- Separate the control plane for permissions and metadata from the data plane carrying bytes.
+
+The Solution | 2
+- Store blobs in object storage and lightweight metadata in a database.
+- Give clients short-lived, scoped transfer authorization so bytes can bypass application servers.
+- Use a CDN for appropriate downloads and multipart transfer for large or unreliable uploads.
+
+1) Direct upload | 3
+- The client requests an upload session with expected size, type, and ownership information.
+- The server validates the request, creates pending metadata, and returns signed storage instructions.
+- The client transfers directly to storage; the backend verifies completion before marking the object available.
+- Signed URLs grant bounded access to a particular operation and object, not unrestricted storage credentials.
+
+2) Direct download | 4
+- Authenticate the caller and check object permissions before issuing a signed download URL.
+- Deliver through object storage or an authorized CDN path.
+- Keep URL lifetime and caching policy aligned with the sensitivity of the content and expected revocation behavior.
+- A previously issued bearer URL may remain valid until expiry, even if the application later changes permissions.
+
+3) Resumable uploads | 5
+- Split the upload into numbered parts and track an upload ID plus confirmed part metadata.
+- Retry only missing or failed parts, then ask storage to finalize the object.
+- Bound concurrency and part size to avoid exhausting client memory or network connections.
+- Expire abandoned upload sessions and remove incomplete parts to control storage cost.
+
+4) State synchronization | 6
+- Database metadata and object storage do not share one transaction, so pending and completed states are necessary.
+- Treat client completion messages as claims to verify with storage APIs or trusted storage events.
+- Events can be duplicated or delayed; make completion transitions idempotent and run reconciliation for stuck uploads.
+- Multipart provider events may fire only for the completed object, so per-part verification needs the provider's multipart APIs.
+
+Cloud Provider Terminology
+- Providers use different names for signed URLs, multipart uploads, object versions, and completion checks.
+- Explain the required capability and failure behavior rather than relying on a product name alone.
+
+Common Deep Dives
+- A transfer failing at 99% should resume from verified parts, not restart from byte zero.
+- Apply user quotas, maximum object sizes, allowed content types, and bounded session lifetimes before granting upload authority.
+- Store metadata such as owner, object key, size, checksum, version, and processing state separately from the blob.
+- Do not assume an ETag is always a whole-file content hash; its semantics depend on provider and upload mode.
+
+Metadata and Download Performance | 7
+- Immutable object versions simplify caching and avoid serving mixed content during replacement.
+- Use range requests, CDN caching, and suitable media variants where the client does not need the entire original object immediately.
+- Keep background scanning, thumbnailing, or transcoding outside the interactive metadata request path.
+
+Conclusion
+- Direct signed transfers remove application bandwidth bottlenecks, but verification and lifecycle state remain application responsibilities.
+- Multipart recovery, cleanup, access control, and reconciliation complete the design beyond simply adding an object-storage box.
+
+@@ managing-long-running-tasks
+The Problem | 1
+- Work such as video processing, crawling, report generation, and large fanout can exceed request deadlines or vary greatly in duration.
+- Running it synchronously ties client connections and API capacity to the slowest execution.
+
+The Solution | 2,3
+- Persist a job, enqueue a reference, and return a job ID quickly.
+- Independent workers execute the work and store status and results.
+- Clients poll status or receive completion events, keeping acceptance distinct from completion.
+
+Trade-offs
+- Queues absorb bursts and allow worker capacity to scale independently from the API.
+- Retries and recovery improve reliability, but introduce eventual completion, duplicate attempts, and operational state to manage.
+- A queue cannot provide unlimited capacity; admission and backlog limits still matter.
+
+How to Implement
+
+1) Message queue | 4
+- Choose durability, delivery semantics, ordering, visibility timeout, and dead-letter behavior from the workload.
+- Put IDs and storage references in messages, not large media payloads.
+- Publish reliably after durable job creation, using an outbox or equivalent recovery mechanism where needed.
+
+2) Workers
+- Claim work, mark the attempt, execute it under resource and time limits, and persist the result.
+- Acknowledge only after the required output is safe.
+- Renew a lease for long tasks, and ensure a stale worker cannot overwrite a newer attempt's result.
+- Separate resource classes when CPU, GPU, memory-heavy, and lightweight tasks require different capacity.
+
+3) End-to-end flow | 5
+- The API validates and persists a pending job, then ensures it reaches the queue.
+- Workers transition jobs through running and terminal states using conditional updates.
+- Completion notifications are retryable hints; the status API remains authoritative after reconnects.
+- Store progress only at useful checkpoints rather than writing on every tiny unit of work.
+
+Common Deep Dives
+
+1) Failure and repeated failure | 6
+- Retry transient errors with exponential backoff and jitter.
+- Bound attempts and send persistent failures to a dead-letter or inspection state with the original error context.
+- A worker crash causes lease expiry or queue redelivery; recover from saved checkpoints where useful.
+
+2) Duplicate work | 7
+- At-least-once delivery can repeat a task even after its side effect succeeded.
+- Use stable job IDs, idempotent output paths, and downstream idempotency keys.
+- Recording 'started' alone cannot safely suppress retries forever, because the first worker may have crashed.
+
+3) Backpressure and mixed workloads | 8
+- Scale from queue age and resource utilization, and cap admission when completion deadlines cannot be met.
+- Separate urgent and bulk queues or reserve capacity so slow jobs do not block small urgent work.
+- Rate-limit external dependencies independently from worker count.
+
+4) Dependencies
+- Represent dependent jobs as a durable graph or workflow rather than making workers wait indefinitely on each other.
+- Trigger a stage only when required predecessors have completed and make the trigger idempotent.
+- Define cancellation, compensation, and failure propagation for partial workflows.
+
+Conclusion | 9,10
+- Durable job state, reliable queue publication, leased workers, and retry-safe side effects form the complete pattern.
+- Explicit backpressure and progress reporting keep asynchronous work usable when the system is busy or partially failing.
+
+@@ redis
+Overview
+- Redis is an in-memory data-structure server commonly used for caching, counters, rankings, coordination, and messaging.
+- Its speed does not remove the need to choose persistence, replication, eviction, and failure semantics for the role it plays.
+
+Redis Basics | 1
+- Keys address strings, hashes, lists, sets, sorted sets, and other structures with operations performed near the data.
+- TTL expires individual keys; eviction policies reclaim memory when capacity is reached.
+- Atomic commands and short scripts can combine checks and updates without a client-side race.
+- Long scripts or large blocking operations can delay unrelated clients, so keep request work bounded.
+
+Infrastructure Configurations | 2
+- A standalone instance is simple but has one capacity and failure boundary.
+- Replication provides copies and failover options; asynchronous replicas may lag and recent writes can be lost during promotion.
+- Cluster partitioning spreads keys across hash slots. Multi-key operations often require related keys to share a slot.
+- Snapshot or append-only persistence improves recovery, with durability and latency depending on configuration.
+
+Performance and Caching | 3
+- Cache frequently reused values with keys that include relevant parameters and authorization scope.
+- Define cache-aside or update behavior, TTL, invalidation, and protection against concurrent miss storms.
+- Memory capacity, value size, network traffic, and hot keys often matter more than average command speed.
+- Use batching or pipelining to reduce round trips where operations permit it.
+
+Distributed Locks
+- A basic lease uses SET with NX and an expiry plus a unique owner token.
+- Release only if the token still matches; blindly deleting a lock can remove a newer owner's lease.
+- Lease expiry does not stop a paused worker from resuming. Protected resources need fencing or another way to reject stale operations.
+- Do not assume a Redis lock makes a payment or database update transactionally safe across failures.
+
+Leaderboards, Rate Limiting, and Proximity
+- Sorted sets support score updates, ranked ranges, and rank lookup for leaderboards.
+- Define ties and keep durable score sources so the ranking cache can be rebuilt.
+- Atomic scripts support token buckets or window accounting; shared keys coordinate limits across API instances.
+- Geospatial commands support nearby searches, but location freshness and filtering still belong to the application.
+
+Streams and Pub/Sub | 4,5
+- Streams retain ordered entries with IDs and support consumer groups, pending work, acknowledgements, and replay within retention.
+- Pub/Sub delivers live messages to current subscribers and does not retain missed messages for later recovery.
+- Choose Streams or another durable log when reconnects or worker crashes must recover work.
+- A queue or event log still needs idempotent consumers because repeated delivery can occur.
+- Building custom pub/sub from ordinary keys or lists creates subscription, cleanup, and fanout problems already handled by dedicated primitives.
+
+Hot Keys | 6
+- Sharding distributes different keys; one heavily accessed key can still overload its owner.
+- Replicate read-heavy hot values, use bounded local caches, or split aggregatable counters where semantics allow.
+- Local copies introduce invalidation and freshness tradeoffs; they do not provide automatic strong consistency.
+
+When Not to Use and Summary
+- Avoid treating an evicting cache as the sole durable record for critical data.
+- Large cold datasets, complex relational queries, and heavy multi-key transactions may fit another store better.
+- State the data structure, access pattern, failure behavior, and memory strategy when proposing Redis, rather than using it as a generic fast box.
+
+@@ elasticsearch
+Overview
+- Elasticsearch provides distributed search and analytics over documents using Lucene indexes.
+- It is often a derived search view fed from an authoritative application database, with explicit indexing lag and rebuild procedures.
+
+Basic Concepts | 1
+- A document is a JSON record; an index groups documents with related mappings and query behavior.
+- Mappings define field types. Text fields are analyzed for search, while keyword fields preserve exact values for filtering and aggregation.
+- Configure dates, numbers, nested objects, and geographic fields deliberately; incorrect mappings can make intended queries expensive or impossible.
+- Changing a field's fundamental mapping often requires a new index and reindexing.
+
+Basic Use
+- Create an index and mapping, then index documents using stable IDs.
+- Partial updates still require internal document reindexing; frequent mutable fields can generate substantial write and merge work.
+- Use match-style queries for analyzed text and filters for exact constraints that do not need relevance scoring.
+- Geospatial queries require the appropriate point or shape mapping and a clear distance or boundary interpretation.
+- Sorting by recency or popularity needs sortable fields; relevance ordering uses the search score and explicit tie-breakers where needed.
+
+Pagination and Cursors
+- from/size pagination is convenient for shallow pages, but deep offsets make shards gather and discard increasing amounts of data.
+- search_after continues after the previous sort values and requires stable sorting with a unique tie-breaker.
+- A point-in-time context can stabilize a paginated search while documents change.
+- Scroll-style traversal is suited to batch extraction; choose the pagination mechanism for the actual user interaction.
+
+How It Works
+
+1) Nodes and shards | 2,3
+- Primary shards partition the index; replicas provide additional read capacity and failover copies.
+- Coordinating nodes route queries to shards and merge bounded results.
+- Cluster-management roles coordinate metadata and shard allocation, separate from the document-query work.
+- More shards increase parallelism but also coordination, memory, and small-shard overhead.
+
+2) Lucene segments | 4
+- Lucene writes immutable segments and exposes new data after a refresh, making search near real time rather than immediately consistent by default.
+- Updates and deletions create replacement records or deletion markers; background merges reclaim space and consolidate segments.
+- Refresh and merge settings trade freshness against indexing throughput and resource cost.
+
+3) Search data structures | 5
+- An inverted index maps terms to document postings, with positions where phrase search requires them.
+- Doc values organize field values for efficient sorting and aggregation.
+- Query execution should reduce candidates with selective filters before expensive scoring or sorting where possible.
+- A hot term or broad query can be costly even when the corpus is evenly sharded.
+
+In Your Interview
+- Explain why full-text relevance, geographic filtering, or complex search warrants a specialized engine.
+- Keep primary writes and indexing updates connected through a reliable change stream or outbox.
+- Version updates and propagate deletions so delayed events cannot restore stale content.
+- Recheck permissions when index staleness could expose restricted documents.
+- Plan reindexing with aliases or another controlled switchover while concurrent changes continue.
+
+Summary
+- Elasticsearch makes search efficient through specialized indexes and distributed execution.
+- Its costs are additional storage, eventual search freshness, shard operations, and continuous index maintenance.
+- Use it when those tradeoffs solve concrete query requirements rather than as a replacement for every database access.
+
+@@ kafka
+Overview
+- Kafka is a durable distributed event log used to decouple producers and consumers, retain events, and support replay.
+- It can serve queue-like workloads through consumer groups, while independent groups process the same retained events separately.
+
+A Motivating Example | 1,2,3,4,5
+- Producers publish match events, and separate consumers update scoreboards, statistics, and notifications.
+- Partitioning lets unrelated matches process in parallel while a key keeps one match's events ordered.
+- Adding independent consumer groups does not require the producer to send separate copies to each application.
+
+Basic Terminology and Architecture
+- Brokers store partitions; a topic groups partitions belonging to one event stream.
+- Each partition is an ordered append-only log with offsets identifying positions.
+- A consumer group assigns each partition to at most one active consumer in that group.
+- Ordering is per partition, not automatically across the entire topic.
+
+How Kafka Works | 6,7,8
+- Producers select a partition, commonly using a key, and append records containing a payload and optional metadata.
+- A partition leader accepts writes and followers replicate them; acknowledgements and in-sync replica settings affect durability.
+- Consumers fetch records and track committed offsets independently from producer writes.
+- Committing before processing risks loss after a crash; committing after processing permits duplicates that must be handled safely.
+- Retention is based on configured time, size, or compaction policy rather than simply deleting a record when one consumer reads it.
+
+Scalability
+- Partition count bounds useful parallelism for one consumer group; extra consumers beyond available partitions remain idle.
+- Choose keys for both ordering and load distribution. One popular key remains a hot partition.
+- Batch and compress records to reduce network and storage overhead.
+- Put references to large files in events instead of using the log as an unbounded media-transfer path.
+- Adding partitions can change key routing; consider its effect on ordering during transitions.
+
+Fault Tolerance and Durability
+- Replication and leader election recover from broker failure according to the configured acknowledgement and replica policies.
+- Use an appropriate replication factor, acknowledgements, and minimum in-sync replicas for the loss tolerance.
+- Consumer-group rebalances move partition ownership; processors must stop cleanly and resume from safe offsets.
+- Monitor consumer lag and retained capacity so a long outage does not outlast the data needed for recovery.
+
+Handling Retries and Errors | 9
+- Idempotent producers reduce duplicates caused by retrying an uncertain append.
+- Consumer side effects still need idempotency or compatible transactions; producer idempotence alone does not make the entire pipeline exactly once.
+- Retry transient failures with an explicit strategy, and isolate poison records through retry or dead-letter topics where appropriate.
+- Retrying later can affect ordering, so decide whether a failed record blocks its partition or moves to a separate recovery path.
+
+When to Use and Summary
+- Use Kafka for replayable event pipelines, stream processing, and multiple independent downstream consumers.
+- A simpler work queue may be preferable when built-in visibility timeouts, delayed delivery, or per-message retry management dominate the requirements.
+- Explain partition keys, consumer groups, offset commits, retention, and failure semantics whenever Kafka is central to the design.
+
+@@ temporal
+Overview
+- Temporal coordinates durable workflows that survive process crashes, waits, retries, and external events.
+- It separates deterministic workflow decisions from activities that perform network calls or other side effects.
+
+Building Durable Execution
+
+1) Survive a crash | 1,2
+- Record workflow events and completed activity results in durable history.
+- After a worker restart, replay the workflow against that history to reconstruct progress.
+- Completed activity results are supplied from history rather than blindly repeating the same decision path's external calls.
+- An activity can still repeat if its side effect completed before its result was recorded; its business effects must be idempotent.
+
+2) Predictable replay
+- Workflow code must make the same decisions for the same history.
+- Use workflow-safe time, randomness, and orchestration APIs; ordinary nondeterministic I/O belongs in activities.
+- Deploy code changes with compatible versioning so old histories do not become impossible to replay.
+
+3) Wait and receive events | 3,4
+- Durable timers let a workflow sleep without keeping a worker thread occupied for the whole delay.
+- Signals or other supported interaction mechanisms deliver external events to a waiting workflow.
+- Correlate incoming events with the correct workflow and handle duplicate, late, or unexpected events explicitly.
+
+Temporal Under the Hood | 5
+- The service stores workflow history and schedules tasks; application workers poll task queues and execute workflow or activity code.
+- Workflow tasks advance orchestration decisions, while activity tasks perform the actual business work.
+- Workers can fail or scale independently because durable workflow state is not confined to their memory.
+
+State, Replay, and Workers | 6,7,8,9
+- History records decisions and results needed for replay, rather than serializing arbitrary application memory.
+- Worker caches or sticky execution reduce repeated replay work, but durable history remains the recovery basis.
+- Task queues route work to compatible worker pools and allow independent scaling by workload.
+- Heartbeats and timeouts help detect failed or stalled long-running activities.
+- Bound history growth and keep large payloads in external storage with durable references.
+
+When to Use
+- Use durable workflows for payments, reservations, fulfillment, scheduled multi-step processes, and other work needing explicit recovery.
+- Activities can retry with backoff, while workflow logic decides compensation or escalation after terminal failure.
+- A workflow's state makes progress and waiting conditions observable across long business processes.
+- Simple one-step jobs may only need a durable queue and idempotent worker.
+
+Limitations
+- Temporal does not make an external system transactional or guarantee that an email or charge happens exactly once.
+- Workflow determinism, code versioning, activity timeout policy, and history size are application design responsibilities.
+- Cancellation must be cooperatively handled by activities and external services; it does not erase already completed side effects.
+- Service operation and workflow debugging add complexity that should be justified by the recovery requirements.
+
+Summary
+- Durable history plus deterministic replay reconstructs workflow progress.
+- Retry-safe activities perform side effects, and timers/signals represent waits without long-held processes.
+- Choose Temporal when this durable coordination replaces substantial custom recovery logic, not merely because a task runs asynchronously.
+
+@@ api-gateway
+What Is an API Gateway?
+- An API gateway is a shared entry point that routes client requests to backend services.
+- It can apply common middleware without forcing every client to understand the internal service topology.
+- Request routing is its primary role; additional responsibilities should serve a concrete requirement.
+
+Core Responsibilities and Request Flow | 1
+- Validate the request, apply middleware, select a backend, forward the request, and return or transform the response.
+- Keep gateway behavior bounded so a common entry point does not become a central business-logic bottleneck.
+
+1) Request Validation
+- Check supported routes, methods, required headers, body shape, and request-size limits.
+- Reject malformed requests early, while leaving domain-specific validation in the service that owns the data.
+- Validation at the gateway does not replace service authorization for the requested resource.
+
+2) Middleware
+- Common tasks include authentication, rate limiting, TLS termination, logging, tracing, CORS, and timeout enforcement.
+- Authenticate tokens using a trusted configuration and forward verified identity through a protected internal contract.
+- Scope rate limits appropriately by user, tenant, API key, or resource rather than assuming one global rule fits all traffic.
+- Avoid logging secrets or sensitive request bodies as a side effect of central traffic visibility.
+
+3) Routing
+- Match paths, methods, headers, or versions to the appropriate backend service.
+- Integrate routing with service discovery and backend health information where needed.
+- Separate client-to-gateway load balancing from the gateway's distribution across backend instances.
+
+4) Backend Communication
+- Forward over HTTP or another supported internal protocol, with connection pooling and bounded timeouts.
+- Protocol translation can hide internal differences, but adds complexity and is not required for every architecture.
+- Retries must respect operation idempotency; retrying a timed-out payment request blindly can duplicate its effect.
+
+5) Response Transformation and Caching
+- Normalize response formats or headers where the client contract requires it.
+- Cache reusable responses only with correct keys, freshness rules, and authorization boundaries.
+- Personalized responses must not leak across users through a shared cache entry.
+- TTL or invalidation limits staleness; cache failure needs a bounded fallback path to backend services.
+
+Scaling an API Gateway
+- Run stateless gateway instances behind a load balancer and keep routing/policy configuration synchronized.
+- Deploy regional entry points when geographic latency and availability justify them.
+- Persistent streaming or WebSocket connections require suitable proxy buffering, timeouts, and graceful draining.
+- Rate-limit or shed load before downstream overload propagates through the gateway.
+
+Managed and Self-Hosted Options
+- Managed gateways reduce operational work and integrate with cloud identity and monitoring, at the cost of service limits and usage pricing.
+- Self-hosted gateways offer more control but require ownership of upgrades, scaling, availability, and configuration rollout.
+- The interview decision should focus on required behavior rather than a catalog of product names.
+
+When to Propose One
+- A gateway is useful when clients need a stable facade over multiple services and shared request policies.
+- A simple application with one backend may not benefit from another routing layer.
+- Explain routing and essential middleware briefly, then spend design time on the application's harder data and coordination problems.
+
+@@ cassandra
+Overview
+- Cassandra is a distributed wide-column database designed around partitioned, replicated data and high write availability.
+- Model tables from known queries; arbitrary joins and flexible cross-partition transactions are not its core strength.
+
+Data Model and Primary Key | 1
+- The partition key determines which replicas own a group of rows.
+- Clustering columns order rows within a partition and support efficient bounded range reads.
+- A composite partition key hashes the combined values; clustering columns do not independently distribute the partition.
+- Keep partitions bounded in size and activity, often by combining an entity ID with a time bucket.
+
+Partitioning and Replication | 2,3,4
+- Consistent hashing and token ranges distribute partitions among nodes.
+- Replication places copies across nodes and failure domains according to the replication strategy.
+- Any contacted node can coordinate a request and forward it to the relevant replicas.
+- Adding nodes redistributes ownership, requiring streaming and repair work rather than instantly creating free capacity.
+
+Consistency and Routing | 5,6
+- Per-operation consistency levels specify how many replica responses are required.
+- Higher acknowledgement requirements trade availability and latency for stronger read/write overlap.
+- Quorum arithmetic alone does not make every concurrent multi-record operation a serializable transaction.
+- Lightweight transactions provide conditional coordination for supported operations at a significant performance cost.
+
+Storage Model | 7
+- Writes append to a commit log and update an in-memory memtable.
+- Flushed memtables become immutable SSTables; reads may consult several structures and merge results.
+- Bloom filters and indexes reduce unnecessary file reads.
+- Compaction merges SSTables, removes obsolete versions when safe, and consumes background I/O and CPU.
+- Deletes create tombstones that must remain long enough to avoid resurrecting data on stale replicas.
+
+Gossip and Fault Tolerance | 8
+- Gossip shares membership and failure information across the cluster.
+- Replicas, hinted handoff, and repair mechanisms help recover missed writes, but operational repair remains important.
+- Tune replication and consistency from the tolerated failure modes, not from an assumption that every write is immediately visible everywhere.
+
+Data Modeling
+- Start from the exact partition and range queries the application needs, then create tables that answer them directly.
+- Denormalize into multiple query-specific tables where necessary and plan how updates keep those views consistent.
+- For chat messages, partition by conversation and time bucket, and cluster by message order.
+- Avoid unbounded partitions for extremely active conversations and avoid scanning the whole cluster for a user's recent data.
+
+Examples and Advanced Features | 9,10
+- Event or ticket data can be modeled around the required lookup, but unique seat claims still need explicit conditional coordination.
+- TTL is useful for expiring time-bound records, while tombstones and compaction affect deletion-heavy workloads.
+- Secondary indexes and materialized views have tradeoffs; they do not remove the need for deliberate partition modeling.
+
+When to Use and Limitations
+- Cassandra fits large, predictable, write-heavy workloads with partition-local access and chosen consistency tradeoffs.
+- Highly relational queries, frequent cross-partition joins, and complex transactional invariants often fit another database better.
+- Explain partition bounds, replication, consistency level, and repair strategy when selecting it.
+
+@@ dynamodb
+Overview
+- DynamoDB is a managed key-value and document database whose efficiency depends heavily on access-pattern and key design.
+- Managed scaling reduces operational work but does not eliminate hot partitions, query limits, or consistency choices.
+
+The Data Model | 1,2
+- A partition key distributes items; an optional sort key orders related items within that key.
+- GetItem addresses one item, while Query reads an identified partition with optional sort-key conditions.
+- Scan examines a broad set of data and is usually unsuitable for a frequent high-scale lookup.
+- Use sort-key prefixes or time ranges to support explicit query patterns while keeping item collections bounded.
+
+Secondary Indexes | 3,4
+- Global secondary indexes provide alternative partition and sort keys with their own capacity and eventual-consistency behavior.
+- Local secondary indexes share the base partition key and offer another sort order, with constraints that must be planned when creating the table.
+- Every index adds storage and write work; project only the fields required by its queries.
+- Filtering after a query is not the same as narrowing the key lookup and can still consume reads for discarded items.
+
+Accessing Data
+- Use conditional writes for invariants such as version matching or claiming an available item.
+- Atomic updates can change counters without a client read-modify-write race.
+- Transactions coordinate supported multi-item operations at additional cost and with service limits.
+- Batch APIs reduce request overhead but require handling partial failures and retrying unprocessed items.
+- Use continuation keys for pagination instead of assuming one request returns an unlimited partition.
+
+Consistency, Scalability, and Availability
+- Choose eventual or strongly consistent reads where the table/API supports them; global secondary indexes do not offer the same strong-read option.
+- Regional replication and global-table configurations have specific consistency semantics; do not generalize one mode to every deployment.
+- Spread key traffic and avoid a single tenant or newest-time bucket receiving most writes.
+- Adaptive capacity helps uneven load but cannot make a single unlimited hot key free of constraints.
+
+Security and Capacity
+- Apply least-privilege IAM, encryption, and tenant-aware authorization in the application.
+- On-demand and provisioned capacity trade operational planning against usage cost and traffic predictability.
+- Item size, consistency choice, indexes, and access pattern affect capacity consumption.
+- Monitor throttling and retry with backoff; unbounded immediate retries amplify overload.
+
+DAX and Streams | 5
+- DAX caches supported reads to reduce latency and read load, with cache freshness semantics that must fit the workload.
+- Streams expose item changes for derived views, notifications, or other event processing.
+- Consumers must handle repeated delivery and retain recovery state; stream retention is finite.
+- TTL expiration is asynchronous housekeeping, so applications must check expiry themselves when exact validity matters.
+
+When to Use and Limitations
+- DynamoDB suits predictable key-based access, high scale, and teams that value managed infrastructure.
+- Ad hoc joins, broad analytics, and frequently changing query requirements can be awkward or costly.
+- Describe the primary keys, index queries, conditional operations, and hot-key strategy before choosing the service.
+
+@@ postgresql
+Overview
+- PostgreSQL is a relational database with transactions, constraints, flexible queries, and multiple index types.
+- It is a strong starting point when related records and correctness-sensitive updates fit within one database boundary.
+
+Read Performance
+- B-tree indexes support common equality, range, and ordering queries; composite index order must match access patterns.
+- Unique indexes enforce invariants such as one review per user/business pair under concurrency.
+- GIN indexes support appropriate document, array, and full-text workloads; spatial extensions provide specialized geographic capabilities.
+- Use EXPLAIN and measured query plans to inspect scans, joins, row estimates, and sorting rather than guessing which index helps.
+
+Query Optimization
+- Covering indexes can avoid some table lookups, subject to visibility and query requirements.
+- Partial indexes target a useful subset, such as active records, reducing index size and maintenance work.
+- Cursor pagination and selective predicates avoid increasingly expensive offset scans.
+- Connection pooling bounds database connection overhead; it does not fix inefficient queries or lock contention.
+
+Write Performance
+- Each write may update indexes, produce WAL, and participate in replication; unnecessary indexes make writes more expensive.
+- Keep transactions short and batch operations where their atomicity and latency requirements permit.
+- Bulk loading and appropriate upsert patterns reduce per-row overhead.
+- Partitioning can improve pruning and lifecycle management, but partitions inside one primary do not automatically provide independent write servers.
+- Monitor WAL, storage latency, checkpoints, autovacuum, and lock waits to identify the actual bottleneck.
+
+Replication and High Availability
+- Read replicas distribute read traffic and provide recovery candidates, but asynchronous replicas can lag.
+- Route read-after-write or other freshness-sensitive requests to a suitable authoritative path.
+- Synchronous replication improves specified acknowledgement guarantees at a latency and availability cost.
+- Failover needs a single writable primary and fencing against the old primary; promoting a replica alone does not solve split brain.
+- Backups and WAL-based recovery complement replication because replicas can also copy accidental deletion or bad writes.
+
+Transactions and Concurrent Operations
+- ACID transactions commit related changes together and enforce database constraints.
+- A read followed by an unconditional update can still race under common isolation settings.
+- Use conditional updates, unique constraints, row locks, or serializable transactions according to the invariant.
+- Serializable conflicts and deadlocks require bounded whole-transaction retries.
+- Avoid keeping locks open across user interaction or external network calls; represent longer claims with explicit reservation state.
+- Use a transactional outbox when a committed database change must reliably produce an external event.
+
+When to Use and Alternatives
+- Choose PostgreSQL for relational models, transactional workflows, flexible querying, and workloads an indexed primary can serve well.
+- Add replicas and caches when reads dominate, and consider specialized search or analytical stores for distinct query workloads.
+- Very high distributed write volume may require sharding or another storage model, with corresponding coordination costs.
+- Do not replace the database solely because a design is 'large'; estimate the workload and name the limiting operation.
+
+SQL and ACID Essentials
+- Tables represent related entities, primary keys identify rows, and foreign keys enforce supported relationships.
+- Atomicity means all-or-nothing transaction effects; consistency means preserving declared invariants.
+- Isolation describes concurrent transaction behavior; durability concerns committed data surviving failures under the configured guarantees.
+- SELECT reads data; INSERT, UPDATE, and DELETE modify it; schema and transaction commands define structure and execution boundaries.
+
+Summary
+- Start with a sound schema, explicit constraints, and query-driven indexes.
+- Scale measured bottlenecks and retain clear transaction, replication, and recovery semantics as infrastructure grows.
+
+@@ flink
+Overview | 1
+- Flink runs distributed stateful computations over event streams.
+- It is useful when continuous aggregation, joins, event-time windows, or pattern detection require more than a simple stateless consumer.
+
+Basic Concepts | 2
+- Sources ingest records and sinks write results; operators transform, filter, group, join, or aggregate streams.
+- keyBy partitions related records to the same logical keyed state.
+- Parallel operator instances process different partitions, with network exchanges where the graph requires redistribution.
+- A hot key can limit one operator instance even when overall parallelism is high.
+
+State
+- Keyed state associates values with each logical key, such as a running count or recent event history.
+- Operator state belongs to an operator instance and must be redistributed appropriately when parallelism changes.
+- Bound state with TTL, window cleanup, or explicit lifecycle rules so an infinite stream does not imply infinite memory or disk growth.
+- Store large raw payloads outside computation state when references are sufficient.
+
+Watermarks and Windows | 3
+- Event time comes from the event; processing time is when the worker handles it.
+- Watermarks estimate how far event time has progressed and help decide when a window can produce results.
+- Tumbling windows do not overlap; sliding windows overlap; session windows group activity separated by bounded gaps.
+- Late events require an allowed-lateness and correction or side-output policy.
+- A stalled source partition can hold back watermark progress unless idleness and source behavior are handled appropriately.
+
+Basic Use
+- Define a job graph, configure sources, serializers, state, parallelism, and sinks, then submit it to the cluster.
+- A metrics dashboard can aggregate event counts and write current results to a serving store.
+- Fraud detection can maintain recent per-account state and evaluate event sequences as they arrive.
+- Keep application rules distinct from transport guarantees; a correct checkpoint does not make a flawed aggregation correct.
+
+How Flink Works | 4,5
+- The JobManager coordinates scheduling and recovery; TaskManagers execute parallel operator work.
+- Task slots allocate execution resources, while operator parallelism determines how work is divided.
+- Network shuffles, serialization, state access, and sink throughput can become bottlenecks.
+- Backpressure propagates upstream when downstream operators or sinks cannot keep up.
+
+State Backends and Checkpoints
+- State backends determine where active state lives and how it is accessed; choose from expected size and latency requirements.
+- Checkpoints capture recoverable operator state and source positions consistently across the dataflow.
+- After failure, restore state and replay from the corresponding source positions.
+- Exactly-once internal state recovery does not automatically make an arbitrary external API side effect exactly once.
+- End-to-end guarantees require compatible transactional or idempotent sinks and replayable sources.
+- Savepoints support controlled upgrades or migration, with compatibility and state evolution planned explicitly.
+
+In Your Interview
+- Propose Flink for high-volume continuous computation with event-time or stateful requirements.
+- Name the partition key, state, windows, late-data policy, and sink behavior.
+- Explain recovery and hot-key handling, and monitor lag, checkpoint duration, backpressure, and state growth.
+- A small stateless queue worker may be simpler when these capabilities are unnecessary.
+
+Conclusion
+- Flink combines parallel operators, managed state, and coordinated recovery.
+- Its value comes from the required computation semantics; correctness still depends on keys, time handling, state bounds, and external sink contracts.
+
+@@ zookeeper
+Overview
+- ZooKeeper coordinates distributed processes using small replicated records, ordered writes, sessions, and change notifications.
+- It is a coordination service, not a general-purpose high-volume application database or message broker.
+
+A Motivating Example | 1,2,3,4,5
+- Servers need a shared view of membership, configuration, and ownership without relying on one process's memory.
+- Durable coordination lets a replacement discover who owns a shard or whether a leader's session has expired.
+- The protected application still needs to reject stale owners after coordination changes.
+
+ZooKeeper Basics | 6,7,8
+- Znodes form a hierarchical namespace and contain small data values and version metadata.
+- Persistent znodes survive clients; ephemeral znodes are tied to a session; sequential znodes receive ordered suffixes.
+- An ensemble uses a leader and quorum-based replication for ordered updates.
+- Watches notify clients about relevant changes, but clients must reread state and reestablish applicable watches rather than treating notifications as a complete durable event log.
+
+Key Capabilities
+
+1) Configuration and service discovery
+- Store small configuration records with versions and notify interested processes when they change.
+- Services can register ephemeral membership records so expired sessions eventually remove dead members.
+- Cached membership can become stale; callers still need connection failure handling and retry logic.
+
+2) Leader election and locks
+- Ephemeral sequential znodes can order contenders; the lowest eligible sequence owns leadership or a lock.
+- Watching the predecessor reduces the herd effect compared with waking every contender on each release.
+- Session expiration releases ephemeral ownership, but a paused old process may continue executing afterward.
+- Use fencing tokens or version checks at the protected resource to reject work from an obsolete owner.
+
+How ZooKeeper Works | 9
+- ZAB orders and replicates updates through the ensemble with quorum agreement.
+- Writes are coordinated; reads can be served by individual replicas and may require additional synchronization when a particular freshness guarantee is needed.
+- Client session ordering and globally ordered writes do not imply every arbitrary read is immediately the latest state.
+- Sessions use heartbeats and timeouts; a transient disconnection differs from a confirmed expired session.
+- Durable logs and snapshots support recovery, while quorum availability determines whether coordination writes can proceed.
+
+Handling Failures
+- On reconnect, inspect current state rather than assuming previously held ownership remains valid.
+- An uncertain create operation may have succeeded before its response was lost; use identifiable records to reconcile safely.
+- Keep coordination payloads and request rates small so application traffic cannot overwhelm the ensemble.
+- Operate an appropriate odd-sized ensemble across failure domains and monitor latency, sessions, storage, and quorum health.
+
+When to Use | 10,11
+- ZooKeeper fits leader election, shard ownership, service coordination, and infrastructure designs needing ordered shared metadata.
+- Smart routing can read an ownership map and send requests directly to responsible servers.
+- Modern systems may use alternatives such as etcd, Consul, managed coordination, or database primitives depending on their required guarantees.
+- Avoid adding a coordination cluster when a single database conditional write already enforces the needed invariant.
+
+Summary
+- ZooKeeper supplies coordination primitives; applications compose them into discovery, election, and locking protocols.
+- Session handling, watch recovery, and fencing are essential parts of those protocols.
+- Keep the data plane separate from the coordination plane and state exactly which operation needs quorum-backed agreement.

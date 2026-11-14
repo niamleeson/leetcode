@@ -12,7 +12,7 @@ A self-contained React app for mastering LeetCode problems with spaced repetitio
 - **Pseudocode for memorization** — terse natural-language steps for each problem
 - **Bookmarkable URLs** — every topic, problem, and filter state has its own route
 - **Progress tracking** saved to localStorage
-- **HackerRank React** — all 10 public practice questions with problem prompts, original reference images and animations where supplied, example interactions, JavaScript/JSX solutions, explanations, complexity notes, and edge cases; open it from the sidebar
+- **React interview practice** — five game exercises first, followed by GreatFrontEnd questions, additional practice, and references; complete JSX solutions, explanations, complexity notes, and edge cases
 
 - **Python and JavaScript execution walkthroughs** for all NeetCode 250 problems and 13 alternatives, including line highlighting, Next/Back/Reset, examples, variables, objects, and recursive call stacks
 - **Load on demand**: routes, individual curated solutions, catalog documents, and execution recordings load when opened; catalog text and code are served directly by GitHub Pages
@@ -39,9 +39,9 @@ Open http://localhost:5173
 | `/problems` | All problems (filterable) |
 | `/search` | Search |
 | `/system-design` | 49 Hello Interview articles, grouped and searchable |
-| `/system-design/:slug` | Saved article; Bitly starts with plain condensed notes |
+| `/system-design/:slug` | Condensed notes with diagrams; switch to the full saved article |
 | `/system-design?view=practice` | Existing 30-problem system design reference |
-| `/hackerrank-react` | HackerRank React question catalog |
+| `/hackerrank-react` | React interview questions and references |
 | `/hackerrank-react/:slug` | React solution, explanation, and checks |
 | `/topic/:slug` | Topic lesson + problems |
 | `/problem/:id` | Individual problem page |
@@ -55,9 +55,17 @@ Run `npm run hackerrank:test` with Node 22.22 or newer to exercise the displayed
 
 The System Design library keeps the expanded articles and their embedded images in
 `public/system-design/hello-interview/`, loaded only when an article is opened.
-Bitly's condensed notes use plain hyphen bullets and can be downloaded as text.
+All 49 articles have compact hyphen notes, topic-specific sections, downloadable text,
+and diagrams that open at full size. Notes load individually on demand. The 496
+original images are retained; PostgreSQL adds an original study diagram.
+Reviewed note text is in `src/data/system-design-notes-source.txt`; Bitly retains
+its existing `src/data/bitly-condensed.txt` source.
 To refresh the verified exports, run
-`node tools/system-design/import-articles.cjs <export-directory>` and rebuild.
+`node tools/system-design/import-articles.cjs <export-directory>`, then
+`python tools/system-design/condense-articles.py` (requires Beautiful Soup 4), and rebuild.
+The importer checks that every original image is assigned once to the condensed notes.
+The removed React collections remain accessible through existing direct links, but
+are absent from the catalog, search, and normal question navigation.
 
 React 18, TypeScript, Tailwind CSS, Vite, React Router, Prism.js
 

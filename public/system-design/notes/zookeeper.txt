@@ -1,0 +1,52 @@
+Overview
+- ZooKeeper coordinates distributed processes using small replicated records, ordered writes, sessions, and change notifications.
+- It is a coordination service, not a general-purpose high-volume application database or message broker.
+
+A Motivating Example
+- Servers need a shared view of membership, configuration, and ownership without relying on one process's memory.
+- Durable coordination lets a replacement discover who owns a shard or whether a leader's session has expired.
+- The protected application still needs to reject stale owners after coordination changes.
+
+ZooKeeper Basics
+- Znodes form a hierarchical namespace and contain small data values and version metadata.
+- Persistent znodes survive clients; ephemeral znodes are tied to a session; sequential znodes receive ordered suffixes.
+- An ensemble uses a leader and quorum-based replication for ordered updates.
+- Watches notify clients about relevant changes, but clients must reread state and reestablish applicable watches rather than treating notifications as a complete durable event log.
+
+Key Capabilities
+
+
+1) Configuration and service discovery
+- Store small configuration records with versions and notify interested processes when they change.
+- Services can register ephemeral membership records so expired sessions eventually remove dead members.
+- Cached membership can become stale; callers still need connection failure handling and retry logic.
+
+2) Leader election and locks
+- Ephemeral sequential znodes can order contenders; the lowest eligible sequence owns leadership or a lock.
+- Watching the predecessor reduces the herd effect compared with waking every contender on each release.
+- Session expiration releases ephemeral ownership, but a paused old process may continue executing afterward.
+- Use fencing tokens or version checks at the protected resource to reject work from an obsolete owner.
+
+How ZooKeeper Works
+- ZAB orders and replicates updates through the ensemble with quorum agreement.
+- Writes are coordinated; reads can be served by individual replicas and may require additional synchronization when a particular freshness guarantee is needed.
+- Client session ordering and globally ordered writes do not imply every arbitrary read is immediately the latest state.
+- Sessions use heartbeats and timeouts; a transient disconnection differs from a confirmed expired session.
+- Durable logs and snapshots support recovery, while quorum availability determines whether coordination writes can proceed.
+
+Handling Failures
+- On reconnect, inspect current state rather than assuming previously held ownership remains valid.
+- An uncertain create operation may have succeeded before its response was lost; use identifiable records to reconcile safely.
+- Keep coordination payloads and request rates small so application traffic cannot overwhelm the ensemble.
+- Operate an appropriate odd-sized ensemble across failure domains and monitor latency, sessions, storage, and quorum health.
+
+When to Use
+- ZooKeeper fits leader election, shard ownership, service coordination, and infrastructure designs needing ordered shared metadata.
+- Smart routing can read an ownership map and send requests directly to responsible servers.
+- Modern systems may use alternatives such as etcd, Consul, managed coordination, or database primitives depending on their required guarantees.
+- Avoid adding a coordination cluster when a single database conditional write already enforces the needed invariant.
+
+Summary
+- ZooKeeper supplies coordination primitives; applications compose them into discovery, election, and locking protocols.
+- Session handling, watch recovery, and fencing are essential parts of those protocols.
+- Keep the data plane separate from the coordination plane and state exactly which operation needs quorum-backed agreement.

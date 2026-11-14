@@ -1,0 +1,72 @@
+Understanding the Problem
+- Build event discovery and ticket booking where many users may compete for the same seats.
+- Separate browsing availability from the authoritative reservation and purchase state of each ticket.
+
+Functional Requirements
+- View events and seating availability.
+- Search events by text, location, date, or other supported filters.
+- Reserve seats temporarily and purchase them after payment.
+- Release abandoned reservations so another customer can buy the tickets.
+
+Non-functional Requirements
+- Never sell a seat to two customers; booking consistency takes priority over accepting every request.
+- Scale browsing for popular events and keep discovery responsive.
+- Support short reservation lifetimes and reliable recovery from payment or application failures.
+- Treat availability shown in search or caches as a hint; the booking operation makes the final decision.
+
+Core Entities
+- Event and Venue describe the performance, schedule, location, and seating layout.
+- Ticket identifies an event seat, price, reservation owner, expiry, and booking status.
+- Booking groups the customer's tickets and payment state under a durable ID.
+- User identifies the authenticated buyer; retry keys distinguish a retried checkout from a new one.
+
+API
+- Fetch an event and its seat map; search with filters and pagination.
+- Reserve selected ticket IDs and return a reservation token plus expiration time.
+- Confirm a booking using the reservation token and payment result; expose booking status for retry recovery.
+- Validate ownership and expiration on every state transition, not just when the reservation is created.
+
+High-Level Design
+
+
+1) Browse and search
+- Event services read durable metadata and serve cacheable descriptions and seating layouts through caches or a CDN.
+- A search index provides text and filter queries; changes flow from the authoritative database into that index.
+- Seat availability changes frequently and has different caching rules from the event description.
+
+2) Book tickets
+- Atomically claim all requested available seats for a reservation; concurrent claims must conflict at the database boundary.
+- Use a short transaction for reservation creation, then perform payment without holding a database transaction open.
+- Confirm the purchase only for the current reservation owner and only if its state allows confirmation.
+- Handle retries idempotently so a lost response cannot create a second purchase or charge.
+
+Deep Dives
+
+
+1) Reservation expiry
+- Holding a database lock throughout a user's checkout wastes connections and creates long blocking chains.
+- Store reservation status and expiry. A ticket is claimable if unreserved or its reservation has expired, checked atomically during the next claim.
+- A cleanup job improves housekeeping, but correctness must not depend on that job running exactly on time.
+- Redis locks with TTL can coordinate claims, but losing or expiring a lock must not permit two durable purchases.
+- Include reservation ownership or a version in final confirmation to reject stale clients and delayed payment callbacks.
+
+2) Scale event views
+- Horizontally scale stateless read services behind a load balancer.
+- Cache event metadata, partition by event where useful, and isolate booking capacity from browsing spikes.
+- Update or invalidate availability caches promptly, while retaining authoritative checks on reservation writes.
+
+3) Handle high-demand onsales
+- SSE can push seat updates to connected browsers and reduce repeated polling.
+- A virtual waiting room admits customers at a rate the reservation service can sustain.
+- Queue admission needs a signed, expiring token; being in the waiting room does not reserve a seat.
+- Bound queue lifetimes, recover disconnected clients, and define fairness so retries cannot jump ahead.
+
+4) Improve search
+- Begin with database indexes and query optimization, then use full-text indexes or Elasticsearch when query complexity warrants it.
+- Cache repeated searches and stable event details with keys that include every relevant filter.
+- Keep search freshness expectations explicit; a search result can become unavailable before checkout.
+
+Final Design
+- Cached event discovery feeds a separate, strongly controlled reservation and booking path.
+- Expiring reservations, idempotent payment handling, and conditional confirmation protect seat ownership.
+- Waiting-room admission and live availability updates keep popular events usable without overwhelming the database.

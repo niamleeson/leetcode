@@ -3,7 +3,7 @@ import { StrictMode } from 'react';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
 import HackerRankReact from './HackerRankReact';
-import { reactChallenges } from '../data/hackerrank-react';
+import { reactChallenges, archivedReactChallenges } from '../data/hackerrank-react';
 
 function HistoryControls() {
   const navigate = useNavigate();
@@ -68,26 +68,13 @@ afterEach(() => {
 it('lists all collections in order, keeps only the requested GreatFrontEnd levels, and searches concepts', () => {
   showPage();
   expect(screen.getByRole('heading', { name: 'React questions', level: 1 })).toBeTruthy();
-  const hackerRank = screen.getByRole('region', { name: 'HackerRank React' });
-  const suno = screen.getByRole('region', { name: 'Another AI interview questions' });
-  const anduril = screen.getByRole('region', { name: 'Other interview questions' });
-  expect(hackerRank.compareDocumentPosition(suno) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-  expect(suno.compareDocumentPosition(anduril) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-  expect(within(hackerRank).getAllByRole('heading', { level: 3 })).toHaveLength(10);
-  expect(within(suno).getAllByRole('heading', { level: 3 }).map(node => node.textContent)).toEqual([
-    'Audio Player + Playlist',
-    'Hooks-Style Media Feed',
-    'Build a UI from a Design Brief',
-    'Referral Credits',
-    'Longest Path in a DAG',
-    'Minimum Interval — Practice Variant',
-    'Notification System Design',
-  ]);
-  expect(within(anduril).getAllByRole('heading', { level: 3 })).toHaveLength(6);
+  const games = screen.getByRole('region', { name: 'React interview games' });
+  expect(within(games).getAllByRole('heading', { level: 3 }).map(node => node.textContent)).toEqual(['Tic-tac-toe', 'Memory Matching', 'Connect Four', 'Minesweeper', 'Sudoku']);
+  for (const name of ['HackerRank React', 'Another AI interview questions', 'Other interview questions']) expect(screen.queryByRole('region', { name })).toBeNull();
   const reference = screen.getByRole('region', { name: 'Interview reference' });
   const practice = screen.getByRole('region', { name: 'Additional practice' });
   const greatFrontend = screen.getByRole('region', { name: 'GreatFrontEnd React' });
-  expect(anduril.compareDocumentPosition(greatFrontend) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(games.compareDocumentPosition(greatFrontend) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   expect(greatFrontend.compareDocumentPosition(practice) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   expect(within(greatFrontend).getAllByRole('heading', { level: 3 })).toHaveLength(71);
   expect(within(greatFrontend).getByRole('heading', { name: 'Accordion III' })).toBeTruthy();
@@ -97,16 +84,12 @@ it('lists all collections in order, keeps only the requested GreatFrontEnd level
   expect(practice.compareDocumentPosition(reference) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   expect(within(practice).getByRole('heading', { name: 'Spreadsheet' })).toBeTruthy();
   expect(within(reference).getByRole('heading', { name: 'ARIA Interview Essentials' })).toBeTruthy();
-  expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(96);
+  expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(78);
   const search = screen.getByRole('searchbox', { name: 'Find a question or concept' });
-  fireEvent.change(search, { target: { value: 'SLIDESHOW' } });
-  expect(screen.getAllByRole('heading', { level: 3 }).map(node => node.textContent)).toEqual(['Slideshow']);
-  fireEvent.change(search, { target: { value: 'anduril' } });
-  expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(6);
-  expect(screen.queryByRole('region', { name: 'HackerRank React' })).toBeNull();
+  fireEvent.change(search, { target: { value: 'Minesweeper' } });
+  expect(screen.getAllByRole('heading', { level: 3 }).map(node => node.textContent)).toEqual(['Minesweeper']);
   fireEvent.change(search, { target: { value: 'Suno' } });
-  expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(7);
-  expect(screen.queryByRole('region', { name: 'Other interview questions' })).toBeNull();
+  expect(screen.queryAllByRole('heading', { level: 3 })).toHaveLength(0);
   fireEvent.change(search, { target: { value: 'GreatFrontEnd' } });
   expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(71);
   fireEvent.change(search, { target: { value: 'useBoolean' } });
@@ -114,7 +97,7 @@ it('lists all collections in order, keeps only the requested GreatFrontEnd level
   fireEvent.change(search, { target: { value: 'no-such-question' } });
   expect(screen.queryAllByRole('heading', { level: 2 })).toHaveLength(0);
   fireEvent.click(screen.getByRole('button', { name: 'Clear search' }));
-  expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(96);
+  expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(78);
 });
 
 it.each(reactChallenges)('opens $title with its complete solution and source', challenge => {
@@ -151,7 +134,7 @@ it.each(reactChallenges)('opens $title with its complete solution and source', c
 });
 
 it('shows three patient record samples above the solution and copies only the solution', async () => {
-  const challenge = reactChallenges.find(item => item.slug === 'patient-medical-records')!;
+  const challenge = archivedReactChallenges.find(item => item.slug === 'patient-medical-records')!;
   const writeText = vi.fn().mockResolvedValue(undefined);
   vi.spyOn(navigator, 'clipboard', 'get').mockReturnValue({ writeText } as unknown as Clipboard);
   showPage(`/hackerrank-react/${challenge.slug}`);
@@ -171,18 +154,18 @@ it('shows three patient record samples above the solution and copies only the so
 
 it('navigates from the index, between questions, and back to the catalog', () => {
   showPage();
-  fireEvent.click(screen.getByRole('link', { name: /Item List Manager/ }));
-  expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Item List Manager');
+  fireEvent.click(within(screen.getByRole('region', { name: 'React interview games' })).getByRole('link', { name: /Tic-tac-toe/ }));
+  expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Tic-tac-toe');
   const nav = screen.getByRole('navigation', { name: 'React question navigation' });
-  fireEvent.click(within(nav).getByRole('link', { name: 'Code Review Feedback →' }));
-  expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Code Review Feedback');
-  fireEvent.change(screen.getByRole('combobox', { name: 'Jump to question' }), { target: { value: 'cryptorank-exchange' } });
-  expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('CryptoRank Exchange');
-  fireEvent.click(within(screen.getByRole('navigation', { name: 'React question navigation' })).getByRole('link', { name: `${reactChallenges[10].title} →` }));
-  expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(reactChallenges[10].title);
+  fireEvent.click(within(nav).getByRole('link', { name: 'Memory Matching →' }));
+  expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Memory Matching');
+  fireEvent.change(screen.getByRole('combobox', { name: 'Jump to question' }), { target: { value: 'sudoku' } });
+  expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Sudoku');
+  fireEvent.click(within(screen.getByRole('navigation', { name: 'React question navigation' })).getByRole('link', { name: `${reactChallenges[5].title} →` }));
+  expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(reactChallenges[5].title);
   fireEvent.change(screen.getByRole('combobox', { name: 'Jump to question' }), { target: { value: reactChallenges[reactChallenges.length - 1].slug } });
   fireEvent.click(screen.getByRole('link', { name: 'Back to all questions →' }));
-  expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(96);
+  expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(78);
 });
 
 it('copies the full displayed solution and resets its confirmation on navigation', async () => {
@@ -249,12 +232,12 @@ it('keeps detail scrolling and next/previous navigation from replacing the list 
   const scroll = mockScrolling();
   showPage();
   scroll(3200);
-  fireEvent.click(screen.getByRole('link', { name: /Item List Manager/ }));
+  fireEvent.click(within(screen.getByRole('region', { name: 'React interview games' })).getByRole('link', { name: /Tic-tac-toe/ }));
   scroll(700);
-  fireEvent.click(screen.getByRole('link', { name: 'Code Review Feedback →' }));
+  fireEvent.click(screen.getByRole('link', { name: 'Memory Matching →' }));
   expect(window.scrollY).toBe(0);
   scroll(1500);
-  fireEvent.click(screen.getByRole('link', { name: '← Item List Manager' }));
+  fireEvent.click(screen.getByRole('link', { name: '← Tic-tac-toe' }));
   expect(window.scrollY).toBe(0);
   scroll(900);
   fireEvent.click(screen.getAllByRole('link', { name: '← All React questions' })[0]);
@@ -265,7 +248,7 @@ it('restores the latest list position through browser history back and forward',
   const scroll = mockScrolling();
   showPage('/hackerrank-react', { historyControls: true });
   scroll(2500);
-  fireEvent.click(screen.getByRole('link', { name: /Referral Credits/ }));
+  fireEvent.click(within(screen.getByRole('region', { name: 'React interview games' })).getByRole('link', { name: /Connect Four/ }));
   scroll(600);
   fireEvent.click(screen.getByRole('button', { name: 'History back' }));
   expect(screen.getByRole('heading', { name: 'React questions', level: 1 })).toBeTruthy();
@@ -273,7 +256,7 @@ it('restores the latest list position through browser history back and forward',
   // History navigation has no card click, so this position comes from the scroll listener.
   scroll(4100);
   fireEvent.click(screen.getByRole('button', { name: 'History forward' }));
-  expect(screen.getByRole('heading', { name: 'Referral Credits', level: 1 })).toBeTruthy();
+  expect(screen.getByRole('heading', { name: 'Connect Four', level: 1 })).toBeTruthy();
   expect(window.scrollY).toBe(0);
   scroll(1200);
   fireEvent.click(screen.getByRole('button', { name: 'History back' }));
@@ -283,7 +266,7 @@ it('restores the latest list position through browser history back and forward',
 it('starts a directly opened detail and its list at the top and restores browser ownership on unmount', () => {
   const scroll = mockScrolling();
   scroll(900);
-  const page = showPage('/hackerrank-react/suno-referral-credits', { strict: true });
+  const page = showPage('/hackerrank-react/connect-four', { strict: true });
   expect(window.history.scrollRestoration).toBe('manual');
   expect(window.scrollY).toBe(0);
   scroll(1600);

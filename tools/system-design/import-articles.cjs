@@ -28,4 +28,5 @@ const articles = manifest.pages.map((page, index) => {
 if (articles.length !== 49 || new Set(articles.map(a => a.slug)).size !== 49) throw new Error('Expected 49 unique articles.');
 fs.writeFileSync(path.join(root, 'src/data/system-design-articles.ts'), 'export const systemDesignArticles = ' + JSON.stringify(articles, null, 2) + ' as const;\n');
 fs.copyFileSync(path.join(root, 'src/data/bitly-condensed.txt'), path.join(root, 'public/system-design/bitly-condensed.txt'));
+require('./extract-bitly-diagrams.cjs').extractBitlyDiagrams();
 console.log(`Imported ${articles.length} articles with ${articles.reduce((n, a) => n + a.imageCount, 0)} embedded images.`);

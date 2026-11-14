@@ -1,0 +1,59 @@
+Understanding the Problem
+- Crawl a large web corpus, retain fetched pages, and discover links for further crawling.
+- The system is a controlled traversal pipeline, not a browser making unlimited parallel requests.
+
+Functional Requirements
+- Accept seed URLs and repeatedly fetch eligible pages.
+- Store fetched HTML and extract links to expand the crawl frontier.
+- Deduplicate URLs and obey per-site crawl policies.
+
+Non-functional Requirements
+- Crawl roughly 10 billion pages within five days in the scenario, requiring substantial parallelism.
+- Remain polite to individual sites and recover without losing large amounts of progress.
+- Bound repeated work, crawler traps, resource consumption, and the impact of slow or failing hosts.
+
+Core Entities
+- URLTask records normalized URL, host, priority, next eligible time, and attempt state.
+- CrawlResult records status, fetch time, content hash, and object-storage location.
+- HostPolicy stores robots rules, crawl delay, and next allowed request time.
+- SeenURL or fingerprint state suppresses duplicate discovery and repeated content.
+
+API and Data Flow
+- Submit seeds or crawl configuration and inspect crawl progress through control-plane APIs.
+- Workers consume URL tasks, fetch pages, persist results, extract links, and enqueue eligible discoveries.
+- Keep large HTML bodies in object storage and pass references through queues.
+
+High-Level Design
+- Normalize discovered URLs and check the visited/frontier state before enqueueing them.
+- A host-aware frontier schedules eligible work; fetchers apply timeouts, response-size limits, and policy checks.
+- Store raw content before acknowledging the task, then parse links and metadata in a retryable stage.
+- Separate fetching from parsing when CPU-heavy parsing would otherwise reduce network utilization.
+- Limit accepted protocols and redirects, and protect workers from access to private infrastructure through arbitrary URLs.
+
+Deep Dives
+
+
+1) Fault tolerance and progress
+- Use a durable queue with visibility timeouts or leases so unfinished work returns after a worker crash.
+- Acknowledge only after required output is persisted; stable task and content identifiers make replay safe.
+- Retry transient failures with backoff and cap attempts for permanently failing URLs.
+- Track visited and in-progress state durably; relying only on worker memory causes widespread recrawling after restarts.
+- A Bloom filter saves memory but can falsely classify a new URL as seen; decide whether that coverage loss is acceptable.
+
+2) Politeness
+- Fetch and cache robots.txt rules per host and respect applicable disallow rules and crawl delays.
+- Coordinate rate limits across all workers contacting the same host; a per-worker limit does not protect the site globally.
+- A domain-oriented frontier or partition assignment makes per-host scheduling practical.
+- Slow down on errors or throttling responses, identify the crawler appropriately, and avoid infinite URL spaces.
+
+3) Throughput and scale
+- Divide target pages by available seconds to estimate required average throughput, then include failures, retries, and peak headroom.
+- Partition the frontier across workers while preserving host-level scheduling constraints.
+- Use asynchronous I/O or bounded concurrency to overlap network waits without opening unlimited connections.
+- Deduplicate both canonical URLs and identical page content; redirects and tracking parameters can otherwise multiply work.
+- Monitor successful pages per second, host error rates, queue age, storage throughput, and duplicate rates independently.
+
+Final Design
+- A durable, host-aware frontier feeds bounded fetch and parse workers.
+- Object storage preserves page content while metadata and deduplication indexes preserve progress.
+- Lease recovery, idempotent output, and coordinated politeness allow large-scale parallel crawling without losing control of individual hosts.

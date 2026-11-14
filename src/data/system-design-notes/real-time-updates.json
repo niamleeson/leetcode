@@ -1,0 +1,274 @@
+{
+  "title": "Real-time Updates",
+  "sections": [
+    {
+      "title": "The Problem",
+      "level": 3,
+      "points": [
+        "Deliver changes to interested clients quickly without forcing every client to repeatedly query the primary database.",
+        "Solve two separate routing problems: how a client maintains a connection, and how an event reaches the server holding that connection."
+      ],
+      "diagrams": []
+    },
+    {
+      "title": "The Solution",
+      "level": 3,
+      "points": [
+        "Choose a transport based on direction, latency, update frequency, and infrastructure constraints.",
+        "Keep durable event state separate from connection state when reconnecting clients must recover missed updates."
+      ],
+      "diagrams": [
+        {
+          "filename": "01.svg",
+          "caption": "Two Hops for Real-time Updates",
+          "revision": "8506a20f9395",
+          "width": 692.1779174804688,
+          "height": 435.45703125
+        }
+      ]
+    },
+    {
+      "title": "Client-Server Connection Protocols",
+      "level": 3,
+      "points": [],
+      "diagrams": []
+    },
+    {
+      "title": "1) Networking and load balancers",
+      "level": 4,
+      "points": [
+        "TCP establishes a connection between endpoints; HTTP defines requests and responses over a transport.",
+        "Layer 4 load balancers route connections without understanding application messages.",
+        "Layer 7 proxies understand HTTP and can terminate connections, apply routing, and create separate upstream connections.",
+        "Persistent connections require suitable proxy timeouts, keepalives, and a plan for draining connections during deployments."
+      ],
+      "diagrams": [
+        {
+          "filename": "02.svg",
+          "caption": "Simple HTTP Request",
+          "revision": "36e2f716a872",
+          "width": 722.5796661376953,
+          "height": 682.44921875
+        },
+        {
+          "filename": "03.svg",
+          "caption": "Simple HTTP Request with L4 Load Balancer",
+          "revision": "728875613567",
+          "width": 1151.0788955688477,
+          "height": 735.349365234375
+        },
+        {
+          "filename": "04.svg",
+          "caption": "Simple HTTP Request with L7 Load Balancer",
+          "revision": "2d48250a7d1f",
+          "width": 1289.4968643188477,
+          "height": 732.279052734375
+        }
+      ]
+    },
+    {
+      "title": "2) Polling and long polling",
+      "level": 4,
+      "points": [
+        "Simple polling requests updates on an interval. It is easy to implement but trades freshness against repeated empty requests.",
+        "Long polling holds a request until an update or timeout, then the client opens another request.",
+        "Long polling lowers idle request volume, but still needs connection capacity, retry handling, and a cursor to avoid missed events between requests.",
+        "Use ordinary polling when update frequency and latency requirements do not justify persistent infrastructure."
+      ],
+      "diagrams": [
+        {
+          "filename": "05.svg",
+          "caption": "Long Polling Latency",
+          "revision": "6151087c474e",
+          "width": 916.986686706543,
+          "height": 587.859375
+        }
+      ]
+    },
+    {
+      "title": "3) SSE and WebSockets",
+      "level": 4,
+      "points": [
+        "SSE sends a stream of server events over HTTP and suits notifications, live feeds, and token streaming.",
+        "Event IDs can support reconnection, but the server must retain data to replay; transport reconnection alone does not guarantee recovery.",
+        "WebSockets provide bidirectional messages on one connection and suit chat, collaboration, and interactive games.",
+        "Both require authentication, subscription authorization, heartbeats or liveness checks, and bounded buffering for slow clients."
+      ],
+      "diagrams": [
+        {
+          "filename": "06.svg",
+          "caption": "WebSocket Reference Architecture",
+          "revision": "3974c35741b1",
+          "width": 805.037109375,
+          "height": 394.86411550045017
+        }
+      ]
+    },
+    {
+      "title": "4) WebRTC",
+      "level": 4,
+      "points": [
+        "WebRTC supports low-latency media or data channels and can connect peers directly when network conditions permit.",
+        "Signaling exchanges connection information; STUN assists address discovery and TURN relays traffic when direct connectivity fails.",
+        "It adds networking and media complexity, making it appropriate for calls or interactive media rather than every ordinary notification stream."
+      ],
+      "diagrams": [
+        {
+          "filename": "07.svg",
+          "caption": "WebRTC Setup",
+          "revision": "4c0784f1d707",
+          "width": 1074.7138671875,
+          "height": 852.81640625
+        },
+        {
+          "filename": "08.svg",
+          "caption": "Client Updates Flowchart",
+          "revision": "0b0e0f8257d3",
+          "width": 1023.890625,
+          "height": 736.2109375
+        }
+      ]
+    },
+    {
+      "title": "Server-Side Push and Pull",
+      "level": 3,
+      "points": [],
+      "diagrams": [
+        {
+          "filename": "09.svg",
+          "caption": "Server-Side Push/Pull",
+          "revision": "0120d8c12951",
+          "width": 680.56640625,
+          "height": 391.14453125
+        }
+      ]
+    },
+    {
+      "title": "1) Pull from shared state",
+      "level": 4,
+      "points": [
+        "Connection servers can poll a shared store for updates and deliver them to local clients.",
+        "This simplifies routing but adds polling cost and delay; coalesce reads for clients subscribed to the same resource."
+      ],
+      "diagrams": [
+        {
+          "filename": "10.svg",
+          "caption": "Pulling with Simple Polling",
+          "revision": "2bca7721e038",
+          "width": 662.96875,
+          "height": 517.03515625
+        }
+      ]
+    },
+    {
+      "title": "2) Route by ownership",
+      "level": 4,
+      "points": [
+        "Map a user or channel to a server so producers know where to send events.",
+        "Simple modulo hashing remaps many owners when the server count changes; consistent hashing reduces that movement.",
+        "Membership changes, dead owners, and stale routing still require coordination and reconnect handling.",
+        "A hot channel remains hot even if the total keyspace is evenly distributed."
+      ],
+      "diagrams": [
+        {
+          "filename": "11.svg",
+          "caption": "Push Problems",
+          "revision": "0d77b8a1dd64",
+          "width": 842.6483486391603,
+          "height": 402.60753982227664
+        },
+        {
+          "filename": "12.svg",
+          "caption": "Connecting to the Right Server",
+          "revision": "6528c4eb2fc2",
+          "width": 949.1195797698465,
+          "height": 551.1215761098174
+        },
+        {
+          "filename": "13.svg",
+          "caption": "Sending Updates to the Right Server",
+          "revision": "43de320c80b0",
+          "width": 682.8991270131849,
+          "height": 509.0913373667765
+        },
+        {
+          "filename": "14.svg",
+          "caption": "Consistent Hash Ring",
+          "revision": "1cc9be2fc48d",
+          "width": 931.9914695225887,
+          "height": 941.9131466712527
+        },
+        {
+          "filename": "15.svg",
+          "caption": "Consistent Hash Ring",
+          "revision": "efa806b85170",
+          "width": 1979.7584544417946,
+          "height": 1132.7810387922777
+        }
+      ]
+    },
+    {
+      "title": "3) Pub/sub",
+      "level": 4,
+      "points": [
+        "Servers subscribe to channels for their connected clients, and publishers send updates through the shared broker.",
+        "This decouples producers from connection ownership but adds broker cost and subscription management.",
+        "Ephemeral pub/sub drops messages while a subscriber is absent; use a durable history or log when replay is required.",
+        "Share upstream subscriptions among local clients instead of duplicating them unnecessarily."
+      ],
+      "diagrams": [
+        {
+          "filename": "16.svg",
+          "caption": "Pub/Sub",
+          "revision": "e35c465244e8",
+          "width": 689.9328093562017,
+          "height": 501.78394993338827
+        },
+        {
+          "filename": "17.svg",
+          "caption": "Pub/Sub Message Sending",
+          "revision": "7c05330b8785",
+          "width": 787.2079207913821,
+          "height": 590.41796875
+        }
+      ]
+    },
+    {
+      "title": "Common Deep Dives",
+      "level": 3,
+      "points": [
+        "On reconnect, authenticate again, fetch a snapshot or resume after a cursor, and deduplicate overlapping events.",
+        "Use per-resource sequence numbers when ordering matters; timestamps from unrelated machines do not establish a reliable total order.",
+        "Replicate or hierarchically distribute high-fanout channels and bound slow-consumer queues.",
+        "Use backoff with jitter to avoid reconnect storms after an outage or deployment."
+      ],
+      "diagrams": [
+        {
+          "filename": "18.svg",
+          "caption": "Hierarchical Aggregation",
+          "revision": "6851daff74b3",
+          "width": 996.1259918212891,
+          "height": 450.10743713378906
+        }
+      ]
+    },
+    {
+      "title": "When to Use and Conclusion",
+      "level": 3,
+      "points": [
+        "Choose the simplest transport that satisfies the product's freshness and direction requirements.",
+        "Explain connection routing, replay, ordering, and overload behavior as well as the protocol name.",
+        "Keep ordinary polling for low-frequency updates and introduce persistent delivery where it materially improves the experience."
+      ],
+      "diagrams": [
+        {
+          "filename": "19.svg",
+          "caption": "Figma",
+          "revision": "878456fe0806",
+          "width": 20.0,
+          "height": 20.0
+        }
+      ]
+    }
+  ]
+}

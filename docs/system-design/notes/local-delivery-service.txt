@@ -1,0 +1,63 @@
+Understanding the Problem
+- Design a service that shows which products can be delivered to a customer and accepts orders from nearby distribution centers.
+- Availability is specific to both location and inventory. A fast browsing result is not a guarantee that checkout will succeed.
+
+Functional Requirements
+- Query items available for delivery to a given location.
+- Place an order for a set of items from an eligible distribution center.
+- Reserve or decrement inventory without overselling when customers order concurrently.
+- Driver dispatch and detailed delivery tracking are outside the core scope.
+
+Non-functional Requirements
+- Availability reads should be fast and scale independently from order writes.
+- Checkout requires consistent inventory updates; stale browsing data is acceptable only if checkout revalidates it.
+- Remain available during traffic spikes and retain durable order records.
+
+Core Entities
+- Item: product description and identifiers shared across locations.
+- DistributionCenter: address, coordinates, and service-area information.
+- Inventory: distribution center, item ID, and quantity available.
+- Order and OrderItem: customer, chosen center, item quantities, price, and fulfillment state.
+
+API
+- Query availability using the customer's location and desired items or search criteria.
+- Create an order with item quantities and an idempotency key; derive customer identity from authentication.
+- Return the accepted order and current status, or a clear conflict if inventory changed before checkout.
+
+High-Level Design
+
+
+1) Find available items
+- Identify nearby distribution centers before querying their inventory.
+- Join location eligibility with item availability, returning products that can actually be fulfilled from an eligible center.
+- Index inventory by distribution center and item ID; avoid reading inventory across every center for each request.
+- Distinguish product metadata, which changes slowly, from quantities, which can change on every order.
+
+2) Place an order
+- Within one PostgreSQL transaction, verify available quantities, decrement or reserve inventory, and insert the order.
+- Use conditional updates or row locks; checking quantity in application code before a separate write permits overselling.
+- When ordering multiple items, lock them in a consistent order to reduce deadlocks, and roll back the whole order if any item is unavailable.
+- Coordinating two independent databases with a distributed lock creates failure and recovery problems that a single transaction avoids.
+- Keep payment or other slow external calls outside a long-held inventory transaction; represent longer reservations explicitly if required.
+
+Deep Dives
+
+
+1) Incorporate traffic and driving time
+- Straight-line distance is a cheap candidate filter but does not represent road layout, bridges, or traffic.
+- Calling a travel-time service for every distribution center is slow and costly.
+- First find a small geographic candidate set, then estimate driving time only for those centers.
+- Cache estimates where appropriate with a bounded lifetime; current traffic can change which center meets the delivery promise.
+
+2) Scale availability reads
+- Cache product metadata and frequently requested availability views near the application.
+- Quantities in caches or replicas can lag; checkout must still consult the authoritative inventory state.
+- Read replicas reduce primary read load. Partition inventory around distribution centers when the working set or write volume requires it.
+- Avoid a cache key for every arbitrary coordinate. Geographic cells or eligible-center sets improve reuse.
+- Watch hot centers and popular products separately: evenly distributed total traffic can still overload one inventory row.
+
+Final Design
+- A location-aware read path selects eligible centers and serves cached or replicated inventory for browsing.
+- A transactional order path owns stock changes and durable orders.
+- A geographic prefilter plus selective travel-time calls improves delivery eligibility without making every lookup expensive.
+- Scale the read path aggressively while keeping checkout's correctness boundary explicit.

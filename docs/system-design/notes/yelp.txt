@@ -1,0 +1,71 @@
+Understanding the Problem
+- Build a directory where users discover nearby businesses, inspect their details, and contribute reviews.
+- The central challenge is combining geographic search, text filters, and ratings while keeping review writes correct.
+
+Functional Requirements
+- Search businesses by location and query criteria, including category and rating.
+- View a business's details and existing reviews.
+- Submit a rating and review for a business; enforce at most one review per user per business.
+- Advanced recommendations and business-owner management are outside the core design.
+
+Non-functional Requirements
+- Search and detail reads dominate traffic and should remain fast as the directory grows.
+- Favor availability for discovery while preserving durable reviews and correct uniqueness constraints.
+- Search indexes and cached ratings can have bounded freshness lag; describe that lag explicitly.
+
+Core Entities
+- Business: ID, name, description, category, address, coordinates, and aggregate rating fields.
+- Review: business ID, author ID, rating, text, and timestamps.
+- User: authenticated reviewer identity. Enforce a unique composite key on user ID and business ID.
+- Location: a named region and its geometry when supporting city or neighborhood searches.
+
+API
+- Search with query text, latitude/longitude, radius, category, rating filters, and a pagination cursor.
+- Fetch business details and a paginated set of reviews by business ID.
+- Submit or update a review using the authenticated user, business ID, rating, and text.
+- Return the next cursor with stable ordering; avoid a growing offset for large result sets.
+
+High-Level Design
+
+
+1) Search businesses
+- The search service queries indexed business data and applies distance and other filters.
+- Start with database indexes appropriate to the access patterns; a full scan for every nearby-business query will not scale.
+- Return business summaries and rating aggregates without fetching every review.
+
+2) Read details and write reviews
+- Fetch business details by primary key and reviews by business ID; cache popular business pages.
+- Validate review ownership, rating range, and business existence before committing.
+- Keep the review and its effect on aggregate rating consistent through a transaction or a clearly defined asynchronous projection.
+- Invalidate or refresh cached detail data after changes; search freshness may follow a separate update pipeline.
+
+Deep Dives
+
+
+1) Maintain average ratings
+- Computing an average over every review on each search is expensive; store rating sum and review count instead.
+- A scheduled aggregation job reduces write coupling but leaves results stale between runs.
+- Synchronous updates provide fresher results. Use atomic increments or version-checked transactions to prevent concurrent reviews from overwriting each other.
+- On an edited review, add the difference between old and new ratings rather than increasing the review count.
+- Optimistic conflicts require retries with a bound; very popular businesses may need batching or an asynchronous aggregation path.
+
+2) Enforce one review per user
+- An application check followed by insertion has a race: two requests can both observe that no review exists.
+- A database unique constraint on the user/business pair makes the rule hold under concurrency and retries.
+- Decide whether repeat submissions edit the existing review or return a conflict, then make that behavior explicit in the API.
+
+3) Search complex queries
+- Elasticsearch combines inverted indexes, text relevance, geospatial filtering, and sorting, but adds a second data model to maintain.
+- Publish database changes to the search index using a reliable change stream or outbox; support retries and reindexing.
+- PostgreSQL with full-text and spatial extensions is a simpler alternative when it meets the workload.
+- Choose based on actual query and scale requirements; specialized search adds operational cost and eventual consistency.
+
+4) Search named locations
+- Resolve a city or neighborhood name to a region or polygon, then run the spatial query within that boundary.
+- Disambiguate duplicate names and distinguish a named area from a simple radius around a point.
+- Cache stable geographic metadata; exact business eligibility still depends on the business coordinates.
+
+Final Design
+- A durable business/review database owns the records and uniqueness rules.
+- Search indexes handle discovery; caches accelerate frequently viewed details.
+- Rating aggregates and index updates use explicit consistency and recovery rules, so performance improvements do not silently lose reviews.

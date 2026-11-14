@@ -1,0 +1,72 @@
+Understanding the Problem
+- Decide whether each request is allowed under configurable limits for a user, API key, IP address, or resource.
+- The limiter sits on a latency-sensitive request path and must define its behavior when shared state is unavailable.
+
+Functional Requirements
+- Identify the requester and applicable rule, update usage, and return allow or deny.
+- Support configurable limits and changes to those limits.
+- Return HTTP 429 with useful retry information when rejecting a request.
+
+Non-functional Requirements
+- Add minimal latency and support around one million requests per second in the scenario.
+- Coordinate usage across application instances so each instance cannot independently grant the full global allowance.
+- Balance exact enforcement, availability, operational cost, and tolerance for small overshoots.
+
+Core Entities
+- Rule defines scope, capacity, interval or refill rate, and priority.
+- ClientKey identifies the authenticated principal or network source plus the relevant endpoint or resource.
+- BucketState holds counters, timestamps, tokens, or recent request times for a client/rule pair.
+
+API
+- allowRequest(clientKey, ruleId, cost) returns a decision, remaining allowance, and retry timing.
+- Rule-management APIs publish versioned configuration separately from request accounting.
+- Do not trust an arbitrary forwarded IP header; derive identity through the trusted gateway and authentication layer.
+
+High-Level Design
+
+
+1) Identify and route requests
+- Enforce limits in a gateway or shared middleware before expensive downstream work.
+- User IDs and API keys are more precise than IPs; shared NATs make IP-only limits unfair, while unauthenticated traffic may still need IP protection.
+- Combine relevant scopes, such as per-user and per-endpoint limits, with an explicit rule for conflicting decisions.
+
+2) Choose an algorithm
+- Fixed windows keep one counter per interval but permit bursts across a window boundary.
+- Sliding-window logs track exact timestamps and provide precise enforcement at a higher memory and processing cost.
+- Token buckets refill at a defined rate, allow controlled bursts up to capacity, and reject requests when insufficient tokens remain.
+- Sliding counters approximate a moving window with less state; choose accuracy based on the product requirement.
+- Make the read-check-update operation atomic, for example with a short Redis script, to prevent concurrent over-admission.
+
+3) Reject clearly
+- Return 429 and a Retry-After value derived from the actual algorithm.
+- Expose remaining quota where useful, but never require clients to calculate authoritative limits themselves.
+- Encourage bounded backoff with jitter rather than synchronized immediate retries.
+
+Deep Dives
+
+
+1) Throughput
+- Partition limiter state by client/rule key so unrelated clients update independently.
+- Keep scripts small and expire inactive state to bound memory.
+- Local token allocations can reduce shared-store calls, but allocation size controls the possible global overshoot.
+
+2) Availability
+- Fail open preserves service availability but can expose downstream systems to overload or abuse.
+- Fail closed protects strict quotas but can deny legitimate traffic during a limiter outage.
+- Select behavior per endpoint and consider conservative local fallback allowances; document the resulting consistency tradeoff.
+- Replication and failover can lose recent accounting state, so do not promise exact global limits without the required coordination.
+
+3) Latency and hot keys
+- Reuse connections and keep rule lookup local while sharing only the mutable accounting state.
+- A global or viral-resource key can bottleneck one shard; hierarchical quotas or batched token leasing reduce contention.
+- Increasing shard count alone does not distribute a single atomic counter.
+
+4) Dynamic rules
+- Publish versioned rules through a control plane and cache them at enforcement nodes.
+- Define how existing bucket state transitions when capacity or refill rate changes.
+- Observe rejection rate, decision latency, datastore errors, and configuration propagation delay.
+
+Final Design
+- The gateway identifies the request and applies locally cached rules against atomic, partitioned usage state.
+- Token buckets or another justified algorithm define burst behavior.
+- Explicit outage policy, bounded local allowances, and configuration versioning make the limiter predictable under failures as well as normal traffic.

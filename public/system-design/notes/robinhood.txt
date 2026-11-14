@@ -1,0 +1,65 @@
+Understanding the Problem
+- Build a brokerage-facing application that streams stock prices and submits customer orders to external trading infrastructure.
+- Displayed prices, submitted orders, exchange acknowledgements, and executions are distinct records with different timing guarantees.
+
+Functional Requirements
+- View live stock prices and manage stock orders.
+- Track order status and resulting account changes.
+- Integrate with external market-data and execution services rather than designing an exchange matching engine.
+
+Non-functional Requirements
+- Keep market-data updates responsive while preserving correct and durable order state.
+- Avoid duplicate order submission after retries and recover ambiguous external outcomes.
+- Scale popular-symbol fanout independently from the transactional order path.
+
+Core Entities
+- Account and Position represent ownership and reserved or available funds/holdings.
+- Order stores customer intent, symbol, side, quantity, type, limit price where applicable, and lifecycle state.
+- Execution records a fill, including quantity, price, external ID, and time.
+- Quote stores symbol, price information, source sequence, and timestamp.
+
+API
+- Subscribe to prices for a set of symbols and fetch a current snapshot.
+- Submit an order with a stable client request ID; return an order ID and current acceptance state.
+- Query orders and positions and request cancellation of an eligible order.
+- Treat cancellation as a request until external confirmation; an order may fill while cancellation is in flight.
+
+High-Level Design
+
+
+1) Live prices
+- Ingest market feeds once, normalize updates, and cache the latest value by symbol.
+- Connection servers subscribe to symbols needed by their clients and fan updates out locally.
+- Separate market-data ingestion from browser connections so reconnecting clients do not create new external feed subscriptions.
+- Include timestamps or sequence information so clients can detect stale or reordered updates.
+
+2) Orders
+- Validate the authenticated account, order parameters, and available buying power or holdings.
+- Persist the order and required reservation before submitting to the external execution path.
+- Use stable external/client order identifiers to reconcile retries and avoid duplicate orders.
+- Apply execution reports to durable order, cash, and position state with idempotent processing.
+
+Deep Dives
+
+
+1) Scale price delivery
+- Popular symbols create hot channels; share subscriptions across clients and replicate fanout capacity.
+- Coalesce updates where the product only needs the latest displayed price, without dropping authoritative execution events.
+- Bound slow-client buffers and provide a fresh snapshot after reconnect rather than replaying an unlimited stale-price backlog.
+
+2) Track order updates
+- Model pending, acknowledged, partially filled, filled, cancelled, and rejected states explicitly.
+- Deduplicate external events using execution/report IDs and preserve cumulative filled quantities.
+- Reconcile against the external provider when an acknowledgement or status update is missing.
+- Publish customer-facing updates after committing state so a notification cannot claim a fill that was never recorded.
+
+3) Order consistency
+- Reserve funds or securities atomically with accepting the relevant order intent.
+- Partial fills, cancellation, and rejection release or consume only the remaining reserved amount.
+- A timeout does not prove the provider rejected the order; query status before deciding whether resubmission is safe.
+- Keep an auditable history of transitions rather than overwriting all evidence with the latest status.
+
+Final Design
+- A dedicated market-data pipeline handles snapshots and high-volume price fanout.
+- A durable order state machine coordinates account reservations, external submission, and execution reports.
+- Idempotency and reconciliation handle the uncertainty inherent in external trading systems.

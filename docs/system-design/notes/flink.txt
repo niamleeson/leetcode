@@ -1,0 +1,52 @@
+Overview
+- Flink runs distributed stateful computations over event streams.
+- It is useful when continuous aggregation, joins, event-time windows, or pattern detection require more than a simple stateless consumer.
+
+Basic Concepts
+- Sources ingest records and sinks write results; operators transform, filter, group, join, or aggregate streams.
+- keyBy partitions related records to the same logical keyed state.
+- Parallel operator instances process different partitions, with network exchanges where the graph requires redistribution.
+- A hot key can limit one operator instance even when overall parallelism is high.
+
+State
+- Keyed state associates values with each logical key, such as a running count or recent event history.
+- Operator state belongs to an operator instance and must be redistributed appropriately when parallelism changes.
+- Bound state with TTL, window cleanup, or explicit lifecycle rules so an infinite stream does not imply infinite memory or disk growth.
+- Store large raw payloads outside computation state when references are sufficient.
+
+Watermarks and Windows
+- Event time comes from the event; processing time is when the worker handles it.
+- Watermarks estimate how far event time has progressed and help decide when a window can produce results.
+- Tumbling windows do not overlap; sliding windows overlap; session windows group activity separated by bounded gaps.
+- Late events require an allowed-lateness and correction or side-output policy.
+- A stalled source partition can hold back watermark progress unless idleness and source behavior are handled appropriately.
+
+Basic Use
+- Define a job graph, configure sources, serializers, state, parallelism, and sinks, then submit it to the cluster.
+- A metrics dashboard can aggregate event counts and write current results to a serving store.
+- Fraud detection can maintain recent per-account state and evaluate event sequences as they arrive.
+- Keep application rules distinct from transport guarantees; a correct checkpoint does not make a flawed aggregation correct.
+
+How Flink Works
+- The JobManager coordinates scheduling and recovery; TaskManagers execute parallel operator work.
+- Task slots allocate execution resources, while operator parallelism determines how work is divided.
+- Network shuffles, serialization, state access, and sink throughput can become bottlenecks.
+- Backpressure propagates upstream when downstream operators or sinks cannot keep up.
+
+State Backends and Checkpoints
+- State backends determine where active state lives and how it is accessed; choose from expected size and latency requirements.
+- Checkpoints capture recoverable operator state and source positions consistently across the dataflow.
+- After failure, restore state and replay from the corresponding source positions.
+- Exactly-once internal state recovery does not automatically make an arbitrary external API side effect exactly once.
+- End-to-end guarantees require compatible transactional or idempotent sinks and replayable sources.
+- Savepoints support controlled upgrades or migration, with compatibility and state evolution planned explicitly.
+
+In Your Interview
+- Propose Flink for high-volume continuous computation with event-time or stateful requirements.
+- Name the partition key, state, windows, late-data policy, and sink behavior.
+- Explain recovery and hot-key handling, and monitor lag, checkpoint duration, backpressure, and state growth.
+- A small stateless queue worker may be simpler when these capabilities are unnecessary.
+
+Conclusion
+- Flink combines parallel operators, managed state, and coordinated recovery.
+- Its value comes from the required computation semantics; correctness still depends on keys, time handling, state bounds, and external sink contracts.

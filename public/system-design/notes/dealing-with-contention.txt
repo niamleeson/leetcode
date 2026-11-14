@@ -1,0 +1,53 @@
+The Race Condition
+- A read-check-write sequence is unsafe when multiple requests can act on the same old value.
+- Examples include booking one seat, decrementing inventory, accepting the highest bid, and claiming a driver.
+- State the invariant first, then place its validation and update inside an atomic boundary.
+
+The Solution
+
+
+1) Conditional writes
+- Make the database update conditional on the current state, such as available quantity being sufficient or a version matching.
+- Check affected-row count to distinguish success from a lost race; do not assume an executed statement changed a row.
+- A unique constraint can enforce one record per logical identity more reliably than a prior application-level existence check.
+
+2) Pessimistic locking
+- Lock the relevant rows, read their current state, apply the update, and commit a short transaction.
+- Competing writers wait rather than independently proceeding with stale state.
+- Acquire multiple locks in a consistent order and handle deadlock or timeout failures with bounded retries.
+- Never hold a transaction open while a person checks out or an external network request runs; represent longer claims as durable reservations.
+
+3) Optimistic concurrency control
+- Read state with a version and write only if that version is unchanged.
+- A conflict means another writer won; reload and re-evaluate the business rule before retrying.
+- This works well with modest contention, but repeated conflicts can waste substantial work on a hot resource.
+- Use a monotonically changing version to detect state that changed and later returned to the same visible value.
+
+4) Isolation levels
+- Read committed prevents dirty reads but does not make every multi-statement invariant safe.
+- Repeatable-read or snapshot isolation provides stable snapshots but can still allow anomalies such as write skew depending on the database.
+- Serializable isolation targets serial-equivalent behavior, often by aborting conflicting transactions that the application must retry.
+- Choose isolation and explicit constraints from the required invariant, not from a vague claim that transactions solve all races.
+
+5) Distributed locks
+- Use shared locks when the protected action cannot fit within one database's transaction or conditional-write boundary.
+- Locks need unique ownership tokens, bounded leases, safe release, and renewal behavior.
+- A paused worker may resume after its lease expires. Fencing tokens let the protected resource reject that stale worker's writes.
+- A lock service cannot make an external side effect transactional; downstream idempotency and recovery still matter.
+
+Choosing the Right Approach
+- Prefer a conditional update for a simple invariant and a database transaction for related records in one store.
+- Use optimistic checks when conflicts are uncommon and short pessimistic transactions when contention makes retries expensive.
+- Introduce distributed coordination only when the protected state actually crosses the simpler boundary.
+- Separate a fast atomic claim from a longer workflow such as payment or fulfillment.
+
+Common Deep Dives
+- Prevent deadlocks by ordering locks consistently, limiting lock scope, and retrying aborted transactions.
+- Prevent the ABA problem with versions that change on every transition, even if the visible value returns to its original state.
+- A single highly contested resource has a serialization limit; queues, admission control, partitioned inventory, or combining operations may reduce contention.
+- More application servers do not increase the throughput of one exclusively locked row.
+- Make retries idempotent so a lost response does not repeat an already completed side effect.
+
+Conclusion
+- Describe the invariant, atomic boundary, conflict response, and crash recovery together.
+- The correct primitive is the one that still prevents invalid state under concurrent requests, timeouts, retries, and delayed workers.

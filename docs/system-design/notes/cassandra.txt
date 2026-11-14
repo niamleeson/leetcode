@@ -1,0 +1,49 @@
+Overview
+- Cassandra is a distributed wide-column database designed around partitioned, replicated data and high write availability.
+- Model tables from known queries; arbitrary joins and flexible cross-partition transactions are not its core strength.
+
+Data Model and Primary Key
+- The partition key determines which replicas own a group of rows.
+- Clustering columns order rows within a partition and support efficient bounded range reads.
+- A composite partition key hashes the combined values; clustering columns do not independently distribute the partition.
+- Keep partitions bounded in size and activity, often by combining an entity ID with a time bucket.
+
+Partitioning and Replication
+- Consistent hashing and token ranges distribute partitions among nodes.
+- Replication places copies across nodes and failure domains according to the replication strategy.
+- Any contacted node can coordinate a request and forward it to the relevant replicas.
+- Adding nodes redistributes ownership, requiring streaming and repair work rather than instantly creating free capacity.
+
+Consistency and Routing
+- Per-operation consistency levels specify how many replica responses are required.
+- Higher acknowledgement requirements trade availability and latency for stronger read/write overlap.
+- Quorum arithmetic alone does not make every concurrent multi-record operation a serializable transaction.
+- Lightweight transactions provide conditional coordination for supported operations at a significant performance cost.
+
+Storage Model
+- Writes append to a commit log and update an in-memory memtable.
+- Flushed memtables become immutable SSTables; reads may consult several structures and merge results.
+- Bloom filters and indexes reduce unnecessary file reads.
+- Compaction merges SSTables, removes obsolete versions when safe, and consumes background I/O and CPU.
+- Deletes create tombstones that must remain long enough to avoid resurrecting data on stale replicas.
+
+Gossip and Fault Tolerance
+- Gossip shares membership and failure information across the cluster.
+- Replicas, hinted handoff, and repair mechanisms help recover missed writes, but operational repair remains important.
+- Tune replication and consistency from the tolerated failure modes, not from an assumption that every write is immediately visible everywhere.
+
+Data Modeling
+- Start from the exact partition and range queries the application needs, then create tables that answer them directly.
+- Denormalize into multiple query-specific tables where necessary and plan how updates keep those views consistent.
+- For chat messages, partition by conversation and time bucket, and cluster by message order.
+- Avoid unbounded partitions for extremely active conversations and avoid scanning the whole cluster for a user's recent data.
+
+Examples and Advanced Features
+- Event or ticket data can be modeled around the required lookup, but unique seat claims still need explicit conditional coordination.
+- TTL is useful for expiring time-bound records, while tombstones and compaction affect deletion-heavy workloads.
+- Secondary indexes and materialized views have tradeoffs; they do not remove the need for deliberate partition modeling.
+
+When to Use and Limitations
+- Cassandra fits large, predictable, write-heavy workloads with partition-local access and chosen consistency tradeoffs.
+- Highly relational queries, frequent cross-partition joins, and complex transactional invariants often fit another database better.
+- Explain partition bounds, replication, consistency level, and repair strategy when selecting it.

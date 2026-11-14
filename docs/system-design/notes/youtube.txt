@@ -1,0 +1,71 @@
+Understanding the Problem
+- Design video upload and playback, including processing media into formats suitable for different devices and network conditions.
+- Application services manage metadata and access; storage, processing workers, and CDNs handle the media bytes.
+
+Functional Requirements
+- Upload videos and track processing readiness.
+- Watch published videos with an appropriate playback representation.
+- Support large uploads and efficient global delivery; recommendations and comments are separate features.
+
+Non-functional Requirements
+- Keep playback startup fast and minimize buffering.
+- Retain durable uploaded originals and tolerate worker or upload failures.
+- Scale storage and delivery independently from expensive transcoding work.
+
+Core Entities
+- Video stores owner, title, status, original location, and available output variants.
+- UploadSession tracks multipart upload progress and completion.
+- ProcessingJob records input, desired rendition, attempts, and output state.
+- Manifest identifies playable segments and bitrate/resolution variants.
+
+API
+- Create an upload session and return a video ID plus signed transfer instructions.
+- Complete the upload after server verification and expose processing status.
+- Fetch video metadata and a playback manifest or authorized CDN URL.
+- Retrying creation or completion uses stable IDs so duplicate jobs do not publish inconsistent outputs.
+
+Background: Video Streaming
+- Video codecs compress content; containers package audio, video, and metadata.
+- Adaptive bitrate streaming divides media into segments at several qualities and lets the player switch based on bandwidth and buffer state.
+- The manifest describes those variants; storing only one large original file does not provide this playback behavior.
+
+High-Level Design
+
+
+1) Upload and process
+- Upload directly to object storage rather than forwarding large files through application servers.
+- Once the original is verified, enqueue processing tasks referencing its storage location.
+- Workers decode, transcode, and package outputs, writing them back to storage before marking the video ready.
+- Keep failure and partial-readiness states explicit; never publish a manifest that points to missing output segments.
+
+2) Playback
+- Fetch metadata and a manifest, then stream segments through a CDN backed by object storage.
+- The client selects a suitable variant and can switch at segment boundaries.
+- CDN caching lowers geographic latency and origin bandwidth, especially for popular videos.
+- Enforce access control for private videos with appropriate signed requests or tokens.
+
+Deep Dives
+
+
+1) Adaptive bitrate processing
+- Create a task graph for the required resolutions, codecs, audio tracks, and packaging stages.
+- Parallelize independent outputs while respecting dependencies, such as needing source metadata before segmentation.
+- Make output paths and completion records idempotent so worker retries do not publish conflicting renditions.
+- Queue processing absorbs bursts; scale workers from backlog and job age rather than blocking upload requests.
+
+2) Resumable uploads
+- Split large files into parts with an upload ID and numbered part state.
+- Retry missing parts, verify completion with the storage provider, and assemble the final object.
+- Clean up abandoned sessions and apply size limits before accepting unlimited storage usage.
+- An upload notification may be duplicated; deduplicate the processing trigger by video or upload version.
+
+3) Scale storage and delivery
+- Separate metadata partitioning, worker scheduling, and CDN traffic because each scales differently.
+- Store multiple playback versions deliberately; more formats improve compatibility but increase processing and storage cost.
+- Cache popular media aggressively and keep durable originals available for reprocessing.
+- Monitor processing delay, playback startup time, buffering, and CDN hit rate as separate signals.
+
+Final Design
+- Direct multipart uploads feed durable object storage and an asynchronous processing pipeline.
+- Verified manifests publish completed renditions through a global CDN.
+- Retry-safe jobs and independent metadata, processing, and delivery capacity keep the system recoverable under growth.

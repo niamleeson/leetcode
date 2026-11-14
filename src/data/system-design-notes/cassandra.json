@@ -1,0 +1,176 @@
+{
+  "title": "Cassandra",
+  "sections": [
+    {
+      "title": "Overview",
+      "level": 3,
+      "points": [
+        "Cassandra is a distributed wide-column database designed around partitioned, replicated data and high write availability.",
+        "Model tables from known queries; arbitrary joins and flexible cross-partition transactions are not its core strength."
+      ],
+      "diagrams": []
+    },
+    {
+      "title": "Data Model and Primary Key",
+      "level": 3,
+      "points": [
+        "The partition key determines which replicas own a group of rows.",
+        "Clustering columns order rows within a partition and support efficient bounded range reads.",
+        "A composite partition key hashes the combined values; clustering columns do not independently distribute the partition.",
+        "Keep partitions bounded in size and activity, often by combining an entity ID with a time bucket."
+      ],
+      "diagrams": [
+        {
+          "filename": "01.svg",
+          "caption": "Cassandra Data Model",
+          "revision": "d588b88c6717",
+          "width": 1072.2529606507512,
+          "height": 525.4239996706095
+        }
+      ]
+    },
+    {
+      "title": "Partitioning and Replication",
+      "level": 3,
+      "points": [
+        "Consistent hashing and token ranges distribute partitions among nodes.",
+        "Replication places copies across nodes and failure domains according to the replication strategy.",
+        "Any contacted node can coordinate a request and forward it to the relevant replicas.",
+        "Adding nodes redistributes ownership, requiring streaming and repair work rather than instantly creating free capacity."
+      ],
+      "diagrams": [
+        {
+          "filename": "02.svg",
+          "caption": "Cassandra diagram 2",
+          "revision": "ca0251d16e9a",
+          "width": 931.7712246306382,
+          "height": 941.4797615612865
+        },
+        {
+          "filename": "03.svg",
+          "caption": "Cassandra diagram 3",
+          "revision": "3656110502d3",
+          "width": 931.9914695225887,
+          "height": 941.9131466712529
+        },
+        {
+          "filename": "04.svg",
+          "caption": "Replication",
+          "revision": "7eea35fa055a",
+          "width": 1493.8844570817146,
+          "height": 941.9131466712529
+        }
+      ]
+    },
+    {
+      "title": "Consistency and Routing",
+      "level": 3,
+      "points": [
+        "Per-operation consistency levels specify how many replica responses are required.",
+        "Higher acknowledgement requirements trade availability and latency for stronger read/write overlap.",
+        "Quorum arithmetic alone does not make every concurrent multi-record operation a serializable transaction.",
+        "Lightweight transactions provide conditional coordination for supported operations at a significant performance cost."
+      ],
+      "diagrams": [
+        {
+          "filename": "05.svg",
+          "caption": "Cassandra diagram 5",
+          "revision": "10586754fd54",
+          "width": 818.8433097386078,
+          "height": 606.114662867607
+        },
+        {
+          "filename": "06.svg",
+          "caption": "Query Routing",
+          "revision": "de1d6dd56562",
+          "width": 1222.259159504575,
+          "height": 950.2811884200953
+        }
+      ]
+    },
+    {
+      "title": "Storage Model",
+      "level": 3,
+      "points": [
+        "Writes append to a commit log and update an in-memory memtable.",
+        "Flushed memtables become immutable SSTables; reads may consult several structures and merge results.",
+        "Bloom filters and indexes reduce unnecessary file reads.",
+        "Compaction merges SSTables, removes obsolete versions when safe, and consumes background I/O and CPU.",
+        "Deletes create tombstones that must remain long enough to avoid resurrecting data on stale replicas."
+      ],
+      "diagrams": [
+        {
+          "filename": "07.svg",
+          "caption": "Storage Model",
+          "revision": "10b2bc8fa34c",
+          "width": 2189.5261343690026,
+          "height": 435.52691073683036
+        }
+      ]
+    },
+    {
+      "title": "Gossip and Fault Tolerance",
+      "level": 3,
+      "points": [
+        "Gossip shares membership and failure information across the cluster.",
+        "Replicas, hinted handoff, and repair mechanisms help recover missed writes, but operational repair remains important.",
+        "Tune replication and consistency from the tolerated failure modes, not from an assumption that every write is immediately visible everywhere."
+      ],
+      "diagrams": [
+        {
+          "filename": "08.svg",
+          "caption": "Fault Tolerance",
+          "revision": "b00b7d1e2763",
+          "width": 1486.2075287217613,
+          "height": 941.9131466712529
+        }
+      ]
+    },
+    {
+      "title": "Data Modeling",
+      "level": 3,
+      "points": [
+        "Start from the exact partition and range queries the application needs, then create tables that answer them directly.",
+        "Denormalize into multiple query-specific tables where necessary and plan how updates keep those views consistent.",
+        "For chat messages, partition by conversation and time bucket, and cluster by message order.",
+        "Avoid unbounded partitions for extremely active conversations and avoid scanning the whole cluster for a user's recent data."
+      ],
+      "diagrams": []
+    },
+    {
+      "title": "Examples and Advanced Features",
+      "level": 3,
+      "points": [
+        "Event or ticket data can be modeled around the required lookup, but unique seat claims still need explicit conditional coordination.",
+        "TTL is useful for expiring time-bound records, while tombstones and compaction affect deletion-heavy workloads.",
+        "Secondary indexes and materialized views have tradeoffs; they do not remove the need for deliberate partition modeling."
+      ],
+      "diagrams": [
+        {
+          "filename": "09.webp",
+          "caption": "Ticketmaster venue map with section popovers",
+          "revision": "8b3e0014802f",
+          "width": 846.0,
+          "height": 672.0
+        },
+        {
+          "filename": "10.webp",
+          "caption": "Ticketmaster individual seat view",
+          "revision": "575792530d1d",
+          "width": 1225.0,
+          "height": 736.0
+        }
+      ]
+    },
+    {
+      "title": "When to Use and Limitations",
+      "level": 3,
+      "points": [
+        "Cassandra fits large, predictable, write-heavy workloads with partition-local access and chosen consistency tradeoffs.",
+        "Highly relational queries, frequent cross-partition joins, and complex transactional invariants often fit another database better.",
+        "Explain partition bounds, replication, consistency level, and repair strategy when selecting it."
+      ],
+      "diagrams": []
+    }
+  ]
+}

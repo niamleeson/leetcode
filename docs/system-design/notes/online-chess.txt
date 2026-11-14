@@ -1,0 +1,73 @@
+Understanding the Problem
+- Match players by skill, run real-time chess games, and maintain global rankings.
+- The server is authoritative for legal moves, turn order, clocks, and game results.
+
+Functional Requirements
+- Enter matchmaking and start a game with an appropriate opponent.
+- Exchange moves and receive current game state in real time.
+- View global leaderboard positions and personal rank.
+
+Non-functional Requirements
+- Keep move acknowledgement and opponent updates low latency.
+- Support around 500,000 concurrent games and a leaderboard with millions of players.
+- Prevent double matching, duplicated moves, inconsistent results, and client-manipulated clocks.
+
+Core Entities
+- Player stores identity and rating; MatchmakingEntry stores mode, rating range, and wait time.
+- Game stores players, board, turn, clocks, version, and terminal state.
+- Move records a game sequence, player, move, and authoritative timing.
+- RatingChange and LeaderboardEntry connect finalized results to rankings.
+
+API
+- Join or leave matchmaking using a stable request ID.
+- Send a move with game ID and expected version or sequence; receive accepted state or a conflict.
+- Reconnect to fetch a current snapshot and subsequent moves.
+- Query top players and a player's rank with defined ordering and tie rules.
+
+High-Level Design
+
+
+1) Match players
+- Queue eligible players by game mode and rating band, widening acceptable ranges as waiting time grows.
+- Atomically claim both players before creating a game so concurrent matchers cannot pair one player twice.
+- Remove or mark claimed queue entries and recover abandoned claims after failures.
+
+2) Run games
+- Route both players to the game owner or authoritative processing partition.
+- Validate turn, legal movement, promotion, and game-ending conditions before persisting a move.
+- Apply a move once using its sequence or ID, then broadcast the resulting state.
+- On reconnect, restore from a snapshot plus durable moves rather than trusting a client's board.
+
+3) Rankings
+- Finalized results trigger rating updates according to the selected rating system.
+- Store authoritative results durably and maintain a derived sorted leaderboard.
+- Deduplicate result application so retries do not change ratings twice for one game.
+
+Deep Dives
+
+
+1) Matchmaking consistency
+- A check-then-delete queue operation has races; use transactions, conditional claims, or atomic queue operations.
+- Include claim ownership and expiration so a delayed matcher cannot create a game after its claim was reassigned.
+- Rejoining and cancellation need defined transitions when a match is already being committed.
+
+2) Game-server scale
+- Partition by game ID and keep each game's updates serialized at one owner.
+- Separate persistent connection gateways from game state processing if connection scale and compute scale differ.
+- Use ownership epochs or fencing during failover to prevent two servers from accepting moves for the same game.
+- A durable move log and periodic snapshots let replacement owners recover quickly.
+
+3) Fair clocks
+- Server time determines remaining time; client timers are estimates for display.
+- Define when time starts and stops around move acceptance, and cap any lag compensation policy.
+- Process flags and moves under the same authoritative ordering so a delayed client cannot revive an expired game.
+
+4) Leaderboard scale
+- A sorted set supports top ranges and rank lookup, while durable ratings remain the rebuild source.
+- Update both players' ratings consistently from the finalized result and preserve tie-breakers.
+- Partition or specialize ranking workloads only when the single ranking structure becomes the measured bottleneck.
+
+Final Design
+- Atomic matchmaking hands players to partitioned, authoritative game servers.
+- Durable moves and ownership fencing support reconnects and failover.
+- Idempotent result processing updates ratings and a fast derived leaderboard without allowing client state to decide outcomes.

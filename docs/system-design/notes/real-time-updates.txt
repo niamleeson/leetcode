@@ -1,0 +1,63 @@
+The Problem
+- Deliver changes to interested clients quickly without forcing every client to repeatedly query the primary database.
+- Solve two separate routing problems: how a client maintains a connection, and how an event reaches the server holding that connection.
+
+The Solution
+- Choose a transport based on direction, latency, update frequency, and infrastructure constraints.
+- Keep durable event state separate from connection state when reconnecting clients must recover missed updates.
+
+Client-Server Connection Protocols
+
+
+1) Networking and load balancers
+- TCP establishes a connection between endpoints; HTTP defines requests and responses over a transport.
+- Layer 4 load balancers route connections without understanding application messages.
+- Layer 7 proxies understand HTTP and can terminate connections, apply routing, and create separate upstream connections.
+- Persistent connections require suitable proxy timeouts, keepalives, and a plan for draining connections during deployments.
+
+2) Polling and long polling
+- Simple polling requests updates on an interval. It is easy to implement but trades freshness against repeated empty requests.
+- Long polling holds a request until an update or timeout, then the client opens another request.
+- Long polling lowers idle request volume, but still needs connection capacity, retry handling, and a cursor to avoid missed events between requests.
+- Use ordinary polling when update frequency and latency requirements do not justify persistent infrastructure.
+
+3) SSE and WebSockets
+- SSE sends a stream of server events over HTTP and suits notifications, live feeds, and token streaming.
+- Event IDs can support reconnection, but the server must retain data to replay; transport reconnection alone does not guarantee recovery.
+- WebSockets provide bidirectional messages on one connection and suit chat, collaboration, and interactive games.
+- Both require authentication, subscription authorization, heartbeats or liveness checks, and bounded buffering for slow clients.
+
+4) WebRTC
+- WebRTC supports low-latency media or data channels and can connect peers directly when network conditions permit.
+- Signaling exchanges connection information; STUN assists address discovery and TURN relays traffic when direct connectivity fails.
+- It adds networking and media complexity, making it appropriate for calls or interactive media rather than every ordinary notification stream.
+
+Server-Side Push and Pull
+
+
+1) Pull from shared state
+- Connection servers can poll a shared store for updates and deliver them to local clients.
+- This simplifies routing but adds polling cost and delay; coalesce reads for clients subscribed to the same resource.
+
+2) Route by ownership
+- Map a user or channel to a server so producers know where to send events.
+- Simple modulo hashing remaps many owners when the server count changes; consistent hashing reduces that movement.
+- Membership changes, dead owners, and stale routing still require coordination and reconnect handling.
+- A hot channel remains hot even if the total keyspace is evenly distributed.
+
+3) Pub/sub
+- Servers subscribe to channels for their connected clients, and publishers send updates through the shared broker.
+- This decouples producers from connection ownership but adds broker cost and subscription management.
+- Ephemeral pub/sub drops messages while a subscriber is absent; use a durable history or log when replay is required.
+- Share upstream subscriptions among local clients instead of duplicating them unnecessarily.
+
+Common Deep Dives
+- On reconnect, authenticate again, fetch a snapshot or resume after a cursor, and deduplicate overlapping events.
+- Use per-resource sequence numbers when ordering matters; timestamps from unrelated machines do not establish a reliable total order.
+- Replicate or hierarchically distribute high-fanout channels and bound slow-consumer queues.
+- Use backoff with jitter to avoid reconnect storms after an outage or deployment.
+
+When to Use and Conclusion
+- Choose the simplest transport that satisfies the product's freshness and direction requirements.
+- Explain connection routing, replay, ordering, and overload behavior as well as the protocol name.
+- Keep ordinary polling for low-frequency updates and introduce persistent delivery where it materially improves the experience.

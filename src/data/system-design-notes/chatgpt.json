@@ -1,0 +1,236 @@
+{
+  "title": "ChatGPT",
+  "sections": [
+    {
+      "title": "Understanding the Problem",
+      "level": 3,
+      "points": [
+        "Build a conversational AI product around model inference, durable chat history, and streamed responses.",
+        "Model training is outside this design; the focus is scheduling expensive inference and delivering recoverable user interactions."
+      ],
+      "diagrams": []
+    },
+    {
+      "title": "Functional Requirements",
+      "level": 3,
+      "points": [
+        "Submit a prompt and receive a generated response.",
+        "View past chats and continue a conversation with context from prior turns.",
+        "Stream output, recover after reconnecting, and cancel an active generation."
+      ],
+      "diagrams": []
+    },
+    {
+      "title": "Non-functional Requirements",
+      "level": 3,
+      "points": [
+        "Minimize time to first token while keeping GPU utilization efficient.",
+        "Persist messages and generation state and avoid starting duplicate costly runs after retries.",
+        "Enforce fairness and tier-aware quotas under demand exceeding inference capacity."
+      ],
+      "diagrams": [
+        {
+          "filename": "01.svg",
+          "caption": "Requirements",
+          "revision": "b3b416f730c1",
+          "width": 758.28125,
+          "height": 116.0
+        }
+      ]
+    },
+    {
+      "title": "Core Entities",
+      "level": 3,
+      "points": [
+        "Conversation and Message store ownership, ordering, content, and relevant model metadata.",
+        "Run stores generation state, request ID, model, usage, cancellation, and completion status.",
+        "StreamEvent records ordered output chunks or lifecycle events for resumable delivery.",
+        "QueueEntry carries scheduling priority and estimated resource cost."
+      ],
+      "diagrams": [
+        {
+          "filename": "02.svg",
+          "caption": "Core Entities",
+          "revision": "0b8849a56307",
+          "width": 172.34375,
+          "height": 116.0
+        }
+      ]
+    },
+    {
+      "title": "API",
+      "level": 3,
+      "points": [
+        "Create or select a conversation, then submit a message using an idempotency key.",
+        "Return a run ID and stream endpoint; query run status separately from the live connection.",
+        "Fetch paginated conversation history and reconnect to a run using the last event cursor.",
+        "Cancel a specific run with an authenticated request; cancellation must propagate beyond the browser connection."
+      ],
+      "diagrams": []
+    },
+    {
+      "title": "High-Level Design",
+      "level": 3,
+      "points": [],
+      "diagrams": []
+    },
+    {
+      "title": "1) Submit and generate",
+      "level": 4,
+      "points": [
+        "Persist the user message and run before enqueueing generation work reliably.",
+        "Assemble the model context with permissions and token limits, then schedule inference on an appropriate worker.",
+        "Stream generated output and persist the final assistant message and terminal run state.",
+        "Keep a lost browser connection from automatically creating another generation on reconnect."
+      ],
+      "diagrams": [
+        {
+          "filename": "03.svg",
+          "caption": "Send Prompt",
+          "revision": "8640ed652f9b",
+          "width": 1469.0098997667908,
+          "height": 498.0385012192835
+        }
+      ]
+    },
+    {
+      "title": "2) History",
+      "level": 4,
+      "points": [
+        "Store messages in conversation order and fetch them with stable pagination.",
+        "Record incomplete, failed, cancelled, and completed runs explicitly instead of pretending every partial response is final.",
+        "Context assembly reads committed conversation state and applies the selected truncation or summarization policy."
+      ],
+      "diagrams": [
+        {
+          "filename": "04.svg",
+          "caption": "Chat History",
+          "revision": "fd7cf0586262",
+          "width": 1543.1331417799358,
+          "height": 508.2401227414001
+        }
+      ]
+    },
+    {
+      "title": "Deep Dives",
+      "level": 3,
+      "points": [],
+      "diagrams": []
+    },
+    {
+      "title": "1) Token streaming",
+      "level": 4,
+      "points": [
+        "SSE fits one-way token delivery while ordinary HTTP handles prompt submission and cancellation.",
+        "WebSockets support richer bidirectional interactions but require additional connection lifecycle handling.",
+        "Flush small chunks with sequencing and terminal events; proxy buffering must not delay the whole response until completion."
+      ],
+      "diagrams": [
+        {
+          "filename": "05.svg",
+          "caption": "Polling",
+          "revision": "667752b342c9",
+          "width": 1543.1331417799356,
+          "height": 508.24012274140006
+        },
+        {
+          "filename": "06.svg",
+          "caption": "SSE + gRPC",
+          "revision": "5be3f05136a0",
+          "width": 1451.2670568578492,
+          "height": 508.24012274140006
+        }
+      ]
+    },
+    {
+      "title": "2) Reconnect and deploy recovery",
+      "level": 4,
+      "points": [
+        "Separate generation workers from connection servers so a gateway restart does not terminate the underlying run.",
+        "Redis Pub/Sub is useful for live events but cannot replay messages missed while disconnected.",
+        "A bounded durable stream such as Redis Streams can retain ordered chunks and resume after a cursor.",
+        "Persist final output separately and define retention limits; clients older than the replay window fetch the saved result or current snapshot."
+      ],
+      "diagrams": [
+        {
+          "filename": "07.svg",
+          "caption": "Pub/Sub",
+          "revision": "88d40ff2ed00",
+          "width": 1622.9578533639847,
+          "height": 627.5234118019812
+        },
+        {
+          "filename": "08.svg",
+          "caption": "Stream",
+          "revision": "b7cdb20968ce",
+          "width": 1622.9578533639847,
+          "height": 647.7850492657101
+        },
+        {
+          "filename": "09.svg",
+          "caption": "Stream",
+          "revision": "b7cdb20968ce",
+          "width": 1622.9578533639847,
+          "height": 647.7850492657101
+        }
+      ]
+    },
+    {
+      "title": "3) GPU scheduling",
+      "level": 4,
+      "points": [
+        "A queue absorbs bursts and separates admission from inference capacity.",
+        "Continuous batching groups active sequences efficiently, adding and removing requests as they start or finish.",
+        "Bound queue wait, token budgets, and GPU memory use; large contexts and long outputs cost more than short requests.",
+        "Apply backpressure before the queue becomes an unlimited promise of future GPU work."
+      ],
+      "diagrams": [
+        {
+          "filename": "10.svg",
+          "caption": "Queue",
+          "revision": "fb512c429363",
+          "width": 1622.9578533639847,
+          "height": 638.8086631332491
+        }
+      ]
+    },
+    {
+      "title": "4) Fairness and context cost",
+      "level": 4,
+      "points": [
+        "Use per-user and cost-aware quotas rather than only a flat request count.",
+        "Weighted priorities can improve paid-tier service while preserving capacity for other users.",
+        "Prefix caching reuses identical context work; rolling summaries reduce context length but can omit details.",
+        "Retain recent turns and important state deliberately, and separate summary storage from the original durable conversation.",
+        "Cancellation must stop scheduling or generation and release GPU/KV-cache resources; closing SSE alone does not guarantee that."
+      ],
+      "diagrams": [
+        {
+          "filename": "11.svg",
+          "caption": "Priority Queue",
+          "revision": "3240349531f4",
+          "width": 1622.9578533639847,
+          "height": 788.7808178185574
+        }
+      ]
+    },
+    {
+      "title": "Final Design",
+      "level": 3,
+      "points": [
+        "Durable conversations and run state feed a quota-aware inference queue.",
+        "GPU workers generate independently of the connection tier, with replayable stream events supporting reconnects.",
+        "Explicit run lifecycle, bounded context, and cost-aware scheduling connect a responsive UI to finite inference capacity."
+      ],
+      "diagrams": [
+        {
+          "filename": "12.svg",
+          "caption": "Final",
+          "revision": "d2288de49cfa",
+          "width": 1622.9578533639847,
+          "height": 790.0188815489648
+        }
+      ]
+    }
+  ]
+}

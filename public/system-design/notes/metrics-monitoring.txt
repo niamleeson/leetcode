@@ -1,0 +1,68 @@
+Understanding the Problem
+- Ingest service metrics, answer dashboard queries, and evaluate alert rules continuously.
+- Time-series volume depends on both sample rate and label cardinality; many unique label combinations can dominate cost.
+
+Functional Requirements
+- Collect metrics from services and expose time-range queries for dashboards.
+- Let users define threshold-based alert rules.
+- Send notifications when alerts transition into actionable states.
+
+Non-functional Requirements
+- Keep dashboard queries responsive across weeks of data.
+- Detect qualifying alerts in under a minute where required.
+- Remain available during spikes and failures without allowing uncontrolled series growth.
+
+Core Entities
+- MetricSample includes metric name, timestamp, value, and labels.
+- TimeSeries is a metric plus a unique label set.
+- AlertRule defines query, threshold, duration, and recipient policy; AlertState tracks pending, firing, and resolved states.
+- Retention and rollup metadata describe stored resolutions and lifetimes.
+
+API and Data Flow
+- Agents push batches or expose scrape endpoints; collectors normalize and validate incoming samples.
+- Query APIs accept time range, series selectors, aggregation, and resolution.
+- Rule APIs manage alert definitions independently from high-volume sample ingestion.
+- Durable transport feeds time-series storage and alert evaluation, followed by notification delivery.
+
+High-Level Design
+
+
+1) Ingestion
+- Pull-based collection centralizes scrape scheduling and target health; push handles environments that cannot be scraped directly.
+- Batch samples, enforce limits, and buffer transient failures with bounded local or durable queues.
+- Partition by series identity and time while watching for uneven tenants or hot series.
+
+2) Dashboards
+- A time-series store indexes labels and organizes samples for efficient time-range scans.
+- Fetch only the resolution needed for the chart rather than every raw sample over weeks.
+- Cache repeated dashboard queries and avoid repeatedly scanning the same recent windows.
+
+3) Alerts and notifications
+- Evaluate rules on a schedule or a streaming path with explicit handling of missing and delayed data.
+- Require a condition to persist for a configured duration when useful to reduce transient false alarms.
+- Persist alert state and notify on transitions, with grouping and cooldowns to avoid repeated notification storms.
+
+Deep Dives
+
+
+1) Long-range queries
+- Keep high-resolution recent data and downsample older samples into coarser rollups.
+- Store enough aggregate information for the intended calculations; averaging averages without weights can be incorrect.
+- Prune time partitions and use label indexes to limit the series scanned.
+- Retention policies must align with dashboard and incident-investigation needs.
+
+2) Low-latency alerts
+- A separate alert evaluator avoids waiting behind expensive interactive dashboard queries.
+- Streaming evaluation can reduce delay, but requires window state, late-data policy, and recoverable checkpoints.
+- Track ingestion lag and evaluation lag separately; a fast evaluator cannot detect data that has not arrived.
+
+3) Availability and cardinality
+- Replicate critical ingestion and storage components and bound queues with explicit overload behavior.
+- Avoid unbounded labels such as request IDs or arbitrary URLs; each unique combination creates another series.
+- Enforce per-tenant series and sample quotas, detect sudden cardinality growth, and provide actionable rejection metrics.
+- Dropping low-priority samples may be preferable to losing the entire pipeline, but the product must expose that degradation.
+
+Final Design
+- Collectors feed durable ingestion and partitioned time-series storage with tiered retention.
+- Query services use rollups and caches; independent evaluators maintain durable alert state.
+- Cardinality controls, lag monitoring, and notification deduplication keep the monitoring system useful during the incidents it must report.

@@ -1,0 +1,70 @@
+Understanding the Problem
+- Track product prices over time and notify users when a price crosses their chosen threshold.
+- Discovery, trustworthy price collection, time-series storage, and notification fanout are separate parts of the pipeline.
+
+Functional Requirements
+- Show price history from a website or browser extension.
+- Subscribe to price-drop notifications for a product and threshold.
+- Continuously discover and refresh product prices.
+
+Non-functional Requirements
+- Scale to a catalog of around 500 million products without polling every product at the same high frequency.
+- Return chart data quickly and avoid duplicate or misleading alerts.
+- Treat extension-provided prices as untrusted observations, not automatically authoritative prices.
+
+Core Entities
+- Product identifies a marketplace item and canonical URL.
+- PriceObservation records price, currency, timestamp, source, and validation state.
+- Subscription links a user and product to a threshold and delivery preferences.
+- CrawlJob and Notification track scheduled collection and retry-safe delivery.
+
+API
+- Query product history over a time range and requested chart resolution.
+- Create, update, or remove a threshold subscription.
+- Submit extension observations with product identity and evidence for validation.
+- Return subscription state and distinguish accepted observations from verified prices.
+
+High-Level Design
+
+
+1) History and collection
+- Collect prices through permitted source interfaces, scheduled fetches, and extension observations.
+- Normalize product identity, currency, and timestamps before storing a time series.
+- Index history by product and time; serve a bounded number of chart points rather than every raw observation.
+
+2) Subscriptions and alerts
+- Store subscriptions indexed by product and threshold so a price change can locate eligible subscribers.
+- Publish verified price-change events and process notification work asynchronously.
+- Define whether an alert fires on crossing the threshold, every lower price, or once until rearmed.
+
+Deep Dives
+
+
+1) Discover and refresh products
+- A naive full-catalog crawl wastes work on unpopular products whose prices rarely change.
+- Prioritize tracked products, recently active products, and those with frequent price changes.
+- Use user activity and extension observations as discovery signals, then schedule authoritative verification where needed.
+- Keep per-source limits, retry backoff, and crawl state so failures do not restart the entire catalog scan.
+- Partition collection tasks by product or source while avoiding concentrated load on one publisher endpoint.
+
+2) Validate malicious observations
+- Authenticate clients where possible, rate-limit submissions, and compare observations with historical ranges and independent sources.
+- A single extreme report should trigger verification rather than immediately notify thousands of subscribers.
+- Store provenance and confidence so suspicious data can be corrected without losing the audit trail.
+
+3) Notify efficiently
+- For a new price, query subscriptions whose threshold is satisfied using an indexed access path.
+- Batch recipient work and enqueue delivery jobs so a popular product does not block price ingestion.
+- Deduplicate by subscription and qualifying price event, then honor current notification preferences at delivery time.
+- Retry provider failures with backoff and retain a terminal failure state for inspection.
+
+4) Fast historical charts
+- Partition time-series data by product and time to keep range scans bounded.
+- Precompute hourly or daily aggregates for long ranges, retaining recent detailed samples where useful.
+- Cache popular product/range combinations and ensure the resolution matches the displayed chart width.
+- Preserve meaningful minima and maxima when downsampling so a short-lived price drop is not erased.
+
+Final Design
+- Adaptive collection and validation produce trustworthy price-change events.
+- Time-series storage and downsampled views serve history; indexed subscriptions drive asynchronous alerts.
+- Provenance, deduplication, and explicit alert semantics prevent noisy collection from becoming misleading notifications.

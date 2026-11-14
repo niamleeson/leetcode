@@ -30,6 +30,7 @@ const articles = JSON.parse(data.slice(data.indexOf('=')+1,data.lastIndexOf('as 
     await page.getByRole('searchbox',{name:'Search system design articles'}).waitFor();
     assert.equal(await page.getByRole('status').textContent(),'49 articles');
     await page.getByRole('searchbox').fill('Redis');
+    await page.getByRole('status').filter({hasText:/^1 article$/}).waitFor();
     assert.equal(await page.getByRole('status').textContent(),'1 article');
     await page.getByRole('combobox').selectOption('Patterns');
     await page.getByText('No articles match these filters.').waitFor();
@@ -45,13 +46,31 @@ const articles = JSON.parse(data.slice(data.indexOf('=')+1,data.lastIndexOf('as 
     assert.deepEqual(await notes.locator('h3').allTextContents(),['Understanding the Problem','Functional Requirements','Non-functional Requirements','Core Entities','API','High-Level Design','Deep Dives','Final Design']);
     assert.ok((await notes.locator('li').allTextContents()).every(point=>point.startsWith('-')));
     assert.equal(await notes.locator('strong,table,pre,h1,h2').count(),0);
+    assert.equal(await notes.locator('img').count(),8);
+    assert.deepEqual(await notes.locator('figure').evaluateAll(figures=>figures.map(f=>f.closest('section').querySelector('h3,h4').textContent)),[
+      'Non-functional Requirements','Core Entities','1) Create a short URL','2) Redirect to the original URL',
+      '1) Generate unique short codes','1) Generate unique short codes','2) Make redirects fast','Final Design',
+    ]);
+    assert.ok(await notes.locator('li').nth(1).evaluate(e=>parseFloat(getComputedStyle(e).marginTop)<=4));
+    assert.equal(await notes.evaluate(e=>getComputedStyle(e).lineHeight),'24px');
+    for(const img of await notes.locator('img').all()) {
+      await img.scrollIntoViewIfNeeded();
+      await img.evaluate(i=>i.decode());
+      assert.ok(await img.evaluate(i=>i.naturalWidth>0&&i.getBoundingClientRect().width>0));
+    }
+    const [diagramPage]=await Promise.all([page.waitForEvent('popup'),notes.locator('figure a').last().click()]);
+    await diagramPage.waitForURL('**/notes/bitly/08.svg*');
+    await diagramPage.waitForLoadState('domcontentloaded');
+    assert.ok(diagramPage.url().includes('notes/bitly/08.svg'));
+    await diagramPage.close();
+    await page.evaluate(()=>window.scrollTo(0,0));
     if(process.env.QA_SCREENSHOTS)await page.screenshot({path:path.join(process.env.QA_SCREENSHOTS,'bitly-condensed.png')});
     await page.getByRole('link',{name:'Full article',exact:true}).click();
     let frame=await ready();
     assert.equal(await frame.locator('#markdown img').count(),8);
     assert.equal(await frame.locator('#markdown button[aria-expanded=false]').count(),0);
     await frame.locator('a[href*="/patterns/scaling-reads"]').first().click();
-    await page.waitForURL(/#\/system-design\/scaling-reads$/);
+    await page.waitForURL(/#\/system-design\/scaling-reads\?view=full$/);
     await ready();
     await page.getByRole('link',{name:'Practice reference · 30',exact:true}).click();
     await page.getByRole('heading',{name:'System Design Reference',exact:true}).waitFor();
@@ -59,13 +78,13 @@ const articles = JSON.parse(data.slice(data.indexOf('=')+1,data.lastIndexOf('as 
     await page.getByText('Article not found.',{exact:true}).waitFor();
     const broken='**/02-dropbox.html*';
     await page.route(broken,route=>route.fulfill({status:404,contentType:'text/html',body:'<h1>Missing</h1>'}));
-    await go('/system-design/dropbox');
+    await go('/system-design/dropbox?view=full');
     await page.getByRole('alert').waitFor();
     await page.unroute(broken);
     await page.getByRole('button',{name:'Try again',exact:true}).click();
     await ready();
     for(const article of articles) {
-      await go(`/system-design/${article.slug}${article.slug==='bitly'?'?view=full':''}`);
+      await go(`/system-design/${article.slug}?view=full`);
       frame=await ready();
       await page.waitForFunction(()=>[...document.querySelector('iframe').contentDocument.querySelectorAll('#markdown img')].every(i=>i.complete));
       const check=await page.locator('iframe').evaluate(f=>{
@@ -79,18 +98,47 @@ const articles = JSON.parse(data.slice(data.indexOf('=')+1,data.lastIndexOf('as 
       assert.equal(check.closed,0,article.title);
       assert.equal(check.excluded,false,article.title);
     }
+    let noteImages=0;
+    for(const article of articles) {
+      await go(`/system-design/${article.slug}`);
+      const note=page.locator(`[aria-label="${article.title} condensed notes"]`);
+      await note.waitFor();
+      const expected=JSON.parse(fs.readFileSync(path.join(root,'src/data/system-design-notes',article.slug+'.json'),'utf8'));
+      assert.deepEqual(await note.locator('h3,h4').allTextContents(),expected.sections.map(s=>s.title),article.title);
+      assert.deepEqual(await note.locator('li').allTextContents(),expected.sections.flatMap(s=>s.points.map(p=>'-'+p)),article.title);
+      const images=note.locator('img');
+      assert.equal(await images.count(),article.imageCount+(article.slug==='postgresql'?1:0),article.title);
+      for(const img of await images.all()) { await img.scrollIntoViewIfNeeded(); await img.evaluate(i=>i.decode()); }
+      noteImages+=await images.count();
+      await page.setViewportSize({width:390,height:844});
+      assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),article.title+' mobile');
+      assert.ok(await images.evaluateAll(items=>items.every(i=>i.getBoundingClientRect().right<=innerWidth+1)),article.title+' diagrams');
+      if(process.env.QA_SCREENSHOTS) {
+        await page.evaluate(()=>window.scrollTo(0,0));
+        await page.screenshot({path:path.join(process.env.QA_SCREENSHOTS,'notes-'+article.slug+'.png')});
+      }
+      await page.setViewportSize({width:1280,height:900});
+    }
+    assert.equal(noteImages,497);
     await page.setViewportSize({width:390,height:844});
     await go('/system-design/bitly');
     await page.locator('[aria-label="Bitly condensed notes"]').waitFor();
     assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
+    for(const img of await page.locator('[aria-label="Bitly condensed notes"] img').all()) {
+      await img.scrollIntoViewIfNeeded();
+      await img.evaluate(i=>i.decode());
+      assert.ok(await img.evaluate(i=>i.getBoundingClientRect().right<=innerWidth+1));
+    }
+    if(process.env.QA_SCREENSHOTS)await page.screenshot({path:path.join(process.env.QA_SCREENSHOTS,'bitly-final-diagram-mobile.png')});
+    await page.evaluate(()=>window.scrollTo(0,0));
     if(process.env.QA_SCREENSHOTS)await page.screenshot({path:path.join(process.env.QA_SCREENSHOTS,'bitly-mobile.png')});
     await go('/system-design');
     await page.getByRole('searchbox').waitFor();
     assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
-    await go('/system-design/redis');
+    await go('/system-design/redis?view=full');
     await ready();
     assert.ok(await page.locator('iframe').evaluate(f=>f.contentDocument.documentElement.scrollWidth<=f.clientWidth+1));
     assert.deepEqual(errors,[]);
-    console.log(JSON.stringify({passed:true,articles:articles.length,images:articles.reduce((n,a)=>n+a.imageCount,0),checks:['filters','plain hyphen notes','full article','internal article links','legacy reference','unknown route','load failure and retry','49 readers','mobile overflow']}));
+    console.log(JSON.stringify({passed:true,articles:articles.length,images:articles.reduce((n,a)=>n+a.imageCount,0),checks:['filters','plain hyphen notes','full article','internal article links','legacy reference','unknown route','load failure and retry','49 full readers','49 condensed readers','497 note diagrams','mobile overflow']}));
   } finally {await browser.close();}
 })().catch(error=>{console.error(error);process.exitCode=1;});

@@ -1,0 +1,45 @@
+Overview
+- Kafka is a durable distributed event log used to decouple producers and consumers, retain events, and support replay.
+- It can serve queue-like workloads through consumer groups, while independent groups process the same retained events separately.
+
+A Motivating Example
+- Producers publish match events, and separate consumers update scoreboards, statistics, and notifications.
+- Partitioning lets unrelated matches process in parallel while a key keeps one match's events ordered.
+- Adding independent consumer groups does not require the producer to send separate copies to each application.
+
+Basic Terminology and Architecture
+- Brokers store partitions; a topic groups partitions belonging to one event stream.
+- Each partition is an ordered append-only log with offsets identifying positions.
+- A consumer group assigns each partition to at most one active consumer in that group.
+- Ordering is per partition, not automatically across the entire topic.
+
+How Kafka Works
+- Producers select a partition, commonly using a key, and append records containing a payload and optional metadata.
+- A partition leader accepts writes and followers replicate them; acknowledgements and in-sync replica settings affect durability.
+- Consumers fetch records and track committed offsets independently from producer writes.
+- Committing before processing risks loss after a crash; committing after processing permits duplicates that must be handled safely.
+- Retention is based on configured time, size, or compaction policy rather than simply deleting a record when one consumer reads it.
+
+Scalability
+- Partition count bounds useful parallelism for one consumer group; extra consumers beyond available partitions remain idle.
+- Choose keys for both ordering and load distribution. One popular key remains a hot partition.
+- Batch and compress records to reduce network and storage overhead.
+- Put references to large files in events instead of using the log as an unbounded media-transfer path.
+- Adding partitions can change key routing; consider its effect on ordering during transitions.
+
+Fault Tolerance and Durability
+- Replication and leader election recover from broker failure according to the configured acknowledgement and replica policies.
+- Use an appropriate replication factor, acknowledgements, and minimum in-sync replicas for the loss tolerance.
+- Consumer-group rebalances move partition ownership; processors must stop cleanly and resume from safe offsets.
+- Monitor consumer lag and retained capacity so a long outage does not outlast the data needed for recovery.
+
+Handling Retries and Errors
+- Idempotent producers reduce duplicates caused by retrying an uncertain append.
+- Consumer side effects still need idempotency or compatible transactions; producer idempotence alone does not make the entire pipeline exactly once.
+- Retry transient failures with an explicit strategy, and isolate poison records through retry or dead-letter topics where appropriate.
+- Retrying later can affect ordering, so decide whether a failed record blocks its partition or moves to a separate recovery path.
+
+When to Use and Summary
+- Use Kafka for replayable event pipelines, stream processing, and multiple independent downstream consumers.
+- A simpler work queue may be preferable when built-in visibility timeouts, delayed delivery, or per-message retry management dominate the requirements.
+- Explain partition keys, consumer groups, offset commits, retention, and failure semantics whenever Kafka is central to the design.

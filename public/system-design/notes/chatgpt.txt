@@ -1,0 +1,71 @@
+Understanding the Problem
+- Build a conversational AI product around model inference, durable chat history, and streamed responses.
+- Model training is outside this design; the focus is scheduling expensive inference and delivering recoverable user interactions.
+
+Functional Requirements
+- Submit a prompt and receive a generated response.
+- View past chats and continue a conversation with context from prior turns.
+- Stream output, recover after reconnecting, and cancel an active generation.
+
+Non-functional Requirements
+- Minimize time to first token while keeping GPU utilization efficient.
+- Persist messages and generation state and avoid starting duplicate costly runs after retries.
+- Enforce fairness and tier-aware quotas under demand exceeding inference capacity.
+
+Core Entities
+- Conversation and Message store ownership, ordering, content, and relevant model metadata.
+- Run stores generation state, request ID, model, usage, cancellation, and completion status.
+- StreamEvent records ordered output chunks or lifecycle events for resumable delivery.
+- QueueEntry carries scheduling priority and estimated resource cost.
+
+API
+- Create or select a conversation, then submit a message using an idempotency key.
+- Return a run ID and stream endpoint; query run status separately from the live connection.
+- Fetch paginated conversation history and reconnect to a run using the last event cursor.
+- Cancel a specific run with an authenticated request; cancellation must propagate beyond the browser connection.
+
+High-Level Design
+
+
+1) Submit and generate
+- Persist the user message and run before enqueueing generation work reliably.
+- Assemble the model context with permissions and token limits, then schedule inference on an appropriate worker.
+- Stream generated output and persist the final assistant message and terminal run state.
+- Keep a lost browser connection from automatically creating another generation on reconnect.
+
+2) History
+- Store messages in conversation order and fetch them with stable pagination.
+- Record incomplete, failed, cancelled, and completed runs explicitly instead of pretending every partial response is final.
+- Context assembly reads committed conversation state and applies the selected truncation or summarization policy.
+
+Deep Dives
+
+
+1) Token streaming
+- SSE fits one-way token delivery while ordinary HTTP handles prompt submission and cancellation.
+- WebSockets support richer bidirectional interactions but require additional connection lifecycle handling.
+- Flush small chunks with sequencing and terminal events; proxy buffering must not delay the whole response until completion.
+
+2) Reconnect and deploy recovery
+- Separate generation workers from connection servers so a gateway restart does not terminate the underlying run.
+- Redis Pub/Sub is useful for live events but cannot replay messages missed while disconnected.
+- A bounded durable stream such as Redis Streams can retain ordered chunks and resume after a cursor.
+- Persist final output separately and define retention limits; clients older than the replay window fetch the saved result or current snapshot.
+
+3) GPU scheduling
+- A queue absorbs bursts and separates admission from inference capacity.
+- Continuous batching groups active sequences efficiently, adding and removing requests as they start or finish.
+- Bound queue wait, token budgets, and GPU memory use; large contexts and long outputs cost more than short requests.
+- Apply backpressure before the queue becomes an unlimited promise of future GPU work.
+
+4) Fairness and context cost
+- Use per-user and cost-aware quotas rather than only a flat request count.
+- Weighted priorities can improve paid-tier service while preserving capacity for other users.
+- Prefix caching reuses identical context work; rolling summaries reduce context length but can omit details.
+- Retain recent turns and important state deliberately, and separate summary storage from the original durable conversation.
+- Cancellation must stop scheduling or generation and release GPU/KV-cache resources; closing SSE alone does not guarantee that.
+
+Final Design
+- Durable conversations and run state feed a quota-aware inference queue.
+- GPU workers generate independently of the connection tier, with replayable stream events supporting reconnects.
+- Explicit run lifecycle, bounded context, and cost-aware scheduling connect a responsive UI to finite inference capacity.

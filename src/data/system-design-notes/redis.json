@@ -1,0 +1,148 @@
+{
+  "title": "Redis",
+  "sections": [
+    {
+      "title": "Overview",
+      "level": 3,
+      "points": [
+        "Redis is an in-memory data-structure server commonly used for caching, counters, rankings, coordination, and messaging.",
+        "Its speed does not remove the need to choose persistence, replication, eviction, and failure semantics for the role it plays."
+      ],
+      "diagrams": []
+    },
+    {
+      "title": "Redis Basics",
+      "level": 3,
+      "points": [
+        "Keys address strings, hashes, lists, sets, sorted sets, and other structures with operations performed near the data.",
+        "TTL expires individual keys; eviction policies reclaim memory when capacity is reached.",
+        "Atomic commands and short scripts can combine checks and updates without a client-side race.",
+        "Long scripts or large blocking operations can delay unrelated clients, so keep request work bounded."
+      ],
+      "diagrams": [
+        {
+          "filename": "01.svg",
+          "caption": "Redis logical model",
+          "revision": "65845aa0ba6c",
+          "width": 557.1328125,
+          "height": 415.31640625
+        }
+      ]
+    },
+    {
+      "title": "Infrastructure Configurations",
+      "level": 3,
+      "points": [
+        "A standalone instance is simple but has one capacity and failure boundary.",
+        "Replication provides copies and failover options; asynchronous replicas may lag and recent writes can be lost during promotion.",
+        "Cluster partitioning spreads keys across hash slots. Multi-key operations often require related keys to share a slot.",
+        "Snapshot or append-only persistence improves recovery, with durability and latency depending on configuration."
+      ],
+      "diagrams": [
+        {
+          "filename": "02.svg",
+          "caption": "Redis infrastructure configurations",
+          "revision": "85876c7fe676",
+          "width": 687.5981597900391,
+          "height": 698.82421875
+        }
+      ]
+    },
+    {
+      "title": "Performance and Caching",
+      "level": 3,
+      "points": [
+        "Cache frequently reused values with keys that include relevant parameters and authorization scope.",
+        "Define cache-aside or update behavior, TTL, invalidation, and protection against concurrent miss storms.",
+        "Memory capacity, value size, network traffic, and hot keys often matter more than average command speed.",
+        "Use batching or pipelining to reduce round trips where operations permit it."
+      ],
+      "diagrams": [
+        {
+          "filename": "03.svg",
+          "caption": "Redis as a cache",
+          "revision": "8d82c910c308",
+          "width": 489.1484375,
+          "height": 409.30027894016496
+        }
+      ]
+    },
+    {
+      "title": "Distributed Locks",
+      "level": 3,
+      "points": [
+        "A basic lease uses SET with NX and an expiry plus a unique owner token.",
+        "Release only if the token still matches; blindly deleting a lock can remove a newer owner's lease.",
+        "Lease expiry does not stop a paused worker from resuming. Protected resources need fencing or another way to reject stale operations.",
+        "Do not assume a Redis lock makes a payment or database update transactionally safe across failures."
+      ],
+      "diagrams": []
+    },
+    {
+      "title": "Leaderboards, Rate Limiting, and Proximity",
+      "level": 3,
+      "points": [
+        "Sorted sets support score updates, ranked ranges, and rank lookup for leaderboards.",
+        "Define ties and keep durable score sources so the ranking cache can be rebuilt.",
+        "Atomic scripts support token buckets or window accounting; shared keys coordinate limits across API instances.",
+        "Geospatial commands support nearby searches, but location freshness and filtering still belong to the application."
+      ],
+      "diagrams": []
+    },
+    {
+      "title": "Streams and Pub/Sub",
+      "level": 3,
+      "points": [
+        "Streams retain ordered entries with IDs and support consumer groups, pending work, acknowledgements, and replay within retention.",
+        "Pub/Sub delivers live messages to current subscribers and does not retain missed messages for later recovery.",
+        "Choose Streams or another durable log when reconnects or worker crashes must recover work.",
+        "A queue or event log still needs idempotent consumers because repeated delivery can occur.",
+        "Building custom pub/sub from ordinary keys or lists creates subscription, cleanup, and fanout problems already handled by dedicated primitives."
+      ],
+      "diagrams": [
+        {
+          "filename": "04.svg",
+          "caption": "Redis streams and consumer groups",
+          "revision": "7ed13a29d24a",
+          "width": 509.5016987238172,
+          "height": 367.68359375
+        },
+        {
+          "filename": "05.svg",
+          "caption": "Redis Pub/Sub",
+          "revision": "1c6a96afeeb8",
+          "width": 721.72265625,
+          "height": 688.73828125
+        }
+      ]
+    },
+    {
+      "title": "Hot Keys",
+      "level": 3,
+      "points": [
+        "Sharding distributes different keys; one heavily accessed key can still overload its owner.",
+        "Replicate read-heavy hot values, use bounded local caches, or split aggregatable counters where semantics allow.",
+        "Local copies introduce invalidation and freshness tradeoffs; they do not provide automatic strong consistency."
+      ],
+      "diagrams": [
+        {
+          "filename": "06.svg",
+          "caption": "Hot key issue",
+          "revision": "1897e27e7bb4",
+          "width": 346.44747110347487,
+          "height": 350.86328125
+        }
+      ]
+    },
+    {
+      "title": "When Not to Use and Summary",
+      "level": 3,
+      "points": [
+        "Avoid treating an evicting cache as the sole durable record for critical data.",
+        "Large cold datasets, complex relational queries, and heavy multi-key transactions may fit another store better.",
+        "State the data structure, access pattern, failure behavior, and memory strategy when proposing Redis, rather than using it as a generic fast box."
+      ],
+      "diagrams": []
+    }
+  ]
+}

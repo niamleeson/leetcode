@@ -1,0 +1,45 @@
+Overview
+- DynamoDB is a managed key-value and document database whose efficiency depends heavily on access-pattern and key design.
+- Managed scaling reduces operational work but does not eliminate hot partitions, query limits, or consistency choices.
+
+The Data Model
+- A partition key distributes items; an optional sort key orders related items within that key.
+- GetItem addresses one item, while Query reads an identified partition with optional sort-key conditions.
+- Scan examines a broad set of data and is usually unsuitable for a frequent high-scale lookup.
+- Use sort-key prefixes or time ranges to support explicit query patterns while keeping item collections bounded.
+
+Secondary Indexes
+- Global secondary indexes provide alternative partition and sort keys with their own capacity and eventual-consistency behavior.
+- Local secondary indexes share the base partition key and offer another sort order, with constraints that must be planned when creating the table.
+- Every index adds storage and write work; project only the fields required by its queries.
+- Filtering after a query is not the same as narrowing the key lookup and can still consume reads for discarded items.
+
+Accessing Data
+- Use conditional writes for invariants such as version matching or claiming an available item.
+- Atomic updates can change counters without a client read-modify-write race.
+- Transactions coordinate supported multi-item operations at additional cost and with service limits.
+- Batch APIs reduce request overhead but require handling partial failures and retrying unprocessed items.
+- Use continuation keys for pagination instead of assuming one request returns an unlimited partition.
+
+Consistency, Scalability, and Availability
+- Choose eventual or strongly consistent reads where the table/API supports them; global secondary indexes do not offer the same strong-read option.
+- Regional replication and global-table configurations have specific consistency semantics; do not generalize one mode to every deployment.
+- Spread key traffic and avoid a single tenant or newest-time bucket receiving most writes.
+- Adaptive capacity helps uneven load but cannot make a single unlimited hot key free of constraints.
+
+Security and Capacity
+- Apply least-privilege IAM, encryption, and tenant-aware authorization in the application.
+- On-demand and provisioned capacity trade operational planning against usage cost and traffic predictability.
+- Item size, consistency choice, indexes, and access pattern affect capacity consumption.
+- Monitor throttling and retry with backoff; unbounded immediate retries amplify overload.
+
+DAX and Streams
+- DAX caches supported reads to reduce latency and read load, with cache freshness semantics that must fit the workload.
+- Streams expose item changes for derived views, notifications, or other event processing.
+- Consumers must handle repeated delivery and retain recovery state; stream retention is finite.
+- TTL expiration is asynchronous housekeeping, so applications must check expiry themselves when exact validity matters.
+
+When to Use and Limitations
+- DynamoDB suits predictable key-based access, high scale, and teams that value managed infrastructure.
+- Ad hoc joins, broad analytics, and frequently changing query requirements can be awkward or costly.
+- Describe the primary keys, index queries, conditional operations, and hot-key strategy before choosing the service.

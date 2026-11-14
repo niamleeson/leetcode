@@ -192,7 +192,7 @@ export const ariaReferenceChallenge: ReactChallenge = {
   complexity: 'This reference concerns accessible semantics and interaction. Algorithmic complexity depends on the component using these attributes, not the attributes themselves. In an interview, explain the accessible name, relevant state, keyboard controls, and focus behavior.',
   integrationNotes: [
     'The examples are JSX fragments. Keep the aria-* attribute names hyphenated in React and supply the surrounding state and event handlers.',
-    'For a full autocomplete implementation, see React Autocomplete Search under Other interview questions. These snippets focus on the relevant accessibility attributes.',
+    'Autocomplete also requires keyboard navigation, option state, and focus management. These snippets explain the accessibility attributes; the component must implement the corresponding behavior.',
   ],
   testCases: [
     { action: 'An icon-only button has no visible action text.', expected: 'Supply an accessible name, such as aria-label="Close dialog", and hide redundant decoration.' },

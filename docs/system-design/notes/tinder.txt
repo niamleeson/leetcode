@@ -1,0 +1,68 @@
+Understanding the Problem
+- Build profile discovery and mutual matching based on preferences, distance, and swipe decisions.
+- Candidate generation can be eventually consistent; recording swipes and creating a mutual match need stronger coordination.
+
+Functional Requirements
+- Create a profile and configure preferences and maximum distance.
+- Browse a stack of eligible profiles.
+- Swipe yes or no once per candidate, and notify both users when their positive swipes form a match.
+- Messaging after a match and recommendation-model training are outside the core design.
+
+Non-functional Requirements
+- Keep swipe acknowledgement and stack retrieval fast.
+- Avoid missing a mutual match when users swipe concurrently, and avoid duplicate match records or notifications.
+- Support geographic queries and large swipe histories without scanning every profile or historical swipe.
+
+Core Entities
+- UserProfile stores preferences, location, and profile metadata; photos live in object storage.
+- Swipe stores swiper, target, decision, and time.
+- Match stores a canonical unordered pair of users and creation time.
+- CandidateStack is a derived, refreshable list of potential profiles for a user.
+
+API
+- Update profile, preferences, and location for the authenticated account.
+- Fetch a bounded candidate stack with a cursor or replenishment token.
+- Submit a swipe with target user ID, decision, and retry-safe request ID.
+- List matches and deliver match notifications through a persistent connection or push service.
+
+High-Level Design
+
+
+1) Profiles and candidate stacks
+- Store profile metadata durably and serve images through object storage and a CDN.
+- Use geographic and preference indexes to generate candidates rather than scanning all users.
+- Filter blocked, ineligible, and previously swiped profiles before presenting the stack.
+- Precompute a limited stack for active users, then replenish as it is consumed or preferences change.
+
+2) Swipes and matches
+- Persist the swipe and check the reverse positive swipe.
+- Coordinate both sides so simultaneous swipes cannot each miss the other's write and permanently lose the match.
+- Use a canonical pair key and a unique match constraint; retries must return the same match rather than insert another.
+- Publish a match event reliably and deduplicate notifications independently from the match record.
+
+Deep Dives
+
+
+1) Consistent low-latency swiping
+- Transactions can coordinate swipe and match updates when the relevant state fits one database boundary.
+- With partitioned storage, choose a canonical pair partition so both users' decisions can be checked together.
+- Cassandra conditional operations can help within a partition, but they have coordination cost and are not general cross-partition transactions.
+- Redis atomic scripts provide another coordination option, but persistence, failover, and replay must protect durable match state.
+- Periodic polling alone is slow and creates repeated work; use it only as recovery or reconciliation if needed.
+
+2) Fast candidate generation
+- Indexed real-time queries reflect new preferences quickly but become expensive under heavy repeated traffic.
+- Precomputed stacks make reads cheap but can become stale when users move or change preferences.
+- Combine a cached candidate pool with final eligibility checks and background replenishment.
+- Keep pool sizes bounded, expire old stacks, and prioritize active users rather than generating stacks for every dormant account.
+
+3) Exclude previous swipes
+- Querying the entire swipe history for every stack request is expensive.
+- Cache recent swipe membership or maintain a compact lookup structure alongside the durable swipe store.
+- A Bloom filter can cheaply reject previously seen candidates, but false positives may hide an unseen profile; it cannot enumerate the history.
+- Decide whether that tradeoff is acceptable, and keep exact records for correctness-sensitive match decisions.
+
+Final Design
+- Indexed profiles and a refreshable candidate cache support discovery.
+- An atomic, retry-safe swipe/match path owns mutual-match correctness.
+- Durable events drive notifications, while cached swipe membership reduces repeated profile filtering work.

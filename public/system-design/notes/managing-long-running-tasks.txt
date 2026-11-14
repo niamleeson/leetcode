@@ -1,0 +1,60 @@
+The Problem
+- Work such as video processing, crawling, report generation, and large fanout can exceed request deadlines or vary greatly in duration.
+- Running it synchronously ties client connections and API capacity to the slowest execution.
+
+The Solution
+- Persist a job, enqueue a reference, and return a job ID quickly.
+- Independent workers execute the work and store status and results.
+- Clients poll status or receive completion events, keeping acceptance distinct from completion.
+
+Trade-offs
+- Queues absorb bursts and allow worker capacity to scale independently from the API.
+- Retries and recovery improve reliability, but introduce eventual completion, duplicate attempts, and operational state to manage.
+- A queue cannot provide unlimited capacity; admission and backlog limits still matter.
+
+How to Implement
+
+
+1) Message queue
+- Choose durability, delivery semantics, ordering, visibility timeout, and dead-letter behavior from the workload.
+- Put IDs and storage references in messages, not large media payloads.
+- Publish reliably after durable job creation, using an outbox or equivalent recovery mechanism where needed.
+
+2) Workers
+- Claim work, mark the attempt, execute it under resource and time limits, and persist the result.
+- Acknowledge only after the required output is safe.
+- Renew a lease for long tasks, and ensure a stale worker cannot overwrite a newer attempt's result.
+- Separate resource classes when CPU, GPU, memory-heavy, and lightweight tasks require different capacity.
+
+3) End-to-end flow
+- The API validates and persists a pending job, then ensures it reaches the queue.
+- Workers transition jobs through running and terminal states using conditional updates.
+- Completion notifications are retryable hints; the status API remains authoritative after reconnects.
+- Store progress only at useful checkpoints rather than writing on every tiny unit of work.
+
+Common Deep Dives
+
+
+1) Failure and repeated failure
+- Retry transient errors with exponential backoff and jitter.
+- Bound attempts and send persistent failures to a dead-letter or inspection state with the original error context.
+- A worker crash causes lease expiry or queue redelivery; recover from saved checkpoints where useful.
+
+2) Duplicate work
+- At-least-once delivery can repeat a task even after its side effect succeeded.
+- Use stable job IDs, idempotent output paths, and downstream idempotency keys.
+- Recording 'started' alone cannot safely suppress retries forever, because the first worker may have crashed.
+
+3) Backpressure and mixed workloads
+- Scale from queue age and resource utilization, and cap admission when completion deadlines cannot be met.
+- Separate urgent and bulk queues or reserve capacity so slow jobs do not block small urgent work.
+- Rate-limit external dependencies independently from worker count.
+
+4) Dependencies
+- Represent dependent jobs as a durable graph or workflow rather than making workers wait indefinitely on each other.
+- Trigger a stage only when required predecessors have completed and make the trigger idempotent.
+- Define cancellation, compensation, and failure propagation for partial workflows.
+
+Conclusion
+- Durable job state, reliable queue publication, leased workers, and retry-safe side effects form the complete pattern.
+- Explicit backpressure and progress reporting keep asynchronous work usable when the system is busy or partially failing.

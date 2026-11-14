@@ -1,0 +1,77 @@
+Understanding the Problem
+- Design a coding-practice platform that serves problems, runs submitted solutions, and maintains competition standings.
+- User code is untrusted and computationally expensive; execution must be isolated from the API and primary data stores.
+
+Functional Requirements
+- Browse problems and view statements, examples, and starter code.
+- Submit a solution in a supported language and receive test results.
+- View a live competition leaderboard.
+- Retain submission status so users can recover results after reconnecting.
+
+Non-functional Requirements
+- Return submission acceptance quickly and execute jobs with bounded queueing delay.
+- Isolate user code, limit resource usage, and prevent unauthorized network or filesystem access.
+- Support competitions with around 100,000 users and sudden submission bursts.
+- Persist submissions and results reliably; retries must not award competition credit twice.
+
+Core Entities
+- Problem includes statement, language templates, constraints, and references to hidden test cases.
+- Submission records user, problem, source code, language, status, and timestamps.
+- TestResult records pass/fail, runtime, memory, and sanitized diagnostics.
+- Contest and ScoreEntry define participation, scoring, penalties, and ordering.
+
+API
+- List problems with filters and pagination, and fetch a problem by ID.
+- Submit code and receive a submission ID immediately after durable acceptance.
+- Poll submission status or subscribe to updates until a terminal result is available.
+- Query the contest leaderboard and the current user's rank with bounded pagination.
+
+High-Level Design
+
+
+1) Problem browsing
+- Read problem metadata from a database and cache frequently viewed statements.
+- Keep hidden tests private; only trusted execution workers receive them.
+- Editing code happens in the client until submission, reducing unnecessary server writes.
+
+2) Execute submissions
+- Persist a pending submission, enqueue its ID, and let a worker claim the job.
+- Running code inside the API process allows malicious or accidental behavior to affect the entire service.
+- Use an isolated execution environment such as a hardened container, sandbox, or microVM with explicit CPU, memory, process, and time limits.
+- A normal container alone is not a complete security boundary; restrict privileges, syscalls, mounts, and outbound networking.
+- Store results before acknowledging the job, and make repeat processing safe for the same submission ID.
+
+3) Competition leaderboard
+- Accepted results update contest score and penalty state according to explicit rules.
+- Publish score changes to a derived ranking view rather than sorting every participant on every read.
+- Keep authoritative results durable so the leaderboard can be rebuilt after a cache failure.
+
+Deep Dives
+
+
+1) Isolation and security
+- Start each execution with a clean filesystem and no application credentials.
+- Enforce execution deadlines, output limits, memory limits, and process limits; terminate the whole process tree on timeout.
+- Prevent user code from accessing hidden tests outside the intended harness or reaching internal services.
+- Sanitize errors and output before rendering them in the browser.
+
+2) Efficient rankings
+- A Redis sorted set provides score updates, top ranges, and rank lookup without repeatedly sorting the entire contest.
+- Encode tie-breaking rules explicitly; score alone may not capture time penalties or equal-score ordering.
+- Periodic polling is sufficient for many leaderboards; use push updates when the freshness requirement justifies persistent connections.
+
+3) Competition bursts
+- A durable queue buffers submissions and separates API capacity from execution capacity.
+- Scale worker pools using queue depth and job age; prewarm language runtimes for predictable latency.
+- Apply per-user limits and fair scheduling so one participant cannot monopolize the workers.
+- Retry transient infrastructure failures, but do not repeatedly retry a deterministic compile error or time-limit failure.
+
+4) Test-case execution
+- Compile once where applicable, then run cases through a controlled harness.
+- Decide whether to stop at the first failure or report all results; keep hidden expected outputs private.
+- Normalize only what the problem permits, and measure resources consistently across runs.
+
+Final Design
+- Cached problem reads sit beside a durable submission queue and isolated worker fleet.
+- Results drive retry-safe score updates and a rebuildable leaderboard cache.
+- Security boundaries, queue fairness, and resource limits are as important as raw execution throughput.

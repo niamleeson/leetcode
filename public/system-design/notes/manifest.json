@@ -1,0 +1,345 @@
+[
+  {
+    "slug": "bitly",
+    "words": 1316,
+    "sections": 13,
+    "points": 62,
+    "diagrams": 8
+  },
+  {
+    "slug": "dropbox",
+    "words": 794,
+    "sections": 14,
+    "points": 46,
+    "diagrams": 11
+  },
+  {
+    "slug": "yelp",
+    "words": 696,
+    "sections": 14,
+    "points": 42,
+    "diagrams": 10
+  },
+  {
+    "slug": "local-delivery-service",
+    "words": 606,
+    "sections": 12,
+    "points": 38,
+    "diagrams": 14
+  },
+  {
+    "slug": "ticketmaster",
+    "words": 675,
+    "sections": 14,
+    "points": 43,
+    "diagrams": 10
+  },
+  {
+    "slug": "instagram",
+    "words": 671,
+    "sections": 14,
+    "points": 42,
+    "diagrams": 12
+  },
+  {
+    "slug": "fb-news-feed",
+    "words": 657,
+    "sections": 13,
+    "points": 40,
+    "diagrams": 12
+  },
+  {
+    "slug": "tinder",
+    "words": 625,
+    "sections": 13,
+    "points": 41,
+    "diagrams": 13
+  },
+  {
+    "slug": "leetcode",
+    "words": 678,
+    "sections": 15,
+    "points": 46,
+    "diagrams": 13
+  },
+  {
+    "slug": "whatsapp",
+    "words": 640,
+    "sections": 13,
+    "points": 39,
+    "diagrams": 11
+  },
+  {
+    "slug": "strava",
+    "words": 581,
+    "sections": 14,
+    "points": 39,
+    "diagrams": 9
+  },
+  {
+    "slug": "distributed-cache",
+    "words": 586,
+    "sections": 14,
+    "points": 38,
+    "diagrams": 10
+  },
+  {
+    "slug": "rate-limiter",
+    "words": 652,
+    "sections": 15,
+    "points": 41,
+    "diagrams": 11
+  },
+  {
+    "slug": "online-auction",
+    "words": 600,
+    "sections": 14,
+    "points": 39,
+    "diagrams": 10
+  },
+  {
+    "slug": "youtube",
+    "words": 604,
+    "sections": 14,
+    "points": 42,
+    "diagrams": 10
+  },
+  {
+    "slug": "job-scheduler",
+    "words": 619,
+    "sections": 13,
+    "points": 39,
+    "diagrams": 12
+  },
+  {
+    "slug": "fb-live-comments",
+    "words": 579,
+    "sections": 13,
+    "points": 39,
+    "diagrams": 10
+  },
+  {
+    "slug": "news-aggregator",
+    "words": 628,
+    "sections": 14,
+    "points": 42,
+    "diagrams": 12
+  },
+  {
+    "slug": "price-tracking-service",
+    "words": 591,
+    "sections": 14,
+    "points": 41,
+    "diagrams": 12
+  },
+  {
+    "slug": "notification-system",
+    "words": 576,
+    "sections": 14,
+    "points": 40,
+    "diagrams": 12
+  },
+  {
+    "slug": "youtube-top-k",
+    "words": 628,
+    "sections": 14,
+    "points": 39,
+    "diagrams": 18
+  },
+  {
+    "slug": "uber",
+    "words": 583,
+    "sections": 14,
+    "points": 40,
+    "diagrams": 10
+  },
+  {
+    "slug": "robinhood",
+    "words": 559,
+    "sections": 13,
+    "points": 38,
+    "diagrams": 12
+  },
+  {
+    "slug": "google-docs",
+    "words": 588,
+    "sections": 13,
+    "points": 38,
+    "diagrams": 13
+  },
+  {
+    "slug": "web-crawler",
+    "words": 567,
+    "sections": 11,
+    "points": 37,
+    "diagrams": 6
+  },
+  {
+    "slug": "ad-click-aggregator",
+    "words": 587,
+    "sections": 14,
+    "points": 39,
+    "diagrams": 9
+  },
+  {
+    "slug": "fb-post-search",
+    "words": 594,
+    "sections": 15,
+    "points": 40,
+    "diagrams": 17
+  },
+  {
+    "slug": "payment-system",
+    "words": 613,
+    "sections": 14,
+    "points": 42,
+    "diagrams": 12
+  },
+  {
+    "slug": "metrics-monitoring",
+    "words": 566,
+    "sections": 14,
+    "points": 39,
+    "diagrams": 14
+  },
+  {
+    "slug": "online-chess",
+    "words": 604,
+    "sections": 15,
+    "points": 42,
+    "diagrams": 9
+  },
+  {
+    "slug": "chatgpt",
+    "words": 645,
+    "sections": 14,
+    "points": 42,
+    "diagrams": 12
+  },
+  {
+    "slug": "flash-sale",
+    "words": 630,
+    "sections": 14,
+    "points": 43,
+    "diagrams": 14
+  },
+  {
+    "slug": "real-time-updates",
+    "words": 638,
+    "sections": 13,
+    "points": 36,
+    "diagrams": 19
+  },
+  {
+    "slug": "dealing-with-contention",
+    "words": 592,
+    "sections": 10,
+    "points": 33,
+    "diagrams": 6
+  },
+  {
+    "slug": "multi-step-processes",
+    "words": 558,
+    "sections": 12,
+    "points": 34,
+    "diagrams": 6
+  },
+  {
+    "slug": "scaling-reads",
+    "words": 585,
+    "sections": 12,
+    "points": 34,
+    "diagrams": 8
+  },
+  {
+    "slug": "scaling-writes",
+    "words": 537,
+    "sections": 11,
+    "points": 33,
+    "diagrams": 11
+  },
+  {
+    "slug": "handling-large-blobs",
+    "words": 527,
+    "sections": 10,
+    "points": 32,
+    "diagrams": 7
+  },
+  {
+    "slug": "managing-long-running-tasks",
+    "words": 513,
+    "sections": 13,
+    "points": 33,
+    "diagrams": 10
+  },
+  {
+    "slug": "redis",
+    "words": 564,
+    "sections": 9,
+    "points": 33,
+    "diagrams": 6
+  },
+  {
+    "slug": "elasticsearch",
+    "words": 552,
+    "sections": 10,
+    "points": 34,
+    "diagrams": 5
+  },
+  {
+    "slug": "kafka",
+    "words": 517,
+    "sections": 8,
+    "points": 30,
+    "diagrams": 9
+  },
+  {
+    "slug": "temporal",
+    "words": 506,
+    "sections": 10,
+    "points": 31,
+    "diagrams": 9
+  },
+  {
+    "slug": "api-gateway",
+    "words": 523,
+    "sections": 10,
+    "points": 32,
+    "diagrams": 1
+  },
+  {
+    "slug": "cassandra",
+    "words": 508,
+    "sections": 9,
+    "points": 32,
+    "diagrams": 10
+  },
+  {
+    "slug": "dynamodb",
+    "words": 501,
+    "sections": 8,
+    "points": 30,
+    "diagrams": 5
+  },
+  {
+    "slug": "postgresql",
+    "words": 586,
+    "sections": 9,
+    "points": 36,
+    "diagrams": 1
+  },
+  {
+    "slug": "flink",
+    "words": 544,
+    "sections": 9,
+    "points": 35,
+    "diagrams": 5
+  },
+  {
+    "slug": "zookeeper",
+    "words": 545,
+    "sections": 10,
+    "points": 32,
+    "diagrams": 11
+  }
+]
