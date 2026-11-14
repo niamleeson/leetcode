@@ -26,11 +26,14 @@ const articles = JSON.parse(data.slice(data.indexOf('=')+1,data.lastIndexOf('as 
     const layout=await page.locator('iframe').evaluate(f=>{
       const d=f.contentDocument,w=f.contentWindow,content=d.querySelector('#markdown').getBoundingClientRect();
       return {padding:w.getComputedStyle(d.body).padding,margin:w.getComputedStyle(d.body).margin,
+        overflow:w.getComputedStyle(d.documentElement).overflow,scrollHeight:d.documentElement.scrollHeight,frameHeight:f.clientHeight,
         left:content.left,width:content.width,frameWidth:f.clientWidth,border:getComputedStyle(f).borderWidth};
     });
     assert.equal(layout.padding,'0px');
     assert.equal(layout.margin,'0px');
     assert.equal(layout.border,'0px');
+    assert.equal(layout.overflow,'hidden');
+    assert.ok(layout.scrollHeight<=layout.frameHeight+1,'Full article fits its frame without an inner scrollbar');
     assert.equal(layout.left,0);
     assert.ok(Math.abs(layout.width-layout.frameWidth)<=1);
     return page.frameLocator('iframe');
@@ -108,6 +111,7 @@ const articles = JSON.parse(data.slice(data.indexOf('=')+1,data.lastIndexOf('as 
       assert.equal(check.closed,0,article.title);
       assert.equal(check.excluded,false,article.title);
       await page.setViewportSize({width:390,height:844});
+      await page.waitForFunction(()=>{const f=document.querySelector('iframe');return f.contentDocument.documentElement.scrollHeight<=f.clientHeight+1;});
       assert.ok(await page.locator('iframe').evaluate(f=>f.contentDocument.documentElement.scrollWidth<=f.clientWidth+1),article.title+' full article mobile');
       await page.setViewportSize({width:1280,height:900});
     }

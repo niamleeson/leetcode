@@ -37,7 +37,8 @@ function ArticleFrame({ article }: { article: Article }) {
     const readerStyle = doc.createElement('style');
     readerStyle.textContent = `
       html, body { margin: 0 !important; padding: 0 !important; background: transparent !important; }
-      body { color: rgb(var(--foreground)); }
+      html { overflow: hidden !important; }
+      body { display: flow-root !important; color: rgb(var(--foreground)); }
       #markdown { width: 100%; max-width: none !important; margin: 0 !important; padding: 0 !important; }
       #markdown img { background: white; }
     `;
@@ -51,7 +52,7 @@ function ArticleFrame({ article }: { article: Article }) {
     themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
     const resize = () => setHeight(Math.max(640, Math.ceil(doc.body.getBoundingClientRect().height)));
     const observer = new ResizeObserver(resize);
-    observer.observe(content);
+    observer.observe(doc.body);
     const handleClick = (event: MouseEvent) => {
       const target = event.target as Element | null;
       const anchor = target?.closest<HTMLAnchorElement>('a[href]');
