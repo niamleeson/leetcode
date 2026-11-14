@@ -1,27 +1,27 @@
 @@ bitly
 1) Create a short URL >> Create and return a short link
-- The client sends POST /urls with long_url and optional alias and expiration fields to the creation service through the gateway.
-- The service validates the destination and expiration. It rejects malformed input before allocating or writing a mapping.
-- For a generated code, the service obtains a unique ID from the allocator and Base62-encodes it. For a custom alias, it uses the requested alias as the candidate key.
-- The service inserts short_code, long_url, and expiration into the database using its uniqueness constraint. A preliminary availability check is not the reservation.
-- If insertion conflicts, a generated candidate is retried within a limit; a conflicting custom alias returns an error. No successful link is returned for a failed insert.
-- After the database confirms the write, the service returns the complete short URL. Later redirects can resolve it from durable storage even if the cache is empty.
+- The client sends POST /urls with long_url. The request can include custom_alias and expiration_date. The gateway sends the request to the creation service.
+- The service validates the original URL and expiration date. It rejects invalid input before it assigns an ID or writes a mapping.
+- For a generated short code, the service gets a unique ID from the allocator. It encodes the ID in Base62. For a custom alias, the service uses the requested value as the short code.
+- The service inserts short_code, long_url, and expiration data into the database. The uniqueness constraint rejects duplicate short codes. An availability check does not reserve a short code.
+- If a generated short code already exists, the service tries another code. The service stops after the retry limit. If a custom alias already exists, the service returns an error.
+- After the database confirms the write, the service returns the complete short URL. The database can then supply the mapping when the cache is empty. If the write fails, the service does not return a successful result.
 
 2) Redirect to the original URL >> Resolve a short link through the cache and database
-- The browser requests GET /abc123 from the short-link domain; the gateway routes the request to the redirect service.
-- The service looks for abc123 in the cache. On a hit, it reads the cached destination and expiration together.
-- On a miss, the service queries the database by short_code. If no record exists, it returns 404 and stops the redirect flow.
-- The service checks expiration before using either result. An expired mapping returns 410 instead of being redirected, even if cleanup has not deleted it.
-- For a valid database result, the service may populate the cache with a TTL no longer than the mapping's remaining lifetime. Cache population failure does not invalidate the durable mapping.
-- The service returns a 302 response with the original URL in Location and explicit cache-control rules.
-- The browser receives that response and makes a separate request to the original destination; the shortening service does not fetch and relay the destination page.
+- The browser sends GET /abc123 to the domain of the service. The gateway sends the request to the redirect service.
+- The service looks for abc123 in the cache. On a cache hit, it reads the original URL and expiration date together.
+- On a cache miss, the service queries the database by short_code. If no record exists, the service returns 404. This ends the request.
+- The service validates expiration for the result from the cache or database. If the mapping has expired, the service returns 410. This rule also applies before the cleanup job deletes the record.
+- For a valid database result, the service can store a copy in the cache. Its TTL must not exceed the remaining lifetime of the short URL. If this cache write fails, the database mapping remains valid.
+- The service returns a 302 response. The Location header contains the original URL. The response includes explicit cache-control headers.
+- The browser receives the redirect response. Then it sends a separate request to the original URL. The short URL service does not download the destination page for the browser.
 
 1) Generate unique short codes >> Allocate a batch of counter IDs
-- A creation server asks the shared allocator to reserve a range, for example with an atomic INCRBY 1000 operation.
-- The allocator advances its high-water mark and returns the upper boundary. The server derives its exclusive range from that boundary.
-- Each local creation consumes one unused number from that range and encodes it as a candidate short code.
-- The database uniqueness constraint validates the candidate during insertion, including possible conflicts with custom aliases.
-- After a crash, unused numbers may be abandoned. A replacement must not reuse the old range unless ownership and allocator recovery make that safe.
+- A creation server requests a batch of IDs from the shared allocator. An atomic INCRBY 1000 operation can reserve this batch.
+- The allocator increases the counter by 1,000 in one atomic operation. It returns the new value as the upper limit. The server owns the 1,000 IDs that end at this value.
+- Each new mapping uses one unused ID from the range. The server encodes that ID in Base62 to make the proposed short code.
+- During insertion, the database uniqueness constraint rejects a duplicate short code. This constraint also prevents conflicts with custom aliases.
+- A server failure can leave unused IDs. A replacement must not reuse a range unless recovery proves that the replacement owns its unused IDs.
 
 @@ dropbox
 1) Upload files >> Upload a file and make it available
