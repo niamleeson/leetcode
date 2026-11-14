@@ -1,11 +1,11 @@
 [
   {
     "slug": "bitly",
-    "words": 2134,
+    "words": 2199,
     "sections": 13,
-    "points": 80,
-    "processes": 3,
-    "processSteps": 18,
+    "points": 91,
+    "processes": 6,
+    "processSteps": 29,
     "diagrams": 8
   },
   {

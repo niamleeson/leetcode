@@ -90,6 +90,7 @@ def main():
         for block in re.split(r'\n\s*\n', processes[article['slug']].strip()):
             heading, *lines = block.splitlines()
             section_title, separator, flow_title = heading.partition(' >> ')
+            flow_title, _, image_ids = flow_title.partition(' | ')
             targets = [s for s in sections if s['title'] == section_title]
             if not separator or not flow_title or len(targets) != 1:
                 raise ValueError(f"Invalid process location: {article['slug']} / {heading}")
@@ -97,7 +98,18 @@ def main():
                 raise ValueError(f'Expected at least three complete process steps: {heading}')
             if any(f['title'] == flow_title for f in targets[0]['flows']):
                 raise ValueError(f'Duplicate process title: {heading}')
-            targets[0]['flows'].append({'title': flow_title, 'steps': [line[2:] for line in lines]})
+            flow = {'title': flow_title, 'steps': [line[2:] for line in lines]}
+            if image_ids:
+                ids = [int(value.strip()) for value in image_ids.split(',')]
+                if len(set(ids)) != len(ids) or any(i < 1 or i > len(originals) for i in ids):
+                    raise ValueError(f'Invalid process diagrams: {heading}')
+                filenames = [originals[i - 1]['filename'] for i in ids]
+                available = {d['filename'] for d in targets[0]['diagrams']}
+                assigned = {name for f in targets[0]['flows'] for name in f.get('diagramFilenames', [])}
+                if not set(filenames) <= available or set(filenames) & assigned:
+                    raise ValueError(f'Process diagram belongs to another section or flow: {heading}')
+                flow['diagramFilenames'] = filenames
+            targets[0]['flows'].append(flow)
         note = {'title': article['title'], 'sections': sections}
         (OUTPUT / (article['slug'] + '.json')).write_text(json.dumps(note, ensure_ascii=False, indent=2) + '\n', encoding='utf8', newline='\n')
         blocks = []

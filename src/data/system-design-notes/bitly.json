@@ -92,7 +92,7 @@
       "title": "1) Create a short URL",
       "level": 4,
       "points": [
-        "The initial design has a client, an application server, and a database. The client sends POST /urls to the server.",
+        "The initial design has a client, a Primary Server, and a database. The client sends POST /urls to the Primary Server.",
         "The server validates the original URL, custom alias, and expiration date.",
         "If the request has a custom alias, the server uses it as the proposed short code. Otherwise, the server generates a short code. The deep dive explains code generation.",
         "The server inserts the mapping. A database uniqueness constraint prevents duplicate short codes, including conflicts between simultaneous requests.",
@@ -114,12 +114,14 @@
         {
           "title": "Create and return a short link",
           "steps": [
-            "The client sends POST /urls with long_url. The request can include custom_alias and expiration_date. The gateway sends the request to the creation service.",
-            "The service validates the original URL and expiration date. It rejects invalid input before it assigns an ID or writes a mapping.",
-            "For a generated short code, the service gets a unique ID from the allocator. It encodes the ID in Base62. For a custom alias, the service uses the requested value as the short code.",
-            "The service inserts short_code, long_url, and expiration data into the database. The uniqueness constraint rejects duplicate short codes. An availability check does not reserve a short code.",
-            "If a generated short code already exists, the service tries another code. The service stops after the retry limit. If a custom alias already exists, the service returns an error.",
-            "After the database confirms the write, the service returns the complete short URL. The database can then supply the mapping when the cache is empty. If the write fails, the service does not return a successful result."
+            "The client sends POST /urls to the Primary Server. The request contains long_url and can include custom_alias and expiration_date.",
+            "The Primary Server validates the original URL.",
+            "If the client supplies a custom alias, the server validates its availability. Otherwise, the server generates a short code. The deep dive explains the generation methods.",
+            "The Primary Server stores the short code, original URL, and expiration date in the database.",
+            "After the database saves the mapping, the Primary Server returns the short URL to the client."
+          ],
+          "diagramFilenames": [
+            "03.svg"
           ]
         }
       ]
@@ -148,15 +150,16 @@
       ],
       "flows": [
         {
-          "title": "Resolve a short link through the cache and database",
+          "title": "Redirect through the database",
           "steps": [
-            "The browser sends GET /abc123 to the domain of the service. The gateway sends the request to the redirect service.",
-            "The service looks for abc123 in the cache. On a cache hit, it reads the original URL and expiration date together.",
-            "On a cache miss, the service queries the database by short_code. If no record exists, the service returns 404. This ends the request.",
-            "The service validates expiration for the result from the cache or database. If the mapping has expired, the service returns 410. This rule also applies before the cleanup job deletes the record.",
-            "For a valid database result, the service can store a copy in the cache. Its TTL must not exceed the remaining lifetime of the short URL. If this cache write fails, the database mapping remains valid.",
-            "The service returns a 302 response. The Location header contains the original URL. The response includes explicit cache-control headers.",
-            "The browser receives the redirect response. Then it sends a separate request to the original URL. The short URL service does not download the destination page for the browser."
+            "The browser sends GET /abc123 to the Primary Server.",
+            "The Primary Server looks up abc123 in the database.",
+            "The server compares the current time with the expiration date. If the mapping has expired, the server returns 410.",
+            "For a valid mapping, the Primary Server returns a 302 response. The Location header contains the original URL.",
+            "The browser receives the response. Then it sends a separate request to the original URL."
+          ],
+          "diagramFilenames": [
+            "04.svg"
           ]
         }
       ]
@@ -204,13 +207,28 @@
       ],
       "flows": [
         {
-          "title": "Allocate a batch of counter IDs",
+          "title": "Generate a short code with a hash",
           "steps": [
-            "A creation server requests a batch of IDs from the shared allocator. An atomic INCRBY 1000 operation can reserve this batch.",
-            "The allocator increases the counter by 1,000 in one atomic operation. It returns the new value as the upper limit. The server owns the 1,000 IDs that end at this value.",
-            "Each new mapping uses one unused ID from the range. The server encodes that ID in Base62 to make the proposed short code.",
-            "During insertion, the database uniqueness constraint rejects a duplicate short code. This constraint also prevents conflicts with custom aliases.",
-            "A server failure can leave unused IDs. A replacement must not reuse a range unless recovery proves that the replacement owns its unused IDs."
+            "The Primary Server normalizes the original URL before it calculates the hash.",
+            "The hash function calculates a fixed-size value from the normalized URL.",
+            "The Primary Server encodes this value in Base62. It takes a short prefix as the proposed short code. The article uses eight characters in its example.",
+            "The Primary Server inserts the mapping into the database. A uniqueness constraint rejects a duplicate short code.",
+            "If a collision occurs, the server tries again with a different salt. The retry count has a limit."
+          ],
+          "diagramFilenames": [
+            "05.svg"
+          ]
+        },
+        {
+          "title": "Generate a short code with a counter",
+          "steps": [
+            "The Primary Server requests the next value from the counter.",
+            "A Redis INCR operation increases the counter atomically. It returns a different value for each concurrent request.",
+            "The Primary Server encodes this value in Base62 to create the short code.",
+            "The Primary Server stores the mapping in the database. Then it returns the short URL to the client."
+          ],
+          "diagramFilenames": [
+            "06.svg"
           ]
         }
       ]
@@ -237,7 +255,21 @@
           "revision": "315e0f1e6b3c"
         }
       ],
-      "flows": []
+      "flows": [
+        {
+          "title": "Resolve a short link through the cache and database",
+          "steps": [
+            "The browser sends a redirect request to the Primary Server.",
+            "The Primary Server looks up the short code in the Redis cache.",
+            "On a cache hit, the server gets the original URL from the cache.",
+            "On a cache miss, the server reads the database. Then it stores the mapping in the cache for later requests.",
+            "For a valid mapping, the Primary Server returns a 302 response. The cache lifetime must not exceed the URL lifetime. Expiration still applies before the server returns a redirect."
+          ],
+          "diagramFilenames": [
+            "07.svg"
+          ]
+        }
+      ]
     },
     {
       "title": "3) Scale and keep the system available",
@@ -246,7 +278,7 @@
         "At 100 million daily users and five redirects per user, the service receives approximately 5,800 requests per second. A peak of 100 times this average gives approximately 580,000 requests per second.",
         "At 500 bytes per mapping, 1 billion mappings use approximately 500 GB. Indexes and replicas need additional storage. This storage estimate alone does not require sharding. Sharding divides data between database servers.",
         "If users create 100,000 URLs each day, the service receives approximately 1.2 creation requests per second. PostgreSQL is one option for the initial design. Performance tests determine whether the system needs shards.",
-        "A load balancer distributes requests across stateless application servers. The system can add servers as traffic increases. Creation and redirect services can scale separately when their capacity needs differ.",
+        "A load balancer distributes requests across stateless application servers. The system can add servers as traffic increases. The Write Service and Read Service can scale separately when their capacity needs differ.",
         "Replication and failover keep the service available during failures. Backups restore lost data. A backup does not replace failover. A replica can lag behind the primary database. The redirect service must use a current copy for a new short URL.",
         "A creation server can reserve a batch of IDs to reduce requests to the allocator. INCRBY 1000 returns the upper limit of a reserved range. The server uses the IDs in this range locally.",
         "ID ranges must not overlap. A server failure can leave unused IDs. Gaps in the ID sequence do not cause duplicate short codes.",
@@ -254,14 +286,25 @@
         "Each region can use a separate ID range. These ranges avoid coordination between regions for each write. Each region can use its own cache. The design must handle replication lag and apply the same expiration rules in each region."
       ],
       "diagrams": [],
-      "flows": []
+      "flows": [
+        {
+          "title": "Allocate a batch of counter IDs",
+          "steps": [
+            "A Write Service instance requests a batch of 1,000 IDs from the shared Redis counter.",
+            "An atomic INCRBY 1000 operation increases the counter. The returned value is the upper limit of the reserved range.",
+            "The Write Service uses the reserved IDs locally. It does not request a new counter value for each URL.",
+            "For each creation request, the Write Service encodes an unused ID in Base62. It stores the mapping in the database.",
+            "When the range has no unused IDs, the Write Service requests another batch."
+          ]
+        }
+      ]
     },
     {
       "title": "Final Design",
       "level": 3,
       "points": [
-        "Creation path: client -> load balancer or API gateway -> creation service -> ID allocator -> database. The service returns the short URL only after the database saves the mapping.",
-        "Redirect path: browser -> load balancer or API gateway -> redirect service -> cache. On a cache miss, the service reads the database. Then it stores a copy in the cache.",
+        "Creation request: client -> API Gateway -> Write Service. The Write Service gets an ID from the Global Counter. It encodes the ID in Base62. Then it saves the mapping in the database. After the write succeeds, it returns the short URL.",
+        "Redirect request: browser -> API Gateway -> Read Service. The Read Service looks for the mapping in the cache. On a cache miss, it reads the database. Then it stores a copy in the cache. For a valid mapping, it returns a 302 response.",
         "The database keeps durable mappings and prevents duplicate short codes. The cache makes reads faster. The database still keeps a copy of each mapping.",
         "The service validates expiration for results from the cache and the database. The same uniqueness constraint applies to custom aliases and generated short codes.",
         "The system can add replicas and separate read and write capacity as traffic increases. ID batches and edge caching are optional additions.",

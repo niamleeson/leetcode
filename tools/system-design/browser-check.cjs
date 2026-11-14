@@ -60,6 +60,21 @@ const articles = JSON.parse(data.slice(data.indexOf('=')+1,data.lastIndexOf('as 
     assert.ok((await notes.locator('li').allTextContents()).every(point=>point.startsWith('-')));
     assert.equal(await notes.locator('strong,table,pre,h1,h2').count(),0);
     assert.equal(await notes.locator('img').count(),8);
+    assert.ok(await notes.locator('[data-concept="cache"]').count()>0);
+    assert.ok(await notes.locator('[data-concept="gateway"]').count()>0);
+    const diagramFlow=await notes.locator('figure').evaluateAll(figures=>figures.map(f=>({
+      file:new URL(f.querySelector('img').src).pathname.split('/').pop(),
+      flow:f.closest('[role="group"]')?.getAttribute('aria-label')||null,
+    })));
+    assert.deepEqual(diagramFlow,[
+      {file:'01.svg',flow:null}, {file:'02.svg',flow:null},
+      {file:'03.svg',flow:'Create and return a short link process'},
+      {file:'04.svg',flow:'Redirect through the database process'},
+      {file:'05.svg',flow:'Generate a short code with a hash process'},
+      {file:'06.svg',flow:'Generate a short code with a counter process'},
+      {file:'07.svg',flow:'Resolve a short link through the cache and database process'},
+      {file:'08.svg',flow:null},
+    ]);
     assert.deepEqual(await notes.locator('figure').evaluateAll(figures=>figures.map(f=>f.closest('section').querySelector('h3,h4').textContent)),[
       'Non-functional Requirements','Core Entities','1) Create a short URL','2) Redirect to the original URL',
       '1) Generate unique short codes','1) Generate unique short codes','2) Make redirects fast','Final Design',
@@ -128,10 +143,12 @@ const articles = JSON.parse(data.slice(data.indexOf('=')+1,data.lastIndexOf('as 
       ]),article.title);
       const flows=expected.sections.flatMap(s=>s.flows);
       assert.ok(flows.length>0,article.title+' has process flows');
+      if(article.slug!=='bitly')assert.equal(await note.locator('[data-concept]').count(),0,article.title+' keeps its current style');
       assert.equal(await note.getByRole('group').count(),flows.length,article.title);
       for(const flow of flows) {
         const group=note.getByRole('group',{name:flow.title+' process',exact:true});
         assert.deepEqual(await group.locator('li').allTextContents(),flow.steps.map((step,i)=>`-${i+1}. ${step}`),article.title+' / '+flow.title);
+        assert.deepEqual(await group.locator('img').evaluateAll(items=>items.map(img=>new URL(img.src).pathname.split('/').pop())),flow.diagramFilenames||[],article.title+' / '+flow.title+' diagrams');
       }
       const download=await page.request.get(new URL(`system-design/notes/${article.slug}.txt`,base).href);
       assert.ok(download.ok(),article.title+' text download');

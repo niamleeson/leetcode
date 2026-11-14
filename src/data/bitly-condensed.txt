@@ -31,7 +31,7 @@ API
 High-Level Design
 
 1) Create a short URL
-- The initial design has a client, an application server, and a database. The client sends POST /urls to the server.
+- The initial design has a client, a Primary Server, and a database. The client sends POST /urls to the Primary Server.
 - The server validates the original URL, custom alias, and expiration date.
 - If the request has a custom alias, the server uses it as the proposed short code. Otherwise, the server generates a short code. The deep dive explains code generation.
 - The server inserts the mapping. A database uniqueness constraint prevents duplicate short codes, including conflicts between simultaneous requests.
@@ -71,7 +71,7 @@ Deep Dives
 - At 100 million daily users and five redirects per user, the service receives approximately 5,800 requests per second. A peak of 100 times this average gives approximately 580,000 requests per second.
 - At 500 bytes per mapping, 1 billion mappings use approximately 500 GB. Indexes and replicas need additional storage. This storage estimate alone does not require sharding. Sharding divides data between database servers.
 - If users create 100,000 URLs each day, the service receives approximately 1.2 creation requests per second. PostgreSQL is one option for the initial design. Performance tests determine whether the system needs shards.
-- A load balancer distributes requests across stateless application servers. The system can add servers as traffic increases. Creation and redirect services can scale separately when their capacity needs differ.
+- A load balancer distributes requests across stateless application servers. The system can add servers as traffic increases. The Write Service and Read Service can scale separately when their capacity needs differ.
 - Replication and failover keep the service available during failures. Backups restore lost data. A backup does not replace failover. A replica can lag behind the primary database. The redirect service must use a current copy for a new short URL.
 - A creation server can reserve a batch of IDs to reduce requests to the allocator. INCRBY 1000 returns the upper limit of a reserved range. The server uses the IDs in this range locally.
 - ID ranges must not overlap. A server failure can leave unused IDs. Gaps in the ID sequence do not cause duplicate short codes.
@@ -79,8 +79,8 @@ Deep Dives
 - Each region can use a separate ID range. These ranges avoid coordination between regions for each write. Each region can use its own cache. The design must handle replication lag and apply the same expiration rules in each region.
 
 Final Design
-- Creation path: client -> load balancer or API gateway -> creation service -> ID allocator -> database. The service returns the short URL only after the database saves the mapping.
-- Redirect path: browser -> load balancer or API gateway -> redirect service -> cache. On a cache miss, the service reads the database. Then it stores a copy in the cache.
+- Creation request: client -> API Gateway -> Write Service. The Write Service gets an ID from the Global Counter. It encodes the ID in Base62. Then it saves the mapping in the database. After the write succeeds, it returns the short URL.
+- Redirect request: browser -> API Gateway -> Read Service. The Read Service looks for the mapping in the cache. On a cache miss, it reads the database. Then it stores a copy in the cache. For a valid mapping, it returns a 302 response.
 - The database keeps durable mappings and prevents duplicate short codes. The cache makes reads faster. The database still keeps a copy of each mapping.
 - The service validates expiration for results from the cache and the database. The same uniqueness constraint applies to custom aliases and generated short codes.
 - The system can add replicas and separate read and write capacity as traffic increases. ID batches and edge caching are optional additions.
