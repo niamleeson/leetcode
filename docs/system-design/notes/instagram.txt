@@ -27,11 +27,18 @@ API
 
 High-Level Design
 
-
 1) Publish posts
 - Upload media directly to object storage using signed URLs; store lightweight post metadata in the database.
 - Process videos and image variants asynchronously, then transition the post to a viewable state.
 - Publish a durable post-created event to drive feed updates and other downstream work.
+
+Process: Publish media and fan out the post
+- Step 1: The client requests authorized upload instructions, transfers media directly to object storage, and submits the post metadata and media reference.
+- Step 2: The service validates ownership and upload completion, then persists a pending post and schedules any required media processing.
+- Step 3: Workers generate the required image or video variants and persist their outputs before making the post eligible for display.
+- Step 4: A committed post-ready event reaches feed workers through a reliable event pipeline.
+- Step 5: For an ordinary author, workers add the post ID to active followers' derived feed lists in retry-safe batches. Celebrity posts can remain on the read-time path.
+- Step 6: The publish API or status endpoint exposes the committed post state; asynchronous fanout may continue after publication is acknowledged.
 
 2) Follow users
 - Store follow edges separately from posts and user records.
@@ -43,8 +50,15 @@ High-Level Design
 - Fetch post IDs first, then hydrate post metadata in batches and return CDN URLs for media.
 - Cursor pagination avoids expensive offsets and reduces duplication as new posts arrive.
 
-Deep Dives
+Process: Read a hybrid feed page
+- Step 1: The client requests a page with its cursor; the feed service authenticates the reader and determines applicable visibility rules.
+- Step 2: It reads precomputed post IDs for ordinary followed accounts and recent posts for followed celebrity accounts.
+- Step 3: The service merges candidates by stable chronological ordering, removes duplicates, and applies deletion and visibility checks.
+- Step 4: It batch-fetches post metadata, filling post-cache misses from durable storage.
+- Step 5: The API returns a bounded page, media URLs, and the last ordering key as the next cursor.
+- Step 6: The client fetches images or video segments from the CDN independently of the feed metadata request.
 
+Deep Dives
 
 1) Feed latency and fanout
 - Fanout on read avoids write amplification but makes reads expensive for users following many accounts.

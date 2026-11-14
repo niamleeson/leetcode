@@ -14,7 +14,6 @@ Trade-offs
 
 How to Implement
 
-
 1) Message queue
 - Choose durability, delivery semantics, ordering, visibility timeout, and dead-letter behavior from the workload.
 - Put IDs and storage references in messages, not large media payloads.
@@ -32,13 +31,27 @@ How to Implement
 - Completion notifications are retryable hints; the status API remains authoritative after reconnects.
 - Store progress only at useful checkpoints rather than writing on every tiny unit of work.
 
-Common Deep Dives
+Process: Submit, execute, and report a background job
+- Step 1: The client submits a job and idempotency key; the API validates it and commits pending job state.
+- Step 2: A reliable publisher enqueues the job ID or payload reference, and the API exposes accepted status with that stable ID.
+- Step 3: A worker claims the task, obtains its lease or attempt identity, and records running state.
+- Step 4: It performs work under resource limits, saving useful checkpoints or output references durably.
+- Step 5: It conditionally commits the terminal result before acknowledging queue delivery.
+- Step 6: A completion event notifies the client, which can always recover the authoritative result through the status API after reconnecting.
 
+Common Deep Dives
 
 1) Failure and repeated failure
 - Retry transient errors with exponential backoff and jitter.
 - Bound attempts and send persistent failures to a dead-letter or inspection state with the original error context.
 - A worker crash causes lease expiry or queue redelivery; recover from saved checkpoints where useful.
+
+Process: Retry a failed or abandoned job
+- Step 1: A transient error, crash, or expired lease makes the attempt eligible for retry under policy.
+- Step 2: The next worker checks existing terminal state and saved progress before executing the same logical job again.
+- Step 3: It reuses downstream idempotency keys and fences stale ownership where needed, then commits its result under the current attempt.
+- Step 4: Repeated failures back off and eventually enter a dead-letter or inspection state with their error history.
+- Step 5: A retried notification or queue delivery cannot turn a completed job into a second logical job with unrelated side effects.
 
 2) Duplicate work
 - At-least-once delivery can repeat a task even after its side effect succeeded.

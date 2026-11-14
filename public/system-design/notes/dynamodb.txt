@@ -21,6 +21,14 @@ Accessing Data
 - Batch APIs reduce request overhead but require handling partial failures and retrying unprocessed items.
 - Use continuation keys for pagination instead of assuming one request returns an unlimited partition.
 
+Process: Claim an item with a conditional write
+- Step 1: The application authenticates the caller and constructs the exact partition/sort key and required state predicate.
+- Step 2: It submits a conditional PutItem or UpdateItem, such as version = expected_version or inventory >= requested_quantity.
+- Step 3: DynamoDB evaluates the predicate and write atomically for the supported operation; a failed condition does not apply the requested mutation.
+- Step 4: The application handles a successful response as the committed operation outcome or handles a condition failure by reloading and re-evaluating the business rule.
+- Step 5: On a timeout, it reconciles or uses supported idempotency/transaction tokens as applicable rather than assuming an increment or side effect definitely failed.
+- Step 6: Subsequent reads select the supported consistency mode needed for their contract; a global secondary index can lag that write.
+
 Consistency, Scalability, and Availability
 - Choose eventual or strongly consistent reads where the table/API supports them; global secondary indexes do not offer the same strong-read option.
 - Regional replication and global-table configurations have specific consistency semantics; do not generalize one mode to every deployment.
@@ -38,6 +46,13 @@ DAX and Streams
 - Streams expose item changes for derived views, notifications, or other event processing.
 - Consumers must handle repeated delivery and retain recovery state; stream retention is finite.
 - TTL expiration is asynchronous housekeeping, so applications must check expiry themselves when exact validity matters.
+
+Process: Update a derived view from table changes
+- Step 1: A committed table mutation produces a change record in the configured stream.
+- Step 2: A consumer reads records and maps each change to the required derived-view update or downstream event.
+- Step 3: It deduplicates or uses version-aware writes so replay cannot apply an old value over a new one.
+- Step 4: It persists the derived result before advancing recoverable processing progress.
+- Step 5: After a failure it resumes within the available retention window; an outage beyond retention needs a rebuild or other reconciliation source.
 
 When to Use and Limitations
 - DynamoDB suits predictable key-based access, high scale, and teams that value managed infrastructure.

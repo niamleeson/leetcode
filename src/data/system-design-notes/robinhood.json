@@ -8,7 +8,8 @@
         "Build a brokerage-facing application that streams stock prices and submits customer orders to external trading infrastructure.",
         "Displayed prices, submitted orders, exchange acknowledgements, and executions are distinct records with different timing guarantees."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Functional Requirements",
@@ -18,7 +19,8 @@
         "Track order status and resulting account changes.",
         "Integrate with external market-data and execution services rather than designing an exchange matching engine."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Non-functional Requirements",
@@ -36,7 +38,8 @@
           "width": 702.4485140975538,
           "height": 157.44844786507292
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Core Entities",
@@ -55,7 +58,8 @@
           "width": 173.25987243652344,
           "height": 120.0
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "API",
@@ -66,13 +70,15 @@
         "Query orders and positions and request cancellation of an eligible order.",
         "Treat cancellation as a request until external confirmation; an order may fill while cancellation is in flight."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "High-Level Design",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) Live prices",
@@ -104,6 +110,18 @@
           "revision": "bcb86dae50d3",
           "width": 2960.836227123742,
           "height": 640.0460955579347
+        }
+      ],
+      "flows": [
+        {
+          "title": "Distribute a market-price update",
+          "steps": [
+            "The market-data adapter receives an external quote, validates its source ordering, and normalizes the symbol and fields.",
+            "It updates the latest quote cache and publishes the new version to the symbol's shared channel.",
+            "Connection servers subscribed to that symbol receive the event once for their local interested clients.",
+            "They send or coalesce display updates according to the freshness policy, and clients ignore older versions.",
+            "A reconnecting client fetches a current snapshot before resuming live updates rather than replaying an unlimited stale-price backlog."
+          ]
         }
       ]
     },
@@ -145,13 +163,28 @@
           "width": 3032.7089032774925,
           "height": 1607.3850701911488
         }
+      ],
+      "flows": [
+        {
+          "title": "Submit and process a stock order",
+          "steps": [
+            "The customer sends side, symbol, quantity, order type, and a stable client request ID to the order API.",
+            "The service authenticates the account, validates the order, and checks for an existing request result.",
+            "Within the account/order consistency boundary, it reserves the required buying power or holdings and persists a pending order.",
+            "After that commit, a recoverable submission worker sends the order to external execution infrastructure using the stable external order identity.",
+            "The service records external acknowledgement or rejection. Local request acceptance is not a claim that the exchange has accepted or filled the order.",
+            "Execution reports update filled quantity, cash, positions, and remaining reservations idempotently; partial fills leave the remainder open according to order rules.",
+            "Only committed transitions are sent to the customer. A submission timeout triggers status reconciliation before any potentially duplicate external resubmission."
+          ]
+        }
       ]
     },
     {
       "title": "Deep Dives",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) Scale price delivery",
@@ -169,7 +202,8 @@
           "width": 3032.7089032774925,
           "height": 1645.7566161769528
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "2) Track order updates",
@@ -188,6 +222,18 @@
           "width": 3032.7089032774934,
           "height": 1633.173574019309
         }
+      ],
+      "flows": [
+        {
+          "title": "Handle cancellation racing a fill",
+          "steps": [
+            "The customer requests cancellation of an eligible open order; the service records the request without immediately declaring the order cancelled.",
+            "The execution adapter submits the cancellation using the provider's order identity.",
+            "Meanwhile, any execution report is applied by its unique fill/report ID, including fills arriving before cancellation takes effect.",
+            "When external cancellation is confirmed, the service closes the unfilled remainder and releases only its remaining reserved funds or securities.",
+            "The final customer state includes actual fills plus the cancelled remainder; it never erases a completed fill because a cancellation was requested first."
+          ]
+        }
       ]
     },
     {
@@ -199,7 +245,8 @@
         "A timeout does not prove the provider rejected the order; query status before deciding whether resubmission is safe.",
         "Keep an auditable history of transitions rather than overwriting all evidence with the latest status."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Final Design",
@@ -217,7 +264,8 @@
           "width": 3032.708903277493,
           "height": 1644.5595645807662
         }
-      ]
+      ],
+      "flows": []
     }
   ]
 }

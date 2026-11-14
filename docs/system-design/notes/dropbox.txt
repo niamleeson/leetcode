@@ -28,12 +28,19 @@ API
 
 High-Level Design
 
-
 1) Upload files
 - Storing files on an application server couples capacity and availability to that server and makes horizontal scaling difficult.
 - Forwarding every upload through the application to object storage fixes durability but doubles the transfer path and consumes application bandwidth.
 - Prefer a metadata request followed by direct client-to-object-storage transfer using a short-lived presigned URL.
 - Save metadata as pending first. Mark the file available after confirming the object or multipart upload actually exists.
+
+Process: Upload a file and make it available
+- Step 1: The client requests an upload session with file name, size, and content type; the file service authenticates the user and validates the request.
+- Step 2: The service creates pending metadata and obtains or constructs scoped upload instructions for the intended object key.
+- Step 3: The client uploads bytes directly to object storage using the signed URL or multipart session; the application server does not relay those bytes.
+- Step 4: The client or storage notification reports completion. The backend verifies the actual object and required metadata with the storage provider.
+- Step 5: Only after verification does the service mark the file available and record a change event for synchronization.
+- Step 6: The API returns or exposes the completed file state. An interrupted upload remains pending and can resume or expire rather than appearing as a valid file.
 
 2) Download and share files
 - The file service checks permissions and returns a signed object-storage or CDN URL; file bytes bypass application servers.
@@ -41,14 +48,29 @@ High-Level Design
 - An embedded share list is simple, but finding all files shared with a user becomes expensive.
 - A separate user-to-file table supports that query directly and avoids maintaining conflicting copies of the share relationship.
 
+Process: Authorize and download a shared file
+- Step 1: The owner submits a sharing request identifying the file, recipient, and permission.
+- Step 2: The service verifies the owner's sharing authority and commits the user-to-file permission record.
+- Step 3: The recipient's file list queries the share mapping and returns authorized file metadata.
+- Step 4: When the recipient requests a download, the file service checks current permission and file readiness again.
+- Step 5: The service issues a short-lived object-storage or CDN download URL; the recipient downloads bytes directly through that URL.
+- Step 6: The CDN or storage service verifies the signed request before serving the object. A failed authorization produces an error instead of a file transfer.
+
 3) Synchronize devices
 - A local watcher detects changed files and uploads changed content, updating the authoritative metadata version.
 - Other devices consume change events and download newer content. Push notifications improve responsiveness; cursor-based polling recovers missed events.
 - Track create, update, and delete events. Retain tombstones long enough for offline devices to observe deletions.
 - Compare versions before overwriting content; concurrent local edits require an explicit conflict policy rather than silent data loss.
 
-Deep Dives
+Process: Propagate one device's edit to another
+- Step 1: A local file watcher notices an edit and persists the pending change on the device so it survives a restart.
+- Step 2: The client identifies changed content and uploads missing or changed parts, reusing the resumable-upload process.
+- Step 3: The backend verifies the new content and commits its metadata version. A stale base version triggers the chosen conflict policy rather than overwriting a concurrent edit silently.
+- Step 4: A change-feed record identifies the updated file and version; a push message tells other devices that changes are available.
+- Step 5: Each other device fetches changes after its saved cursor, downloads the authorized new version, and applies it locally.
+- Step 6: The device advances its cursor only after applying the change. After a missed push or reconnect, polling the same change feed recovers the gap.
 
+Deep Dives
 
 1) Large files and resumable uploads
 - Split large files into independently retryable parts and record an upload ID, part numbers, and returned ETags.
@@ -56,6 +78,14 @@ Deep Dives
 - Client reports are hints. Verify parts with the storage provider before marking them complete; ordinary object-created events do not report every multipart part.
 - Use file and chunk fingerprints to recognize repeated uploads and avoid transferring unchanged content.
 - Clean up abandoned upload sessions and incomplete parts after a bounded retention period.
+
+Process: Resume and finalize a multipart upload
+- Step 1: The client opens an upload session, divides the file into parts, and tracks the upload ID and numbered parts.
+- Step 2: It uploads parts independently and retains the storage provider's successful part identifiers or ETags.
+- Step 3: After disconnection, it resumes the same session and asks which parts the server or provider has verified.
+- Step 4: It uploads only missing parts; the backend verifies reported parts through the provider's multipart API rather than trusting client flags.
+- Step 5: The backend requests completion using the verified ordered parts, then confirms the finalized object's existence and expected properties.
+- Step 6: Only then does metadata transition to available. Abandoned sessions and orphaned parts are cleaned up separately.
 
 2) Transfer performance
 - Upload independent parts concurrently within bandwidth and memory limits; expose progress using confirmed uploaded bytes.

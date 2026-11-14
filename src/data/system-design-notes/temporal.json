@@ -8,13 +8,15 @@
         "Temporal coordinates durable workflows that survive process crashes, waits, retries, and external events.",
         "It separates deterministic workflow decisions from activities that perform network calls or other side effects."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Building Durable Execution",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) Survive a crash",
@@ -40,6 +42,18 @@
           "width": 1000.0,
           "height": 380.0
         }
+      ],
+      "flows": [
+        {
+          "title": "Resume after a worker failure",
+          "steps": [
+            "A workflow or activity worker stops responding, and the relevant timeout or task-recovery mechanism makes work eligible again.",
+            "A replacement workflow worker loads history and replays deterministic decisions; already recorded activity results are supplied from history.",
+            "An activity whose completion was never recorded may run again, even if its external side effect already happened.",
+            "That activity resolves the same business idempotency key or queries the external outcome before causing a duplicate effect.",
+            "Once the result is durably recorded, workflow execution continues from the recovered logical progress rather than restarting the whole business process."
+          ]
+        }
       ]
     },
     {
@@ -50,7 +64,8 @@
         "Use workflow-safe time, randomness, and orchestration APIs; ordinary nondeterministic I/O belongs in activities.",
         "Deploy code changes with compatible versioning so old histories do not become impossible to replay."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "3) Wait and receive events",
@@ -75,7 +90,8 @@
           "width": 950.0,
           "height": 355.0
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Temporal Under the Hood",
@@ -92,6 +108,19 @@
           "revision": "5f0b2020e48c",
           "width": 950.0,
           "height": 515.0
+        }
+      ],
+      "flows": [
+        {
+          "title": "Execute a workflow activity durably",
+          "steps": [
+            "A caller starts a workflow with a stable workflow identity, and Temporal records the start in durable history.",
+            "A workflow worker receives a task, replays or uses cached compatible history, and decides that an activity should run.",
+            "Temporal records the scheduling decision and puts an activity task on the appropriate task queue.",
+            "An activity worker polls the task and performs the external operation using the workflow's stable business idempotency key.",
+            "The worker reports completion, which is recorded in history before the workflow advances using that result.",
+            "A later workflow task consumes the recorded result and chooses the next activity, timer, wait, or terminal outcome."
+          ]
         }
       ]
     },
@@ -134,7 +163,8 @@
           "width": 925.0,
           "height": 525.0
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "When to Use",
@@ -145,7 +175,8 @@
         "A workflow's state makes progress and waiting conditions observable across long business processes.",
         "Simple one-step jobs may only need a durable queue and idempotent worker."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Limitations",
@@ -156,7 +187,8 @@
         "Cancellation must be cooperatively handled by activities and external services; it does not erase already completed side effects.",
         "Service operation and workflow debugging add complexity that should be justified by the recovery requirements."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Summary",
@@ -166,7 +198,8 @@
         "Retry-safe activities perform side effects, and timers/signals represent waits without long-held processes.",
         "Choose Temporal when this durable coordination replaces substantial custom recovery logic, not merely because a task runs asynchronously."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     }
   ]
 }

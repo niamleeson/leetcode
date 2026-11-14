@@ -8,7 +8,8 @@
         "Build reliable private and group messaging with real-time delivery, offline recovery, and media attachments.",
         "A live connection is only a delivery path. Durable messages and delivery state must survive connection and server failures."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Functional Requirements",
@@ -18,7 +19,8 @@
         "Deliver messages missed while offline, retaining them for up to 30 days in the interview scope.",
         "Support media attachments and multiple devices per user."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Non-functional Requirements",
@@ -36,7 +38,8 @@
           "width": 843.3291015625,
           "height": 234.86328125
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Core Entities",
@@ -47,7 +50,8 @@
         "Device and delivery cursor track which messages each connected device has received.",
         "Attachment stores metadata and a reference to bytes in object storage."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "API",
@@ -66,13 +70,15 @@
           "width": 505.5703125,
           "height": 174.86328125
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "High-Level Design",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) Chats and message delivery",
@@ -97,6 +103,20 @@
           "revision": "a6010413f339",
           "width": 1264.8235931396484,
           "height": 755.607421875
+        }
+      ],
+      "flows": [
+        {
+          "title": "Send a message and acknowledge delivery",
+          "steps": [
+            "The sender transmits a message over its authenticated connection with a chat ID and stable client message ID.",
+            "The chat service checks membership and assigns the ordering information required by the conversation model.",
+            "It persists the accepted message or recipient-delivery record before acknowledging durable acceptance to the sender.",
+            "The routing or pub/sub layer forwards the event to connection servers holding recipients' active device sessions.",
+            "Those servers send the message to their local devices. Offline devices retain a recoverable backlog or cursor gap in durable storage.",
+            "Each device deduplicates by message ID, stores or displays the message in order, and acknowledges its own delivery position.",
+            "Delivery or read receipts are separate updates; one device's acknowledgement does not prove every device or user has read the message."
+          ]
         }
       ]
     },
@@ -130,13 +150,26 @@
           "width": 669.828125,
           "height": 341.8125
         }
+      ],
+      "flows": [
+        {
+          "title": "Send a media attachment",
+          "steps": [
+            "The sender requests an authorized upload session and uploads the attachment directly to object storage.",
+            "The backend verifies completion and produces an attachment reference with the required access metadata.",
+            "The sender submits a normal chat message containing that reference; message acceptance follows the durable message flow.",
+            "The recipient receives the reference, requests authorized access, and downloads the media directly from storage or a CDN.",
+            "Attachment upload failure prevents publication of a ready attachment; chat servers do not need to buffer the large file during message fanout."
+          ]
+        }
       ]
     },
     {
       "title": "Deep Dives",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) Connection routing at scale",
@@ -170,7 +203,8 @@
           "width": 850.8203125,
           "height": 396.735595703125
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "2) Multiple devices",
@@ -188,7 +222,8 @@
           "width": 1263.1939739376012,
           "height": 729.353515625
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "3) Failures, retries, and ordering",
@@ -200,7 +235,19 @@
         "Treat pub/sub as a latency optimization when it is nondurable; missed live events must be recoverable from message history.",
         "Expire retained messages according to policy and explain what happens when a device reconnects beyond the retention window."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": [
+        {
+          "title": "Reconnect and recover missed messages",
+          "steps": [
+            "The client detects a broken connection through an error or missed heartbeat and reconnects with backoff.",
+            "It authenticates again and sends the last durably applied conversation or device cursor.",
+            "The server queries retained messages after that cursor and coordinates the handoff to live updates so no gap is skipped.",
+            "The client merges replay with any already received events, deduplicates IDs, and applies messages according to the ordering key.",
+            "It advances its cursor after successful local application and resumes acknowledgements. A cursor outside retention follows an explicit history-unavailable recovery path."
+          ]
+        }
+      ]
     },
     {
       "title": "Final Design",
@@ -210,7 +257,8 @@
         "A horizontally scaled connection tier and routing or pub/sub layer deliver live events.",
         "Object storage handles attachments, while device cursors, acknowledgements, and idempotent retries make delivery reliable."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     }
   ]
 }

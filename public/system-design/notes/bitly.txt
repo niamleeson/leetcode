@@ -30,7 +30,6 @@ API
 
 High-Level Design
 
-
 1) Create a short URL
 - Start with a client, an application server, and a database. The client sends POST /urls to the server.
 - Validate the long URL and any supplied alias or expiration date.
@@ -38,6 +37,14 @@ High-Level Design
 - Insert the code-to-URL mapping. Enforce uniqueness in the database so simultaneous requests cannot claim the same code.
 - Return the complete short URL after the insert succeeds.
 - Multiple short URLs may point to the same long URL, allowing different aliases and expiration dates. Deduplication is optional.
+
+Process: Create and return a short link
+- Step 1: The client sends POST /urls with long_url and optional alias and expiration fields to the creation service through the gateway.
+- Step 2: The service validates the destination and expiration. It rejects malformed input before allocating or writing a mapping.
+- Step 3: For a generated code, the service obtains a unique ID from the allocator and Base62-encodes it. For a custom alias, it uses the requested alias as the candidate key.
+- Step 4: The service inserts short_code, long_url, and expiration into the database using its uniqueness constraint. A preliminary availability check is not the reservation.
+- Step 5: If insertion conflicts, a generated candidate is retried within a limit; a conflicting custom alias returns an error. No successful link is returned for a failed insert.
+- Step 6: After the database confirms the write, the service returns the complete short URL. Later redirects can resolve it from durable storage even if the cache is empty.
 
 2) Redirect to the original URL
 - The browser requests GET /abc123 from our short-link domain.
@@ -47,8 +54,16 @@ High-Level Design
 - A 301 means a permanent redirect and may let browsers skip our service on future visits, making changes, expiration, and click tracking harder to enforce.
 - A background job can delete expired records. Also check expiration on reads, so a delayed cleanup job does not keep expired links working.
 
-Deep Dives
+Process: Resolve a short link through the cache and database
+- Step 1: The browser requests GET /abc123 from the short-link domain; the gateway routes the request to the redirect service.
+- Step 2: The service looks for abc123 in the cache. On a hit, it reads the cached destination and expiration together.
+- Step 3: On a miss, the service queries the database by short_code. If no record exists, it returns 404 and stops the redirect flow.
+- Step 4: The service checks expiration before using either result. An expired mapping returns 410 instead of being redirected, even if cleanup has not deleted it.
+- Step 5: For a valid database result, the service may populate the cache with a TTL no longer than the mapping's remaining lifetime. Cache population failure does not invalidate the durable mapping.
+- Step 6: The service returns a 302 response with the original URL in Location and explicit cache-control rules.
+- Step 7: The browser receives that response and makes a separate request to the original destination; the shortening service does not fetch and relay the destination page.
 
+Deep Dives
 
 1) Generate unique short codes
 - Codes should be short, quick to generate, and unique. The tradeoffs involve coordination, collision handling, and predictability.
@@ -60,6 +75,13 @@ Deep Dives
 - A shared atomic counter, such as Redis INCR, gives concurrent writers different IDs. All writers must use a coordinated allocator or non-overlapping ranges.
 - Sequential codes are predictable. Choose an unpredictable strategy if guessing links matters; do not treat a short code as strong access control.
 - Custom aliases can collide with generated codes. Separate their namespaces or reserve all codes through the same uniqueness rule. Checking availability before insertion does not prevent a race.
+
+Process: Allocate a batch of counter IDs
+- Step 1: A creation server asks the shared allocator to reserve a range, for example with an atomic INCRBY 1000 operation.
+- Step 2: The allocator advances its high-water mark and returns the upper boundary. The server derives its exclusive range from that boundary.
+- Step 3: Each local creation consumes one unused number from that range and encodes it as a candidate short code.
+- Step 4: The database uniqueness constraint validates the candidate during insertion, including possible conflicts with custom aliases.
+- Step 5: After a crash, unused numbers may be abandoned. A replacement must not reuse the old range unless ownership and allocator recovery make that safe.
 
 2) Make redirects fast
 - Index short_code, normally by making it the primary key. This avoids scanning the entire table for each redirect.

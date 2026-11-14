@@ -8,7 +8,8 @@
         "Design a service that shows which products can be delivered to a customer and accepts orders from nearby distribution centers.",
         "Availability is specific to both location and inventory. A fast browsing result is not a guarantee that checkout will succeed."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Functional Requirements",
@@ -19,7 +20,8 @@
         "Reserve or decrement inventory without overselling when customers order concurrently.",
         "Driver dispatch and detailed delivery tracking are outside the core scope."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Non-functional Requirements",
@@ -37,7 +39,8 @@
           "width": 900.5446251892644,
           "height": 254.93262809163974
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Core Entities",
@@ -56,7 +59,8 @@
           "width": 207.639821767807,
           "height": 195.0
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "API",
@@ -74,13 +78,15 @@
           "width": 854.4993896484375,
           "height": 395.0
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "High-Level Design",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) Find available items",
@@ -113,6 +119,19 @@
           "width": 1216.7988534047809,
           "height": 679.289590137676
         }
+      ],
+      "flows": [
+        {
+          "title": "Determine deliverable inventory",
+          "steps": [
+            "The customer sends a delivery location and desired products to the availability service.",
+            "The service uses a geographic index to find nearby distribution centers, excluding centers clearly outside the service area.",
+            "If driving-time eligibility is required, it requests travel estimates only for those candidates and selects centers meeting the delivery constraint.",
+            "The service reads each eligible center's inventory through indexed storage or its permitted cache/read-replica path.",
+            "It combines product metadata with center-specific quantities and returns a bounded availability view.",
+            "That view is advisory: checkout repeats the stock check against authoritative state because another order can consume inventory after browsing."
+          ]
+        }
       ]
     },
     {
@@ -140,13 +159,28 @@
           "width": 1269.6295952368228,
           "height": 861.046670215801
         }
+      ],
+      "flows": [
+        {
+          "title": "Commit an order without overselling",
+          "steps": [
+            "The customer submits item quantities, delivery details, and an idempotency key to the order service.",
+            "The service authenticates the customer, resolves an eligible fulfillment center, and returns the existing result if this request was already committed.",
+            "It starts a short database transaction and locks or conditionally updates the relevant inventory rows in a consistent order.",
+            "Within that transaction it rechecks every requested quantity. If any item is unavailable, it rolls back the whole attempt and reports the conflict.",
+            "If all items are available, it decrements or reserves stock and inserts the order and order items under the same transaction.",
+            "The database commits before the service returns the accepted order ID. A lost response can be retried with the same idempotency key.",
+            "Payment or fulfillment work proceeds from the durable order state outside the inventory transaction, with its own retry and compensation rules."
+          ]
+        }
       ]
     },
     {
       "title": "Deep Dives",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) Incorporate traffic and driving time",
@@ -179,7 +213,8 @@
           "width": 722.3824940897617,
           "height": 480.62109375
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "2) Scale availability reads",
@@ -213,7 +248,8 @@
           "width": 956.656337138681,
           "height": 573.3655606845659
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Final Design",
@@ -224,7 +260,8 @@
         "A geographic prefilter plus selective travel-time calls improves delivery eligibility without making every lookup expensive.",
         "Scale the read path aggressively while keeping checkout's correctness boundary explicit."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     }
   ]
 }

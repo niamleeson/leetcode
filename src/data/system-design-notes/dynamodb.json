@@ -8,7 +8,8 @@
         "DynamoDB is a managed key-value and document database whose efficiency depends heavily on access-pattern and key design.",
         "Managed scaling reduces operational work but does not eliminate hot partitions, query limits, or consistency choices."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "The Data Model",
@@ -34,7 +35,8 @@
           "width": 611.86025141956,
           "height": 152.43977590588656
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Secondary Indexes",
@@ -60,7 +62,8 @@
           "width": 936.603932148715,
           "height": 1200.438614970716
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Accessing Data",
@@ -72,7 +75,20 @@
         "Batch APIs reduce request overhead but require handling partial failures and retrying unprocessed items.",
         "Use continuation keys for pagination instead of assuming one request returns an unlimited partition."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": [
+        {
+          "title": "Claim an item with a conditional write",
+          "steps": [
+            "The application authenticates the caller and constructs the exact partition/sort key and required state predicate.",
+            "It submits a conditional PutItem or UpdateItem, such as version = expected_version or inventory >= requested_quantity.",
+            "DynamoDB evaluates the predicate and write atomically for the supported operation; a failed condition does not apply the requested mutation.",
+            "The application handles a successful response as the committed operation outcome or handles a condition failure by reloading and re-evaluating the business rule.",
+            "On a timeout, it reconciles or uses supported idempotency/transaction tokens as applicable rather than assuming an increment or side effect definitely failed.",
+            "Subsequent reads select the supported consistency mode needed for their contract; a global secondary index can lag that write."
+          ]
+        }
+      ]
     },
     {
       "title": "Consistency, Scalability, and Availability",
@@ -83,7 +99,8 @@
         "Spread key traffic and avoid a single tenant or newest-time bucket receiving most writes.",
         "Adaptive capacity helps uneven load but cannot make a single unlimited hot key free of constraints."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Security and Capacity",
@@ -94,7 +111,8 @@
         "Item size, consistency choice, indexes, and access pattern affect capacity consumption.",
         "Monitor throttling and retry with backoff; unbounded immediate retries amplify overload."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "DAX and Streams",
@@ -113,6 +131,18 @@
           "width": 571.0,
           "height": 1096.0
         }
+      ],
+      "flows": [
+        {
+          "title": "Update a derived view from table changes",
+          "steps": [
+            "A committed table mutation produces a change record in the configured stream.",
+            "A consumer reads records and maps each change to the required derived-view update or downstream event.",
+            "It deduplicates or uses version-aware writes so replay cannot apply an old value over a new one.",
+            "It persists the derived result before advancing recoverable processing progress.",
+            "After a failure it resumes within the available retention window; an outage beyond retention needs a rebuild or other reconciliation source."
+          ]
+        }
       ]
     },
     {
@@ -123,7 +153,8 @@
         "Ad hoc joins, broad analytics, and frequently changing query requirements can be awkward or costly.",
         "Describe the primary keys, index queries, conditional operations, and hot-key strategy before choosing the service."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     }
   ]
 }

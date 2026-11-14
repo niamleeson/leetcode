@@ -8,6 +8,13 @@ Read Performance
 - GIN indexes support appropriate document, array, and full-text workloads; spatial extensions provide specialized geographic capabilities.
 - Use EXPLAIN and measured query plans to inspect scans, joins, row estimates, and sorting rather than guessing which index helps.
 
+Process: Execute an indexed read
+- Step 1: The application sends a parameterized query through its connection pool.
+- Step 2: PostgreSQL parses and plans the query, choosing scans, indexes, joins, and sorting based on available statistics and predicates.
+- Step 3: Execution reads candidate tuples and checks visibility under the transaction's snapshot, using suitable indexes to avoid unnecessary rows.
+- Step 4: The executor applies remaining filters and aggregation, orders or limits the result, and returns rows to the client.
+- Step 5: A query on a replica observes that replica's replay progress; the application routes freshness-sensitive reads to a path that satisfies their requirement.
+
 Query Optimization
 - Covering indexes can avoid some table lookups, subject to visibility and query requirements.
 - Partial indexes target a useful subset, such as active records, reducing index size and maintenance work.
@@ -35,6 +42,14 @@ Transactions and Concurrent Operations
 - Serializable conflicts and deadlocks require bounded whole-transaction retries.
 - Avoid keeping locks open across user interaction or external network calls; represent longer claims with explicit reservation state.
 - Use a transactional outbox when a committed database change must reliably produce an external event.
+
+Process: Commit a correctness-sensitive transaction
+- Step 1: The service begins a transaction and establishes the required isolation level and retry policy.
+- Step 2: It obtains needed row locks or includes current-state/version predicates in the writes, then validates the business invariant against that protected state.
+- Step 3: It updates related rows and any outbox/audit records; uniqueness and other constraints can reject invalid results before successful commit.
+- Step 4: PostgreSQL commits according to the selected durability settings, including the required WAL flush and configured synchronous-replication acknowledgement conditions.
+- Step 5: Only after successful commit does the service acknowledge the business operation. A rollback, deadlock, or serialization failure returns an error or causes a bounded whole-transaction retry.
+- Step 6: Replicas apply WAL asynchronously or according to the selected synchronization mode, and background checkpoints persist dirty data pages separately from transaction commit.
 
 When to Use and Alternatives
 - Choose PostgreSQL for relational models, transactional workflows, flexible querying, and workloads an indexed primary can serve well.

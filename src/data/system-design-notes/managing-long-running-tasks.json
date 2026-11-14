@@ -16,7 +16,8 @@
           "width": 881.78421569696,
           "height": 291.3485992149475
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "The Solution",
@@ -41,7 +42,8 @@
           "width": 1016.4284509176562,
           "height": 558.5523954317229
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Trade-offs",
@@ -51,13 +53,15 @@
         "Retries and recovery improve reliability, but introduce eventual completion, duplicate attempts, and operational state to manage.",
         "A queue cannot provide unlimited capacity; admission and backlog limits still matter."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "How to Implement",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) Message queue",
@@ -75,7 +79,8 @@
           "width": 1139.6486462089215,
           "height": 632.353154268429
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "2) Workers",
@@ -86,7 +91,8 @@
         "Renew a lease for long tasks, and ensure a stale worker cannot overwrite a newer attempt's result.",
         "Separate resource classes when CPU, GPU, memory-heavy, and lightweight tasks require different capacity."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "3) End-to-end flow",
@@ -105,13 +111,27 @@
           "width": 1343.4250247280395,
           "height": 513.3165682320719
         }
+      ],
+      "flows": [
+        {
+          "title": "Submit, execute, and report a background job",
+          "steps": [
+            "The client submits a job and idempotency key; the API validates it and commits pending job state.",
+            "A reliable publisher enqueues the job ID or payload reference, and the API exposes accepted status with that stable ID.",
+            "A worker claims the task, obtains its lease or attempt identity, and records running state.",
+            "It performs work under resource limits, saving useful checkpoints or output references durably.",
+            "It conditionally commits the terminal result before acknowledging queue delivery.",
+            "A completion event notifies the client, which can always recover the authoritative result through the status API after reconnecting."
+          ]
+        }
       ]
     },
     {
       "title": "Common Deep Dives",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) Failure and repeated failure",
@@ -128,6 +148,18 @@
           "revision": "c762d7d5db45",
           "width": 915.6171875,
           "height": 286.8985150733764
+        }
+      ],
+      "flows": [
+        {
+          "title": "Retry a failed or abandoned job",
+          "steps": [
+            "A transient error, crash, or expired lease makes the attempt eligible for retry under policy.",
+            "The next worker checks existing terminal state and saved progress before executing the same logical job again.",
+            "It reuses downstream idempotency keys and fences stale ownership where needed, then commits its result under the current attempt.",
+            "Repeated failures back off and eventually enter a dead-letter or inspection state with their error history.",
+            "A retried notification or queue delivery cannot turn a completed job into a second logical job with unrelated side effects."
+          ]
         }
       ]
     },
@@ -147,7 +179,8 @@
           "width": 1128.7460544674752,
           "height": 461.3022224755623
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "3) Backpressure and mixed workloads",
@@ -165,7 +198,8 @@
           "width": 1189.8426937605186,
           "height": 318.32695048815555
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "4) Dependencies",
@@ -175,7 +209,8 @@
         "Trigger a stage only when required predecessors have completed and make the trigger idempotent.",
         "Define cancellation, compensation, and failure propagation for partial workflows."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Conclusion",
@@ -199,7 +234,8 @@
           "width": 20.0,
           "height": 20.0
         }
-      ]
+      ],
+      "flows": []
     }
   ]
 }

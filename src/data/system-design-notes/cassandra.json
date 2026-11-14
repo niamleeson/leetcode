@@ -8,7 +8,8 @@
         "Cassandra is a distributed wide-column database designed around partitioned, replicated data and high write availability.",
         "Model tables from known queries; arbitrary joins and flexible cross-partition transactions are not its core strength."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Data Model and Primary Key",
@@ -27,7 +28,8 @@
           "width": 1072.2529606507512,
           "height": 525.4239996706095
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Partitioning and Replication",
@@ -60,7 +62,8 @@
           "width": 1493.8844570817146,
           "height": 941.9131466712529
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Consistency and Routing",
@@ -86,7 +89,8 @@
           "width": 1222.259159504575,
           "height": 950.2811884200953
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Storage Model",
@@ -106,6 +110,20 @@
           "width": 2189.5261343690026,
           "height": 435.52691073683036
         }
+      ],
+      "flows": [
+        {
+          "title": "Write a row and read the latest visible value",
+          "steps": [
+            "The client sends a mutation with its primary key and selected consistency level to a coordinator node.",
+            "The coordinator hashes the partition key, identifies replica owners, and forwards the mutation to the relevant replicas.",
+            "Each participating replica records the mutation through its commit-log/memtable path under the configured durability policy.",
+            "The coordinator acknowledges after the selected consistency level's required responses arrive; unavailable required replicas can make the operation fail or time out.",
+            "Memtables later flush to SSTables and background compaction reorganizes those files; the write need not wait for a full compaction.",
+            "A read coordinator contacts the replicas required by the read consistency level, combines their relevant versions according to Cassandra's conflict rules, and returns the resolved result.",
+            "Read/write overlap improves the selected visibility guarantees, but concurrent multi-record invariants still need a justified conditional or transactional mechanism."
+          ]
+        }
       ]
     },
     {
@@ -124,7 +142,8 @@
           "width": 1486.2075287217613,
           "height": 941.9131466712529
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Data Modeling",
@@ -135,7 +154,19 @@
         "For chat messages, partition by conversation and time bucket, and cluster by message order.",
         "Avoid unbounded partitions for extremely active conversations and avoid scanning the whole cluster for a user's recent data."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": [
+        {
+          "title": "Retrieve one page of conversation messages",
+          "steps": [
+            "The application derives the conversation/time-bucket partition and a clustering-key boundary from the page cursor.",
+            "It issues a partition-bounded query for a limited range of message ordering keys.",
+            "Cassandra routes the query to the replicas for that partition and reads the relevant memtable/SSTable data rather than scanning unrelated conversations.",
+            "The application returns ordered messages and a cursor for the next range or older bucket.",
+            "A very active conversation moves into additional bounded buckets according to the model instead of allowing one partition to grow forever."
+          ]
+        }
+      ]
     },
     {
       "title": "Examples and Advanced Features",
@@ -160,7 +191,8 @@
           "width": 1225.0,
           "height": 736.0
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "When to Use and Limitations",
@@ -170,7 +202,8 @@
         "Highly relational queries, frequent cross-partition joins, and complex transactional invariants often fit another database better.",
         "Explain partition bounds, replication, consistency level, and repair strategy when selecting it."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     }
   ]
 }

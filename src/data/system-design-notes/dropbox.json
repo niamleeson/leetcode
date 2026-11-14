@@ -8,7 +8,8 @@
         "Build cloud file storage with uploads, downloads, sharing, and synchronization across a user's devices.",
         "Separate file bytes from file metadata. Object storage handles large immutable objects; the application handles ownership, permissions, and versions."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Functional Requirements",
@@ -19,7 +20,8 @@
         "Synchronize local changes to the cloud and cloud changes to other devices.",
         "Editing files in the browser and previewing their contents are outside the core scope."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Non-functional Requirements",
@@ -37,7 +39,8 @@
           "width": 553.7837600708008,
           "height": 174.72030639648438
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Core Entities",
@@ -56,7 +59,8 @@
           "width": 140.4319305419922,
           "height": 100.0
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "API",
@@ -68,13 +72,15 @@
         "Fetch changes since the last synchronization cursor; acknowledge or complete an upload only after server verification.",
         "Derive the caller's identity from a validated session token, rather than a user ID supplied in the request body."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "High-Level Design",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) Upload files",
@@ -107,6 +113,19 @@
           "width": 1877.4078961216503,
           "height": 684.6656057274333
         }
+      ],
+      "flows": [
+        {
+          "title": "Upload a file and make it available",
+          "steps": [
+            "The client requests an upload session with file name, size, and content type; the file service authenticates the user and validates the request.",
+            "The service creates pending metadata and obtains or constructs scoped upload instructions for the intended object key.",
+            "The client uploads bytes directly to object storage using the signed URL or multipart session; the application server does not relay those bytes.",
+            "The client or storage notification reports completion. The backend verifies the actual object and required metadata with the storage provider.",
+            "Only after verification does the service mark the file available and record a change event for synchronization.",
+            "The API returns or exposes the completed file state. An interrupted upload remains pending and can resume or expire rather than appearing as a valid file."
+          ]
+        }
       ]
     },
     {
@@ -132,6 +151,19 @@
           "revision": "d3cf8882c8fa",
           "width": 1881.6127049968272,
           "height": 963.4081929325711
+        }
+      ],
+      "flows": [
+        {
+          "title": "Authorize and download a shared file",
+          "steps": [
+            "The owner submits a sharing request identifying the file, recipient, and permission.",
+            "The service verifies the owner's sharing authority and commits the user-to-file permission record.",
+            "The recipient's file list queries the share mapping and returns authorized file metadata.",
+            "When the recipient requests a download, the file service checks current permission and file readiness again.",
+            "The service issues a short-lived object-storage or CDN download URL; the recipient downloads bytes directly through that URL.",
+            "The CDN or storage service verifies the signed request before serving the object. A failed authorization produces an error instead of a file transfer."
+          ]
         }
       ]
     },
@@ -159,13 +191,27 @@
           "width": 2059.845944212894,
           "height": 999.8678661873969
         }
+      ],
+      "flows": [
+        {
+          "title": "Propagate one device's edit to another",
+          "steps": [
+            "A local file watcher notices an edit and persists the pending change on the device so it survives a restart.",
+            "The client identifies changed content and uploads missing or changed parts, reusing the resumable-upload process.",
+            "The backend verifies the new content and commits its metadata version. A stale base version triggers the chosen conflict policy rather than overwriting a concurrent edit silently.",
+            "A change-feed record identifies the updated file and version; a push message tells other devices that changes are available.",
+            "Each other device fetches changes after its saved cursor, downloads the authorized new version, and applies it locally.",
+            "The device advances its cursor only after applying the change. After a missed push or reconnect, polling the same change feed recovers the gap."
+          ]
+        }
       ]
     },
     {
       "title": "Deep Dives",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) Large files and resumable uploads",
@@ -185,6 +231,19 @@
           "width": 2056.1989960446003,
           "height": 962.2790083000117
         }
+      ],
+      "flows": [
+        {
+          "title": "Resume and finalize a multipart upload",
+          "steps": [
+            "The client opens an upload session, divides the file into parts, and tracks the upload ID and numbered parts.",
+            "It uploads parts independently and retains the storage provider's successful part identifiers or ETags.",
+            "After disconnection, it resumes the same session and asks which parts the server or provider has verified.",
+            "It uploads only missing parts; the backend verifies reported parts through the provider's multipart API rather than trusting client flags.",
+            "The backend requests completion using the verified ordered parts, then confirms the finalized object's existence and expected properties.",
+            "Only then does metadata transition to available. Abandoned sessions and orphaned parts are cleaned up separately."
+          ]
+        }
       ]
     },
     {
@@ -196,7 +255,8 @@
         "Compress when the bandwidth savings exceed CPU cost; already compressed media may gain little. Compress before encryption.",
         "Cache popular downloads near users and avoid caching every private file indefinitely."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "3) Security",
@@ -206,7 +266,8 @@
         "Recheck access before issuing a signed URL and choose a short expiration because an issued bearer URL remains usable until expiry.",
         "Verify upload size, type, ownership, and completion on the server. Never trust a client-provided storage key to authorize access."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Final Design",
@@ -225,7 +286,8 @@
           "width": 2056.1989960446003,
           "height": 962.2790083000117
         }
-      ]
+      ],
+      "flows": []
     }
   ]
 }

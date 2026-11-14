@@ -8,7 +8,6 @@ The Solution
 
 Client-Server Connection Protocols
 
-
 1) Networking and load balancers
 - TCP establishes a connection between endpoints; HTTP defines requests and responses over a transport.
 - Layer 4 load balancers route connections without understanding application messages.
@@ -27,13 +26,19 @@ Client-Server Connection Protocols
 - WebSockets provide bidirectional messages on one connection and suit chat, collaboration, and interactive games.
 - Both require authentication, subscription authorization, heartbeats or liveness checks, and bounded buffering for slow clients.
 
+Process: Establish a subscription and deliver an update
+- Step 1: The client establishes its supported streaming connection through a proxy configured for the required lifetime and buffering behavior.
+- Step 2: The connection server authenticates the client, validates the requested channels, and registers local subscriptions.
+- Step 3: A producer commits an application change and reliably publishes the corresponding event when delivery must follow durable state.
+- Step 4: Routing or pub/sub sends the event to connection servers with interested clients, which forward it over their existing connections.
+- Step 5: Clients apply ordered events and retain a cursor when recovery is required; the transport itself does not create durable history.
+
 4) WebRTC
 - WebRTC supports low-latency media or data channels and can connect peers directly when network conditions permit.
 - Signaling exchanges connection information; STUN assists address discovery and TURN relays traffic when direct connectivity fails.
 - It adds networking and media complexity, making it appropriate for calls or interactive media rather than every ordinary notification stream.
 
 Server-Side Push and Pull
-
 
 1) Pull from shared state
 - Connection servers can poll a shared store for updates and deliver them to local clients.
@@ -56,6 +61,13 @@ Common Deep Dives
 - Use per-resource sequence numbers when ordering matters; timestamps from unrelated machines do not establish a reliable total order.
 - Replicate or hierarchically distribute high-fanout channels and bound slow-consumer queues.
 - Use backoff with jitter to avoid reconnect storms after an outage or deployment.
+
+Process: Recover after a disconnected stream
+- Step 1: Heartbeats or transport errors reveal the disconnection, and the client reconnects with bounded backoff and jitter.
+- Step 2: It authenticates and presents its last applied event cursor or asks for a fresh snapshot.
+- Step 3: The server replays retained events after the cursor and coordinates the transition to live delivery without leaving a gap.
+- Step 4: The client removes duplicates and detects missing sequence positions before advancing its local cursor.
+- Step 5: If the requested cursor is too old, the server supplies the supported snapshot/resynchronization path rather than pretending all missed events were delivered.
 
 When to Use and Conclusion
 - Choose the simplest transport that satisfies the product's freshness and direction requirements.

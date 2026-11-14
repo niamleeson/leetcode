@@ -8,13 +8,15 @@
         "Read latency and throughput degrade when queries scan too much data, perform expensive joins, or compete for limited database resources.",
         "Identify the dominant query and freshness requirement before adding caches or shards."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "The Solution",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) Optimize the existing database",
@@ -48,7 +50,8 @@
           "width": 1257.149396342421,
           "height": 781.7145392978232
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "2) Scale database reads horizontally",
@@ -81,7 +84,8 @@
           "width": 934.0958977578205,
           "height": 646.2370677385543
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "3) Application caching",
@@ -99,6 +103,19 @@
           "revision": "616062971151",
           "width": 868.5173758772027,
           "height": 282.22265625
+        }
+      ],
+      "flows": [
+        {
+          "title": "Serve a cache-aside read",
+          "steps": [
+            "The service authenticates the request and builds a cache key containing all relevant query and visibility parameters.",
+            "It looks up the cache; a valid hit returns immediately under the permitted freshness contract.",
+            "On a miss, it coordinates or coalesces concurrent loads for that key where stampede protection is required.",
+            "The selected loader reads authoritative storage and validates the result's version or expiry.",
+            "It stores a bounded-lifetime cache entry using the chosen stale-write protection, then returns the result; cache-write failure need not fail a successful authoritative read.",
+            "Waiting requests reuse the loaded result, while cache outages apply bounded database fallback rather than unlimited parallel misses."
+          ]
         }
       ]
     },
@@ -118,7 +135,8 @@
           "width": 1017.980421919717,
           "height": 646.2370677385543
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "When to Use",
@@ -128,13 +146,15 @@
         "A small workload with efficient indexed queries may not need another distributed subsystem.",
         "Keep consistency requirements explicit: stale stock displays may be acceptable, but checkout must still validate authoritative inventory."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Common Deep Dives",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) Growing datasets",
@@ -144,7 +164,8 @@
         "Cursor pagination and partition pruning avoid scanning increasing offsets or irrelevant historical data.",
         "Rollups and materialized views are useful for repeated aggregate queries."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "2) Hot keys and stampedes",
@@ -155,7 +176,8 @@
         "Add expiry jitter and consider proactive refresh to avoid synchronized expiration.",
         "Bound fallback traffic to the database during cache failures; an empty cache can be an availability incident."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "3) Invalidation races",
@@ -166,7 +188,19 @@
         "TTL limits staleness but does not provide immediate consistency.",
         "If a read must observe the latest committed state, use an authoritative path or a protocol that actually enforces that guarantee."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": [
+        {
+          "title": "Update data with version-aware cache protection",
+          "steps": [
+            "The writer commits the new database value with a newer version.",
+            "It publishes invalidation or cache-update work identifying that committed version.",
+            "The cache path records or enforces a version barrier so a slow reader holding an older result cannot repopulate it as the newest value.",
+            "A subsequent miss reloads the current database state and installs it only if the version check allows it.",
+            "Reads requiring immediate freshness use the authoritative or coordinated path until that guarantee is satisfied; TTL alone is only a staleness bound."
+          ]
+        }
+      ]
     },
     {
       "title": "Conclusion",
@@ -175,7 +209,8 @@
         "Start with efficient queries, then use replicas, derived views, caches, or sharding for the measured bottleneck.",
         "Explain cache failure and freshness behavior as carefully as the normal fast path."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     }
   ]
 }

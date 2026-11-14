@@ -8,7 +8,8 @@
         "Build a media-sharing application with uploads, follows, and a chronological feed.",
         "Media delivery and feed generation have different bottlenecks and should scale separately."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Functional Requirements",
@@ -19,7 +20,8 @@
         "Page through the feed using stable ordering.",
         "Ranking, messaging, and other social features are outside the core chronological-feed scope."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Non-functional Requirements",
@@ -37,7 +39,8 @@
           "width": 968.2742521761202,
           "height": 149.00099470185506
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Core Entities",
@@ -56,7 +59,8 @@
           "width": 149.47987365722656,
           "height": 145.0
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "API",
@@ -67,13 +71,15 @@
         "Fetch the feed with a cursor and limit, returning post summaries and media URLs.",
         "Use a timestamp plus stable ID as the cursor so simultaneous posts do not create ambiguous boundaries."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "High-Level Design",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) Publish posts",
@@ -90,6 +96,19 @@
           "revision": "e3dcd80007d7",
           "width": 1675.352070371469,
           "height": 649.1548125678298
+        }
+      ],
+      "flows": [
+        {
+          "title": "Publish media and fan out the post",
+          "steps": [
+            "The client requests authorized upload instructions, transfers media directly to object storage, and submits the post metadata and media reference.",
+            "The service validates ownership and upload completion, then persists a pending post and schedules any required media processing.",
+            "Workers generate the required image or video variants and persist their outputs before making the post eligible for display.",
+            "A committed post-ready event reaches feed workers through a reliable event pipeline.",
+            "For an ordinary author, workers add the post ID to active followers' derived feed lists in retry-safe batches. Celebrity posts can remain on the read-time path.",
+            "The publish API or status endpoint exposes the committed post state; asynchronous fanout may continue after publication is acknowledged."
+          ]
         }
       ]
     },
@@ -109,7 +128,8 @@
           "width": 1841.5562151867198,
           "height": 574.8796074671372
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "3) Read the chronological feed",
@@ -127,13 +147,27 @@
           "width": 1918.9150147779292,
           "height": 574.8796074671372
         }
+      ],
+      "flows": [
+        {
+          "title": "Read a hybrid feed page",
+          "steps": [
+            "The client requests a page with its cursor; the feed service authenticates the reader and determines applicable visibility rules.",
+            "It reads precomputed post IDs for ordinary followed accounts and recent posts for followed celebrity accounts.",
+            "The service merges candidates by stable chronological ordering, removes duplicates, and applies deletion and visibility checks.",
+            "It batch-fetches post metadata, filling post-cache misses from durable storage.",
+            "The API returns a bounded page, media URLs, and the last ordering key as the next cursor.",
+            "The client fetches images or video segments from the CDN independently of the feed metadata request."
+          ]
+        }
       ]
     },
     {
       "title": "Deep Dives",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) Feed latency and fanout",
@@ -161,7 +195,8 @@
           "width": 2214.3104711829274,
           "height": 869.5842929465441
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "2) Fast media rendering",
@@ -201,7 +236,8 @@
           "width": 2083.7434610254595,
           "height": 811.9638075682069
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "3) Scale the system",
@@ -211,7 +247,8 @@
         "Scale feed workers using queue lag and keep ingestion responsive during fanout backlogs.",
         "Monitor feed latency, propagation delay, cache hit rate, and media-processing failures separately."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Final Design",
@@ -229,7 +266,8 @@
           "width": 2083.7434610254595,
           "height": 811.9638075682069
         }
-      ]
+      ],
+      "flows": []
     }
   ]
 }

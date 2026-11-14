@@ -8,7 +8,8 @@
         "Track product prices over time and notify users when a price crosses their chosen threshold.",
         "Discovery, trustworthy price collection, time-series storage, and notification fanout are separate parts of the pipeline."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Functional Requirements",
@@ -18,7 +19,8 @@
         "Subscribe to price-drop notifications for a product and threshold.",
         "Continuously discover and refresh product prices."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Non-functional Requirements",
@@ -36,7 +38,8 @@
           "width": 1084.6055318378533,
           "height": 170.0
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Core Entities",
@@ -55,7 +58,8 @@
           "width": 154.37986755371094,
           "height": 170.0
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "API",
@@ -66,13 +70,15 @@
         "Submit extension observations with product identity and evidence for validation.",
         "Return subscription state and distinguish accepted observations from verified prices."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "High-Level Design",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) History and collection",
@@ -89,6 +95,18 @@
           "revision": "c428c5836e40",
           "width": 2039.4987814380963,
           "height": 613.248592686864
+        }
+      ],
+      "flows": [
+        {
+          "title": "Collect and verify a price observation",
+          "steps": [
+            "A scheduler, source interface, or browser extension supplies a product observation with price, currency, time, and provenance.",
+            "The ingestion service normalizes product identity and validates the format, rate limits, and plausible value range.",
+            "Untrusted or anomalous observations enter verification; they do not immediately replace the authoritative price or trigger alerts.",
+            "The service persists a verified observation and compares it with the previous accepted price.",
+            "A real change produces a durable price-change event for history projections and subscription evaluation; duplicates retain the same event identity."
+          ]
         }
       ]
     },
@@ -108,13 +126,15 @@
           "width": 2039.498781438096,
           "height": 755.2839132748306
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Deep Dives",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) Discover and refresh products",
@@ -155,7 +175,8 @@
           "width": 2317.1933629782798,
           "height": 879.0463212829759
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "2) Validate malicious observations",
@@ -165,7 +186,8 @@
         "A single extreme report should trigger verification rather than immediately notify thousands of subscribers.",
         "Store provenance and confidence so suspicious data can be corrected without losing the audit trail."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "3) Notify efficiently",
@@ -183,6 +205,18 @@
           "revision": "da6cd78ddd50",
           "width": 2317.1933629782798,
           "height": 895.91288719471
+        }
+      ],
+      "flows": [
+        {
+          "title": "Send a threshold-crossing alert",
+          "steps": [
+            "A consumer receives a verified price-change event and looks up subscriptions for that product whose thresholds may be satisfied.",
+            "It checks each subscription's alert semantics, such as crossing from above the threshold to at or below it.",
+            "It records a deduplicated notification intent keyed by subscription and qualifying event, then reliably enqueues delivery work.",
+            "A delivery worker rechecks active preferences, sends through the chosen provider, and records the attempt outcome.",
+            "Transient failures retry with the same logical notification identity; already applied events do not generate another alert merely because queue delivery repeated."
+          ]
         }
       ]
     },
@@ -210,6 +244,17 @@
           "width": 2317.1933629782798,
           "height": 895.0399114567238
         }
+      ],
+      "flows": [
+        {
+          "title": "Return chart data at a useful resolution",
+          "steps": [
+            "The client requests a product, time range, and desired chart resolution.",
+            "The query service checks a compatible cached result, then selects raw data or an appropriate rollup for that range.",
+            "It reads bounded product/time partitions and preserves the aggregates needed to represent meaningful price changes.",
+            "It returns ordered points and resolution metadata; the client renders the chart without downloading every raw observation."
+          ]
+        }
       ]
     },
     {
@@ -228,7 +273,8 @@
           "width": 2317.1933629782798,
           "height": 895.0399114567238
         }
-      ]
+      ],
+      "flows": []
     }
   ]
 }

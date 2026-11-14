@@ -8,7 +8,8 @@
         "Search a large corpus of social posts by keyword and order results by recency or popularity.",
         "Posting and liking update the primary data; a derived search index supports query patterns the primary store cannot serve efficiently."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Functional Requirements",
@@ -18,7 +19,8 @@
         "Search by keyword, with multi-keyword and phrase searches as deeper requirements.",
         "Sort results by recency or like count and paginate them."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Non-functional Requirements",
@@ -43,7 +45,8 @@
           "width": 538.2196679711342,
           "height": 320.0
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Core Entities",
@@ -53,7 +56,8 @@
         "TermPosting maps a normalized term to matching document IDs and optional positions.",
         "SearchDocument stores fields needed for filtering and sorting; indexing progress tracks source changes."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "API",
@@ -71,13 +75,15 @@
           "width": 620.299560546875,
           "height": 245.0
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "High-Level Design",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) Writes and indexing",
@@ -94,6 +100,18 @@
           "revision": "30c26f9d278f",
           "width": 1452.5239991759518,
           "height": 474.0918691283557
+        }
+      ],
+      "flows": [
+        {
+          "title": "Publish a post into the search index",
+          "steps": [
+            "The author creates or edits a post through the primary post service, which commits content, visibility, and a version.",
+            "A reliable change stream or outbox publishes that committed version to indexing workers.",
+            "The worker tokenizes the text, computes searchable fields, and writes the search document and postings for the stable post ID.",
+            "Version checks prevent a delayed old update from replacing newer content or undoing a deletion.",
+            "After the search engine's refresh boundary, queries can discover the updated document; primary write acknowledgement can occur before that search visibility."
+          ]
         }
       ]
     },
@@ -135,6 +153,19 @@
           "width": 831.0051133518059,
           "height": 455.1920036954631
         }
+      ],
+      "flows": [
+        {
+          "title": "Execute a keyword or phrase search",
+          "steps": [
+            "The client sends query text, filters, sort mode, and continuation data to the search coordinator.",
+            "The coordinator normalizes the query and routes it to the relevant search shards.",
+            "Each shard retrieves term postings, intersects or unions candidates, and checks positions for phrase requirements.",
+            "Shards apply supported filters and return bounded locally ranked candidates with stable sort values.",
+            "The coordinator merges candidates, deduplicates results, and enforces current visibility where stale index data could expose restricted content.",
+            "It hydrates the selected page and returns a cursor containing the ordering context, avoiding a full-corpus scan or unbounded result transfer."
+          ]
+        }
       ]
     },
     {
@@ -160,13 +191,15 @@
           "width": 1352.0761299681553,
           "height": 647.6395664963818
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Deep Dives",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) Read scale",
@@ -191,7 +224,8 @@
           "width": 1549.9411099062106,
           "height": 783.7277011722022
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "2) Multiple terms and phrases",
@@ -201,7 +235,8 @@
         "Process selective terms first to reduce intermediate candidates.",
         "Phrase queries need term positions or a verification phase; matching all words alone does not prove adjacency or order."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "3) Write scale",
@@ -234,7 +269,8 @@
           "width": 1156.6914357637688,
           "height": 664.8274075053432
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "4) Storage efficiency",
@@ -252,7 +288,8 @@
           "width": 869.77015981035,
           "height": 785.5970710323245
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Final Design",
@@ -270,7 +307,8 @@
           "width": 1585.7770810260026,
           "height": 916.6483360620396
         }
-      ]
+      ],
+      "flows": []
     }
   ]
 }

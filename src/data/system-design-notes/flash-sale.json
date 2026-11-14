@@ -8,7 +8,8 @@
         "Sell a very limited inventory item when a large crowd arrives simultaneously.",
         "The critical invariant is that successful reservations and purchases never exceed available units."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Functional Requirements",
@@ -18,7 +19,8 @@
         "Reserve an available unit for a limited checkout period.",
         "Complete payment for a valid reservation and release expired or abandoned claims."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Non-functional Requirements",
@@ -36,7 +38,8 @@
           "width": 415.99945068359375,
           "height": 200.0
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Core Entities",
@@ -55,7 +58,8 @@
           "width": 151.99981689453125,
           "height": 120.0
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "API",
@@ -66,13 +70,15 @@
         "Complete checkout for a specific reservation token and query order status.",
         "Verify server time, ownership, sale state, and reservation validity on every authoritative transition."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "High-Level Design",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) Browse and reserve",
@@ -105,6 +111,19 @@
           "width": 1509.5841978635099,
           "height": 363.754449796942
         }
+      ],
+      "flows": [
+        {
+          "title": "Admit a buyer and claim one unit",
+          "steps": [
+            "The buyer loads cacheable sale details and, when required, joins the waiting room.",
+            "Admission issues a signed token when reservation capacity is available; the token grants access to try, not ownership of inventory.",
+            "The buyer submits a reservation request with admission and idempotency tokens.",
+            "The reservation service verifies sale timing and user limits, then atomically claims an eligible unit or inventory share with owner, version, and expiry.",
+            "If no valid claim succeeds, it returns sold-out or retry feedback without inventing a reservation.",
+            "After durable claim commit, it returns the reservation token and checkout deadline. Other buyers cannot purchase that current claim while it remains valid."
+          ]
+        }
       ]
     },
     {
@@ -131,13 +150,27 @@
           "width": 1711.7482683824553,
           "height": 532.1289711613103
         }
+      ],
+      "flows": [
+        {
+          "title": "Convert a reservation into a purchase",
+          "steps": [
+            "The buyer submits checkout for the specific reservation token; the service verifies current owner, version, state, and deadline.",
+            "It records an order/payment attempt and sends payment using the stable provider idempotency key through a recoverable workflow.",
+            "A verified payment outcome resumes the workflow; a timeout remains unresolved until provider lookup or reconciliation determines the result.",
+            "The service conditionally commits purchase only for the reservation state allowed by the chosen expiry/payment policy.",
+            "A payment that cannot be paired with a valid purchase follows the explicit reconciliation or refund path; it must not consume a unit now assigned to someone else.",
+            "The client receives the committed order result and can retrieve it by ID after a lost response."
+          ]
+        }
       ]
     },
     {
       "title": "Deep Dives",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) Contention",
@@ -164,7 +197,8 @@
           "width": 1711.7482683824553,
           "height": 532.1289711613103
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "2) Expiration",
@@ -182,6 +216,18 @@
           "revision": "c76f7391aecd",
           "width": 1711.7482683824555,
           "height": 664.0851513395751
+        }
+      ],
+      "flows": [
+        {
+          "title": "Reclaim a timed-out unit safely",
+          "steps": [
+            "A scheduled cleanup or new claimant identifies an apparently expired reservation.",
+            "It rereads or conditionally tests authoritative state, expiry, owner, and version together.",
+            "It releases or reclaims only that exact expired version, atomically creating new ownership if this is an on-demand claim.",
+            "A stale cleanup encountering a purchased or replaced reservation does nothing.",
+            "Any late checkout or payment callback must still pass the current-token check before it can affect the unit."
+          ]
         }
       ]
     },
@@ -216,7 +262,8 @@
           "width": 1711.748268382455,
           "height": 867.4093813251329
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "4) Fairness",
@@ -226,7 +273,8 @@
         "Enforce per-user purchase limits at the durable order boundary, not solely in browser state.",
         "Separate fairness from raw throughput: a fast atomic counter does not prevent one client from making disproportionate attempts."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Final Design",
@@ -244,7 +292,8 @@
           "width": 1711.748268382455,
           "height": 867.4093813251329
         }
-      ]
+      ],
+      "flows": []
     }
   ]
 }

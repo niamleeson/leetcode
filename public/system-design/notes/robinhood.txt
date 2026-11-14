@@ -26,12 +26,18 @@ API
 
 High-Level Design
 
-
 1) Live prices
 - Ingest market feeds once, normalize updates, and cache the latest value by symbol.
 - Connection servers subscribe to symbols needed by their clients and fan updates out locally.
 - Separate market-data ingestion from browser connections so reconnecting clients do not create new external feed subscriptions.
 - Include timestamps or sequence information so clients can detect stale or reordered updates.
+
+Process: Distribute a market-price update
+- Step 1: The market-data adapter receives an external quote, validates its source ordering, and normalizes the symbol and fields.
+- Step 2: It updates the latest quote cache and publishes the new version to the symbol's shared channel.
+- Step 3: Connection servers subscribed to that symbol receive the event once for their local interested clients.
+- Step 4: They send or coalesce display updates according to the freshness policy, and clients ignore older versions.
+- Step 5: A reconnecting client fetches a current snapshot before resuming live updates rather than replaying an unlimited stale-price backlog.
 
 2) Orders
 - Validate the authenticated account, order parameters, and available buying power or holdings.
@@ -39,8 +45,16 @@ High-Level Design
 - Use stable external/client order identifiers to reconcile retries and avoid duplicate orders.
 - Apply execution reports to durable order, cash, and position state with idempotent processing.
 
-Deep Dives
+Process: Submit and process a stock order
+- Step 1: The customer sends side, symbol, quantity, order type, and a stable client request ID to the order API.
+- Step 2: The service authenticates the account, validates the order, and checks for an existing request result.
+- Step 3: Within the account/order consistency boundary, it reserves the required buying power or holdings and persists a pending order.
+- Step 4: After that commit, a recoverable submission worker sends the order to external execution infrastructure using the stable external order identity.
+- Step 5: The service records external acknowledgement or rejection. Local request acceptance is not a claim that the exchange has accepted or filled the order.
+- Step 6: Execution reports update filled quantity, cash, positions, and remaining reservations idempotently; partial fills leave the remainder open according to order rules.
+- Step 7: Only committed transitions are sent to the customer. A submission timeout triggers status reconciliation before any potentially duplicate external resubmission.
 
+Deep Dives
 
 1) Scale price delivery
 - Popular symbols create hot channels; share subscriptions across clients and replicate fanout capacity.
@@ -52,6 +66,13 @@ Deep Dives
 - Deduplicate external events using execution/report IDs and preserve cumulative filled quantities.
 - Reconcile against the external provider when an acknowledgement or status update is missing.
 - Publish customer-facing updates after committing state so a notification cannot claim a fill that was never recorded.
+
+Process: Handle cancellation racing a fill
+- Step 1: The customer requests cancellation of an eligible open order; the service records the request without immediately declaring the order cancelled.
+- Step 2: The execution adapter submits the cancellation using the provider's order identity.
+- Step 3: Meanwhile, any execution report is applied by its unique fill/report ID, including fills arriving before cancellation takes effect.
+- Step 4: When external cancellation is confirmed, the service closes the unfilled remainder and releases only its remaining reserved funds or securities.
+- Step 5: The final customer state includes actual fills plus the cancelled remainder; it never erases a completed fill because a cancellation was requested first.
 
 3) Order consistency
 - Reserve funds or securities atomically with accepting the relevant order intent.

@@ -20,6 +20,14 @@ How Kafka Works
 - Committing before processing risks loss after a crash; committing after processing permits duplicates that must be handled safely.
 - Retention is based on configured time, size, or compaction policy rather than simply deleting a record when one consumer reads it.
 
+Process: Publish a record and advance consumer progress
+- Step 1: The producer chooses a topic partition, commonly from the event key, and sends the record to that partition's leader.
+- Step 2: The leader appends it and followers replicate it; the producer receives acknowledgement according to acks and the configured in-sync replica policy.
+- Step 3: A consumer assigned that partition fetches records in offset order from its current position.
+- Step 4: The consumer performs the application work and makes the required output or checkpoint recoverable.
+- Step 5: It commits the corresponding consumed position only after that recovery boundary, unless it deliberately accepts at-most-once behavior.
+- Step 6: After a crash or rebalance, consumption resumes from committed progress. Records whose effects succeeded before their offset commit may repeat, requiring idempotency or compatible transactions.
+
 Scalability
 - Partition count bounds useful parallelism for one consumer group; extra consumers beyond available partitions remain idle.
 - Choose keys for both ordering and load distribution. One popular key remains a hot partition.
@@ -38,6 +46,13 @@ Handling Retries and Errors
 - Consumer side effects still need idempotency or compatible transactions; producer idempotence alone does not make the entire pipeline exactly once.
 - Retry transient failures with an explicit strategy, and isolate poison records through retry or dead-letter topics where appropriate.
 - Retrying later can affect ordering, so decide whether a failed record blocks its partition or moves to a separate recovery path.
+
+Process: Handle an uncertain producer or consumer operation
+- Step 1: A producer timeout leaves the append outcome uncertain; supported idempotent production retries preserve the producer's sequencing instead of creating independent records blindly.
+- Step 2: On the consumer side, a processing error leaves the record unfinished; the application decides whether to block the partition, retry later, or route to a recovery topic.
+- Step 3: If moved to a retry/dead-letter path, the application makes that handoff recoverable before advancing beyond the original record.
+- Step 4: Replayed processing uses the original business identity to avoid repeating external effects.
+- Step 5: Monitoring tracks lag and failed records so retention cannot silently expire the only data needed for recovery.
 
 When to Use and Summary
 - Use Kafka for replayable event pipelines, stream processing, and multiple independent downstream consumers.

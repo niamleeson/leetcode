@@ -8,7 +8,8 @@
         "Build timed auctions where only a bid higher than the current highest bid is accepted.",
         "Bid acceptance and auction closure are correctness-sensitive state transitions, even if auction browsing is eventually consistent."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Functional Requirements",
@@ -18,7 +19,8 @@
         "Place bids and inspect the current highest bid.",
         "Show bid updates and determine a winner after the auction closes."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Non-functional Requirements",
@@ -36,7 +38,8 @@
           "width": 815.9595592820802,
           "height": 170.0
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Core Entities",
@@ -54,7 +57,8 @@
           "width": 149.47987365722656,
           "height": 170.0
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "API",
@@ -65,13 +69,15 @@
         "Fetch auction details and bid history; subscribe to live bid updates.",
         "Return whether a bid was accepted, distinguishing that result from merely receiving the request."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "High-Level Design",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) Create and view auctions",
@@ -96,7 +102,8 @@
           "width": 1852.318215487437,
           "height": 442.59839243886864
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "2) Accept bids",
@@ -114,13 +121,27 @@
           "width": 1852.318215487437,
           "height": 442.59839243886853
         }
+      ],
+      "flows": [
+        {
+          "title": "Accept or reject a bid",
+          "steps": [
+            "The bidder sends auction ID, amount, and an idempotency key to the bid service.",
+            "The service authenticates the bidder and resolves any previously completed request using that key.",
+            "It locks the auction row or uses an expected version, then checks current highest bid, auction state, and authoritative deadline together.",
+            "If the auction is closed or the bid is not high enough, the attempt fails without changing accepted bid history.",
+            "Otherwise the service inserts the bid and updates the auction's highest bid in the same transaction, then commits.",
+            "Only after commit does it acknowledge acceptance and publish the live update. Viewers process the committed ordering/version so an older event cannot move the displayed bid backward."
+          ]
+        }
       ]
     },
     {
       "title": "Deep Dives",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) Strong consistency",
@@ -146,7 +167,8 @@
           "width": 1852.318215487437,
           "height": 521.0644618053029
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "2) Durability and closing",
@@ -164,6 +186,18 @@
           "revision": "c6cc15b945df",
           "width": 2020.502967901771,
           "height": 459.53959019992726
+        }
+      ],
+      "flows": [
+        {
+          "title": "Close an auction and select the winner",
+          "steps": [
+            "A deadline worker attempts closure; bid acceptance independently checks the deadline so a late worker cannot extend bidding accidentally.",
+            "The worker enters the same serialization boundary used by bids and verifies that the auction has ended and is still open.",
+            "It marks the auction closed and records the highest accepted bidder as the winner, or a no-bids result, in one committed transition.",
+            "A duplicate closing attempt observes the existing terminal result instead of selecting a new winner.",
+            "Notifications and any settlement workflow consume that committed result and retry independently without reopening the auction."
+          ]
         }
       ]
     },
@@ -184,7 +218,8 @@
           "width": 2020.5029679017716,
           "height": 564.0644330676205
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "4) Scale",
@@ -194,7 +229,8 @@
         "A single popular auction is still a hot key; isolate it, control admission, and keep its serialized write path short.",
         "Cache static item data separately from rapidly changing bid state."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Final Design",
@@ -212,7 +248,8 @@
           "width": 2020.5029679017712,
           "height": 601.1637034738433
         }
-      ]
+      ],
+      "flows": []
     }
   ]
 }

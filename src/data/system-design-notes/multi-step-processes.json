@@ -16,13 +16,15 @@
           "width": 1078.08203125,
           "height": 733.6076005695977
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Solutions",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) Single-server primitives",
@@ -47,6 +49,18 @@
           "width": 675.466796875,
           "height": 655.4208984375
         }
+      ],
+      "flows": [
+        {
+          "title": "Publish an event through a transactional outbox",
+          "steps": [
+            "The service begins a database transaction for the business operation.",
+            "It writes the business change and an outbox record with a stable event ID in that same transaction.",
+            "The transaction commits both records together; rollback leaves neither record visible as a completed operation.",
+            "An outbox publisher reads committed unsent records and sends them to the broker.",
+            "After broker acceptance it marks progress. A crash between send and marking can repeat publication, so consumers deduplicate the event ID."
+          ]
+        }
       ]
     },
     {
@@ -58,7 +72,20 @@
         "Track progress durably and make forward steps and compensations retry-safe.",
         "Define which steps are reversible, which require manual resolution, and which outcomes are merely pending."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": [
+        {
+          "title": "Execute and compensate a business workflow",
+          "steps": [
+            "The coordinator commits the workflow identity and initial state so a replacement can resume it after a crash.",
+            "It requests the first local step using a stable business idempotency key, then records the confirmed outcome.",
+            "It starts each dependent step only after the required prior outcome is known and durable.",
+            "A transient failure retries the same logical step; an unresolved external outcome is reconciled before treating it as definitely failed.",
+            "If a terminal failure requires reversal, the coordinator schedules the applicable compensations for completed steps in a valid dependency order.",
+            "Compensation outcomes are recorded and retried too. The workflow reaches completed, compensated, or an explicit unresolved/manual state rather than disappearing from memory."
+          ]
+        }
+      ]
     },
     {
       "title": "3) Event-driven choreography",
@@ -77,7 +104,8 @@
           "width": 962.9013671875,
           "height": 643.642578125
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "4) Workflow orchestration",
@@ -97,7 +125,8 @@
           "width": 949.0473630574824,
           "height": 780.7009259865446
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "When to Use",
@@ -115,13 +144,15 @@
           "width": 1102.7321166992188,
           "height": 576.4296874999999
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Common Deep Dives",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) Crashes and exactly-once effects",
@@ -132,7 +163,8 @@
         "Use stable business idempotency keys, transactional deduplication, or downstream status lookup to make retries safe.",
         "Durable orchestration does not automatically make external payments or emails execute exactly once."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "2) Workflow changes",
@@ -142,7 +174,8 @@
         "Use explicit migrations or keep old worker versions for in-flight workflows when required.",
         "Test deployment behavior against workflows waiting on timers or external events, not only newly started workflows."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "3) History size and external events",
@@ -153,7 +186,8 @@
         "Correlate external callbacks to the correct workflow and deduplicate repeated or late events.",
         "Define timeouts and human intervention paths for workflows that cannot complete automatically."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Conclusion",
@@ -162,7 +196,8 @@
         "Treat a workflow as durable state plus retryable steps, not one long in-memory function.",
         "Explicit compensation, idempotency, versioning, and reconciliation make cross-service work recoverable."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     }
   ]
 }

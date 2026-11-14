@@ -17,13 +17,15 @@
           "width": 934.5509412010833,
           "height": 178.00296839196494
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "The Solution",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) Conditional writes",
@@ -33,7 +35,19 @@
         "Check affected-row count to distinguish success from a lost race; do not assume an executed statement changed a row.",
         "A unique constraint can enforce one record per logical identity more reliably than a prior application-level existence check."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": [
+        {
+          "title": "Claim a resource with compare-and-set",
+          "steps": [
+            "The service reads the resource's state and version, or expresses the required current-state predicate directly in its write.",
+            "It submits one conditional update, such as available_quantity >= requested_quantity or version = expected_version.",
+            "The database evaluates the predicate and mutation atomically; competing requests cannot both rely on the same unprotected old state.",
+            "The service checks the affected-row count. Success is acknowledged after the write commits; zero rows means the claim did not succeed.",
+            "On a conflict, the service reloads and re-evaluates the business rule before a bounded retry, rather than blindly repeating stale assumptions."
+          ]
+        }
+      ]
     },
     {
       "title": "2) Pessimistic locking",
@@ -52,6 +66,18 @@
           "width": 1134.1479376138861,
           "height": 338.7710356202158
         }
+      ],
+      "flows": [
+        {
+          "title": "Update related rows with a short lock-holding transaction",
+          "steps": [
+            "The service begins a transaction and acquires required row locks in a consistent order.",
+            "It reads the locked current values and checks the invariant across all relevant records.",
+            "If validation fails, it rolls back; otherwise it writes the related changes within the same transaction.",
+            "Commit makes the changes durable under the database's configured guarantees and releases the locks.",
+            "Only then does the service acknowledge success or trigger external work; deadlock victims retry the complete transaction against fresh state."
+          ]
+        }
       ]
     },
     {
@@ -63,7 +89,8 @@
         "This works well with modest contention, but repeated conflicts can waste substantial work on a hot resource.",
         "Use a monotonically changing version to detect state that changed and later returned to the same visible value."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "4) Isolation levels",
@@ -82,7 +109,8 @@
           "width": 909.2400895574658,
           "height": 291.48572645964106
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "5) Distributed locks",
@@ -93,7 +121,19 @@
         "A paused worker may resume after its lease expires. Fencing tokens let the protected resource reject that stale worker's writes.",
         "A lock service cannot make an external side effect transactional; downstream idempotency and recovery still matter."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": [
+        {
+          "title": "Protect work after a lease changes hands",
+          "steps": [
+            "A worker acquires a lease with a unique owner token and a monotonically increasing fencing value from the coordinator.",
+            "It includes that fencing value when requesting changes to the protected resource.",
+            "The resource accepts only operations compatible with its latest accepted ownership epoch, rejecting a stale worker that resumes after lease expiry.",
+            "The worker renews while active and releases only if its owner token still matches.",
+            "If renewal fails or ownership is uncertain, it stops issuing new work and reconciles already attempted effects; the lock alone does not undo those effects."
+          ]
+        }
+      ]
     },
     {
       "title": "Choosing the Right Approach",
@@ -104,7 +144,8 @@
         "Introduce distributed coordination only when the protected state actually crosses the simpler boundary.",
         "Separate a fast atomic claim from a longer workflow such as payment or fulfillment."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Common Deep Dives",
@@ -131,7 +172,8 @@
           "width": 967.4361673066462,
           "height": 186.2011665156565
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Conclusion",
@@ -148,7 +190,8 @@
           "width": 20.0,
           "height": 20.0
         }
-      ]
+      ],
+      "flows": []
     }
   ]
 }

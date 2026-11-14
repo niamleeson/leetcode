@@ -26,19 +26,31 @@ API
 
 High-Level Design
 
-
 1) Post and store comments
 - Validate the request, persist the comment, and publish an event for fanout.
 - Use reliable publication or an outbox so a crash between database commit and event publication does not permanently hide a comment.
 - Index history by video and ordering key for efficient range reads.
+
+Process: Persist and broadcast a comment
+- Step 1: A viewer posts text and a stable request ID for a video; the API authenticates and validates the request.
+- Step 2: The service commits the comment, its ordering key, and recoverable publication state before acknowledging acceptance.
+- Step 3: The event pipeline publishes that committed comment to the video's shared channel.
+- Step 4: Connection servers subscribed for that video receive the event and fan it out to their local viewers.
+- Step 5: Clients deduplicate by comment ID and insert it according to the ordering key; slow clients follow the bounded-buffer or catch-up policy.
 
 2) Deliver and read history
 - Connection servers maintain viewer subscriptions and push new comments to their connected clients.
 - The history API provides older pages independently of the live channel.
 - Coordinate initial history and live subscription with a cursor or snapshot boundary to avoid a gap between the two.
 
-Deep Dives
+Process: Join a video without a history/live gap
+- Step 1: The viewer authenticates and subscribes to the video's live channel, establishing a cursor boundary or buffering live events while history loads.
+- Step 2: The history service reads a bounded page ending at that boundary and returns ordered comments with a continuation cursor.
+- Step 3: The client displays history and merges buffered or replayed live events after the boundary, removing duplicate IDs.
+- Step 4: As new comments arrive, the client advances its last-applied cursor after displaying them.
+- Step 5: On reconnect, it requests comments after that cursor and repeats the handoff rather than starting from an arbitrary current moment.
 
+Deep Dives
 
 1) Real-time transport
 - Simple polling is easy but either adds delay or creates many empty requests.

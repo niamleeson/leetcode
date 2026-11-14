@@ -8,7 +8,8 @@
         "Decide whether each request is allowed under configurable limits for a user, API key, IP address, or resource.",
         "The limiter sits on a latency-sensitive request path and must define its behavior when shared state is unavailable."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Functional Requirements",
@@ -18,7 +19,8 @@
         "Support configurable limits and changes to those limits.",
         "Return HTTP 429 with useful retry information when rejecting a request."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Non-functional Requirements",
@@ -36,7 +38,8 @@
           "width": 909.9570178747481,
           "height": 126.53920823634803
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Core Entities",
@@ -46,7 +49,8 @@
         "ClientKey identifies the authenticated principal or network source plus the relevant endpoint or resource.",
         "BucketState holds counters, timestamps, tokens, or recent request times for a client/rule pair."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "API",
@@ -56,13 +60,15 @@
         "Rule-management APIs publish versioned configuration separately from request accounting.",
         "Do not trust an arbitrary forwarded IP header; derive identity through the trusted gateway and authentication layer."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "High-Level Design",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) Identify and route requests",
@@ -94,7 +100,8 @@
           "width": 789.3079172930541,
           "height": 552.9579029868391
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "2) Choose an algorithm",
@@ -128,6 +135,19 @@
           "width": 843.9436600926966,
           "height": 409.18584120501725
         }
+      ],
+      "flows": [
+        {
+          "title": "Decide a request with a token bucket",
+          "steps": [
+            "The gateway authenticates the request and derives the client/rule key and request cost from trusted identity and cached rules.",
+            "It calls the shard owning that bucket with one atomic operation; a client-side GET followed by SET would race.",
+            "The operation calculates elapsed time, refills tokens up to capacity, and reads the resulting allowance.",
+            "If enough tokens exist, it deducts the request cost and stores the updated timestamp and balance together.",
+            "If tokens are insufficient, it stores any refill progress and returns a denial with the earliest useful retry time.",
+            "The gateway forwards allowed requests to the backend or returns 429 with retry information. If limiter state is unavailable, it applies the configured outage policy instead of silently assuming a decision."
+          ]
+        }
       ]
     },
     {
@@ -138,13 +158,15 @@
         "Expose remaining quota where useful, but never require clients to calculate authoritative limits themselves.",
         "Encourage bounded backoff with jitter rather than synchronized immediate retries."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Deep Dives",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) Throughput",
@@ -162,7 +184,8 @@
           "width": 1004.685140003926,
           "height": 503.1905970664822
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "2) Availability",
@@ -181,7 +204,8 @@
           "width": 1172.7407059576115,
           "height": 1014.0082828206571
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "3) Latency and hot keys",
@@ -191,7 +215,8 @@
         "A global or viral-resource key can bottleneck one shard; hierarchical quotas or batched token leasing reduce contention.",
         "Increasing shard count alone does not distribute a single atomic counter."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "4) Dynamic rules",
@@ -208,6 +233,17 @@
           "revision": "7caf04b18b6f",
           "width": 1004.6851400039261,
           "height": 790.2031981191709
+        }
+      ],
+      "flows": [
+        {
+          "title": "Roll out a rule change",
+          "steps": [
+            "An administrator submits a validated rule update to the durable control-plane store.",
+            "The control plane assigns a version and distributes the new configuration to enforcement nodes.",
+            "Each node installs the rule atomically and applies the defined bucket-state migration or reset policy.",
+            "Subsequent decisions use the installed version; monitoring detects nodes that remain on an older configuration."
+          ]
         }
       ]
     },
@@ -227,7 +263,8 @@
           "width": 1004.6851400039261,
           "height": 790.2031981191709
         }
-      ]
+      ],
+      "flows": []
     }
   ]
 }

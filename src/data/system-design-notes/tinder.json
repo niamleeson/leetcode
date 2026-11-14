@@ -8,7 +8,8 @@
         "Build profile discovery and mutual matching based on preferences, distance, and swipe decisions.",
         "Candidate generation can be eventually consistent; recording swipes and creating a mutual match need stronger coordination."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Functional Requirements",
@@ -19,7 +20,8 @@
         "Swipe yes or no once per candidate, and notify both users when their positive swipes form a match.",
         "Messaging after a match and recommendation-model training are outside the core design."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Non-functional Requirements",
@@ -37,7 +39,8 @@
           "width": 1003.281914823365,
           "height": 170.0
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Core Entities",
@@ -56,7 +59,8 @@
           "width": 149.47987365722656,
           "height": 120.0
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "API",
@@ -67,13 +71,15 @@
         "Submit a swipe with target user ID, decision, and retry-safe request ID.",
         "List matches and deliver match notifications through a persistent connection or push service."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "High-Level Design",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) Profiles and candidate stacks",
@@ -98,6 +104,18 @@
           "revision": "9fbba73e454b",
           "width": 1758.3845342466839,
           "height": 491.88001099005123
+        }
+      ],
+      "flows": [
+        {
+          "title": "Build and consume a candidate stack",
+          "steps": [
+            "The user requests more candidates; the profile service reads current preferences, location, and eligibility state.",
+            "It checks the user's cached stack and generates more candidates through geographic and preference indexes when the stack is low or stale.",
+            "The service removes blocked, ineligible, or previously swiped candidates using exact history or the selected membership-filter strategy.",
+            "It caches a bounded candidate pool and returns a small batch with authorized profile/media references.",
+            "As the user consumes the stack, background replenishment continues; final eligibility checks prevent stale cached candidates from bypassing current rules."
+          ]
         }
       ]
     },
@@ -125,13 +143,27 @@
           "width": 1707.8659246873167,
           "height": 783.8476941909676
         }
+      ],
+      "flows": [
+        {
+          "title": "Record a swipe and create a mutual match",
+          "steps": [
+            "The client sends the target user, swipe decision, and stable request ID to the swipe service.",
+            "The service authenticates the swiper and maps both users to a canonical pair key for the chosen atomic coordination boundary.",
+            "Within that boundary, it records the decision and examines the other user's decision; a retry resolves to the same recorded decision.",
+            "If both decisions are positive, it creates a uniquely keyed match for that pair. Concurrent swipes cannot each permanently miss the other.",
+            "The service commits before acknowledging the swipe or match result.",
+            "A reliable match event triggers notifications to both users, with delivery deduplication separate from the unique match record."
+          ]
+        }
       ]
     },
     {
       "title": "Deep Dives",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) Consistent low-latency swiping",
@@ -151,7 +183,8 @@
           "width": 1707.8659246873167,
           "height": 783.2938328306943
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "2) Fast candidate generation",
@@ -184,7 +217,8 @@
           "width": 1707.865924687317,
           "height": 1075.4368176662683
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "3) Exclude previous swipes",
@@ -210,7 +244,8 @@
           "width": 1707.865924687317,
           "height": 1076.2686781520374
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Final Design",
@@ -228,7 +263,8 @@
           "width": 1707.865924687317,
           "height": 1075.8779860570867
         }
-      ]
+      ],
+      "flows": []
     }
   ]
 }

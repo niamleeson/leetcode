@@ -4,7 +4,6 @@ The Problem
 
 The Solution
 
-
 1) Optimize the existing database
 - Add indexes matching filters and ordering, and inspect query plans to verify they reduce work.
 - Composite index column order matters; an index that helps one query may not serve another access pattern.
@@ -24,6 +23,14 @@ The Solution
 - Define TTL, invalidation, memory limits, and behavior when the cache is unavailable.
 - The cache is a derived view unless the design explicitly supplies its durability guarantees.
 
+Process: Serve a cache-aside read
+- Step 1: The service authenticates the request and builds a cache key containing all relevant query and visibility parameters.
+- Step 2: It looks up the cache; a valid hit returns immediately under the permitted freshness contract.
+- Step 3: On a miss, it coordinates or coalesces concurrent loads for that key where stampede protection is required.
+- Step 4: The selected loader reads authoritative storage and validates the result's version or expiry.
+- Step 5: It stores a bounded-lifetime cache entry using the chosen stale-write protection, then returns the result; cache-write failure need not fail a successful authoritative read.
+- Step 6: Waiting requests reuse the loaded result, while cache outages apply bounded database fallback rather than unlimited parallel misses.
+
 4) CDN and edge caching
 - Serve static assets and eligible shared responses near users to reduce origin load and geographic latency.
 - Correct cache-control and cache-key configuration are essential, especially for personalized or authenticated responses.
@@ -35,7 +42,6 @@ When to Use
 - Keep consistency requirements explicit: stale stock displays may be acceptable, but checkout must still validate authoritative inventory.
 
 Common Deep Dives
-
 
 1) Growing datasets
 - Inspect query complexity, index selectivity, rows scanned, and pagination strategy before assuming hardware is the only fix.
@@ -53,6 +59,13 @@ Common Deep Dives
 - Use versions, conditional cache writes, coordinated updates, or an explicit staleness bound to address that race.
 - TTL limits staleness but does not provide immediate consistency.
 - If a read must observe the latest committed state, use an authoritative path or a protocol that actually enforces that guarantee.
+
+Process: Update data with version-aware cache protection
+- Step 1: The writer commits the new database value with a newer version.
+- Step 2: It publishes invalidation or cache-update work identifying that committed version.
+- Step 3: The cache path records or enforces a version barrier so a slow reader holding an older result cannot repopulate it as the newest value.
+- Step 4: A subsequent miss reloads the current database state and installs it only if the version check allows it.
+- Step 5: Reads requiring immediate freshness use the authoritative or coordinated path until that guarantee is satisfied; TTL alone is only a staleness bound.
 
 Conclusion
 - Start with efficient queries, then use replicas, derived views, caches, or sharding for the measured bottleneck.

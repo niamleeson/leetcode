@@ -8,7 +8,8 @@
         "Aggregate article metadata from many publishers into a fast, scrollable feed that links readers to the original publication.",
         "Separate publisher ingestion from serving the feed so slow or failing publishers do not delay user requests."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Functional Requirements",
@@ -18,7 +19,8 @@
         "Support continuous pagination and redirect readers to the publisher for full content.",
         "Consider categories and personalization as extensions to the baseline feed."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Non-functional Requirements",
@@ -36,7 +38,8 @@
           "width": 884.1986389160156,
           "height": 170.0
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Core Entities",
@@ -54,7 +57,8 @@
           "width": 183.4296875,
           "height": 230.83047485351562
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "API",
@@ -65,13 +69,15 @@
         "Ingestion workers submit normalized article records using canonical identifiers for deduplication.",
         "A cursor must include a stable tie-breaker and the ordering context used to construct the page."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "High-Level Design",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) Ingest and serve articles",
@@ -98,13 +104,27 @@
           "width": 1609.5436796707897,
           "height": 841.2887240745027
         }
+      ],
+      "flows": [
+        {
+          "title": "Ingest one publisher update",
+          "steps": [
+            "The source scheduler selects a publisher whose refresh is due and enqueues a fetch job with its source cursor or conditional-request metadata.",
+            "A worker fetches the source within its rate limits and parses article metadata and publication times.",
+            "It canonicalizes article identities and deduplicates records already seen from earlier fetches.",
+            "The worker commits new or changed articles and advances the source checkpoint only after required data is durable.",
+            "Derived feed indexes and caches receive the committed changes; optional thumbnail fetching or classification runs separately.",
+            "Failed fetches retry with backoff without holding up other publishers or marking an unsuccessful refresh as complete."
+          ]
+        }
       ]
     },
     {
       "title": "Deep Dives",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) Pagination consistency",
@@ -114,7 +134,19 @@
         "Use a stable sort key plus article ID and a cursor identifying the last item.",
         "For mutable rankings, retain a snapshot or ranking-version context, or explicitly accept bounded feed movement."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": [
+        {
+          "title": "Serve the next news-feed page",
+          "steps": [
+            "The reader requests a feed with category/preferences, page size, and a cursor if continuing.",
+            "The feed service resolves the stable sort or ranking context and checks a compatible cached page or candidate set.",
+            "On a miss, it queries the indexed feed after the cursor, applies relevant filters, and selects a bounded result set.",
+            "It hydrates article summaries and returns them with the next stable ordering key and original publisher URLs.",
+            "Selecting an article navigates the reader to the publisher; subsequent feed requests continue from the returned cursor instead of a shifting offset."
+          ]
+        }
+      ]
     },
     {
       "title": "2) Low-latency feeds",
@@ -140,7 +172,8 @@
           "width": 1609.54367967079,
           "height": 899.0157842496818
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "3) Publication freshness",
@@ -173,7 +206,8 @@
           "width": 1745.19569108897,
           "height": 899.3426462548939
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "4) Media and breaking news",
@@ -199,7 +233,8 @@
           "width": 639.7734865760743,
           "height": 652.8633430482637
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "5) Categories and personalization",
@@ -210,7 +245,8 @@
         "Blend cached shared candidates with user-specific ranking rather than building every page from the entire corpus.",
         "Preserve a useful generic feed for new users or unavailable personalization services."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Final Design",
@@ -228,7 +264,8 @@
           "width": 1745.1956910889703,
           "height": 899.3426462548939
         }
-      ]
+      ],
+      "flows": []
     }
   ]
 }

@@ -4,12 +4,18 @@ Overview
 
 Building Durable Execution
 
-
 1) Survive a crash
 - Record workflow events and completed activity results in durable history.
 - After a worker restart, replay the workflow against that history to reconstruct progress.
 - Completed activity results are supplied from history rather than blindly repeating the same decision path's external calls.
 - An activity can still repeat if its side effect completed before its result was recorded; its business effects must be idempotent.
+
+Process: Resume after a worker failure
+- Step 1: A workflow or activity worker stops responding, and the relevant timeout or task-recovery mechanism makes work eligible again.
+- Step 2: A replacement workflow worker loads history and replays deterministic decisions; already recorded activity results are supplied from history.
+- Step 3: An activity whose completion was never recorded may run again, even if its external side effect already happened.
+- Step 4: That activity resolves the same business idempotency key or queries the external outcome before causing a duplicate effect.
+- Step 5: Once the result is durably recorded, workflow execution continues from the recovered logical progress rather than restarting the whole business process.
 
 2) Predictable replay
 - Workflow code must make the same decisions for the same history.
@@ -25,6 +31,14 @@ Temporal Under the Hood
 - The service stores workflow history and schedules tasks; application workers poll task queues and execute workflow or activity code.
 - Workflow tasks advance orchestration decisions, while activity tasks perform the actual business work.
 - Workers can fail or scale independently because durable workflow state is not confined to their memory.
+
+Process: Execute a workflow activity durably
+- Step 1: A caller starts a workflow with a stable workflow identity, and Temporal records the start in durable history.
+- Step 2: A workflow worker receives a task, replays or uses cached compatible history, and decides that an activity should run.
+- Step 3: Temporal records the scheduling decision and puts an activity task on the appropriate task queue.
+- Step 4: An activity worker polls the task and performs the external operation using the workflow's stable business idempotency key.
+- Step 5: The worker reports completion, which is recorded in history before the workflow advances using that result.
+- Step 6: A later workflow task consumes the recorded result and chooses the next activity, timer, wait, or terminal outcome.
 
 State, Replay, and Workers
 - History records decisions and results needed for replay, rather than serializing arbitrary application memory.

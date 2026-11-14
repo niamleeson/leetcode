@@ -8,7 +8,8 @@
         "Support multiple people editing one document while seeing each other's changes and cursor positions.",
         "Concurrent editing requires an operation-merging model; transmitting whole snapshots is not enough to prevent lost work."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Functional Requirements",
@@ -18,7 +19,8 @@
         "Apply concurrent edits and show updates in real time.",
         "Display collaborator presence and cursors."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Non-functional Requirements",
@@ -36,7 +38,8 @@
           "width": 815.535662597181,
           "height": 170.0
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Core Entities",
@@ -54,7 +57,8 @@
           "width": 186.1759490966797,
           "height": 200.0
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "API",
@@ -65,13 +69,15 @@
         "Receive accepted operations and acknowledgements; reconnect from a known revision or synchronize using the chosen merge protocol.",
         "Send presence separately from durable document edits because stale cursor updates can be discarded."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "High-Level Design",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) Create and load",
@@ -88,6 +94,18 @@
           "revision": "abe2ccc401c1",
           "width": 1245.7691345214844,
           "height": 289.0
+        }
+      ],
+      "flows": [
+        {
+          "title": "Load a document and join collaboration",
+          "steps": [
+            "The client requests the document; the service checks read/edit permission before returning state or opening an edit channel.",
+            "The synchronization service establishes a snapshot revision and a live-operation boundary, buffering or retaining changes needed during loading.",
+            "The client loads the snapshot and applies operations after its revision in the order required by the chosen collaboration model.",
+            "It merges buffered live operations and acknowledges the last applied position, avoiding a gap between snapshot loading and subscription.",
+            "Presence is registered separately and expires if the session disappears; it is not part of the durable document content."
+          ]
         }
       ]
     },
@@ -123,6 +141,19 @@
           "width": 1258.8200243083375,
           "height": 621.41015625
         }
+      ],
+      "flows": [
+        {
+          "title": "Apply an edit with a server-ordered OT design",
+          "steps": [
+            "The client applies the user's edit locally for responsiveness and sends an operation ID plus its base revision.",
+            "The document owner verifies permission and deduplicates a previously accepted operation with the same ID.",
+            "It transforms the operation against intervening accepted operations according to the chosen OT rules and assigns the next authoritative revision.",
+            "The server durably appends the accepted operation before acknowledging the durable revision and broadcasting it to collaborators.",
+            "Other clients transform or reconcile pending local edits and apply the remote operation; the origin reconciles its acknowledgement instead of applying its own insertion twice.",
+            "After disconnecting, a client resumes from its acknowledged revision or a new snapshot. A CRDT-based design uses its causal/merge rules instead of this OT transformation step."
+          ]
+        }
       ]
     },
     {
@@ -149,13 +180,15 @@
           "width": 1354.4101607554064,
           "height": 822.7821227605909
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Deep Dives",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) Connection scaling",
@@ -181,7 +214,8 @@
           "width": 1310.9326695624572,
           "height": 853.0422005064656
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "2) Bound storage and replay",
@@ -207,6 +241,18 @@
           "width": 1391.7768858626396,
           "height": 876.8177515150019
         }
+      ],
+      "flows": [
+        {
+          "title": "Publish a consistent snapshot",
+          "steps": [
+            "A snapshot worker chooses a committed document revision as its boundary.",
+            "It reconstructs or captures the document exactly through that revision and writes the snapshot to durable storage.",
+            "It atomically publishes the snapshot reference together with the covered revision after the write succeeds.",
+            "New readers load that snapshot and replay only later operations; they do not combine it with an unrelated log boundary.",
+            "Compaction removes history only after the retention and synchronization rules permit it, preserving metadata still needed by offline clients or the merge algorithm."
+          ]
+        }
       ]
     },
     {
@@ -225,7 +271,8 @@
           "width": 1391.7768858626396,
           "height": 876.8177515150019
         }
-      ]
+      ],
+      "flows": []
     }
   ]
 }

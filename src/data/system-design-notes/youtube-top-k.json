@@ -8,7 +8,8 @@
         "Continuously identify the most-viewed videos for specified time windows.",
         "The challenge is aggregating a high-volume event stream and answering ranking queries without sorting the full video catalog each time."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Functional Requirements",
@@ -26,7 +27,8 @@
           "width": 857.0660111469402,
           "height": 464.0634765625
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Non-functional Requirements",
@@ -44,7 +46,8 @@
           "width": 804.0126953125,
           "height": 195.0
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Core Entities",
@@ -54,7 +57,8 @@
         "WindowCount stores a video's aggregate for a specific window.",
         "RankingSnapshot stores the top candidates and their counts for a completed or current window."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "API",
@@ -64,13 +68,15 @@
         "Query top K for a window type and time boundary, returning ranking freshness metadata.",
         "Validate supported windows and K limits to avoid unbounded query work."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "High-Level Design",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) All-time and windowed counts",
@@ -103,13 +109,27 @@
           "width": 996.1351699829102,
           "height": 606.76953125
         }
+      ],
+      "flows": [
+        {
+          "title": "Convert views into ranked window totals",
+          "steps": [
+            "Producers append view events with video ID and event time to the durable ingestion log.",
+            "Consumers partition events by video or a deliberately salted partial-count key and assign each event to the relevant window.",
+            "Stateful processors update recoverable counts, applying the selected deduplication and late-event policy.",
+            "If hot-video writes were split, a merge stage combines all partial counts for a video/window before treating its score as complete.",
+            "Rankers maintain bounded local candidates from complete per-video scores, then a global merge selects top K across partitions.",
+            "The resulting ranking snapshot and freshness position are published to the query store or cache for API reads."
+          ]
+        }
       ]
     },
     {
       "title": "Deep Dives",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) Reduce repeated reads",
@@ -133,6 +153,17 @@
           "revision": "0060e41b1bd3",
           "width": 996.1351699829102,
           "height": 729.2109375
+        }
+      ],
+      "flows": [
+        {
+          "title": "Answer a top-K request",
+          "steps": [
+            "The client specifies the supported window, time boundary, and bounded K value.",
+            "The query service resolves the corresponding materialized snapshot and checks its freshness metadata.",
+            "It reads the top K entries from the shared larger ranking list, rather than querying and sorting every video's count again.",
+            "It returns ranked video IDs, counts, and freshness information; an unavailable snapshot follows a bounded fallback or explicit not-ready response."
+          ]
         }
       ]
     },
@@ -160,7 +191,8 @@
           "width": 1029.8825378417969,
           "height": 780.244140625
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "3) Efficient top K",
@@ -200,7 +232,8 @@
           "width": 1234.9930419921875,
           "height": 686.8408203125
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "4) Sliding windows",
@@ -225,6 +258,18 @@
           "revision": "7cca2d575b12",
           "width": 1234.9930419921875,
           "height": 809.2822265625
+        }
+      ],
+      "flows": [
+        {
+          "title": "Advance a sliding ranking window",
+          "steps": [
+            "Incoming events update their time buckets using event time rather than blindly using arrival time.",
+            "As the window advances, processors add newly included bucket contributions and remove expired contributions.",
+            "They revise affected video scores and ranking candidates, while retaining the bucket state still needed for future windows or allowed late events.",
+            "A late event within the correction policy updates its bucket and affected materialized results; older events follow the defined discard or reconciliation path.",
+            "New snapshots are published only with the window boundaries they represent so clients do not mix results from different intervals."
+          ]
         }
       ]
     },
@@ -251,7 +296,8 @@
           "width": 1234.9930419921875,
           "height": 686.8408203125
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Final Design",
@@ -269,7 +315,8 @@
           "width": 1234.9930419921875,
           "height": 686.8408203125
         }
-      ]
+      ],
+      "flows": []
     }
   ]
 }

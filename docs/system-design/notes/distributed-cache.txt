@@ -24,11 +24,18 @@ API
 
 High-Level Design
 
-
 1) In-memory operations
 - Use a hash table for average constant-time key lookup.
 - Store values in memory and limit allocations and copying on the request path.
 - Synchronize concurrent mutations so the hash table and eviction bookkeeping remain consistent.
+
+Process: Route and execute a cache operation
+- Step 1: The client or proxy hashes the key using the current ownership map and sends the request to its owning node.
+- Step 2: For GET, the node checks the hash table and expiration before returning a value; an absent or expired entry is a miss.
+- Step 3: For SET, the node validates size, atomically replaces the entry and TTL metadata, and updates eviction bookkeeping.
+- Step 4: It replicates the change according to the chosen policy and acknowledges after the required durability or replication boundary.
+- Step 5: If memory exceeds its limit, the node evicts eligible entries according to policy; eviction changes future reads into misses, not backing-store deletions.
+- Step 6: A stale ownership response causes the client to refresh routing and retry within a bound rather than repeatedly contacting the wrong node.
 
 2) TTL and eviction
 - Lazy expiration checks TTL on access; background cleanup reclaims expired entries that are never read again.
@@ -38,12 +45,18 @@ High-Level Design
 
 Deep Dives
 
-
 1) Availability and replication
 - Replicate entries to survive node loss and define how a replacement owner is selected.
 - Synchronous replication improves acknowledgement durability but adds latency and reduces availability during failures.
 - Asynchronous replication is faster but can lose recent writes or expose stale values after failover.
 - If the cache is reconstructible, controlled misses may be preferable to expensive strong consistency; protect the backing store during recovery.
+
+Process: Recover ownership after node failure
+- Step 1: Health checks or membership coordination identify an unavailable owner without letting clients independently invent competing owners.
+- Step 2: The cluster selects or promotes the eligible replica and publishes a new ownership epoch or map.
+- Step 3: Clients refresh routing and retry requests against the replacement; recently acknowledged writes are preserved only to the extent promised by the replication policy.
+- Step 4: Missing cache entries are fetched by applications from their authoritative stores, with bounded miss traffic during warm-up.
+- Step 5: The cluster restores replication and rebalances data in the background while preventing a recovered stale owner from accepting conflicting writes.
 
 2) Distribution and growth
 - Modulo hashing remaps many keys when node count changes. Consistent hashing limits movement to affected ranges.

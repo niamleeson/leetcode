@@ -8,7 +8,8 @@
         "Deliver changes to interested clients quickly without forcing every client to repeatedly query the primary database.",
         "Solve two separate routing problems: how a client maintains a connection, and how an event reaches the server holding that connection."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "The Solution",
@@ -25,13 +26,15 @@
           "width": 692.1779174804688,
           "height": 435.45703125
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Client-Server Connection Protocols",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) Networking and load balancers",
@@ -64,7 +67,8 @@
           "width": 1289.4968643188477,
           "height": 732.279052734375
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "2) Polling and long polling",
@@ -83,7 +87,8 @@
           "width": 916.986686706543,
           "height": 587.859375
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "3) SSE and WebSockets",
@@ -101,6 +106,18 @@
           "revision": "3974c35741b1",
           "width": 805.037109375,
           "height": 394.86411550045017
+        }
+      ],
+      "flows": [
+        {
+          "title": "Establish a subscription and deliver an update",
+          "steps": [
+            "The client establishes its supported streaming connection through a proxy configured for the required lifetime and buffering behavior.",
+            "The connection server authenticates the client, validates the requested channels, and registers local subscriptions.",
+            "A producer commits an application change and reliably publishes the corresponding event when delivery must follow durable state.",
+            "Routing or pub/sub sends the event to connection servers with interested clients, which forward it over their existing connections.",
+            "Clients apply ordered events and retain a cursor when recovery is required; the transport itself does not create durable history."
+          ]
         }
       ]
     },
@@ -127,7 +144,8 @@
           "width": 1023.890625,
           "height": 736.2109375
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Server-Side Push and Pull",
@@ -141,7 +159,8 @@
           "width": 680.56640625,
           "height": 391.14453125
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "1) Pull from shared state",
@@ -158,7 +177,8 @@
           "width": 662.96875,
           "height": 517.03515625
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "2) Route by ownership",
@@ -205,7 +225,8 @@
           "width": 1979.7584544417946,
           "height": 1132.7810387922777
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "3) Pub/sub",
@@ -231,7 +252,8 @@
           "width": 787.2079207913821,
           "height": 590.41796875
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Common Deep Dives",
@@ -249,6 +271,18 @@
           "revision": "6851daff74b3",
           "width": 996.1259918212891,
           "height": 450.10743713378906
+        }
+      ],
+      "flows": [
+        {
+          "title": "Recover after a disconnected stream",
+          "steps": [
+            "Heartbeats or transport errors reveal the disconnection, and the client reconnects with bounded backoff and jitter.",
+            "It authenticates and presents its last applied event cursor or asks for a fresh snapshot.",
+            "The server replays retained events after the cursor and coordinates the transition to live delivery without leaving a gap.",
+            "The client removes duplicates and detects missing sequence positions before advancing its local cursor.",
+            "If the requested cursor is too old, the server supplies the supported snapshot/resynchronization path rather than pretending all missed events were delivered."
+          ]
         }
       ]
     },
@@ -268,7 +302,8 @@
           "width": 20.0,
           "height": 20.0
         }
-      ]
+      ],
+      "flows": []
     }
   ]
 }

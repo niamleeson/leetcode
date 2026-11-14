@@ -16,7 +16,8 @@
           "width": 1749.326415188721,
           "height": 415.58491470638285
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "The Solution",
@@ -34,7 +35,8 @@
           "width": 1749.3264151887213,
           "height": 572.1153141688002
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "1) Direct upload",
@@ -52,6 +54,19 @@
           "revision": "a84f75140121",
           "width": 1757.6470843861482,
           "height": 572.1153141688003
+        }
+      ],
+      "flows": [
+        {
+          "title": "Upload bytes without proxying them through the application",
+          "steps": [
+            "The client submits expected file metadata to the application service.",
+            "The service authenticates ownership, checks quotas and limits, and commits pending upload metadata.",
+            "It issues a short-lived signed transfer authorization scoped to the intended object and operation.",
+            "The client uploads bytes directly to storage, then reports completion or waits for a trusted storage event.",
+            "The backend verifies the completed object using provider evidence and conditionally marks metadata ready.",
+            "Downstream processing and access are enabled from that committed ready state; an unverified client completion message is insufficient."
+          ]
         }
       ]
     },
@@ -72,6 +87,18 @@
           "width": 1787.674191918092,
           "height": 756.6722481474372
         }
+      ],
+      "flows": [
+        {
+          "title": "Authorize a private download",
+          "steps": [
+            "The client requests access to a specific object/version from the application service.",
+            "The service checks current ownership or sharing permission and confirms that the object is ready.",
+            "It returns a short-lived signed storage or CDN URL with the appropriate restrictions.",
+            "The client requests bytes directly through that URL; the serving layer verifies its signature, scope, and expiry.",
+            "A cache miss retrieves the object from the origin under the serving policy, without sending file bytes through the application API."
+          ]
+        }
       ]
     },
     {
@@ -90,6 +117,18 @@
           "revision": "722401188367",
           "width": 1829.877949467266,
           "height": 828.4415371686982
+        }
+      ],
+      "flows": [
+        {
+          "title": "Retry only the unfinished parts",
+          "steps": [
+            "The backend creates a multipart session and returns its identity plus authorized part-upload instructions.",
+            "The client uploads parts with stable numbers and records provider-confirmed part identifiers.",
+            "After interruption, the client and backend recover the same session and obtain the provider-verified set of existing parts.",
+            "Only missing parts are retransmitted; the backend validates the part set and requests final assembly.",
+            "It confirms the finalized object before marking the application record ready and eventually cleans up abandoned sessions separately."
+          ]
         }
       ]
     },
@@ -110,7 +149,8 @@
           "width": 2072.7157465082314,
           "height": 790.725196260411
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Cloud Provider Terminology",
@@ -119,7 +159,8 @@
         "Providers use different names for signed URLs, multipart uploads, object versions, and completion checks.",
         "Explain the required capability and failure behavior rather than relying on a product name alone."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Common Deep Dives",
@@ -130,7 +171,8 @@
         "Store metadata such as owner, object key, size, checksum, version, and processing state separately from the blob.",
         "Do not assume an ETag is always a whole-file content hash; its semantics depend on provider and upload mode."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Metadata and Download Performance",
@@ -148,7 +190,8 @@
           "width": 1564.548240657622,
           "height": 636.441527712376
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Conclusion",
@@ -157,7 +200,8 @@
         "Direct signed transfers remove application bandwidth bottlenecks, but verification and lifecycle state remain application responsibilities.",
         "Multipart recovery, cleanup, access control, and reconciliation complete the design beyond simply adding an object-storage box."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     }
   ]
 }

@@ -8,7 +8,8 @@
         "Kafka is a durable distributed event log used to decouple producers and consumers, retain events, and support replay.",
         "It can serve queue-like workloads through consumer groups, while independent groups process the same retained events separately."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "A Motivating Example",
@@ -54,7 +55,8 @@
           "width": 1939.2297006732024,
           "height": 1105.8871595018918
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Basic Terminology and Architecture",
@@ -65,7 +67,8 @@
         "A consumer group assigns each partition to at most one active consumer in that group.",
         "Ordering is per partition, not automatically across the entire topic."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "How Kafka Works",
@@ -99,6 +102,19 @@
           "width": 3017.694074391563,
           "height": 948.2662407767493
         }
+      ],
+      "flows": [
+        {
+          "title": "Publish a record and advance consumer progress",
+          "steps": [
+            "The producer chooses a topic partition, commonly from the event key, and sends the record to that partition's leader.",
+            "The leader appends it and followers replicate it; the producer receives acknowledgement according to acks and the configured in-sync replica policy.",
+            "A consumer assigned that partition fetches records in offset order from its current position.",
+            "The consumer performs the application work and makes the required output or checkpoint recoverable.",
+            "It commits the corresponding consumed position only after that recovery boundary, unless it deliberately accepts at-most-once behavior.",
+            "After a crash or rebalance, consumption resumes from committed progress. Records whose effects succeeded before their offset commit may repeat, requiring idempotency or compatible transactions."
+          ]
+        }
       ]
     },
     {
@@ -111,7 +127,8 @@
         "Put references to large files in events instead of using the log as an unbounded media-transfer path.",
         "Adding partitions can change key routing; consider its effect on ordering during transitions."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Fault Tolerance and Durability",
@@ -122,7 +139,8 @@
         "Consumer-group rebalances move partition ownership; processors must stop cleanly and resume from safe offsets.",
         "Monitor consumer lag and retained capacity so a long outage does not outlast the data needed for recovery."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Handling Retries and Errors",
@@ -141,6 +159,18 @@
           "width": 1684.2432820895492,
           "height": 637.5165630182128
         }
+      ],
+      "flows": [
+        {
+          "title": "Handle an uncertain producer or consumer operation",
+          "steps": [
+            "A producer timeout leaves the append outcome uncertain; supported idempotent production retries preserve the producer's sequencing instead of creating independent records blindly.",
+            "On the consumer side, a processing error leaves the record unfinished; the application decides whether to block the partition, retry later, or route to a recovery topic.",
+            "If moved to a retry/dead-letter path, the application makes that handoff recoverable before advancing beyond the original record.",
+            "Replayed processing uses the original business identity to avoid repeating external effects.",
+            "Monitoring tracks lag and failed records so retention cannot silently expire the only data needed for recovery."
+          ]
+        }
       ]
     },
     {
@@ -151,7 +181,8 @@
         "A simpler work queue may be preferable when built-in visibility timeouts, delayed delivery, or per-message retry management dominate the requirements.",
         "Explain partition keys, consumer groups, offset commits, retention, and failure semantics whenever Kafka is central to the design."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     }
   ]
 }

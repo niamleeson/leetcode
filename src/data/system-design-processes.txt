@@ -1,0 +1,911 @@
+@@ bitly
+1) Create a short URL >> Create and return a short link
+- The client sends POST /urls with long_url and optional alias and expiration fields to the creation service through the gateway.
+- The service validates the destination and expiration. It rejects malformed input before allocating or writing a mapping.
+- For a generated code, the service obtains a unique ID from the allocator and Base62-encodes it. For a custom alias, it uses the requested alias as the candidate key.
+- The service inserts short_code, long_url, and expiration into the database using its uniqueness constraint. A preliminary availability check is not the reservation.
+- If insertion conflicts, a generated candidate is retried within a limit; a conflicting custom alias returns an error. No successful link is returned for a failed insert.
+- After the database confirms the write, the service returns the complete short URL. Later redirects can resolve it from durable storage even if the cache is empty.
+
+2) Redirect to the original URL >> Resolve a short link through the cache and database
+- The browser requests GET /abc123 from the short-link domain; the gateway routes the request to the redirect service.
+- The service looks for abc123 in the cache. On a hit, it reads the cached destination and expiration together.
+- On a miss, the service queries the database by short_code. If no record exists, it returns 404 and stops the redirect flow.
+- The service checks expiration before using either result. An expired mapping returns 410 instead of being redirected, even if cleanup has not deleted it.
+- For a valid database result, the service may populate the cache with a TTL no longer than the mapping's remaining lifetime. Cache population failure does not invalidate the durable mapping.
+- The service returns a 302 response with the original URL in Location and explicit cache-control rules.
+- The browser receives that response and makes a separate request to the original destination; the shortening service does not fetch and relay the destination page.
+
+1) Generate unique short codes >> Allocate a batch of counter IDs
+- A creation server asks the shared allocator to reserve a range, for example with an atomic INCRBY 1000 operation.
+- The allocator advances its high-water mark and returns the upper boundary. The server derives its exclusive range from that boundary.
+- Each local creation consumes one unused number from that range and encodes it as a candidate short code.
+- The database uniqueness constraint validates the candidate during insertion, including possible conflicts with custom aliases.
+- After a crash, unused numbers may be abandoned. A replacement must not reuse the old range unless ownership and allocator recovery make that safe.
+
+@@ dropbox
+1) Upload files >> Upload a file and make it available
+- The client requests an upload session with file name, size, and content type; the file service authenticates the user and validates the request.
+- The service creates pending metadata and obtains or constructs scoped upload instructions for the intended object key.
+- The client uploads bytes directly to object storage using the signed URL or multipart session; the application server does not relay those bytes.
+- The client or storage notification reports completion. The backend verifies the actual object and required metadata with the storage provider.
+- Only after verification does the service mark the file available and record a change event for synchronization.
+- The API returns or exposes the completed file state. An interrupted upload remains pending and can resume or expire rather than appearing as a valid file.
+
+2) Download and share files >> Authorize and download a shared file
+- The owner submits a sharing request identifying the file, recipient, and permission.
+- The service verifies the owner's sharing authority and commits the user-to-file permission record.
+- The recipient's file list queries the share mapping and returns authorized file metadata.
+- When the recipient requests a download, the file service checks current permission and file readiness again.
+- The service issues a short-lived object-storage or CDN download URL; the recipient downloads bytes directly through that URL.
+- The CDN or storage service verifies the signed request before serving the object. A failed authorization produces an error instead of a file transfer.
+
+3) Synchronize devices >> Propagate one device's edit to another
+- A local file watcher notices an edit and persists the pending change on the device so it survives a restart.
+- The client identifies changed content and uploads missing or changed parts, reusing the resumable-upload process.
+- The backend verifies the new content and commits its metadata version. A stale base version triggers the chosen conflict policy rather than overwriting a concurrent edit silently.
+- A change-feed record identifies the updated file and version; a push message tells other devices that changes are available.
+- Each other device fetches changes after its saved cursor, downloads the authorized new version, and applies it locally.
+- The device advances its cursor only after applying the change. After a missed push or reconnect, polling the same change feed recovers the gap.
+
+1) Large files and resumable uploads >> Resume and finalize a multipart upload
+- The client opens an upload session, divides the file into parts, and tracks the upload ID and numbered parts.
+- It uploads parts independently and retains the storage provider's successful part identifiers or ETags.
+- After disconnection, it resumes the same session and asks which parts the server or provider has verified.
+- It uploads only missing parts; the backend verifies reported parts through the provider's multipart API rather than trusting client flags.
+- The backend requests completion using the verified ordered parts, then confirms the finalized object's existence and expected properties.
+- Only then does metadata transition to available. Abandoned sessions and orphaned parts are cleaned up separately.
+
+@@ yelp
+1) Search businesses >> Find nearby businesses
+- The client sends query text, coordinates or a named location, radius, filters, and an optional cursor to the search service.
+- If the input is a named area, the service resolves it to coordinates or a region before building the spatial predicate.
+- The service queries the chosen search index or indexed database, combining geography, text, category, and rating filters.
+- The query orders eligible candidates and selects a bounded page; it does not load all reviews to compute each business's rating.
+- The service fetches any missing business summary fields in a batch and returns results plus a stable next-page cursor.
+- A later detail request reads the selected business and paginated reviews; cached discovery data does not replace the authoritative review records.
+
+2) Read details and write reviews >> Save a review and update its rating
+- The client submits a business ID, rating, and review text; the service derives the author from the validated session.
+- The service checks the business and allowed rating range, then begins the selected transactional update.
+- The database inserts the review under the unique user/business constraint. For an allowed edit, it reads the previous rating instead of adding a second review.
+- In the same consistency boundary, it updates rating sum and count, or applies the rating difference for an edit, using atomic or version-checked writes.
+- On a uniqueness or version conflict, the transaction rolls back and the API returns the defined conflict or retries against fresh state.
+- After commit, the service acknowledges success and updates or invalidates detail caches; the search projection receives the committed change asynchronously.
+
+@@ local-delivery-service
+1) Find available items >> Determine deliverable inventory
+- The customer sends a delivery location and desired products to the availability service.
+- The service uses a geographic index to find nearby distribution centers, excluding centers clearly outside the service area.
+- If driving-time eligibility is required, it requests travel estimates only for those candidates and selects centers meeting the delivery constraint.
+- The service reads each eligible center's inventory through indexed storage or its permitted cache/read-replica path.
+- It combines product metadata with center-specific quantities and returns a bounded availability view.
+- That view is advisory: checkout repeats the stock check against authoritative state because another order can consume inventory after browsing.
+
+2) Place an order >> Commit an order without overselling
+- The customer submits item quantities, delivery details, and an idempotency key to the order service.
+- The service authenticates the customer, resolves an eligible fulfillment center, and returns the existing result if this request was already committed.
+- It starts a short database transaction and locks or conditionally updates the relevant inventory rows in a consistent order.
+- Within that transaction it rechecks every requested quantity. If any item is unavailable, it rolls back the whole attempt and reports the conflict.
+- If all items are available, it decrements or reserves stock and inserts the order and order items under the same transaction.
+- The database commits before the service returns the accepted order ID. A lost response can be retried with the same idempotency key.
+- Payment or fulfillment work proceeds from the durable order state outside the inventory transaction, with its own retry and compensation rules.
+
+@@ ticketmaster
+2) Book tickets >> Reserve seats, pay, and confirm a booking
+- The customer selects seats and sends a reservation request with a retry-safe request ID.
+- The booking service authenticates the customer and begins a short atomic claim of all requested seats.
+- It verifies that each seat is unreserved or claimably expired, then records reservation owner, token/version, and expiry. A conflict rolls back the group.
+- After the reservation commits, the service returns its token and checkout deadline; it does not hold database locks while the customer enters payment details.
+- Checkout submits payment for that reservation through a durable payment attempt with a stable provider idempotency key.
+- On confirmed payment, the booking service conditionally changes the current valid reservation to purchased and commits the booking.
+- The customer receives confirmation only for the committed result. An expired or replaced reservation follows the defined reconciliation or refund policy instead of selling someone else's seat.
+
+1) Reservation expiry >> Release or reclaim an abandoned reservation
+- A cleanup worker or a new claimant reads the reservation's owner token, version, state, and expiry.
+- It compares expiry with authoritative server time; an unexpired or purchased reservation is not eligible for release.
+- It conditionally releases or replaces only that exact expired reservation version.
+- If another action already purchased or replaced it, the condition fails and the worker leaves the new state untouched.
+- The resulting availability change is published to interested clients. Booking correctness does not depend on viewers receiving that event immediately.
+
+3) Handle high-demand onsales >> Admit customers through the waiting room
+- A customer joins the waiting room and receives a queue identity that can survive a reconnect.
+- The admission service selects customers according to the fairness policy and current reservation-service capacity.
+- It issues a signed, expiring admission token and permits the admitted client to access the reservation path.
+- The booking API validates admission and then performs its normal atomic seat claim; admission alone does not guarantee a seat.
+- Clients receive current seat updates while browsing, and expired admission or reservation tokens require the appropriate retry or rejoin path.
+
+@@ instagram
+1) Publish posts >> Publish media and fan out the post
+- The client requests authorized upload instructions, transfers media directly to object storage, and submits the post metadata and media reference.
+- The service validates ownership and upload completion, then persists a pending post and schedules any required media processing.
+- Workers generate the required image or video variants and persist their outputs before making the post eligible for display.
+- A committed post-ready event reaches feed workers through a reliable event pipeline.
+- For an ordinary author, workers add the post ID to active followers' derived feed lists in retry-safe batches. Celebrity posts can remain on the read-time path.
+- The publish API or status endpoint exposes the committed post state; asynchronous fanout may continue after publication is acknowledged.
+
+3) Read the chronological feed >> Read a hybrid feed page
+- The client requests a page with its cursor; the feed service authenticates the reader and determines applicable visibility rules.
+- It reads precomputed post IDs for ordinary followed accounts and recent posts for followed celebrity accounts.
+- The service merges candidates by stable chronological ordering, removes duplicates, and applies deletion and visibility checks.
+- It batch-fetches post metadata, filling post-cache misses from durable storage.
+- The API returns a bounded page, media URLs, and the last ordering key as the next cursor.
+- The client fetches images or video segments from the CDN independently of the feed metadata request.
+
+@@ fb-news-feed
+1) Posts and follows >> Create a post and distribute feed entries
+- The author submits a post to the post service through the authenticated API.
+- The service commits the post and a recoverable publication record before acknowledging creation.
+- A publisher delivers the post-created event to fanout workers; duplicate delivery retains the same post identity.
+- Workers enumerate eligible followers and insert post IDs into their feed lists in bounded, idempotent batches.
+- High-follower-count authors can skip broad write fanout under the hybrid policy and be included during reads instead.
+- Failed batches retry from recorded progress; a retry does not create duplicate visible entries for the same recipient and post.
+
+2) Assemble and paginate feeds >> Assemble the next page
+- The reader sends a cursor and page size to the feed service.
+- The service reads the reader's precomputed entries and obtains recent posts from followed accounts assigned to read-time fanout.
+- It merges those candidate streams using timestamp plus a stable tie-breaker and discards duplicates or inaccessible posts.
+- It hydrates selected IDs through the shared post cache, reading the durable post store only for misses.
+- It returns the page and continuation key; the client stores that cursor for its next request.
+- Newly published posts appear ahead of the cursor rather than shifting an offset and causing the same old items to be returned again.
+
+@@ tinder
+1) Profiles and candidate stacks >> Build and consume a candidate stack
+- The user requests more candidates; the profile service reads current preferences, location, and eligibility state.
+- It checks the user's cached stack and generates more candidates through geographic and preference indexes when the stack is low or stale.
+- The service removes blocked, ineligible, or previously swiped candidates using exact history or the selected membership-filter strategy.
+- It caches a bounded candidate pool and returns a small batch with authorized profile/media references.
+- As the user consumes the stack, background replenishment continues; final eligibility checks prevent stale cached candidates from bypassing current rules.
+
+2) Swipes and matches >> Record a swipe and create a mutual match
+- The client sends the target user, swipe decision, and stable request ID to the swipe service.
+- The service authenticates the swiper and maps both users to a canonical pair key for the chosen atomic coordination boundary.
+- Within that boundary, it records the decision and examines the other user's decision; a retry resolves to the same recorded decision.
+- If both decisions are positive, it creates a uniquely keyed match for that pair. Concurrent swipes cannot each permanently miss the other.
+- The service commits before acknowledging the swipe or match result.
+- A reliable match event triggers notifications to both users, with delivery deduplication separate from the unique match record.
+
+@@ leetcode
+2) Execute submissions >> Accept code, run tests, and return results
+- The client submits source code, language, and problem ID to the API.
+- The API validates limits, stores a pending submission, and reliably enqueues its ID before exposing accepted status to the client.
+- A worker claims the job and loads the source, language runtime, and private test data into an isolated sandbox.
+- It compiles if necessary, then runs tests under CPU, memory, output, process, and execution-time limits.
+- The worker persists the terminal result and sanitized diagnostics before acknowledging queue delivery.
+- The client polls or receives a completion event, then fetches the authoritative result by submission ID.
+- If a worker crashes, the job can be redelivered. Stable submission identity prevents repeated execution from awarding duplicate credit.
+
+3) Competition leaderboard >> Apply a judged submission to the ranking
+- A committed judging result produces an event identifying the submission, user, problem, and contest.
+- The scoring service verifies eligibility and checks whether this result has already affected the contest score.
+- It atomically records the scoring effect and updates the participant's authoritative score and penalty state.
+- A derived leaderboard update changes the participant's sorted-set entry using the contest's tie-breaking rules.
+- Leaderboard reads fetch top entries or personal rank from that view; rebuilds replay authoritative scores rather than rerunning user code.
+
+@@ whatsapp
+1) Chats and message delivery >> Send a message and acknowledge delivery
+- The sender transmits a message over its authenticated connection with a chat ID and stable client message ID.
+- The chat service checks membership and assigns the ordering information required by the conversation model.
+- It persists the accepted message or recipient-delivery record before acknowledging durable acceptance to the sender.
+- The routing or pub/sub layer forwards the event to connection servers holding recipients' active device sessions.
+- Those servers send the message to their local devices. Offline devices retain a recoverable backlog or cursor gap in durable storage.
+- Each device deduplicates by message ID, stores or displays the message in order, and acknowledges its own delivery position.
+- Delivery or read receipts are separate updates; one device's acknowledgement does not prove every device or user has read the message.
+
+3) Failures, retries, and ordering >> Reconnect and recover missed messages
+- The client detects a broken connection through an error or missed heartbeat and reconnects with backoff.
+- It authenticates again and sends the last durably applied conversation or device cursor.
+- The server queries retained messages after that cursor and coordinates the handoff to live updates so no gap is skipped.
+- The client merges replay with any already received events, deduplicates IDs, and applies messages according to the ordering key.
+- It advances its cursor after successful local application and resumes acknowledgements. A cursor outside retention follows an explicit history-unavailable recovery path.
+
+2) Media attachments >> Send a media attachment
+- The sender requests an authorized upload session and uploads the attachment directly to object storage.
+- The backend verifies completion and produces an attachment reference with the required access metadata.
+- The sender submits a normal chat message containing that reference; message acceptance follows the durable message flow.
+- The recipient receives the reference, requests authorized access, and downloads the media directly from storage or a CDN.
+- Attachment upload failure prevents publication of a ready attachment; chat servers do not need to buffer the large file during message fanout.
+
+@@ strava
+1) Record and display activity >> Record and synchronize an activity
+- The user starts an activity; the phone creates a local activity identity and persists recording state before collecting samples.
+- GPS samples receive timestamps and sequence numbers, are stored locally, and update the displayed route, distance, and time immediately.
+- When connected, the client creates or resolves the remote activity ID and sends batches of unacknowledged samples.
+- The ingestion service verifies ownership and stores or durably queues samples with deduplication keys, then acknowledges accepted batches.
+- The phone marks only acknowledged batches as synchronized; after disconnecting it continues recording and retries the rest later.
+- On stop, the client uploads remaining samples and requests finalization. The backend verifies required data before publishing a completed activity.
+
+2) Read completed activities >> Process and read a completed route
+- A finalized activity event queues summary and route-processing work.
+- Workers read the ordered samples, account for pauses, and derive distance, duration, display geometry, and any segment results.
+- They persist the derived data before marking that processing stage complete; repeated attempts replace or deduplicate the same activity version.
+- The reader requests activity details, and the service checks visibility before returning summary and route references.
+- The client renders the summary and fetches the appropriate route resolution; leaderboard updates follow from validated segment results asynchronously.
+
+@@ distributed-cache
+1) In-memory operations >> Route and execute a cache operation
+- The client or proxy hashes the key using the current ownership map and sends the request to its owning node.
+- For GET, the node checks the hash table and expiration before returning a value; an absent or expired entry is a miss.
+- For SET, the node validates size, atomically replaces the entry and TTL metadata, and updates eviction bookkeeping.
+- It replicates the change according to the chosen policy and acknowledges after the required durability or replication boundary.
+- If memory exceeds its limit, the node evicts eligible entries according to policy; eviction changes future reads into misses, not backing-store deletions.
+- A stale ownership response causes the client to refresh routing and retry within a bound rather than repeatedly contacting the wrong node.
+
+1) Availability and replication >> Recover ownership after node failure
+- Health checks or membership coordination identify an unavailable owner without letting clients independently invent competing owners.
+- The cluster selects or promotes the eligible replica and publishes a new ownership epoch or map.
+- Clients refresh routing and retry requests against the replacement; recently acknowledged writes are preserved only to the extent promised by the replication policy.
+- Missing cache entries are fetched by applications from their authoritative stores, with bounded miss traffic during warm-up.
+- The cluster restores replication and rebalances data in the background while preventing a recovered stale owner from accepting conflicting writes.
+
+@@ rate-limiter
+2) Choose an algorithm >> Decide a request with a token bucket
+- The gateway authenticates the request and derives the client/rule key and request cost from trusted identity and cached rules.
+- It calls the shard owning that bucket with one atomic operation; a client-side GET followed by SET would race.
+- The operation calculates elapsed time, refills tokens up to capacity, and reads the resulting allowance.
+- If enough tokens exist, it deducts the request cost and stores the updated timestamp and balance together.
+- If tokens are insufficient, it stores any refill progress and returns a denial with the earliest useful retry time.
+- The gateway forwards allowed requests to the backend or returns 429 with retry information. If limiter state is unavailable, it applies the configured outage policy instead of silently assuming a decision.
+
+4) Dynamic rules >> Roll out a rule change
+- An administrator submits a validated rule update to the durable control-plane store.
+- The control plane assigns a version and distributes the new configuration to enforcement nodes.
+- Each node installs the rule atomically and applies the defined bucket-state migration or reset policy.
+- Subsequent decisions use the installed version; monitoring detects nodes that remain on an older configuration.
+
+@@ online-auction
+2) Accept bids >> Accept or reject a bid
+- The bidder sends auction ID, amount, and an idempotency key to the bid service.
+- The service authenticates the bidder and resolves any previously completed request using that key.
+- It locks the auction row or uses an expected version, then checks current highest bid, auction state, and authoritative deadline together.
+- If the auction is closed or the bid is not high enough, the attempt fails without changing accepted bid history.
+- Otherwise the service inserts the bid and updates the auction's highest bid in the same transaction, then commits.
+- Only after commit does it acknowledge acceptance and publish the live update. Viewers process the committed ordering/version so an older event cannot move the displayed bid backward.
+
+2) Durability and closing >> Close an auction and select the winner
+- A deadline worker attempts closure; bid acceptance independently checks the deadline so a late worker cannot extend bidding accidentally.
+- The worker enters the same serialization boundary used by bids and verifies that the auction has ended and is still open.
+- It marks the auction closed and records the highest accepted bidder as the winner, or a no-bids result, in one committed transition.
+- A duplicate closing attempt observes the existing terminal result instead of selecting a new winner.
+- Notifications and any settlement workflow consume that committed result and retry independently without reopening the auction.
+
+@@ youtube
+1) Upload and process >> Turn an upload into a playable video
+- The client creates an upload session and sends video parts directly to object storage using scoped signed instructions.
+- The backend verifies the completed original and records its durable object reference and video version.
+- A reliable event queues processing tasks referencing that original; upload acceptance does not yet imply every playback rendition is ready.
+- Workers transcode and package the required renditions and segments, persisting each output under retry-safe identifiers.
+- The workflow verifies required outputs and publishes a manifest that references only completed segments.
+- The metadata service marks the video or rendition set ready; failed tasks retry without publishing incomplete output as playable.
+
+2) Playback >> Start and adapt video playback
+- The viewer requests the video; the metadata service checks access and readiness and returns the playback manifest location.
+- The player fetches the manifest through the authorized CDN path and chooses an initial bitrate based on available conditions.
+- It requests the first segments; CDN hits are served near the viewer and misses are fetched from object storage.
+- The player buffers and decodes those segments, then requests subsequent segments as playback advances.
+- At supported segment boundaries it switches renditions as bandwidth or buffer health changes, without restarting the whole video.
+
+@@ job-scheduler
+1) Schedule and dispatch >> Schedule an execution and run it
+- The caller submits a task, schedule, retry policy, and idempotency key; the API commits the job definition and its next occurrence.
+- A scheduler queries its assigned due-time range and atomically claims or records dispatch for an eligible occurrence.
+- It reliably publishes the occurrence ID to the execution queue; a repeated dispatch retains the same logical occurrence identity.
+- A worker claims the queue delivery, records its attempt/lease, and executes the task outside the scheduling transaction.
+- The worker persists success or failure and any result before acknowledging delivery.
+- For a recurring job, the system creates the next scheduled occurrence according to the recurrence policy; retries of this occurrence do not create extra future jobs.
+
+3) At-least-once execution >> Recover a worker that stops responding
+- The worker misses heartbeats or fails to finish before its lease or queue visibility timeout.
+- The execution becomes eligible for another attempt; the new worker receives the same occurrence ID with new ownership metadata.
+- It checks for an already committed result before repeating work and uses the same downstream idempotency key where supported.
+- It executes or resumes the task, then commits completion conditionally on its current ownership token.
+- A late old worker cannot overwrite the newer result. If an external effect has an uncertain outcome, the worker reconciles it instead of assuming it never happened.
+
+@@ fb-live-comments
+1) Post and store comments >> Persist and broadcast a comment
+- A viewer posts text and a stable request ID for a video; the API authenticates and validates the request.
+- The service commits the comment, its ordering key, and recoverable publication state before acknowledging acceptance.
+- The event pipeline publishes that committed comment to the video's shared channel.
+- Connection servers subscribed for that video receive the event and fan it out to their local viewers.
+- Clients deduplicate by comment ID and insert it according to the ordering key; slow clients follow the bounded-buffer or catch-up policy.
+
+2) Deliver and read history >> Join a video without a history/live gap
+- The viewer authenticates and subscribes to the video's live channel, establishing a cursor boundary or buffering live events while history loads.
+- The history service reads a bounded page ending at that boundary and returns ordered comments with a continuation cursor.
+- The client displays history and merges buffered or replayed live events after the boundary, removing duplicate IDs.
+- As new comments arrive, the client advances its last-applied cursor after displaying them.
+- On reconnect, it requests comments after that cursor and repeats the handoff rather than starting from an arbitrary current moment.
+
+@@ news-aggregator
+1) Ingest and serve articles >> Ingest one publisher update
+- The source scheduler selects a publisher whose refresh is due and enqueues a fetch job with its source cursor or conditional-request metadata.
+- A worker fetches the source within its rate limits and parses article metadata and publication times.
+- It canonicalizes article identities and deduplicates records already seen from earlier fetches.
+- The worker commits new or changed articles and advances the source checkpoint only after required data is durable.
+- Derived feed indexes and caches receive the committed changes; optional thumbnail fetching or classification runs separately.
+- Failed fetches retry with backoff without holding up other publishers or marking an unsuccessful refresh as complete.
+
+1) Pagination consistency >> Serve the next news-feed page
+- The reader requests a feed with category/preferences, page size, and a cursor if continuing.
+- The feed service resolves the stable sort or ranking context and checks a compatible cached page or candidate set.
+- On a miss, it queries the indexed feed after the cursor, applies relevant filters, and selects a bounded result set.
+- It hydrates article summaries and returns them with the next stable ordering key and original publisher URLs.
+- Selecting an article navigates the reader to the publisher; subsequent feed requests continue from the returned cursor instead of a shifting offset.
+
+@@ price-tracking-service
+1) History and collection >> Collect and verify a price observation
+- A scheduler, source interface, or browser extension supplies a product observation with price, currency, time, and provenance.
+- The ingestion service normalizes product identity and validates the format, rate limits, and plausible value range.
+- Untrusted or anomalous observations enter verification; they do not immediately replace the authoritative price or trigger alerts.
+- The service persists a verified observation and compares it with the previous accepted price.
+- A real change produces a durable price-change event for history projections and subscription evaluation; duplicates retain the same event identity.
+
+3) Notify efficiently >> Send a threshold-crossing alert
+- A consumer receives a verified price-change event and looks up subscriptions for that product whose thresholds may be satisfied.
+- It checks each subscription's alert semantics, such as crossing from above the threshold to at or below it.
+- It records a deduplicated notification intent keyed by subscription and qualifying event, then reliably enqueues delivery work.
+- A delivery worker rechecks active preferences, sends through the chosen provider, and records the attempt outcome.
+- Transient failures retry with the same logical notification identity; already applied events do not generate another alert merely because queue delivery repeated.
+
+4) Fast historical charts >> Return chart data at a useful resolution
+- The client requests a product, time range, and desired chart resolution.
+- The query service checks a compatible cached result, then selects raw data or an appropriate rollup for that range.
+- It reads bounded product/time partitions and preserves the aggregates needed to represent meaningful price changes.
+- It returns ordered points and resolution metadata; the client renders the chart without downloading every raw observation.
+
+@@ notification-system
+1) Immediate and scheduled delivery >> Accept and deliver a notification
+- The sending service submits recipient, template, payload, channel, schedule, and idempotency key to the API.
+- The API authenticates the sender and commits the notification plus recoverable publication state before returning its ID.
+- Immediate work is enqueued now; scheduled work remains durable until the scheduler marks it due and publishes it.
+- A priority-aware worker claims the task, checks the user's current preferences, and renders the authorized template.
+- The worker sends to the provider using a stable provider idempotency key when supported and records the provider outcome.
+- Only after durable outcome recording does it acknowledge queue delivery. Provider acceptance and final recipient delivery remain different states.
+
+2) Campaign expansion >> Expand a campaign without starving urgent messages
+- The campaign service commits the campaign definition and a stable segment snapshot or defined recipient-selection policy.
+- An expander reads a bounded recipient batch from its saved cursor.
+- It creates deduplicated recipient notification intents and commits expansion progress so restarting cannot silently skip the batch.
+- A reliable publisher sends those intents to the bulk path, while urgent transactional work retains its reserved queue or worker capacity.
+- Delivery workers apply provider limits and current preferences for each recipient; campaign progress counts durable outcomes rather than merely queued messages.
+
+3) Duplicate prevention >> Recover an ambiguous provider send
+- A worker times out after sending, so it cannot tell whether the provider accepted the message.
+- It records the uncertain attempt with its provider request identity instead of immediately marking it definitely failed.
+- It queries provider status or retries with the provider's supported idempotency key to resolve the same logical send.
+- It persists the resolved outcome before acknowledging or rescheduling the task.
+- If the provider offers neither deduplication nor status lookup, the service follows an explicit duplicate-risk policy rather than claiming guaranteed exactly-once delivery.
+
+@@ youtube-top-k
+1) All-time and windowed counts >> Convert views into ranked window totals
+- Producers append view events with video ID and event time to the durable ingestion log.
+- Consumers partition events by video or a deliberately salted partial-count key and assign each event to the relevant window.
+- Stateful processors update recoverable counts, applying the selected deduplication and late-event policy.
+- If hot-video writes were split, a merge stage combines all partial counts for a video/window before treating its score as complete.
+- Rankers maintain bounded local candidates from complete per-video scores, then a global merge selects top K across partitions.
+- The resulting ranking snapshot and freshness position are published to the query store or cache for API reads.
+
+1) Reduce repeated reads >> Answer a top-K request
+- The client specifies the supported window, time boundary, and bounded K value.
+- The query service resolves the corresponding materialized snapshot and checks its freshness metadata.
+- It reads the top K entries from the shared larger ranking list, rather than querying and sorting every video's count again.
+- It returns ranked video IDs, counts, and freshness information; an unavailable snapshot follows a bounded fallback or explicit not-ready response.
+
+4) Sliding windows >> Advance a sliding ranking window
+- Incoming events update their time buckets using event time rather than blindly using arrival time.
+- As the window advances, processors add newly included bucket contributions and remove expired contributions.
+- They revise affected video scores and ranking candidates, while retaining the bucket state still needed for future windows or allowed late events.
+- A late event within the correction policy updates its bucket and affected materialized results; older events follow the defined discard or reconciliation path.
+- New snapshots are published only with the window boundaries they represent so clients do not mix results from different intervals.
+
+@@ uber
+1) Estimate and request >> Create a ride request from a fare estimate
+- The rider sends pickup and destination to pricing, which obtains the route/time inputs needed for an estimate.
+- Pricing returns a quote and validity context; this does not reserve a driver.
+- The rider confirms with the quote and an idempotency key, and the ride service validates the current request.
+- The service commits a requested ride and reliable matching work before returning the ride ID.
+- The rider subscribes to status or polls that ID while matching proceeds asynchronously.
+
+2) Match and accept >> Offer a ride and commit an assignment
+- A matcher claims a durable ride request and queries the location index for fresh, available nearby drivers.
+- It ranks a bounded candidate set and atomically changes one candidate from available to offered under a unique offer token and deadline.
+- The notification path delivers that offer to the driver's active client.
+- The driver accepts the specific token; the service verifies current ownership, offer expiry, and ride state.
+- It commits the matching ride and driver assignment through the selected consistency boundary before announcing an assigned trip.
+- A decline or timeout conditionally releases only that current offer and retries another candidate. A delayed acceptance for an older token is rejected.
+
+1) Location ingestion and proximity >> Refresh a driver's searchable position
+- The driver's client sends coordinates with a timestamp or sequence and authenticated driver identity.
+- The location service validates the sample and discards updates superseded by a newer accepted position.
+- It updates the driver's latest location and geographic-cell membership, removing stale membership as needed.
+- Nearby-driver searches inspect the relevant and adjacent cells, then filter out old samples and unavailable drivers.
+- Final matching still atomically claims availability; appearing in a geographic search result is not itself an assignment.
+
+@@ robinhood
+1) Live prices >> Distribute a market-price update
+- The market-data adapter receives an external quote, validates its source ordering, and normalizes the symbol and fields.
+- It updates the latest quote cache and publishes the new version to the symbol's shared channel.
+- Connection servers subscribed to that symbol receive the event once for their local interested clients.
+- They send or coalesce display updates according to the freshness policy, and clients ignore older versions.
+- A reconnecting client fetches a current snapshot before resuming live updates rather than replaying an unlimited stale-price backlog.
+
+2) Orders >> Submit and process a stock order
+- The customer sends side, symbol, quantity, order type, and a stable client request ID to the order API.
+- The service authenticates the account, validates the order, and checks for an existing request result.
+- Within the account/order consistency boundary, it reserves the required buying power or holdings and persists a pending order.
+- After that commit, a recoverable submission worker sends the order to external execution infrastructure using the stable external order identity.
+- The service records external acknowledgement or rejection. Local request acceptance is not a claim that the exchange has accepted or filled the order.
+- Execution reports update filled quantity, cash, positions, and remaining reservations idempotently; partial fills leave the remainder open according to order rules.
+- Only committed transitions are sent to the customer. A submission timeout triggers status reconciliation before any potentially duplicate external resubmission.
+
+2) Track order updates >> Handle cancellation racing a fill
+- The customer requests cancellation of an eligible open order; the service records the request without immediately declaring the order cancelled.
+- The execution adapter submits the cancellation using the provider's order identity.
+- Meanwhile, any execution report is applied by its unique fill/report ID, including fills arriving before cancellation takes effect.
+- When external cancellation is confirmed, the service closes the unfilled remainder and releases only its remaining reserved funds or securities.
+- The final customer state includes actual fills plus the cancelled remainder; it never erases a completed fill because a cancellation was requested first.
+
+@@ google-docs
+1) Create and load >> Load a document and join collaboration
+- The client requests the document; the service checks read/edit permission before returning state or opening an edit channel.
+- The synchronization service establishes a snapshot revision and a live-operation boundary, buffering or retaining changes needed during loading.
+- The client loads the snapshot and applies operations after its revision in the order required by the chosen collaboration model.
+- It merges buffered live operations and acknowledges the last applied position, avoiding a gap between snapshot loading and subscription.
+- Presence is registered separately and expires if the session disappears; it is not part of the durable document content.
+
+2) Concurrent editing >> Apply an edit with a server-ordered OT design
+- The client applies the user's edit locally for responsiveness and sends an operation ID plus its base revision.
+- The document owner verifies permission and deduplicates a previously accepted operation with the same ID.
+- It transforms the operation against intervening accepted operations according to the chosen OT rules and assigns the next authoritative revision.
+- The server durably appends the accepted operation before acknowledging the durable revision and broadcasting it to collaborators.
+- Other clients transform or reconcile pending local edits and apply the remote operation; the origin reconciles its acknowledgement instead of applying its own insertion twice.
+- After disconnecting, a client resumes from its acknowledged revision or a new snapshot. A CRDT-based design uses its causal/merge rules instead of this OT transformation step.
+
+2) Bound storage and replay >> Publish a consistent snapshot
+- A snapshot worker chooses a committed document revision as its boundary.
+- It reconstructs or captures the document exactly through that revision and writes the snapshot to durable storage.
+- It atomically publishes the snapshot reference together with the covered revision after the write succeeds.
+- New readers load that snapshot and replay only later operations; they do not combine it with an unrelated log boundary.
+- Compaction removes history only after the retention and synchronization rules permit it, preserving metadata still needed by offline clients or the merge algorithm.
+
+@@ web-crawler
+High-Level Design >> Crawl one URL from discovery to completion
+- A seed or extracted link is normalized, checked against URL eligibility and duplicate-discovery state, and added durably to the frontier.
+- The host-aware scheduler waits until that host is eligible under robots rules, rate limits, and backoff, then leases the task to a fetcher.
+- The fetcher checks the current policy and fetches with bounded redirects, response size, and timeout, excluding forbidden destinations.
+- It persists the fetched content and result metadata before considering the fetch durably complete.
+- Parsing extracts links and metadata; eligible new URLs are inserted through a retry-safe discovery stage.
+- The worker acknowledges the task only after its required output or downstream work is recoverable. A crash causes a replay of the same task identity, not loss of the frontier position.
+
+2) Politeness >> Schedule requests across workers for one host
+- A discovered URL is assigned to its host's frontier rather than immediately fetched by whichever worker saw it.
+- The scheduler loads or refreshes cached robots rules and rejects disallowed URLs.
+- It checks shared host concurrency, next-allowed time, and error backoff so multiple workers do not each grant themselves the full host rate.
+- It releases a bounded request when eligible and advances the host's scheduling state.
+- The response updates host health and retry timing; throttling or repeated failures slow subsequent requests independently of other hosts.
+
+@@ ad-click-aggregator
+1) Click ingestion >> Record a click before redirecting
+- The browser calls the click endpoint with the ad identity and applicable event information.
+- The service validates the ad and reads its authorized destination; it does not trust an unrestricted redirect URL supplied by the browser.
+- It creates a stable click event and waits for the selected durable-ingestion acknowledgement when recording is required before success.
+- It returns the redirect response and the browser separately requests the advertiser's destination.
+- Aggregation consumes the event later. If durable ingestion fails, the endpoint follows its explicit availability-versus-recording policy instead of claiming the click was safely recorded.
+
+2) Aggregation >> Materialize a minute of click counts
+- A processor reads click events from the durable log using its recoverable position.
+- It removes delivery duplicates according to the counting contract and assigns accepted events to ad/time windows.
+- It updates recoverable window state, combining salted partial counts if a hot ad is distributed across workers.
+- It writes minute aggregates through an idempotent or checkpoint-compatible sink, with the defined policy for late events.
+- Only after the processing state and output are recoverable does it advance the corresponding committed progress.
+- Query requests read the materialized buckets; reconciliation can rebuild affected windows from the raw archive without adding the same history twice.
+
+@@ fb-post-search
+1) Writes and indexing >> Publish a post into the search index
+- The author creates or edits a post through the primary post service, which commits content, visibility, and a version.
+- A reliable change stream or outbox publishes that committed version to indexing workers.
+- The worker tokenizes the text, computes searchable fields, and writes the search document and postings for the stable post ID.
+- Version checks prevent a delayed old update from replacing newer content or undoing a deletion.
+- After the search engine's refresh boundary, queries can discover the updated document; primary write acknowledgement can occur before that search visibility.
+
+2) Keyword retrieval >> Execute a keyword or phrase search
+- The client sends query text, filters, sort mode, and continuation data to the search coordinator.
+- The coordinator normalizes the query and routes it to the relevant search shards.
+- Each shard retrieves term postings, intersects or unions candidates, and checks positions for phrase requirements.
+- Shards apply supported filters and return bounded locally ranked candidates with stable sort values.
+- The coordinator merges candidates, deduplicates results, and enforces current visibility where stale index data could expose restricted content.
+- It hydrates the selected page and returns a cursor containing the ordering context, avoiding a full-corpus scan or unbounded result transfer.
+
+@@ payment-system
+1) Create and execute payments >> Create, submit, and confirm a payment
+- The merchant creates an intent with amount, currency, and an idempotency key; the API validates merchant authority and request parameters.
+- The service commits the intent and returns its ID. Reusing the key with the same parameters resolves to that intent rather than a second charge request.
+- The customer supplies a payment-method token through the supported collection flow and confirms the intent.
+- A durable workflow records a payment attempt and stable provider key before sending the external authorization or charge request.
+- The provider responds or sends a verified callback. The workflow deduplicates the result and applies only valid payment-state transitions.
+- The system commits the resulting financial and payment records under their defined transaction boundary, retaining the audit trail.
+- Only then does it publish merchant/customer status updates. Accepted or processing status is not reported as a successful payment before the outcome is known.
+
+3) Transaction safety >> Resolve an uncertain external charge
+- The outbound call times out after submission, leaving an attempt whose external outcome is unknown.
+- The workflow retains the attempt and provider identity and marks it unresolved instead of assuming no charge occurred.
+- It queries provider status or retries the same logical request using supported provider idempotency.
+- A confirmed outcome is applied once to payment state and relevant ledger records; duplicate callbacks resolve to the same result.
+- If automated resolution fails, reconciliation or manual handling retains the pending evidence rather than issuing an unrelated replacement charge blindly.
+
+4) Scale and webhooks >> Deliver a committed payment event to a merchant
+- A payment transition commits together with recoverable notification intent.
+- A publisher enqueues a stable webhook event ID, and a delivery worker signs the payload for the merchant endpoint.
+- The worker sends the event with bounded timeout and records the response as a delivery attempt.
+- Failed or uncertain deliveries retry with the same event identity and backoff; one slow merchant does not block other endpoints.
+- The merchant deduplicates events and can fetch current payment status when events are delayed or reordered.
+
+@@ metrics-monitoring
+1) Ingestion >> Store a batch of metric samples
+- An agent gathers samples with timestamps and labels, or a collector scrapes the service's metrics endpoint.
+- The ingestion service authenticates the source and validates metric shape, tenant quotas, and cardinality limits.
+- Accepted samples enter bounded durable transport or the storage acknowledgement path required by the product's durability contract.
+- Consumers partition samples by series identity and time and write them to the time-series store, applying duplicate and late-sample rules.
+- They advance recoverable progress after required output is safe; rollup workers subsequently derive coarser historical resolutions.
+
+3) Alerts and notifications >> Evaluate a rule and notify on a transition
+- The evaluator loads an enabled rule and determines the time window whose data is sufficiently available for evaluation.
+- It queries or consumes the relevant samples and evaluates the threshold with explicit treatment of missing or delayed data.
+- It updates durable pending/firing/resolved state, including any required condition duration.
+- A qualifying state transition records a deduplicated notification intent; repeated evaluations of the same firing state do not automatically create new notifications.
+- Delivery workers group or route alerts and apply retries independently; a missing acknowledgement cannot erase the persisted alert state.
+
+2) Dashboards >> Read a dashboard time range
+- The dashboard requests selectors, time range, aggregation, and display resolution.
+- The query service selects a compatible cache entry or the raw/rollup partitions appropriate to that resolution.
+- It narrows series through label indexes, scans only relevant time partitions, and combines aggregates with correct weights.
+- It returns bounded ordered points and freshness information for rendering rather than every raw sample in the interval.
+
+@@ online-chess
+1) Match players >> Pair players and start a game
+- Each player joins a matchmaking queue with mode, rating, and a retry-safe request identity.
+- A matcher chooses compatible candidates and atomically claims both currently eligible entries.
+- It commits a game linking the two claimed players and records recoverable notifications before confirming the pairing.
+- The players receive the game ID and connect to its authoritative game owner.
+- If pairing fails before game creation, only the current claims are released or expired; late matchers cannot create a second game from superseded claims.
+
+2) Run games >> Accept and broadcast a chess move
+- The active player submits a move with game ID, operation ID, and expected turn or sequence.
+- The authoritative game owner checks player identity, current board version, legal movement, and server-owned clock state.
+- An invalid, stale, duplicate, or late move receives the corresponding rejection or existing result without advancing the turn twice.
+- A valid move updates board, clocks, turn, and any terminal result within the game's serialized durable state transition.
+- The server acknowledges the committed move and broadcasts its new sequence/state to both players.
+- Clients reconcile their display with that state; after reconnect they load a snapshot and later committed moves rather than submitting their local board as authority.
+
+3) Rankings >> Apply a completed game to ratings
+- A committed terminal game result produces a result event with the stable game ID.
+- The rating service checks that the game has not already been applied and reads the applicable rating inputs.
+- It commits both players' rating effects under the selected consistency rules and records that the game is processed.
+- A projection updates the leaderboard's sorted entries; failures can be retried or rebuilt from durable ratings.
+- Rank queries read the derived view with explicit tie rules, without rerunning rating changes each time the result event reappears.
+
+@@ chatgpt
+1) Submit and generate >> Submit a prompt and generate a response
+- The client sends conversation ID, prompt, and an idempotency key to the authenticated chat API.
+- The API validates ownership and quota, then persists the user message and a new run with recoverable scheduling state.
+- It returns the run ID so the client can connect to that run's output stream; repeated submission with the same key resolves to the existing run.
+- The context builder reads committed history and applies token-budget and summarization rules before submitting inference work.
+- The scheduler admits the run to an available compatible GPU worker or batch according to capacity and priority.
+- The worker generates ordered output chunks and appends them to the chosen replayable stream; connection servers forward those chunks to subscribed clients.
+- On completion, the system persists the final assistant message and terminal run state before exposing final completion. Failure and cancellation remain explicit terminal outcomes.
+
+2) Reconnect and deploy recovery >> Resume an interrupted output stream
+- The browser loses its SSE or WebSocket connection while the run continues independently of the connection server.
+- It reconnects using the same run ID and its last applied event cursor instead of resubmitting the prompt.
+- The gateway authenticates access and replays retained events after the cursor from the run's stream.
+- The client deduplicates any overlap, appends events in sequence, and continues receiving newly generated chunks.
+- If replay retention has expired, the client fetches persisted final output or the supported current snapshot rather than inventing missing tokens or starting another paid run.
+
+4) Fairness and context cost >> Cancel a running generation
+- The client sends an authenticated cancellation request for a specific run; closing the browser stream alone is not the cancellation operation.
+- The control plane records cancellation state and removes queued work or signals the current inference owner.
+- The worker cooperatively stops generation and releases the run's scheduling and KV-cache resources when safe.
+- The system commits the terminal cancelled state and usage/partial-output policy, then notifies connected clients.
+- A completion racing cancellation is resolved by the run's conditional state-transition rules so the run does not acquire conflicting terminal outcomes.
+
+@@ flash-sale
+1) Browse and reserve >> Admit a buyer and claim one unit
+- The buyer loads cacheable sale details and, when required, joins the waiting room.
+- Admission issues a signed token when reservation capacity is available; the token grants access to try, not ownership of inventory.
+- The buyer submits a reservation request with admission and idempotency tokens.
+- The reservation service verifies sale timing and user limits, then atomically claims an eligible unit or inventory share with owner, version, and expiry.
+- If no valid claim succeeds, it returns sold-out or retry feedback without inventing a reservation.
+- After durable claim commit, it returns the reservation token and checkout deadline. Other buyers cannot purchase that current claim while it remains valid.
+
+2) Complete payment >> Convert a reservation into a purchase
+- The buyer submits checkout for the specific reservation token; the service verifies current owner, version, state, and deadline.
+- It records an order/payment attempt and sends payment using the stable provider idempotency key through a recoverable workflow.
+- A verified payment outcome resumes the workflow; a timeout remains unresolved until provider lookup or reconciliation determines the result.
+- The service conditionally commits purchase only for the reservation state allowed by the chosen expiry/payment policy.
+- A payment that cannot be paired with a valid purchase follows the explicit reconciliation or refund path; it must not consume a unit now assigned to someone else.
+- The client receives the committed order result and can retrieve it by ID after a lost response.
+
+2) Expiration >> Reclaim a timed-out unit safely
+- A scheduled cleanup or new claimant identifies an apparently expired reservation.
+- It rereads or conditionally tests authoritative state, expiry, owner, and version together.
+- It releases or reclaims only that exact expired version, atomically creating new ownership if this is an on-demand claim.
+- A stale cleanup encountering a purchased or replaced reservation does nothing.
+- Any late checkout or payment callback must still pass the current-token check before it can affect the unit.
+
+@@ real-time-updates
+3) SSE and WebSockets >> Establish a subscription and deliver an update
+- The client establishes its supported streaming connection through a proxy configured for the required lifetime and buffering behavior.
+- The connection server authenticates the client, validates the requested channels, and registers local subscriptions.
+- A producer commits an application change and reliably publishes the corresponding event when delivery must follow durable state.
+- Routing or pub/sub sends the event to connection servers with interested clients, which forward it over their existing connections.
+- Clients apply ordered events and retain a cursor when recovery is required; the transport itself does not create durable history.
+
+Common Deep Dives >> Recover after a disconnected stream
+- Heartbeats or transport errors reveal the disconnection, and the client reconnects with bounded backoff and jitter.
+- It authenticates and presents its last applied event cursor or asks for a fresh snapshot.
+- The server replays retained events after the cursor and coordinates the transition to live delivery without leaving a gap.
+- The client removes duplicates and detects missing sequence positions before advancing its local cursor.
+- If the requested cursor is too old, the server supplies the supported snapshot/resynchronization path rather than pretending all missed events were delivered.
+
+@@ dealing-with-contention
+1) Conditional writes >> Claim a resource with compare-and-set
+- The service reads the resource's state and version, or expresses the required current-state predicate directly in its write.
+- It submits one conditional update, such as available_quantity >= requested_quantity or version = expected_version.
+- The database evaluates the predicate and mutation atomically; competing requests cannot both rely on the same unprotected old state.
+- The service checks the affected-row count. Success is acknowledged after the write commits; zero rows means the claim did not succeed.
+- On a conflict, the service reloads and re-evaluates the business rule before a bounded retry, rather than blindly repeating stale assumptions.
+
+2) Pessimistic locking >> Update related rows with a short lock-holding transaction
+- The service begins a transaction and acquires required row locks in a consistent order.
+- It reads the locked current values and checks the invariant across all relevant records.
+- If validation fails, it rolls back; otherwise it writes the related changes within the same transaction.
+- Commit makes the changes durable under the database's configured guarantees and releases the locks.
+- Only then does the service acknowledge success or trigger external work; deadlock victims retry the complete transaction against fresh state.
+
+5) Distributed locks >> Protect work after a lease changes hands
+- A worker acquires a lease with a unique owner token and a monotonically increasing fencing value from the coordinator.
+- It includes that fencing value when requesting changes to the protected resource.
+- The resource accepts only operations compatible with its latest accepted ownership epoch, rejecting a stale worker that resumes after lease expiry.
+- The worker renews while active and releases only if its owner token still matches.
+- If renewal fails or ownership is uncertain, it stops issuing new work and reconciles already attempted effects; the lock alone does not undo those effects.
+
+@@ multi-step-processes
+2) Saga pattern >> Execute and compensate a business workflow
+- The coordinator commits the workflow identity and initial state so a replacement can resume it after a crash.
+- It requests the first local step using a stable business idempotency key, then records the confirmed outcome.
+- It starts each dependent step only after the required prior outcome is known and durable.
+- A transient failure retries the same logical step; an unresolved external outcome is reconciled before treating it as definitely failed.
+- If a terminal failure requires reversal, the coordinator schedules the applicable compensations for completed steps in a valid dependency order.
+- Compensation outcomes are recorded and retried too. The workflow reaches completed, compensated, or an explicit unresolved/manual state rather than disappearing from memory.
+
+1) Single-server primitives >> Publish an event through a transactional outbox
+- The service begins a database transaction for the business operation.
+- It writes the business change and an outbox record with a stable event ID in that same transaction.
+- The transaction commits both records together; rollback leaves neither record visible as a completed operation.
+- An outbox publisher reads committed unsent records and sends them to the broker.
+- After broker acceptance it marks progress. A crash between send and marking can repeat publication, so consumers deduplicate the event ID.
+
+@@ scaling-reads
+3) Application caching >> Serve a cache-aside read
+- The service authenticates the request and builds a cache key containing all relevant query and visibility parameters.
+- It looks up the cache; a valid hit returns immediately under the permitted freshness contract.
+- On a miss, it coordinates or coalesces concurrent loads for that key where stampede protection is required.
+- The selected loader reads authoritative storage and validates the result's version or expiry.
+- It stores a bounded-lifetime cache entry using the chosen stale-write protection, then returns the result; cache-write failure need not fail a successful authoritative read.
+- Waiting requests reuse the loaded result, while cache outages apply bounded database fallback rather than unlimited parallel misses.
+
+3) Invalidation races >> Update data with version-aware cache protection
+- The writer commits the new database value with a newer version.
+- It publishes invalidation or cache-update work identifying that committed version.
+- The cache path records or enforces a version barrier so a slow reader holding an older result cannot repopulate it as the newest value.
+- A subsequent miss reloads the current database state and installs it only if the version check allows it.
+- Reads requiring immediate freshness use the authoritative or coordinated path until that guarantee is satisfied; TTL alone is only a staleness bound.
+
+@@ scaling-writes
+3) Queues and load shedding >> Accept a burst and drain it sustainably
+- The ingestion API validates the request and applies admission limits before promising more work than it can retain.
+- It persists the accepted intent or receives the required durable queue acknowledgement, then returns accepted status with an identifier.
+- Workers claim queued work at a rate the storage and downstream systems can sustain.
+- They batch compatible operations, commit the output, and acknowledge progress after the required durable boundary.
+- Queue age and capacity drive scaling or further admission control; a continuously growing backlog is not solved merely by keeping the queue open.
+
+1) Resharding >> Move a shard without losing concurrent writes
+- The system chooses a new ownership map/version and establishes a migration boundary for the affected key range.
+- It copies existing records to the destination while capturing writes that occur during the copy.
+- The destination applies those changes and catches up to a verified point under the selected migration protocol.
+- Routing switches through a controlled ownership transition, with forwarding or version checks handling clients that still use the old map.
+- Old ownership is fenced before conflicting writes are possible; the source copy is retired only after validation and the rollback policy allow it.
+
+@@ handling-large-blobs
+1) Direct upload >> Upload bytes without proxying them through the application
+- The client submits expected file metadata to the application service.
+- The service authenticates ownership, checks quotas and limits, and commits pending upload metadata.
+- It issues a short-lived signed transfer authorization scoped to the intended object and operation.
+- The client uploads bytes directly to storage, then reports completion or waits for a trusted storage event.
+- The backend verifies the completed object using provider evidence and conditionally marks metadata ready.
+- Downstream processing and access are enabled from that committed ready state; an unverified client completion message is insufficient.
+
+3) Resumable uploads >> Retry only the unfinished parts
+- The backend creates a multipart session and returns its identity plus authorized part-upload instructions.
+- The client uploads parts with stable numbers and records provider-confirmed part identifiers.
+- After interruption, the client and backend recover the same session and obtain the provider-verified set of existing parts.
+- Only missing parts are retransmitted; the backend validates the part set and requests final assembly.
+- It confirms the finalized object before marking the application record ready and eventually cleans up abandoned sessions separately.
+
+2) Direct download >> Authorize a private download
+- The client requests access to a specific object/version from the application service.
+- The service checks current ownership or sharing permission and confirms that the object is ready.
+- It returns a short-lived signed storage or CDN URL with the appropriate restrictions.
+- The client requests bytes directly through that URL; the serving layer verifies its signature, scope, and expiry.
+- A cache miss retrieves the object from the origin under the serving policy, without sending file bytes through the application API.
+
+@@ managing-long-running-tasks
+3) End-to-end flow >> Submit, execute, and report a background job
+- The client submits a job and idempotency key; the API validates it and commits pending job state.
+- A reliable publisher enqueues the job ID or payload reference, and the API exposes accepted status with that stable ID.
+- A worker claims the task, obtains its lease or attempt identity, and records running state.
+- It performs work under resource limits, saving useful checkpoints or output references durably.
+- It conditionally commits the terminal result before acknowledging queue delivery.
+- A completion event notifies the client, which can always recover the authoritative result through the status API after reconnecting.
+
+1) Failure and repeated failure >> Retry a failed or abandoned job
+- A transient error, crash, or expired lease makes the attempt eligible for retry under policy.
+- The next worker checks existing terminal state and saved progress before executing the same logical job again.
+- It reuses downstream idempotency keys and fences stale ownership where needed, then commits its result under the current attempt.
+- Repeated failures back off and eventually enter a dead-letter or inspection state with their error history.
+- A retried notification or queue delivery cannot turn a completed job into a second logical job with unrelated side effects.
+
+@@ redis
+Redis Basics >> Execute a key operation on its owning node
+- The client connects to Redis and, in a clustered deployment, routes the key to the node owning its hash slot.
+- The node executes the command or short atomic script against its current in-memory state; a GET checks whether an entry has logically expired.
+- A mutating command updates the relevant data structure and feeds the configured persistence and replication paths.
+- Redis returns the command result under its configured acknowledgement semantics; a normal successful write does not imply that every replica has acknowledged or a disk fsync has completed.
+- The application handles misses, ownership redirects, timeouts, and uncertain retries according to the operation's semantics rather than assuming every retried increment is harmless.
+
+Streams and Pub/Sub >> Consume a Redis Stream job with recovery
+- A producer appends an entry and receives its stream ID; retention and persistence determine how long that entry remains recoverable.
+- A worker reads through its consumer group, and delivered work appears in that group's pending state until acknowledged.
+- The worker applies the business effect using a stable entry/job identity and persists the outcome.
+- It acknowledges the stream entry after that outcome is safe; an acknowledgement removes pending delivery state, not necessarily the retained entry itself.
+- If the worker stops, another worker can claim sufficiently idle pending work and repeat it safely using the same deduplication identity.
+
+@@ elasticsearch
+2) Lucene segments >> Index an update and make it searchable
+- The application commits its authoritative change and sends a versioned indexing event to a worker.
+- The worker submits the document under a stable ID; Elasticsearch routes it to the appropriate primary shard.
+- The shard applies indexing/translog work and replication according to the configured write and durability settings.
+- The indexing request is acknowledged when its configured conditions are met; that acknowledgement does not necessarily mean ordinary search can see the change yet.
+- A refresh makes the new segment state searchable. A caller needing that boundary can use the supported refresh policy instead of assuming immediate visibility.
+- Background merges later consolidate segments and reclaim eligible obsolete data; they are separate from the refresh that exposed the document.
+
+1) Nodes and shards >> Execute a distributed search page
+- The client sends query, filters, sort order, and pagination context to a coordinating node.
+- The coordinator selects relevant shards and dispatches the query to suitable shard copies.
+- Each shard uses its indexes to filter and score candidates and returns a bounded local set with sort values.
+- The coordinator merges those sets and fetches the selected document fields as needed.
+- It returns the global page and continuation information; point-in-time plus stable sort values preserves the intended context for later pages.
+
+@@ kafka
+How Kafka Works >> Publish a record and advance consumer progress
+- The producer chooses a topic partition, commonly from the event key, and sends the record to that partition's leader.
+- The leader appends it and followers replicate it; the producer receives acknowledgement according to acks and the configured in-sync replica policy.
+- A consumer assigned that partition fetches records in offset order from its current position.
+- The consumer performs the application work and makes the required output or checkpoint recoverable.
+- It commits the corresponding consumed position only after that recovery boundary, unless it deliberately accepts at-most-once behavior.
+- After a crash or rebalance, consumption resumes from committed progress. Records whose effects succeeded before their offset commit may repeat, requiring idempotency or compatible transactions.
+
+Handling Retries and Errors >> Handle an uncertain producer or consumer operation
+- A producer timeout leaves the append outcome uncertain; supported idempotent production retries preserve the producer's sequencing instead of creating independent records blindly.
+- On the consumer side, a processing error leaves the record unfinished; the application decides whether to block the partition, retry later, or route to a recovery topic.
+- If moved to a retry/dead-letter path, the application makes that handoff recoverable before advancing beyond the original record.
+- Replayed processing uses the original business identity to avoid repeating external effects.
+- Monitoring tracks lag and failed records so retention cannot silently expire the only data needed for recovery.
+
+@@ temporal
+Temporal Under the Hood >> Execute a workflow activity durably
+- A caller starts a workflow with a stable workflow identity, and Temporal records the start in durable history.
+- A workflow worker receives a task, replays or uses cached compatible history, and decides that an activity should run.
+- Temporal records the scheduling decision and puts an activity task on the appropriate task queue.
+- An activity worker polls the task and performs the external operation using the workflow's stable business idempotency key.
+- The worker reports completion, which is recorded in history before the workflow advances using that result.
+- A later workflow task consumes the recorded result and chooses the next activity, timer, wait, or terminal outcome.
+
+1) Survive a crash >> Resume after a worker failure
+- A workflow or activity worker stops responding, and the relevant timeout or task-recovery mechanism makes work eligible again.
+- A replacement workflow worker loads history and replays deterministic decisions; already recorded activity results are supplied from history.
+- An activity whose completion was never recorded may run again, even if its external side effect already happened.
+- That activity resolves the same business idempotency key or queries the external outcome before causing a duplicate effect.
+- Once the result is durably recorded, workflow execution continues from the recovered logical progress rather than restarting the whole business process.
+
+@@ api-gateway
+Core Responsibilities and Request Flow >> Route one client request end to end
+- A load balancer sends the incoming request to a gateway instance, which terminates or handles the configured transport connection.
+- The gateway validates request shape and limits, then applies configured identity, authorization-scope, and rate-limit middleware before expensive backend work.
+- It matches the path, method, or routing metadata to a backend service and selects a healthy instance.
+- If an authorized compatible response-cache hit is available, it can return that response without calling the backend; otherwise it forwards the request with bounded deadlines and trusted context.
+- The backend performs domain validation and business work and returns its result; the gateway does not replace the backend's resource-specific checks.
+- The gateway applies configured response headers or transformation, caches only eligible responses under the correct key, and sends the result to the client.
+- A backend timeout follows an explicit retry/idempotency policy; the gateway must not blindly retry an uncertain non-idempotent action.
+
+@@ cassandra
+Storage Model >> Write a row and read the latest visible value
+- The client sends a mutation with its primary key and selected consistency level to a coordinator node.
+- The coordinator hashes the partition key, identifies replica owners, and forwards the mutation to the relevant replicas.
+- Each participating replica records the mutation through its commit-log/memtable path under the configured durability policy.
+- The coordinator acknowledges after the selected consistency level's required responses arrive; unavailable required replicas can make the operation fail or time out.
+- Memtables later flush to SSTables and background compaction reorganizes those files; the write need not wait for a full compaction.
+- A read coordinator contacts the replicas required by the read consistency level, combines their relevant versions according to Cassandra's conflict rules, and returns the resolved result.
+- Read/write overlap improves the selected visibility guarantees, but concurrent multi-record invariants still need a justified conditional or transactional mechanism.
+
+Data Modeling >> Retrieve one page of conversation messages
+- The application derives the conversation/time-bucket partition and a clustering-key boundary from the page cursor.
+- It issues a partition-bounded query for a limited range of message ordering keys.
+- Cassandra routes the query to the replicas for that partition and reads the relevant memtable/SSTable data rather than scanning unrelated conversations.
+- The application returns ordered messages and a cursor for the next range or older bucket.
+- A very active conversation moves into additional bounded buckets according to the model instead of allowing one partition to grow forever.
+
+@@ dynamodb
+Accessing Data >> Claim an item with a conditional write
+- The application authenticates the caller and constructs the exact partition/sort key and required state predicate.
+- It submits a conditional PutItem or UpdateItem, such as version = expected_version or inventory >= requested_quantity.
+- DynamoDB evaluates the predicate and write atomically for the supported operation; a failed condition does not apply the requested mutation.
+- The application handles a successful response as the committed operation outcome or handles a condition failure by reloading and re-evaluating the business rule.
+- On a timeout, it reconciles or uses supported idempotency/transaction tokens as applicable rather than assuming an increment or side effect definitely failed.
+- Subsequent reads select the supported consistency mode needed for their contract; a global secondary index can lag that write.
+
+DAX and Streams >> Update a derived view from table changes
+- A committed table mutation produces a change record in the configured stream.
+- A consumer reads records and maps each change to the required derived-view update or downstream event.
+- It deduplicates or uses version-aware writes so replay cannot apply an old value over a new one.
+- It persists the derived result before advancing recoverable processing progress.
+- After a failure it resumes within the available retention window; an outage beyond retention needs a rebuild or other reconciliation source.
+
+@@ postgresql
+Transactions and Concurrent Operations >> Commit a correctness-sensitive transaction
+- The service begins a transaction and establishes the required isolation level and retry policy.
+- It obtains needed row locks or includes current-state/version predicates in the writes, then validates the business invariant against that protected state.
+- It updates related rows and any outbox/audit records; uniqueness and other constraints can reject invalid results before successful commit.
+- PostgreSQL commits according to the selected durability settings, including the required WAL flush and configured synchronous-replication acknowledgement conditions.
+- Only after successful commit does the service acknowledge the business operation. A rollback, deadlock, or serialization failure returns an error or causes a bounded whole-transaction retry.
+- Replicas apply WAL asynchronously or according to the selected synchronization mode, and background checkpoints persist dirty data pages separately from transaction commit.
+
+Read Performance >> Execute an indexed read
+- The application sends a parameterized query through its connection pool.
+- PostgreSQL parses and plans the query, choosing scans, indexes, joins, and sorting based on available statistics and predicates.
+- Execution reads candidate tuples and checks visibility under the transaction's snapshot, using suitable indexes to avoid unnecessary rows.
+- The executor applies remaining filters and aggregation, orders or limits the result, and returns rows to the client.
+- A query on a replica observes that replica's replay progress; the application routes freshness-sensitive reads to a path that satisfies their requirement.
+
+@@ flink
+Watermarks and Windows >> Aggregate an event-time window
+- A source emits events with timestamps and progress information into the job.
+- keyBy routes records with the same logical aggregation key to the responsible keyed operator state.
+- The operator assigns each event to its window and updates bounded per-key/window state.
+- Watermarks advance according to source/partition progress; when the configured trigger boundary is reached, the operator emits the window result.
+- Late events follow allowed-lateness and correction or side-output rules, and eligible state is cleaned up only after those rules permit it.
+- The sink publishes the result under its update/idempotency contract, so a corrected or replayed window does not become an accidental duplicate total.
+
+State Backends and Checkpoints >> Checkpoint and recover a streaming job
+- The checkpoint coordinator initiates a checkpoint, and sources establish recoverable input positions and inject the corresponding barriers.
+- Operators follow the configured aligned or unaligned checkpoint protocol to snapshot state consistently with dataflow progress.
+- Each task writes its checkpoint state durably and reports completion; compatible sinks stage or record output under their checkpoint protocol.
+- The coordinator declares the checkpoint complete after the required participants succeed, enabling supported sink commits and retaining the recoverable boundary.
+- After a failure, tasks restore state and source positions from a completed checkpoint and replay later input.
+- End-to-end exactly-once effects require a compatible transactional or idempotent sink; an arbitrary external API call can still repeat.
+
+@@ zookeeper
+2) Leader election and locks >> Elect a leader with ephemeral sequential nodes
+- Each contender establishes a session and creates an identifiable ephemeral sequential znode under the election path.
+- It reads the contenders and orders them by sequence; the lowest eligible node becomes leader.
+- A follower watches its immediate predecessor, then rereads state when notified instead of assuming a notification alone grants leadership.
+- If the leader's session expires, its ephemeral node disappears and the next eligible contender can take ownership.
+- The new leader uses an ownership epoch or fencing token with protected resources so the old paused process cannot continue making accepted stale writes.
+- Reconnecting contenders verify session and current election state before acting; they do not assume a previous lease survived disconnection.
+
+How ZooKeeper Works >> Commit a coordination write and react to it
+- The client submits a version-checked coordination update through a connected server; the write is handled through the ensemble's leader.
+- The leader orders the proposal and replicates it through the quorum protocol.
+- Once the protocol's commit conditions are satisfied, the committed update is applied and the client receives its outcome.
+- Interested clients receive applicable watch notifications, reread the znode state/version, and reestablish the required watch behavior.
+- A client with an uncertain write response reconciles the identifiable state before blindly creating another ownership record; a freshness-sensitive read uses the appropriate synchronization contract.

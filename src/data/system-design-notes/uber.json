@@ -8,7 +8,8 @@
         "Match riders with available nearby drivers and coordinate the resulting trip lifecycle.",
         "Location updates are high-volume, approximate data; assigning a driver is a consistency-sensitive operation."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Functional Requirements",
@@ -18,7 +19,8 @@
         "Request a ride and match it with a nearby available driver.",
         "Let drivers accept or reject offers and progress through pickup and drop-off."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Non-functional Requirements",
@@ -36,7 +38,8 @@
           "width": 1205.9054775347477,
           "height": 503.31197216594956
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Core Entities",
@@ -55,7 +58,8 @@
           "width": 149.47987365722656,
           "height": 195.0
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "API",
@@ -66,13 +70,15 @@
         "Send driver location updates and accept or reject a specific offer token.",
         "Subscribe to ride status and retrieve the authoritative ride state after reconnecting."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "High-Level Design",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) Estimate and request",
@@ -96,6 +102,18 @@
           "revision": "4f4d68f6046a",
           "width": 2430.3717620514235,
           "height": 1003.895911654583
+        }
+      ],
+      "flows": [
+        {
+          "title": "Create a ride request from a fare estimate",
+          "steps": [
+            "The rider sends pickup and destination to pricing, which obtains the route/time inputs needed for an estimate.",
+            "Pricing returns a quote and validity context; this does not reserve a driver.",
+            "The rider confirms with the quote and an idempotency key, and the ride service validates the current request.",
+            "The service commits a requested ride and reliable matching work before returning the ride ID.",
+            "The rider subscribes to status or polls that ID while matching proceeds asynchronously."
+          ]
         }
       ]
     },
@@ -123,13 +141,27 @@
           "width": 2440.1139558849045,
           "height": 1209.3524771491211
         }
+      ],
+      "flows": [
+        {
+          "title": "Offer a ride and commit an assignment",
+          "steps": [
+            "A matcher claims a durable ride request and queries the location index for fresh, available nearby drivers.",
+            "It ranks a bounded candidate set and atomically changes one candidate from available to offered under a unique offer token and deadline.",
+            "The notification path delivers that offer to the driver's active client.",
+            "The driver accepts the specific token; the service verifies current ownership, offer expiry, and ride state.",
+            "It commits the matching ride and driver assignment through the selected consistency boundary before announcing an assigned trip.",
+            "A decline or timeout conditionally releases only that current offer and retries another candidate. A delayed acceptance for an older token is rejected."
+          ]
+        }
       ]
     },
     {
       "title": "Deep Dives",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) Location ingestion and proximity",
@@ -148,6 +180,18 @@
           "width": 2440.1139558849036,
           "height": 1247.2804825203293
         }
+      ],
+      "flows": [
+        {
+          "title": "Refresh a driver's searchable position",
+          "steps": [
+            "The driver's client sends coordinates with a timestamp or sequence and authenticated driver identity.",
+            "The location service validates the sample and discards updates superseded by a newer accepted position.",
+            "It updates the driver's latest location and geographic-cell membership, removing stale membership as needed.",
+            "Nearby-driver searches inspect the relevant and adjacent cells, then filter out old samples and unavailable drivers.",
+            "Final matching still atomically claims availability; appearing in a geographic search result is not itself an assignment."
+          ]
+        }
       ]
     },
     {
@@ -158,7 +202,8 @@
         "Batch or coalesce updates and discard superseded positions where only the latest location matters.",
         "Maintain a freshness budget; aggressive throttling must not make matching rely on obsolete positions."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "3) Prevent double assignment",
@@ -176,7 +221,8 @@
           "width": 2440.1139558849036,
           "height": 1247.2804825203275
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "4) Reliable matching and timeouts",
@@ -195,7 +241,8 @@
           "width": 2440.1139558849045,
           "height": 1247.2804825203275
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Final Design",
@@ -213,7 +260,8 @@
           "width": 2440.113955884904,
           "height": 1247.2804825203275
         }
-      ]
+      ],
+      "flows": []
     }
   ]
 }

@@ -8,7 +8,8 @@
         "PostgreSQL is a relational database with transactions, constraints, flexible queries, and multiple index types.",
         "It is a strong starting point when related records and correctness-sensitive updates fit within one database boundary."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Read Performance",
@@ -19,7 +20,19 @@
         "GIN indexes support appropriate document, array, and full-text workloads; spatial extensions provide specialized geographic capabilities.",
         "Use EXPLAIN and measured query plans to inspect scans, joins, row estimates, and sorting rather than guessing which index helps."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": [
+        {
+          "title": "Execute an indexed read",
+          "steps": [
+            "The application sends a parameterized query through its connection pool.",
+            "PostgreSQL parses and plans the query, choosing scans, indexes, joins, and sorting based on available statistics and predicates.",
+            "Execution reads candidate tuples and checks visibility under the transaction's snapshot, using suitable indexes to avoid unnecessary rows.",
+            "The executor applies remaining filters and aggregation, orders or limits the result, and returns rows to the client.",
+            "A query on a replica observes that replica's replay progress; the application routes freshness-sensitive reads to a path that satisfies their requirement."
+          ]
+        }
+      ]
     },
     {
       "title": "Query Optimization",
@@ -30,7 +43,8 @@
         "Cursor pagination and selective predicates avoid increasingly expensive offset scans.",
         "Connection pooling bounds database connection overhead; it does not fix inefficient queries or lock contention."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Write Performance",
@@ -42,7 +56,8 @@
         "Partitioning can improve pruning and lifecycle management, but partitions inside one primary do not automatically provide independent write servers.",
         "Monitor WAL, storage latency, checkpoints, autovacuum, and lock waits to identify the actual bottleneck."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Replication and High Availability",
@@ -62,7 +77,8 @@
           "height": 390,
           "revision": "80996f383eba"
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Transactions and Concurrent Operations",
@@ -75,7 +91,20 @@
         "Avoid keeping locks open across user interaction or external network calls; represent longer claims with explicit reservation state.",
         "Use a transactional outbox when a committed database change must reliably produce an external event."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": [
+        {
+          "title": "Commit a correctness-sensitive transaction",
+          "steps": [
+            "The service begins a transaction and establishes the required isolation level and retry policy.",
+            "It obtains needed row locks or includes current-state/version predicates in the writes, then validates the business invariant against that protected state.",
+            "It updates related rows and any outbox/audit records; uniqueness and other constraints can reject invalid results before successful commit.",
+            "PostgreSQL commits according to the selected durability settings, including the required WAL flush and configured synchronous-replication acknowledgement conditions.",
+            "Only after successful commit does the service acknowledge the business operation. A rollback, deadlock, or serialization failure returns an error or causes a bounded whole-transaction retry.",
+            "Replicas apply WAL asynchronously or according to the selected synchronization mode, and background checkpoints persist dirty data pages separately from transaction commit."
+          ]
+        }
+      ]
     },
     {
       "title": "When to Use and Alternatives",
@@ -86,7 +115,8 @@
         "Very high distributed write volume may require sharding or another storage model, with corresponding coordination costs.",
         "Do not replace the database solely because a design is 'large'; estimate the workload and name the limiting operation."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "SQL and ACID Essentials",
@@ -97,7 +127,8 @@
         "Isolation describes concurrent transaction behavior; durability concerns committed data surviving failures under the configured guarantees.",
         "SELECT reads data; INSERT, UPDATE, and DELETE modify it; schema and transaction commands define structure and execution boundaries."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Summary",
@@ -106,7 +137,8 @@
         "Start with a sound schema, explicit constraints, and query-driven indexes.",
         "Scale measured bottlenecks and retain clear transaction, replication, and recovery semantics as infrastructure grows."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     }
   ]
 }

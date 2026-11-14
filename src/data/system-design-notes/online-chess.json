@@ -8,7 +8,8 @@
         "Match players by skill, run real-time chess games, and maintain global rankings.",
         "The server is authoritative for legal moves, turn order, clocks, and game results."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Functional Requirements",
@@ -18,7 +19,8 @@
         "Exchange moves and receive current game state in real time.",
         "View global leaderboard positions and personal rank."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Non-functional Requirements",
@@ -36,7 +38,8 @@
           "width": 1003.1331229101056,
           "height": 173.0
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Core Entities",
@@ -55,7 +58,8 @@
           "width": 202.0,
           "height": 173.0
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "API",
@@ -66,13 +70,15 @@
         "Reconnect to fetch a current snapshot and subsequent moves.",
         "Query top players and a player's rank with defined ordering and tie rules."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "High-Level Design",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) Match players",
@@ -89,6 +95,18 @@
           "revision": "c2764745a780",
           "width": 1562.6163863134311,
           "height": 316.35057023360486
+        }
+      ],
+      "flows": [
+        {
+          "title": "Pair players and start a game",
+          "steps": [
+            "Each player joins a matchmaking queue with mode, rating, and a retry-safe request identity.",
+            "A matcher chooses compatible candidates and atomically claims both currently eligible entries.",
+            "It commits a game linking the two claimed players and records recoverable notifications before confirming the pairing.",
+            "The players receive the game ID and connect to its authoritative game owner.",
+            "If pairing fails before game creation, only the current claims are released or expired; late matchers cannot create a second game from superseded claims."
+          ]
         }
       ]
     },
@@ -109,6 +127,19 @@
           "width": 1562.6163863134311,
           "height": 458.778842683369
         }
+      ],
+      "flows": [
+        {
+          "title": "Accept and broadcast a chess move",
+          "steps": [
+            "The active player submits a move with game ID, operation ID, and expected turn or sequence.",
+            "The authoritative game owner checks player identity, current board version, legal movement, and server-owned clock state.",
+            "An invalid, stale, duplicate, or late move receives the corresponding rejection or existing result without advancing the turn twice.",
+            "A valid move updates board, clocks, turn, and any terminal result within the game's serialized durable state transition.",
+            "The server acknowledges the committed move and broadcasts its new sequence/state to both players.",
+            "Clients reconcile their display with that state; after reconnect they load a snapshot and later committed moves rather than submitting their local board as authority."
+          ]
+        }
       ]
     },
     {
@@ -127,13 +158,26 @@
           "width": 1562.6163863134311,
           "height": 458.778842683369
         }
+      ],
+      "flows": [
+        {
+          "title": "Apply a completed game to ratings",
+          "steps": [
+            "A committed terminal game result produces a result event with the stable game ID.",
+            "The rating service checks that the game has not already been applied and reads the applicable rating inputs.",
+            "It commits both players' rating effects under the selected consistency rules and records that the game is processed.",
+            "A projection updates the leaderboard's sorted entries; failures can be retried or rebuilt from durable ratings.",
+            "Rank queries read the derived view with explicit tie rules, without rerunning rating changes each time the result event reappears."
+          ]
+        }
       ]
     },
     {
       "title": "Deep Dives",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) Matchmaking consistency",
@@ -143,7 +187,8 @@
         "Include claim ownership and expiration so a delayed matcher cannot create a game after its claim was reassigned.",
         "Rejoining and cancellation need defined transitions when a match is already being committed."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "2) Game-server scale",
@@ -169,7 +214,8 @@
           "width": 1562.74629758839,
           "height": 553.9065762224358
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "3) Fair clocks",
@@ -179,7 +225,8 @@
         "Define when time starts and stops around move acceptance, and cap any lag compensation policy.",
         "Process flags and moves under the same authoritative ordering so a delayed client cannot revive an expired game."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "4) Leaderboard scale",
@@ -197,7 +244,8 @@
           "width": 1562.6163863134311,
           "height": 586.1630843979116
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Final Design",
@@ -215,7 +263,8 @@
           "width": 1562.6163863134311,
           "height": 586.1630843979116
         }
-      ]
+      ],
+      "flows": []
     }
   ]
 }

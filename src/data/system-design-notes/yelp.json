@@ -8,7 +8,8 @@
         "Build a directory where users discover nearby businesses, inspect their details, and contribute reviews.",
         "The central challenge is combining geographic search, text filters, and ratings while keeping review writes correct."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Functional Requirements",
@@ -19,7 +20,8 @@
         "Submit a rating and review for a business; enforce at most one review per user per business.",
         "Advanced recommendations and business-owner management are outside the core design."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Non-functional Requirements",
@@ -37,7 +39,8 @@
           "width": 752.4471730599404,
           "height": 171.40223742350827
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Core Entities",
@@ -56,7 +59,8 @@
           "width": 149.47987365722656,
           "height": 145.0
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "API",
@@ -67,13 +71,15 @@
         "Submit or update a review using the authenticated user, business ID, rating, and text.",
         "Return the next cursor with stable ordering; avoid a growing offset for large result sets."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "High-Level Design",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) Search businesses",
@@ -90,6 +96,19 @@
           "revision": "b01c7d6cf082",
           "width": 1649.7431164963864,
           "height": 411.8522383420272
+        }
+      ],
+      "flows": [
+        {
+          "title": "Find nearby businesses",
+          "steps": [
+            "The client sends query text, coordinates or a named location, radius, filters, and an optional cursor to the search service.",
+            "If the input is a named area, the service resolves it to coordinates or a region before building the spatial predicate.",
+            "The service queries the chosen search index or indexed database, combining geography, text, category, and rating filters.",
+            "The query orders eligible candidates and selects a bounded page; it does not load all reviews to compute each business's rating.",
+            "The service fetches any missing business summary fields in a batch and returns results plus a stable next-page cursor.",
+            "A later detail request reads the selected business and paginated reviews; cached discovery data does not replace the authoritative review records."
+          ]
         }
       ]
     },
@@ -117,13 +136,27 @@
           "width": 1771.649907085443,
           "height": 510.524707988478
         }
+      ],
+      "flows": [
+        {
+          "title": "Save a review and update its rating",
+          "steps": [
+            "The client submits a business ID, rating, and review text; the service derives the author from the validated session.",
+            "The service checks the business and allowed rating range, then begins the selected transactional update.",
+            "The database inserts the review under the unique user/business constraint. For an allowed edit, it reads the previous rating instead of adding a second review.",
+            "In the same consistency boundary, it updates rating sum and count, or applies the rating difference for an edit, using atomic or version-checked writes.",
+            "On a uniqueness or version conflict, the transaction rolls back and the API returns the defined conflict or retries against fresh state.",
+            "After commit, the service acknowledges success and updates or invalidates detail caches; the search projection receives the committed change asynchronously."
+          ]
+        }
       ]
     },
     {
       "title": "Deep Dives",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) Maintain average ratings",
@@ -150,7 +183,8 @@
           "width": 1771.649907085443,
           "height": 510.5294076955097
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "2) Enforce one review per user",
@@ -160,7 +194,8 @@
         "A database unique constraint on the user/business pair makes the rule hold under concurrency and retries.",
         "Decide whether repeat submissions edit the existing review or return a conflict, then make that behavior explicit in the API."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "3) Search complex queries",
@@ -186,7 +221,8 @@
           "width": 1771.649907085443,
           "height": 510.524707988478
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "4) Search named locations",
@@ -196,7 +232,8 @@
         "Disambiguate duplicate names and distinguish a named area from a simple radius around a point.",
         "Cache stable geographic metadata; exact business eligibility still depends on the business coordinates."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Final Design",
@@ -214,7 +251,8 @@
           "width": 2014.943879287428,
           "height": 895.4078407519643
         }
-      ]
+      ],
+      "flows": []
     }
   ]
 }

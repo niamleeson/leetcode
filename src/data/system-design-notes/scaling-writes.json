@@ -16,13 +16,15 @@
           "width": 715.5094712119551,
           "height": 572.04296875
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "The Solution",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) Vertical scaling and write optimization",
@@ -33,7 +35,8 @@
         "B-tree and log-structured storage engines have different read, write, compaction, and space tradeoffs.",
         "A database choice must match access patterns and durability needs rather than a generic SQL-versus-NoSQL slogan."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "2) Sharding and partitioning",
@@ -60,7 +63,8 @@
           "width": 1144.0892521549029,
           "height": 482.49724397703864
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "3) Queues and load shedding",
@@ -85,6 +89,18 @@
           "revision": "4e1e3cd83ddf",
           "width": 869.8698120117188,
           "height": 380.2961730957031
+        }
+      ],
+      "flows": [
+        {
+          "title": "Accept a burst and drain it sustainably",
+          "steps": [
+            "The ingestion API validates the request and applies admission limits before promising more work than it can retain.",
+            "It persists the accepted intent or receives the required durable queue acknowledgement, then returns accepted status with an identifier.",
+            "Workers claim queued work at a rate the storage and downstream systems can sustain.",
+            "They batch compatible operations, commit the output, and acknowledge progress after the required durable boundary.",
+            "Queue age and capacity drive scaling or further admission control; a continuously growing backlog is not solved merely by keeping the queue open."
+          ]
         }
       ]
     },
@@ -127,7 +143,8 @@
           "width": 996.1259918212891,
           "height": 450.10743713378906
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "When to Use",
@@ -137,13 +154,15 @@
         "First estimate sustained and burst rates and identify whether the limit is storage I/O, lock contention, CPU, or a hot key.",
         "Do not add sharding when a better index, shorter transaction, or modest hardware change solves the actual problem."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Common Deep Dives",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) Resharding",
@@ -153,7 +172,19 @@
         "Switch ownership carefully and retain a rollback or reconciliation path.",
         "Consistent hashing reduces key movement but does not by itself implement safe data transfer or concurrent-write handling."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": [
+        {
+          "title": "Move a shard without losing concurrent writes",
+          "steps": [
+            "The system chooses a new ownership map/version and establishes a migration boundary for the affected key range.",
+            "It copies existing records to the destination while capturing writes that occur during the copy.",
+            "The destination applies those changes and catches up to a verified point under the selected migration protocol.",
+            "Routing switches through a controlled ownership transition, with forwarding or version checks handling clients that still use the old map.",
+            "Old ownership is fenced before conflicting writes are possible; the source copy is retired only after validation and the rollback policy allow it."
+          ]
+        }
+      ]
     },
     {
       "title": "2) Hot keys",
@@ -172,7 +203,8 @@
           "width": 560.9309997558594,
           "height": 411.9807586669922
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Conclusion",
@@ -190,7 +222,8 @@
           "width": 20.0,
           "height": 20.0
         }
-      ]
+      ],
+      "flows": []
     }
   ]
 }

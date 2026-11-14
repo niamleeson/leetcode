@@ -4,17 +4,31 @@ The Problem
 
 Solutions
 
-
 1) Single-server primitives
 - Keep related writes in one short transaction when they share a database.
 - A transactional outbox commits business state and a pending event together; a publisher retries delivery independently.
 - The outbox closes the lost-publication gap but consumers still need deduplication because publication can repeat.
+
+Process: Publish an event through a transactional outbox
+- Step 1: The service begins a database transaction for the business operation.
+- Step 2: It writes the business change and an outbox record with a stable event ID in that same transaction.
+- Step 3: The transaction commits both records together; rollback leaves neither record visible as a completed operation.
+- Step 4: An outbox publisher reads committed unsent records and sends them to the broker.
+- Step 5: After broker acceptance it marks progress. A crash between send and marking can repeat publication, so consumers deduplicate the event ID.
 
 2) Saga pattern
 - Represent a workflow as a sequence of local transactions with explicit compensation where later failure must reverse an earlier effect.
 - Compensation is a new business operation, not a time machine: a refund is not the same as erasing a charge.
 - Track progress durably and make forward steps and compensations retry-safe.
 - Define which steps are reversible, which require manual resolution, and which outcomes are merely pending.
+
+Process: Execute and compensate a business workflow
+- Step 1: The coordinator commits the workflow identity and initial state so a replacement can resume it after a crash.
+- Step 2: It requests the first local step using a stable business idempotency key, then records the confirmed outcome.
+- Step 3: It starts each dependent step only after the required prior outcome is known and durable.
+- Step 4: A transient failure retries the same logical step; an unresolved external outcome is reconciled before treating it as definitely failed.
+- Step 5: If a terminal failure requires reversal, the coordinator schedules the applicable compensations for completed steps in a valid dependency order.
+- Step 6: Compensation outcomes are recorded and retried too. The workflow reaches completed, compensated, or an explicit unresolved/manual state rather than disappearing from memory.
 
 3) Event-driven choreography
 - Services react to events and publish subsequent events, distributing workflow logic among participants.
@@ -35,7 +49,6 @@ When to Use
 - State the required recovery behavior before choosing a framework.
 
 Common Deep Dives
-
 
 1) Crashes and exactly-once effects
 - Persist progress so a replacement worker can determine which steps are complete.

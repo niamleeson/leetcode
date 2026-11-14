@@ -8,7 +8,8 @@
         "Build event discovery and ticket booking where many users may compete for the same seats.",
         "Separate browsing availability from the authoritative reservation and purchase state of each ticket."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Functional Requirements",
@@ -19,7 +20,8 @@
         "Reserve seats temporarily and purchase them after payment.",
         "Release abandoned reservations so another customer can buy the tickets."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Non-functional Requirements",
@@ -38,7 +40,8 @@
           "width": 1181.303723280777,
           "height": 446.01170744600927
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Core Entities",
@@ -57,7 +60,8 @@
           "width": 149.47987365722656,
           "height": 220.0
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "API",
@@ -68,13 +72,15 @@
         "Confirm a booking using the reservation token and payment result; expose booking status for retry recovery.",
         "Validate ownership and expiration on every state transition, not just when the reservation is created."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "High-Level Design",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) Browse and search",
@@ -99,7 +105,8 @@
           "width": 1798.8153147453313,
           "height": 595.6729377102807
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "2) Book tickets",
@@ -118,13 +125,28 @@
           "width": 1798.8153147453313,
           "height": 957.3824707271306
         }
+      ],
+      "flows": [
+        {
+          "title": "Reserve seats, pay, and confirm a booking",
+          "steps": [
+            "The customer selects seats and sends a reservation request with a retry-safe request ID.",
+            "The booking service authenticates the customer and begins a short atomic claim of all requested seats.",
+            "It verifies that each seat is unreserved or claimably expired, then records reservation owner, token/version, and expiry. A conflict rolls back the group.",
+            "After the reservation commits, the service returns its token and checkout deadline; it does not hold database locks while the customer enters payment details.",
+            "Checkout submits payment for that reservation through a durable payment attempt with a stable provider idempotency key.",
+            "On confirmed payment, the booking service conditionally changes the current valid reservation to purchased and commits the booking.",
+            "The customer receives confirmation only for the committed result. An expired or replaced reservation follows the defined reconciliation or refund policy instead of selling someone else's seat."
+          ]
+        }
       ]
     },
     {
       "title": "Deep Dives",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) Reservation expiry",
@@ -144,6 +166,18 @@
           "width": 1798.815314745331,
           "height": 957.3824707271306
         }
+      ],
+      "flows": [
+        {
+          "title": "Release or reclaim an abandoned reservation",
+          "steps": [
+            "A cleanup worker or a new claimant reads the reservation's owner token, version, state, and expiry.",
+            "It compares expiry with authoritative server time; an unexpired or purchased reservation is not eligible for release.",
+            "It conditionally releases or replaces only that exact expired reservation version.",
+            "If another action already purchased or replaced it, the condition fails and the worker leaves the new state untouched.",
+            "The resulting availability change is published to interested clients. Booking correctness does not depend on viewers receiving that event immediately."
+          ]
+        }
       ]
     },
     {
@@ -162,7 +196,8 @@
           "width": 1798.8153147453309,
           "height": 957.3824707271324
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "3) Handle high-demand onsales",
@@ -180,6 +215,18 @@
           "revision": "0e02aa636489",
           "width": 1798.8153147453309,
           "height": 957.7119562049638
+        }
+      ],
+      "flows": [
+        {
+          "title": "Admit customers through the waiting room",
+          "steps": [
+            "A customer joins the waiting room and receives a queue identity that can survive a reconnect.",
+            "The admission service selects customers according to the fairness policy and current reservation-service capacity.",
+            "It issues a signed, expiring admission token and permits the admitted client to access the reservation path.",
+            "The booking API validates admission and then performs its normal atomic seat claim; admission alone does not guarantee a seat.",
+            "Clients receive current seat updates while browsing, and expired admission or reservation tokens require the appropriate retry or rejoin path."
+          ]
         }
       ]
     },
@@ -199,7 +246,8 @@
           "width": 1798.8153147453309,
           "height": 1034.578488466641
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Final Design",
@@ -217,7 +265,8 @@
           "width": 1929.3530852587164,
           "height": 1034.578488466641
         }
-      ]
+      ],
+      "flows": []
     }
   ]
 }

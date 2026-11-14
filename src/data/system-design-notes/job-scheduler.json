@@ -8,7 +8,8 @@
         "Build a service that accepts immediate, future, and recurring jobs, then executes them reliably near their scheduled times.",
         "Scheduling decides when work becomes eligible; execution decides which worker runs it and how failures are retried."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Functional Requirements",
@@ -18,7 +19,8 @@
         "Execute due jobs and let users inspect their status.",
         "Retry failed attempts according to policy and retain execution history."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Non-functional Requirements",
@@ -36,7 +38,8 @@
           "width": 617.8594311475754,
           "height": 319.39432251354174
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Core Entities",
@@ -55,7 +58,8 @@
           "width": 149.47987365722656,
           "height": 170.0
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "API",
@@ -66,13 +70,15 @@
         "Cancel or update pending work with version checks; define behavior if execution has already begun.",
         "Use an idempotency key when submitting to avoid creating duplicate jobs after a timeout."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "High-Level Design",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) Schedule and dispatch",
@@ -98,6 +104,19 @@
           "width": 996.5278777300173,
           "height": 398.3259532900968
         }
+      ],
+      "flows": [
+        {
+          "title": "Schedule an execution and run it",
+          "steps": [
+            "The caller submits a task, schedule, retry policy, and idempotency key; the API commits the job definition and its next occurrence.",
+            "A scheduler queries its assigned due-time range and atomically claims or records dispatch for an eligible occurrence.",
+            "It reliably publishes the occurrence ID to the execution queue; a repeated dispatch retains the same logical occurrence identity.",
+            "A worker claims the queue delivery, records its attempt/lease, and executes the task outside the scheduling transaction.",
+            "The worker persists success or failure and any result before acknowledging delivery.",
+            "For a recurring job, the system creates the next scheduled occurrence according to the recurrence policy; retries of this occurrence do not create extra future jobs."
+          ]
+        }
       ]
     },
     {
@@ -116,13 +135,15 @@
           "width": 996.527877730017,
           "height": 398.0961290787318
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Deep Dives",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) Scheduling precision",
@@ -148,7 +169,8 @@
           "width": 1429.6260576632521,
           "height": 483.6671251290845
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "2) Throughput",
@@ -181,7 +203,8 @@
           "width": 1929.0278751910446,
           "height": 684.1779328541697
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "3) At-least-once execution",
@@ -201,6 +224,18 @@
           "width": 1921.7801483012486,
           "height": 684.144660873706
         }
+      ],
+      "flows": [
+        {
+          "title": "Recover a worker that stops responding",
+          "steps": [
+            "The worker misses heartbeats or fails to finish before its lease or queue visibility timeout.",
+            "The execution becomes eligible for another attempt; the new worker receives the same occurrence ID with new ownership metadata.",
+            "It checks for an already committed result before repeating work and uses the same downstream idempotency key where supported.",
+            "It executes or resumes the task, then commits completion conditionally on its current ownership token.",
+            "A late old worker cannot overwrite the newer result. If an external effect has an uncertain outcome, the worker reconciles it instead of assuming it never happened."
+          ]
+        }
       ]
     },
     {
@@ -219,7 +254,8 @@
           "width": 1921.7801483012486,
           "height": 684.144660873706
         }
-      ]
+      ],
+      "flows": []
     }
   ]
 }

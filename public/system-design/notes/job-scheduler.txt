@@ -26,12 +26,19 @@ API
 
 High-Level Design
 
-
 1) Schedule and dispatch
 - Persist job definitions and due executions before acknowledging acceptance.
 - A scheduler finds upcoming work using a due-time index and places eligible executions on a durable queue.
 - Workers claim queued executions, run the task, persist the result, and acknowledge successful processing.
 - Keep the payload small; large inputs live in storage and are referenced by the job.
+
+Process: Schedule an execution and run it
+- Step 1: The caller submits a task, schedule, retry policy, and idempotency key; the API commits the job definition and its next occurrence.
+- Step 2: A scheduler queries its assigned due-time range and atomically claims or records dispatch for an eligible occurrence.
+- Step 3: It reliably publishes the occurrence ID to the execution queue; a repeated dispatch retains the same logical occurrence identity.
+- Step 4: A worker claims the queue delivery, records its attempt/lease, and executes the task outside the scheduling transaction.
+- Step 5: The worker persists success or failure and any result before acknowledging delivery.
+- Step 6: For a recurring job, the system creates the next scheduled occurrence according to the recurrence policy; retries of this occurrence do not create extra future jobs.
 
 2) Monitor status
 - Store transitions such as scheduled, queued, running, succeeded, and failed with timestamps.
@@ -39,7 +46,6 @@ High-Level Design
 - Correlate logs and results by execution ID so repeated attempts remain distinguishable.
 
 Deep Dives
-
 
 1) Scheduling precision
 - Repeatedly scanning the entire jobs table cannot satisfy tight timing at scale.
@@ -59,6 +65,13 @@ Deep Dives
 - Retry transient failures with backoff and move repeatedly failing executions to a dead-letter or inspection state.
 - If an external side effect succeeded before a crash, replay may execute it again. Use downstream idempotency keys or transactional deduplication.
 - Persist completion before acknowledging queue delivery, accepting that a lost acknowledgement can cause a safe duplicate attempt.
+
+Process: Recover a worker that stops responding
+- Step 1: The worker misses heartbeats or fails to finish before its lease or queue visibility timeout.
+- Step 2: The execution becomes eligible for another attempt; the new worker receives the same occurrence ID with new ownership metadata.
+- Step 3: It checks for an already committed result before repeating work and uses the same downstream idempotency key where supported.
+- Step 4: It executes or resumes the task, then commits completion conditionally on its current ownership token.
+- Step 5: A late old worker cannot overwrite the newer result. If an external effect has an uncertain outcome, the worker reconciles it instead of assuming it never happened.
 
 Final Design
 - Durable schedule storage feeds partitioned schedulers and execution queues.

@@ -8,7 +8,8 @@
         "Build a conversational AI product around model inference, durable chat history, and streamed responses.",
         "Model training is outside this design; the focus is scheduling expensive inference and delivering recoverable user interactions."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Functional Requirements",
@@ -18,7 +19,8 @@
         "View past chats and continue a conversation with context from prior turns.",
         "Stream output, recover after reconnecting, and cancel an active generation."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Non-functional Requirements",
@@ -36,7 +38,8 @@
           "width": 758.28125,
           "height": 116.0
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Core Entities",
@@ -55,7 +58,8 @@
           "width": 172.34375,
           "height": 116.0
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "API",
@@ -66,13 +70,15 @@
         "Fetch paginated conversation history and reconnect to a run using the last event cursor.",
         "Cancel a specific run with an authenticated request; cancellation must propagate beyond the browser connection."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "High-Level Design",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) Submit and generate",
@@ -90,6 +96,20 @@
           "revision": "8640ed652f9b",
           "width": 1469.0098997667908,
           "height": 498.0385012192835
+        }
+      ],
+      "flows": [
+        {
+          "title": "Submit a prompt and generate a response",
+          "steps": [
+            "The client sends conversation ID, prompt, and an idempotency key to the authenticated chat API.",
+            "The API validates ownership and quota, then persists the user message and a new run with recoverable scheduling state.",
+            "It returns the run ID so the client can connect to that run's output stream; repeated submission with the same key resolves to the existing run.",
+            "The context builder reads committed history and applies token-budget and summarization rules before submitting inference work.",
+            "The scheduler admits the run to an available compatible GPU worker or batch according to capacity and priority.",
+            "The worker generates ordered output chunks and appends them to the chosen replayable stream; connection servers forward those chunks to subscribed clients.",
+            "On completion, the system persists the final assistant message and terminal run state before exposing final completion. Failure and cancellation remain explicit terminal outcomes."
+          ]
         }
       ]
     },
@@ -109,13 +129,15 @@
           "width": 1543.1331417799358,
           "height": 508.2401227414001
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Deep Dives",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) Token streaming",
@@ -140,7 +162,8 @@
           "width": 1451.2670568578492,
           "height": 508.24012274140006
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "2) Reconnect and deploy recovery",
@@ -173,6 +196,18 @@
           "width": 1622.9578533639847,
           "height": 647.7850492657101
         }
+      ],
+      "flows": [
+        {
+          "title": "Resume an interrupted output stream",
+          "steps": [
+            "The browser loses its SSE or WebSocket connection while the run continues independently of the connection server.",
+            "It reconnects using the same run ID and its last applied event cursor instead of resubmitting the prompt.",
+            "The gateway authenticates access and replays retained events after the cursor from the run's stream.",
+            "The client deduplicates any overlap, appends events in sequence, and continues receiving newly generated chunks.",
+            "If replay retention has expired, the client fetches persisted final output or the supported current snapshot rather than inventing missing tokens or starting another paid run."
+          ]
+        }
       ]
     },
     {
@@ -192,7 +227,8 @@
           "width": 1622.9578533639847,
           "height": 638.8086631332491
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "4) Fairness and context cost",
@@ -212,6 +248,18 @@
           "width": 1622.9578533639847,
           "height": 788.7808178185574
         }
+      ],
+      "flows": [
+        {
+          "title": "Cancel a running generation",
+          "steps": [
+            "The client sends an authenticated cancellation request for a specific run; closing the browser stream alone is not the cancellation operation.",
+            "The control plane records cancellation state and removes queued work or signals the current inference owner.",
+            "The worker cooperatively stops generation and releases the run's scheduling and KV-cache resources when safe.",
+            "The system commits the terminal cancelled state and usage/partial-output policy, then notifies connected clients.",
+            "A completion racing cancellation is resolved by the run's conditional state-transition rules so the run does not acquire conflicting terminal outcomes."
+          ]
+        }
       ]
     },
     {
@@ -230,7 +278,8 @@
           "width": 1622.9578533639847,
           "height": 790.0188815489648
         }
-      ]
+      ],
+      "flows": []
     }
   ]
 }

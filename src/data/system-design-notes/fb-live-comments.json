@@ -8,7 +8,8 @@
         "Deliver comments for a live video to viewers in near real time while preserving history for later joins and reconnects.",
         "Comment writes are relatively small; fanout to a huge audience is the dominant scaling challenge."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Functional Requirements",
@@ -18,7 +19,8 @@
         "Receive comments while watching and fetch comments posted before joining.",
         "Recover missed comments after disconnecting."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Non-functional Requirements",
@@ -36,7 +38,8 @@
           "width": 1134.6890829385923,
           "height": 295.0
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Core Entities",
@@ -55,7 +58,8 @@
           "width": 149.47987365722656,
           "height": 120.0
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "API",
@@ -66,13 +70,15 @@
         "Open an SSE or WebSocket subscription for new comments.",
         "Return comment IDs and ordering positions so the client can merge history with live events safely."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "High-Level Design",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) Post and store comments",
@@ -89,6 +95,18 @@
           "revision": "cc107c675adf",
           "width": 1579.9942165232303,
           "height": 287.3576830440106
+        }
+      ],
+      "flows": [
+        {
+          "title": "Persist and broadcast a comment",
+          "steps": [
+            "A viewer posts text and a stable request ID for a video; the API authenticates and validates the request.",
+            "The service commits the comment, its ordering key, and recoverable publication state before acknowledging acceptance.",
+            "The event pipeline publishes that committed comment to the video's shared channel.",
+            "Connection servers subscribed for that video receive the event and fan it out to their local viewers.",
+            "Clients deduplicate by comment ID and insert it according to the ordering key; slow clients follow the bounded-buffer or catch-up policy."
+          ]
         }
       ]
     },
@@ -108,13 +126,26 @@
           "width": 811.0,
           "height": 616.9716325835602
         }
+      ],
+      "flows": [
+        {
+          "title": "Join a video without a history/live gap",
+          "steps": [
+            "The viewer authenticates and subscribes to the video's live channel, establishing a cursor boundary or buffering live events while history loads.",
+            "The history service reads a bounded page ending at that boundary and returns ordered comments with a continuation cursor.",
+            "The client displays history and merges buffered or replayed live events after the boundary, removing duplicate IDs.",
+            "As new comments arrive, the client advances its last-applied cursor after displaying them.",
+            "On reconnect, it requests comments after that cursor and repeats the handoff rather than starting from an arbitrary current moment."
+          ]
+        }
       ]
     },
     {
       "title": "Deep Dives",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) Real-time transport",
@@ -140,7 +171,8 @@
           "width": 1597.62097094825,
           "height": 327.03997627164154
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "2) Audience fanout",
@@ -174,7 +206,8 @@
           "width": 1849.5423110409486,
           "height": 797.0434770683614
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "3) Reconnection and overload",
@@ -186,7 +219,8 @@
         "If an audience cannot consume every comment, define sampling, prioritization, or backlog limits explicitly rather than silently growing memory forever.",
         "Heartbeats and bounded reconnection backoff reduce stale connections and synchronized reconnect storms."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Final Design",
@@ -204,7 +238,8 @@
           "width": 1849.5423110409486,
           "height": 797.0434770683614
         }
-      ]
+      ],
+      "flows": []
     }
   ]
 }

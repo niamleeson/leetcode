@@ -8,7 +8,8 @@
         "Elasticsearch provides distributed search and analytics over documents using Lucene indexes.",
         "It is often a derived search view fed from an authoritative application database, with explicit indexing lag and rebuild procedures."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Basic Concepts",
@@ -27,7 +28,8 @@
           "width": 708.2461814880371,
           "height": 535.47265625
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Basic Use",
@@ -39,7 +41,8 @@
         "Geospatial queries require the appropriate point or shape mapping and a clear distance or boundary interpretation.",
         "Sorting by recency or popularity needs sortable fields; relevance ordering uses the search score and explicit tie-breakers where needed."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Pagination and Cursors",
@@ -50,13 +53,15 @@
         "A point-in-time context can stabilize a paginated search while documents change.",
         "Scroll-style traversal is suited to batch extraction; choose the pagination mechanism for the actual user interaction."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "How It Works",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) Nodes and shards",
@@ -82,6 +87,18 @@
           "width": 1018.21484375,
           "height": 710.95703125
         }
+      ],
+      "flows": [
+        {
+          "title": "Execute a distributed search page",
+          "steps": [
+            "The client sends query, filters, sort order, and pagination context to a coordinating node.",
+            "The coordinator selects relevant shards and dispatches the query to suitable shard copies.",
+            "Each shard uses its indexes to filter and score candidates and returns a bounded local set with sort values.",
+            "The coordinator merges those sets and fetches the selected document fields as needed.",
+            "It returns the global page and continuation information; point-in-time plus stable sort values preserves the intended context for later pages."
+          ]
+        }
       ]
     },
     {
@@ -99,6 +116,19 @@
           "revision": "ee9a6d9d8c37",
           "width": 830.16015625,
           "height": 620.64453125
+        }
+      ],
+      "flows": [
+        {
+          "title": "Index an update and make it searchable",
+          "steps": [
+            "The application commits its authoritative change and sends a versioned indexing event to a worker.",
+            "The worker submits the document under a stable ID; Elasticsearch routes it to the appropriate primary shard.",
+            "The shard applies indexing/translog work and replication according to the configured write and durability settings.",
+            "The indexing request is acknowledged when its configured conditions are met; that acknowledgement does not necessarily mean ordinary search can see the change yet.",
+            "A refresh makes the new segment state searchable. A caller needing that boundary can use the supported refresh policy instead of assuming immediate visibility.",
+            "Background merges later consolidate segments and reclaim eligible obsolete data; they are separate from the refresh that exposed the document."
+          ]
         }
       ]
     },
@@ -119,7 +149,8 @@
           "width": 848.10546875,
           "height": 424.62890625
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "In Your Interview",
@@ -131,7 +162,8 @@
         "Recheck permissions when index staleness could expose restricted documents.",
         "Plan reindexing with aliases or another controlled switchover while concurrent changes continue."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Summary",
@@ -141,7 +173,8 @@
         "Its costs are additional storage, eventual search freshness, shard operations, and continuous index maintenance.",
         "Use it when those tradeoffs solve concrete query requirements rather than as a replacement for every database access."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     }
   ]
 }

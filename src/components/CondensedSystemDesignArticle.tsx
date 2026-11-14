@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 
 interface Diagram { filename: string; caption: string; revision: string; width: number; height: number }
-interface Notes { title: string; sections: { title: string; level: number; points: string[]; diagrams: Diagram[] }[] }
+interface ProcessFlow { title: string; steps: string[] }
+interface Notes { title: string; sections: { title: string; level: number; points: string[]; diagrams: Diagram[]; flows: ProcessFlow[] }[] }
 const loaders = import.meta.glob<{ default: Notes }>('../data/system-design-notes/*.json');
 
 export default function CondensedSystemDesignArticle({ slug, title }: { slug: string; title: string }) {
@@ -21,7 +22,7 @@ export default function CondensedSystemDesignArticle({ slug, title }: { slug: st
   if (error) return <div role="alert" className="space-y-2 text-sm text-gray-400 light:text-gray-600"><p>These notes could not be loaded. You can retry or open the full article.</p><button className="text-blue-400 hover:underline light:text-blue-700" onClick={() => setAttempt(value => value + 1)}>Retry notes</button></div>;
   if (!notes) return <p role="status" className="text-sm text-gray-400 light:text-gray-600">Loading notes…</p>;
   return <div aria-label={`${title} condensed notes`} className="space-y-5 text-base leading-6 text-gray-200 light:text-gray-800">
-    {notes.sections.map(({ title: sectionTitle, level, points, diagrams }, index) => {
+    {notes.sections.map(({ title: sectionTitle, level, points, diagrams, flows }, index) => {
       const Heading = level === 4 ? 'h4' : 'h3';
       const id = `${slug}-notes-${index}`;
       return <section key={id} aria-labelledby={id} className="space-y-2">
@@ -29,6 +30,12 @@ export default function CondensedSystemDesignArticle({ slug, title }: { slug: st
         {points.length > 0 && <ul className="list-none space-y-1">
           {points.map((point, pointIndex) => <li key={pointIndex} className="flex gap-2"><span aria-hidden="true" className="shrink-0">-</span><span className="min-w-0 break-words">{point}</span></li>)}
         </ul>}
+        {flows.map(flow => <div key={flow.title} role="group" aria-label={`${flow.title} process`} className="space-y-1 pt-2">
+          <p className="font-medium text-white light:text-gray-900">Process: {flow.title}</p>
+          <ul className="list-none space-y-1">
+            {flow.steps.map((step, stepIndex) => <li key={stepIndex} className="flex gap-2"><span aria-hidden="true" className="shrink-0">-</span><span className="min-w-0 break-words">Step {stepIndex + 1}: {step}</span></li>)}
+          </ul>
+        </div>)}
         {diagrams.map(diagram => {
           const url = `${import.meta.env.BASE_URL}system-design/notes/${slug}/${diagram.filename}?v=${diagram.revision}`;
           return <figure key={diagram.filename} className="py-2">

@@ -8,7 +8,8 @@
         "Bitly maps a short URL to a longer URL. The short URL uses a domain we own, so opening it sends a request to our service before the browser visits the destination.",
         "The main challenges are generating unique short codes, making redirects fast, and staying available as traffic grows."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Functional Requirements",
@@ -20,7 +21,8 @@
         "Anyone opening a valid short URL is redirected to its original URL.",
         "Keep account management and click analytics outside the initial scope unless the interviewer asks to include them."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Non-functional Requirements",
@@ -42,7 +44,8 @@
           "height": 140,
           "revision": "ae188638fd1e"
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Core Entities",
@@ -63,7 +66,8 @@
           "height": 100,
           "revision": "303fdebe2848"
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "API",
@@ -74,13 +78,15 @@
         "GET /{short_code} looks up the destination and returns a redirect with the long URL in the Location header.",
         "Return an error for an invalid URL or unavailable alias. Return 404 for an unknown code and 410 for an expired link."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "High-Level Design",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) Create a short URL",
@@ -102,6 +108,19 @@
           "width": 1135.7323913574219,
           "height": 193.33302491306563,
           "revision": "9175cdd62eb1"
+        }
+      ],
+      "flows": [
+        {
+          "title": "Create and return a short link",
+          "steps": [
+            "The client sends POST /urls with long_url and optional alias and expiration fields to the creation service through the gateway.",
+            "The service validates the destination and expiration. It rejects malformed input before allocating or writing a mapping.",
+            "For a generated code, the service obtains a unique ID from the allocator and Base62-encodes it. For a custom alias, it uses the requested alias as the candidate key.",
+            "The service inserts short_code, long_url, and expiration into the database using its uniqueness constraint. A preliminary availability check is not the reservation.",
+            "If insertion conflicts, a generated candidate is retried within a limit; a conflicting custom alias returns an error. No successful link is returned for a failed insert.",
+            "After the database confirms the write, the service returns the complete short URL. Later redirects can resolve it from durable storage even if the cache is empty."
+          ]
         }
       ]
     },
@@ -126,13 +145,28 @@
           "height": 249.80597462271817,
           "revision": "73e4f8f3ccd9"
         }
+      ],
+      "flows": [
+        {
+          "title": "Resolve a short link through the cache and database",
+          "steps": [
+            "The browser requests GET /abc123 from the short-link domain; the gateway routes the request to the redirect service.",
+            "The service looks for abc123 in the cache. On a hit, it reads the cached destination and expiration together.",
+            "On a miss, the service queries the database by short_code. If no record exists, it returns 404 and stops the redirect flow.",
+            "The service checks expiration before using either result. An expired mapping returns 410 instead of being redirected, even if cleanup has not deleted it.",
+            "For a valid database result, the service may populate the cache with a TTL no longer than the mapping's remaining lifetime. Cache population failure does not invalidate the durable mapping.",
+            "The service returns a 302 response with the original URL in Location and explicit cache-control rules.",
+            "The browser receives that response and makes a separate request to the original destination; the shortening service does not fetch and relay the destination page."
+          ]
+        }
       ]
     },
     {
       "title": "Deep Dives",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) Generate unique short codes",
@@ -167,6 +201,18 @@
           "height": 272.82355116461395,
           "revision": "fb8f3aeee074"
         }
+      ],
+      "flows": [
+        {
+          "title": "Allocate a batch of counter IDs",
+          "steps": [
+            "A creation server asks the shared allocator to reserve a range, for example with an atomic INCRBY 1000 operation.",
+            "The allocator advances its high-water mark and returns the upper boundary. The server derives its exclusive range from that boundary.",
+            "Each local creation consumes one unused number from that range and encodes it as a candidate short code.",
+            "The database uniqueness constraint validates the candidate during insertion, including possible conflicts with custom aliases.",
+            "After a crash, unused numbers may be abandoned. A replacement must not reuse the old range unless ownership and allocator recovery make that safe."
+          ]
+        }
       ]
     },
     {
@@ -190,7 +236,8 @@
           "height": 407.58914094926877,
           "revision": "315e0f1e6b3c"
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "3) Scale and keep the system available",
@@ -206,7 +253,8 @@
         "Counter failover must not reuse allocated ranges. Preserve or safely recover allocator state, retain the database uniqueness constraint, and handle conflicts before returning a link.",
         "For multiple regions, allocate disjoint ID ranges to avoid coordinating every write across regions. Use regional caches while handling replication lag and expiration consistently."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Final Design",
@@ -229,7 +277,8 @@
           "height": 679.4597989140411,
           "revision": "0c35ca9d94ff"
         }
-      ]
+      ],
+      "flows": []
     }
   ]
 }

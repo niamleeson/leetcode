@@ -8,7 +8,8 @@
         "Ingest service metrics, answer dashboard queries, and evaluate alert rules continuously.",
         "Time-series volume depends on both sample rate and label cardinality; many unique label combinations can dominate cost."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Functional Requirements",
@@ -18,7 +19,8 @@
         "Let users define threshold-based alert rules.",
         "Send notifications when alerts transition into actionable states."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Non-functional Requirements",
@@ -36,7 +38,8 @@
           "width": 735.8717041015625,
           "height": 194.6
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Core Entities",
@@ -55,7 +58,8 @@
           "width": 109.27993774414062,
           "height": 141.5
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "API and Data Flow",
@@ -74,13 +78,15 @@
           "width": 820.0,
           "height": 310.0
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "High-Level Design",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) Ingestion",
@@ -112,6 +118,18 @@
           "width": 899.601196268683,
           "height": 200.0
         }
+      ],
+      "flows": [
+        {
+          "title": "Store a batch of metric samples",
+          "steps": [
+            "An agent gathers samples with timestamps and labels, or a collector scrapes the service's metrics endpoint.",
+            "The ingestion service authenticates the source and validates metric shape, tenant quotas, and cardinality limits.",
+            "Accepted samples enter bounded durable transport or the storage acknowledgement path required by the product's durability contract.",
+            "Consumers partition samples by series identity and time and write them to the time-series store, applying duplicate and late-sample rules.",
+            "They advance recoverable progress after required output is safe; rollup workers subsequently derive coarser historical resolutions."
+          ]
+        }
       ]
     },
     {
@@ -129,6 +147,17 @@
           "revision": "834691af8b9b",
           "width": 906.0685136116756,
           "height": 445.0
+        }
+      ],
+      "flows": [
+        {
+          "title": "Read a dashboard time range",
+          "steps": [
+            "The dashboard requests selectors, time range, aggregation, and display resolution.",
+            "The query service selects a compatible cache entry or the raw/rollup partitions appropriate to that resolution.",
+            "It narrows series through label indexes, scans only relevant time partitions, and combines aggregates with correct weights.",
+            "It returns bounded ordered points and freshness information for rendering rather than every raw sample in the interval."
+          ]
         }
       ]
     },
@@ -155,13 +184,26 @@
           "width": 894.3109053763791,
           "height": 600.1259765625
         }
+      ],
+      "flows": [
+        {
+          "title": "Evaluate a rule and notify on a transition",
+          "steps": [
+            "The evaluator loads an enabled rule and determines the time window whose data is sufficiently available for evaluation.",
+            "It queries or consumes the relevant samples and evaluates the threshold with explicit treatment of missing or delayed data.",
+            "It updates durable pending/firing/resolved state, including any required condition duration.",
+            "A qualifying state transition records a deduplicated notification intent; repeated evaluations of the same firing state do not automatically create new notifications.",
+            "Delivery workers group or route alerts and apply retries independently; a missing acknowledgement cannot erase the persisted alert state."
+          ]
+        }
       ]
     },
     {
       "title": "Deep Dives",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) Long-range queries",
@@ -187,7 +229,8 @@
           "width": 1051.554283061926,
           "height": 661.4033203125
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "2) Low-latency alerts",
@@ -205,7 +248,8 @@
           "width": 1051.554283061926,
           "height": 661.4033203125
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "3) Availability and cardinality",
@@ -224,7 +268,8 @@
           "width": 1073.355064311926,
           "height": 691.57666015625
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Final Design",
@@ -242,7 +287,8 @@
           "width": 1073.355064311926,
           "height": 691.57666015625
         }
-      ]
+      ],
+      "flows": []
     }
   ]
 }

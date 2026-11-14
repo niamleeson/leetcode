@@ -30,8 +30,15 @@ High-Level Design
 - Separate fetching from parsing when CPU-heavy parsing would otherwise reduce network utilization.
 - Limit accepted protocols and redirects, and protect workers from access to private infrastructure through arbitrary URLs.
 
-Deep Dives
+Process: Crawl one URL from discovery to completion
+- Step 1: A seed or extracted link is normalized, checked against URL eligibility and duplicate-discovery state, and added durably to the frontier.
+- Step 2: The host-aware scheduler waits until that host is eligible under robots rules, rate limits, and backoff, then leases the task to a fetcher.
+- Step 3: The fetcher checks the current policy and fetches with bounded redirects, response size, and timeout, excluding forbidden destinations.
+- Step 4: It persists the fetched content and result metadata before considering the fetch durably complete.
+- Step 5: Parsing extracts links and metadata; eligible new URLs are inserted through a retry-safe discovery stage.
+- Step 6: The worker acknowledges the task only after its required output or downstream work is recoverable. A crash causes a replay of the same task identity, not loss of the frontier position.
 
+Deep Dives
 
 1) Fault tolerance and progress
 - Use a durable queue with visibility timeouts or leases so unfinished work returns after a worker crash.
@@ -45,6 +52,13 @@ Deep Dives
 - Coordinate rate limits across all workers contacting the same host; a per-worker limit does not protect the site globally.
 - A domain-oriented frontier or partition assignment makes per-host scheduling practical.
 - Slow down on errors or throttling responses, identify the crawler appropriately, and avoid infinite URL spaces.
+
+Process: Schedule requests across workers for one host
+- Step 1: A discovered URL is assigned to its host's frontier rather than immediately fetched by whichever worker saw it.
+- Step 2: The scheduler loads or refreshes cached robots rules and rejects disallowed URLs.
+- Step 3: It checks shared host concurrency, next-allowed time, and error backoff so multiple workers do not each grant themselves the full host rate.
+- Step 4: It releases a bounded request when eligible and advances the host's scheduling state.
+- Step 5: The response updates host health and retry timing; throttling or repeated failures slow subsequent requests independently of other hosts.
 
 3) Throughput and scale
 - Divide target pages by available seconds to estimate required average throughput, then include failures, retries, and peak headroom.

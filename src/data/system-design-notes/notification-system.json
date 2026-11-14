@@ -8,7 +8,8 @@
         "Provide a shared delivery service for immediate notifications, scheduled messages, and campaigns across multiple channels.",
         "Accepting a request, sending it to a provider, and confirming delivery are different lifecycle stages."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Functional Requirements",
@@ -18,7 +19,8 @@
         "Expand campaigns to a defined user segment.",
         "Respect users' channel preferences, opt-outs, and relevant delivery rules."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Non-functional Requirements",
@@ -36,7 +38,8 @@
           "width": 1640.655095237446,
           "height": 216.22417674800795
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Core Entities",
@@ -54,7 +57,8 @@
           "width": 174.0,
           "height": 170.0
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "API",
@@ -65,13 +69,15 @@
         "Update user preferences and query notification state.",
         "Authenticate sending services and enforce tenant-specific quotas and authorized templates."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "High-Level Design",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) Immediate and scheduled delivery",
@@ -104,6 +110,19 @@
           "width": 1301.2352220874059,
           "height": 654.9335833209877
         }
+      ],
+      "flows": [
+        {
+          "title": "Accept and deliver a notification",
+          "steps": [
+            "The sending service submits recipient, template, payload, channel, schedule, and idempotency key to the API.",
+            "The API authenticates the sender and commits the notification plus recoverable publication state before returning its ID.",
+            "Immediate work is enqueued now; scheduled work remains durable until the scheduler marks it due and publishes it.",
+            "A priority-aware worker claims the task, checks the user's current preferences, and renders the authorized template.",
+            "The worker sends to the provider using a stable provider idempotency key when supported and records the provider outcome.",
+            "Only after durable outcome recording does it acknowledge queue delivery. Provider acceptance and final recipient delivery remain different states."
+          ]
+        }
       ]
     },
     {
@@ -121,6 +140,18 @@
           "revision": "22b36fd4e289",
           "width": 1301.2352220874059,
           "height": 761.7985770314675
+        }
+      ],
+      "flows": [
+        {
+          "title": "Expand a campaign without starving urgent messages",
+          "steps": [
+            "The campaign service commits the campaign definition and a stable segment snapshot or defined recipient-selection policy.",
+            "An expander reads a bounded recipient batch from its saved cursor.",
+            "It creates deduplicated recipient notification intents and commits expansion progress so restarting cannot silently skip the batch.",
+            "A reliable publisher sends those intents to the bulk path, while urgent transactional work retains its reserved queue or worker capacity.",
+            "Delivery workers apply provider limits and current preferences for each recipient; campaign progress counts durable outcomes rather than merely queued messages."
+          ]
         }
       ]
     },
@@ -140,13 +171,15 @@
           "width": 1301.2352220874054,
           "height": 780.366039566782
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Deep Dives",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) Do not lose accepted work",
@@ -165,7 +198,8 @@
           "width": 1826.2455681222393,
           "height": 787.3017989976781
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "2) Priority and provider capacity",
@@ -191,7 +225,8 @@
           "width": 1877.747035903311,
           "height": 989.78489058276
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "3) Duplicate prevention",
@@ -209,6 +244,18 @@
           "revision": "1b41cd5fdb7a",
           "width": 1877.747035903311,
           "height": 1011.8832930117711
+        }
+      ],
+      "flows": [
+        {
+          "title": "Recover an ambiguous provider send",
+          "steps": [
+            "A worker times out after sending, so it cannot tell whether the provider accepted the message.",
+            "It records the uncertain attempt with its provider request identity instead of immediately marking it definitely failed.",
+            "It queries provider status or retries with the provider's supported idempotency key to resolve the same logical send.",
+            "It persists the resolved outcome before acknowledging or rescheduling the task.",
+            "If the provider offers neither deduplication nor status lookup, the service follows an explicit duplicate-risk policy rather than claiming guaranteed exactly-once delivery."
+          ]
         }
       ]
     },
@@ -228,7 +275,8 @@
           "width": 1877.747035903311,
           "height": 1011.883293011771
         }
-      ]
+      ],
+      "flows": []
     }
   ]
 }

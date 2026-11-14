@@ -23,17 +23,31 @@ Pagination and Cursors
 
 How It Works
 
-
 1) Nodes and shards
 - Primary shards partition the index; replicas provide additional read capacity and failover copies.
 - Coordinating nodes route queries to shards and merge bounded results.
 - Cluster-management roles coordinate metadata and shard allocation, separate from the document-query work.
 - More shards increase parallelism but also coordination, memory, and small-shard overhead.
 
+Process: Execute a distributed search page
+- Step 1: The client sends query, filters, sort order, and pagination context to a coordinating node.
+- Step 2: The coordinator selects relevant shards and dispatches the query to suitable shard copies.
+- Step 3: Each shard uses its indexes to filter and score candidates and returns a bounded local set with sort values.
+- Step 4: The coordinator merges those sets and fetches the selected document fields as needed.
+- Step 5: It returns the global page and continuation information; point-in-time plus stable sort values preserves the intended context for later pages.
+
 2) Lucene segments
 - Lucene writes immutable segments and exposes new data after a refresh, making search near real time rather than immediately consistent by default.
 - Updates and deletions create replacement records or deletion markers; background merges reclaim space and consolidate segments.
 - Refresh and merge settings trade freshness against indexing throughput and resource cost.
+
+Process: Index an update and make it searchable
+- Step 1: The application commits its authoritative change and sends a versioned indexing event to a worker.
+- Step 2: The worker submits the document under a stable ID; Elasticsearch routes it to the appropriate primary shard.
+- Step 3: The shard applies indexing/translog work and replication according to the configured write and durability settings.
+- Step 4: The indexing request is acknowledged when its configured conditions are met; that acknowledgement does not necessarily mean ordinary search can see the change yet.
+- Step 5: A refresh makes the new segment state searchable. A caller needing that boundary can use the supported refresh policy instead of assuming immediate visibility.
+- Step 6: Background merges later consolidate segments and reclaim eligible obsolete data; they are separate from the refresh that exposed the document.
 
 3) Search data structures
 - An inverted index maps terms to document postings, with positions where phrase search requires them.

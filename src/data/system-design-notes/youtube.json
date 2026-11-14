@@ -8,7 +8,8 @@
         "Design video upload and playback, including processing media into formats suitable for different devices and network conditions.",
         "Application services manage metadata and access; storage, processing workers, and CDNs handle the media bytes."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Functional Requirements",
@@ -18,7 +19,8 @@
         "Watch published videos with an appropriate playback representation.",
         "Support large uploads and efficient global delivery; recommendations and comments are separate features."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Non-functional Requirements",
@@ -36,7 +38,8 @@
           "width": 698.5987019210716,
           "height": 170.0
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Core Entities",
@@ -55,7 +58,8 @@
           "width": 173.25987243652344,
           "height": 120.0
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "API",
@@ -66,7 +70,8 @@
         "Fetch video metadata and a playback manifest or authorized CDN URL.",
         "Retrying creation or completion uses stable IDs so duplicate jobs do not publish inconsistent outputs."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Background: Video Streaming",
@@ -76,13 +81,15 @@
         "Adaptive bitrate streaming divides media into segments at several qualities and lets the player switch based on bandwidth and buffer state.",
         "The manifest describes those variants; storing only one large original file does not provide this playback behavior."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "High-Level Design",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) Upload and process",
@@ -115,6 +122,19 @@
           "width": 2443.558182320803,
           "height": 1047.0992384812357
         }
+      ],
+      "flows": [
+        {
+          "title": "Turn an upload into a playable video",
+          "steps": [
+            "The client creates an upload session and sends video parts directly to object storage using scoped signed instructions.",
+            "The backend verifies the completed original and records its durable object reference and video version.",
+            "A reliable event queues processing tasks referencing that original; upload acceptance does not yet imply every playback rendition is ready.",
+            "Workers transcode and package the required renditions and segments, persisting each output under retry-safe identifiers.",
+            "The workflow verifies required outputs and publishes a manifest that references only completed segments.",
+            "The metadata service marks the video or rendition set ready; failed tasks retry without publishing incomplete output as playable."
+          ]
+        }
       ]
     },
     {
@@ -141,13 +161,26 @@
           "width": 2441.1109465574,
           "height": 924.6834166970195
         }
+      ],
+      "flows": [
+        {
+          "title": "Start and adapt video playback",
+          "steps": [
+            "The viewer requests the video; the metadata service checks access and readiness and returns the playback manifest location.",
+            "The player fetches the manifest through the authorized CDN path and chooses an initial bitrate based on available conditions.",
+            "It requests the first segments; CDN hits are served near the viewer and misses are fetched from object storage.",
+            "The player buffers and decodes those segments, then requests subsequent segments as playback advances.",
+            "At supported segment boundaries it switches renditions as bandwidth or buffer health changes, without restarting the whole video."
+          ]
+        }
       ]
     },
     {
       "title": "Deep Dives",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) Adaptive bitrate processing",
@@ -166,7 +199,8 @@
           "width": 2774.1971817005096,
           "height": 1006.4746568087701
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "2) Resumable uploads",
@@ -185,7 +219,8 @@
           "width": 2774.197181700509,
           "height": 1031.4746568087685
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "3) Scale storage and delivery",
@@ -196,7 +231,8 @@
         "Cache popular media aggressively and keep durable originals available for reprocessing.",
         "Monitor processing delay, playback startup time, buffering, and CDN hit rate as separate signals."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Final Design",
@@ -214,7 +250,8 @@
           "width": 2982.0472873789386,
           "height": 1179.2431959437426
         }
-      ]
+      ],
+      "flows": []
     }
   ]
 }

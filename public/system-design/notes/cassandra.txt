@@ -27,6 +27,15 @@ Storage Model
 - Compaction merges SSTables, removes obsolete versions when safe, and consumes background I/O and CPU.
 - Deletes create tombstones that must remain long enough to avoid resurrecting data on stale replicas.
 
+Process: Write a row and read the latest visible value
+- Step 1: The client sends a mutation with its primary key and selected consistency level to a coordinator node.
+- Step 2: The coordinator hashes the partition key, identifies replica owners, and forwards the mutation to the relevant replicas.
+- Step 3: Each participating replica records the mutation through its commit-log/memtable path under the configured durability policy.
+- Step 4: The coordinator acknowledges after the selected consistency level's required responses arrive; unavailable required replicas can make the operation fail or time out.
+- Step 5: Memtables later flush to SSTables and background compaction reorganizes those files; the write need not wait for a full compaction.
+- Step 6: A read coordinator contacts the replicas required by the read consistency level, combines their relevant versions according to Cassandra's conflict rules, and returns the resolved result.
+- Step 7: Read/write overlap improves the selected visibility guarantees, but concurrent multi-record invariants still need a justified conditional or transactional mechanism.
+
 Gossip and Fault Tolerance
 - Gossip shares membership and failure information across the cluster.
 - Replicas, hinted handoff, and repair mechanisms help recover missed writes, but operational repair remains important.
@@ -37,6 +46,13 @@ Data Modeling
 - Denormalize into multiple query-specific tables where necessary and plan how updates keep those views consistent.
 - For chat messages, partition by conversation and time bucket, and cluster by message order.
 - Avoid unbounded partitions for extremely active conversations and avoid scanning the whole cluster for a user's recent data.
+
+Process: Retrieve one page of conversation messages
+- Step 1: The application derives the conversation/time-bucket partition and a clustering-key boundary from the page cursor.
+- Step 2: It issues a partition-bounded query for a limited range of message ordering keys.
+- Step 3: Cassandra routes the query to the replicas for that partition and reads the relevant memtable/SSTable data rather than scanning unrelated conversations.
+- Step 4: The application returns ordered messages and a cursor for the next range or older bucket.
+- Step 5: A very active conversation moves into additional bounded buckets according to the model instead of allowing one partition to grow forever.
 
 Examples and Advanced Features
 - Event or ticket data can be modeled around the required lookup, but unique seat claims still need explicit conditional coordination.

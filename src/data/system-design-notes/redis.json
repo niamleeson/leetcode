@@ -8,7 +8,8 @@
         "Redis is an in-memory data-structure server commonly used for caching, counters, rankings, coordination, and messaging.",
         "Its speed does not remove the need to choose persistence, replication, eviction, and failure semantics for the role it plays."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Redis Basics",
@@ -26,6 +27,18 @@
           "revision": "65845aa0ba6c",
           "width": 557.1328125,
           "height": 415.31640625
+        }
+      ],
+      "flows": [
+        {
+          "title": "Execute a key operation on its owning node",
+          "steps": [
+            "The client connects to Redis and, in a clustered deployment, routes the key to the node owning its hash slot.",
+            "The node executes the command or short atomic script against its current in-memory state; a GET checks whether an entry has logically expired.",
+            "A mutating command updates the relevant data structure and feeds the configured persistence and replication paths.",
+            "Redis returns the command result under its configured acknowledgement semantics; a normal successful write does not imply that every replica has acknowledged or a disk fsync has completed.",
+            "The application handles misses, ownership redirects, timeouts, and uncertain retries according to the operation's semantics rather than assuming every retried increment is harmless."
+          ]
         }
       ]
     },
@@ -46,7 +59,8 @@
           "width": 687.5981597900391,
           "height": 698.82421875
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Performance and Caching",
@@ -65,7 +79,8 @@
           "width": 489.1484375,
           "height": 409.30027894016496
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Distributed Locks",
@@ -76,7 +91,8 @@
         "Lease expiry does not stop a paused worker from resuming. Protected resources need fencing or another way to reject stale operations.",
         "Do not assume a Redis lock makes a payment or database update transactionally safe across failures."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Leaderboards, Rate Limiting, and Proximity",
@@ -87,7 +103,8 @@
         "Atomic scripts support token buckets or window accounting; shared keys coordinate limits across API instances.",
         "Geospatial commands support nearby searches, but location freshness and filtering still belong to the application."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Streams and Pub/Sub",
@@ -114,6 +131,18 @@
           "width": 721.72265625,
           "height": 688.73828125
         }
+      ],
+      "flows": [
+        {
+          "title": "Consume a Redis Stream job with recovery",
+          "steps": [
+            "A producer appends an entry and receives its stream ID; retention and persistence determine how long that entry remains recoverable.",
+            "A worker reads through its consumer group, and delivered work appears in that group's pending state until acknowledged.",
+            "The worker applies the business effect using a stable entry/job identity and persists the outcome.",
+            "It acknowledges the stream entry after that outcome is safe; an acknowledgement removes pending delivery state, not necessarily the retained entry itself.",
+            "If the worker stops, another worker can claim sufficiently idle pending work and repeat it safely using the same deduplication identity."
+          ]
+        }
       ]
     },
     {
@@ -132,7 +161,8 @@
           "width": 346.44747110347487,
           "height": 350.86328125
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "When Not to Use and Summary",
@@ -142,7 +172,8 @@
         "Large cold datasets, complex relational queries, and heavy multi-key transactions may fit another store better.",
         "State the data structure, access pattern, failure behavior, and memory strategy when proposing Redis, rather than using it as a generic fast box."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     }
   ]
 }

@@ -8,6 +8,13 @@ Redis Basics
 - Atomic commands and short scripts can combine checks and updates without a client-side race.
 - Long scripts or large blocking operations can delay unrelated clients, so keep request work bounded.
 
+Process: Execute a key operation on its owning node
+- Step 1: The client connects to Redis and, in a clustered deployment, routes the key to the node owning its hash slot.
+- Step 2: The node executes the command or short atomic script against its current in-memory state; a GET checks whether an entry has logically expired.
+- Step 3: A mutating command updates the relevant data structure and feeds the configured persistence and replication paths.
+- Step 4: Redis returns the command result under its configured acknowledgement semantics; a normal successful write does not imply that every replica has acknowledged or a disk fsync has completed.
+- Step 5: The application handles misses, ownership redirects, timeouts, and uncertain retries according to the operation's semantics rather than assuming every retried increment is harmless.
+
 Infrastructure Configurations
 - A standalone instance is simple but has one capacity and failure boundary.
 - Replication provides copies and failover options; asynchronous replicas may lag and recent writes can be lost during promotion.
@@ -38,6 +45,13 @@ Streams and Pub/Sub
 - Choose Streams or another durable log when reconnects or worker crashes must recover work.
 - A queue or event log still needs idempotent consumers because repeated delivery can occur.
 - Building custom pub/sub from ordinary keys or lists creates subscription, cleanup, and fanout problems already handled by dedicated primitives.
+
+Process: Consume a Redis Stream job with recovery
+- Step 1: A producer appends an entry and receives its stream ID; retention and persistence determine how long that entry remains recoverable.
+- Step 2: A worker reads through its consumer group, and delivered work appears in that group's pending state until acknowledged.
+- Step 3: The worker applies the business effect using a stable entry/job identity and persists the outcome.
+- Step 4: It acknowledges the stream entry after that outcome is safe; an acknowledgement removes pending delivery state, not necessarily the retained entry itself.
+- Step 5: If the worker stops, another worker can claim sufficiently idle pending work and repeat it safely using the same deduplication identity.
 
 Hot Keys
 - Sharding distributes different keys; one heavily accessed key can still overload its owner.

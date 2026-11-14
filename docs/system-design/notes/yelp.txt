@@ -27,11 +27,18 @@ API
 
 High-Level Design
 
-
 1) Search businesses
 - The search service queries indexed business data and applies distance and other filters.
 - Start with database indexes appropriate to the access patterns; a full scan for every nearby-business query will not scale.
 - Return business summaries and rating aggregates without fetching every review.
+
+Process: Find nearby businesses
+- Step 1: The client sends query text, coordinates or a named location, radius, filters, and an optional cursor to the search service.
+- Step 2: If the input is a named area, the service resolves it to coordinates or a region before building the spatial predicate.
+- Step 3: The service queries the chosen search index or indexed database, combining geography, text, category, and rating filters.
+- Step 4: The query orders eligible candidates and selects a bounded page; it does not load all reviews to compute each business's rating.
+- Step 5: The service fetches any missing business summary fields in a batch and returns results plus a stable next-page cursor.
+- Step 6: A later detail request reads the selected business and paginated reviews; cached discovery data does not replace the authoritative review records.
 
 2) Read details and write reviews
 - Fetch business details by primary key and reviews by business ID; cache popular business pages.
@@ -39,8 +46,15 @@ High-Level Design
 - Keep the review and its effect on aggregate rating consistent through a transaction or a clearly defined asynchronous projection.
 - Invalidate or refresh cached detail data after changes; search freshness may follow a separate update pipeline.
 
-Deep Dives
+Process: Save a review and update its rating
+- Step 1: The client submits a business ID, rating, and review text; the service derives the author from the validated session.
+- Step 2: The service checks the business and allowed rating range, then begins the selected transactional update.
+- Step 3: The database inserts the review under the unique user/business constraint. For an allowed edit, it reads the previous rating instead of adding a second review.
+- Step 4: In the same consistency boundary, it updates rating sum and count, or applies the rating difference for an edit, using atomic or version-checked writes.
+- Step 5: On a uniqueness or version conflict, the transaction rolls back and the API returns the defined conflict or retries against fresh state.
+- Step 6: After commit, the service acknowledges success and updates or invalidates detail caches; the search projection receives the committed change asynchronously.
 
+Deep Dives
 
 1) Maintain average ratings
 - Computing an average over every review on each search is expensive; store rating sum and review count instead.

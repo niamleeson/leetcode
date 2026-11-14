@@ -42,7 +42,7 @@ const articles = JSON.parse(data.slice(data.indexOf('=')+1,data.lastIndexOf('as 
     const notes=page.locator('[aria-label="Bitly condensed notes"]');
     await notes.waitFor();
     const sourceNotes=fs.readFileSync(path.join(root,'src/data/bitly-condensed.txt'),'utf8');
-    assert.equal(await notes.locator('li').count(),sourceNotes.split('\n').filter(line=>line.startsWith('- ')).length);
+    assert.equal(await notes.locator('section > ul > li').count(),sourceNotes.split('\n').filter(line=>line.startsWith('- ')).length);
     assert.deepEqual(await notes.locator('h3').allTextContents(),['Understanding the Problem','Functional Requirements','Non-functional Requirements','Core Entities','API','High-Level Design','Deep Dives','Final Design']);
     assert.ok((await notes.locator('li').allTextContents()).every(point=>point.startsWith('-')));
     assert.equal(await notes.locator('strong,table,pre,h1,h2').count(),0);
@@ -105,7 +105,21 @@ const articles = JSON.parse(data.slice(data.indexOf('=')+1,data.lastIndexOf('as 
       await note.waitFor();
       const expected=JSON.parse(fs.readFileSync(path.join(root,'src/data/system-design-notes',article.slug+'.json'),'utf8'));
       assert.deepEqual(await note.locator('h3,h4').allTextContents(),expected.sections.map(s=>s.title),article.title);
-      assert.deepEqual(await note.locator('li').allTextContents(),expected.sections.flatMap(s=>s.points.map(p=>'-'+p)),article.title);
+      assert.deepEqual(await note.locator('li').allTextContents(),expected.sections.flatMap(s=>[
+        ...s.points.map(p=>'-'+p),
+        ...s.flows.flatMap(flow=>flow.steps.map((step,i)=>`-Step ${i+1}: ${step}`)),
+      ]),article.title);
+      const flows=expected.sections.flatMap(s=>s.flows);
+      assert.ok(flows.length>0,article.title+' has process flows');
+      assert.equal(await note.getByRole('group').count(),flows.length,article.title);
+      for(const flow of flows) {
+        const group=note.getByRole('group',{name:flow.title+' process',exact:true});
+        assert.deepEqual(await group.locator('li').allTextContents(),flow.steps.map((step,i)=>`-Step ${i+1}: ${step}`),article.title+' / '+flow.title);
+      }
+      const download=await page.request.get(new URL(`system-design/notes/${article.slug}.txt`,base).href);
+      assert.ok(download.ok(),article.title+' text download');
+      const downloadText=await download.text();
+      for(const flow of flows) assert.ok(downloadText.includes('Process: '+flow.title),article.title+' downloaded process');
       const images=note.locator('img');
       assert.equal(await images.count(),article.imageCount+(article.slug==='postgresql'?1:0),article.title);
       for(const img of await images.all()) { await img.scrollIntoViewIfNeeded(); await img.evaluate(i=>i.decode()); }
@@ -139,6 +153,6 @@ const articles = JSON.parse(data.slice(data.indexOf('=')+1,data.lastIndexOf('as 
     await ready();
     assert.ok(await page.locator('iframe').evaluate(f=>f.contentDocument.documentElement.scrollWidth<=f.clientWidth+1));
     assert.deepEqual(errors,[]);
-    console.log(JSON.stringify({passed:true,articles:articles.length,images:articles.reduce((n,a)=>n+a.imageCount,0),checks:['filters','plain hyphen notes','full article','internal article links','legacy reference','unknown route','load failure and retry','49 full readers','49 condensed readers','497 note diagrams','mobile overflow']}));
+    console.log(JSON.stringify({passed:true,articles:articles.length,images:articles.reduce((n,a)=>n+a.imageCount,0),checks:['filters','plain hyphen notes','full article','internal article links','legacy reference','unknown route','load failure and retry','49 full readers','49 condensed readers','ordered process flows and text downloads','497 note diagrams','mobile overflow']}));
   } finally {await browser.close();}
 })().catch(error=>{console.error(error);process.exitCode=1;});

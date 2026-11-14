@@ -26,24 +26,42 @@ API and Data Flow
 
 High-Level Design
 
-
 1) Ingestion
 - Pull-based collection centralizes scrape scheduling and target health; push handles environments that cannot be scraped directly.
 - Batch samples, enforce limits, and buffer transient failures with bounded local or durable queues.
 - Partition by series identity and time while watching for uneven tenants or hot series.
+
+Process: Store a batch of metric samples
+- Step 1: An agent gathers samples with timestamps and labels, or a collector scrapes the service's metrics endpoint.
+- Step 2: The ingestion service authenticates the source and validates metric shape, tenant quotas, and cardinality limits.
+- Step 3: Accepted samples enter bounded durable transport or the storage acknowledgement path required by the product's durability contract.
+- Step 4: Consumers partition samples by series identity and time and write them to the time-series store, applying duplicate and late-sample rules.
+- Step 5: They advance recoverable progress after required output is safe; rollup workers subsequently derive coarser historical resolutions.
 
 2) Dashboards
 - A time-series store indexes labels and organizes samples for efficient time-range scans.
 - Fetch only the resolution needed for the chart rather than every raw sample over weeks.
 - Cache repeated dashboard queries and avoid repeatedly scanning the same recent windows.
 
+Process: Read a dashboard time range
+- Step 1: The dashboard requests selectors, time range, aggregation, and display resolution.
+- Step 2: The query service selects a compatible cache entry or the raw/rollup partitions appropriate to that resolution.
+- Step 3: It narrows series through label indexes, scans only relevant time partitions, and combines aggregates with correct weights.
+- Step 4: It returns bounded ordered points and freshness information for rendering rather than every raw sample in the interval.
+
 3) Alerts and notifications
 - Evaluate rules on a schedule or a streaming path with explicit handling of missing and delayed data.
 - Require a condition to persist for a configured duration when useful to reduce transient false alarms.
 - Persist alert state and notify on transitions, with grouping and cooldowns to avoid repeated notification storms.
 
-Deep Dives
+Process: Evaluate a rule and notify on a transition
+- Step 1: The evaluator loads an enabled rule and determines the time window whose data is sufficiently available for evaluation.
+- Step 2: It queries or consumes the relevant samples and evaluates the threshold with explicit treatment of missing or delayed data.
+- Step 3: It updates durable pending/firing/resolved state, including any required condition duration.
+- Step 4: A qualifying state transition records a deduplicated notification intent; repeated evaluations of the same firing state do not automatically create new notifications.
+- Step 5: Delivery workers group or route alerts and apply retries independently; a missing acknowledgement cannot erase the persisted alert state.
 
+Deep Dives
 
 1) Long-range queries
 - Keep high-resolution recent data and downsample older samples into coarser rollups.

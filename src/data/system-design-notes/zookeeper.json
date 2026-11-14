@@ -8,7 +8,8 @@
         "ZooKeeper coordinates distributed processes using small replicated records, ordered writes, sessions, and change notifications.",
         "It is a coordination service, not a general-purpose high-volume application database or message broker."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "A Motivating Example",
@@ -54,7 +55,8 @@
           "width": 1507.2503142288629,
           "height": 362.9995914173126
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "ZooKeeper Basics",
@@ -87,13 +89,15 @@
           "width": 1415.6286024546894,
           "height": 633.6462309665588
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Key Capabilities",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) Configuration and service discovery",
@@ -103,7 +107,8 @@
         "Services can register ephemeral membership records so expired sessions eventually remove dead members.",
         "Cached membership can become stale; callers still need connection failure handling and retry logic."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "2) Leader election and locks",
@@ -114,7 +119,20 @@
         "Session expiration releases ephemeral ownership, but a paused old process may continue executing afterward.",
         "Use fencing tokens or version checks at the protected resource to reject work from an obsolete owner."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": [
+        {
+          "title": "Elect a leader with ephemeral sequential nodes",
+          "steps": [
+            "Each contender establishes a session and creates an identifiable ephemeral sequential znode under the election path.",
+            "It reads the contenders and orders them by sequence; the lowest eligible node becomes leader.",
+            "A follower watches its immediate predecessor, then rereads state when notified instead of assuming a notification alone grants leadership.",
+            "If the leader's session expires, its ephemeral node disappears and the next eligible contender can take ownership.",
+            "The new leader uses an ownership epoch or fencing token with protected resources so the old paused process cannot continue making accepted stale writes.",
+            "Reconnecting contenders verify session and current election state before acting; they do not assume a previous lease survived disconnection."
+          ]
+        }
+      ]
     },
     {
       "title": "How ZooKeeper Works",
@@ -134,6 +152,18 @@
           "width": 911.68501377392,
           "height": 532.924796028093
         }
+      ],
+      "flows": [
+        {
+          "title": "Commit a coordination write and react to it",
+          "steps": [
+            "The client submits a version-checked coordination update through a connected server; the write is handled through the ensemble's leader.",
+            "The leader orders the proposal and replicates it through the quorum protocol.",
+            "Once the protocol's commit conditions are satisfied, the committed update is applied and the client receives its outcome.",
+            "Interested clients receive applicable watch notifications, reread the znode state/version, and reestablish the required watch behavior.",
+            "A client with an uncertain write response reconciles the identifiable state before blindly creating another ownership record; a freshness-sensitive read uses the appropriate synchronization contract."
+          ]
+        }
       ]
     },
     {
@@ -145,7 +175,8 @@
         "Keep coordination payloads and request rates small so application traffic cannot overwhelm the ensemble.",
         "Operate an appropriate odd-sized ensemble across failure domains and monitor latency, sessions, storage, and quorum health."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "When to Use",
@@ -171,7 +202,8 @@
           "width": 1260.6081896197877,
           "height": 594.488467332481
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Summary",
@@ -181,7 +213,8 @@
         "Session handling, watch recovery, and fencing are essential parts of those protocols.",
         "Keep the data plane separate from the coordination plane and state exactly which operation needs quorum-backed agreement."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     }
   ]
 }

@@ -8,7 +8,8 @@
         "Track runs and rides from mobile GPS samples, then expose completed activities and athlete comparisons.",
         "The phone must remain useful without connectivity; cloud synchronization should not interrupt recording."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Functional Requirements",
@@ -18,7 +19,8 @@
         "Show route, distance, and elapsed time during recording.",
         "View personal and friends' completed activities; consider live sharing and leaderboards as deep dives."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Non-functional Requirements",
@@ -36,7 +38,8 @@
           "width": 863.2087657615077,
           "height": 120.50181345166419
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Core Entities",
@@ -54,7 +57,8 @@
           "width": 322.7038412988186,
           "height": 120.0
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "API",
@@ -65,13 +69,15 @@
         "Fetch activity details and a cursor-paginated list of visible activities.",
         "Subscribe to an authorized live activity and query segment rankings when those features are enabled."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "High-Level Design",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) Record and display activity",
@@ -97,6 +103,19 @@
           "width": 1139.2257419860885,
           "height": 307.69429314120384
         }
+      ],
+      "flows": [
+        {
+          "title": "Record and synchronize an activity",
+          "steps": [
+            "The user starts an activity; the phone creates a local activity identity and persists recording state before collecting samples.",
+            "GPS samples receive timestamps and sequence numbers, are stored locally, and update the displayed route, distance, and time immediately.",
+            "When connected, the client creates or resolves the remote activity ID and sends batches of unacknowledged samples.",
+            "The ingestion service verifies ownership and stores or durably queues samples with deduplication keys, then acknowledges accepted batches.",
+            "The phone marks only acknowledged batches as synchronized; after disconnecting it continues recording and retries the rest later.",
+            "On stop, the client uploads remaining samples and requests finalization. The backend verifies required data before publishing a completed activity."
+          ]
+        }
       ]
     },
     {
@@ -115,13 +134,26 @@
           "width": 1254.8250979254526,
           "height": 309.7926464570455
         }
+      ],
+      "flows": [
+        {
+          "title": "Process and read a completed route",
+          "steps": [
+            "A finalized activity event queues summary and route-processing work.",
+            "Workers read the ordered samples, account for pauses, and derive distance, duration, display geometry, and any segment results.",
+            "They persist the derived data before marking that processing stage complete; repeated attempts replace or deduplicate the same activity version.",
+            "The reader requests activity details, and the service checks visibility before returning summary and route references.",
+            "The client renders the summary and fetches the appropriate route resolution; leaderboard updates follow from validated segment results asynchronously."
+          ]
+        }
       ]
     },
     {
       "title": "Deep Dives",
       "level": 3,
       "points": [],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "1) Offline operation",
@@ -140,7 +172,8 @@
           "width": 1311.871879790498,
           "height": 309.79264645704507
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "2) High write volume",
@@ -159,7 +192,8 @@
           "width": 1311.8718797904983,
           "height": 416.5539759972339
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "3) Live sharing",
@@ -169,7 +203,8 @@
         "Separate the ephemeral live position from durable activity history; reconnecting viewers can fetch the latest snapshot.",
         "Tune reporting frequency to balance freshness, battery drain, and server load."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "4) Leaderboards",
@@ -187,7 +222,8 @@
           "width": 1355.496670335298,
           "height": 416.56967789171233
         }
-      ]
+      ],
+      "flows": []
     },
     {
       "title": "Final Design",
@@ -205,7 +241,8 @@
           "width": 1311.8718797904983,
           "height": 507.53477705126306
         }
-      ]
+      ],
+      "flows": []
     }
   ]
 }

@@ -41,6 +41,11 @@ def main():
     PUBLIC.mkdir(parents=True, exist_ok=True)
     raw = (ROOT / 'src/data/system-design-articles.ts').read_text(encoding='utf8')
     articles = json.loads(raw[raw.index('=') + 1:raw.rindex('as const')])
+    process_source = (ROOT / 'src/data/system-design-processes.txt').read_text(encoding='utf8')
+    process_chunks = re.findall(r'^@@ ([^\n]+)\n(.*?)(?=^@@ |\Z)', process_source, re.M | re.S)
+    processes = dict(process_chunks)
+    if len(processes) != len(process_chunks) or set(processes) != {a['slug'] for a in articles}:
+        raise ValueError('Expected exactly one process-flow source for every article.')
     report = []
     for article in articles:
         originals = extract(article)
@@ -80,11 +85,36 @@ def main():
                 (destination / 'architecture.svg').write_bytes(contents)
                 sections[4]['diagrams'].append({'filename': 'architecture.svg', 'caption': 'Primary writes, read replicas, and recovery (study diagram)',
                     'width': 880, 'height': 390, 'revision': hashlib.sha256(contents).hexdigest()[:12]})
+        for section in sections:
+            section['flows'] = []
+        for block in re.split(r'\n\s*\n', processes[article['slug']].strip()):
+            heading, *lines = block.splitlines()
+            section_title, separator, flow_title = heading.partition(' >> ')
+            targets = [s for s in sections if s['title'] == section_title]
+            if not separator or not flow_title or len(targets) != 1:
+                raise ValueError(f"Invalid process location: {article['slug']} / {heading}")
+            if len(lines) < 3 or any(not line.startswith('- ') or not line[2:].strip() for line in lines):
+                raise ValueError(f'Expected at least three complete process steps: {heading}')
+            if any(f['title'] == flow_title for f in targets[0]['flows']):
+                raise ValueError(f'Duplicate process title: {heading}')
+            targets[0]['flows'].append({'title': flow_title, 'steps': [line[2:] for line in lines]})
         note = {'title': article['title'], 'sections': sections}
         (OUTPUT / (article['slug'] + '.json')).write_text(json.dumps(note, ensure_ascii=False, indent=2) + '\n', encoding='utf8', newline='\n')
-        plain = '\n\n'.join(s['title'] + '\n' + '\n'.join('- ' + p for p in s['points']) for s in sections) + '\n'
+        blocks = []
+        for section in sections:
+            block = [section['title'], *('- ' + p for p in section['points'])]
+            for flow in section['flows']:
+                block.extend(['', 'Process: ' + flow['title'], *('- Step ' + str(i + 1) + ': ' + step for i, step in enumerate(flow['steps']))])
+            blocks.append('\n'.join(block))
+        plain = '\n\n'.join(blocks) + '\n'
         (PUBLIC / (article['slug'] + '.txt')).write_text(plain, encoding='utf8', newline='\n')
-        report.append({'slug': article['slug'], 'words': len(plain.split()), 'sections': len(sections), 'points': sum(len(s['points']) for s in sections), 'diagrams': sum(len(s['diagrams']) for s in sections)})
+        if article['slug'] == 'bitly':
+            (ROOT / 'public/system-design/bitly-condensed.txt').write_text(plain, encoding='utf8', newline='\n')
+        steps = sum(len(flow['steps']) for s in sections for flow in s['flows'])
+        report.append({'slug': article['slug'], 'words': len(plain.split()), 'sections': len(sections),
+            'points': sum(len(s['points']) for s in sections) + steps,
+            'processes': sum(len(s['flows']) for s in sections), 'processSteps': steps,
+            'diagrams': sum(len(s['diagrams']) for s in sections)})
     (PUBLIC / 'manifest.json').write_text(json.dumps(report, indent=2) + '\n', encoding='utf8', newline='\n')
     print(json.dumps(report, indent=2))
 

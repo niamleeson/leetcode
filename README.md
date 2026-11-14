@@ -55,11 +55,14 @@ Run `npm run hackerrank:test` with Node 22.22 or newer to exercise the displayed
 
 The System Design library keeps the expanded articles and their embedded images in
 `public/system-design/hello-interview/`, loaded only when an article is opened.
-All 49 articles have compact hyphen notes, topic-specific sections, downloadable text,
+All 49 articles have compact hyphen notes, topic-specific sections, explicit step-by-step
+process flows, downloadable text,
 and diagrams that open at full size. Notes load individually on demand. The 496
 original images are retained; PostgreSQL adds an original study diagram.
 Reviewed note text is in `src/data/system-design-notes-source.txt`; Bitly retains
 its existing `src/data/bitly-condensed.txt` source.
+Process sequences are maintained in `src/data/system-design-processes.txt` and appear
+under the relevant section before its diagrams, including in downloaded notes.
 To refresh the verified exports, run
 `node tools/system-design/import-articles.cjs <export-directory>`, then
 `python tools/system-design/condense-articles.py` (requires Beautiful Soup 4), and rebuild.

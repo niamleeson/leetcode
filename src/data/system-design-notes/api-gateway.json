@@ -9,7 +9,8 @@
         "It can apply common middleware without forcing every client to understand the internal service topology.",
         "Request routing is its primary role; additional responsibilities should serve a concrete requirement."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Core Responsibilities and Request Flow",
@@ -26,6 +27,20 @@
           "width": 761.0076872988068,
           "height": 894.1247772786435
         }
+      ],
+      "flows": [
+        {
+          "title": "Route one client request end to end",
+          "steps": [
+            "A load balancer sends the incoming request to a gateway instance, which terminates or handles the configured transport connection.",
+            "The gateway validates request shape and limits, then applies configured identity, authorization-scope, and rate-limit middleware before expensive backend work.",
+            "It matches the path, method, or routing metadata to a backend service and selects a healthy instance.",
+            "If an authorized compatible response-cache hit is available, it can return that response without calling the backend; otherwise it forwards the request with bounded deadlines and trusted context.",
+            "The backend performs domain validation and business work and returns its result; the gateway does not replace the backend's resource-specific checks.",
+            "The gateway applies configured response headers or transformation, caches only eligible responses under the correct key, and sends the result to the client.",
+            "A backend timeout follows an explicit retry/idempotency policy; the gateway must not blindly retry an uncertain non-idempotent action."
+          ]
+        }
       ]
     },
     {
@@ -36,7 +51,8 @@
         "Reject malformed requests early, while leaving domain-specific validation in the service that owns the data.",
         "Validation at the gateway does not replace service authorization for the requested resource."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "2) Middleware",
@@ -47,7 +63,8 @@
         "Scope rate limits appropriately by user, tenant, API key, or resource rather than assuming one global rule fits all traffic.",
         "Avoid logging secrets or sensitive request bodies as a side effect of central traffic visibility."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "3) Routing",
@@ -57,7 +74,8 @@
         "Integrate routing with service discovery and backend health information where needed.",
         "Separate client-to-gateway load balancing from the gateway's distribution across backend instances."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "4) Backend Communication",
@@ -67,7 +85,8 @@
         "Protocol translation can hide internal differences, but adds complexity and is not required for every architecture.",
         "Retries must respect operation idempotency; retrying a timed-out payment request blindly can duplicate its effect."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "5) Response Transformation and Caching",
@@ -78,7 +97,8 @@
         "Personalized responses must not leak across users through a shared cache entry.",
         "TTL or invalidation limits staleness; cache failure needs a bounded fallback path to backend services."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Scaling an API Gateway",
@@ -89,7 +109,8 @@
         "Persistent streaming or WebSocket connections require suitable proxy buffering, timeouts, and graceful draining.",
         "Rate-limit or shed load before downstream overload propagates through the gateway."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "Managed and Self-Hosted Options",
@@ -99,7 +120,8 @@
         "Self-hosted gateways offer more control but require ownership of upgrades, scaling, availability, and configuration rollout.",
         "The interview decision should focus on required behavior rather than a catalog of product names."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     },
     {
       "title": "When to Propose One",
@@ -109,7 +131,8 @@
         "A simple application with one backend may not benefit from another routing layer.",
         "Explain routing and essential middleware briefly, then spend design time on the application's harder data and coordination problems."
       ],
-      "diagrams": []
+      "diagrams": [],
+      "flows": []
     }
   ]
 }

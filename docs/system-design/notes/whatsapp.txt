@@ -26,20 +26,34 @@ API
 
 High-Level Design
 
-
 1) Chats and message delivery
 - Verify chat membership before accepting a message, then persist it before acknowledging durable acceptance.
 - Route live events to the servers holding recipients' active connections.
 - Keep undelivered messages or per-device cursors so offline recipients can catch up later.
 - Distinguish server acceptance, device delivery, and read receipts; they are different states.
 
+Process: Send a message and acknowledge delivery
+- Step 1: The sender transmits a message over its authenticated connection with a chat ID and stable client message ID.
+- Step 2: The chat service checks membership and assigns the ordering information required by the conversation model.
+- Step 3: It persists the accepted message or recipient-delivery record before acknowledging durable acceptance to the sender.
+- Step 4: The routing or pub/sub layer forwards the event to connection servers holding recipients' active device sessions.
+- Step 5: Those servers send the message to their local devices. Offline devices retain a recoverable backlog or cursor gap in durable storage.
+- Step 6: Each device deduplicates by message ID, stores or displays the message in order, and acknowledges its own delivery position.
+- Step 7: Delivery or read receipts are separate updates; one device's acknowledgement does not prove every device or user has read the message.
+
 2) Media attachments
 - Storing media in the message database or relaying all bytes through chat servers makes storage and bandwidth expensive.
 - Upload directly to object storage using signed instructions, then send an authorized attachment reference in the message.
 - Downloads use signed URLs or equivalent access checks; protect private attachments even when served through a CDN.
 
-Deep Dives
+Process: Send a media attachment
+- Step 1: The sender requests an authorized upload session and uploads the attachment directly to object storage.
+- Step 2: The backend verifies completion and produces an attachment reference with the required access metadata.
+- Step 3: The sender submits a normal chat message containing that reference; message acceptance follows the durable message flow.
+- Step 4: The recipient receives the reference, requests authorized access, and downloads the media directly from storage or a CDN.
+- Step 5: Attachment upload failure prevents publication of a ready attachment; chat servers do not need to buffer the large file during message fanout.
 
+Deep Dives
 
 1) Connection routing at scale
 - Stateless HTTP load balancing does not tell a sender which server owns a recipient's persistent connection.
@@ -59,6 +73,13 @@ Deep Dives
 - Use per-chat sequence numbers or a defined ordering policy, and recover gaps from durable storage.
 - Treat pub/sub as a latency optimization when it is nondurable; missed live events must be recoverable from message history.
 - Expire retained messages according to policy and explain what happens when a device reconnects beyond the retention window.
+
+Process: Reconnect and recover missed messages
+- Step 1: The client detects a broken connection through an error or missed heartbeat and reconnects with backoff.
+- Step 2: It authenticates again and sends the last durably applied conversation or device cursor.
+- Step 3: The server queries retained messages after that cursor and coordinates the handoff to live updates so no gap is skipped.
+- Step 4: The client merges replay with any already received events, deduplicates IDs, and applies messages according to the ordering key.
+- Step 5: It advances its cursor after successful local application and resumes acknowledgements. A cursor outside retention follows an explicit history-unavailable recovery path.
 
 Final Design
 - Durable chat/message storage owns membership, ordering, and recovery state.
