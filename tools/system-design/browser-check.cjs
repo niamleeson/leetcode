@@ -23,6 +23,16 @@ const articles = JSON.parse(data.slice(data.indexOf('=')+1,data.lastIndexOf('as 
   const ready=async()=>{
     await page.locator('iframe').waitFor({state:'visible'});
     await page.waitForFunction(()=>{const f=document.querySelector('iframe');const d=f?.contentDocument;return d?.querySelector('#markdown') && f.getBoundingClientRect().height>640;});
+    const layout=await page.locator('iframe').evaluate(f=>{
+      const d=f.contentDocument,w=f.contentWindow,content=d.querySelector('#markdown').getBoundingClientRect();
+      return {padding:w.getComputedStyle(d.body).padding,margin:w.getComputedStyle(d.body).margin,
+        left:content.left,width:content.width,frameWidth:f.clientWidth,border:getComputedStyle(f).borderWidth};
+    });
+    assert.equal(layout.padding,'0px');
+    assert.equal(layout.margin,'0px');
+    assert.equal(layout.border,'0px');
+    assert.equal(layout.left,0);
+    assert.ok(Math.abs(layout.width-layout.frameWidth)<=1);
     return page.frameLocator('iframe');
   };
   try {
@@ -97,6 +107,9 @@ const articles = JSON.parse(data.slice(data.indexOf('=')+1,data.lastIndexOf('as 
       assert.equal(check.missing,0,article.title);
       assert.equal(check.closed,0,article.title);
       assert.equal(check.excluded,false,article.title);
+      await page.setViewportSize({width:390,height:844});
+      assert.ok(await page.locator('iframe').evaluate(f=>f.contentDocument.documentElement.scrollWidth<=f.clientWidth+1),article.title+' full article mobile');
+      await page.setViewportSize({width:1280,height:900});
     }
     let noteImages=0;
     for(const article of articles) {
@@ -107,14 +120,14 @@ const articles = JSON.parse(data.slice(data.indexOf('=')+1,data.lastIndexOf('as 
       assert.deepEqual(await note.locator('h3,h4').allTextContents(),expected.sections.map(s=>s.title),article.title);
       assert.deepEqual(await note.locator('li').allTextContents(),expected.sections.flatMap(s=>[
         ...s.points.map(p=>'-'+p),
-        ...s.flows.flatMap(flow=>flow.steps.map((step,i)=>`-Step ${i+1}: ${step}`)),
+        ...s.flows.flatMap(flow=>flow.steps.map((step,i)=>`-${i+1}. ${step}`)),
       ]),article.title);
       const flows=expected.sections.flatMap(s=>s.flows);
       assert.ok(flows.length>0,article.title+' has process flows');
       assert.equal(await note.getByRole('group').count(),flows.length,article.title);
       for(const flow of flows) {
         const group=note.getByRole('group',{name:flow.title+' process',exact:true});
-        assert.deepEqual(await group.locator('li').allTextContents(),flow.steps.map((step,i)=>`-Step ${i+1}: ${step}`),article.title+' / '+flow.title);
+        assert.deepEqual(await group.locator('li').allTextContents(),flow.steps.map((step,i)=>`-${i+1}. ${step}`),article.title+' / '+flow.title);
       }
       const download=await page.request.get(new URL(`system-design/notes/${article.slug}.txt`,base).href);
       assert.ok(download.ok(),article.title+' text download');

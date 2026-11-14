@@ -32,12 +32,12 @@ High-Level Design
 - Preserve sample timestamps so delayed uploads do not distort the route or duration.
 
 Process: Record and synchronize an activity
-- Step 1: The user starts an activity; the phone creates a local activity identity and persists recording state before collecting samples.
-- Step 2: GPS samples receive timestamps and sequence numbers, are stored locally, and update the displayed route, distance, and time immediately.
-- Step 3: When connected, the client creates or resolves the remote activity ID and sends batches of unacknowledged samples.
-- Step 4: The ingestion service verifies ownership and stores or durably queues samples with deduplication keys, then acknowledges accepted batches.
-- Step 5: The phone marks only acknowledged batches as synchronized; after disconnecting it continues recording and retries the rest later.
-- Step 6: On stop, the client uploads remaining samples and requests finalization. The backend verifies required data before publishing a completed activity.
+- 1. The user starts an activity; the phone creates a local activity identity and persists recording state before collecting samples.
+- 2. GPS samples receive timestamps and sequence numbers, are stored locally, and update the displayed route, distance, and time immediately.
+- 3. When connected, the client creates or resolves the remote activity ID and sends batches of unacknowledged samples.
+- 4. The ingestion service verifies ownership and stores or durably queues samples with deduplication keys, then acknowledges accepted batches.
+- 5. The phone marks only acknowledged batches as synchronized; after disconnecting it continues recording and retries the rest later.
+- 6. On stop, the client uploads remaining samples and requests finalization. The backend verifies required data before publishing a completed activity.
 
 2) Read completed activities
 - Finalization triggers processing to calculate summaries and prepare route data for efficient reads.
@@ -45,11 +45,11 @@ Process: Record and synchronize an activity
 - Check activity visibility before serving routes or sharing location information with friends.
 
 Process: Process and read a completed route
-- Step 1: A finalized activity event queues summary and route-processing work.
-- Step 2: Workers read the ordered samples, account for pauses, and derive distance, duration, display geometry, and any segment results.
-- Step 3: They persist the derived data before marking that processing stage complete; repeated attempts replace or deduplicate the same activity version.
-- Step 4: The reader requests activity details, and the service checks visibility before returning summary and route references.
-- Step 5: The client renders the summary and fetches the appropriate route resolution; leaderboard updates follow from validated segment results asynchronously.
+- 1. A finalized activity event queues summary and route-processing work.
+- 2. Workers read the ordered samples, account for pauses, and derive distance, duration, display geometry, and any segment results.
+- 3. They persist the derived data before marking that processing stage complete; repeated attempts replace or deduplicate the same activity version.
+- 4. The reader requests activity details, and the service checks visibility before returning summary and route references.
+- 5. The client renders the summary and fetches the appropriate route resolution; leaderboard updates follow from validated segment results asynchronously.
 
 Deep Dives
 

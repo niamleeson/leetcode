@@ -32,11 +32,11 @@ High-Level Design
 - Do not reserve a driver merely because a rider requests a quote.
 
 Process: Create a ride request from a fare estimate
-- Step 1: The rider sends pickup and destination to pricing, which obtains the route/time inputs needed for an estimate.
-- Step 2: Pricing returns a quote and validity context; this does not reserve a driver.
-- Step 3: The rider confirms with the quote and an idempotency key, and the ride service validates the current request.
-- Step 4: The service commits a requested ride and reliable matching work before returning the ride ID.
-- Step 5: The rider subscribes to status or polls that ID while matching proceeds asynchronously.
+- 1. The rider sends pickup and destination to pricing, which obtains the route/time inputs needed for an estimate.
+- 2. Pricing returns a quote and validity context; this does not reserve a driver.
+- 3. The rider confirms with the quote and an idempotency key, and the ride service validates the current request.
+- 4. The service commits a requested ride and reliable matching work before returning the ride ID.
+- 5. The rider subscribes to status or polls that ID while matching proceeds asynchronously.
 
 2) Match and accept
 - Query a geographic index for nearby available drivers and rank candidates using distance, travel time, and policy.
@@ -45,12 +45,12 @@ Process: Create a ride request from a fare estimate
 - Delayed acceptance must include the current offer token so an expired offer cannot steal a newer assignment.
 
 Process: Offer a ride and commit an assignment
-- Step 1: A matcher claims a durable ride request and queries the location index for fresh, available nearby drivers.
-- Step 2: It ranks a bounded candidate set and atomically changes one candidate from available to offered under a unique offer token and deadline.
-- Step 3: The notification path delivers that offer to the driver's active client.
-- Step 4: The driver accepts the specific token; the service verifies current ownership, offer expiry, and ride state.
-- Step 5: It commits the matching ride and driver assignment through the selected consistency boundary before announcing an assigned trip.
-- Step 6: A decline or timeout conditionally releases only that current offer and retries another candidate. A delayed acceptance for an older token is rejected.
+- 1. A matcher claims a durable ride request and queries the location index for fresh, available nearby drivers.
+- 2. It ranks a bounded candidate set and atomically changes one candidate from available to offered under a unique offer token and deadline.
+- 3. The notification path delivers that offer to the driver's active client.
+- 4. The driver accepts the specific token; the service verifies current ownership, offer expiry, and ride state.
+- 5. It commits the matching ride and driver assignment through the selected consistency boundary before announcing an assigned trip.
+- 6. A decline or timeout conditionally releases only that current offer and retries another candidate. A delayed acceptance for an older token is rejected.
 
 Deep Dives
 
@@ -61,11 +61,11 @@ Deep Dives
 - Keep high-frequency location state separate from durable trip records so location writes do not overwhelm transactional storage.
 
 Process: Refresh a driver's searchable position
-- Step 1: The driver's client sends coordinates with a timestamp or sequence and authenticated driver identity.
-- Step 2: The location service validates the sample and discards updates superseded by a newer accepted position.
-- Step 3: It updates the driver's latest location and geographic-cell membership, removing stale membership as needed.
-- Step 4: Nearby-driver searches inspect the relevant and adjacent cells, then filter out old samples and unavailable drivers.
-- Step 5: Final matching still atomically claims availability; appearing in a geographic search result is not itself an assignment.
+- 1. The driver's client sends coordinates with a timestamp or sequence and authenticated driver identity.
+- 2. The location service validates the sample and discards updates superseded by a newer accepted position.
+- 3. It updates the driver's latest location and geographic-cell membership, removing stale membership as needed.
+- 4. Nearby-driver searches inspect the relevant and adjacent cells, then filter out old samples and unavailable drivers.
+- 5. Final matching still atomically claims availability; appearing in a geographic search result is not itself an assignment.
 
 2) Manage update volume
 - Adjust reporting frequency to motion and activity; an idle driver need not send identical coordinates continuously.

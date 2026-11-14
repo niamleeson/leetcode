@@ -1,7 +1,7 @@
 [
   {
     "slug": "bitly",
-    "words": 1786,
+    "words": 1768,
     "sections": 13,
     "points": 80,
     "processes": 3,
@@ -10,7 +10,7 @@
   },
   {
     "slug": "dropbox",
-    "words": 1344,
+    "words": 1320,
     "sections": 14,
     "points": 70,
     "processes": 4,
@@ -19,7 +19,7 @@
   },
   {
     "slug": "yelp",
-    "words": 988,
+    "words": 976,
     "sections": 14,
     "points": 54,
     "processes": 2,
@@ -28,7 +28,7 @@
   },
   {
     "slug": "local-delivery-service",
-    "words": 896,
+    "words": 883,
     "sections": 12,
     "points": 51,
     "processes": 2,
@@ -37,7 +37,7 @@
   },
   {
     "slug": "ticketmaster",
-    "words": 1057,
+    "words": 1040,
     "sections": 14,
     "points": 60,
     "processes": 3,
@@ -46,7 +46,7 @@
   },
   {
     "slug": "instagram",
-    "words": 929,
+    "words": 917,
     "sections": 14,
     "points": 54,
     "processes": 2,
@@ -55,7 +55,7 @@
   },
   {
     "slug": "fb-news-feed",
-    "words": 904,
+    "words": 892,
     "sections": 13,
     "points": 52,
     "processes": 2,
@@ -64,7 +64,7 @@
   },
   {
     "slug": "tinder",
-    "words": 870,
+    "words": 859,
     "sections": 13,
     "points": 52,
     "processes": 2,
@@ -73,7 +73,7 @@
   },
   {
     "slug": "leetcode",
-    "words": 923,
+    "words": 911,
     "sections": 15,
     "points": 58,
     "processes": 2,
@@ -82,7 +82,7 @@
   },
   {
     "slug": "whatsapp",
-    "words": 1009,
+    "words": 992,
     "sections": 13,
     "points": 56,
     "processes": 3,
@@ -91,7 +91,7 @@
   },
   {
     "slug": "strava",
-    "words": 820,
+    "words": 809,
     "sections": 14,
     "points": 50,
     "processes": 2,
@@ -100,7 +100,7 @@
   },
   {
     "slug": "distributed-cache",
-    "words": 845,
+    "words": 834,
     "sections": 14,
     "points": 49,
     "processes": 2,
@@ -109,7 +109,7 @@
   },
   {
     "slug": "rate-limiter",
-    "words": 872,
+    "words": 862,
     "sections": 15,
     "points": 51,
     "processes": 2,
@@ -118,7 +118,7 @@
   },
   {
     "slug": "online-auction",
-    "words": 854,
+    "words": 843,
     "sections": 14,
     "points": 50,
     "processes": 2,
@@ -127,7 +127,7 @@
   },
   {
     "slug": "youtube",
-    "words": 840,
+    "words": 829,
     "sections": 14,
     "points": 53,
     "processes": 2,
@@ -136,7 +136,7 @@
   },
   {
     "slug": "job-scheduler",
-    "words": 873,
+    "words": 862,
     "sections": 13,
     "points": 50,
     "processes": 2,
@@ -145,7 +145,7 @@
   },
   {
     "slug": "fb-live-comments",
-    "words": 797,
+    "words": 787,
     "sections": 13,
     "points": 49,
     "processes": 2,
@@ -154,7 +154,7 @@
   },
   {
     "slug": "news-aggregator",
-    "words": 865,
+    "words": 854,
     "sections": 14,
     "points": 53,
     "processes": 2,
@@ -163,7 +163,7 @@
   },
   {
     "slug": "price-tracking-service",
-    "words": 891,
+    "words": 877,
     "sections": 14,
     "points": 55,
     "processes": 3,
@@ -172,7 +172,7 @@
   },
   {
     "slug": "notification-system",
-    "words": 918,
+    "words": 902,
     "sections": 14,
     "points": 56,
     "processes": 3,
@@ -181,7 +181,7 @@
   },
   {
     "slug": "youtube-top-k",
-    "words": 954,
+    "words": 939,
     "sections": 14,
     "points": 54,
     "processes": 3,
@@ -190,7 +190,7 @@
   },
   {
     "slug": "uber",
-    "words": 913,
+    "words": 897,
     "sections": 14,
     "points": 56,
     "processes": 3,
@@ -199,7 +199,7 @@
   },
   {
     "slug": "robinhood",
-    "words": 937,
+    "words": 920,
     "sections": 13,
     "points": 55,
     "processes": 3,
@@ -208,7 +208,7 @@
   },
   {
     "slug": "google-docs",
-    "words": 958,
+    "words": 942,
     "sections": 13,
     "points": 54,
     "processes": 3,
@@ -217,7 +217,7 @@
   },
   {
     "slug": "web-crawler",
-    "words": 821,
+    "words": 810,
     "sections": 11,
     "points": 48,
     "processes": 2,
@@ -226,7 +226,7 @@
   },
   {
     "slug": "ad-click-aggregator",
-    "words": 825,
+    "words": 814,
     "sections": 14,
     "points": 50,
     "processes": 2,
@@ -235,7 +235,7 @@
   },
   {
     "slug": "fb-post-search",
-    "words": 826,
+    "words": 815,
     "sections": 15,
     "points": 51,
     "processes": 2,
@@ -244,7 +244,7 @@
   },
   {
     "slug": "payment-system",
-    "words": 994,
+    "words": 977,
     "sections": 14,
     "points": 59,
     "processes": 3,
@@ -253,7 +253,7 @@
   },
   {
     "slug": "metrics-monitoring",
-    "words": 863,
+    "words": 849,
     "sections": 14,
     "points": 53,
     "processes": 3,
@@ -262,7 +262,7 @@
   },
   {
     "slug": "online-chess",
-    "words": 947,
+    "words": 931,
     "sections": 15,
     "points": 58,
     "processes": 3,
@@ -271,7 +271,7 @@
   },
   {
     "slug": "chatgpt",
-    "words": 1033,
+    "words": 1016,
     "sections": 14,
     "points": 59,
     "processes": 3,
@@ -280,7 +280,7 @@
   },
   {
     "slug": "flash-sale",
-    "words": 994,
+    "words": 977,
     "sections": 14,
     "points": 60,
     "processes": 3,
@@ -289,7 +289,7 @@
   },
   {
     "slug": "real-time-updates",
-    "words": 857,
+    "words": 847,
     "sections": 13,
     "points": 46,
     "processes": 2,
@@ -298,7 +298,7 @@
   },
   {
     "slug": "dealing-with-contention",
-    "words": 922,
+    "words": 907,
     "sections": 10,
     "points": 48,
     "processes": 3,
@@ -307,7 +307,7 @@
   },
   {
     "slug": "multi-step-processes",
-    "words": 795,
+    "words": 784,
     "sections": 12,
     "points": 45,
     "processes": 2,
@@ -316,7 +316,7 @@
   },
   {
     "slug": "scaling-reads",
-    "words": 819,
+    "words": 808,
     "sections": 12,
     "points": 45,
     "processes": 2,
@@ -325,7 +325,7 @@
   },
   {
     "slug": "scaling-writes",
-    "words": 764,
+    "words": 754,
     "sections": 11,
     "points": 43,
     "processes": 2,
@@ -334,7 +334,7 @@
   },
   {
     "slug": "handling-large-blobs",
-    "words": 836,
+    "words": 820,
     "sections": 10,
     "points": 48,
     "processes": 3,
@@ -343,7 +343,7 @@
   },
   {
     "slug": "managing-long-running-tasks",
-    "words": 742,
+    "words": 731,
     "sections": 13,
     "points": 44,
     "processes": 2,
@@ -352,7 +352,7 @@
   },
   {
     "slug": "redis",
-    "words": 817,
+    "words": 807,
     "sections": 9,
     "points": 43,
     "processes": 2,
@@ -361,7 +361,7 @@
   },
   {
     "slug": "elasticsearch",
-    "words": 793,
+    "words": 782,
     "sections": 10,
     "points": 45,
     "processes": 2,
@@ -370,7 +370,7 @@
   },
   {
     "slug": "kafka",
-    "words": 772,
+    "words": 761,
     "sections": 8,
     "points": 41,
     "processes": 2,
@@ -379,7 +379,7 @@
   },
   {
     "slug": "temporal",
-    "words": 748,
+    "words": 737,
     "sections": 10,
     "points": 42,
     "processes": 2,
@@ -388,7 +388,7 @@
   },
   {
     "slug": "api-gateway",
-    "words": 697,
+    "words": 690,
     "sections": 10,
     "points": 39,
     "processes": 1,
@@ -397,7 +397,7 @@
   },
   {
     "slug": "cassandra",
-    "words": 781,
+    "words": 769,
     "sections": 9,
     "points": 44,
     "processes": 2,
@@ -406,7 +406,7 @@
   },
   {
     "slug": "dynamodb",
-    "words": 741,
+    "words": 730,
     "sections": 8,
     "points": 41,
     "processes": 2,
@@ -415,7 +415,7 @@
   },
   {
     "slug": "postgresql",
-    "words": 835,
+    "words": 824,
     "sections": 9,
     "points": 47,
     "processes": 2,
@@ -424,7 +424,7 @@
   },
   {
     "slug": "flink",
-    "words": 802,
+    "words": 790,
     "sections": 9,
     "points": 47,
     "processes": 2,
@@ -433,7 +433,7 @@
   },
   {
     "slug": "zookeeper",
-    "words": 795,
+    "words": 784,
     "sections": 10,
     "points": 43,
     "processes": 2,

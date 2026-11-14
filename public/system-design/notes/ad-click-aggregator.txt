@@ -31,11 +31,11 @@ High-Level Design
 - Define the failure policy if durable ingestion is unavailable; fast redirects and guaranteed recording can conflict during an outage.
 
 Process: Record a click before redirecting
-- Step 1: The browser calls the click endpoint with the ad identity and applicable event information.
-- Step 2: The service validates the ad and reads its authorized destination; it does not trust an unrestricted redirect URL supplied by the browser.
-- Step 3: It creates a stable click event and waits for the selected durable-ingestion acknowledgement when recording is required before success.
-- Step 4: It returns the redirect response and the browser separately requests the advertiser's destination.
-- Step 5: Aggregation consumes the event later. If durable ingestion fails, the endpoint follows its explicit availability-versus-recording policy instead of claiming the click was safely recorded.
+- 1. The browser calls the click endpoint with the ad identity and applicable event information.
+- 2. The service validates the ad and reads its authorized destination; it does not trust an unrestricted redirect URL supplied by the browser.
+- 3. It creates a stable click event and waits for the selected durable-ingestion acknowledgement when recording is required before success.
+- 4. It returns the redirect response and the browser separately requests the advertiser's destination.
+- 5. Aggregation consumes the event later. If durable ingestion fails, the endpoint follows its explicit availability-versus-recording policy instead of claiming the click was safely recorded.
 
 2) Aggregation
 - Scanning raw clicks for every query is simple but expensive as history grows.
@@ -44,12 +44,12 @@ Process: Record a click before redirecting
 - Store raw events independently so aggregate bugs or failures can be repaired by replay.
 
 Process: Materialize a minute of click counts
-- Step 1: A processor reads click events from the durable log using its recoverable position.
-- Step 2: It removes delivery duplicates according to the counting contract and assigns accepted events to ad/time windows.
-- Step 3: It updates recoverable window state, combining salted partial counts if a hot ad is distributed across workers.
-- Step 4: It writes minute aggregates through an idempotent or checkpoint-compatible sink, with the defined policy for late events.
-- Step 5: Only after the processing state and output are recoverable does it advance the corresponding committed progress.
-- Step 6: Query requests read the materialized buckets; reconciliation can rebuild affected windows from the raw archive without adding the same history twice.
+- 1. A processor reads click events from the durable log using its recoverable position.
+- 2. It removes delivery duplicates according to the counting contract and assigns accepted events to ad/time windows.
+- 3. It updates recoverable window state, combining salted partial counts if a hot ad is distributed across workers.
+- 4. It writes minute aggregates through an idempotent or checkpoint-compatible sink, with the defined policy for late events.
+- 5. Only after the processing state and output are recoverable does it advance the corresponding committed progress.
+- 6. Query requests read the materialized buckets; reconciliation can rebuild affected windows from the raw archive without adding the same history twice.
 
 Deep Dives
 

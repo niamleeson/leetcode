@@ -14,12 +14,12 @@ The Solution
 - Signed URLs grant bounded access to a particular operation and object, not unrestricted storage credentials.
 
 Process: Upload bytes without proxying them through the application
-- Step 1: The client submits expected file metadata to the application service.
-- Step 2: The service authenticates ownership, checks quotas and limits, and commits pending upload metadata.
-- Step 3: It issues a short-lived signed transfer authorization scoped to the intended object and operation.
-- Step 4: The client uploads bytes directly to storage, then reports completion or waits for a trusted storage event.
-- Step 5: The backend verifies the completed object using provider evidence and conditionally marks metadata ready.
-- Step 6: Downstream processing and access are enabled from that committed ready state; an unverified client completion message is insufficient.
+- 1. The client submits expected file metadata to the application service.
+- 2. The service authenticates ownership, checks quotas and limits, and commits pending upload metadata.
+- 3. It issues a short-lived signed transfer authorization scoped to the intended object and operation.
+- 4. The client uploads bytes directly to storage, then reports completion or waits for a trusted storage event.
+- 5. The backend verifies the completed object using provider evidence and conditionally marks metadata ready.
+- 6. Downstream processing and access are enabled from that committed ready state; an unverified client completion message is insufficient.
 
 2) Direct download
 - Authenticate the caller and check object permissions before issuing a signed download URL.
@@ -28,11 +28,11 @@ Process: Upload bytes without proxying them through the application
 - A previously issued bearer URL may remain valid until expiry, even if the application later changes permissions.
 
 Process: Authorize a private download
-- Step 1: The client requests access to a specific object/version from the application service.
-- Step 2: The service checks current ownership or sharing permission and confirms that the object is ready.
-- Step 3: It returns a short-lived signed storage or CDN URL with the appropriate restrictions.
-- Step 4: The client requests bytes directly through that URL; the serving layer verifies its signature, scope, and expiry.
-- Step 5: A cache miss retrieves the object from the origin under the serving policy, without sending file bytes through the application API.
+- 1. The client requests access to a specific object/version from the application service.
+- 2. The service checks current ownership or sharing permission and confirms that the object is ready.
+- 3. It returns a short-lived signed storage or CDN URL with the appropriate restrictions.
+- 4. The client requests bytes directly through that URL; the serving layer verifies its signature, scope, and expiry.
+- 5. A cache miss retrieves the object from the origin under the serving policy, without sending file bytes through the application API.
 
 3) Resumable uploads
 - Split the upload into numbered parts and track an upload ID plus confirmed part metadata.
@@ -41,11 +41,11 @@ Process: Authorize a private download
 - Expire abandoned upload sessions and remove incomplete parts to control storage cost.
 
 Process: Retry only the unfinished parts
-- Step 1: The backend creates a multipart session and returns its identity plus authorized part-upload instructions.
-- Step 2: The client uploads parts with stable numbers and records provider-confirmed part identifiers.
-- Step 3: After interruption, the client and backend recover the same session and obtain the provider-verified set of existing parts.
-- Step 4: Only missing parts are retransmitted; the backend validates the part set and requests final assembly.
-- Step 5: It confirms the finalized object before marking the application record ready and eventually cleans up abandoned sessions separately.
+- 1. The backend creates a multipart session and returns its identity plus authorized part-upload instructions.
+- 2. The client uploads parts with stable numbers and records provider-confirmed part identifiers.
+- 3. After interruption, the client and backend recover the same session and obtain the provider-verified set of existing parts.
+- 4. Only missing parts are retransmitted; the backend validates the part set and requests final assembly.
+- 5. It confirms the finalized object before marking the application record ready and eventually cleans up abandoned sessions separately.
 
 4) State synchronization
 - Database metadata and object storage do not share one transaction, so pending and completed states are necessary.

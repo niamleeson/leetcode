@@ -32,12 +32,12 @@ High-Level Design
 - Record provider acceptance and callbacks separately from the initial API acknowledgement.
 
 Process: Accept and deliver a notification
-- Step 1: The sending service submits recipient, template, payload, channel, schedule, and idempotency key to the API.
-- Step 2: The API authenticates the sender and commits the notification plus recoverable publication state before returning its ID.
-- Step 3: Immediate work is enqueued now; scheduled work remains durable until the scheduler marks it due and publishes it.
-- Step 4: A priority-aware worker claims the task, checks the user's current preferences, and renders the authorized template.
-- Step 5: The worker sends to the provider using a stable provider idempotency key when supported and records the provider outcome.
-- Step 6: Only after durable outcome recording does it acknowledge queue delivery. Provider acceptance and final recipient delivery remain different states.
+- 1. The sending service submits recipient, template, payload, channel, schedule, and idempotency key to the API.
+- 2. The API authenticates the sender and commits the notification plus recoverable publication state before returning its ID.
+- 3. Immediate work is enqueued now; scheduled work remains durable until the scheduler marks it due and publishes it.
+- 4. A priority-aware worker claims the task, checks the user's current preferences, and renders the authorized template.
+- 5. The worker sends to the provider using a stable provider idempotency key when supported and records the provider outcome.
+- 6. Only after durable outcome recording does it acknowledge queue delivery. Provider acceptance and final recipient delivery remain different states.
 
 2) Campaign expansion
 - Resolve the target segment and expand it into bounded batches of recipient work.
@@ -45,11 +45,11 @@ Process: Accept and deliver a notification
 - Keep campaign throughput separate from transactional delivery capacity.
 
 Process: Expand a campaign without starving urgent messages
-- Step 1: The campaign service commits the campaign definition and a stable segment snapshot or defined recipient-selection policy.
-- Step 2: An expander reads a bounded recipient batch from its saved cursor.
-- Step 3: It creates deduplicated recipient notification intents and commits expansion progress so restarting cannot silently skip the batch.
-- Step 4: A reliable publisher sends those intents to the bulk path, while urgent transactional work retains its reserved queue or worker capacity.
-- Step 5: Delivery workers apply provider limits and current preferences for each recipient; campaign progress counts durable outcomes rather than merely queued messages.
+- 1. The campaign service commits the campaign definition and a stable segment snapshot or defined recipient-selection policy.
+- 2. An expander reads a bounded recipient batch from its saved cursor.
+- 3. It creates deduplicated recipient notification intents and commits expansion progress so restarting cannot silently skip the batch.
+- 4. A reliable publisher sends those intents to the bulk path, while urgent transactional work retains its reserved queue or worker capacity.
+- 5. Delivery workers apply provider limits and current preferences for each recipient; campaign progress counts durable outcomes rather than merely queued messages.
 
 3) Preferences
 - Store preferences centrally and cache them with an explicit freshness policy.
@@ -77,11 +77,11 @@ Deep Dives
 - Use provider idempotency or status lookup when supported, and reconcile ambiguous outcomes instead of promising universal exactly-once delivery.
 
 Process: Recover an ambiguous provider send
-- Step 1: A worker times out after sending, so it cannot tell whether the provider accepted the message.
-- Step 2: It records the uncertain attempt with its provider request identity instead of immediately marking it definitely failed.
-- Step 3: It queries provider status or retries with the provider's supported idempotency key to resolve the same logical send.
-- Step 4: It persists the resolved outcome before acknowledging or rescheduling the task.
-- Step 5: If the provider offers neither deduplication nor status lookup, the service follows an explicit duplicate-risk policy rather than claiming guaranteed exactly-once delivery.
+- 1. A worker times out after sending, so it cannot tell whether the provider accepted the message.
+- 2. It records the uncertain attempt with its provider request identity instead of immediately marking it definitely failed.
+- 3. It queries provider status or retries with the provider's supported idempotency key to resolve the same logical send.
+- 4. It persists the resolved outcome before acknowledging or rescheduling the task.
+- 5. If the provider offers neither deduplication nor status lookup, the service follows an explicit duplicate-risk policy rather than claiming guaranteed exactly-once delivery.
 
 Final Design
 - Durable request storage and reliable queue publication form the acceptance boundary.

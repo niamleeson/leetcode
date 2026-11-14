@@ -32,11 +32,11 @@ High-Level Design
 - Index history by product and time; serve a bounded number of chart points rather than every raw observation.
 
 Process: Collect and verify a price observation
-- Step 1: A scheduler, source interface, or browser extension supplies a product observation with price, currency, time, and provenance.
-- Step 2: The ingestion service normalizes product identity and validates the format, rate limits, and plausible value range.
-- Step 3: Untrusted or anomalous observations enter verification; they do not immediately replace the authoritative price or trigger alerts.
-- Step 4: The service persists a verified observation and compares it with the previous accepted price.
-- Step 5: A real change produces a durable price-change event for history projections and subscription evaluation; duplicates retain the same event identity.
+- 1. A scheduler, source interface, or browser extension supplies a product observation with price, currency, time, and provenance.
+- 2. The ingestion service normalizes product identity and validates the format, rate limits, and plausible value range.
+- 3. Untrusted or anomalous observations enter verification; they do not immediately replace the authoritative price or trigger alerts.
+- 4. The service persists a verified observation and compares it with the previous accepted price.
+- 5. A real change produces a durable price-change event for history projections and subscription evaluation; duplicates retain the same event identity.
 
 2) Subscriptions and alerts
 - Store subscriptions indexed by product and threshold so a price change can locate eligible subscribers.
@@ -64,11 +64,11 @@ Deep Dives
 - Retry provider failures with backoff and retain a terminal failure state for inspection.
 
 Process: Send a threshold-crossing alert
-- Step 1: A consumer receives a verified price-change event and looks up subscriptions for that product whose thresholds may be satisfied.
-- Step 2: It checks each subscription's alert semantics, such as crossing from above the threshold to at or below it.
-- Step 3: It records a deduplicated notification intent keyed by subscription and qualifying event, then reliably enqueues delivery work.
-- Step 4: A delivery worker rechecks active preferences, sends through the chosen provider, and records the attempt outcome.
-- Step 5: Transient failures retry with the same logical notification identity; already applied events do not generate another alert merely because queue delivery repeated.
+- 1. A consumer receives a verified price-change event and looks up subscriptions for that product whose thresholds may be satisfied.
+- 2. It checks each subscription's alert semantics, such as crossing from above the threshold to at or below it.
+- 3. It records a deduplicated notification intent keyed by subscription and qualifying event, then reliably enqueues delivery work.
+- 4. A delivery worker rechecks active preferences, sends through the chosen provider, and records the attempt outcome.
+- 5. Transient failures retry with the same logical notification identity; already applied events do not generate another alert merely because queue delivery repeated.
 
 4) Fast historical charts
 - Partition time-series data by product and time to keep range scans bounded.
@@ -77,10 +77,10 @@ Process: Send a threshold-crossing alert
 - Preserve meaningful minima and maxima when downsampling so a short-lived price drop is not erased.
 
 Process: Return chart data at a useful resolution
-- Step 1: The client requests a product, time range, and desired chart resolution.
-- Step 2: The query service checks a compatible cached result, then selects raw data or an appropriate rollup for that range.
-- Step 3: It reads bounded product/time partitions and preserves the aggregates needed to represent meaningful price changes.
-- Step 4: It returns ordered points and resolution metadata; the client renders the chart without downloading every raw observation.
+- 1. The client requests a product, time range, and desired chart resolution.
+- 2. The query service checks a compatible cached result, then selects raw data or an appropriate rollup for that range.
+- 3. It reads bounded product/time partitions and preserves the aggregates needed to represent meaningful price changes.
+- 4. It returns ordered points and resolution metadata; the client renders the chart without downloading every raw observation.
 
 Final Design
 - Adaptive collection and validation produce trustworthy price-change events.

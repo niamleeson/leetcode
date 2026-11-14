@@ -8,13 +8,13 @@ Core Responsibilities and Request Flow
 - Keep gateway behavior bounded so a common entry point does not become a central business-logic bottleneck.
 
 Process: Route one client request end to end
-- Step 1: A load balancer sends the incoming request to a gateway instance, which terminates or handles the configured transport connection.
-- Step 2: The gateway validates request shape and limits, then applies configured identity, authorization-scope, and rate-limit middleware before expensive backend work.
-- Step 3: It matches the path, method, or routing metadata to a backend service and selects a healthy instance.
-- Step 4: If an authorized compatible response-cache hit is available, it can return that response without calling the backend; otherwise it forwards the request with bounded deadlines and trusted context.
-- Step 5: The backend performs domain validation and business work and returns its result; the gateway does not replace the backend's resource-specific checks.
-- Step 6: The gateway applies configured response headers or transformation, caches only eligible responses under the correct key, and sends the result to the client.
-- Step 7: A backend timeout follows an explicit retry/idempotency policy; the gateway must not blindly retry an uncertain non-idempotent action.
+- 1. A load balancer sends the incoming request to a gateway instance, which terminates or handles the configured transport connection.
+- 2. The gateway validates request shape and limits, then applies configured identity, authorization-scope, and rate-limit middleware before expensive backend work.
+- 3. It matches the path, method, or routing metadata to a backend service and selects a healthy instance.
+- 4. If an authorized compatible response-cache hit is available, it can return that response without calling the backend; otherwise it forwards the request with bounded deadlines and trusted context.
+- 5. The backend performs domain validation and business work and returns its result; the gateway does not replace the backend's resource-specific checks.
+- 6. The gateway applies configured response headers or transformation, caches only eligible responses under the correct key, and sends the result to the client.
+- 7. A backend timeout follows an explicit retry/idempotency policy; the gateway must not blindly retry an uncertain non-idempotent action.
 
 1) Request Validation
 - Check supported routes, methods, required headers, body shape, and request-size limits.

@@ -30,11 +30,11 @@ High-Level Design
 - Track indexing versions so delayed updates cannot overwrite newer content or resurrect deleted posts.
 
 Process: Publish a post into the search index
-- Step 1: The author creates or edits a post through the primary post service, which commits content, visibility, and a version.
-- Step 2: A reliable change stream or outbox publishes that committed version to indexing workers.
-- Step 3: The worker tokenizes the text, computes searchable fields, and writes the search document and postings for the stable post ID.
-- Step 4: Version checks prevent a delayed old update from replacing newer content or undoing a deletion.
-- Step 5: After the search engine's refresh boundary, queries can discover the updated document; primary write acknowledgement can occur before that search visibility.
+- 1. The author creates or edits a post through the primary post service, which commits content, visibility, and a version.
+- 2. A reliable change stream or outbox publishes that committed version to indexing workers.
+- 3. The worker tokenizes the text, computes searchable fields, and writes the search document and postings for the stable post ID.
+- 4. Version checks prevent a delayed old update from replacing newer content or undoing a deletion.
+- 5. After the search engine's refresh boundary, queries can discover the updated document; primary write acknowledgement can occur before that search visibility.
 
 2) Keyword retrieval
 - Full table scans are unsuitable for frequent keyword searches across a large corpus.
@@ -43,12 +43,12 @@ Process: Publish a post into the search index
 - Hydrate selected results from stored search fields or batched primary/cache reads.
 
 Process: Execute a keyword or phrase search
-- Step 1: The client sends query text, filters, sort mode, and continuation data to the search coordinator.
-- Step 2: The coordinator normalizes the query and routes it to the relevant search shards.
-- Step 3: Each shard retrieves term postings, intersects or unions candidates, and checks positions for phrase requirements.
-- Step 4: Shards apply supported filters and return bounded locally ranked candidates with stable sort values.
-- Step 5: The coordinator merges candidates, deduplicates results, and enforces current visibility where stale index data could expose restricted content.
-- Step 6: It hydrates the selected page and returns a cursor containing the ordering context, avoiding a full-corpus scan or unbounded result transfer.
+- 1. The client sends query text, filters, sort mode, and continuation data to the search coordinator.
+- 2. The coordinator normalizes the query and routes it to the relevant search shards.
+- 3. Each shard retrieves term postings, intersects or unions candidates, and checks positions for phrase requirements.
+- 4. Shards apply supported filters and return bounded locally ranked candidates with stable sort values.
+- 5. The coordinator merges candidates, deduplicates results, and enforces current visibility where stale index data could expose restricted content.
+- 6. It hydrates the selected page and returns a cursor containing the ordering context, avoiding a full-corpus scan or unbounded result transfer.
 
 3) Sorting
 - Recency ordering can exploit timestamps and time-partitioned data.

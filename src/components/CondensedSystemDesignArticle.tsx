@@ -33,7 +33,7 @@ export default function CondensedSystemDesignArticle({ slug, title }: { slug: st
         {flows.map(flow => <div key={flow.title} role="group" aria-label={`${flow.title} process`} className="space-y-1 pt-2">
           <p className="font-medium text-white light:text-gray-900">Process: {flow.title}</p>
           <ul className="list-none space-y-1">
-            {flow.steps.map((step, stepIndex) => <li key={stepIndex} className="flex gap-2"><span aria-hidden="true" className="shrink-0">-</span><span className="min-w-0 break-words">Step {stepIndex + 1}: {step}</span></li>)}
+            {flow.steps.map((step, stepIndex) => <li key={stepIndex} className="flex gap-2"><span aria-hidden="true" className="shrink-0">-</span><span className="min-w-0 break-words">{stepIndex + 1}. {step}</span></li>)}
           </ul>
         </div>)}
         {diagrams.map(diagram => {

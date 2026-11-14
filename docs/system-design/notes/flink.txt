@@ -22,12 +22,12 @@ Watermarks and Windows
 - A stalled source partition can hold back watermark progress unless idleness and source behavior are handled appropriately.
 
 Process: Aggregate an event-time window
-- Step 1: A source emits events with timestamps and progress information into the job.
-- Step 2: keyBy routes records with the same logical aggregation key to the responsible keyed operator state.
-- Step 3: The operator assigns each event to its window and updates bounded per-key/window state.
-- Step 4: Watermarks advance according to source/partition progress; when the configured trigger boundary is reached, the operator emits the window result.
-- Step 5: Late events follow allowed-lateness and correction or side-output rules, and eligible state is cleaned up only after those rules permit it.
-- Step 6: The sink publishes the result under its update/idempotency contract, so a corrected or replayed window does not become an accidental duplicate total.
+- 1. A source emits events with timestamps and progress information into the job.
+- 2. keyBy routes records with the same logical aggregation key to the responsible keyed operator state.
+- 3. The operator assigns each event to its window and updates bounded per-key/window state.
+- 4. Watermarks advance according to source/partition progress; when the configured trigger boundary is reached, the operator emits the window result.
+- 5. Late events follow allowed-lateness and correction or side-output rules, and eligible state is cleaned up only after those rules permit it.
+- 6. The sink publishes the result under its update/idempotency contract, so a corrected or replayed window does not become an accidental duplicate total.
 
 Basic Use
 - Define a job graph, configure sources, serializers, state, parallelism, and sinks, then submit it to the cluster.
@@ -50,12 +50,12 @@ State Backends and Checkpoints
 - Savepoints support controlled upgrades or migration, with compatibility and state evolution planned explicitly.
 
 Process: Checkpoint and recover a streaming job
-- Step 1: The checkpoint coordinator initiates a checkpoint, and sources establish recoverable input positions and inject the corresponding barriers.
-- Step 2: Operators follow the configured aligned or unaligned checkpoint protocol to snapshot state consistently with dataflow progress.
-- Step 3: Each task writes its checkpoint state durably and reports completion; compatible sinks stage or record output under their checkpoint protocol.
-- Step 4: The coordinator declares the checkpoint complete after the required participants succeed, enabling supported sink commits and retaining the recoverable boundary.
-- Step 5: After a failure, tasks restore state and source positions from a completed checkpoint and replay later input.
-- Step 6: End-to-end exactly-once effects require a compatible transactional or idempotent sink; an arbitrary external API call can still repeat.
+- 1. The checkpoint coordinator initiates a checkpoint, and sources establish recoverable input positions and inject the corresponding barriers.
+- 2. Operators follow the configured aligned or unaligned checkpoint protocol to snapshot state consistently with dataflow progress.
+- 3. Each task writes its checkpoint state durably and reports completion; compatible sinks stage or record output under their checkpoint protocol.
+- 4. The coordinator declares the checkpoint complete after the required participants succeed, enabling supported sink commits and retaining the recoverable boundary.
+- 5. After a failure, tasks restore state and source positions from a completed checkpoint and replay later input.
+- 6. End-to-end exactly-once effects require a compatible transactional or idempotent sink; an arbitrary external API call can still repeat.
 
 In Your Interview
 - Propose Flink for high-volume continuous computation with event-time or stateful requirements.

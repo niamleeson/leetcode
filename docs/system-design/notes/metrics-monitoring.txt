@@ -32,11 +32,11 @@ High-Level Design
 - Partition by series identity and time while watching for uneven tenants or hot series.
 
 Process: Store a batch of metric samples
-- Step 1: An agent gathers samples with timestamps and labels, or a collector scrapes the service's metrics endpoint.
-- Step 2: The ingestion service authenticates the source and validates metric shape, tenant quotas, and cardinality limits.
-- Step 3: Accepted samples enter bounded durable transport or the storage acknowledgement path required by the product's durability contract.
-- Step 4: Consumers partition samples by series identity and time and write them to the time-series store, applying duplicate and late-sample rules.
-- Step 5: They advance recoverable progress after required output is safe; rollup workers subsequently derive coarser historical resolutions.
+- 1. An agent gathers samples with timestamps and labels, or a collector scrapes the service's metrics endpoint.
+- 2. The ingestion service authenticates the source and validates metric shape, tenant quotas, and cardinality limits.
+- 3. Accepted samples enter bounded durable transport or the storage acknowledgement path required by the product's durability contract.
+- 4. Consumers partition samples by series identity and time and write them to the time-series store, applying duplicate and late-sample rules.
+- 5. They advance recoverable progress after required output is safe; rollup workers subsequently derive coarser historical resolutions.
 
 2) Dashboards
 - A time-series store indexes labels and organizes samples for efficient time-range scans.
@@ -44,10 +44,10 @@ Process: Store a batch of metric samples
 - Cache repeated dashboard queries and avoid repeatedly scanning the same recent windows.
 
 Process: Read a dashboard time range
-- Step 1: The dashboard requests selectors, time range, aggregation, and display resolution.
-- Step 2: The query service selects a compatible cache entry or the raw/rollup partitions appropriate to that resolution.
-- Step 3: It narrows series through label indexes, scans only relevant time partitions, and combines aggregates with correct weights.
-- Step 4: It returns bounded ordered points and freshness information for rendering rather than every raw sample in the interval.
+- 1. The dashboard requests selectors, time range, aggregation, and display resolution.
+- 2. The query service selects a compatible cache entry or the raw/rollup partitions appropriate to that resolution.
+- 3. It narrows series through label indexes, scans only relevant time partitions, and combines aggregates with correct weights.
+- 4. It returns bounded ordered points and freshness information for rendering rather than every raw sample in the interval.
 
 3) Alerts and notifications
 - Evaluate rules on a schedule or a streaming path with explicit handling of missing and delayed data.
@@ -55,11 +55,11 @@ Process: Read a dashboard time range
 - Persist alert state and notify on transitions, with grouping and cooldowns to avoid repeated notification storms.
 
 Process: Evaluate a rule and notify on a transition
-- Step 1: The evaluator loads an enabled rule and determines the time window whose data is sufficiently available for evaluation.
-- Step 2: It queries or consumes the relevant samples and evaluates the threshold with explicit treatment of missing or delayed data.
-- Step 3: It updates durable pending/firing/resolved state, including any required condition duration.
-- Step 4: A qualifying state transition records a deduplicated notification intent; repeated evaluations of the same firing state do not automatically create new notifications.
-- Step 5: Delivery workers group or route alerts and apply retries independently; a missing acknowledgement cannot erase the persisted alert state.
+- 1. The evaluator loads an enabled rule and determines the time window whose data is sufficiently available for evaluation.
+- 2. It queries or consumes the relevant samples and evaluates the threshold with explicit treatment of missing or delayed data.
+- 3. It updates durable pending/firing/resolved state, including any required condition duration.
+- 4. A qualifying state transition records a deduplicated notification intent; repeated evaluations of the same firing state do not automatically create new notifications.
+- 5. Delivery workers group or route alerts and apply retries independently; a missing acknowledgement cannot erase the persisted alert state.
 
 Deep Dives
 

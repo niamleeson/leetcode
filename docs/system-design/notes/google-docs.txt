@@ -31,11 +31,11 @@ High-Level Design
 - Buffer live events during initial loading or use a boundary token so edits are not missed between snapshot and subscription.
 
 Process: Load a document and join collaboration
-- Step 1: The client requests the document; the service checks read/edit permission before returning state or opening an edit channel.
-- Step 2: The synchronization service establishes a snapshot revision and a live-operation boundary, buffering or retaining changes needed during loading.
-- Step 3: The client loads the snapshot and applies operations after its revision in the order required by the chosen collaboration model.
-- Step 4: It merges buffered live operations and acknowledges the last applied position, avoiding a gap between snapshot loading and subscription.
-- Step 5: Presence is registered separately and expires if the session disappears; it is not part of the durable document content.
+- 1. The client requests the document; the service checks read/edit permission before returning state or opening an edit channel.
+- 2. The synchronization service establishes a snapshot revision and a live-operation boundary, buffering or retaining changes needed during loading.
+- 3. The client loads the snapshot and applies operations after its revision in the order required by the chosen collaboration model.
+- 4. It merges buffered live operations and acknowledges the last applied position, avoiding a gap between snapshot loading and subscription.
+- 5. Presence is registered separately and expires if the session disappears; it is not part of the durable document content.
 
 2) Concurrent editing
 - Whole-document replacement allows one client's stale snapshot to overwrite another client's work.
@@ -45,12 +45,12 @@ Process: Load a document and join collaboration
 - Apply edits locally for responsiveness, then reconcile acknowledgements and remote edits using that model.
 
 Process: Apply an edit with a server-ordered OT design
-- Step 1: The client applies the user's edit locally for responsiveness and sends an operation ID plus its base revision.
-- Step 2: The document owner verifies permission and deduplicates a previously accepted operation with the same ID.
-- Step 3: It transforms the operation against intervening accepted operations according to the chosen OT rules and assigns the next authoritative revision.
-- Step 4: The server durably appends the accepted operation before acknowledging the durable revision and broadcasting it to collaborators.
-- Step 5: Other clients transform or reconcile pending local edits and apply the remote operation; the origin reconciles its acknowledgement instead of applying its own insertion twice.
-- Step 6: After disconnecting, a client resumes from its acknowledged revision or a new snapshot. A CRDT-based design uses its causal/merge rules instead of this OT transformation step.
+- 1. The client applies the user's edit locally for responsiveness and sends an operation ID plus its base revision.
+- 2. The document owner verifies permission and deduplicates a previously accepted operation with the same ID.
+- 3. It transforms the operation against intervening accepted operations according to the chosen OT rules and assigns the next authoritative revision.
+- 4. The server durably appends the accepted operation before acknowledging the durable revision and broadcasting it to collaborators.
+- 5. Other clients transform or reconcile pending local edits and apply the remote operation; the origin reconciles its acknowledgement instead of applying its own insertion twice.
+- 6. After disconnecting, a client resumes from its acknowledged revision or a new snapshot. A CRDT-based design uses its causal/merge rules instead of this OT transformation step.
 
 3) Broadcast and presence
 - Route document operations to the collaboration owner or shared document channel and broadcast accepted edits.
@@ -73,11 +73,11 @@ Deep Dives
 - Publish snapshots atomically with their boundary so readers cannot combine a new snapshot with the wrong operation range.
 
 Process: Publish a consistent snapshot
-- Step 1: A snapshot worker chooses a committed document revision as its boundary.
-- Step 2: It reconstructs or captures the document exactly through that revision and writes the snapshot to durable storage.
-- Step 3: It atomically publishes the snapshot reference together with the covered revision after the write succeeds.
-- Step 4: New readers load that snapshot and replay only later operations; they do not combine it with an unrelated log boundary.
-- Step 5: Compaction removes history only after the retention and synchronization rules permit it, preserving metadata still needed by offline clients or the merge algorithm.
+- 1. A snapshot worker chooses a committed document revision as its boundary.
+- 2. It reconstructs or captures the document exactly through that revision and writes the snapshot to durable storage.
+- 3. It atomically publishes the snapshot reference together with the covered revision after the write succeeds.
+- 4. New readers load that snapshot and replay only later operations; they do not combine it with an unrelated log boundary.
+- 5. Compaction removes history only after the retention and synchronization rules permit it, preserving metadata still needed by offline clients or the merge algorithm.
 
 Final Design
 - Durable snapshots and an operation log support recovery and history.

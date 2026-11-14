@@ -33,12 +33,12 @@ High-Level Design
 - Cached availability is advisory; only a successful reservation grants a temporary claim.
 
 Process: Admit a buyer and claim one unit
-- Step 1: The buyer loads cacheable sale details and, when required, joins the waiting room.
-- Step 2: Admission issues a signed token when reservation capacity is available; the token grants access to try, not ownership of inventory.
-- Step 3: The buyer submits a reservation request with admission and idempotency tokens.
-- Step 4: The reservation service verifies sale timing and user limits, then atomically claims an eligible unit or inventory share with owner, version, and expiry.
-- Step 5: If no valid claim succeeds, it returns sold-out or retry feedback without inventing a reservation.
-- Step 6: After durable claim commit, it returns the reservation token and checkout deadline. Other buyers cannot purchase that current claim while it remains valid.
+- 1. The buyer loads cacheable sale details and, when required, joins the waiting room.
+- 2. Admission issues a signed token when reservation capacity is available; the token grants access to try, not ownership of inventory.
+- 3. The buyer submits a reservation request with admission and idempotency tokens.
+- 4. The reservation service verifies sale timing and user limits, then atomically claims an eligible unit or inventory share with owner, version, and expiry.
+- 5. If no valid claim succeeds, it returns sold-out or retry feedback without inventing a reservation.
+- 6. After durable claim commit, it returns the reservation token and checkout deadline. Other buyers cannot purchase that current claim while it remains valid.
 
 2) Complete payment
 - Coordinate payment through durable order state and stable provider idempotency keys.
@@ -47,12 +47,12 @@ Process: Admit a buyer and claim one unit
 - Notify the client asynchronously and allow status recovery after a lost response.
 
 Process: Convert a reservation into a purchase
-- Step 1: The buyer submits checkout for the specific reservation token; the service verifies current owner, version, state, and deadline.
-- Step 2: It records an order/payment attempt and sends payment using the stable provider idempotency key through a recoverable workflow.
-- Step 3: A verified payment outcome resumes the workflow; a timeout remains unresolved until provider lookup or reconciliation determines the result.
-- Step 4: The service conditionally commits purchase only for the reservation state allowed by the chosen expiry/payment policy.
-- Step 5: A payment that cannot be paired with a valid purchase follows the explicit reconciliation or refund path; it must not consume a unit now assigned to someone else.
-- Step 6: The client receives the committed order result and can retrieve it by ID after a lost response.
+- 1. The buyer submits checkout for the specific reservation token; the service verifies current owner, version, state, and deadline.
+- 2. It records an order/payment attempt and sends payment using the stable provider idempotency key through a recoverable workflow.
+- 3. A verified payment outcome resumes the workflow; a timeout remains unresolved until provider lookup or reconciliation determines the result.
+- 4. The service conditionally commits purchase only for the reservation state allowed by the chosen expiry/payment policy.
+- 5. A payment that cannot be paired with a valid purchase follows the explicit reconciliation or refund path; it must not consume a unit now assigned to someone else.
+- 6. The client receives the committed order result and can retrieve it by ID after a lost response.
 
 Deep Dives
 
@@ -70,11 +70,11 @@ Deep Dives
 - Define expiry against authoritative server time and keep terminal purchased state immune to reservation cleanup.
 
 Process: Reclaim a timed-out unit safely
-- Step 1: A scheduled cleanup or new claimant identifies an apparently expired reservation.
-- Step 2: It rereads or conditionally tests authoritative state, expiry, owner, and version together.
-- Step 3: It releases or reclaims only that exact expired version, atomically creating new ownership if this is an on-demand claim.
-- Step 4: A stale cleanup encountering a purchased or replaced reservation does nothing.
-- Step 5: Any late checkout or payment callback must still pass the current-token check before it can affect the unit.
+- 1. A scheduled cleanup or new claimant identifies an apparently expired reservation.
+- 2. It rereads or conditionally tests authoritative state, expiry, owner, and version together.
+- 3. It releases or reclaims only that exact expired version, atomically creating new ownership if this is an on-demand claim.
+- 4. A stale cleanup encountering a purchased or replaced reservation does nothing.
+- 5. Any late checkout or payment callback must still pass the current-token check before it can affect the unit.
 
 3) Crowd admission
 - A basic rate limit protects the backend but gives customers repeated errors and no clear place in line.

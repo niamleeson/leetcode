@@ -36,12 +36,12 @@ High-Level Design
 - A separate read followed by an unconditional write allows lower or competing bids to overwrite each other.
 
 Process: Accept or reject a bid
-- Step 1: The bidder sends auction ID, amount, and an idempotency key to the bid service.
-- Step 2: The service authenticates the bidder and resolves any previously completed request using that key.
-- Step 3: It locks the auction row or uses an expected version, then checks current highest bid, auction state, and authoritative deadline together.
-- Step 4: If the auction is closed or the bid is not high enough, the attempt fails without changing accepted bid history.
-- Step 5: Otherwise the service inserts the bid and updates the auction's highest bid in the same transaction, then commits.
-- Step 6: Only after commit does it acknowledge acceptance and publish the live update. Viewers process the committed ordering/version so an older event cannot move the displayed bid backward.
+- 1. The bidder sends auction ID, amount, and an idempotency key to the bid service.
+- 2. The service authenticates the bidder and resolves any previously completed request using that key.
+- 3. It locks the auction row or uses an expected version, then checks current highest bid, auction state, and authoritative deadline together.
+- 4. If the auction is closed or the bid is not high enough, the attempt fails without changing accepted bid history.
+- 5. Otherwise the service inserts the bid and updates the auction's highest bid in the same transaction, then commits.
+- 6. Only after commit does it acknowledge acceptance and publish the live update. Viewers process the committed ordering/version so an older event cannot move the displayed bid backward.
 
 Deep Dives
 
@@ -58,11 +58,11 @@ Deep Dives
 - Background closing jobs may be delayed, so a stale open flag alone must not allow bids after the end time.
 
 Process: Close an auction and select the winner
-- Step 1: A deadline worker attempts closure; bid acceptance independently checks the deadline so a late worker cannot extend bidding accidentally.
-- Step 2: The worker enters the same serialization boundary used by bids and verifies that the auction has ended and is still open.
-- Step 3: It marks the auction closed and records the highest accepted bidder as the winner, or a no-bids result, in one committed transition.
-- Step 4: A duplicate closing attempt observes the existing terminal result instead of selecting a new winner.
-- Step 5: Notifications and any settlement workflow consume that committed result and retry independently without reopening the auction.
+- 1. A deadline worker attempts closure; bid acceptance independently checks the deadline so a late worker cannot extend bidding accidentally.
+- 2. The worker enters the same serialization boundary used by bids and verifies that the auction has ended and is still open.
+- 3. It marks the auction closed and records the highest accepted bidder as the winner, or a no-bids result, in one committed transition.
+- 4. A duplicate closing attempt observes the existing terminal result instead of selecting a new winner.
+- 5. Notifications and any settlement workflow consume that committed result and retry independently without reopening the auction.
 
 3) Real-time updates
 - Publish accepted bid events to viewers through SSE or WebSockets.

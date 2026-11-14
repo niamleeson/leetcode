@@ -11,11 +11,11 @@ The Solution
 - A unique constraint can enforce one record per logical identity more reliably than a prior application-level existence check.
 
 Process: Claim a resource with compare-and-set
-- Step 1: The service reads the resource's state and version, or expresses the required current-state predicate directly in its write.
-- Step 2: It submits one conditional update, such as available_quantity >= requested_quantity or version = expected_version.
-- Step 3: The database evaluates the predicate and mutation atomically; competing requests cannot both rely on the same unprotected old state.
-- Step 4: The service checks the affected-row count. Success is acknowledged after the write commits; zero rows means the claim did not succeed.
-- Step 5: On a conflict, the service reloads and re-evaluates the business rule before a bounded retry, rather than blindly repeating stale assumptions.
+- 1. The service reads the resource's state and version, or expresses the required current-state predicate directly in its write.
+- 2. It submits one conditional update, such as available_quantity >= requested_quantity or version = expected_version.
+- 3. The database evaluates the predicate and mutation atomically; competing requests cannot both rely on the same unprotected old state.
+- 4. The service checks the affected-row count. Success is acknowledged after the write commits; zero rows means the claim did not succeed.
+- 5. On a conflict, the service reloads and re-evaluates the business rule before a bounded retry, rather than blindly repeating stale assumptions.
 
 2) Pessimistic locking
 - Lock the relevant rows, read their current state, apply the update, and commit a short transaction.
@@ -24,11 +24,11 @@ Process: Claim a resource with compare-and-set
 - Never hold a transaction open while a person checks out or an external network request runs; represent longer claims as durable reservations.
 
 Process: Update related rows with a short lock-holding transaction
-- Step 1: The service begins a transaction and acquires required row locks in a consistent order.
-- Step 2: It reads the locked current values and checks the invariant across all relevant records.
-- Step 3: If validation fails, it rolls back; otherwise it writes the related changes within the same transaction.
-- Step 4: Commit makes the changes durable under the database's configured guarantees and releases the locks.
-- Step 5: Only then does the service acknowledge success or trigger external work; deadlock victims retry the complete transaction against fresh state.
+- 1. The service begins a transaction and acquires required row locks in a consistent order.
+- 2. It reads the locked current values and checks the invariant across all relevant records.
+- 3. If validation fails, it rolls back; otherwise it writes the related changes within the same transaction.
+- 4. Commit makes the changes durable under the database's configured guarantees and releases the locks.
+- 5. Only then does the service acknowledge success or trigger external work; deadlock victims retry the complete transaction against fresh state.
 
 3) Optimistic concurrency control
 - Read state with a version and write only if that version is unchanged.
@@ -49,11 +49,11 @@ Process: Update related rows with a short lock-holding transaction
 - A lock service cannot make an external side effect transactional; downstream idempotency and recovery still matter.
 
 Process: Protect work after a lease changes hands
-- Step 1: A worker acquires a lease with a unique owner token and a monotonically increasing fencing value from the coordinator.
-- Step 2: It includes that fencing value when requesting changes to the protected resource.
-- Step 3: The resource accepts only operations compatible with its latest accepted ownership epoch, rejecting a stale worker that resumes after lease expiry.
-- Step 4: The worker renews while active and releases only if its owner token still matches.
-- Step 5: If renewal fails or ownership is uncertain, it stops issuing new work and reconciles already attempted effects; the lock alone does not undo those effects.
+- 1. A worker acquires a lease with a unique owner token and a monotonically increasing fencing value from the coordinator.
+- 2. It includes that fencing value when requesting changes to the protected resource.
+- 3. The resource accepts only operations compatible with its latest accepted ownership epoch, rejecting a stale worker that resumes after lease expiry.
+- 4. The worker renews while active and releases only if its owner token still matches.
+- 5. If renewal fails or ownership is uncertain, it stops issuing new work and reconciles already attempted effects; the lock alone does not undo those effects.
 
 Choosing the Right Approach
 - Prefer a conditional update for a simple invariant and a database transaction for related records in one store.

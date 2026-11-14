@@ -33,12 +33,12 @@ High-Level Design
 - Distinguish product metadata, which changes slowly, from quantities, which can change on every order.
 
 Process: Determine deliverable inventory
-- Step 1: The customer sends a delivery location and desired products to the availability service.
-- Step 2: The service uses a geographic index to find nearby distribution centers, excluding centers clearly outside the service area.
-- Step 3: If driving-time eligibility is required, it requests travel estimates only for those candidates and selects centers meeting the delivery constraint.
-- Step 4: The service reads each eligible center's inventory through indexed storage or its permitted cache/read-replica path.
-- Step 5: It combines product metadata with center-specific quantities and returns a bounded availability view.
-- Step 6: That view is advisory: checkout repeats the stock check against authoritative state because another order can consume inventory after browsing.
+- 1. The customer sends a delivery location and desired products to the availability service.
+- 2. The service uses a geographic index to find nearby distribution centers, excluding centers clearly outside the service area.
+- 3. If driving-time eligibility is required, it requests travel estimates only for those candidates and selects centers meeting the delivery constraint.
+- 4. The service reads each eligible center's inventory through indexed storage or its permitted cache/read-replica path.
+- 5. It combines product metadata with center-specific quantities and returns a bounded availability view.
+- 6. That view is advisory: checkout repeats the stock check against authoritative state because another order can consume inventory after browsing.
 
 2) Place an order
 - Within one PostgreSQL transaction, verify available quantities, decrement or reserve inventory, and insert the order.
@@ -48,13 +48,13 @@ Process: Determine deliverable inventory
 - Keep payment or other slow external calls outside a long-held inventory transaction; represent longer reservations explicitly if required.
 
 Process: Commit an order without overselling
-- Step 1: The customer submits item quantities, delivery details, and an idempotency key to the order service.
-- Step 2: The service authenticates the customer, resolves an eligible fulfillment center, and returns the existing result if this request was already committed.
-- Step 3: It starts a short database transaction and locks or conditionally updates the relevant inventory rows in a consistent order.
-- Step 4: Within that transaction it rechecks every requested quantity. If any item is unavailable, it rolls back the whole attempt and reports the conflict.
-- Step 5: If all items are available, it decrements or reserves stock and inserts the order and order items under the same transaction.
-- Step 6: The database commits before the service returns the accepted order ID. A lost response can be retried with the same idempotency key.
-- Step 7: Payment or fulfillment work proceeds from the durable order state outside the inventory transaction, with its own retry and compensation rules.
+- 1. The customer submits item quantities, delivery details, and an idempotency key to the order service.
+- 2. The service authenticates the customer, resolves an eligible fulfillment center, and returns the existing result if this request was already committed.
+- 3. It starts a short database transaction and locks or conditionally updates the relevant inventory rows in a consistent order.
+- 4. Within that transaction it rechecks every requested quantity. If any item is unavailable, it rolls back the whole attempt and reports the conflict.
+- 5. If all items are available, it decrements or reserves stock and inserts the order and order items under the same transaction.
+- 6. The database commits before the service returns the accepted order ID. A lost response can be retried with the same idempotency key.
+- 7. Payment or fulfillment work proceeds from the durable order state outside the inventory transaction, with its own retry and compensation rules.
 
 Deep Dives
 

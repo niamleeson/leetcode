@@ -33,12 +33,12 @@ High-Level Design
 - Emit a post-created event after persistence; reliable publication avoids losing feed work when a process crashes after writing the post.
 
 Process: Create a post and distribute feed entries
-- Step 1: The author submits a post to the post service through the authenticated API.
-- Step 2: The service commits the post and a recoverable publication record before acknowledging creation.
-- Step 3: A publisher delivers the post-created event to fanout workers; duplicate delivery retains the same post identity.
-- Step 4: Workers enumerate eligible followers and insert post IDs into their feed lists in bounded, idempotent batches.
-- Step 5: High-follower-count authors can skip broad write fanout under the hybrid policy and be included during reads instead.
-- Step 6: Failed batches retry from recorded progress; a retry does not create duplicate visible entries for the same recipient and post.
+- 1. The author submits a post to the post service through the authenticated API.
+- 2. The service commits the post and a recoverable publication record before acknowledging creation.
+- 3. A publisher delivers the post-created event to fanout workers; duplicate delivery retains the same post identity.
+- 4. Workers enumerate eligible followers and insert post IDs into their feed lists in bounded, idempotent batches.
+- 5. High-follower-count authors can skip broad write fanout under the hybrid policy and be included during reads instead.
+- 6. Failed batches retry from recorded progress; a retry does not create duplicate visible entries for the same recipient and post.
 
 2) Assemble and paginate feeds
 - A simple read-time feed fetches recent posts from followed users and merges the sorted results.
@@ -47,12 +47,12 @@ Process: Create a post and distribute feed entries
 - Keep authoritative posts separate from feed indexes so edits or deletions do not require rewriting every full feed entry.
 
 Process: Assemble the next page
-- Step 1: The reader sends a cursor and page size to the feed service.
-- Step 2: The service reads the reader's precomputed entries and obtains recent posts from followed accounts assigned to read-time fanout.
-- Step 3: It merges those candidate streams using timestamp plus a stable tie-breaker and discards duplicates or inaccessible posts.
-- Step 4: It hydrates selected IDs through the shared post cache, reading the durable post store only for misses.
-- Step 5: It returns the page and continuation key; the client stores that cursor for its next request.
-- Step 6: Newly published posts appear ahead of the cursor rather than shifting an offset and causing the same old items to be returned again.
+- 1. The reader sends a cursor and page size to the feed service.
+- 2. The service reads the reader's precomputed entries and obtains recent posts from followed accounts assigned to read-time fanout.
+- 3. It merges those candidate streams using timestamp plus a stable tie-breaker and discards duplicates or inaccessible posts.
+- 4. It hydrates selected IDs through the shared post cache, reading the durable post store only for misses.
+- 5. It returns the page and continuation key; the client stores that cursor for its next request.
+- 6. Newly published posts appear ahead of the cursor rather than shifting an offset and causing the same old items to be returned again.
 
 Deep Dives
 

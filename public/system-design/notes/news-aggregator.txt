@@ -33,12 +33,12 @@ High-Level Design
 - Clicking an article redirects to its original publisher, keeping the aggregator focused on discovery metadata.
 
 Process: Ingest one publisher update
-- Step 1: The source scheduler selects a publisher whose refresh is due and enqueues a fetch job with its source cursor or conditional-request metadata.
-- Step 2: A worker fetches the source within its rate limits and parses article metadata and publication times.
-- Step 3: It canonicalizes article identities and deduplicates records already seen from earlier fetches.
-- Step 4: The worker commits new or changed articles and advances the source checkpoint only after required data is durable.
-- Step 5: Derived feed indexes and caches receive the committed changes; optional thumbnail fetching or classification runs separately.
-- Step 6: Failed fetches retry with backoff without holding up other publishers or marking an unsuccessful refresh as complete.
+- 1. The source scheduler selects a publisher whose refresh is due and enqueues a fetch job with its source cursor or conditional-request metadata.
+- 2. A worker fetches the source within its rate limits and parses article metadata and publication times.
+- 3. It canonicalizes article identities and deduplicates records already seen from earlier fetches.
+- 4. The worker commits new or changed articles and advances the source checkpoint only after required data is durable.
+- 5. Derived feed indexes and caches receive the committed changes; optional thumbnail fetching or classification runs separately.
+- 6. Failed fetches retry with backoff without holding up other publishers or marking an unsuccessful refresh as complete.
 
 Deep Dives
 
@@ -48,11 +48,11 @@ Deep Dives
 - For mutable rankings, retain a snapshot or ranking-version context, or explicitly accept bounded feed movement.
 
 Process: Serve the next news-feed page
-- Step 1: The reader requests a feed with category/preferences, page size, and a cursor if continuing.
-- Step 2: The feed service resolves the stable sort or ranking context and checks a compatible cached page or candidate set.
-- Step 3: On a miss, it queries the indexed feed after the cursor, applies relevant filters, and selects a bounded result set.
-- Step 4: It hydrates article summaries and returns them with the next stable ordering key and original publisher URLs.
-- Step 5: Selecting an article navigates the reader to the publisher; subsequent feed requests continue from the returned cursor instead of a shifting offset.
+- 1. The reader requests a feed with category/preferences, page size, and a cursor if continuing.
+- 2. The feed service resolves the stable sort or ranking context and checks a compatible cached page or candidate set.
+- 3. On a miss, it queries the indexed feed after the cursor, applies relevant filters, and selects a bounded result set.
+- 4. It hydrates article summaries and returns them with the next stable ordering key and original publisher URLs.
+- 5. Selecting an article navigates the reader to the publisher; subsequent feed requests continue from the returned cursor instead of a shifting offset.
 
 2) Low-latency feeds
 - Index the feed's ordering and filter fields and fetch only the columns required for a page.

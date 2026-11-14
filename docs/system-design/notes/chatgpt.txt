@@ -33,13 +33,13 @@ High-Level Design
 - Keep a lost browser connection from automatically creating another generation on reconnect.
 
 Process: Submit a prompt and generate a response
-- Step 1: The client sends conversation ID, prompt, and an idempotency key to the authenticated chat API.
-- Step 2: The API validates ownership and quota, then persists the user message and a new run with recoverable scheduling state.
-- Step 3: It returns the run ID so the client can connect to that run's output stream; repeated submission with the same key resolves to the existing run.
-- Step 4: The context builder reads committed history and applies token-budget and summarization rules before submitting inference work.
-- Step 5: The scheduler admits the run to an available compatible GPU worker or batch according to capacity and priority.
-- Step 6: The worker generates ordered output chunks and appends them to the chosen replayable stream; connection servers forward those chunks to subscribed clients.
-- Step 7: On completion, the system persists the final assistant message and terminal run state before exposing final completion. Failure and cancellation remain explicit terminal outcomes.
+- 1. The client sends conversation ID, prompt, and an idempotency key to the authenticated chat API.
+- 2. The API validates ownership and quota, then persists the user message and a new run with recoverable scheduling state.
+- 3. It returns the run ID so the client can connect to that run's output stream; repeated submission with the same key resolves to the existing run.
+- 4. The context builder reads committed history and applies token-budget and summarization rules before submitting inference work.
+- 5. The scheduler admits the run to an available compatible GPU worker or batch according to capacity and priority.
+- 6. The worker generates ordered output chunks and appends them to the chosen replayable stream; connection servers forward those chunks to subscribed clients.
+- 7. On completion, the system persists the final assistant message and terminal run state before exposing final completion. Failure and cancellation remain explicit terminal outcomes.
 
 2) History
 - Store messages in conversation order and fetch them with stable pagination.
@@ -60,11 +60,11 @@ Deep Dives
 - Persist final output separately and define retention limits; clients older than the replay window fetch the saved result or current snapshot.
 
 Process: Resume an interrupted output stream
-- Step 1: The browser loses its SSE or WebSocket connection while the run continues independently of the connection server.
-- Step 2: It reconnects using the same run ID and its last applied event cursor instead of resubmitting the prompt.
-- Step 3: The gateway authenticates access and replays retained events after the cursor from the run's stream.
-- Step 4: The client deduplicates any overlap, appends events in sequence, and continues receiving newly generated chunks.
-- Step 5: If replay retention has expired, the client fetches persisted final output or the supported current snapshot rather than inventing missing tokens or starting another paid run.
+- 1. The browser loses its SSE or WebSocket connection while the run continues independently of the connection server.
+- 2. It reconnects using the same run ID and its last applied event cursor instead of resubmitting the prompt.
+- 3. The gateway authenticates access and replays retained events after the cursor from the run's stream.
+- 4. The client deduplicates any overlap, appends events in sequence, and continues receiving newly generated chunks.
+- 5. If replay retention has expired, the client fetches persisted final output or the supported current snapshot rather than inventing missing tokens or starting another paid run.
 
 3) GPU scheduling
 - A queue absorbs bursts and separates admission from inference capacity.
@@ -80,11 +80,11 @@ Process: Resume an interrupted output stream
 - Cancellation must stop scheduling or generation and release GPU/KV-cache resources; closing SSE alone does not guarantee that.
 
 Process: Cancel a running generation
-- Step 1: The client sends an authenticated cancellation request for a specific run; closing the browser stream alone is not the cancellation operation.
-- Step 2: The control plane records cancellation state and removes queued work or signals the current inference owner.
-- Step 3: The worker cooperatively stops generation and releases the run's scheduling and KV-cache resources when safe.
-- Step 4: The system commits the terminal cancelled state and usage/partial-output policy, then notifies connected clients.
-- Step 5: A completion racing cancellation is resolved by the run's conditional state-transition rules so the run does not acquire conflicting terminal outcomes.
+- 1. The client sends an authenticated cancellation request for a specific run; closing the browser stream alone is not the cancellation operation.
+- 2. The control plane records cancellation state and removes queued work or signals the current inference owner.
+- 3. The worker cooperatively stops generation and releases the run's scheduling and KV-cache resources when safe.
+- 4. The system commits the terminal cancelled state and usage/partial-output policy, then notifies connected clients.
+- 5. A completion racing cancellation is resolved by the run's conditional state-transition rules so the run does not acquire conflicting terminal outcomes.
 
 Final Design
 - Durable conversations and run state feed a quota-aware inference queue.

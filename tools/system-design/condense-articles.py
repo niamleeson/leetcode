@@ -104,7 +104,7 @@ def main():
         for section in sections:
             block = [section['title'], *('- ' + p for p in section['points'])]
             for flow in section['flows']:
-                block.extend(['', 'Process: ' + flow['title'], *('- Step ' + str(i + 1) + ': ' + step for i, step in enumerate(flow['steps']))])
+                block.extend(['', 'Process: ' + flow['title'], *('- ' + str(i + 1) + '. ' + step for i, step in enumerate(flow['steps']))])
             blocks.append('\n'.join(block))
         plain = '\n\n'.join(blocks) + '\n'
         (PUBLIC / (article['slug'] + '.txt')).write_text(plain, encoding='utf8', newline='\n')

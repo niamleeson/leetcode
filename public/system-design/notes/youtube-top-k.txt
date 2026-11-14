@@ -31,12 +31,12 @@ High-Level Design
 - Event time and processing time differ; specify how delayed events affect published rankings.
 
 Process: Convert views into ranked window totals
-- Step 1: Producers append view events with video ID and event time to the durable ingestion log.
-- Step 2: Consumers partition events by video or a deliberately salted partial-count key and assign each event to the relevant window.
-- Step 3: Stateful processors update recoverable counts, applying the selected deduplication and late-event policy.
-- Step 4: If hot-video writes were split, a merge stage combines all partial counts for a video/window before treating its score as complete.
-- Step 5: Rankers maintain bounded local candidates from complete per-video scores, then a global merge selects top K across partitions.
-- Step 6: The resulting ranking snapshot and freshness position are published to the query store or cache for API reads.
+- 1. Producers append view events with video ID and event time to the durable ingestion log.
+- 2. Consumers partition events by video or a deliberately salted partial-count key and assign each event to the relevant window.
+- 3. Stateful processors update recoverable counts, applying the selected deduplication and late-event policy.
+- 4. If hot-video writes were split, a merge stage combines all partial counts for a video/window before treating its score as complete.
+- 5. Rankers maintain bounded local candidates from complete per-video scores, then a global merge selects top K across partitions.
+- 6. The resulting ranking snapshot and freshness position are published to the query store or cache for API reads.
 
 Deep Dives
 
@@ -46,10 +46,10 @@ Deep Dives
 - Reuse a larger top list to answer smaller K values rather than caching every possible K independently.
 
 Process: Answer a top-K request
-- Step 1: The client specifies the supported window, time boundary, and bounded K value.
-- Step 2: The query service resolves the corresponding materialized snapshot and checks its freshness metadata.
-- Step 3: It reads the top K entries from the shared larger ranking list, rather than querying and sorting every video's count again.
-- Step 4: It returns ranked video IDs, counts, and freshness information; an unavailable snapshot follows a bounded fallback or explicit not-ready response.
+- 1. The client specifies the supported window, time boundary, and bounded K value.
+- 2. The query service resolves the corresponding materialized snapshot and checks its freshness metadata.
+- 3. It reads the top K entries from the shared larger ranking list, rather than querying and sorting every video's count again.
+- 4. It returns ranked video IDs, counts, and freshness information; an unavailable snapshot follows a bounded fallback or explicit not-ready response.
 
 2) Ingestion and writes
 - Partition events by video ID so each video's count is combined consistently.
@@ -70,11 +70,11 @@ Process: Answer a top-K request
 - Define watermarks, allowed lateness, and correction behavior rather than assuming events arrive in order.
 
 Process: Advance a sliding ranking window
-- Step 1: Incoming events update their time buckets using event time rather than blindly using arrival time.
-- Step 2: As the window advances, processors add newly included bucket contributions and remove expired contributions.
-- Step 3: They revise affected video scores and ranking candidates, while retaining the bucket state still needed for future windows or allowed late events.
-- Step 4: A late event within the correction policy updates its bucket and affected materialized results; older events follow the defined discard or reconciliation path.
-- Step 5: New snapshots are published only with the window boundaries they represent so clients do not mix results from different intervals.
+- 1. Incoming events update their time buckets using event time rather than blindly using arrival time.
+- 2. As the window advances, processors add newly included bucket contributions and remove expired contributions.
+- 3. They revise affected video scores and ranking candidates, while retaining the bucket state still needed for future windows or allowed late events.
+- 4. A late event within the correction policy updates its bucket and affected materialized results; older events follow the defined discard or reconciliation path.
+- 5. New snapshots are published only with the window boundaries they represent so clients do not mix results from different intervals.
 
 5) Approximation and specialized storage
 - Count-Min Sketch estimates frequencies with bounded overestimation, but needs a separate candidate mechanism to enumerate heavy hitters.

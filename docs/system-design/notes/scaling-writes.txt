@@ -24,11 +24,11 @@ The Solution
 - Reject, defer, or deprioritize work before overload exhausts memory and causes broader failure.
 
 Process: Accept a burst and drain it sustainably
-- Step 1: The ingestion API validates the request and applies admission limits before promising more work than it can retain.
-- Step 2: It persists the accepted intent or receives the required durable queue acknowledgement, then returns accepted status with an identifier.
-- Step 3: Workers claim queued work at a rate the storage and downstream systems can sustain.
-- Step 4: They batch compatible operations, commit the output, and acknowledge progress after the required durable boundary.
-- Step 5: Queue age and capacity drive scaling or further admission control; a continuously growing backlog is not solved merely by keeping the queue open.
+- 1. The ingestion API validates the request and applies admission limits before promising more work than it can retain.
+- 2. It persists the accepted intent or receives the required durable queue acknowledgement, then returns accepted status with an identifier.
+- 3. Workers claim queued work at a rate the storage and downstream systems can sustain.
+- 4. They batch compatible operations, commit the output, and acknowledge progress after the required durable boundary.
+- 5. Queue age and capacity drive scaling or further admission control; a continuously growing backlog is not solved merely by keeping the queue open.
 
 4) Batching and aggregation
 - Combine many small writes into fewer database operations to amortize network and transaction overhead.
@@ -50,11 +50,11 @@ Common Deep Dives
 - Consistent hashing reduces key movement but does not by itself implement safe data transfer or concurrent-write handling.
 
 Process: Move a shard without losing concurrent writes
-- Step 1: The system chooses a new ownership map/version and establishes a migration boundary for the affected key range.
-- Step 2: It copies existing records to the destination while capturing writes that occur during the copy.
-- Step 3: The destination applies those changes and catches up to a verified point under the selected migration protocol.
-- Step 4: Routing switches through a controlled ownership transition, with forwarding or version checks handling clients that still use the old map.
-- Step 5: Old ownership is fenced before conflicting writes are possible; the source copy is retired only after validation and the rollback policy allow it.
+- 1. The system chooses a new ownership map/version and establishes a migration boundary for the affected key range.
+- 2. It copies existing records to the destination while capturing writes that occur during the copy.
+- 3. The destination applies those changes and catches up to a verified point under the selected migration protocol.
+- 4. Routing switches through a controlled ownership transition, with forwarding or version checks handling clients that still use the old map.
+- 5. Old ownership is fenced before conflicting writes are possible; the source copy is retired only after validation and the rollback policy allow it.
 
 2) Hot keys
 - More shards do not divide writes to one atomic key.

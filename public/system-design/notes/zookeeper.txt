@@ -27,12 +27,12 @@ Key Capabilities
 - Use fencing tokens or version checks at the protected resource to reject work from an obsolete owner.
 
 Process: Elect a leader with ephemeral sequential nodes
-- Step 1: Each contender establishes a session and creates an identifiable ephemeral sequential znode under the election path.
-- Step 2: It reads the contenders and orders them by sequence; the lowest eligible node becomes leader.
-- Step 3: A follower watches its immediate predecessor, then rereads state when notified instead of assuming a notification alone grants leadership.
-- Step 4: If the leader's session expires, its ephemeral node disappears and the next eligible contender can take ownership.
-- Step 5: The new leader uses an ownership epoch or fencing token with protected resources so the old paused process cannot continue making accepted stale writes.
-- Step 6: Reconnecting contenders verify session and current election state before acting; they do not assume a previous lease survived disconnection.
+- 1. Each contender establishes a session and creates an identifiable ephemeral sequential znode under the election path.
+- 2. It reads the contenders and orders them by sequence; the lowest eligible node becomes leader.
+- 3. A follower watches its immediate predecessor, then rereads state when notified instead of assuming a notification alone grants leadership.
+- 4. If the leader's session expires, its ephemeral node disappears and the next eligible contender can take ownership.
+- 5. The new leader uses an ownership epoch or fencing token with protected resources so the old paused process cannot continue making accepted stale writes.
+- 6. Reconnecting contenders verify session and current election state before acting; they do not assume a previous lease survived disconnection.
 
 How ZooKeeper Works
 - ZAB orders and replicates updates through the ensemble with quorum agreement.
@@ -42,11 +42,11 @@ How ZooKeeper Works
 - Durable logs and snapshots support recovery, while quorum availability determines whether coordination writes can proceed.
 
 Process: Commit a coordination write and react to it
-- Step 1: The client submits a version-checked coordination update through a connected server; the write is handled through the ensemble's leader.
-- Step 2: The leader orders the proposal and replicates it through the quorum protocol.
-- Step 3: Once the protocol's commit conditions are satisfied, the committed update is applied and the client receives its outcome.
-- Step 4: Interested clients receive applicable watch notifications, reread the znode state/version, and reestablish the required watch behavior.
-- Step 5: A client with an uncertain write response reconciles the identifiable state before blindly creating another ownership record; a freshness-sensitive read uses the appropriate synchronization contract.
+- 1. The client submits a version-checked coordination update through a connected server; the write is handled through the ensemble's leader.
+- 2. The leader orders the proposal and replicates it through the quorum protocol.
+- 3. Once the protocol's commit conditions are satisfied, the committed update is applied and the client receives its outcome.
+- 4. Interested clients receive applicable watch notifications, reread the znode state/version, and reestablish the required watch behavior.
+- 5. A client with an uncertain write response reconciles the identifiable state before blindly creating another ownership record; a freshness-sensitive read uses the appropriate synchronization contract.
 
 Handling Failures
 - On reconnect, inspect current state rather than assuming previously held ownership remains valid.

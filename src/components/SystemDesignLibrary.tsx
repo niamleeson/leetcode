@@ -34,7 +34,22 @@ function ArticleFrame({ article }: { article: Article }) {
       setStatus('error');
       return;
     }
-    const resize = () => setHeight(Math.max(640, Math.ceil(doc.body.getBoundingClientRect().height) + 16));
+    const readerStyle = doc.createElement('style');
+    readerStyle.textContent = `
+      html, body { margin: 0 !important; padding: 0 !important; background: transparent !important; }
+      body { color: rgb(var(--foreground)); }
+      #markdown { width: 100%; max-width: none !important; margin: 0 !important; padding: 0 !important; }
+      #markdown img { background: white; }
+    `;
+    doc.head.appendChild(readerStyle);
+    const syncTheme = () => {
+      const theme = document.documentElement.classList.contains('light') ? 'light' : 'dark';
+      doc.documentElement.dataset.theme = theme;
+    };
+    syncTheme();
+    const themeObserver = new MutationObserver(syncTheme);
+    themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    const resize = () => setHeight(Math.max(640, Math.ceil(doc.body.getBoundingClientRect().height)));
     const observer = new ResizeObserver(resize);
     observer.observe(content);
     const handleClick = (event: MouseEvent) => {
@@ -60,7 +75,12 @@ function ArticleFrame({ article }: { article: Article }) {
       anchor.rel = 'noopener noreferrer';
     });
     doc.addEventListener('click', handleClick);
-    cleanupRef.current = () => { observer.disconnect(); doc.removeEventListener('click', handleClick); };
+    cleanupRef.current = () => {
+      observer.disconnect();
+      themeObserver.disconnect();
+      doc.removeEventListener('click', handleClick);
+      readerStyle.remove();
+    };
     resize();
     setStatus('ready');
   }, [article.slug, navigate]);
@@ -83,7 +103,7 @@ function ArticleFrame({ article }: { article: Article }) {
         sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
         onLoad={loaded}
         onError={() => setStatus('error')}
-        className={`block w-full rounded-lg border border-gray-800 bg-white light:border-gray-200 ${status !== 'ready' ? 'invisible h-0' : ''}`}
+        className={`block w-full border-0 bg-transparent ${status !== 'ready' ? 'invisible h-0' : ''}`}
         style={{ height: status === 'ready' ? height : 0 }}
       />
     </div>

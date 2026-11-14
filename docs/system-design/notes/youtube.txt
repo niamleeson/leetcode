@@ -38,12 +38,12 @@ High-Level Design
 - Keep failure and partial-readiness states explicit; never publish a manifest that points to missing output segments.
 
 Process: Turn an upload into a playable video
-- Step 1: The client creates an upload session and sends video parts directly to object storage using scoped signed instructions.
-- Step 2: The backend verifies the completed original and records its durable object reference and video version.
-- Step 3: A reliable event queues processing tasks referencing that original; upload acceptance does not yet imply every playback rendition is ready.
-- Step 4: Workers transcode and package the required renditions and segments, persisting each output under retry-safe identifiers.
-- Step 5: The workflow verifies required outputs and publishes a manifest that references only completed segments.
-- Step 6: The metadata service marks the video or rendition set ready; failed tasks retry without publishing incomplete output as playable.
+- 1. The client creates an upload session and sends video parts directly to object storage using scoped signed instructions.
+- 2. The backend verifies the completed original and records its durable object reference and video version.
+- 3. A reliable event queues processing tasks referencing that original; upload acceptance does not yet imply every playback rendition is ready.
+- 4. Workers transcode and package the required renditions and segments, persisting each output under retry-safe identifiers.
+- 5. The workflow verifies required outputs and publishes a manifest that references only completed segments.
+- 6. The metadata service marks the video or rendition set ready; failed tasks retry without publishing incomplete output as playable.
 
 2) Playback
 - Fetch metadata and a manifest, then stream segments through a CDN backed by object storage.
@@ -52,11 +52,11 @@ Process: Turn an upload into a playable video
 - Enforce access control for private videos with appropriate signed requests or tokens.
 
 Process: Start and adapt video playback
-- Step 1: The viewer requests the video; the metadata service checks access and readiness and returns the playback manifest location.
-- Step 2: The player fetches the manifest through the authorized CDN path and chooses an initial bitrate based on available conditions.
-- Step 3: It requests the first segments; CDN hits are served near the viewer and misses are fetched from object storage.
-- Step 4: The player buffers and decodes those segments, then requests subsequent segments as playback advances.
-- Step 5: At supported segment boundaries it switches renditions as bandwidth or buffer health changes, without restarting the whole video.
+- 1. The viewer requests the video; the metadata service checks access and readiness and returns the playback manifest location.
+- 2. The player fetches the manifest through the authorized CDN path and chooses an initial bitrate based on available conditions.
+- 3. It requests the first segments; CDN hits are served near the viewer and misses are fetched from object storage.
+- 4. The player buffers and decodes those segments, then requests subsequent segments as playback advances.
+- 5. At supported segment boundaries it switches renditions as bandwidth or buffer health changes, without restarting the whole video.
 
 Deep Dives
 

@@ -33,13 +33,13 @@ High-Level Design
 - Use a durable workflow or queue for retries and reconciliation; do not hold a database transaction open while waiting for a payment network.
 
 Process: Create, submit, and confirm a payment
-- Step 1: The merchant creates an intent with amount, currency, and an idempotency key; the API validates merchant authority and request parameters.
-- Step 2: The service commits the intent and returns its ID. Reusing the key with the same parameters resolves to that intent rather than a second charge request.
-- Step 3: The customer supplies a payment-method token through the supported collection flow and confirms the intent.
-- Step 4: A durable workflow records a payment attempt and stable provider key before sending the external authorization or charge request.
-- Step 5: The provider responds or sends a verified callback. The workflow deduplicates the result and applies only valid payment-state transitions.
-- Step 6: The system commits the resulting financial and payment records under their defined transaction boundary, retaining the audit trail.
-- Step 7: Only then does it publish merchant/customer status updates. Accepted or processing status is not reported as a successful payment before the outcome is known.
+- 1. The merchant creates an intent with amount, currency, and an idempotency key; the API validates merchant authority and request parameters.
+- 2. The service commits the intent and returns its ID. Reusing the key with the same parameters resolves to that intent rather than a second charge request.
+- 3. The customer supplies a payment-method token through the supported collection flow and confirms the intent.
+- 4. A durable workflow records a payment attempt and stable provider key before sending the external authorization or charge request.
+- 5. The provider responds or sends a verified callback. The workflow deduplicates the result and applies only valid payment-state transitions.
+- 6. The system commits the resulting financial and payment records under their defined transaction boundary, retaining the audit trail.
+- 7. Only then does it publish merchant/customer status updates. Accepted or processing status is not reported as a successful payment before the outcome is known.
 
 2) Status updates
 - Apply provider callbacks idempotently and verify their authenticity.
@@ -67,11 +67,11 @@ Deep Dives
 - Exactly-once queue processing does not by itself guarantee exactly one external financial side effect.
 
 Process: Resolve an uncertain external charge
-- Step 1: The outbound call times out after submission, leaving an attempt whose external outcome is unknown.
-- Step 2: The workflow retains the attempt and provider identity and marks it unresolved instead of assuming no charge occurred.
-- Step 3: It queries provider status or retries the same logical request using supported provider idempotency.
-- Step 4: A confirmed outcome is applied once to payment state and relevant ledger records; duplicate callbacks resolve to the same result.
-- Step 5: If automated resolution fails, reconciliation or manual handling retains the pending evidence rather than issuing an unrelated replacement charge blindly.
+- 1. The outbound call times out after submission, leaving an attempt whose external outcome is unknown.
+- 2. The workflow retains the attempt and provider identity and marks it unresolved instead of assuming no charge occurred.
+- 3. It queries provider status or retries the same logical request using supported provider idempotency.
+- 4. A confirmed outcome is applied once to payment state and relevant ledger records; duplicate callbacks resolve to the same result.
+- 5. If automated resolution fails, reconciliation or manual handling retains the pending evidence rather than issuing an unrelated replacement charge blindly.
 
 4) Scale and webhooks
 - Partition independent payment workflows while keeping each payment's transitions serialized.
@@ -80,11 +80,11 @@ Process: Resolve an uncertain external charge
 - Isolate slow merchant endpoints and providers so they do not block unrelated payments.
 
 Process: Deliver a committed payment event to a merchant
-- Step 1: A payment transition commits together with recoverable notification intent.
-- Step 2: A publisher enqueues a stable webhook event ID, and a delivery worker signs the payload for the merchant endpoint.
-- Step 3: The worker sends the event with bounded timeout and records the response as a delivery attempt.
-- Step 4: Failed or uncertain deliveries retry with the same event identity and backoff; one slow merchant does not block other endpoints.
-- Step 5: The merchant deduplicates events and can fetch current payment status when events are delayed or reordered.
+- 1. A payment transition commits together with recoverable notification intent.
+- 2. A publisher enqueues a stable webhook event ID, and a delivery worker signs the payload for the merchant endpoint.
+- 3. The worker sends the event with bounded timeout and records the response as a delivery attempt.
+- 4. Failed or uncertain deliveries retry with the same event identity and backoff; one slow merchant does not block other endpoints.
+- 5. The merchant deduplicates events and can fetch current payment status when events are delayed or reordered.
 
 Final Design
 - Durable intents, attempts, and ledger records form the source of truth.

@@ -34,11 +34,11 @@ High-Level Design
 - Precompute a limited stack for active users, then replenish as it is consumed or preferences change.
 
 Process: Build and consume a candidate stack
-- Step 1: The user requests more candidates; the profile service reads current preferences, location, and eligibility state.
-- Step 2: It checks the user's cached stack and generates more candidates through geographic and preference indexes when the stack is low or stale.
-- Step 3: The service removes blocked, ineligible, or previously swiped candidates using exact history or the selected membership-filter strategy.
-- Step 4: It caches a bounded candidate pool and returns a small batch with authorized profile/media references.
-- Step 5: As the user consumes the stack, background replenishment continues; final eligibility checks prevent stale cached candidates from bypassing current rules.
+- 1. The user requests more candidates; the profile service reads current preferences, location, and eligibility state.
+- 2. It checks the user's cached stack and generates more candidates through geographic and preference indexes when the stack is low or stale.
+- 3. The service removes blocked, ineligible, or previously swiped candidates using exact history or the selected membership-filter strategy.
+- 4. It caches a bounded candidate pool and returns a small batch with authorized profile/media references.
+- 5. As the user consumes the stack, background replenishment continues; final eligibility checks prevent stale cached candidates from bypassing current rules.
 
 2) Swipes and matches
 - Persist the swipe and check the reverse positive swipe.
@@ -47,12 +47,12 @@ Process: Build and consume a candidate stack
 - Publish a match event reliably and deduplicate notifications independently from the match record.
 
 Process: Record a swipe and create a mutual match
-- Step 1: The client sends the target user, swipe decision, and stable request ID to the swipe service.
-- Step 2: The service authenticates the swiper and maps both users to a canonical pair key for the chosen atomic coordination boundary.
-- Step 3: Within that boundary, it records the decision and examines the other user's decision; a retry resolves to the same recorded decision.
-- Step 4: If both decisions are positive, it creates a uniquely keyed match for that pair. Concurrent swipes cannot each permanently miss the other.
-- Step 5: The service commits before acknowledging the swipe or match result.
-- Step 6: A reliable match event triggers notifications to both users, with delivery deduplication separate from the unique match record.
+- 1. The client sends the target user, swipe decision, and stable request ID to the swipe service.
+- 2. The service authenticates the swiper and maps both users to a canonical pair key for the chosen atomic coordination boundary.
+- 3. Within that boundary, it records the decision and examines the other user's decision; a retry resolves to the same recorded decision.
+- 4. If both decisions are positive, it creates a uniquely keyed match for that pair. Concurrent swipes cannot each permanently miss the other.
+- 5. The service commits before acknowledging the swipe or match result.
+- 6. A reliable match event triggers notifications to both users, with delivery deduplication separate from the unique match record.
 
 Deep Dives
 

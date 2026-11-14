@@ -1,1 +1,0 @@
-import{c as i,r as t}from"./index-DwQoF1uc.js";function g(n){const[o,a]=i(n,[]),c=t.useMemo(()=>new Set(o),[o]),l=t.useCallback(s=>c.has(s),[c]),r=t.useCallback(s=>{a(e=>e.includes(s)?e.filter(u=>u!==s):[...e,s])},[a]);return{isOpen:l,toggle:r}}export{g as u};

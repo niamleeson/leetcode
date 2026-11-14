@@ -41,13 +41,13 @@ High-Level Design
 - Store results before acknowledging the job, and make repeat processing safe for the same submission ID.
 
 Process: Accept code, run tests, and return results
-- Step 1: The client submits source code, language, and problem ID to the API.
-- Step 2: The API validates limits, stores a pending submission, and reliably enqueues its ID before exposing accepted status to the client.
-- Step 3: A worker claims the job and loads the source, language runtime, and private test data into an isolated sandbox.
-- Step 4: It compiles if necessary, then runs tests under CPU, memory, output, process, and execution-time limits.
-- Step 5: The worker persists the terminal result and sanitized diagnostics before acknowledging queue delivery.
-- Step 6: The client polls or receives a completion event, then fetches the authoritative result by submission ID.
-- Step 7: If a worker crashes, the job can be redelivered. Stable submission identity prevents repeated execution from awarding duplicate credit.
+- 1. The client submits source code, language, and problem ID to the API.
+- 2. The API validates limits, stores a pending submission, and reliably enqueues its ID before exposing accepted status to the client.
+- 3. A worker claims the job and loads the source, language runtime, and private test data into an isolated sandbox.
+- 4. It compiles if necessary, then runs tests under CPU, memory, output, process, and execution-time limits.
+- 5. The worker persists the terminal result and sanitized diagnostics before acknowledging queue delivery.
+- 6. The client polls or receives a completion event, then fetches the authoritative result by submission ID.
+- 7. If a worker crashes, the job can be redelivered. Stable submission identity prevents repeated execution from awarding duplicate credit.
 
 3) Competition leaderboard
 - Accepted results update contest score and penalty state according to explicit rules.
@@ -55,11 +55,11 @@ Process: Accept code, run tests, and return results
 - Keep authoritative results durable so the leaderboard can be rebuilt after a cache failure.
 
 Process: Apply a judged submission to the ranking
-- Step 1: A committed judging result produces an event identifying the submission, user, problem, and contest.
-- Step 2: The scoring service verifies eligibility and checks whether this result has already affected the contest score.
-- Step 3: It atomically records the scoring effect and updates the participant's authoritative score and penalty state.
-- Step 4: A derived leaderboard update changes the participant's sorted-set entry using the contest's tie-breaking rules.
-- Step 5: Leaderboard reads fetch top entries or personal rank from that view; rebuilds replay authoritative scores rather than rerunning user code.
+- 1. A committed judging result produces an event identifying the submission, user, problem, and contest.
+- 2. The scoring service verifies eligibility and checks whether this result has already affected the contest score.
+- 3. It atomically records the scoring effect and updates the participant's authoritative score and penalty state.
+- 4. A derived leaderboard update changes the participant's sorted-set entry using the contest's tie-breaking rules.
+- 5. Leaderboard reads fetch top entries or personal rank from that view; rebuilds replay authoritative scores rather than rerunning user code.
 
 Deep Dives
 

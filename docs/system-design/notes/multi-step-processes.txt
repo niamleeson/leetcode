@@ -10,11 +10,11 @@ Solutions
 - The outbox closes the lost-publication gap but consumers still need deduplication because publication can repeat.
 
 Process: Publish an event through a transactional outbox
-- Step 1: The service begins a database transaction for the business operation.
-- Step 2: It writes the business change and an outbox record with a stable event ID in that same transaction.
-- Step 3: The transaction commits both records together; rollback leaves neither record visible as a completed operation.
-- Step 4: An outbox publisher reads committed unsent records and sends them to the broker.
-- Step 5: After broker acceptance it marks progress. A crash between send and marking can repeat publication, so consumers deduplicate the event ID.
+- 1. The service begins a database transaction for the business operation.
+- 2. It writes the business change and an outbox record with a stable event ID in that same transaction.
+- 3. The transaction commits both records together; rollback leaves neither record visible as a completed operation.
+- 4. An outbox publisher reads committed unsent records and sends them to the broker.
+- 5. After broker acceptance it marks progress. A crash between send and marking can repeat publication, so consumers deduplicate the event ID.
 
 2) Saga pattern
 - Represent a workflow as a sequence of local transactions with explicit compensation where later failure must reverse an earlier effect.
@@ -23,12 +23,12 @@ Process: Publish an event through a transactional outbox
 - Define which steps are reversible, which require manual resolution, and which outcomes are merely pending.
 
 Process: Execute and compensate a business workflow
-- Step 1: The coordinator commits the workflow identity and initial state so a replacement can resume it after a crash.
-- Step 2: It requests the first local step using a stable business idempotency key, then records the confirmed outcome.
-- Step 3: It starts each dependent step only after the required prior outcome is known and durable.
-- Step 4: A transient failure retries the same logical step; an unresolved external outcome is reconciled before treating it as definitely failed.
-- Step 5: If a terminal failure requires reversal, the coordinator schedules the applicable compensations for completed steps in a valid dependency order.
-- Step 6: Compensation outcomes are recorded and retried too. The workflow reaches completed, compensated, or an explicit unresolved/manual state rather than disappearing from memory.
+- 1. The coordinator commits the workflow identity and initial state so a replacement can resume it after a crash.
+- 2. It requests the first local step using a stable business idempotency key, then records the confirmed outcome.
+- 3. It starts each dependent step only after the required prior outcome is known and durable.
+- 4. A transient failure retries the same logical step; an unresolved external outcome is reconciled before treating it as definitely failed.
+- 5. If a terminal failure requires reversal, the coordinator schedules the applicable compensations for completed steps in a valid dependency order.
+- 6. Compensation outcomes are recorded and retried too. The workflow reaches completed, compensated, or an explicit unresolved/manual state rather than disappearing from memory.
 
 3) Event-driven choreography
 - Services react to events and publish subsequent events, distributing workflow logic among participants.

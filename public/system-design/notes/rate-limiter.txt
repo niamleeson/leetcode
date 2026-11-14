@@ -37,12 +37,12 @@ High-Level Design
 - Make the read-check-update operation atomic, for example with a short Redis script, to prevent concurrent over-admission.
 
 Process: Decide a request with a token bucket
-- Step 1: The gateway authenticates the request and derives the client/rule key and request cost from trusted identity and cached rules.
-- Step 2: It calls the shard owning that bucket with one atomic operation; a client-side GET followed by SET would race.
-- Step 3: The operation calculates elapsed time, refills tokens up to capacity, and reads the resulting allowance.
-- Step 4: If enough tokens exist, it deducts the request cost and stores the updated timestamp and balance together.
-- Step 5: If tokens are insufficient, it stores any refill progress and returns a denial with the earliest useful retry time.
-- Step 6: The gateway forwards allowed requests to the backend or returns 429 with retry information. If limiter state is unavailable, it applies the configured outage policy instead of silently assuming a decision.
+- 1. The gateway authenticates the request and derives the client/rule key and request cost from trusted identity and cached rules.
+- 2. It calls the shard owning that bucket with one atomic operation; a client-side GET followed by SET would race.
+- 3. The operation calculates elapsed time, refills tokens up to capacity, and reads the resulting allowance.
+- 4. If enough tokens exist, it deducts the request cost and stores the updated timestamp and balance together.
+- 5. If tokens are insufficient, it stores any refill progress and returns a denial with the earliest useful retry time.
+- 6. The gateway forwards allowed requests to the backend or returns 429 with retry information. If limiter state is unavailable, it applies the configured outage policy instead of silently assuming a decision.
 
 3) Reject clearly
 - Return 429 and a Retry-After value derived from the actual algorithm.
@@ -73,10 +73,10 @@ Deep Dives
 - Observe rejection rate, decision latency, datastore errors, and configuration propagation delay.
 
 Process: Roll out a rule change
-- Step 1: An administrator submits a validated rule update to the durable control-plane store.
-- Step 2: The control plane assigns a version and distributes the new configuration to enforcement nodes.
-- Step 3: Each node installs the rule atomically and applies the defined bucket-state migration or reset policy.
-- Step 4: Subsequent decisions use the installed version; monitoring detects nodes that remain on an older configuration.
+- 1. An administrator submits a validated rule update to the durable control-plane store.
+- 2. The control plane assigns a version and distributes the new configuration to enforcement nodes.
+- 3. Each node installs the rule atomically and applies the defined bucket-state migration or reset policy.
+- 4. Subsequent decisions use the installed version; monitoring detects nodes that remain on an older configuration.
 
 Final Design
 - The gateway identifies the request and applies locally cached rules against atomic, partitioned usage state.

@@ -32,11 +32,11 @@ High-Level Design
 - Remove or mark claimed queue entries and recover abandoned claims after failures.
 
 Process: Pair players and start a game
-- Step 1: Each player joins a matchmaking queue with mode, rating, and a retry-safe request identity.
-- Step 2: A matcher chooses compatible candidates and atomically claims both currently eligible entries.
-- Step 3: It commits a game linking the two claimed players and records recoverable notifications before confirming the pairing.
-- Step 4: The players receive the game ID and connect to its authoritative game owner.
-- Step 5: If pairing fails before game creation, only the current claims are released or expired; late matchers cannot create a second game from superseded claims.
+- 1. Each player joins a matchmaking queue with mode, rating, and a retry-safe request identity.
+- 2. A matcher chooses compatible candidates and atomically claims both currently eligible entries.
+- 3. It commits a game linking the two claimed players and records recoverable notifications before confirming the pairing.
+- 4. The players receive the game ID and connect to its authoritative game owner.
+- 5. If pairing fails before game creation, only the current claims are released or expired; late matchers cannot create a second game from superseded claims.
 
 2) Run games
 - Route both players to the game owner or authoritative processing partition.
@@ -45,12 +45,12 @@ Process: Pair players and start a game
 - On reconnect, restore from a snapshot plus durable moves rather than trusting a client's board.
 
 Process: Accept and broadcast a chess move
-- Step 1: The active player submits a move with game ID, operation ID, and expected turn or sequence.
-- Step 2: The authoritative game owner checks player identity, current board version, legal movement, and server-owned clock state.
-- Step 3: An invalid, stale, duplicate, or late move receives the corresponding rejection or existing result without advancing the turn twice.
-- Step 4: A valid move updates board, clocks, turn, and any terminal result within the game's serialized durable state transition.
-- Step 5: The server acknowledges the committed move and broadcasts its new sequence/state to both players.
-- Step 6: Clients reconcile their display with that state; after reconnect they load a snapshot and later committed moves rather than submitting their local board as authority.
+- 1. The active player submits a move with game ID, operation ID, and expected turn or sequence.
+- 2. The authoritative game owner checks player identity, current board version, legal movement, and server-owned clock state.
+- 3. An invalid, stale, duplicate, or late move receives the corresponding rejection or existing result without advancing the turn twice.
+- 4. A valid move updates board, clocks, turn, and any terminal result within the game's serialized durable state transition.
+- 5. The server acknowledges the committed move and broadcasts its new sequence/state to both players.
+- 6. Clients reconcile their display with that state; after reconnect they load a snapshot and later committed moves rather than submitting their local board as authority.
 
 3) Rankings
 - Finalized results trigger rating updates according to the selected rating system.
@@ -58,11 +58,11 @@ Process: Accept and broadcast a chess move
 - Deduplicate result application so retries do not change ratings twice for one game.
 
 Process: Apply a completed game to ratings
-- Step 1: A committed terminal game result produces a result event with the stable game ID.
-- Step 2: The rating service checks that the game has not already been applied and reads the applicable rating inputs.
-- Step 3: It commits both players' rating effects under the selected consistency rules and records that the game is processed.
-- Step 4: A projection updates the leaderboard's sorted entries; failures can be retried or rebuilt from durable ratings.
-- Step 5: Rank queries read the derived view with explicit tie rules, without rerunning rating changes each time the result event reappears.
+- 1. A committed terminal game result produces a result event with the stable game ID.
+- 2. The rating service checks that the game has not already been applied and reads the applicable rating inputs.
+- 3. It commits both players' rating effects under the selected consistency rules and records that the game is processed.
+- 4. A projection updates the leaderboard's sorted entries; failures can be retried or rebuilt from durable ratings.
+- 5. Rank queries read the derived view with explicit tie rules, without rerunning rating changes each time the result event reappears.
 
 Deep Dives
 
