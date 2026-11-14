@@ -123,6 +123,8 @@ export default function Sidebar({
               item.path === '/practice' && location.pathname.startsWith('/practice/')
             ) || (
               item.path === '/hackerrank-react' && location.pathname.startsWith('/hackerrank-react/')
+            ) || (
+              item.path === '/system-design' && location.pathname.startsWith('/system-design/')
             );
             const badge = item.badgeKey === 'due' ? dueCount : 0;
 

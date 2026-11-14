@@ -38,6 +38,9 @@ Open http://localhost:5173
 | `/study` | Study session |
 | `/problems` | All problems (filterable) |
 | `/search` | Search |
+| `/system-design` | 49 Hello Interview articles, grouped and searchable |
+| `/system-design/:slug` | Saved article; Bitly starts with plain condensed notes |
+| `/system-design?view=practice` | Existing 30-problem system design reference |
 | `/hackerrank-react` | HackerRank React question catalog |
 | `/hackerrank-react/:slug` | React solution, explanation, and checks |
 | `/topic/:slug` | Topic lesson + problems |
@@ -49,6 +52,12 @@ The app uses hash routing: for example, `http://localhost:5173/leetcode/#/hacker
 Run `npm run hackerrank:test` with Node 22.22 or newer to exercise the displayed React solution code and its study pages.
 
 ## Tech Stack
+
+The System Design library keeps the expanded articles and their embedded images in
+`public/system-design/hello-interview/`, loaded only when an article is opened.
+Bitly's condensed notes use plain hyphen bullets and can be downloaded as text.
+To refresh the verified exports, run
+`node tools/system-design/import-articles.cjs <export-directory>` and rebuild.
 
 React 18, TypeScript, Tailwind CSS, Vite, React Router, Prism.js
 

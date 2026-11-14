@@ -17,7 +17,7 @@ const DSAReference = lazy(() => import('./components/DSAReference'));
 const NeetCode250 = lazy(() => import('./components/NeetCode250'));
 const NeetCode150 = lazy(() => import('./components/NeetCode150'));
 const NeetCodeBlind75 = lazy(() => import('./components/NeetCodeBlind75'));
-const SystemDesignReference = lazy(() => import('./components/SystemDesignReference'));
+const SystemDesignReference = lazy(() => import('./components/SystemDesignHub'));
 const SDIVol1Reference = lazy(() => import('./components/SDIVol1Reference'));
 const GlossaryPage = lazy(() => import('./components/GlossaryPage'));
 const AskClaudePanel = lazy(() => import('./components/AskClaudePanel'));
@@ -135,7 +135,7 @@ export default function App() {
           <Route path="/practice/:id?" element={<LogicPractice />} />
           <Route path="/neetcode150" element={<NeetCode150 />} />
           <Route path="/blind75" element={<NeetCodeBlind75 />} />
-          <Route path="/system-design" element={<SystemDesignReference />} />
+          <Route path="/system-design/:slug?" element={<SystemDesignReference />} />
           <Route path="/sdi-book" element={<SDIVol1Reference />} />
           <Route path="/train/sdi" element={<StudyMode source="sdi" />} />
           <Route path="/train/dsa" element={<StudyMode source="dsa" />} />
