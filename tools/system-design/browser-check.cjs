@@ -62,6 +62,14 @@ const articles = JSON.parse(data.slice(data.indexOf('=')+1,data.lastIndexOf('as 
     assert.equal(await notes.locator('img').count(),8);
     assert.ok(await notes.locator('[data-concept="cache"]').count()>0);
     assert.ok(await notes.locator('[data-concept="gateway"]').count()>0);
+    const pointText=(await notes.locator('li').allTextContents()).join('\n');
+    const highlightedText=(await notes.locator('li [data-concept]').allTextContents()).join('\n');
+    for(const term of ['Redis','PostgreSQL','CDN','TTL','Base62','INCR','INCRBY','primary key','uniqueness constraint','replication','failover','sharding','302','short_code']) {
+      const pattern=new RegExp('\\b'+term+'\\b','gi');
+      const total=[...pointText.matchAll(pattern)].length;
+      assert.ok(total>0,term+' appears in the notes');
+      assert.equal([...highlightedText.matchAll(pattern)].length,total,'Every '+term+' occurrence is highlighted');
+    }
     const diagramFlow=await notes.locator('figure').evaluateAll(figures=>figures.map(f=>({
       file:new URL(f.querySelector('img').src).pathname.split('/').pop(),
       flow:f.closest('[role="group"]')?.getAttribute('aria-label')||null,
