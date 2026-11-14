@@ -1,35 +1,21 @@
 import { useEffect, useState } from 'react';
+import { conceptCategories, systemDesignConcepts } from '../data/system-design-concepts';
 
 interface Diagram { filename: string; caption: string; revision: string; width: number; height: number }
 interface ProcessFlow { title: string; steps: string[]; diagramFilenames?: string[] }
 interface Notes { title: string; sections: { title: string; level: number; points: string[]; diagrams: Diagram[]; flows: ProcessFlow[] }[] }
 const loaders = import.meta.glob<{ default: Notes }>('../data/system-design-notes/*.json');
 
-const concepts = [
-  { key: 'cache', terms: ['cache', 'caches', 'caching', 'cache hit', 'cache miss', 'cache warm-up', 'cache-control', 'browser caching', 'edge caching', 'eviction policy'], color: 'bg-amber-400/15 text-amber-200 light:bg-amber-100 light:text-amber-950' },
-  { key: 'database', terms: ['database', 'databases', 'PostgreSQL', 'primary database', 'database index', 'index', 'indexes', 'primary key', 'uniqueness constraint', 'unique constraint', 'sharding', 'shards', 'shard', 'custom alias', 'custom aliases', 'namespaces', 'deduplication'], color: 'bg-sky-400/15 text-sky-200 light:bg-sky-100 light:text-sky-950' },
-  { key: 'redis', terms: ['Redis', 'INCRBY', 'INCR'], color: 'bg-red-400/15 text-red-200 light:bg-red-100 light:text-red-950' },
-  { key: 'cdn', terms: ['content delivery network', 'CDN'], color: 'bg-cyan-400/15 text-cyan-200 light:bg-cyan-100 light:text-cyan-950' },
-  { key: 'gateway', terms: ['API gateway'], color: 'bg-violet-400/20 text-violet-200 light:bg-violet-100 light:text-violet-950' },
-  { key: 'load-balancer', terms: ['load balancer', 'load balancers'], color: 'bg-indigo-400/20 text-indigo-200 light:bg-indigo-100 light:text-indigo-950' },
-  { key: 'counter', terms: ['global counter', 'counter', 'counters', 'counter batching', 'counter batches', 'ID allocator', 'allocator', 'ID ranges', 'ID range', 'ID batches', 'atomic', 'atomically'], color: 'bg-emerald-400/15 text-emerald-200 light:bg-emerald-100 light:text-emerald-950' },
-  { key: 'encoding', terms: ['Base62', 'hash', 'hashes', 'hash function', 'hash collisions', 'salt', 'nonce', 'collision', 'collisions', 'collision handling'], color: 'bg-teal-400/15 text-teal-200 light:bg-teal-100 light:text-teal-950' },
-  { key: 'service', terms: ['primary server', 'read service', 'write service', 'creation service', 'redirect service', 'creation server', 'application server', 'application servers', 'stateless application servers', 'background job', 'cleanup job'], color: 'bg-rose-400/15 text-rose-200 light:bg-rose-100 light:text-rose-950' },
-  { key: 'http', terms: ['HTTP', 'API', 'POST', 'GET', 'Location header', 'cache-control headers', '301', '302', '404', '410'], color: 'bg-orange-400/15 text-orange-200 light:bg-orange-100 light:text-orange-950' },
-  { key: 'lifetime', terms: ['time to live', 'TTL', 'expiration date', 'expiration rules', 'expiration checks', 'expiration'], color: 'bg-yellow-400/15 text-yellow-200 light:bg-yellow-100 light:text-yellow-950' },
-  { key: 'reliability', terms: ['replication', 'replication lag', 'replica', 'replicas', 'replica lag', 'failover', 'backup', 'backups', 'recovery', 'high availability', 'retry limit', 'retry count'], color: 'bg-blue-400/15 text-blue-200 light:bg-blue-100 light:text-blue-950' },
-  { key: 'client', terms: ['client', 'browser'], color: 'bg-slate-400/15 text-slate-200 light:bg-slate-200 light:text-slate-900' },
-  { key: 'security', terms: ['authentication', 'access control'], color: 'bg-fuchsia-400/15 text-fuchsia-200 light:bg-fuchsia-100 light:text-fuchsia-950' },
-  { key: 'field', terms: ['short_code', 'long_url', 'created_at', 'expires_at', 'creator_id', 'custom_alias', 'expiration_date', 'short_url'], color: 'bg-sky-400/15 text-sky-200 light:bg-sky-100 light:text-sky-950' },
-];
-const conceptByTerm = new Map(concepts.flatMap(concept => concept.terms.map(term => [term.toLowerCase(), concept] as const)));
-const conceptPattern = new RegExp(`\\b(${[...conceptByTerm.keys()].sort((a, b) => b.length - a.length).join('|')})\\b`, 'gi');
+const conceptByTerm = new Map(systemDesignConcepts.flatMap(concept => concept.terms.map(term => [term.toLowerCase(), concept] as const)));
+const conceptPattern = new RegExp(`\\b(${[...conceptByTerm.keys()].sort((a, b) => b.length - a.length).join('|')})\\b(?![-\\w])`, 'gi');
 
 function conceptText(text: string, enabled: boolean) {
   if (!enabled) return text;
   return text.split(conceptPattern).map((part, index) => {
     const concept = conceptByTerm.get(part.toLowerCase());
-    return concept ? <span key={index} data-concept={concept.key} className={`box-decoration-clone rounded px-1 py-0.5 ${concept.color}`}>{part}</span> : part;
+    if (!concept) return part;
+    const category = conceptCategories[concept.category];
+    return <span key={index} data-concept={concept.key} data-category={concept.category} title={category.label} className={`box-decoration-clone rounded px-1 py-0.5 ${category.color}`}>{part}</span>;
   });
 }
 
@@ -60,6 +46,12 @@ export default function CondensedSystemDesignArticle({ slug, title }: { slug: st
   if (error) return <div role="alert" className="space-y-2 text-sm text-gray-400 light:text-gray-600"><p>These notes could not be loaded. You can retry or open the full article.</p><button className="text-blue-400 hover:underline light:text-blue-700" onClick={() => setAttempt(value => value + 1)}>Retry notes</button></div>;
   if (!notes) return <p role="status" className="text-sm text-gray-400 light:text-gray-600">Loading notes…</p>;
   return <div aria-label={`${title} condensed notes`} className="space-y-5 text-base leading-6 text-gray-200 light:text-gray-800">
+    {slug === 'bitly' && <aside aria-label="Concept color key" className="space-y-2 text-sm leading-5 text-gray-400 light:text-gray-600">
+      <p>Colors identify the main components by role. The same component keeps the same color.</p>
+      <div className="flex flex-wrap gap-2">
+        {Object.entries(conceptCategories).map(([key, category]) => <span key={key} data-category-legend={key} title={category.examples} className={`rounded px-2 py-0.5 ${category.color}`}>{category.label}</span>)}
+      </div>
+    </aside>}
     {notes.sections.map(({ title: sectionTitle, level, points, diagrams, flows }, index) => {
       const Heading = level === 4 ? 'h4' : 'h3';
       const id = `${slug}-notes-${index}`;

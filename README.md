@@ -63,6 +63,13 @@ Reviewed note text is in `src/data/system-design-notes-source.txt`; Bitly retain
 its existing `src/data/bitly-condensed.txt` source.
 Process sequences are maintained in `src/data/system-design-processes.txt` and appear
 under the relevant section before its diagrams, including in downloaded notes.
+Bitly pilots a shared concept color key in `src/data/system-design-concepts.ts`:
+blue for data/storage, purple for traffic/routing, green for servers/services,
+amber for coordination, and gray for clients. Only main architecture components
+receive color. Commands, fields, algorithms, HTTP codes, and operational properties
+stay plain. Each component and its aliases have one category; the legend and inline
+highlights use the same palette. Redis is always storage; a counter is coordination.
+New component names must use an existing category.
 To refresh the verified exports, run
 `node tools/system-design/import-articles.cjs <export-directory>`, then
 `python tools/system-design/condense-articles.py` (requires Beautiful Soup 4), and rebuild.

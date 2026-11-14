@@ -64,11 +64,21 @@ const articles = JSON.parse(data.slice(data.indexOf('=')+1,data.lastIndexOf('as 
     assert.ok(await notes.locator('[data-concept="gateway"]').count()>0);
     const pointText=(await notes.locator('li').allTextContents()).join('\n');
     const highlightedText=(await notes.locator('li [data-concept]').allTextContents()).join('\n');
-    for(const term of ['Redis','PostgreSQL','CDN','TTL','Base62','INCR','INCRBY','primary key','uniqueness constraint','replication','failover','sharding','302','short_code']) {
+    for(const term of ['Redis','PostgreSQL','CDN','API Gateway','Primary Server','Read Service','Write Service','Global Counter','load balancer','database','client']) {
       const pattern=new RegExp('\\b'+term+'\\b','gi');
       const total=[...pointText.matchAll(pattern)].length;
       assert.ok(total>0,term+' appears in the notes');
       assert.equal([...highlightedText.matchAll(pattern)].length,total,'Every '+term+' occurrence is highlighted');
+    }
+    const componentRoles = {cache:'storage',database:'storage',redis:'storage',cdn:'routing',gateway:'routing','load-balancer':'routing',client:'client',counter:'coordination',service:'processing'};
+    assert.deepEqual(await notes.locator('[data-category-legend]').allTextContents(),['Data & storage','Traffic & routing','Servers & services','Coordination','Clients']);
+    const highlights=await notes.locator('[data-concept]').evaluateAll(items=>items.map(e=>({key:e.dataset.concept,category:e.dataset.category,text:e.textContent})));
+    for(const highlight of highlights) {
+      assert.ok(Object.hasOwn(componentRoles,highlight.key),'Only main components receive color: '+highlight.text);
+      assert.equal(highlight.category,componentRoles[highlight.key],highlight.text+' component role');
+    }
+    for(const term of ['TTL','Base62','INCR','INCRBY','primary key','uniqueness constraint','replication','failover','sharding','302','short_code','authentication']) {
+      assert.ok(!new RegExp('\\b'+term+'\\b','i').test(highlightedText),term+' stays plain');
     }
     const diagramFlow=await notes.locator('figure').evaluateAll(figures=>figures.map(f=>({
       file:new URL(f.querySelector('img').src).pathname.split('/').pop(),
@@ -151,7 +161,7 @@ const articles = JSON.parse(data.slice(data.indexOf('=')+1,data.lastIndexOf('as 
       ]),article.title);
       const flows=expected.sections.flatMap(s=>s.flows);
       assert.ok(flows.length>0,article.title+' has process flows');
-      if(article.slug!=='bitly')assert.equal(await note.locator('[data-concept]').count(),0,article.title+' keeps its current style');
+      if(article.slug!=='bitly')assert.equal(await note.locator('[data-concept], [data-category-legend]').count(),0,article.title+' keeps its current style');
       assert.equal(await note.getByRole('group').count(),flows.length,article.title);
       for(const flow of flows) {
         const group=note.getByRole('group',{name:flow.title+' process',exact:true});
