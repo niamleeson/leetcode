@@ -5,8 +5,8 @@
       "title": "Understanding the Problem",
       "level": 3,
       "points": [
-        "Decide whether each request is allowed under configurable limits for a user, API key, IP address, or resource.",
-        "The limiter sits on a latency-sensitive request path and must define its behavior when shared state is unavailable."
+        "The limiter decides whether a request fits a configurable user, API-key, IP-address, or resource allowance.",
+        "Each decision occurs before expensive downstream work. The design must define what happens when shared accounting state is unavailable."
       ],
       "diagrams": [],
       "flows": []
@@ -15,9 +15,9 @@
       "title": "Functional Requirements",
       "level": 3,
       "points": [
-        "Identify the requester and applicable rule, update usage, and return allow or deny.",
-        "Support configurable limits and changes to those limits.",
-        "Return HTTP 429 with useful retry information when rejecting a request."
+        "The limiter identifies the requester, selects applicable rules, updates usage, and returns allow or deny.",
+        "Operators can change rules without deploying application code.",
+        "A rejected request receives HTTP 429 and useful information about when to retry."
       ],
       "diagrams": [],
       "flows": []
@@ -26,9 +26,9 @@
       "title": "Non-functional Requirements",
       "level": 3,
       "points": [
-        "Add minimal latency and support around one million requests per second in the scenario.",
-        "Coordinate usage across application instances so each instance cannot independently grant the full global allowance.",
-        "Balance exact enforcement, availability, operational cost, and tolerance for small overshoots."
+        "Each check should add less than 10 ms. The scenario assumes one million requests per second and 100 million daily users.",
+        "Gateway instances share accounting state. Each instance must not independently grant the full global allowance.",
+        "The scenario permits some distributed enforcement delay. Exact global limits require stronger coordination than this availability-oriented design."
       ],
       "diagrams": [
         {
@@ -45,9 +45,9 @@
       "title": "Core Entities",
       "level": 3,
       "points": [
-        "Rule defines scope, capacity, interval or refill rate, and priority.",
-        "ClientKey identifies the authenticated principal or network source plus the relevant endpoint or resource.",
-        "BucketState holds counters, timestamps, tokens, or recent request times for a client/rule pair."
+        "Rule defines its scope, capacity, time interval or refill rate, and applicable endpoints.",
+        "ClientKey identifies a trusted user, API key, or network source. The key also identifies the relevant rule or resource.",
+        "BucketState stores the counters, tokens, and timestamps needed by the selected algorithm."
       ],
       "diagrams": [],
       "flows": []
@@ -56,9 +56,9 @@
       "title": "API",
       "level": 3,
       "points": [
-        "allowRequest(clientKey, ruleId, cost) returns a decision, remaining allowance, and retry timing.",
-        "Rule-management APIs publish versioned configuration separately from request accounting.",
-        "Do not trust an arbitrary forwarded IP header; derive identity through the trusted gateway and authentication layer."
+        "isRequestAllowed(clientId, ruleId) returns a decision, remaining allowance, and reset or retry information.",
+        "Rule-management operations update configuration separately from per-request usage accounting.",
+        "The gateway validates identity before choosing the key. An arbitrary forwarded-IP header must not establish a trusted source address."
       ],
       "diagrams": [],
       "flows": []
@@ -74,9 +74,9 @@
       "title": "1) Identify and route requests",
       "level": 4,
       "points": [
-        "Enforce limits in a gateway or shared middleware before expensive downstream work.",
-        "User IDs and API keys are more precise than IPs; shared NATs make IP-only limits unfair, while unauthenticated traffic may still need IP protection.",
-        "Combine relevant scopes, such as per-user and per-endpoint limits, with an explicit rule for conflicting decisions."
+        "In-process limiters are fast but see only local traffic. A separate Rate Limiter Service shares state but adds a network dependency.",
+        "The chosen design places enforcement in the API Gateway. User IDs and API keys are more specific than shared NAT addresses.",
+        "All applicable scopes must permit the request. A user allowance does not override an exhausted IP or endpoint limit."
       ],
       "diagrams": [
         {
@@ -101,17 +101,30 @@
           "height": 552.9579029868391
         }
       ],
-      "flows": []
+      "flows": [
+        {
+          "title": "Enforce limits at the API Gateway",
+          "steps": [
+            "The client sends a request to the API Gateway.",
+            "The gateway validates its user identity, API key, or trusted source address.",
+            "It selects all applicable rules and obtains the allow or deny decision.",
+            "If every required rule permits the request, the gateway forwards it to the backend. Otherwise, it returns the rejection response."
+          ],
+          "diagramFilenames": [
+            "04.svg"
+          ]
+        }
+      ]
     },
     {
       "title": "2) Choose an algorithm",
       "level": 4,
       "points": [
-        "Fixed windows keep one counter per interval but permit bursts across a window boundary.",
-        "Sliding-window logs track exact timestamps and provide precise enforcement at a higher memory and processing cost.",
-        "Token buckets refill at a defined rate, allow controlled bursts up to capacity, and reject requests when insufficient tokens remain.",
-        "Sliding counters approximate a moving window with less state; choose accuracy based on the product requirement.",
-        "Make the read-check-update operation atomic, for example with a short Redis script, to prevent concurrent over-admission."
+        "A fixed window counts requests within one interval. Requests near adjacent window boundaries can create a large combined burst.",
+        "A sliding-window log stores request timestamps. It gives accurate moving-window counts but uses more memory and processing.",
+        "A token bucket adds tokens at a fixed rate up to its capacity. Each allowed request consumes tokens, which permits bounded bursts.",
+        "A sliding-window counter estimates recent usage from current and previous counters. It uses less state but assumes a distribution within each window.",
+        "The entire read, refill, check, and deduction must be atomic. A Redis script protects this sequence from concurrent requests."
       ],
       "diagrams": [
         {
@@ -140,12 +153,15 @@
         {
           "title": "Decide a request with a token bucket",
           "steps": [
-            "The gateway authenticates the request and derives the client/rule key and request cost from trusted identity and cached rules.",
-            "It calls the shard owning that bucket with one atomic operation; a client-side GET followed by SET would race.",
-            "The operation calculates elapsed time, refills tokens up to capacity, and reads the resulting allowance.",
-            "If enough tokens exist, it deducts the request cost and stores the updated timestamp and balance together.",
-            "If tokens are insufficient, it stores any refill progress and returns a denial with the earliest useful retry time.",
-            "The gateway forwards allowed requests to the backend or returns 429 with retry information. If limiter state is unavailable, it applies the configured outage policy instead of silently assuming a decision."
+            "The gateway identifies the client and applicable bucket rule.",
+            "One atomic Redis script reads the bucket's token count and last-refill timestamp.",
+            "The script calculates elapsed time. It adds the corresponding tokens without exceeding bucket capacity.",
+            "If enough tokens remain, the script deducts the request cost. It stores the new count and timestamp together.",
+            "Otherwise, the script returns a denial and the time needed for sufficient refill.",
+            "The gateway forwards an allowed request or returns HTTP 429. A Redis failure follows the explicit outage policy."
+          ],
+          "diagramFilenames": [
+            "07.svg"
           ]
         }
       ]
@@ -154,9 +170,9 @@
       "title": "3) Reject clearly",
       "level": 4,
       "points": [
-        "Return 429 and a Retry-After value derived from the actual algorithm.",
-        "Expose remaining quota where useful, but never require clients to calculate authoritative limits themselves.",
-        "Encourage bounded backoff with jitter rather than synchronized immediate retries."
+        "The gateway returns HTTP 429 immediately when quota is exhausted. Retry-After reflects the algorithm's next useful retry time.",
+        "Remaining-quota and reset headers help clients behave correctly. The server still makes the authoritative decision.",
+        "Clients should retry with bounded backoff and jitter. The limiter does not queue unlimited excess interactive requests."
       ],
       "diagrams": [],
       "flows": []
@@ -172,9 +188,9 @@
       "title": "1) Throughput",
       "level": 4,
       "points": [
-        "Partition limiter state by client/rule key so unrelated clients update independently.",
-        "Keep scripts small and expire inactive state to bound memory.",
-        "Local token allocations can reduce shared-store calls, but allocation size controls the possible global overshoot."
+        "Partition bucket state by client and rule so unrelated clients update different Redis shards.",
+        "Short scripts reduce blocked time on each shard. Expiration removes inactive bucket state.",
+        "The illustrated design checks shared state per request. Optional local token allocations reduce calls but require bounded grants and overshoot accounting."
       ],
       "diagrams": [
         {
@@ -185,16 +201,29 @@
           "height": 503.1905970664822
         }
       ],
-      "flows": []
+      "flows": [
+        {
+          "title": "Route a bucket check to its owning shard",
+          "steps": [
+            "The API Gateway derives the client-and-rule key from the authenticated request and current configuration.",
+            "The Redis client determines the shard or hash slot that owns that key.",
+            "The owning Redis primary executes the atomic token-bucket check. Other gateways use the same key and ownership mapping.",
+            "Redis returns the decision. The gateway forwards the request or returns HTTP 429 with retry information."
+          ],
+          "diagramFilenames": [
+            "08.svg"
+          ]
+        }
+      ]
     },
     {
       "title": "2) Availability",
       "level": 4,
       "points": [
-        "Fail open preserves service availability but can expose downstream systems to overload or abuse.",
-        "Fail closed protects strict quotas but can deny legitimate traffic during a limiter outage.",
-        "Select behavior per endpoint and consider conservative local fallback allowances; document the resulting consistency tradeoff.",
-        "Replication and failover can lose recent accounting state, so do not promise exact global limits without the required coordination."
+        "Fail-open behavior preserves access while Redis is unavailable. It can expose the backend to overload precisely when protection is needed most.",
+        "Fail-closed behavior rejects requests that the limiter cannot verify. The source chooses this policy to protect the downstream system.",
+        "The chosen outage policy must be explicit for each endpoint. A conservative local fallback is another option with weaker global enforcement.",
+        "Redis replicas support failover, but asynchronous replication can lose recent deductions. The design must not promise exact limits across that failure."
       ],
       "diagrams": [
         {
@@ -211,9 +240,9 @@
       "title": "3) Latency and hot keys",
       "level": 4,
       "points": [
-        "Reuse connections and keep rule lookup local while sharing only the mutable accounting state.",
-        "A global or viral-resource key can bottleneck one shard; hierarchical quotas or batched token leasing reduce contention.",
-        "Increasing shard count alone does not distribute a single atomic counter."
+        "Connection reuse removes repeated setup work. Nearby Redis instances reduce network delay. Gateways cache rule definitions locally.",
+        "A single abusive or very active client can overload one bucket shard. Blocking, client batching, or explicitly bounded local grants can reduce pressure.",
+        "More shards do not split one atomic counter. Legitimate users behind a shared IP need suitable limits and authenticated user-level rules."
       ],
       "diagrams": [],
       "flows": []
@@ -222,9 +251,9 @@
       "title": "4) Dynamic rules",
       "level": 4,
       "points": [
-        "Publish versioned rules through a control plane and cache them at enforcement nodes.",
-        "Define how existing bucket state transitions when capacity or refill rate changes.",
-        "Observe rejection rate, decision latency, datastore errors, and configuration propagation delay."
+        "A configuration store publishes rule changes. Gateways can poll it or use ZooKeeper or Etcd notifications to refresh local rules.",
+        "Each rule update needs a defined transition for existing bucket state. Version tracking detects gateways that still use old limits.",
+        "Monitor rejections, decision latency, Redis errors, and configuration delay. Reconnect and refresh after a missed configuration notification."
       ],
       "diagrams": [
         {
@@ -237,12 +266,16 @@
       ],
       "flows": [
         {
-          "title": "Roll out a rule change",
+          "title": "Refresh a rule through configuration notifications",
           "steps": [
-            "An administrator submits a validated rule update to the durable control-plane store.",
-            "The control plane assigns a version and distributes the new configuration to enforcement nodes.",
-            "Each node installs the rule atomically and applies the defined bucket-state migration or reset policy.",
-            "Subsequent decisions use the installed version; monitoring detects nodes that remain on an older configuration."
+            "An operator saves a validated rule update in the configuration store.",
+            "ZooKeeper or Etcd notifies connected gateways that the rule changed.",
+            "Each gateway reads the current version and replaces its local rule configuration.",
+            "New checks apply that version and the defined existing-bucket transition policy.",
+            "A reconnected gateway refreshes configuration before it resumes normal enforcement. Monitoring identifies gateways that remain behind."
+          ],
+          "diagramFilenames": [
+            "10.svg"
           ]
         }
       ]
@@ -251,9 +284,9 @@
       "title": "Final Design",
       "level": 3,
       "points": [
-        "The gateway identifies the request and applies locally cached rules against atomic, partitioned usage state.",
-        "Token buckets or another justified algorithm define burst behavior.",
-        "Explicit outage policy, bounded local allowances, and configuration versioning make the limiter predictable under failures as well as normal traffic."
+        "The API Gateway validates identity and reads locally cached rules. It sends atomic checks to the Redis shard that owns each bucket.",
+        "Token-bucket capacity controls bursts. The refill rate controls sustained allowed traffic.",
+        "Replicas, an explicit outage policy, and reliable rule refresh make behavior predictable during normal traffic and failures."
       ],
       "diagrams": [
         {

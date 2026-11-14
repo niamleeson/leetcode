@@ -5,8 +5,8 @@
       "title": "Understanding the Problem",
       "level": 3,
       "points": [
-        "Design a chronological feed of posts from accounts a user follows.",
-        "The main tradeoff is whether to assemble feeds when users read them or distribute post references when authors publish."
+        "The system returns posts from followed accounts in reverse chronological order, with the newest post first.",
+        "The main choice is when to build feeds. The system can assemble them during reads or distribute post IDs during writes."
       ],
       "diagrams": [],
       "flows": []
@@ -15,10 +15,10 @@
       "title": "Functional Requirements",
       "level": 3,
       "points": [
-        "Create posts and follow other accounts.",
-        "View a feed containing posts from followed accounts.",
-        "Page through older feed entries without repeatedly fetching the same results.",
-        "Personalized ranking and media processing can be separate extensions."
+        "Users can create posts and follow accounts.",
+        "Users can view posts from the accounts they follow.",
+        "Users can request older feed pages without repeatedly receiving the same entries.",
+        "Personalized ranking, reactions, and restricted post visibility are outside the initial scope."
       ],
       "diagrams": [],
       "flows": []
@@ -27,9 +27,9 @@
       "title": "Non-functional Requirements",
       "level": 3,
       "points": [
-        "Feed reads must have low latency despite users following many accounts.",
-        "Support a large user graph with heavily skewed follower counts and popular posts.",
-        "Favor availability and bounded feed delay; posts and follow edges must remain durable."
+        "Posting and feed requests should take less than 500 ms, even when users follow many accounts.",
+        "The scenario contains two billion users. It does not impose a fixed limit on follows or followers.",
+        "The feed favors availability and permits up to one minute of post delay. Posts and follow relationships need durable storage."
       ],
       "diagrams": [
         {
@@ -46,10 +46,10 @@
       "title": "Core Entities",
       "level": 3,
       "points": [
-        "User and Post represent authors and durable content with creation timestamps.",
-        "Follow edges support both listing a user's followees and listing an author's followers.",
-        "FeedEntry stores a recipient, post ID, and ordering key; it is a derived view that can be rebuilt.",
-        "A separate post cache lets many feeds reference the same content without copying it repeatedly."
+        "User identifies an account. Post records durable content, the author ID, and creation time.",
+        "Follow is a directed relationship. The design supports queries for both followed accounts and an author's followers.",
+        "FeedEntry records a recipient, post ID, and ordering value. It is a derived record that the system can rebuild.",
+        "A separate post cache lets many feeds share one post object instead of duplicating all its content."
       ],
       "diagrams": [
         {
@@ -66,10 +66,10 @@
       "title": "API",
       "level": 3,
       "points": [
-        "Create a post and return its ID after the durable write.",
-        "Follow or unfollow an account using the authenticated user's identity.",
-        "Fetch feed entries with a cursor and page size; batch-fetch the referenced post objects.",
-        "Use stable ordering such as creation time plus post ID, rather than a mutable numeric offset."
+        "POST /posts creates a post. The service returns the post ID after the durable write succeeds.",
+        "PUT /users/:id/follow follows an account. Repeated requests have the same effect as one request.",
+        "GET /feed accepts a cursor and page size. The response contains posts and a continuation cursor.",
+        "A timestamp plus post ID gives stable ordering when timestamps match. New posts do not shift a previously issued cursor."
       ],
       "diagrams": [],
       "flows": []
@@ -85,9 +85,9 @@
       "title": "1) Posts and follows",
       "level": 4,
       "points": [
-        "Route requests through stateless services to the post store and follow graph.",
-        "Maintain indexes in both directions of the follow relationship because read-time and write-time fanout need different queries.",
-        "Emit a post-created event after persistence; reliable publication avoids losing feed work when a process crashes after writing the post."
+        "The API Gateway routes writes to stateless Post Service and Follow Service instances. DynamoDB stores their records.",
+        "The Follow table indexes the follower and followed account. Its reverse index supports queries for all followers of an author.",
+        "The initial Post Service only persists posts. The fanout deep dive adds a queue and workers after that write."
       ],
       "diagrams": [
         {
@@ -107,14 +107,27 @@
       ],
       "flows": [
         {
-          "title": "Create a post and distribute feed entries",
+          "title": "Create a durable post",
           "steps": [
-            "The author submits a post to the post service through the authenticated API.",
-            "The service commits the post and a recoverable publication record before acknowledging creation.",
-            "A publisher delivers the post-created event to fanout workers; duplicate delivery retains the same post identity.",
-            "Workers enumerate eligible followers and insert post IDs into their feed lists in bounded, idempotent batches.",
-            "High-follower-count authors can skip broad write fanout under the hybrid policy and be included during reads instead.",
-            "Failed batches retry from recorded progress; a retry does not create duplicate visible entries for the same recipient and post."
+            "The author submits a post through the API Gateway.",
+            "The API Gateway forwards the request to a Post Service instance.",
+            "The Post Service inserts the content, author ID, and creation time into DynamoDB.",
+            "After the write succeeds, the service returns the post ID. Later deep dives add asynchronous feed distribution."
+          ],
+          "diagramFilenames": [
+            "03.svg"
+          ]
+        },
+        {
+          "title": "Follow an account",
+          "steps": [
+            "The authenticated client sends a follow request for the target account.",
+            "The Follow Service writes the directed relationship to the Follow table.",
+            "The primary index supports queries by follower. The reverse index supports queries by followed account.",
+            "The service returns success. A repeated request retains the same relationship."
+          ],
+          "diagramFilenames": [
+            "04.svg"
           ]
         }
       ]
@@ -123,10 +136,10 @@
       "title": "2) Assemble and paginate feeds",
       "level": 4,
       "points": [
-        "A simple read-time feed fetches recent posts from followed users and merges the sorted results.",
-        "Fetch enough candidates to fill the page after applying visibility and deletion checks.",
-        "Return a cursor identifying the last ordering position. New posts can appear at the top without shifting previously read offsets.",
-        "Keep authoritative posts separate from feed indexes so edits or deletions do not require rewriting every full feed entry."
+        "The Feed Service first lists followed accounts. It reads their recent posts and sorts the combined result by creation time.",
+        "The post index groups records by author and orders them by creation time. This avoids a full post-table scan.",
+        "The cursor identifies the oldest returned position. The next request selects posts older than that position.",
+        "The post store remains separate from feed entries. An edit does not require a copy of the full post in every feed."
       ],
       "diagrams": [
         {
@@ -139,14 +152,15 @@
       ],
       "flows": [
         {
-          "title": "Assemble the next page",
+          "title": "Assemble the initial feed page",
           "steps": [
-            "The reader sends a cursor and page size to the feed service.",
-            "The service reads the reader's precomputed entries and obtains recent posts from followed accounts assigned to read-time fanout.",
-            "It merges those candidate streams using timestamp plus a stable tie-breaker and discards duplicates or inaccessible posts.",
-            "It hydrates selected IDs through the shared post cache, reading the durable post store only for misses.",
-            "It returns the page and continuation key; the client stores that cursor for its next request.",
-            "Newly published posts appear ahead of the cursor rather than shifting an offset and causing the same old items to be returned again."
+            "The reader sends a cursor and page size to the Feed Service through the API Gateway.",
+            "The Feed Service lists the accounts that the reader follows.",
+            "It uses the post index to fetch those authors' posts older than the requested cursor.",
+            "It merges the results with the newest first. It returns one page and a cursor for the oldest returned position."
+          ],
+          "diagramFilenames": [
+            "05.svg"
           ]
         }
       ]
@@ -162,10 +176,10 @@
       "title": "1) Users following many accounts",
       "level": 4,
       "points": [
-        "Precompute feed lists by distributing new post IDs to followers asynchronously.",
-        "A read then fetches one recipient's ordered list, reducing scattered queries across many authors.",
-        "Bound the number of stored entries and backfill older pages from durable data when necessary.",
-        "Precomputation trades storage and write work for predictable read latency; it is most useful for active readers."
+        "PrecomputedFeed stores recent post IDs for each recipient. The write path adds new posts to the appropriate feeds.",
+        "The Feed Service can read one recipient's list instead of querying every followed author.",
+        "The example keeps approximately 200 entries per user. An older-page fallback can query the original post and follow tables.",
+        "Precomputation uses extra storage and write capacity to reduce read latency. Activity-based policies can avoid unnecessary work for inactive readers."
       ],
       "diagrams": [
         {
@@ -182,10 +196,10 @@
       "title": "2) Users with many followers",
       "level": 4,
       "points": [
-        "Synchronously writing millions of feed entries delays post creation and overloads the write path.",
-        "Queue fanout work and process recipient batches with idempotent writes, retry limits, and lag monitoring.",
-        "Use hybrid feeds: distribute ordinary posts on write, fetch celebrity posts on read, and merge both sets.",
-        "Choose thresholds from fanout cost and traffic patterns, rather than assuming one policy fits every account."
+        "A synchronous write to millions of feeds delays post creation. One Post Service instance cannot efficiently perform all this work.",
+        "A queue such as SQS distributes work to Feed Workers. Large follower sets need smaller tasks and retry-safe writes.",
+        "The hybrid design skips write fanout for celebrity accounts. The Feed Service merges their recent posts with the precomputed feed.",
+        "A flag records whether an account uses precomputation. The threshold depends on follower count, workload, and the allowed propagation delay."
       ],
       "diagrams": [
         {
@@ -203,17 +217,32 @@
           "height": 939.9030146107511
         }
       ],
-      "flows": []
+      "flows": [
+        {
+          "title": "Distribute ordinary posts and merge celebrity posts",
+          "steps": [
+            "The Post Service saves the post. It places the post and creator IDs on the Post Create Queue.",
+            "Feed Workers look up the author's followers. They skip relationships whose precomputed flag is disabled.",
+            "Workers insert the post ID into the remaining recipients' feed lists. A retry must preserve one entry per recipient and post.",
+            "At read time, the Feed Service reads the recipient's precomputed entries.",
+            "It also fetches recent posts from accounts that bypass precomputation.",
+            "It merges both sets in reverse chronological order. It reads post content and returns the requested page."
+          ],
+          "diagramFilenames": [
+            "08.svg"
+          ]
+        }
+      ]
     },
     {
       "title": "3) Uneven post reads",
       "level": 4,
       "points": [
-        "Hashing post IDs spreads different posts across cache nodes but cannot spread traffic to one extremely hot post.",
-        "Replicate hot post values across multiple cache locations or serve them from local caches with bounded staleness.",
-        "Distinguish cache partitioning from replication: more partitions alone do not fix a single hot key.",
-        "Coalesce cache misses and protect the database during cache expiry or failure so viral traffic does not become a stampede.",
-        "Invalidate deleted or restricted content promptly; cached feed IDs must not bypass access checks."
+        "A cache partitioned by post ID spreads different posts across nodes. One viral post can still overload its assigned node.",
+        "Independent Post Cache instances can each store the same post. A load balancer spreads requests across those instances.",
+        "This replication increases hot-post read capacity. More partitions alone do not divide requests for one hot key.",
+        "Each cache instance fills its own misses from DynamoDB. Request coalescing can further limit repeated reads during a sudden miss burst.",
+        "Edited posts require cache invalidation. If restricted visibility is added, cached content must also obey current access rules."
       ],
       "diagrams": [
         {
@@ -238,15 +267,28 @@
           "height": 933.4772333607511
         }
       ],
-      "flows": []
+      "flows": [
+        {
+          "title": "Read a hot post through replicated caches",
+          "steps": [
+            "The Feed Service requests the selected post IDs through the Post Cache layer.",
+            "A load balancer spreads requests across independent cache instances. Different instances can hold the same post.",
+            "A cache hit returns the stored post. A miss reads the post from DynamoDB and fills that cache instance.",
+            "The Feed Service assembles the metadata response. Each instance limits stale data with expiration and edit invalidation."
+          ],
+          "diagramFilenames": [
+            "11.svg"
+          ]
+        }
+      ]
     },
     {
       "title": "Final Design",
       "level": 3,
       "points": [
-        "Durable post and follow stores feed asynchronous workers and derived feed lists.",
-        "The read service merges precomputed ordinary posts with celebrity posts, then hydrates content from a shared cache.",
-        "Stable cursors, bounded lists, idempotent fanout, and hot-object replication make the design scalable without treating the cache as the only copy."
+        "DynamoDB retains post and follow records. A Post Create Queue feeds asynchronous workers that maintain derived feed lists.",
+        "The Feed Service merges precomputed posts with celebrity posts. It reads the selected content through the replicated Post Cache.",
+        "Stable cursors, bounded feed lists, and retry-safe fanout limit repeated work. The database remains the source for rebuilding cached data."
       ],
       "diagrams": [
         {

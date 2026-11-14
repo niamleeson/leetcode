@@ -1,84 +1,108 @@
 Understanding the Problem
-- Search a large corpus of social posts by keyword and order results by recency or popularity.
-- Posting and liking update the primary data; a derived search index supports query patterns the primary store cannot serve efficiently.
+- Users search social posts by keyword. Results can use creation time or like count for ordering.
+- The interviewer forbids Elasticsearch and prebuilt full-text indexes in this example. Build the index from basic storage structures.
 
 Functional Requirements
-- Create and like posts.
-- Search by keyword, with multi-keyword and phrase searches as deeper requirements.
-- Sort results by recency or like count and paginate them.
+- Users can create posts and like posts.
+- Users can search for keywords. Deep dives add multi-keyword and phrase queries.
+- Users can sort results by recency or like count. The API returns a bounded page of results.
 
 Non-functional Requirements
-- Keep queries fast over a very large corpus and accept bounded indexing delay.
-- Handle high post and like write volume, including popular terms and posts.
-- Preserve visibility and deletion rules even when the search index or caches lag.
+- Median queries should take less than 500 ms. New posts should become searchable in less than one minute.
+- The estimate is 10,000 new posts, 100,000 likes, and 10,000 searches per second. Writes therefore dominate the workload.
+- Old and unpopular posts must remain discoverable. Personalization, privacy filters, fuzzy matching, and advanced relevance ranking are outside this example.
 
 Core Entities
-- Post stores author, text, creation time, visibility, and authoritative like information.
-- TermPosting maps a normalized term to matching document IDs and optional positions.
-- SearchDocument stores fields needed for filtering and sorting; indexing progress tracks source changes.
+- A User creates posts. A Post contains its text, creator, creation time, and associated like count.
+- A Like connects a user to a post. Search needs the resulting count more often than each individual like record.
+- An inverted index maps a keyword to post IDs. Separate creation and likes indexes support the two sort orders.
 
 API
-- Create a post and like or unlike it through authenticated write APIs.
-- Search with query text, sort order, filters, limit, and a stable continuation cursor.
-- Return post summaries and enforce access controls before exposing restricted content.
+- POST /post creates a post. POST /post/{id}/like records a like.
+- GET /search accepts query text and a sort order. Return a bounded result page with continuation information.
+- The Search Service retrieves matching post IDs and returns post details. Search results are the same across users in this example.
 
 High-Level Design
 
 1) Writes and indexing
-- Persist posts and likes in the primary system, then publish change events reliably.
-- Indexing workers tokenize text and update a derived inverted index.
-- Track indexing versions so delayed updates cannot overwrite newer content or resurrect deleted posts.
+- The Post Service and Like Service send updates to the Ingestion Service. These existing services own the primary records.
+- The Ingestion Service splits post text into keywords. It adds the post ID to each matching keyword entry.
+- Each new post updates both creation and likes indexes. A like update changes the post's score in the likes index.
 
-Process: Publish a post into the search index
-- 1. The author creates or edits a post through the primary post service, which commits content, visibility, and a version.
-- 2. A reliable change stream or outbox publishes that committed version to indexing workers.
-- 3. The worker tokenizes the text, computes searchable fields, and writes the search document and postings for the stable post ID.
-- 4. Version checks prevent a delayed old update from replacing newer content or undoing a deletion.
-- 5. After the search engine's refresh boundary, queries can discover the updated document; primary write acknowledgement can occur before that search visibility.
+Process: Publish a post into the basic index
+- 1. The Post Service keeps the new post's primary record and sends its content to the Ingestion Service.
+- 2. The Ingestion Service extracts the post's keywords.
+- 3. It adds the post ID to the index entries for those keywords.
+- 4. The Like Service sends later like updates. The Ingestion Service updates the indexed like information.
 
 2) Keyword retrieval
-- Full table scans are unsuitable for frequent keyword searches across a large corpus.
-- An inverted index maps each term to a posting list of matching post IDs.
-- Partition the index and coordinate queries across relevant shards, merging bounded result sets.
-- Hydrate selected results from stored search fields or batched primary/cache reads.
+- A MySQL full scan checks every post at query time. Replication or sharding does not remove this expensive scan.
+- Redis stores an inverted index in memory. Each keyword points to matching post IDs; persistence or a durable equivalent supports recovery.
+- The Search Service reads the entry for the requested keyword. Later, keyword-based sharding spreads index storage and writes across Redis instances.
+- Return the required result page and fetch its post details. Do not transfer every matching ID for a common keyword.
 
-Process: Execute a keyword or phrase search
-- 1. The client sends query text, filters, sort mode, and continuation data to the search coordinator.
-- 2. The coordinator normalizes the query and routes it to the relevant search shards.
-- 3. Each shard retrieves term postings, intersects or unions candidates, and checks positions for phrase requirements.
-- 4. Shards apply supported filters and return bounded locally ranked candidates with stable sort values.
-- 5. The coordinator merges candidates, deduplicates results, and enforces current visibility where stale index data could expose restricted content.
-- 6. It hydrates the selected page and returns a cursor containing the ordering context, avoiding a full-corpus scan or unbounded result transfer.
+Process: Retrieve posts from a Redis inverted index
+- 1. The Search Service receives a keyword query.
+- 2. It reads the matching keyword entry from the Redis index.
+- 3. The index returns matching post IDs without scanning every post.
+- 4. The Search Service obtains the required post details and returns the result page.
 
 3) Sorting
-- Recency ordering can exploit timestamps and time-partitioned data.
-- Popularity ordering requires maintaining sortable like counts or ranking structures as likes arrive.
-- Return stable tie-breakers in cursors because equal timestamps or counts are common.
+- A creation index keeps post IDs in creation order. New posts append to the list, and recent queries read its end.
+- A separate likes index uses Redis sorted sets. Each post ID has a score equal to its indexed like count.
+- Two indexes use more storage but avoid sorting all matches during each request. Define a stable tie-breaker for pagination.
+
+Process: Read an index that already has the required order
+- 1. The Ingestion Service adds a new post to each keyword's creation list and likes sorted set.
+- 2. Later like events update the corresponding scores in the likes index.
+- 3. A client requests a keyword and selects recency or likes ordering.
+- 4. The Search Service reads a bounded range from the matching index.
+- 5. It fetches the selected post details and returns them in that order.
 
 Deep Dives
 
 1) Read scale
-- Replicate query capacity and cache popular queries or posting-list fragments where freshness allows.
-- A popular term can touch enormous posting lists; bound candidate work and avoid transferring every match to a coordinator.
-- Include filters, sort mode, and relevant visibility scope in cache keys.
+- A Redis Search Cache stores repeated query results. A CDN can serve public results near users when response headers allow caching.
+- The one-minute freshness target permits short cache lifetimes. Budget for both indexing delay and cache age when setting the lifetime.
+- A cache key must distinguish the query and sort order. Cached results for different requests must not collide.
 
 2) Multiple terms and phrases
-- AND queries intersect posting lists; OR queries union them.
-- Process selective terms first to reduce intermediate candidates.
-- Phrase queries need term positions or a verification phase; matching all words alone does not prove adjacency or order.
+- For multiple words, fetch their posting lists and intersect the IDs. Read candidate text to verify the requested phrase.
+- Matching every word does not prove phrase order or adjacency. Large intersections can exceed the query latency target.
+- Bigrams index adjacent word pairs, such as Taylor Swift. They speed phrase lookup but increase storage; uncommon phrases can use intersection.
+
+Process: Verify a multi-word phrase
+- 1. The Search Service retrieves the posting list for each query word.
+- 2. It intersects the lists to find posts that contain every word.
+- 3. It reads candidate text and checks the words' adjacency and order.
+- 4. It returns posts that pass phrase verification. A stored bigram entry can avoid this intersection for common phrases.
 
 3) Write scale
-- Batch indexing updates and separate post creation from frequent like-count changes.
-- Popularity updates can be coalesced when a small ranking delay is acceptable.
-- Keep durable change streams so rebuilding or resharding the index does not lose concurrent writes.
-- Apply deletions and permission changes reliably; stale index entries must not bypass final visibility checks.
+- Kafka buffers post events and distributes them to Ingestion Service instances. Partition the Redis index by keyword to spread writes.
+- A Like Batcher combines changes for one post over a short window. This helps viral posts more than infrequently liked posts.
+- Another option updates indexed likes only at count milestones. Fetch extra candidates, read current counts, and rerank those candidates.
+- Milestone scores make the index approximate. Fresh candidate counts do not guarantee that the candidate set contains the exact global top results.
+
+Process: Combine frequent like updates
+- 1. The Like Service publishes updates through the event path into Kafka.
+- 2. The Like Batcher groups changes for each post during a short window.
+- 3. It publishes one combined increment for the post back to Kafka.
+- 4. The Ingestion Service consumes that increment and updates the keyword likes indexes.
+- 5. Posts with few likes per window gain little from batching. Choose the window from measured traffic and freshness needs.
+
+Process: Rerank candidates from approximate like scores
+- 1. The likes index updates scores only at configured count milestones.
+- 2. The Search Service requests more candidates than the final page needs.
+- 3. It asks the Like Service for current counts for those candidates.
+- 4. It sorts those candidates using the current counts and returns the selected page.
+- 5. Counts are current for the selected candidates. The approximate first stage can still omit a globally better result.
 
 4) Storage efficiency
-- Compress sorted posting lists, use compact document IDs, and avoid duplicating fields that are not needed for search.
-- Partition old data by time and use retention or tiered storage according to product requirements.
-- Index size, query fanout, and update cost should drive the choice of a specialized search engine versus custom infrastructure.
+- Limit the hot entries kept for common keywords when the product permits it. Preserve a path to older results.
+- Move rarely searched keyword indexes from Redis to S3 or other blob storage. A cache miss can retrieve this colder index.
+- Cold indexes cost less but take longer to read. This tradeoff fits the requirement that old posts can be slower to find.
 
 Final Design
-- Primary post storage feeds a versioned, replayable indexing pipeline.
-- Sharded inverted indexes and sortable metadata support retrieval, while query replicas and caches serve reads.
-- Batched popularity updates, compressed postings, and explicit visibility checks control cost without sacrificing access correctness.
+- The Post Service and Like Service feed Kafka and the Ingestion Service. Redis holds creation and likes indexes by keyword.
+- The Search Service uses those indexes, the Search Cache, and the CDN. Blob storage retains cold keyword indexes.
+- Like batching and approximate scores reduce write volume. Phrase verification and candidate reranking add work only where the query needs them.

@@ -1,91 +1,108 @@
 Understanding the Problem
-- Design a coding-practice platform that serves problems, runs submitted solutions, and maintains competition standings.
-- User code is untrusted and computationally expensive; execution must be isolated from the API and primary data stores.
+- The platform serves coding problems, executes submitted solutions, and displays competition standings.
+- User code is untrusted and can consume substantial resources. Its execution must be isolated from the API and data stores.
 
 Functional Requirements
-- Browse problems and view statements, examples, and starter code.
-- Submit a solution in a supported language and receive test results.
-- View a live competition leaderboard.
-- Retain submission status so users can recover results after reconnecting.
+- Users can browse problems and read statements, examples, and language-specific starter code.
+- Users can submit solutions in supported languages and receive test results.
+- Users can view a live competition leaderboard.
+- The asynchronous design retains submission status so users can recover results after a reconnect.
 
 Non-functional Requirements
-- Return submission acceptance quickly and execute jobs with bounded queueing delay.
-- Isolate user code, limit resource usage, and prevent unauthorized network or filesystem access.
-- Support competitions with around 100,000 users and sudden submission bursts.
-- Persist submissions and results reliably; retries must not award competition credit twice.
+- The target is a submission result within five seconds. Queue delay and execution time both count toward that target.
+- The execution environment limits CPU, memory, runtime, filesystem access, and network access.
+- The design supports competitions with approximately 100,000 users and sudden submission bursts.
+- Submissions and results need durable storage. Repeated processing must not award credit twice for the same solved problem.
 
 Core Entities
-- Problem includes statement, language templates, constraints, and references to hidden test cases.
-- Submission records user, problem, source code, language, status, and timestamps.
-- TestResult records pass/fail, runtime, memory, and sanitized diagnostics.
-- Contest and ScoreEntry define participation, scoring, penalties, and ordering.
+- Problem stores the statement, starter code, constraints, and test definitions. Public responses must omit hidden answers.
+- Submission records the user, problem, source code, language, state, and timestamps.
+- TestResult contains pass or failure status, resource use, and safe diagnostic output.
+- Contest and Leaderboard records define participation, scoring, and tie rules. The example contest has ten problems and lasts 90 minutes.
 
 API
-- List problems with filters and pagination, and fetch a problem by ID.
-- Submit code and receive a submission ID immediately after durable acceptance.
-- Poll submission status or subscribe to updates until a terminal result is available.
-- Query the contest leaderboard and the current user's rank with bounded pagination.
+- GET /problems lists problem summaries with pagination. GET /problems/:id also accepts the requested language.
+- The initial submit endpoint returns the judged result. The queue-based design returns a submission ID after acceptance.
+- GET /check/:id returns processing state or the stored result. The client polls until the submission reaches a terminal state.
+- The leaderboard endpoint returns a bounded range for a competition. An additional rank lookup can locate the current user.
 
 High-Level Design
 
 1) Problem browsing
-- Read problem metadata from a database and cache frequently viewed statements.
-- Keep hidden tests private; only trusted execution workers receive them.
-- Editing code happens in the client until submission, reducing unnecessary server writes.
+- The API Server reads problem records from DynamoDB. Frequently read public problem content can use a cache.
+- Trusted execution workers receive hidden tests. The client receives only the public statement, examples, and starter code.
+- The browser editor holds the draft code until submission. Each keystroke does not require a database write.
+
+Process: Load a problem for the editor
+- 1. The client requests a problem ID and programming language from the API Server.
+- 2. The API Server reads the problem record from DynamoDB.
+- 3. The server returns the public statement and the language-specific starter code. It excludes hidden test answers.
+- 4. The browser displays the problem and initializes its editor.
 
 2) Execute submissions
-- Persist a pending submission, enqueue its ID, and let a worker claim the job.
-- Running code inside the API process allows malicious or accidental behavior to affect the entire service.
-- Use an isolated execution environment such as a hardened container, sandbox, or microVM with explicit CPU, memory, process, and time limits.
-- A normal container alone is not a complete security boundary; restrict privileges, syscalls, mounts, and outbound networking.
-- Store results before acknowledging the job, and make repeat processing safe for the same submission ID.
+- The initial API Server sends a submission to the appropriate language runtime. It stores the returned result in DynamoDB.
+- User code inside the API process can compromise or exhaust the whole service. The design requires a separate execution boundary.
+- A VM provides isolation with greater startup cost. The chosen design uses language-specific containers with explicit restrictions.
+- Containers share the host kernel. Their setup must restrict privileges, system calls, mounts, and network access.
+- The server stores results before it reports completion. The later queue design also makes repeated execution safe for one submission ID.
 
-Process: Accept code, run tests, and return results
-- 1. The client submits source code, language, and problem ID to the API.
-- 2. The API validates limits, stores a pending submission, and reliably enqueues its ID before exposing accepted status to the client.
-- 3. A worker claims the job and loads the source, language runtime, and private test data into an isolated sandbox.
-- 4. It compiles if necessary, then runs tests under CPU, memory, output, process, and execution-time limits.
-- 5. The worker persists the terminal result and sanitized diagnostics before acknowledging queue delivery.
-- 6. The client polls or receives a completion event, then fetches the authoritative result by submission ID.
-- 7. If a worker crashes, the job can be redelivered. Stable submission identity prevents repeated execution from awarding duplicate credit.
+Process: Judge a submission in the initial container design
+- 1. The client sends source code, language, and problem ID to the API Server.
+- 2. The server selects the appropriate language runtime and supplies the code to its isolated container.
+- 3. The trusted execution controller runs the test harness. It collects output while enforcing the configured resource limits.
+- 4. The API Server stores the result in DynamoDB. It returns the result to the client.
 
 3) Competition leaderboard
-- Accepted results update contest score and penalty state according to explicit rules.
-- Publish score changes to a derived ranking view rather than sorting every participant on every read.
-- Keep authoritative results durable so the leaderboard can be rebuilt after a cache failure.
+- The initial server reads successful submissions for the competition. It counts distinct solved problems for each participant.
+- It ranks participants by solved count and the defined time rule. Sorting all submissions on every poll is expensive.
+- Submission records remain authoritative. A later Redis ranking view can be rebuilt from those durable results.
 
-Process: Apply a judged submission to the ranking
-- 1. A committed judging result produces an event identifying the submission, user, problem, and contest.
-- 2. The scoring service verifies eligibility and checks whether this result has already affected the contest score.
-- 3. It atomically records the scoring effect and updates the participant's authoritative score and penalty state.
-- 4. A derived leaderboard update changes the participant's sorted-set entry using the contest's tie-breaking rules.
-- 5. Leaderboard reads fetch top entries or personal rank from that view; rebuilds replay authoritative scores rather than rerunning user code.
+Process: Build the initial leaderboard from results
+- 1. The client requests the leaderboard for a competition.
+- 2. The API Server reads successful submissions for that competition from DynamoDB.
+- 3. It groups results by participant and counts distinct solved problems. It applies the competition's time-based tie rule.
+- 4. The server returns one leaderboard page. The client polls again after the refresh interval.
 
 Deep Dives
 
 1) Isolation and security
-- Start each execution with a clean filesystem and no application credentials.
-- Enforce execution deadlines, output limits, memory limits, and process limits; terminate the whole process tree on timeout.
-- Prevent user code from accessing hidden tests outside the intended harness or reaching internal services.
-- Sanitize errors and output before rendering them in the browser.
+- Each execution receives clean temporary state and no application credentials. Reused workers must not expose another submission's files.
+- CPU, memory, output, process, and time limits constrain user code. A timeout must terminate its remaining child processes too.
+- Network restrictions prevent user code from reaching internal services. The trusted test harness controls access to hidden test data.
+- The server sanitizes errors and output before the browser displays them.
 
 2) Efficient rankings
-- A Redis sorted set provides score updates, top ranges, and rank lookup without repeatedly sorting the entire contest.
-- Encode tie-breaking rules explicitly; score alone may not capture time penalties or equal-score ordering.
-- Periodic polling is sufficient for many leaderboards; use push updates when the freshness requirement justifies persistent connections.
+- A Redis sorted set stores competition ranks. Score updates and top-range reads avoid sorting the full submission history each time.
+- A participant receives credit once per problem. The ranking key must represent the specified tie rule, including time when required.
+- The source uses five-second leaderboard polling. Persistent push connections are optional when tighter freshness requirements justify them.
+
+Process: Update and read the Redis leaderboard
+- 1. The server stores a judged submission result in DynamoDB.
+- 2. It determines whether the result changes the participant's score. Repeated accepted submissions for one problem do not add another solved problem.
+- 3. It updates that participant's Redis sorted-set entry with the score and defined tie ordering.
+- 4. A leaderboard request reads a bounded range from Redis. A rebuild uses the durable submission results if the cache is lost.
 
 3) Competition bursts
-- A durable queue buffers submissions and separates API capacity from execution capacity.
-- Scale worker pools using queue depth and job age; prewarm language runtimes for predictable latency.
-- Apply per-user limits and fair scheduling so one participant cannot monopolize the workers.
-- Retry transient infrastructure failures, but do not repeatedly retry a deterministic compile error or time-limit failure.
+- SQS buffers submissions and separates API capacity from execution capacity. Diagram 11 shows status polling; diagram 12 shows the queue architecture.
+- Workers claim queued submissions. The system can scale language pools and prepare capacity before a scheduled competition.
+- Per-user limits and fair scheduling prevent one participant from consuming the entire worker pool.
+- A transient worker failure can trigger a retry. A deterministic compile error or execution timeout should produce a final result.
+
+Process: Queue execution and poll for results
+- 1. The API Server accepts the source code and problem ID. It records the submission and sends its ID to SQS.
+- 2. The server returns the submission ID. The client polls GET /check/:id for progress.
+- 3. A worker claims the queued submission. It invokes the isolated runtime for the selected language.
+- 4. The runtime executes the test harness under its limits. The worker collects the result outside the sandbox.
+- 5. The trusted backend stores the result in DynamoDB and applies the leaderboard update.
+- 6. The queue delivery is acknowledged after the result is durable. A repeated delivery must not award duplicate credit.
+- 7. The client's next status request returns the stored result.
 
 4) Test-case execution
-- Compile once where applicable, then run cases through a controlled harness.
-- Decide whether to stop at the first failure or report all results; keep hidden expected outputs private.
-- Normalize only what the problem permits, and measure resources consistently across runs.
+- Test definitions use one serialized format across languages. Each language harness converts that format into the required data structures.
+- The harness runs the user's function and compares its output with the expected result. Hidden expected values remain private.
+- Comparison rules must match the problem. Resource measurements need consistent limits and runtime conditions.
 
 Final Design
-- Cached problem reads sit beside a durable submission queue and isolated worker fleet.
-- Results drive retry-safe score updates and a rebuildable leaderboard cache.
-- Security boundaries, queue fairness, and resource limits are as important as raw execution throughput.
+- The API Server serves problems and accepts submissions. SQS feeds isolated workers that invoke the appropriate language runtime.
+- Workers persist judging results. Those results update a rebuildable Redis leaderboard without duplicate contest credit.
+- Clean execution state, resource limits, and queue controls protect both users and the platform during submission bursts.

@@ -70,7 +70,7 @@ const articles = JSON.parse(data.slice(data.indexOf('=')+1,data.lastIndexOf('as 
       assert.ok(total>0,term+' appears in the notes');
       assert.equal([...highlightedText.matchAll(pattern)].length,total,'Every '+term+' occurrence is highlighted');
     }
-    const componentRoles = {cache:'storage',database:'storage',redis:'storage',cdn:'routing',gateway:'routing','load-balancer':'routing',client:'client',counter:'coordination',service:'processing'};
+    const componentRoles = {cache:'storage',database:'storage',redis:'storage','object-storage':'storage',cdn:'routing',gateway:'routing','load-balancer':'routing',client:'client',counter:'coordination',queue:'coordination',coordinator:'coordination',worker:'processing',service:'processing'};
     assert.deepEqual(await notes.locator('[data-category-legend]').allTextContents(),['Data & storage','Traffic & routing','Servers & services','Coordination','Clients']);
     const highlights=await notes.locator('[data-concept]').evaluateAll(items=>items.map(e=>({key:e.dataset.concept,category:e.dataset.category,text:e.textContent})));
     for(const highlight of highlights) {
@@ -161,7 +161,24 @@ const articles = JSON.parse(data.slice(data.indexOf('=')+1,data.lastIndexOf('as 
       ]),article.title);
       const flows=expected.sections.flatMap(s=>s.flows);
       assert.ok(flows.length>0,article.title+' has process flows');
-      if(article.slug!=='bitly')assert.equal(await note.locator('[data-concept], [data-category-legend]').count(),0,article.title+' keeps its current style');
+      assert.equal(await note.locator('[data-category-legend]').count(),5,article.title+' color key');
+      assert.ok(await note.locator('[data-concept]').count()>0,article.title+' component colors');
+      const components=await note.locator('[data-concept]').evaluateAll(items=>items.map(e=>({key:e.dataset.concept,category:e.dataset.category,text:e.textContent})));
+      for(const component of components)assert.equal(component.category,componentRoles[component.key],article.title+' / '+component.text);
+      for(const component of components) {
+        if(/^counters?$/i.test(component.text))assert.equal(article.slug,'bitly','Ordinary counter fields stay plain');
+        if(/^watcher$/i.test(component.text))assert.equal(article.slug,'job-scheduler','Watcher identifies the scheduler component');
+        if(/^agents?$/i.test(component.text))assert.equal(article.slug,'metrics-monitoring','Agent identifies the metrics collector');
+      }
+      for(const theme of ['light','dark']) {
+        await page.evaluate(t=>document.documentElement.classList.toggle('light',t==='light'),theme);
+        const mismatches=await note.evaluate(root=>{
+          const colors=e=>{const s=getComputedStyle(e);return s.backgroundColor+'/'+s.color;};
+          const key=Object.fromEntries([...root.querySelectorAll('[data-category-legend]')].map(e=>[e.dataset.categoryLegend,colors(e)]));
+          return [...root.querySelectorAll('[data-concept]')].filter(e=>colors(e)!==key[e.dataset.category]).map(e=>e.textContent);
+        });
+        assert.deepEqual(mismatches,[],article.title+' '+theme+' colors match the legend');
+      }
       assert.equal(await note.getByRole('group').count(),flows.length,article.title);
       for(const flow of flows) {
         const group=note.getByRole('group',{name:flow.title+' process',exact:true});
@@ -205,6 +222,6 @@ const articles = JSON.parse(data.slice(data.indexOf('=')+1,data.lastIndexOf('as 
     await ready();
     assert.ok(await page.locator('iframe').evaluate(f=>f.contentDocument.documentElement.scrollWidth<=f.clientWidth+1));
     assert.deepEqual(errors,[]);
-    console.log(JSON.stringify({passed:true,articles:articles.length,images:articles.reduce((n,a)=>n+a.imageCount,0),checks:['filters','plain hyphen notes','full article','internal article links','legacy reference','unknown route','load failure and retry','49 full readers','49 condensed readers','ordered process flows and text downloads','497 note diagrams','mobile overflow']}));
+    console.log(JSON.stringify({passed:true,articles:articles.length,images:articles.reduce((n,a)=>n+a.imageCount,0),checks:['filters','plain hyphen notes','full article','internal article links','legacy reference','unknown route','load failure and retry','49 full readers','49 condensed readers','ordered process flows and text downloads','497 note diagrams','component roles and scoped aliases','light and dark color keys','mobile overflow']}));
   } finally {await browser.close();}
 })().catch(error=>{console.error(error);process.exitCode=1;});

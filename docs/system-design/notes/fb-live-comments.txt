@@ -1,78 +1,104 @@
 Understanding the Problem
-- Deliver comments for a live video to viewers in near real time while preserving history for later joins and reconnects.
-- Comment writes are relatively small; fanout to a huge audience is the dominant scaling challenge.
+- Viewers post comments on a live video. Other viewers receive them quickly. Stored history supports later joins and reconnects.
+- A comment is small, but one comment can have millions of recipients. Distribution creates the main scaling challenge.
 
 Functional Requirements
-- Post a comment on a live video.
-- Receive comments while watching and fetch comments posted before joining.
-- Recover missed comments after disconnecting.
+- A viewer can post a comment on a live video.
+- A viewer can receive new comments and request comments posted before joining.
+- After a connection failure, the viewer can recover a bounded set of missed comments.
 
 Non-functional Requirements
-- Keep delivery latency low for millions of concurrent viewers.
-- Persist accepted comments and tolerate connection-server failures.
-- Define ordering within a video and prevent duplicate rendering after replay or reconnection.
+- The target is less than 200 ms for typical live delivery. The scenario includes millions of viewers and high comment rates.
+- Favor availability over immediate consistency. Persist accepted comments and recover from connection-server failures.
+- Define comment ordering within each video. Replayed events must not appear twice in the viewer's feed.
 
 Core Entities
-- Video identifies the live stream and its comment channel.
-- Comment stores video ID, author, text, ID, and ordering position.
-- Subscription maps a viewer connection to the live videos it follows.
-- Cursor records the last consumed position for history and reconnection.
+- User identifies a commenter, viewer, or broadcaster. Live Video identifies the stream and its comment channel.
+- Comment contains its ID, video ID, author, text, and creation time. An ordering key supports history queries.
+- A subscription connects a viewer's active connection to a video. Each messaging server keeps its local subscriptions.
+- A cursor records the last applied comment position. It supports pagination and recovery after a disconnect.
 
 API
-- Post a comment through an authenticated request with a retry-safe ID.
-- Fetch paginated history by video ID and before/after cursor.
-- Open an SSE or WebSocket subscription for new comments.
-- Return comment IDs and ordering positions so the client can merge history with live events safely.
+- POST /comments/{liveVideoId} creates a comment. The server obtains the user ID from the validated session token.
+- GET /comments/{liveVideoId} returns a bounded history page. A cursor and page size identify the requested range.
+- An SSE connection receives new comments. HTTP requests can still submit comments. WebSockets provide an alternative transport.
+- Responses include comment IDs and ordering information. These let the client merge history and live events without duplicates.
 
 High-Level Design
 
 1) Post and store comments
-- Validate the request, persist the comment, and publish an event for fanout.
-- Use reliable publication or an outbox so a crash between database commit and event publication does not permanently hide a comment.
-- Index history by video and ordering key for efficient range reads.
+- The Comment Management Service validates the request. It stores the comment in the Comments DB, using DynamoDB in the source design.
+- Live publication is added later. A reliable publication record or outbox can prevent a gap after database commit.
+- Organize history by video ID and ordering key. Use a consistent key schema for both writes and range queries.
 
-Process: Persist and broadcast a comment
-- 1. A viewer posts text and a stable request ID for a video; the API authenticates and validates the request.
-- 2. The service commits the comment, its ordering key, and recoverable publication state before acknowledging acceptance.
-- 3. The event pipeline publishes that committed comment to the video's shared channel.
-- 4. Connection servers subscribed for that video receive the event and fan it out to their local viewers.
-- 5. Clients deduplicate by comment ID and insert it according to the ordering key; slow clients follow the bounded-buffer or catch-up policy.
+Process: Store a comment
+- 1. The Commenter Client sends a comment and video ID to the Comment Management Service.
+- 2. The service validates the request and obtains the author from the session.
+- 3. The service writes the comment to the Comments DB. It confirms acceptance after storage succeeds.
 
 2) Deliver and read history
-- Connection servers maintain viewer subscriptions and push new comments to their connected clients.
-- The history API provides older pages independently of the live channel.
-- Coordinate initial history and live subscription with a cursor or snapshot boundary to avoid a gap between the two.
+- The initial design polls the Comment Management Service for comments after the last received position. This creates many empty reads.
+- Historical pages use a cursor to request older comments. Offset pagination can skip or repeat comments when the feed changes.
+- The later push design must coordinate history with live events. Buffer events or use a shared boundary during the transition.
 
-Process: Join a video without a history/live gap
-- 1. The viewer authenticates and subscribes to the video's live channel, establishing a cursor boundary or buffering live events while history loads.
-- 2. The history service reads a bounded page ending at that boundary and returns ordered comments with a continuation cursor.
-- 3. The client displays history and merges buffered or replayed live events after the boundary, removing duplicate IDs.
-- 4. As new comments arrive, the client advances its last-applied cursor after displaying them.
-- 5. On reconnect, it requests comments after that cursor and repeats the handoff rather than starting from an arbitrary current moment.
+Process: Poll for new comments
+- 1. The Viewer Client sends the last received comment position to the server.
+- 2. The Comment Management Service queries the database for later comments on that video.
+- 3. The server returns the new comments. The client displays them and advances its cursor.
+- 4. The client repeats the request after a polling interval. This initial design trades delivery delay against request volume.
 
 Deep Dives
 
 1) Real-time transport
-- Simple polling is easy but either adds delay or creates many empty requests.
-- SSE fits server-to-client comment delivery while comments can still be submitted over HTTP.
-- WebSockets are appropriate when bidirectional interaction is needed, but add connection and heartbeat management.
-- Transport does not provide durable replay by itself; history storage remains necessary.
+- Polling is simple, but frequent requests increase load. Infrequent requests increase delivery delay.
+- SSE supports server-to-client updates over one open connection. The source uses HTTP POST for comment creation.
+- WebSockets support communication in both directions. Choose them when the interaction requires that capability.
+- Check proxy buffering, connection limits, and heartbeats. Neither transport supplies durable history by itself.
+
+Process: Push comments through SSE
+- 1. The viewer opens an SSE connection and selects a video.
+- 2. The Comment Management Service stores a newly submitted comment in the database.
+- 3. The service sends the stored comment to its connected viewers for that video.
+- 4. Each client deduplicates the comment ID and adds the comment to its feed.
 
 2) Audience fanout
-- Broadcast through pub/sub to the connection servers with interested viewers, then fan out locally.
-- Avoid one database read or upstream subscription for every viewer when many viewers share the same video.
-- Partition channels across infrastructure, but account for a single viral video that exceeds ordinary shard capacity.
-- Replicate or hierarchically distribute a hot channel, batch events where useful, and apply bounded buffers for slow clients.
-- Distinguish a durable event log from ephemeral pub/sub; recover lost live notifications from persisted history.
+- A single Redis Pub/Sub channel sends every comment to every messaging server. This wastes work on irrelevant videos.
+- Partition channels by video ID. Each Realtime Messaging Server subscribes only to channels needed by its viewers.
+- A Layer 7 Load Balancer can place viewers of the same video on related servers. This reduces unnecessary subscriptions.
+- A Dispatcher is an alternative to pub/sub. It looks up the responsible servers and sends each comment directly to them.
+- Keep routing and subscription state current as servers join or fail. ZooKeeper or etcd can hold shared coordination data.
+- A viral video can exceed one server's capacity. Distribute its viewers across servers and bound buffers for slow clients.
+- Redis Pub/Sub does not retain missed events. Recover missed live comments from stored history or a shared recent-history cache.
+
+Process: Route comments with partitioned pub-sub
+- 1. The Layer 7 Load Balancer routes a viewer using the video ID.
+- 2. The Realtime Messaging Server records the connection. It subscribes to the Redis Pub/Sub channels needed by its viewers.
+- 3. The Comment Management Service stores a new comment. It publishes the comment to the video's assigned channel.
+- 4. Interested messaging servers receive the event. Each server sends it to the relevant local SSE connections.
+- 5. Servers update subscriptions when their viewer population changes. Stored history supplies missed comments after a failure.
+
+Process: Route comments with a dispatcher
+- 1. A messaging server registers the videos watched by its connected viewers.
+- 2. The Comment Management Service stores a new comment and sends it to the Dispatcher.
+- 3. The Dispatcher looks up the messaging servers responsible for that video. It forwards the comment to those servers.
+- 4. Each messaging server sends the comment to its local viewers through SSE.
 
 3) Reconnection and overload
-- Send a last-seen cursor on reconnect and fetch events after it, then resume live delivery.
-- Deduplicate by comment ID because replay can overlap with events already displayed.
-- Use sequence information to detect gaps and keep ordering stable across server handoffs.
-- If an audience cannot consume every comment, define sampling, prioritization, or backlog limits explicitly rather than silently growing memory forever.
-- Heartbeats and bounded reconnection backoff reduce stale connections and synchronized reconnect storms.
+- On reconnect, send the last applied comment ID. Request later comments before continuing normal live delivery.
+- Deduplicate overlapping history and live events by comment ID. Use ordering information to merge them consistently.
+- Limit replay duration and result size. For a long absence, show a recent snapshot and allow the viewer to jump to live.
+- For extreme traffic, sample comments or serve a recent-comment snapshot through a CDN. This changes the delivery target and completeness.
+- The source's CDN alternative permits about one to two seconds of delay. The client can display its own comment immediately.
+- Use different thresholds to enter and leave snapshot mode. Heartbeats and delayed reconnect attempts reduce repeated connection failures.
+
+Process: Recover missed comments
+- 1. The client records the last applied comment ID before a disconnect.
+- 2. On reconnect, it sends that position through Last-Event-ID or an HTTP catch-up request.
+- 3. The server returns a bounded set of later comments from shared history. The client buffers concurrent live events during recovery.
+- 4. The client merges history and live events by their ordering keys. It removes duplicate comment IDs.
+- 5. The client advances its cursor after applying each event. If replay is unavailable, it shows a recent snapshot and the gap.
 
 Final Design
-- Durable comment storage and an ordered publication path support both history and replay.
-- A shared fanout layer routes each video's comments to a horizontally scaled connection tier.
-- Cursor recovery, deduplication, and hot-channel handling make the live experience reliable at large audience sizes.
+- The Comment Management Service stores comments in DynamoDB. The final source diagram uses a Dispatcher to locate interested messaging servers.
+- The Realtime Messaging Service sends comments through SSE. Partitioned pub/sub is a separate alternative described in the deep dive.
+- Cursor recovery, deduplication, bounded replay, and special handling for viral videos keep the viewing experience usable at scale.

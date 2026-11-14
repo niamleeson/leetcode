@@ -5,9 +5,9 @@
       "title": "The Race Condition",
       "level": 3,
       "points": [
-        "A read-check-write sequence is unsafe when multiple requests can act on the same old value.",
-        "Examples include booking one seat, decrementing inventory, accepting the highest bid, and claiming a driver.",
-        "State the invariant first, then place its validation and update inside an atomic boundary."
+        "A separate read, check, and write leaves time for another request to change the resource. Both requests can then claim the same item.",
+        "Common examples include seats, inventory, bids, and driver assignments. Identify the exact resource that concurrent requests share.",
+        "State the rule that must always hold. Enforce its check and update together at the authoritative store."
       ],
       "diagrams": [
         {
@@ -31,20 +31,20 @@
       "title": "1) Conditional writes",
       "level": 4,
       "points": [
-        "Make the database update conditional on the current state, such as available quantity being sufficient or a version matching.",
-        "Check affected-row count to distinguish success from a lost race; do not assume an executed statement changed a row.",
-        "A unique constraint can enforce one record per logical identity more reliably than a prior application-level existence check."
+        "Make a write conditional on current state. For example, decrement inventory only when enough units remain, or claim only an available seat.",
+        "Check the affected-row count. Zero changed rows means the claim failed; the database may not raise an error for that result.",
+        "A count protects total inventory, not a specific seat. Guard the seat's own row or enforce a unique seat identity."
       ],
       "diagrams": [],
       "flows": [
         {
-          "title": "Claim a resource with compare-and-set",
+          "title": "Claim a resource with a conditional write",
           "steps": [
-            "The service reads the resource's state and version, or expresses the required current-state predicate directly in its write.",
-            "It submits one conditional update, such as available_quantity >= requested_quantity or version = expected_version.",
-            "The database evaluates the predicate and mutation atomically; competing requests cannot both rely on the same unprotected old state.",
-            "The service checks the affected-row count. Success is acknowledged after the write commits; zero rows means the claim did not succeed.",
-            "On a conflict, the service reloads and re-evaluates the business rule before a bounded retry, rather than blindly repeating stale assumptions."
+            "The service submits a write that includes the required current state, such as available quantity greater than zero.",
+            "The database checks that condition and performs the mutation as one atomic operation.",
+            "The service checks whether the write changed a row. A zero-row result does not authorize a successful claim.",
+            "Related records are inserted only after a successful claim, within the same transaction when required.",
+            "After commit, the service confirms success. A conflict requires current-state validation before any bounded retry."
           ]
         }
       ]
@@ -53,10 +53,10 @@
       "title": "2) Pessimistic locking",
       "level": 4,
       "points": [
-        "Lock the relevant rows, read their current state, apply the update, and commit a short transaction.",
-        "Competing writers wait rather than independently proceeding with stale state.",
-        "Acquire multiple locks in a consistent order and handle deadlock or timeout failures with bounded retries.",
-        "Never hold a transaction open while a person checks out or an external network request runs; represent longer claims as durable reservations."
+        "When application logic must read before deciding, lock the relevant rows first. Validate and update them in one short transaction.",
+        "Another writer must wait or skip locked candidates. It cannot independently change the protected rows while the first transaction holds them.",
+        "Acquire multiple locks in a consistent order. Handle deadlock or timeout errors with bounded retries of the complete transaction.",
+        "Keep payment calls and customer checkout outside the transaction. Store a reservation with an expiry for a longer claim."
       ],
       "diagrams": [
         {
@@ -69,13 +69,16 @@
       ],
       "flows": [
         {
-          "title": "Update related rows with a short lock-holding transaction",
+          "title": "Update related rows while holding short-lived locks",
           "steps": [
-            "The service begins a transaction and acquires required row locks in a consistent order.",
-            "It reads the locked current values and checks the invariant across all relevant records.",
-            "If validation fails, it rolls back; otherwise it writes the related changes within the same transaction.",
-            "Commit makes the changes durable under the database's configured guarantees and releases the locks.",
-            "Only then does the service acknowledge success or trigger external work; deadlock victims retry the complete transaction against fresh state."
+            "The service begins a transaction and locks the required rows in a consistent order.",
+            "It reads the protected values and checks the business rule.",
+            "If the check fails, it rolls back. Otherwise, it writes the related changes.",
+            "Commit makes the changes visible under the database's guarantees and releases the locks.",
+            "A waiting transaction then proceeds against current state. External payment work stays outside the lock-holding interval."
+          ],
+          "diagramFilenames": [
+            "02.svg"
           ]
         }
       ]
@@ -84,10 +87,10 @@
       "title": "3) Optimistic concurrency control",
       "level": 4,
       "points": [
-        "Read state with a version and write only if that version is unchanged.",
-        "A conflict means another writer won; reload and re-evaluate the business rule before retrying.",
-        "This works well with modest contention, but repeated conflicts can waste substantial work on a hot resource.",
-        "Use a monotonically changing version to detect state that changed and later returned to the same visible value."
+        "Optimistic concurrency reads a version with the data. The write succeeds only if that version still matches, then increments it.",
+        "A failed version check means another writer changed the record. Reload current state and reconsider the operation before retrying.",
+        "Optimistic checks work well when conflicts are rare. Under heavy contention, repeated failed work can cost more than a short lock.",
+        "Use a version that changes on every update. A business value that returns to its previous value can hide an intervening change."
       ],
       "diagrams": [],
       "flows": []
@@ -96,10 +99,10 @@
       "title": "4) Isolation levels",
       "level": 4,
       "points": [
-        "Read committed prevents dirty reads but does not make every multi-statement invariant safe.",
-        "Repeatable-read or snapshot isolation provides stable snapshots but can still allow anomalies such as write skew depending on the database.",
-        "Serializable isolation targets serial-equivalent behavior, often by aborting conflicting transactions that the application must retry.",
-        "Choose isolation and explicit constraints from the required invariant, not from a vague claim that transactions solve all races."
+        "Read committed prevents dirty reads but does not protect every rule spanning several statements or rows.",
+        "Snapshot-style isolation can still allow write skew. Two transactions can update different rows and together violate a shared rule.",
+        "Serializable isolation requires a result equivalent to some serial order. The database can abort conflicting transactions; the application must handle retries.",
+        "Match isolation and constraints to the actual rule. Another option makes the conflict visible on one shared row that can be guarded."
       ],
       "diagrams": [
         {
@@ -116,21 +119,21 @@
       "title": "5) Distributed locks",
       "level": 4,
       "points": [
-        "Use shared locks when the protected action cannot fit within one database's transaction or conditional-write boundary.",
-        "Locks need unique ownership tokens, bounded leases, safe release, and renewal behavior.",
-        "A paused worker may resume after its lease expires. Fencing tokens let the protected resource reject that stale worker's writes.",
-        "A lock service cannot make an external side effect transactional; downstream idempotency and recovery still matter."
+        "A lease records who holds a resource and when the hold expires. Use it when the claim must outlive a short transaction.",
+        "Redis can create a lease atomically with a TTL. A database can conditionally update owner and expiry fields on the resource row.",
+        "A stalled holder can resume after its lease expires. Validate current ownership when applying effects; stricter designs may require fencing tokens.",
+        "ZooKeeper and etcd provide coordination services with their own failure guarantees. External side effects still need idempotency and recovery."
       ],
       "diagrams": [],
       "flows": [
         {
-          "title": "Protect work after a lease changes hands",
+          "title": "Hold a resource across a longer workflow",
           "steps": [
-            "A worker acquires a lease with a unique owner token and a monotonically increasing fencing value from the coordinator.",
-            "It includes that fencing value when requesting changes to the protected resource.",
-            "The resource accepts only operations compatible with its latest accepted ownership epoch, rejecting a stale worker that resumes after lease expiry.",
-            "The worker renews while active and releases only if its owner token still matches.",
-            "If renewal fails or ownership is uncertain, it stops issuing new work and reconciles already attempted effects; the lock alone does not undo those effects."
+            "The service conditionally records a reservation owner and expiry when the resource is free or its prior lease has expired.",
+            "The authoritative store confirms whether this request acquired the claim.",
+            "The client completes the longer workflow using that reservation identity.",
+            "Before applying an effect, the service checks that the reservation remains current and valid.",
+            "It releases only its own current claim. A delayed old holder cannot assume that an expired lease still grants ownership."
           ]
         }
       ]
@@ -139,10 +142,10 @@
       "title": "Choosing the Right Approach",
       "level": 3,
       "points": [
-        "Prefer a conditional update for a simple invariant and a database transaction for related records in one store.",
-        "Use optimistic checks when conflicts are uncommon and short pessimistic transactions when contention makes retries expensive.",
-        "Introduce distributed coordination only when the protected state actually crosses the simpler boundary.",
-        "Separate a fast atomic claim from a longer workflow such as payment or fulfillment."
+        "Start with a conditional write when one predicate describes the rule. Use a transaction for related writes in the same database.",
+        "Choose optimistic checks for rare conflicts. Choose short pessimistic transactions when application decisions and frequent conflicts make retries expensive.",
+        "Use serializable isolation or a shared guard row for write skew. Add distributed coordination only when the required boundary demands it.",
+        "Separate a short inventory claim from a longer payment workflow. A lease preserves the claim without holding a transaction open."
       ],
       "diagrams": [],
       "flows": []
@@ -151,11 +154,11 @@
       "title": "Common Deep Dives",
       "level": 3,
       "points": [
-        "Prevent deadlocks by ordering locks consistently, limiting lock scope, and retrying aborted transactions.",
-        "Prevent the ABA problem with versions that change on every transition, even if the visible value returns to its original state.",
-        "A single highly contested resource has a serialization limit; queues, admission control, partitioned inventory, or combining operations may reduce contention.",
-        "More application servers do not increase the throughput of one exclusively locked row.",
-        "Make retries idempotent so a lost response does not repeat an already completed side effect."
+        "Consistent lock order prevents circular waits. Keep lock scope short and retry transactions the database aborts after detecting a deadlock.",
+        "A value can change from A to B and back to A. A monotonically increasing version reveals this ABA change.",
+        "One hot resource still has a serial capacity limit. A queue can send its requests to one worker at a controlled rate.",
+        "More application servers do not increase one row's exclusive write capacity. Split independent inventory or control admission when the product allows it.",
+        "Make retries safe when responses disappear after commit. A retry must not repeat a completed charge or create another successful claim."
       ],
       "diagrams": [
         {
@@ -173,14 +176,28 @@
           "height": 186.2011665156565
         }
       ],
-      "flows": []
+      "flows": [
+        {
+          "title": "Serialize requests for one hot resource",
+          "steps": [
+            "The server places requests for the same resource in the same Message Queue partition.",
+            "One Worker processes that partition in order.",
+            "For each request, it checks current database state and commits the permitted change.",
+            "It records processing progress after the required output is safe, so a replacement can recover.",
+            "Admission must still respect the worker's sustainable rate. The queue smooths bursts without removing the serial capacity limit."
+          ],
+          "diagramFilenames": [
+            "05.svg"
+          ]
+        }
+      ]
     },
     {
       "title": "Conclusion",
       "level": 3,
       "points": [
-        "Describe the invariant, atomic boundary, conflict response, and crash recovery together.",
-        "The correct primitive is the one that still prevents invalid state under concurrent requests, timeouts, retries, and delayed workers."
+        "Describe the invariant, authoritative store, atomic operation, and conflict response together. Include crash recovery and expired ownership.",
+        "Choose a primitive that protects the rule during concurrent requests and failures. Keep the protected data in one authoritative store where possible."
       ],
       "diagrams": [
         {

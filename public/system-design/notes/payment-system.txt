@@ -1,92 +1,104 @@
 Understanding the Problem
-- Accept merchant payment requests, coordinate external payment processing, and expose reliable payment status.
-- External networks are asynchronous: a timeout can leave an unknown outcome, and retries must not cause duplicate charges.
+- Merchants request payments from customers. The platform sends card transactions to external payment networks and reports their status.
+- External networks can reply after a timeout. Keep an unknown outcome separate from failure so retries do not cause duplicate charges.
 
 Functional Requirements
-- Let merchants create payment requests and customers pay with cards.
-- Track and expose payment lifecycle status.
-- Deliver asynchronous merchant updates, including webhooks where required.
+- Merchants can create payment requests. Customers can pay with credit or debit cards.
+- Merchants can query the current payment status.
+- Webhooks can send status changes to merchant servers. Refunds, subscriptions, saved cards, and merchant payouts are outside the initial scope.
 
 Non-functional Requirements
-- Preserve durable, auditable transaction history and financial integrity.
-- Protect payment credentials and isolate sensitive handling from ordinary application services.
-- Scale to high transaction volume while retaining a clear correctness boundary for each payment.
+- Retain transaction data and its change history. The system needs durability, auditability, and financial integrity.
+- Protect customer payment details. Authenticate merchants before allowing them to create or inspect payments.
+- The design targets more than 10,000 transactions per second at peak. Independent payments must scale without mixing their state transitions.
 
 Core Entities
-- PaymentIntent describes amount, currency, merchant, customer, and requested operation.
-- PaymentAttempt records an external submission, idempotency key, provider reference, and outcome.
-- LedgerEntry records durable financial movement; state transitions and webhook events retain an audit trail.
-- PaymentMethod stores a provider token or reference rather than exposing raw credentials throughout the system.
+- Merchant contains the business identity, API credentials, and configuration. PaymentIntent records the amount, currency, customer, and overall payment state.
+- Transaction records a money movement linked to one PaymentIntent. The example handles charges; one intent can have several attempts.
+- Attempt records preserve each external request, reference ID, time, and outcome. Production ledgers can use separate entries for balance changes.
+- The initial entity diagram lists Merchant, PaymentIntent, and Transaction. Hosted collection and token references reduce unnecessary exposure of card details.
 
 API
-- Create a payment intent with amount, currency, merchant reference, and an idempotency key.
-- Confirm or submit a payment method through an appropriate tokenized flow.
-- Query payment status and register authenticated webhook endpoints.
-- Reject reuse of an idempotency key with incompatible parameters instead of treating it as a new payment.
+- POST /payment-intents creates an intent with an amount and currency. Use a merchant-scoped idempotency key for retries.
+- POST /payment-intents/{id}/transactions starts a transaction. Collect card details through the secure collection flow described in the security section.
+- GET /payment-intents/{id} returns status and relevant errors. Optional webhook registration supplies a callback URL and subscribed event types.
+- Repeated requests with the same merchant and idempotency key resolve to one payment. Reject incompatible parameters for an existing key.
 
 High-Level Design
 
 1) Create and execute payments
-- Validate and durably store the payment intent before coordinating external work.
-- Use an explicit state machine for pending, processing, successful, failed, and unresolved states.
-- Persist the attempt and provider request identifier so a crash does not erase knowledge of an in-flight charge.
-- Use a durable workflow or queue for retries and reconciliation; do not hold a database transaction open while waiting for a payment network.
+- The API Gateway authenticates the merchant. The Payment Service saves a created PaymentIntent and returns its ID; no charge occurs yet. The creation diagram names this component PaymentIntent Service.
+- The Transaction Service saves a pending transaction. It submits the authorization request to the External Payment Network and records the response.
+- Later network updates can change the transaction and PaymentIntent status. Authorization is not the same as completed settlement.
+- Record each payment attempt before the external call. The transaction-safety deep dive adds reconciliation for uncertain outcomes.
 
-Process: Create, submit, and confirm a payment
-- 1. The merchant creates an intent with amount, currency, and an idempotency key; the API validates merchant authority and request parameters.
-- 2. The service commits the intent and returns its ID. Reusing the key with the same parameters resolves to that intent rather than a second charge request.
-- 3. The customer supplies a payment-method token through the supported collection flow and confirms the intent.
-- 4. A durable workflow records a payment attempt and stable provider key before sending the external authorization or charge request.
-- 5. The provider responds or sends a verified callback. The workflow deduplicates the result and applies only valid payment-state transitions.
-- 6. The system commits the resulting financial and payment records under their defined transaction boundary, retaining the audit trail.
-- 7. Only then does it publish merchant/customer status updates. Accepted or processing status is not reported as a successful payment before the outcome is known.
+Process: Create a payment intent
+- 1. The merchant sends an amount and currency to the API Gateway.
+- 2. The gateway authenticates the merchant and routes the request to the PaymentIntent Service.
+- 3. The PaymentIntent Service saves a PaymentIntent with created status in the database.
+- 4. The service returns the intent ID. Creating this record does not charge the customer.
+
+Process: Submit a transaction to the payment network
+- 1. The customer supplies payment details for the PaymentIntent. The security deep dive replaces merchant collection with hosted collection.
+- 2. The Transaction Service creates a pending Transaction linked to that intent.
+- 3. It submits the authorization request to the External Payment Network.
+- 4. It records the initial approval or decline and updates the PaymentIntent state.
+- 5. Later network updates change the stored transaction state as processing continues. A timeout requires reconciliation rather than an assumed failure.
 
 2) Status updates
-- Apply provider callbacks idempotently and verify their authenticity.
-- Persist status transitions before notifying the merchant or customer.
-- Poll or reconcile with the provider when callbacks are missing, delayed, or contradictory.
-- A network timeout is an unknown outcome, not definitive proof of failure.
+- The merchant requests the PaymentIntent through the API Gateway. The Payment Service reads the current record from the database.
+- Return the stored status, related transaction details, and any error. Polling is sufficient for the initial design.
+- A later webhook extension pushes changes to merchant servers. It uses committed database changes as its event source.
+- A timeout does not establish failure. Keep an unresolved state until the payment network confirms the result.
+
+Process: Read the current payment status
+- 1. The merchant requests the PaymentIntent by ID through the API Gateway.
+- 2. The gateway authenticates the merchant and routes the request to the Payment Service.
+- 3. The service reads the current intent and related transaction details from the database.
+- 4. It returns the stored status and any relevant error. The merchant can repeat this request while processing remains pending.
 
 Deep Dives
 
 1) Security
-- Use tokenization or hosted collection to minimize where raw card data is handled.
-- Encrypt sensitive data in transit and at rest, restrict service access, and keep secrets out of logs.
-- Authenticate merchants and callbacks and validate amounts and ownership on the server.
-- Separate security boundaries and operational responsibilities explicitly rather than assuming encryption alone protects the workflow.
+- A hosted iframe collects card details directly for the payment platform. The merchant server does not need to receive those details.
+- The source adds application encryption before HTTPS transmission and protected server-side keys. These layers do not make compromised clients trustworthy.
+- Authenticate requests with merchant credentials. Signed request data, a timestamp, and a nonce support tamper and replay checks.
+- Keep secret keys on merchant servers. Limit access to sensitive payment services and exclude payment credentials from ordinary logs.
 
 2) Durability and auditability
-- Write immutable financial records and use compensating entries for corrections instead of erasing history.
-- Keep ledger invariants within transactional boundaries and distinguish ledger state from a mutable UI status.
-- Replication, backups, and tested recovery protect records; an event log also enables investigation and reconciliation.
+- Mutable status rows alone lose history. An append-only audit record can preserve each transition, but application code must write it reliably.
+- Change Data Capture reads committed database changes and publishes them to Kafka. Key events by PaymentIntent to preserve per-payment order.
+- Replicate the event stream and archive older events in S3. Monitor CDC progress and retention so a stalled consumer can recover.
 
 3) Transaction safety
-- Deduplicate customer requests, worker retries, and provider callbacks at their respective boundaries.
-- Use provider-supported idempotency and query existing attempts before issuing an uncertain replacement charge.
-- Reconcile local records with provider settlement or status reports to identify missing and mismatched outcomes.
-- Exactly-once queue processing does not by itself guarantee exactly one external financial side effect.
+- A unique merchant/idempotency-key constraint prevents duplicate payment creation. Also handle retries at the external network and callback boundaries.
+- Save the network name, reference ID, and intended operation before calling the network. Record success, explicit failure, or timeout afterward.
+- The Reconciliation Worker consumes timeout events. It queries network status and compares settlement files with local attempts before updating records.
+- Queue delivery guarantees do not guarantee one external charge. Use supported provider idempotency and preserve uncertain attempts for reconciliation.
 
 Process: Resolve an uncertain external charge
-- 1. The outbound call times out after submission, leaving an attempt whose external outcome is unknown.
-- 2. The workflow retains the attempt and provider identity and marks it unresolved instead of assuming no charge occurred.
-- 3. It queries provider status or retries the same logical request using supported provider idempotency.
-- 4. A confirmed outcome is applied once to payment state and relevant ledger records; duplicate callbacks resolve to the same result.
-- 5. If automated resolution fails, reconciliation or manual handling retains the pending evidence rather than issuing an unrelated replacement charge blindly.
+- 1. The Transaction Service records the intended network operation and reference ID before sending the request.
+- 2. The external call times out. The service records an unresolved attempt instead of declaring failure.
+- 3. CDC publishes the committed attempt change to the Kafka Event Stream.
+- 4. The Reconciliation Worker consumes the timeout event and queries the network using the recorded reference.
+- 5. The worker also compares settlement files with local attempts when those files arrive.
+- 6. It records the confirmed outcome once. Duplicate events or callbacks must not create another charge or state transition.
 
 4) Scale and webhooks
-- Partition independent payment workflows while keeping each payment's transitions serialized.
-- Deliver webhooks through a durable queue with signatures, event IDs, retry backoff, and delivery history.
-- Merchants must tolerate duplicate and out-of-order webhooks; expose an API for fetching current authoritative status.
-- Isolate slow merchant endpoints and providers so they do not block unrelated payments.
+- Partition Kafka by PaymentIntent for ordered events. Scale stateless services separately; database sharding by merchant is a later option.
+- The Webhook Consumer reads CDC events from Kafka. It checks merchant subscriptions, signs matching payloads, and records each delivery attempt.
+- Retry failed webhooks with backoff. Merchants verify signatures, handle duplicate events, and can query the current payment status.
+- Archive old records and use read replicas where suitable. Isolate slow webhook destinations so unrelated payments can continue.
 
-Process: Deliver a committed payment event to a merchant
-- 1. A payment transition commits together with recoverable notification intent.
-- 2. A publisher enqueues a stable webhook event ID, and a delivery worker signs the payload for the merchant endpoint.
-- 3. The worker sends the event with bounded timeout and records the response as a delivery attempt.
-- 4. Failed or uncertain deliveries retry with the same event identity and backoff; one slow merchant does not block other endpoints.
-- 5. The merchant deduplicates events and can fetch current payment status when events are delayed or reordered.
+Process: Deliver a committed payment change
+- 1. A payment status change commits in the database.
+- 2. CDC publishes that change to the Kafka Event Stream.
+- 3. The Webhook Consumer checks the merchant's subscribed events and callback URL.
+- 4. It signs the payload, sends it to the merchant, and records the delivery result.
+- 5. Failed deliveries retry with backoff and the same event identity.
+- 6. The merchant verifies the signature, handles duplicates, and acknowledges receipt. It can query current status if events arrive out of order.
 
 Final Design
-- Durable intents, attempts, and ledger records form the source of truth.
-- Retry-safe workflows coordinate external providers, with reconciliation resolving uncertainty.
-- Tokenized credential handling and asynchronous status delivery support scale without weakening transaction safety.
+- The Payment Service and Transaction Service keep current state in the database. Secure collection limits exposure of payment details.
+- CDC feeds Kafka and S3 for durable history. The Reconciliation Worker resolves uncertain network results from recorded attempts.
+- The Webhook Consumer sends committed changes to merchants. Per-payment ordering and idempotency support scale without assuming synchronous external outcomes.

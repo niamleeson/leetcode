@@ -1,86 +1,102 @@
 Understanding the Problem
-- Ingest service metrics, answer dashboard queries, and evaluate alert rules continuously.
-- Time-series volume depends on both sample rate and label cardinality; many unique label combinations can dominate cost.
+- The platform collects service metrics, serves dashboards, evaluates alert rules, and sends notifications.
+- Each metric name and unique label set defines a series. High sample rates and many series both increase cost.
 
 Functional Requirements
-- Collect metrics from services and expose time-range queries for dashboards.
-- Let users define threshold-based alert rules.
-- Send notifications when alerts transition into actionable states.
+- Services can submit metrics. Users can query them by label, time range, and aggregation for dashboards.
+- Users can define alert thresholds and the duration required before an alert fires.
+- Users receive notifications through configured channels. Logs, distributed traces, and machine-learning anomaly detection are outside the scope.
 
 Non-functional Requirements
-- Keep dashboard queries responsive across weeks of data.
-- Detect qualifying alerts in under a minute where required.
-- Remain available during spikes and failures without allowing uncontrolled series growth.
+- The example monitors 500,000 servers at five million samples per second. Dashboard queries should return within seconds over long ranges.
+- Alerts should fire within one minute of metric emission. The design accepts eventual consistency for dashboards and handles late samples.
+- The platform must remain available during spikes and failures. Limits must prevent uncontrolled growth in the number of series.
 
 Core Entities
-- MetricSample includes metric name, timestamp, value, and labels.
-- TimeSeries is a metric plus a unique label set.
-- AlertRule defines query, threshold, duration, and recipient policy; AlertState tracks pending, firing, and resolved states.
-- Retention and rollup metadata describe stored resolutions and lifetimes.
+- A Metric has a name, value, timestamp, and labels. Each Label is a key-value pair used for filtering.
+- A Series contains timestamp/value pairs for one metric name and label set. Each distinct combination creates another series.
+- An Alert Rule contains a query, threshold, duration, and notification targets. A Dashboard groups query panels.
+- Retention and rollup settings define which resolutions remain available. Alert state distinguishes an ongoing incident from a new transition.
 
 API and Data Flow
-- Agents push batches or expose scrape endpoints; collectors normalize and validate incoming samples.
-- Query APIs accept time range, series selectors, aggregation, and resolution.
-- Rule APIs manage alert definitions independently from high-volume sample ingestion.
-- Durable transport feeds time-series storage and alert evaluation, followed by notification delivery.
+- POST /metrics/ingest accepts sample batches. Agents collect and buffer samples before the Ingestion Service validates them.
+- GET /metrics/query accepts a query, start time, end time, and step size. It returns timestamps and values for display.
+- POST /alerts/rules stores alert definitions. Rule changes are much less frequent than sample ingestion.
+- The path is agents, ingestion, Kafka, storage, queries, alert evaluation, then notification delivery.
 
 High-Level Design
 
 1) Ingestion
-- Pull-based collection centralizes scrape scheduling and target health; push handles environments that cannot be scraped directly.
-- Batch samples, enforce limits, and buffer transient failures with bounded local or durable queues.
-- Partition by series identity and time while watching for uneven tenants or hot series.
+- Direct writes from every server overwhelm central storage. Agents collect and batch samples locally to reduce request volume.
+- The Ingestion Service validates batches and publishes them to Kafka. Ingestion Consumers write samples to storage at their own pace.
+- Partition by metric series and time. Kafka retention and agent buffers support retries, but recovery capacity must exceed ongoing traffic.
 
-Process: Store a batch of metric samples
-- 1. An agent gathers samples with timestamps and labels, or a collector scrapes the service's metrics endpoint.
-- 2. The ingestion service authenticates the source and validates metric shape, tenant quotas, and cardinality limits.
-- 3. Accepted samples enter bounded durable transport or the storage acknowledgement path required by the product's durability contract.
-- 4. Consumers partition samples by series identity and time and write them to the time-series store, applying duplicate and late-sample rules.
-- 5. They advance recoverable progress after required output is safe; rollup workers subsequently derive coarser historical resolutions.
+Process: Collect, buffer, and store metric batches
+- 1. Each Agent collects local samples and groups them into batches.
+- 2. The Agent sends a batch to the Ingestion Service.
+- 3. The Ingestion Service validates the batch and publishes accepted samples to Kafka.
+- 4. Ingestion Consumers read their assigned partitions and write samples to storage.
+- 5. Consumers advance progress after the required writes succeed. Retries must not create duplicate sample effects.
 
 2) Dashboards
-- A time-series store indexes labels and organizes samples for efficient time-range scans.
-- Fetch only the resolution needed for the chart rather than every raw sample over weeks.
-- Cache repeated dashboard queries and avoid repeatedly scanning the same recent windows.
+- Use a Time-Series DB such as InfluxDB, TimescaleDB, or VictoriaMetrics. Time partitions, compression, and series indexes support the workload.
+- The Query Service selects a resolution suitable for the requested chart. Long queries can read rollups instead of every raw sample.
+- Keep query processing separate from ingestion. Redis can store repeated dashboard results in a cache when the freshness requirement permits it.
 
-Process: Read a dashboard time range
-- 1. The dashboard requests selectors, time range, aggregation, and display resolution.
-- 2. The query service selects a compatible cache entry or the raw/rollup partitions appropriate to that resolution.
-- 3. It narrows series through label indexes, scans only relevant time partitions, and combines aggregates with correct weights.
-- 4. It returns bounded ordered points and freshness information for rendering rather than every raw sample in the interval.
+Process: Read a dashboard from time-series storage
+- 1. The Dashboard requests a query, time range, and display step from the Query Service.
+- 2. The Query Service selects the relevant series and time partitions.
+- 3. It chooses raw samples or available rollups that can answer the requested calculation.
+- 4. The Time-Series DB returns the selected data.
+- 5. The Query Service combines the results and returns bounded chart points to the Dashboard.
 
 3) Alerts and notifications
-- Evaluate rules on a schedule or a streaming path with explicit handling of missing and delayed data.
-- Require a condition to persist for a configured duration when useful to reduce transient false alarms.
-- Persist alert state and notify on transitions, with grouping and cooldowns to avoid repeated notification storms.
+- The Alert Service reads rules from an Alerts DB and periodically queries stored metrics. This polling design meets the initial latency target.
+- A rule can require the threshold to remain exceeded for a duration. Define how missing or late data affects that condition.
+- The Notification Service tracks firing and resolved states. It groups related alerts, applies silences, and retries delivery to external channels.
 
-Process: Evaluate a rule and notify on a transition
-- 1. The evaluator loads an enabled rule and determines the time window whose data is sufficiently available for evaluation.
-- 2. It queries or consumes the relevant samples and evaluates the threshold with explicit treatment of missing or delayed data.
-- 3. It updates durable pending/firing/resolved state, including any required condition duration.
-- 4. A qualifying state transition records a deduplicated notification intent; repeated evaluations of the same firing state do not automatically create new notifications.
-- 5. Delivery workers group or route alerts and apply retries independently; a missing acknowledgement cannot erase the persisted alert state.
+Process: Evaluate a rule and deliver its state transition
+- 1. The Alert Service reads enabled rules from the Alerts DB.
+- 2. It periodically queries the Time-Series DB and evaluates each rule's threshold and duration.
+- 3. A breached or resolved condition produces an alert event for the Notification Service.
+- 4. The Notification Service checks its stored alert state and suppresses repeated notifications for the same ongoing condition.
+- 5. It groups related alerts and sends them to configured channels such as Slack or PagerDuty.
+- 6. Failed delivery attempts retry independently of rule evaluation.
 
 Deep Dives
 
 1) Long-range queries
-- Keep high-resolution recent data and downsample older samples into coarser rollups.
-- Store enough aggregate information for the intended calculations; averaging averages without weights can be incorrect.
-- Prune time partitions and use label indexes to limit the series scanned.
-- Retention policies must align with dashboard and incident-investigation needs.
+- Retain recent raw samples and older rollups at coarser resolutions. Select retention periods from the product's query requirements.
+- Rollups lose detail. Preserve sums and counts for weighted averages; percentiles need histograms or suitable sketches, not averages alone.
+- Split long queries into recent and historical ranges. Query recent data for freshness and use cached historical results where valid.
+- Precompute common dashboard queries. Data corrections and backfills must invalidate affected cache entries.
 
 2) Low-latency alerts
-- A separate alert evaluator avoids waiting behind expensive interactive dashboard queries.
-- Streaming evaluation can reduce delay, but requires window state, late-data policy, and recoverable checkpoints.
-- Track ingestion lag and evaluation lag separately; a fast evaluator cannot detect data that has not arrived.
+- More frequent polling reduces detection delay but adds database queries. Keep alert work from blocking behind expensive dashboard requests.
+- Flink can read Kafka as a second consumer and evaluate rolling windows. Checkpoint its state and handle late data and rule changes.
+- Streaming evaluation is an optional deep dive for tighter latency. Measure collection, ingestion, and evaluation delays separately.
+
+Process: Evaluate an urgent alert from the stream
+- 1. Flink reads the same Kafka metrics stream as the storage consumers.
+- 2. It updates window state for the relevant metric series.
+- 3. It evaluates the configured rule against that window, including the required duration.
+- 4. When the rule fires, Flink sends an alert event to the notification path.
+- 5. Checkpoints preserve evaluation state after a worker failure. The scheduled Alert Service can continue handling less urgent rules.
 
 3) Availability and cardinality
-- Replicate critical ingestion and storage components and bound queues with explicit overload behavior.
-- Avoid unbounded labels such as request IDs or arbitrary URLs; each unique combination creates another series.
-- Enforce per-tenant series and sample quotas, detect sudden cardinality growth, and provide actionable rejection metrics.
-- Dropping low-priority samples may be preferable to losing the entire pipeline, but the product must expose that degradation.
+- Replicate Kafka and storage, retry agent uploads, and retain alert events before external delivery. Independent monitoring must detect failures in this platform.
+- Avoid unrestricted labels such as request IDs. New combinations create more series even when each sample is small.
+- Store allowed labels and series caps in a Policy DB. A Redis Cardinality Tracker checks new series before ingestion publishes them.
+- Reject samples that exceed policy and record the rejection count. During prolonged overload, make any deliberate data loss visible.
+
+Process: Enforce a metric's series limit
+- 1. The Ingestion Service loads the metric policy from the Policy DB.
+- 2. It filters labels under that policy and computes the resulting series identity.
+- 3. The Redis Cardinality Tracker checks whether that series already exists.
+- 4. For a new series, the service checks its metric's allowed series count before accepting it.
+- 5. It publishes accepted samples to Kafka. Rejected samples increment a visible rejection metric and can trigger an alert.
 
 Final Design
-- Collectors feed durable ingestion and partitioned time-series storage with tiered retention.
-- Query services use rollups and caches; independent evaluators maintain durable alert state.
-- Cardinality controls, lag monitoring, and notification deduplication keep the monitoring system useful during the incidents it must report.
+- Agents and Kafka buffer ingestion before consumers write the Time-Series DB. Retention and rollups control storage cost.
+- The Query Service uses rollups and Redis. The Alert Service handles scheduled rules; optional Flink consumers handle urgent streaming rules.
+- The Notification Service deduplicates and delivers alerts. Cardinality limits, recovery state, and independent health checks keep the platform useful during incidents.

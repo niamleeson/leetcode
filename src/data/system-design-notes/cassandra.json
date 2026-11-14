@@ -5,8 +5,8 @@
       "title": "Overview",
       "level": 3,
       "points": [
-        "Cassandra is a distributed wide-column database designed around partitioned, replicated data and high write availability.",
-        "Model tables from known queries; arbitrary joins and flexible cross-partition transactions are not its core strength."
+        "Cassandra is a distributed wide-column database. It partitions and replicates data to support large workloads and high write availability.",
+        "Design tables around known queries. Arbitrary joins and flexible cross-partition transactions are not its main strengths."
       ],
       "diagrams": [],
       "flows": []
@@ -15,10 +15,10 @@
       "title": "Data Model and Primary Key",
       "level": 3,
       "points": [
-        "The partition key determines which replicas own a group of rows.",
-        "Clustering columns order rows within a partition and support efficient bounded range reads.",
-        "A composite partition key hashes the combined values; clustering columns do not independently distribute the partition.",
-        "Keep partitions bounded in size and activity, often by combining an entity ID with a time bucket."
+        "The partition key determines which replica set stores a group of rows.",
+        "Clustering columns order rows within that partition. They support bounded range queries in the required order.",
+        "A composite partition key hashes its combined values. Clustering columns do not independently distribute rows between partitions.",
+        "Limit partition size and traffic. Combining an entity ID with a time bucket can prevent indefinite partition growth."
       ],
       "diagrams": [
         {
@@ -35,10 +35,10 @@
       "title": "Partitioning and Replication",
       "level": 3,
       "points": [
-        "Consistent hashing and token ranges distribute partitions among nodes.",
-        "Replication places copies across nodes and failure domains according to the replication strategy.",
-        "Any contacted node can coordinate a request and forward it to the relevant replicas.",
-        "Adding nodes redistributes ownership, requiring streaming and repair work rather than instantly creating free capacity."
+        "Consistent hashing assigns token ranges to nodes. Virtual nodes spread a physical node's ownership across multiple ranges.",
+        "Replication places copies on separate nodes. A topology-aware strategy also accounts for racks and data centers.",
+        "Any contacted node can act as the coordinator. It forwards the request to the replicas that own the partition.",
+        "Adding nodes changes ownership and requires data transfer. Rebalancing consumes capacity before the new distribution is ready."
       ],
       "diagrams": [
         {
@@ -69,10 +69,10 @@
       "title": "Consistency and Routing",
       "level": 3,
       "points": [
-        "Per-operation consistency levels specify how many replica responses are required.",
-        "Higher acknowledgement requirements trade availability and latency for stronger read/write overlap.",
-        "Quorum arithmetic alone does not make every concurrent multi-record operation a serializable transaction.",
-        "Lightweight transactions provide conditional coordination for supported operations at a significant performance cost."
+        "Each operation selects a consistency level. This determines how many replica responses it needs to succeed.",
+        "Requiring more responses increases read/write overlap. It can also increase latency and reduce availability during failures.",
+        "Overlapping quorums do not make arbitrary concurrent, multi-record operations serializable transactions.",
+        "Lightweight transactions support conditional coordination for supported operations. Their additional coordination costs more than ordinary writes."
       ],
       "diagrams": [
         {
@@ -90,17 +90,30 @@
           "height": 950.2811884200953
         }
       ],
-      "flows": []
+      "flows": [
+        {
+          "title": "Route a request through a coordinator",
+          "steps": [
+            "The client sends a query and consistency level to a Cassandra node. That node becomes the coordinator for the request.",
+            "The coordinator hashes the partition key and identifies its replica set.",
+            "It sends the required read or write requests to those replicas.",
+            "The coordinator waits for enough responses to satisfy the selected consistency level. It returns a result or reports failure."
+          ],
+          "diagramFilenames": [
+            "06.svg"
+          ]
+        }
+      ]
     },
     {
       "title": "Storage Model",
       "level": 3,
       "points": [
-        "Writes append to a commit log and update an in-memory memtable.",
-        "Flushed memtables become immutable SSTables; reads may consult several structures and merge results.",
-        "Bloom filters and indexes reduce unnecessary file reads.",
-        "Compaction merges SSTables, removes obsolete versions when safe, and consumes background I/O and CPU.",
-        "Deletes create tombstones that must remain long enough to avoid resurrecting data on stale replicas."
+        "A replica appends a mutation to its commit log. It then updates the in-memory memtable.",
+        "Flushing a memtable creates an immutable SSTable. Reads can combine data from memtables and several SSTables.",
+        "Bloom filters identify files that might contain a key. Indexes help locate the relevant data within those files.",
+        "Compaction merges SSTables and removes obsolete versions when safe. It consumes background CPU and storage I/O.",
+        "Deletes create tombstones. Keep them long enough to prevent stale replicas from restoring deleted values."
       ],
       "diagrams": [
         {
@@ -113,15 +126,17 @@
       ],
       "flows": [
         {
-          "title": "Write a row and read the latest visible value",
+          "title": "Store a mutation and flush it to disk",
           "steps": [
-            "The client sends a mutation with its primary key and selected consistency level to a coordinator node.",
-            "The coordinator hashes the partition key, identifies replica owners, and forwards the mutation to the relevant replicas.",
-            "Each participating replica records the mutation through its commit-log/memtable path under the configured durability policy.",
-            "The coordinator acknowledges after the selected consistency level's required responses arrive; unavailable required replicas can make the operation fail or time out.",
-            "Memtables later flush to SSTables and background compaction reorganizes those files; the write need not wait for a full compaction.",
-            "A read coordinator contacts the replicas required by the read consistency level, combines their relevant versions according to Cassandra's conflict rules, and returns the resolved result.",
-            "Read/write overlap improves the selected visibility guarantees, but concurrent multi-record invariants still need a justified conditional or transactional mechanism."
+            "A mutation reaches a replica node.",
+            "The node appends the mutation to its commit log under the configured durability policy.",
+            "The node updates its in-memory memtable.",
+            "Later, Cassandra flushes the memtable into an immutable SSTable when a size or time condition triggers a flush.",
+            "After the relevant data is safely flushed, Cassandra can reclaim the corresponding commit-log data.",
+            "Background compaction later merges SSTables. The original write does not wait for a complete compaction."
+          ],
+          "diagramFilenames": [
+            "07.svg"
           ]
         }
       ]
@@ -130,9 +145,9 @@
       "title": "Gossip and Fault Tolerance",
       "level": 3,
       "points": [
-        "Gossip shares membership and failure information across the cluster.",
-        "Replicas, hinted handoff, and repair mechanisms help recover missed writes, but operational repair remains important.",
-        "Tune replication and consistency from the tolerated failure modes, not from an assumption that every write is immediately visible everywhere."
+        "Gossip spreads membership and failure information between nodes.",
+        "Hinted handoff temporarily records writes for unavailable replicas. Repair or rebuilding is still necessary after longer gaps.",
+        "Choose replication and consistency settings for the expected failures. Acknowledging one write does not mean every replica has received it."
       ],
       "diagrams": [
         {
@@ -143,27 +158,40 @@
           "height": 941.9131466712529
         }
       ],
-      "flows": []
+      "flows": [
+        {
+          "title": "Recover a missed write with hinted handoff",
+          "steps": [
+            "A coordinator receives a write for a replica set.",
+            "One target replica is unavailable. The coordinator stores a temporary hint for the missed mutation when policy permits.",
+            "Available replicas process the write. The chosen consistency level still determines whether the client request can succeed.",
+            "When the unavailable replica returns, the coordinator sends the retained hint to it.",
+            "The replica applies the missed mutation. Longer outages can require repair because hints have limited retention."
+          ],
+          "diagramFilenames": [
+            "08.svg"
+          ]
+        }
+      ]
     },
     {
       "title": "Data Modeling",
       "level": 3,
       "points": [
-        "Start from the exact partition and range queries the application needs, then create tables that answer them directly.",
-        "Denormalize into multiple query-specific tables where necessary and plan how updates keep those views consistent.",
-        "For chat messages, partition by conversation and time bucket, and cluster by message order.",
-        "Avoid unbounded partitions for extremely active conversations and avoid scanning the whole cluster for a user's recent data."
+        "Start with the required partition and range queries. Create tables that answer those queries directly.",
+        "Duplicate data into query-specific tables where needed. Define how updates keep those copies consistent.",
+        "For chat messages, partition by conversation and time bucket. Use an ordered message identifier as the clustering key.",
+        "Limit active conversation partitions. Retrieve recent messages from the relevant buckets instead of scanning unrelated conversations."
       ],
       "diagrams": [],
       "flows": [
         {
-          "title": "Retrieve one page of conversation messages",
+          "title": "Retrieve a page of conversation messages",
           "steps": [
-            "The application derives the conversation/time-bucket partition and a clustering-key boundary from the page cursor.",
-            "It issues a partition-bounded query for a limited range of message ordering keys.",
-            "Cassandra routes the query to the replicas for that partition and reads the relevant memtable/SSTable data rather than scanning unrelated conversations.",
-            "The application returns ordered messages and a cursor for the next range or older bucket.",
-            "A very active conversation moves into additional bounded buckets according to the model instead of allowing one partition to grow forever."
+            "The application derives the conversation and time-bucket partition from the requested page.",
+            "It queries a limited range of message identifiers in the required clustering order.",
+            "Cassandra reads the relevant memtable and SSTable data for that partition.",
+            "The application returns the messages and a continuation boundary. It moves to an older bucket when needed."
           ]
         }
       ]
@@ -172,9 +200,10 @@
       "title": "Examples and Advanced Features",
       "level": 3,
       "points": [
-        "Event or ticket data can be modeled around the required lookup, but unique seat claims still need explicit conditional coordination.",
-        "TTL is useful for expiring time-bound records, while tombstones and compaction affect deletion-heavy workloads.",
-        "Secondary indexes and materialized views have tradeoffs; they do not remove the need for deliberate partition modeling."
+        "For ticket browsing, partition detailed seats by event and section. This matches the view that opens one venue section.",
+        "A separate event_sections table stores section summaries by event. Browsing can tolerate lag; checkout must verify actual seat availability.",
+        "TTL can expire time-limited records. Expiry and frequent deletion create tombstones that affect read and compaction work.",
+        "Secondary indexes and materialized views support additional access patterns. They do not remove the need to control partition size and traffic."
       ],
       "diagrams": [
         {
@@ -198,9 +227,9 @@
       "title": "When to Use and Limitations",
       "level": 3,
       "points": [
-        "Cassandra fits large, predictable, write-heavy workloads with partition-local access and chosen consistency tradeoffs.",
-        "Highly relational queries, frequent cross-partition joins, and complex transactional invariants often fit another database better.",
-        "Explain partition bounds, replication, consistency level, and repair strategy when selecting it."
+        "Cassandra fits large, predictable workloads with many writes and partition-local reads. Select consistency settings for each access path.",
+        "Complex joins, ad hoc relational queries, and cross-partition invariants can fit another database better.",
+        "Explain partition limits, replication, consistency levels, and repair. These choices determine how Cassandra supports the application."
       ],
       "diagrams": [],
       "flows": []

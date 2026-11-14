@@ -1,84 +1,107 @@
 Understanding the Problem
-- Aggregate article metadata from many publishers into a fast, scrollable feed that links readers to the original publication.
-- Separate publisher ingestion from serving the feed so slow or failing publishers do not delay user requests.
+- The service collects article metadata from many publishers. Readers browse a feed and open the original publisher's article.
+- Collection runs separately from the Feed Service. A slow or unavailable publisher must not delay a user's feed request.
 
 Functional Requirements
-- Display an aggregated feed from thousands of publishers.
-- Support continuous pagination and redirect readers to the publisher for full content.
-- Consider categories and personalization as extensions to the baseline feed.
+- Users can view a feed from thousands of publishers.
+- Users can scroll through later pages and follow article links to the publisher.
+- Categories and personalized ranking are extensions to the initial regional feed.
 
 Non-functional Requirements
-- Target feed reads below 200 ms and ingestion within 30 minutes of publication.
-- Remain available during breaking-news traffic spikes and isolate individual publisher failures.
-- Deduplicate repeated ingestion and preserve stable pagination as new articles arrive.
+- Feed requests should complete within 200 ms. The freshness deep dive targets discovery within 30 minutes of publication.
+- The scenario starts with 100 million daily users and considers spikes to 500 million. Favor availability over immediate consistency.
+- Repeated collection must not create duplicate articles. New articles must not shift the cursor for older pages.
 
 Core Entities
-- Publisher stores source URLs, polling state, rate limits, and health.
-- Article stores canonical URL, publisher, title, publication time, summary, and media references.
-- FeedEntry stores ordering or ranking information; UserPreference and ReadingEvent support optional personalization.
+- Publisher contains its URLs, region, source type, last successful fetch, priority, and health information.
+- Article contains its ID, publisher, canonical URL, title, summary, publication time, region, and thumbnail references.
+- User stores region and optional preferences. Ranking state and reading events support later personalization.
 
 API
-- Fetch a feed with cursor, limit, and optional category or preferences.
-- Retrieve article metadata and its publisher URL without proxying the entire publisher article.
-- Ingestion workers submit normalized article records using canonical identifiers for deduplication.
-- A cursor must include a stable tie-breaker and the ordering context used to construct the page.
+- GET /feed accepts a region, page size, and continuation cursor. Category and personalization inputs are optional additions.
+- Each result includes the original article URL. The browser opens the publisher directly when the reader selects it.
+- Collection workers normalize incoming records. Canonical article identifiers prevent duplicates from repeated RSS, webpage, or webhook updates.
+- The cursor includes a stable ordering key and tie-breaker. Personalized ranking also needs a stable ranking context.
 
 High-Level Design
 
 1) Ingest and serve articles
-- A scheduler enqueues publisher-fetch jobs; workers read feeds or supported publication endpoints.
-- Normalize timestamps, canonical URLs, and metadata, then deduplicate before storage.
-- Build an indexed feed view and serve common pages from cache.
-- Publisher fetch errors retry independently with backoff; one unavailable publisher must not block all ingestion.
-- Clicking an article redirects to its original publisher, keeping the aggregator focused on discovery metadata.
+- The Data Collection Service reads publisher records. It fetches RSS feeds or supported source interfaces independently of user requests.
+- The service extracts article metadata and thumbnails. It stores article records in the database and thumbnail files in S3.
+- The Feed Service queries recent articles for the user's region. The initial design reads the database directly.
+- A failed publisher fetch retries separately with delay. It must not block collection from the other publishers.
+- The feed response includes metadata, thumbnail URLs, and original article URLs. Selecting an article opens the publisher's website.
 
-Process: Ingest one publisher update
-- 1. The source scheduler selects a publisher whose refresh is due and enqueues a fetch job with its source cursor or conditional-request metadata.
-- 2. A worker fetches the source within its rate limits and parses article metadata and publication times.
-- 3. It canonicalizes article identities and deduplicates records already seen from earlier fetches.
-- 4. The worker commits new or changed articles and advances the source checkpoint only after required data is durable.
-- 5. Derived feed indexes and caches receive the committed changes; optional thumbnail fetching or classification runs separately.
-- 6. Failed fetches retry with backoff without holding up other publishers or marking an unsuccessful refresh as complete.
+Process: Collect article metadata
+- 1. The Data Collection Service reads publisher URLs from the database.
+- 2. It requests each publisher's RSS feed or supported source interface. It extracts article metadata and image references.
+- 3. It normalizes article identifiers and checks for previously collected records.
+- 4. It stores thumbnail files in S3. It stores article metadata and thumbnail references in the database.
+- 5. It records a successful collection checkpoint only after the required data is durable. Failed sources retry independently.
+
+Process: Read the initial regional feed
+- 1. The client requests a region and page size through the API Gateway.
+- 2. The API Gateway routes the request to the Feed Service.
+- 3. The Feed Service queries recent regional articles from the database. It returns metadata and media URLs.
+- 4. The client loads thumbnails from S3. Selecting an article opens the original publisher URL.
 
 Deep Dives
 
 1) Pagination consistency
-- Offset pagination shifts when new articles arrive and becomes expensive at large offsets.
-- Use a stable sort key plus article ID and a cursor identifying the last item.
-- For mutable rankings, retain a snapshot or ranking-version context, or explicitly accept bounded feed movement.
+- Offset pagination shifts when new articles appear. Large offsets also require the database to skip more records.
+- Use publication time and article ID together as a stable cursor. The ID breaks ties between equal timestamps.
+- A time-ordered ID is another ordering choice. Ingestion order does not necessarily equal publication order for late-arriving articles.
+- A changing ranking needs a snapshot or ranking version for stable pagination. Otherwise, define the allowed movement explicitly.
 
-Process: Serve the next news-feed page
-- 1. The reader requests a feed with category/preferences, page size, and a cursor if continuing.
-- 2. The feed service resolves the stable sort or ranking context and checks a compatible cached page or candidate set.
-- 3. On a miss, it queries the indexed feed after the cursor, applies relevant filters, and selects a bounded result set.
-- 4. It hydrates article summaries and returns them with the next stable ordering key and original publisher URLs.
-- 5. Selecting an article navigates the reader to the publisher; subsequent feed requests continue from the returned cursor instead of a shifting offset.
+Process: Request the next feed page
+- 1. The client sends its region, page size, and last returned cursor.
+- 2. The Feed Service resolves the cursor's publication time and article ID. It keeps the same ordering for the next page.
+- 3. It queries records after that cursor boundary in the selected direction. Equal timestamps use the article ID as a tie-breaker.
+- 4. The service returns a bounded page and its continuation cursor. Newer articles do not shift the previous boundary.
 
 2) Low-latency feeds
-- Index the feed's ordering and filter fields and fetch only the columns required for a page.
-- Cache shared top pages or precomputed feeds; hydrate article metadata in batches.
-- Separate personalized cache keys from shared keys so users do not receive another user's feed.
-- Invalidate or refresh derived views asynchronously with an explicit freshness target.
+- Index the feed's filters and ordering fields. Read only the metadata needed for the requested page.
+- Store regional feeds in a Redis cache. A cache miss reads the database and repopulates the cached result.
+- Expiry alone can delay fresh articles and cause simultaneous cache misses. Database change capture can update regional feeds continuously.
+- Feed Generation Workers apply committed article changes to the appropriate cached feeds. Bound each feed to a recent article set.
+- Store metadata in the cache or fetch it in batches. Personalization must use separate context so one user's feed cannot leak to another.
+- Measure update delay and support cache rebuilding after failure. A continuously updated cache still needs recovery rules.
+
+Process: Update and read cached regional feeds
+- 1. The Data Collection Service commits a new or changed article to the database.
+- 2. Database change capture sends the committed update to Feed Generation Workers.
+- 3. The workers update the relevant Redis feeds. They remove old entries beyond each feed's retained limit.
+- 4. The Feed Service reads the requested regional page from Redis. It loads any missing article metadata in batches.
+- 5. A missed update or cache failure triggers replay or rebuilding from stored article data.
 
 3) Publication freshness
-- Poll publishers according to publication frequency and priority rather than using one interval for everyone.
-- Use push or webhook mechanisms where available and polling as recovery.
-- Track last successful fetch, discovered publication time, and queue age to detect stale sources.
-- Rate-limit outbound fetches per publisher and reuse conditional requests to avoid downloading unchanged feeds.
+- Poll active publishers more frequently than slow sources. Priority depends on publication frequency and the freshness target.
+- Use authenticated webhooks where publishers support them. Keep RSS polling and suitable webpage extraction as fallback paths.
+- Record the last successful fetch, discovered publication time, and queue delay. These values identify stale sources.
+- Respect per-publisher request limits. Conditional HTTP requests avoid downloading an unchanged feed.
+- Webpage extraction needs maintenance when HTML changes. Use it only where the source permits collection.
+
+Process: Receive a publisher webhook
+- 1. A publisher sends an article notification to the Webhook Service.
+- 2. The service authenticates the publisher and validates the payload.
+- 3. It sends the normalized article to the common collection path. That path deduplicates and stores the record.
+- 4. Database change capture updates the appropriate feeds. Polling remains a fallback for publishers without reliable webhooks.
 
 4) Media and breaking news
-- Serve thumbnails through an appropriate CDN or cached media path with bounded size and processing.
-- Keep slow media fetching outside the feed request path and show usable metadata while media is unavailable.
-- Breaking-news spikes require cache protection, request coalescing, and independent scaling of ingestion and serving.
-- A popular article is a hot object even when article storage is well partitioned.
+- Store thumbnail files in S3. A CDN serves suitable image sizes near users. Database records contain their URLs.
+- Process media outside the feed request. The feed can show usable text while an image is unavailable.
+- Scale stateless Feed Service instances separately from collection. Cache protection and request coalescing reduce database load during misses.
+- Redis read replicas can distribute regional feed reads. Writes go to the primary. Replication delay affects freshness.
+- A popular article or regional feed can remain a hot object after database partitioning. Measure cache capacity and regional demand.
 
 5) Categories and personalization
-- Classify articles once during ingestion and maintain category-specific feed indexes.
-- Capture reading events asynchronously and use them to produce candidate preferences or rankings.
-- Blend cached shared candidates with user-specific ranking rather than building every page from the entire corpus.
-- Preserve a useful generic feed for new users or unavailable personalization services.
+- Extract article categories during collection. The Feed Service can filter a bounded regional cache for common category requests.
+- Separate category feeds are an option when filtering costs justify them. They require extra memory and coordinated updates.
+- Record reading events asynchronously. Build small user preference vectors from those events and explicit preferences.
+- Combine shared category candidates according to user preferences. Avoid scoring the entire article collection for every request.
+- Provide a useful regional feed for new users or a personalization failure. Preserve important breaking news when mixing candidates.
 
 Final Design
-- Scheduled ingestion normalizes and deduplicates publisher data into durable article storage.
-- Indexed or precomputed feeds, stable cursors, and caches provide fast reads.
-- Independent media handling and measured source freshness keep both breaking-news traffic and publisher failures manageable.
+- Priority collection services combine RSS, permitted webpage extraction, and publisher webhooks. They normalize and deduplicate article records.
+- Database change capture updates bounded Redis feeds. The Feed Service uses stable cursors and cached metadata for fast reads.
+- S3 and the CDN handle thumbnails. Separate collection and serving capacity isolates publisher failures and breaking-news traffic.

@@ -1,72 +1,93 @@
 The Problem
-- Business workflows often span several services and external systems, so one database transaction cannot cover every step.
-- A process can crash after one side effect succeeds but before recording progress, leaving ambiguous state and unsafe retries.
+- A workflow can call several services and wait on people or external systems. One database transaction cannot cover all those operations.
+- A server can crash after an external action succeeds but before it records the result. An unsafe retry can repeat that action.
 
 Solutions
 
 1) Single-server primitives
-- Keep related writes in one short transaction when they share a database.
-- A transactional outbox commits business state and a pending event together; a publisher retries delivery independently.
-- The outbox closes the lost-publication gap but consumers still need deduplication because publication can repeat.
+- The simplest API Server calls Payment, Inventory, Shipping, and Email Services in sequence. A crash can erase its in-memory progress.
+- Save completed steps in an Order State DB. A callback can then reach another server, which loads the state and continues.
+- Shared state alone does not restart stalled work. The application still needs ownership, retries, callback routing, and compensation.
 
-Process: Publish an event through a transactional outbox
-- 1. The service begins a database transaction for the business operation.
-- 2. It writes the business change and an outbox record with a stable event ID in that same transaction.
-- 3. The transaction commits both records together; rollback leaves neither record visible as a completed operation.
-- 4. An outbox publisher reads committed unsent records and sends them to the broker.
-- 5. After broker acceptance it marks progress. A crash between send and marking can repeat publication, so consumers deduplicate the event ID.
+Process: Continue an order from recorded state
+- 1. The API Server loads the order's progress from the Order State DB.
+- 2. It calls the next required service, such as Payment or Inventory.
+- 3. It records the confirmed result before moving to the next dependent action.
+- 4. A later webhook reaches the shared callback path and publishes through Pub/Sub.
+- 5. An available API Server loads the order and resumes it. Separate retry and ownership logic must recover stalled work safely.
 
 2) Saga pattern
-- Represent a workflow as a sequence of local transactions with explicit compensation where later failure must reverse an earlier effect.
-- Compensation is a new business operation, not a time machine: a refund is not the same as erasing a charge.
-- Track progress durably and make forward steps and compensations retry-safe.
-- Define which steps are reversible, which require manual resolution, and which outcomes are merely pending.
+- A saga performs a sequence of local transactions. If a later step fails, compensating actions reverse the relevant earlier effects.
+- Compensation is another operation, not a rollback of history. A refund creates a new financial event after an earlier charge.
+- Store saga progress durably. Both forward actions and compensations must tolerate repeated attempts.
+- Identify irreversible actions and unresolved results. Some failed compensations need reconciliation or human intervention.
 
-Process: Execute and compensate a business workflow
-- 1. The coordinator commits the workflow identity and initial state so a replacement can resume it after a crash.
-- 2. It requests the first local step using a stable business idempotency key, then records the confirmed outcome.
-- 3. It starts each dependent step only after the required prior outcome is known and durable.
-- 4. A transient failure retries the same logical step; an unresolved external outcome is reconciled before treating it as definitely failed.
-- 5. If a terminal failure requires reversal, the coordinator schedules the applicable compensations for completed steps in a valid dependency order.
-- 6. Compensation outcomes are recorded and retried too. The workflow reaches completed, compensated, or an explicit unresolved/manual state rather than disappearing from memory.
+Process: Complete or compensate an order
+- 1. The workflow records its identity and starts the payment action with a stable idempotency key.
+- 2. After confirmed payment, it reserves inventory and records that outcome.
+- 3. If inventory succeeds, it proceeds to shipping and confirmation under the defined dependencies.
+- 4. If a later action fails permanently, it schedules compensation for affected completed actions, such as release or refund.
+- 5. Compensation results are recorded and retried as needed. Uncertain outcomes remain available for reconciliation or human handling.
 
 3) Event-driven choreography
-- Services react to events and publish subsequent events, distributing workflow logic among participants.
-- Choreography reduces central coupling for simple flows but makes end-to-end progress, failure ownership, and debugging harder as the workflow grows.
-- Use correlation IDs and durable transition records so the workflow can be traced across services.
-- Prevent cycles, duplicated reactions, and unbounded retries rather than assuming an event bus coordinates the whole process.
+- In choreography, workers consume events and publish the next outcomes. The sequence follows event subscriptions instead of one central coordinator.
+- Kafka or Redis Streams can retain the event history. Workers resume from committed positions after failures and may process an event again.
+- Correlation IDs connect related events across services. The log preserves evidence, but tracing a complex workflow still requires suitable tooling.
+- Choreography fits moderately complex, loosely coupled flows. Changes in the middle require coordinated event-contract changes across neighboring workers.
+
+Process: Advance an order through durable events
+- 1. The API Server writes an OrderPlaced event to the Event Store.
+- 2. Payment Workers consume it and call the Payment Service.
+- 3. A confirmed callback produces PaymentCharged or PaymentFailed in the Event Store.
+- 4. Inventory Workers react to PaymentCharged and publish InventoryReserved or InventoryFailed.
+- 5. Shipping and Email Workers consume the outcomes they need. Payment Workers also react to InventoryFailed by issuing the required refund.
+- 6. Workers record progress after recoverable work. Repeated event delivery must not repeat an already completed business effect.
 
 4) Workflow orchestration
-- A coordinator records current state and directs activities, retries, timers, and compensation.
-- Durable execution engines persist an event history and reconstruct workflow progress after a worker failure.
-- Workflow decisions must replay deterministically; side-effecting I/O runs as activities with recorded results.
-- Long waits use durable timers or external signals instead of holding a thread or transaction open.
-- Managed state-machine systems and code-based workflow engines offer different programming and operational tradeoffs.
+- In orchestration, one workflow definition selects activities, retries, timers, and compensations. Temporal records the decisions and results durably.
+- The Temporal Server schedules tasks and records history. Workflow Workers run workflow code; Activity Workers perform external operations.
+- Workflow decisions must replay deterministically. On recovery, recorded activity results replace completed calls, while uncertain activities may need another attempt.
+- Signals and durable timers support long waits without holding a worker thread or database transaction. A later event resumes the correct workflow.
+- Temporal describes workflows in code. AWS Step Functions and Google Cloud Workflows use managed state machines, with different operational and programming tradeoffs.
+
+Process: Execute and recover a Temporal workflow
+- 1. The API Server starts a workflow through the Temporal Server.
+- 2. A Workflow Worker runs deterministic workflow code and requests the next activity.
+- 3. The Temporal Server schedules that task for an Activity Worker.
+- 4. The Activity Worker calls the external service and reports its result, which the server records in the History Database.
+- 5. A Workflow Worker uses the recorded result to select the next action.
+- 6. After a worker failure, replay returns recorded results for completed activities. An activity with an uncertain result may be retried safely.
 
 When to Use
-- Use this pattern for payment flows, order fulfillment, reservations, onboarding, and other processes with multiple failure-prone steps.
-- Avoid a workflow engine for a simple synchronous operation already covered by one database transaction.
-- State the required recovery behavior before choosing a framework.
+- Use workflows for payment, fulfillment, reservations, and human approval. They fit processes with several steps and meaningful partial-failure handling.
+- A simple database transaction or single queued task usually does not need a workflow engine. Each workflow adds persistence and scheduling overhead.
+- Choose the engine after defining retries, compensation, and wait behavior. Be ready to explain its recovery model.
+
+Process: Wait for a driver to accept a ride
+- 1. The Rider Service requests a matching workflow.
+- 2. Matching Workers retrieve a nearby candidate through the workflow and ask the Driver Service to propose the ride.
+- 3. The workflow waits for driver acceptance, rejection, or timeout.
+- 4. Rejection or timeout causes another candidate attempt. Acceptance causes the Rider Service to receive the confirmed match.
 
 Common Deep Dives
 
 1) Crashes and exactly-once effects
-- Persist progress so a replacement worker can determine which steps are complete.
-- An activity may execute more than once if its side effect succeeded but its completion acknowledgement was lost.
-- Use stable business idempotency keys, transactional deduplication, or downstream status lookup to make retries safe.
-- Durable orchestration does not automatically make external payments or emails execute exactly once.
+- Record each confirmed step durably. After a crash, a replacement must know what completed and what remains uncertain.
+- An activity can finish externally while its completion report is lost. The engine may then attempt that activity again.
+- Use stable idempotency keys or provider status lookup for repeated attempts. Retain uncertain in-progress outcomes for reconciliation.
+- Durable orchestration does not make an arbitrary payment or email execute exactly once. The external effect needs its own protection.
 
 2) Workflow changes
-- Version workflow behavior so old histories can still replay under compatible code.
-- Use explicit migrations or keep old worker versions for in-flight workflows when required.
-- Test deployment behavior against workflows waiting on timers or external events, not only newly started workflows.
+- Old workflow histories must remain compatible with the code that replays them. Version or patch behavior when changing the sequence.
+- Keep old worker versions for existing workflows when needed. A migration must define how in-flight executions reach the new behavior.
+- Include workflows waiting on timers and signals in deployment checks. Testing only new executions misses replay failures.
 
 3) History size and external events
-- Store large payloads outside workflow history and pass durable references.
-- Bound history through checkpointing or continuation mechanisms supported by the engine.
-- Correlate external callbacks to the correct workflow and deduplicate repeated or late events.
-- Define timeouts and human intervention paths for workflows that cannot complete automatically.
+- Keep large data outside workflow history. Pass durable identifiers that an activity can use to retrieve the payload.
+- Bound long-running histories with supported continuation mechanisms. Temporal Continue-as-New starts a new run with selected current state.
+- Correlate callbacks with the workflow ID. Validate and deduplicate signals so repeated or late callbacks do not advance the wrong process.
+- Use durable timeouts for external waits. Define reminder, cancellation, and human-resolution paths when the expected event does not arrive.
 
 Conclusion
-- Treat a workflow as durable state plus retryable steps, not one long in-memory function.
-- Explicit compensation, idempotency, versioning, and reconciliation make cross-service work recoverable.
+- A reliable workflow needs durable state and retry-safe actions. An in-memory function alone cannot provide crash recovery.
+- Compensation, idempotency, compatible code changes, and reconciliation make cross-service workflows recoverable. The engine manages progress; activities still own their effects.

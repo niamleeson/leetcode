@@ -1,81 +1,100 @@
 Understanding the Problem
-- Track runs and rides from mobile GPS samples, then expose completed activities and athlete comparisons.
-- The phone must remain useful without connectivity; cloud synchronization should not interrupt recording.
+- The app records runs and rides from GPS samples. Users can view their completed activities and their friends' activities.
+- The device must continue recording without network access. Cloud synchronization must not interrupt the athlete's local display.
 
 Functional Requirements
-- Start, pause, stop, and save an activity.
-- Show route, distance, and elapsed time during recording.
-- View personal and friends' completed activities; consider live sharing and leaderboards as deep dives.
+- Users can start, pause, resume, stop, and save an activity.
+- The app displays route, distance, and active time during the activity.
+- Users can view completed activities. Live sharing and distance leaderboards are extensions in the deep dives.
 
 Non-functional Requirements
-- Support offline recording and recover uploads without losing or duplicating samples.
-- Scale to around 10 million concurrent activities in the interview scenario.
-- Keep live tracking responsive and completed activities durable while controlling battery and network usage.
+- Recording must work offline. Local persistence limits data loss after the app or device stops unexpectedly.
+- The interview scenario supports ten million concurrent activities.
+- Local statistics must remain responsive. The design balances sample frequency, battery use, network traffic, and durable storage.
 
 Core Entities
-- User and Activity identify the athlete, activity type, start/end times, and summary metrics.
-- LocationSample includes activity ID, sequence, coordinates, timestamp, and optional sensor measurements.
-- Segment and LeaderboardEntry represent a defined route and an athlete's qualifying performance.
+- User identifies the athlete. Activity records its type, start time, state changes, distance, and duration.
+- Route contains timestamped GPS coordinates for an activity. Sequence identifiers can make repeated uploads safe.
+- Friend connects users who share activities. Leaderboard records aggregate an athlete's completed distance by activity type and applicable filters.
 
 API
-- Create an activity and obtain an ID; update its recording state and finalize it when complete.
-- Upload batches of ordered samples with a retry-safe batch or sample identifier.
-- Fetch activity details and a cursor-paginated list of visible activities.
-- Subscribe to an authorized live activity and query segment rankings when those features are enabled.
+- POST /activities creates an activity. PATCH /activities/:id records state changes, including COMPLETE.
+- The route endpoint accepts timestamped locations. The offline design sends accumulated samples, with chunks for a very large route.
+- GET /activities lists personal or friends' completed activities with pagination. GET /activities/:id returns full details.
+- Optional endpoints return live activity updates and distance rankings. Live viewers can poll for changes.
 
 High-Level Design
 
 1) Record and display activity
-- Record samples locally and calculate immediate distance/time feedback on the device.
-- Upload samples asynchronously in batches, retaining unsent data until acknowledged.
-- The server stores raw samples separately from derived summaries and validates activity ownership.
-- Preserve sample timestamps so delayed uploads do not distort the route or duration.
+- The initial client creates an activity through the Activity Server. Each state change records a status and timestamp.
+- The initial route path sends periodic GPS samples to the server. The server stores them and updates distance.
+- The server stores activity metadata and route coordinates separately. The offline deep dive moves immediate calculations onto the device.
+- Sample timestamps preserve the recorded route. Status intervals distinguish active time from pauses and total elapsed time.
 
-Process: Record and synchronize an activity
-- 1. The user starts an activity; the phone creates a local activity identity and persists recording state before collecting samples.
-- 2. GPS samples receive timestamps and sequence numbers, are stored locally, and update the displayed route, distance, and time immediately.
-- 3. When connected, the client creates or resolves the remote activity ID and sends batches of unacknowledged samples.
-- 4. The ingestion service verifies ownership and stores or durably queues samples with deduplication keys, then acknowledges accepted batches.
-- 5. The phone marks only acknowledged batches as synchronized; after disconnecting it continues recording and retries the rest later.
-- 6. On stop, the client uploads remaining samples and requests finalization. The backend verifies required data before publishing a completed activity.
+Process: Record through the initial server-based path
+- 1. The client creates an activity through the Activity Server. The server returns its activity ID.
+- 2. The client samples GPS coordinates at the configured interval. It includes the original sample timestamp in each upload.
+- 3. The Activity Server stores route points and updates distance from successive coordinates.
+- 4. Pause and resume requests append timestamped state changes. The duration calculation excludes paused intervals.
+- 5. The client sends COMPLETE when the athlete saves the activity. The offline deep dive reduces these frequent network requests.
 
 2) Read completed activities
-- Finalization triggers processing to calculate summaries and prepare route data for efficient reads.
-- Store summary fields in a queryable database and larger route payloads in suitable durable storage.
-- Check activity visibility before serving routes or sharing location information with friends.
+- Saving the activity changes its state to COMPLETE. The initial design already holds its route and summary data.
+- The Activity Server lists completed activities for the requested user or their friends. The first response contains only summary fields.
+- A detail request returns the selected activity and route. The client draws the route using the stored coordinates.
 
-Process: Process and read a completed route
-- 1. A finalized activity event queues summary and route-processing work.
-- 2. Workers read the ordered samples, account for pauses, and derive distance, duration, display geometry, and any segment results.
-- 3. They persist the derived data before marking that processing stage complete; repeated attempts replace or deduplicate the same activity version.
-- 4. The reader requests activity details, and the service checks visibility before returning summary and route references.
-- 5. The client renders the summary and fetches the appropriate route resolution; leaderboard updates follow from validated segment results asynchronously.
+Process: Read a saved activity
+- 1. The client requests personal or friends' activities from the Activity Server.
+- 2. The server queries completed activities for the permitted user IDs. It returns a page of summaries.
+- 3. The user selects an activity. The client requests that activity by ID.
+- 4. The server returns the full route and activity details. The client draws the route and displays its metrics.
 
 Deep Dives
 
 1) Offline operation
-- Persist the recording on the device so an app restart does not erase an ongoing activity.
-- Reconnect by resending unacknowledged batches; deduplicate with activity/sample sequence identifiers.
-- Handle pause/resume intervals explicitly rather than treating every gap in uploaded samples as continuous movement.
-- Finalize only after all required batches arrive, or expose an incomplete state that can reconcile later.
+- The phone buffers GPS samples and calculates local statistics. It periodically saves the buffer to persistent device storage.
+- After reconnection, it uploads retained samples. Stable sample or batch identifiers prevent repeated uploads from duplicating data.
+- The device records pause and resume events. A gap in network uploads does not by itself mean that movement stopped.
+- The phone removes local data only after the server confirms storage. Partial uploads remain recoverable until finalization succeeds.
+
+Process: Record locally and synchronize after reconnection
+- 1. The phone samples GPS data and updates its local route, distance, and active time.
+- 2. It appends samples and state changes to an in-memory buffer. It periodically persists that buffer on the device.
+- 3. After an app restart, the phone restores the saved buffer before recording additional data.
+- 4. When connected, it sends the completed activity or accumulated batches to the Activity Server.
+- 5. The server stores the samples and state changes. Stable identifiers prevent duplicate data from repeated uploads.
+- 6. After the server confirms durable storage, the phone removes the acknowledged local data.
 
 2) High write volume
-- Reduce per-sample overhead with batching and partition writes by activity or athlete plus time.
-- Buffer bursts in a durable queue and process raw samples independently from the synchronous API.
-- Avoid one global hot partition and monitor lag before accepting more work than the pipeline can retain.
-- Downsample historical route data for display while keeping the fidelity required for metrics.
+- Uploading a completed activity greatly reduces requests compared with sending every GPS sample. Very large uploads can use chunks.
+- The source keeps a simple Activity Server and database. Horizontal server scaling handles additional CPU, memory, or network demand.
+- Completion-time partitions support recent-activity queries. The partition scheme must also avoid concentrating all current writes on one overloaded shard.
+- Recent activity data can use a cache. Older route data can move to cheaper storage when lower access speed is acceptable.
 
 3) Live sharing
-- Push recent locations to authorized viewers using SSE or WebSockets.
-- Separate the ephemeral live position from durable activity history; reconnecting viewers can fetch the latest snapshot.
-- Tune reporting frequency to balance freshness, battery drain, and server load.
+- The athlete's device sends updates every few seconds while retaining local recording. Friends poll at a similar interval.
+- A small display buffer smooths movement between updates. It adds a deliberate delay while reducing abrupt location changes.
+- SSE or WebSockets are alternatives when tighter latency is required. Reporting frequency still affects battery use and server load.
 
 4) Leaderboards
-- Identify qualifying segment traversals and calculate performance from validated samples.
-- Maintain a sorted ranking structure for fast top results and an athlete's rank.
-- Keep durable performance records so cached rankings can be rebuilt; define ties and whether only personal bests count.
+- This article ranks athletes by total completed distance. A periodic job can group activities by user and store aggregate totals.
+- Redis sorted sets provide a faster alternative for maintained totals. Separate sets can represent activity types and countries.
+- Arbitrary time ranges still require filtering and aggregation, or precomputed time windows. Retry-safe updates and durable activities support ranking rebuilds.
+
+Process: Build periodic distance rankings
+- 1. A scheduled job reads newly completed activities for the selected activity type and period.
+- 2. It groups distances by athlete and applies the requested geographic filters.
+- 3. It stores the resulting per-athlete totals in the leaderboard table.
+- 4. A leaderboard request reads and orders those totals. New activities appear after the next aggregation run.
+
+Process: Maintain a Redis distance leaderboard
+- 1. The Activity Server commits a completed activity to durable storage.
+- 2. The ranking update checks whether that activity already affected the relevant total.
+- 3. It adds the distance to the athlete's applicable global and country-specific Redis sorted-set scores.
+- 4. A ranking request reads the appropriate set. Arbitrary time ranges require their own aggregation or precomputed windows.
+- 5. A cache rebuild derives totals from durable activities. Replayed updates must not count an activity twice.
 
 Final Design
-- Local recording feeds a batched, retry-safe ingestion pipeline and durable activity storage.
-- Background processors derive summaries and rankings; cached reads serve completed activities.
-- Live location delivery is a separate authorized path, allowing recording and recovery to work even when live sharing fails.
+- The phone records locally and uploads completed activity data. The Activity Server writes durable metadata and routes.
+- The database partitions and archives activity data as needed. Redis maintains frequently requested distance leaderboards.
+- Optional live polling operates alongside local recording. A failed live update must not stop recording or later synchronization.

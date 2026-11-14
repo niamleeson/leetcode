@@ -5,8 +5,8 @@
       "title": "Overview",
       "level": 3,
       "points": [
-        "Elasticsearch provides distributed search and analytics over documents using Lucene indexes.",
-        "It is often a derived search view fed from an authoritative application database, with explicit indexing lag and rebuild procedures."
+        "Elasticsearch provides distributed search and analytics over documents. Lucene indexes perform the underlying search work.",
+        "An application often keeps authoritative records in another database. Elasticsearch holds a derived search view with indexing delay and rebuild procedures."
       ],
       "diagrams": [],
       "flows": []
@@ -15,10 +15,10 @@
       "title": "Basic Concepts",
       "level": 3,
       "points": [
-        "A document is a JSON record; an index groups documents with related mappings and query behavior.",
-        "Mappings define field types. Text fields are analyzed for search, while keyword fields preserve exact values for filtering and aggregation.",
-        "Configure dates, numbers, nested objects, and geographic fields deliberately; incorrect mappings can make intended queries expensive or impossible.",
-        "Changing a field's fundamental mapping often requires a new index and reindexing."
+        "A document is a JSON record. An Elasticsearch index groups documents with related mappings and query behavior.",
+        "Mappings define field types. Text fields support analyzed search. Keyword fields preserve exact values for filters, sorting, and aggregations.",
+        "Select date, numeric, nested, and geographic field types for the required queries. Incorrect mappings can make those queries inefficient or impossible.",
+        "A fundamental field-type change can require a new index and reindexing. Plan the transition before changing the data model."
       ],
       "diagrams": [
         {
@@ -35,11 +35,11 @@
       "title": "Basic Use",
       "level": 3,
       "points": [
-        "Create an index and mapping, then index documents using stable IDs.",
-        "Partial updates still require internal document reindexing; frequent mutable fields can generate substantial write and merge work.",
-        "Use match-style queries for analyzed text and filters for exact constraints that do not need relevance scoring.",
-        "Geospatial queries require the appropriate point or shape mapping and a clear distance or boundary interpretation.",
-        "Sorting by recency or popularity needs sortable fields; relevance ordering uses the search score and explicit tie-breakers where needed."
+        "Create an index and define its mapping. Add documents with IDs that identify their logical records.",
+        "A partial update still requires internal document reindexing. Frequent changes create additional writes, deletion markers, and merge work.",
+        "Use match queries for analyzed text. Use exact filters for constraints that do not need relevance scoring.",
+        "Use geo_point for coordinates and geo_shape for regions. Define whether a search uses distance, intersection, or a named boundary.",
+        "Sort on suitable fields for price, recency, or popularity. Relevance uses a score. Add a stable tie-breaker when ordering must persist."
       ],
       "diagrams": [],
       "flows": []
@@ -48,13 +48,23 @@
       "title": "Pagination and Cursors",
       "level": 3,
       "points": [
-        "from/size pagination is convenient for shallow pages, but deep offsets make shards gather and discard increasing amounts of data.",
-        "search_after continues after the previous sort values and requires stable sorting with a unique tie-breaker.",
-        "A point-in-time context can stabilize a paginated search while documents change.",
-        "Scroll-style traversal is suited to batch extraction; choose the pagination mechanism for the actual user interaction."
+        "from/size works for shallow pages. Deep offsets require shards to collect and discard many earlier results.",
+        "search_after uses the previous page's final sort values. Keep the same sort order and a unique tie-breaker.",
+        "A point-in-time context preserves a consistent view while documents change. Keep it with the pagination state.",
+        "Close the point-in-time context when finished. Reserve scroll-style traversal for batch extraction where its behavior fits."
       ],
       "diagrams": [],
-      "flows": []
+      "flows": [
+        {
+          "title": "Continue a search with a stable view",
+          "steps": [
+            "The client opens a point-in-time context. It sends the first query with a stable sort order.",
+            "The client keeps the final hit's sort values and the returned point-in-time identifier.",
+            "For the next page, it sends the same query and sort with those values in search_after.",
+            "Elasticsearch returns results after that boundary in the retained view. The client closes the context when traversal ends."
+          ]
+        }
+      ]
     },
     {
       "title": "How It Works",
@@ -67,10 +77,10 @@
       "title": "1) Nodes and shards",
       "level": 4,
       "points": [
-        "Primary shards partition the index; replicas provide additional read capacity and failover copies.",
-        "Coordinating nodes route queries to shards and merge bounded results.",
-        "Cluster-management roles coordinate metadata and shard allocation, separate from the document-query work.",
-        "More shards increase parallelism but also coordination, memory, and small-shard overhead."
+        "Primary shards divide the documents. Replica shards provide additional search capacity and copies for failover.",
+        "Coordinating nodes send queries to relevant shards. They merge shard results and retrieve the selected document fields.",
+        "The elected master manages cluster state and shard allocation. Ingest nodes prepare documents. Data nodes store shards and execute search work.",
+        "More shards permit more parallel work. They also increase coordination, memory use, and overhead for small shards."
       ],
       "diagrams": [
         {
@@ -90,13 +100,19 @@
       ],
       "flows": [
         {
-          "title": "Execute a distributed search page",
+          "title": "Index a document, then run a distributed search",
           "steps": [
-            "The client sends query, filters, sort order, and pagination context to a coordinating node.",
-            "The coordinator selects relevant shards and dispatches the query to suitable shard copies.",
-            "Each shard uses its indexes to filter and score candidates and returns a bounded local set with sort values.",
-            "The coordinator merges those sets and fetches the selected document fields as needed.",
-            "It returns the global page and continuation information; point-in-time plus stable sort values preserves the intended context for later pages."
+            "The client sends a document to the ingest node.",
+            "The ingest pipeline processes the document. It forwards the write to the appropriate data node.",
+            "The write reaches the primary shard and its configured replicas. The indexing request returns after its acknowledgement conditions are met.",
+            "A refresh makes the new indexed state searchable. This is a separate visibility boundary from the write acknowledgement.",
+            "The client sends a search request to a coordinating node.",
+            "The coordinating node queries the relevant shard copies. Each shard returns its matching candidates and ranking information.",
+            "The coordinating node merges the partial results. It fetches the selected source fields where needed.",
+            "It returns the final ordered results to the client."
+          ],
+          "diagramFilenames": [
+            "02.svg"
           ]
         }
       ]
@@ -105,9 +121,9 @@
       "title": "2) Lucene segments",
       "level": 4,
       "points": [
-        "Lucene writes immutable segments and exposes new data after a refresh, making search near real time rather than immediately consistent by default.",
-        "Updates and deletions create replacement records or deletion markers; background merges reclaim space and consolidate segments.",
-        "Refresh and merge settings trade freshness against indexing throughput and resource cost."
+        "Lucene stores indexed data in immutable segments. A refresh makes recent changes searchable. A write acknowledgement does not imply immediate search visibility.",
+        "An update replaces the logical document and marks the old version as deleted. Background merges consolidate segments and reclaim obsolete data.",
+        "Frequent refreshes improve freshness but consume resources. Merges also need CPU, I/O, and temporary storage."
       ],
       "diagrams": [
         {
@@ -120,14 +136,12 @@
       ],
       "flows": [
         {
-          "title": "Index an update and make it searchable",
+          "title": "Replace a document in immutable segments",
           "steps": [
-            "The application commits its authoritative change and sends a versioned indexing event to a worker.",
-            "The worker submits the document under a stable ID; Elasticsearch routes it to the appropriate primary shard.",
-            "The shard applies indexing/translog work and replication according to the configured write and durability settings.",
-            "The indexing request is acknowledged when its configured conditions are met; that acknowledgement does not necessarily mean ordinary search can see the change yet.",
-            "A refresh makes the new segment state searchable. A caller needing that boundary can use the supported refresh policy instead of assuming immediate visibility.",
-            "Background merges later consolidate segments and reclaim eligible obsolete data; they are separate from the refresh that exposed the document."
+            "Lucene indexes the new version of the document. It marks the previous version as deleted instead of editing its segment.",
+            "A refresh exposes the new searchable state. Searches exclude the deleted version.",
+            "Later, a background merge creates a consolidated segment from existing segments.",
+            "The merge can remove obsolete document data. It is separate from the refresh that made the update visible."
           ]
         }
       ]
@@ -136,10 +150,10 @@
       "title": "3) Search data structures",
       "level": 4,
       "points": [
-        "An inverted index maps terms to document postings, with positions where phrase search requires them.",
-        "Doc values organize field values for efficient sorting and aggregation.",
-        "Query execution should reduce candidates with selective filters before expensive scoring or sorting where possible.",
-        "A hot term or broad query can be costly even when the corpus is evenly sharded."
+        "An inverted index maps terms to document postings. Stored positions support phrase queries where required.",
+        "Doc values store fields in a column-oriented form. They support sorting and aggregations without reading every full source document.",
+        "Reduce the candidate set before expensive scoring or sorting where possible. Selective terms can greatly reduce query work.",
+        "A frequent term or broad query can return many candidates. Evenly distributed documents do not guarantee cheap queries."
       ],
       "diagrams": [
         {
@@ -156,11 +170,11 @@
       "title": "In Your Interview",
       "level": 3,
       "points": [
-        "Explain why full-text relevance, geographic filtering, or complex search warrants a specialized engine.",
-        "Keep primary writes and indexing updates connected through a reliable change stream or outbox.",
-        "Version updates and propagate deletions so delayed events cannot restore stale content.",
-        "Recheck permissions when index staleness could expose restricted documents.",
-        "Plan reindexing with aliases or another controlled switchover while concurrent changes continue."
+        "Explain the search requirement first. Full-text ranking, geographic filters, or complex queries can justify a dedicated search engine.",
+        "Connect database changes to indexing with reliable CDC or another recoverable publication mechanism.",
+        "Track update versions and deletions. A delayed event must not restore an obsolete document.",
+        "If stale permissions could expose restricted data, check current access before returning the content.",
+        "Plan a rebuild and controlled index switch. Include changes that occur while the replacement index is loading."
       ],
       "diagrams": [],
       "flows": []
@@ -169,9 +183,9 @@
       "title": "Summary",
       "level": 3,
       "points": [
-        "Elasticsearch makes search efficient through specialized indexes and distributed execution.",
-        "Its costs are additional storage, eventual search freshness, shard operations, and continuous index maintenance.",
-        "Use it when those tradeoffs solve concrete query requirements rather than as a replacement for every database access."
+        "Elasticsearch combines specialized indexes with distributed execution. These features make complex search practical.",
+        "The costs include extra storage, delayed search visibility, shard management, and continuous index maintenance.",
+        "Use it when these trade-offs meet a real query requirement. A simpler query against the primary database may be sufficient."
       ],
       "diagrams": [],
       "flows": []

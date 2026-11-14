@@ -1,89 +1,112 @@
 Understanding the Problem
-- Match riders with available nearby drivers and coordinate the resulting trip lifecycle.
-- Location updates are high-volume, approximate data; assigning a driver is a consistency-sensitive operation.
+- The service matches riders with nearby available drivers. It then tracks acceptance, pickup, and trip completion.
+- Driver locations change frequently and can tolerate some delay. Driver assignment requires stronger consistency.
 
 Functional Requirements
-- Estimate a fare from pickup and destination.
-- Request a ride and match it with a nearby available driver.
-- Let drivers accept or reject offers and progress through pickup and drop-off.
+- A rider can request a fare estimate from a pickup point and destination.
+- The rider can accept the estimate and request a nearby driver.
+- A driver can accept or reject the offer. After acceptance, the driver receives pickup and destination details.
 
 Non-functional Requirements
-- Keep matching latency low and driver locations reasonably fresh.
-- Prevent a driver or rider from being committed to incompatible simultaneous trips.
-- Retain ride requests and recover from connection loss, slow responses, and worker failures.
+- Matching should complete or fail within one minute. Location data must be fresh enough to select useful candidates.
+- A driver must not receive incompatible assignments. A ride must not commit to multiple drivers.
+- The scenario includes surges of 100,000 requests from one location. Retain requests and recover from worker or connection failures.
 
 Core Entities
-- Rider and Driver store identities and relevant profile/state information.
-- DriverLocation records recent coordinates and update time.
-- Ride stores pickup, destination, quoted fare, assigned driver, and lifecycle state.
-- Offer or Reservation records a temporary driver claim, expiry, and attempt identifier.
+- Rider and Driver contain their identities, relevant profile information, and availability state.
+- Fare stores the route inputs, quoted price, and estimated time. The server retrieves it by its identifier.
+- DriverLocation stores recent coordinates and the last accepted update time.
+- Ride stores the rider, fare, route, assigned driver, and lifecycle state. An offer records its driver, token, and deadline.
 
 API
-- Request a fare estimate for pickup and destination.
-- Create a ride using the quote and an idempotency key.
-- Send driver location updates and accept or reject a specific offer token.
-- Subscribe to ride status and retrieve the authoritative ride state after reconnecting.
+- POST /fare requests an estimate for a pickup point and destination. The response includes the stored fare ID.
+- POST /rides accepts a fare ID. A stable request ID can prevent duplicate rides after a timeout.
+- POST /drivers/location updates coordinates. The server obtains the driver ID from the authenticated session.
+- PATCH /rides/{rideId} accepts or rejects an offer. An offer token prevents a late response from applying to a newer offer.
+- Clients can request current ride state after reconnecting. Notifications alone do not prove the current assignment.
 
 High-Level Design
 
 1) Estimate and request
-- A pricing service estimates distance/time and returns a quote with an explicit validity period.
-- Persist the ride request before acknowledging it and enqueue matching work reliably.
-- Do not reserve a driver merely because a rider requests a quote.
+- The Ride Service requests route distance and travel time from the Mapping Service. It applies pricing and stores the Fare.
+- A confirmed fare ID creates a requested Ride in the database. The Ride Service then starts matching.
+- An estimate does not reserve a driver. The reliable-matching deep dive adds a queue to protect the later workflow.
 
-Process: Create a ride request from a fare estimate
-- 1. The rider sends pickup and destination to pricing, which obtains the route/time inputs needed for an estimate.
-- 2. Pricing returns a quote and validity context; this does not reserve a driver.
-- 3. The rider confirms with the quote and an idempotency key, and the ride service validates the current request.
-- 4. The service commits a requested ride and reliable matching work before returning the ride ID.
-- 5. The rider subscribes to status or polls that ID while matching proceeds asynchronously.
+Process: Estimate a fare
+- 1. The Rider Client sends pickup and destination coordinates through the API Gateway.
+- 2. The Ride Service requests distance and travel time from the Mapping Service.
+- 3. The Ride Service calculates the fare. It stores the Fare record in the database.
+- 4. The service returns the estimate and fare ID. No driver is reserved at this point.
+
+Process: Create a ride from the stored fare
+- 1. The rider confirms the fare and sends its ID through the API Gateway.
+- 2. The Ride Service validates the request and retrieves the stored fare.
+- 3. It creates a Ride with requested status. It then starts the matching flow.
+- 4. The client receives the ride ID and waits for status updates. The later queue protects matching work after this stage.
 
 2) Match and accept
-- Query a geographic index for nearby available drivers and rank candidates using distance, travel time, and policy.
-- Temporarily claim a candidate, send an offer, and await acceptance or expiration.
-- Commit the driver and ride assignment atomically or through a carefully coordinated state machine.
-- Delayed acceptance must include the current offer token so an expired offer cannot steal a newer assignment.
+- The Location Service supplies nearby available drivers. The Ride Matching Service ranks candidates by proximity and other selection rules.
+- The Notification Service sends the offer to a driver through APNs or FCM. A rejection moves to the next candidate.
+- The Ride Service records acceptance and returns pickup details. The consistency deep dive protects this transition against competing requests.
+- A delayed acceptance must match the current offer and deadline. It must not replace a newer assignment.
 
-Process: Offer a ride and commit an assignment
-- 1. A matcher claims a durable ride request and queries the location index for fresh, available nearby drivers.
-- 2. It ranks a bounded candidate set and atomically changes one candidate from available to offered under a unique offer token and deadline.
-- 3. The notification path delivers that offer to the driver's active client.
-- 4. The driver accepts the specific token; the service verifies current ownership, offer expiry, and ride state.
-- 5. It commits the matching ride and driver assignment through the selected consistency boundary before announcing an assigned trip.
-- 6. A decline or timeout conditionally releases only that current offer and retries another candidate. A delayed acceptance for an older token is rejected.
+Process: Offer a ride in the initial design
+- 1. The Ride Matching Service asks the Location Service for nearby available drivers.
+- 2. It ranks the candidates and selects the next driver.
+- 3. The Notification Service sends the offer through APNs or FCM.
+- 4. The Driver Client accepts or rejects the offer through the API Gateway.
+- 5. The Ride Service records acceptance and returns pickup details. A rejection moves the matching flow to another candidate.
+- 6. This initial flow needs the reservation checks in the consistency deep dive to prevent competing assignments.
 
 Deep Dives
 
 1) Location ingestion and proximity
-- Partition locations geographically and use geospatial cells or indexes to bound nearby-driver queries.
-- Nearby searches must include adjacent cells when a rider is near a boundary.
-- Store update timestamps and exclude stale driver locations from matching.
-- Keep high-frequency location state separate from durable trip records so location writes do not overwhelm transactional storage.
+- Redis stores current driver locations and supports geographic queries. Keep this high-volume state separate from durable trip records.
+- Geographic partitioning limits each search. Include neighboring cells or shards when a rider is near a boundary.
+- Record the last update time and exclude old samples. A cleanup process removes stale locations from the geographic index.
+- Redis location state can recover from new driver updates. Ride and assignment records still need durable storage.
 
-Process: Refresh a driver's searchable position
-- 1. The driver's client sends coordinates with a timestamp or sequence and authenticated driver identity.
-- 2. The location service validates the sample and discards updates superseded by a newer accepted position.
-- 3. It updates the driver's latest location and geographic-cell membership, removing stale membership as needed.
-- 4. Nearby-driver searches inspect the relevant and adjacent cells, then filter out old samples and unavailable drivers.
-- 5. Final matching still atomically claims availability; appearing in a geographic search result is not itself an assignment.
+Process: Refresh a driver's searchable location
+- 1. The Driver Client sends coordinates through its authenticated session.
+- 2. The Location Service validates the sample and rejects an update older than the accepted position.
+- 3. It updates the driver's position and last-update information in Redis.
+- 4. A nearby-driver query searches the relevant geographic area. It excludes stale locations and unavailable drivers.
+- 5. The matching workflow still claims a driver separately. A search result is not an assignment.
 
 2) Manage update volume
-- Adjust reporting frequency to motion and activity; an idle driver need not send identical coordinates continuously.
-- Batch or coalesce updates and discard superseded positions where only the latest location matters.
-- Maintain a freshness budget; aggressive throttling must not make matching rely on obsolete positions.
+- The Driver Client adjusts its update interval using movement and activity. A stationary driver can report less often.
+- Coalesce repeated positions where only the newest sample matters. Reject updates that are older than the accepted position.
+- Keep a location freshness target. Reduced update volume must not leave matching dependent on obsolete coordinates.
 
 3) Prevent double assignment
-- Use conditional driver-state transitions or a transactional reservation so two matching workers cannot both claim the same driver.
-- A distributed lock alone is insufficient if a stale worker can still commit after its lease expires.
-- Include ownership/version checks when finalizing the assignment, and release claims safely on rejection or timeout.
+- Atomically claim a driver before sending an offer. The source uses a Redis lock with a short acceptance timeout.
+- A lock expiry alone does not stop an old worker. Final assignment must also check current ownership and driver availability.
+- Commit the ride and driver states within the chosen consistency boundary. Only the current offer can release its reservation.
+- A rejection or timeout permits another candidate. An old acceptance must fail its token or version check.
+
+Process: Reserve and confirm a driver
+- 1. The Ride Matching Service attempts a short reservation for the selected driver in Redis.
+- 2. If the claim succeeds, it sends an offer with a unique token and deadline.
+- 3. The driver accepts that specific offer. The service rechecks the deadline, token, and current driver state.
+- 4. The service commits the assignment conditionally. A stale worker or expired offer cannot replace a newer assignment.
+- 5. A rejection or timeout releases only the current reservation. The workflow can then try another candidate.
 
 4) Reliable matching and timeouts
-- Durable queues prevent requests from being lost during peak demand or worker restarts.
-- Retry matching with a bounded policy and a wider candidate search where appropriate.
-- Persist offer deadlines and process expiry idempotently; recheck current state before releasing a driver.
-- Client notifications are hints; reconnecting clients fetch the authoritative ride state.
+- The Match Queue retains requested rides until processing completes. Queue-based recovery protects against sudden demand and worker failure.
+- Partition work geographically and scale matching workers independently. Prevent a slow request from blocking all later requests.
+- Keep offer deadlines in durable state. A delayed task checks the current offer before retrying or releasing a driver.
+- Temporal or Step Functions can manage retries and timeouts as an alternative workflow implementation. They are not shown in the source diagram.
+- Retry within a bounded matching policy. Expand the candidate search where useful, then report failure when the policy ends.
+- Client notifications describe a change. A reconnecting client still fetches authoritative ride state.
+
+Process: Recover queued matching work
+- 1. The Ride Service persists the requested ride and places recoverable matching work in the Match Queue.
+- 2. A matching worker receives the ride ID and checks its current state.
+- 3. The worker continues candidate selection and offer handling. It records the result before acknowledging completed work.
+- 4. A failed worker leaves unfinished work available for retry. The next attempt resumes from durable ride and offer state.
+- 5. A delayed timeout handler checks the current offer before releasing a reservation or selecting another driver.
 
 Final Design
-- A fast geospatial location service supplies candidates to durable matching workflows.
-- Conditional reservations and offer tokens protect assignment consistency.
-- Persistent ride state, retryable queues, and live status delivery connect estimation, matching, acceptance, and trip progress.
+- The Ride Service stores fares and rides. Redis location data supplies candidates to the Ride Matching Service.
+- The Match Queue protects pending work. Short driver reservations and conditional assignment prevent conflicting matches.
+- The Notification Service sends driver offers. Durable ride state and timeout handling connect matching, acceptance, pickup, and completion.

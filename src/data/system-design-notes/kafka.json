@@ -5,8 +5,8 @@
       "title": "Overview",
       "level": 3,
       "points": [
-        "Kafka is a durable distributed event log used to decouple producers and consumers, retain events, and support replay.",
-        "It can serve queue-like workloads through consumer groups, while independent groups process the same retained events separately."
+        "Kafka is a distributed event log. It separates producers from consumers, retains events, and supports replay.",
+        "A consumer group can distribute work between consumers. Separate groups can each process the same retained events."
       ],
       "diagrams": [],
       "flows": []
@@ -15,9 +15,9 @@
       "title": "A Motivating Example",
       "level": 3,
       "points": [
-        "Producers publish match events, and separate consumers update scoreboards, statistics, and notifications.",
-        "Partitioning lets unrelated matches process in parallel while a key keeps one match's events ordered.",
-        "Adding independent consumer groups does not require the producer to send separate copies to each application."
+        "Producers publish sports events. Consumers read those events and update the website.",
+        "Use a match ID as the key to keep one match's events in one partition. Different partitions can run in parallel.",
+        "Consumer groups distribute partitions between workers. Separate topics keep soccer events separate from basketball events."
       ],
       "diagrams": [
         {
@@ -62,10 +62,10 @@
       "title": "Basic Terminology and Architecture",
       "level": 3,
       "points": [
-        "Brokers store partitions; a topic groups partitions belonging to one event stream.",
-        "Each partition is an ordered append-only log with offsets identifying positions.",
-        "A consumer group assigns each partition to at most one active consumer in that group.",
-        "Ordering is per partition, not automatically across the entire topic."
+        "A broker stores partition replicas and serves clients. A topic groups partitions for a logical event stream.",
+        "Each partition is an ordered, append-only log. An offset identifies a record's position within that partition.",
+        "Within one consumer group, each partition has at most one active consumer. Other groups maintain their own assignments and progress.",
+        "Kafka preserves partition order. It does not automatically create one order across all partitions in a topic."
       ],
       "diagrams": [],
       "flows": []
@@ -74,11 +74,11 @@
       "title": "How Kafka Works",
       "level": 3,
       "points": [
-        "Producers select a partition, commonly using a key, and append records containing a payload and optional metadata.",
-        "A partition leader accepts writes and followers replicate them; acknowledgements and in-sync replica settings affect durability.",
-        "Consumers fetch records and track committed offsets independently from producer writes.",
-        "Committing before processing risks loss after a crash; committing after processing permits duplicates that must be handled safely.",
-        "Retention is based on configured time, size, or compaction policy rather than simply deleting a record when one consumer reads it."
+        "A record contains a value and can include a key, timestamp, and headers. The producer uses a partitioning strategy.",
+        "The partition leader accepts writes. Followers copy the log. Acknowledgement and in-sync replica settings determine the write's failure guarantees.",
+        "Consumers fetch records and track their positions. Each group commits its progress independently from producer writes.",
+        "Committing before processing can skip unfinished work after a crash. Committing after processing can repeat work whose effects already succeeded.",
+        "Reading a record does not delete it. Retention limits or compaction control how long log data remains available."
       ],
       "diagrams": [
         {
@@ -107,12 +107,15 @@
         {
           "title": "Publish a record and advance consumer progress",
           "steps": [
-            "The producer chooses a topic partition, commonly from the event key, and sends the record to that partition's leader.",
-            "The leader appends it and followers replicate it; the producer receives acknowledgement according to acks and the configured in-sync replica policy.",
-            "A consumer assigned that partition fetches records in offset order from its current position.",
-            "The consumer performs the application work and makes the required output or checkpoint recoverable.",
-            "It commits the corresponding consumed position only after that recovery boundary, unless it deliberately accepts at-most-once behavior.",
-            "After a crash or rebalance, consumption resumes from committed progress. Records whose effects succeeded before their offset commit may repeat, requiring idempotency or compatible transactions."
+            "The producer selects a partition, usually from the event key. Cluster metadata identifies the broker that hosts its leader.",
+            "The leader appends the record. Followers replicate it, and Kafka acknowledges the write under the configured policy.",
+            "The consumer assigned to that partition fetches records in offset order.",
+            "The consumer performs the application work. It makes the required output or checkpoint recoverable.",
+            "For at-least-once processing, it commits the next position only after that recovery boundary.",
+            "After a crash or reassignment, a consumer resumes from committed progress. Work completed before an offset commit can repeat."
+          ],
+          "diagramFilenames": [
+            "08.svg"
           ]
         }
       ]
@@ -121,11 +124,11 @@
       "title": "Scalability",
       "level": 3,
       "points": [
-        "Partition count bounds useful parallelism for one consumer group; extra consumers beyond available partitions remain idle.",
-        "Choose keys for both ordering and load distribution. One popular key remains a hot partition.",
+        "A group's partition count limits its parallelism. Consumers beyond the number of assigned partitions have no partition to process.",
+        "Choose keys for both ordering and load distribution. A popular key can overload one partition.",
         "Batch and compress records to reduce network and storage overhead.",
-        "Put references to large files in events instead of using the log as an unbounded media-transfer path.",
-        "Adding partitions can change key routing; consider its effect on ordering during transitions."
+        "Store large files in object storage. Put their locations in Kafka records instead of transferring the file bytes through Kafka.",
+        "Adding partitions can change key routing. Plan the transition when events for a key must retain their order."
       ],
       "diagrams": [],
       "flows": []
@@ -134,10 +137,10 @@
       "title": "Fault Tolerance and Durability",
       "level": 3,
       "points": [
-        "Replication and leader election recover from broker failure according to the configured acknowledgement and replica policies.",
-        "Use an appropriate replication factor, acknowledgements, and minimum in-sync replicas for the loss tolerance.",
-        "Consumer-group rebalances move partition ownership; processors must stop cleanly and resume from safe offsets.",
-        "Monitor consumer lag and retained capacity so a long outage does not outlast the data needed for recovery."
+        "Replicas provide replacement leaders after broker failures. Recovery depends on the acknowledgement, replica, and election policies.",
+        "Choose replication factor, acknowledgements, and minimum in-sync replicas for the permitted data loss. Kafka is not immune to outages.",
+        "A consumer failure causes partition reassignment. The new consumer resumes from committed progress and can repeat unfinished attempts.",
+        "Monitor consumer lag and retained capacity. A long outage must not exceed the retention needed for recovery."
       ],
       "diagrams": [],
       "flows": []
@@ -146,10 +149,10 @@
       "title": "Handling Retries and Errors",
       "level": 3,
       "points": [
-        "Idempotent producers reduce duplicates caused by retrying an uncertain append.",
-        "Consumer side effects still need idempotency or compatible transactions; producer idempotence alone does not make the entire pipeline exactly once.",
-        "Retry transient failures with an explicit strategy, and isolate poison records through retry or dead-letter topics where appropriate.",
-        "Retrying later can affect ordering, so decide whether a failed record blocks its partition or moves to a separate recovery path."
+        "Idempotent production prevents certain duplicate appends after producer retries. It uses producer identity and sequencing.",
+        "Consumer side effects still need idempotency or compatible transactions. Producer idempotence alone does not make the complete pipeline exactly once.",
+        "Define a retry policy for temporary failures. Move repeatedly failing records to a retry topic or dead-letter topic when appropriate.",
+        "A separate retry path can change processing order. Decide whether a failed record blocks its partition or leaves the main path."
       ],
       "diagrams": [
         {
@@ -162,13 +165,16 @@
       ],
       "flows": [
         {
-          "title": "Handle an uncertain producer or consumer operation",
+          "title": "Move failed records through retry and dead-letter topics",
           "steps": [
-            "A producer timeout leaves the append outcome uncertain; supported idempotent production retries preserve the producer's sequencing instead of creating independent records blindly.",
-            "On the consumer side, a processing error leaves the record unfinished; the application decides whether to block the partition, retry later, or route to a recovery topic.",
-            "If moved to a retry/dead-letter path, the application makes that handoff recoverable before advancing beyond the original record.",
-            "Replayed processing uses the original business identity to avoid repeating external effects.",
-            "Monitoring tracks lag and failed records so retention cannot silently expire the only data needed for recovery."
+            "A consumer reads a record from the main topic and tries to process it.",
+            "After the configured initial failures, it sends the record to the retry topic. The handoff must succeed before it advances past unfinished work.",
+            "A retry consumer attempts the same logical operation under the retry policy. It preserves the record's business identity.",
+            "If processing succeeds, it records safe progress. External effects must tolerate any repeated attempt.",
+            "After the final failure, the system moves the record to the dead-letter topic for investigation."
+          ],
+          "diagramFilenames": [
+            "09.svg"
           ]
         }
       ]
@@ -177,9 +183,9 @@
       "title": "When to Use and Summary",
       "level": 3,
       "points": [
-        "Use Kafka for replayable event pipelines, stream processing, and multiple independent downstream consumers.",
-        "A simpler work queue may be preferable when built-in visibility timeouts, delayed delivery, or per-message retry management dominate the requirements.",
-        "Explain partition keys, consumer groups, offset commits, retention, and failure semantics whenever Kafka is central to the design."
+        "Use Kafka for retained event pipelines, stream processing, and multiple independent consumers.",
+        "A simpler work queue can provide easier delayed delivery, visibility timeouts, and per-message retries.",
+        "Explain the partition key, consumer groups, offset commits, retention, and failure behavior. These choices determine how the pipeline operates."
       ],
       "diagrams": [],
       "flows": []

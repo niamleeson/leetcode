@@ -5,8 +5,8 @@
       "title": "Overview",
       "level": 3,
       "points": [
-        "Flink runs distributed stateful computations over event streams.",
-        "It is useful when continuous aggregation, joins, event-time windows, or pattern detection require more than a simple stateless consumer."
+        "Flink runs distributed, stateful computations over event streams.",
+        "Use it for continuous aggregations, joins, event-time windows, or pattern detection. A simple stateless consumer may need less infrastructure."
       ],
       "diagrams": [
         {
@@ -23,10 +23,10 @@
       "title": "Basic Concepts",
       "level": 3,
       "points": [
-        "Sources ingest records and sinks write results; operators transform, filter, group, join, or aggregate streams.",
-        "keyBy partitions related records to the same logical keyed state.",
-        "Parallel operator instances process different partitions, with network exchanges where the graph requires redistribution.",
-        "A hot key can limit one operator instance even when overall parallelism is high."
+        "Sources read records and sinks write results. Operators transform, filter, group, join, or aggregate the streams between them.",
+        "keyBy routes records with the same key to the corresponding keyed state.",
+        "Parallel operator instances process different portions of the stream. Network exchanges redistribute records where the job graph requires it.",
+        "One hot key can overload its operator instance even when other instances have spare capacity."
       ],
       "diagrams": [
         {
@@ -37,16 +37,30 @@
           "height": 441.9302978515625
         }
       ],
-      "flows": []
+      "flows": [
+        {
+          "title": "Aggregate advertisement clicks in five-minute windows",
+          "steps": [
+            "The source reads click records from Kafka.",
+            "keyBy groups records by advertisement ID. Each key reaches the operator instance that owns its state.",
+            "The window operator assigns each event to its five-minute interval. It updates the count for that advertisement and window.",
+            "The configured trigger emits the window result. For event-time windows, watermark progress and lateness policy control this boundary.",
+            "The sink writes the aggregate to PostgreSQL. Replayed or corrected results must use the sink's defined update semantics."
+          ],
+          "diagramFilenames": [
+            "02.svg"
+          ]
+        }
+      ]
     },
     {
       "title": "State",
       "level": 3,
       "points": [
-        "Keyed state associates values with each logical key, such as a running count or recent event history.",
-        "Operator state belongs to an operator instance and must be redistributed appropriately when parallelism changes.",
-        "Bound state with TTL, window cleanup, or explicit lifecycle rules so an infinite stream does not imply infinite memory or disk growth.",
-        "Store large raw payloads outside computation state when references are sufficient."
+        "Keyed state stores values for each logical key, such as a running count or recent event history.",
+        "Operator state belongs to an operator instance. Its redistribution rules matter when parallelism changes.",
+        "Limit state with expiry, window cleanup, or explicit lifecycle rules. An infinite input stream must not cause unlimited state growth.",
+        "Keep large raw payloads in external storage when a reference is sufficient for processing."
       ],
       "diagrams": [],
       "flows": []
@@ -55,11 +69,11 @@
       "title": "Watermarks and Windows",
       "level": 3,
       "points": [
-        "Event time comes from the event; processing time is when the worker handles it.",
-        "Watermarks estimate how far event time has progressed and help decide when a window can produce results.",
-        "Tumbling windows do not overlap; sliding windows overlap; session windows group activity separated by bounded gaps.",
-        "Late events require an allowed-lateness and correction or side-output policy.",
-        "A stalled source partition can hold back watermark progress unless idleness and source behavior are handled appropriately."
+        "Event time comes from the event's timestamp. Processing time is the time when the worker handles it.",
+        "Watermarks estimate event-time progress. They help trigger windows; they do not prove that no older event can ever arrive.",
+        "Tumbling windows do not overlap. Sliding windows overlap. Session windows group activity separated by an inactivity gap.",
+        "Define allowed lateness and a correction or side-output policy. Very late events may need separate reconciliation.",
+        "A stalled input partition can delay watermark progress. Handle idle inputs according to the source and correctness requirements."
       ],
       "diagrams": [
         {
@@ -70,28 +84,16 @@
           "height": 725.1181640625
         }
       ],
-      "flows": [
-        {
-          "title": "Aggregate an event-time window",
-          "steps": [
-            "A source emits events with timestamps and progress information into the job.",
-            "keyBy routes records with the same logical aggregation key to the responsible keyed operator state.",
-            "The operator assigns each event to its window and updates bounded per-key/window state.",
-            "Watermarks advance according to source/partition progress; when the configured trigger boundary is reached, the operator emits the window result.",
-            "Late events follow allowed-lateness and correction or side-output rules, and eligible state is cleaned up only after those rules permit it.",
-            "The sink publishes the result under its update/idempotency contract, so a corrected or replayed window does not become an accidental duplicate total."
-          ]
-        }
-      ]
+      "flows": []
     },
     {
       "title": "Basic Use",
       "level": 3,
       "points": [
-        "Define a job graph, configure sources, serializers, state, parallelism, and sinks, then submit it to the cluster.",
-        "A metrics dashboard can aggregate event counts and write current results to a serving store.",
-        "Fraud detection can maintain recent per-account state and evaluate event sequences as they arrive.",
-        "Keep application rules distinct from transport guarantees; a correct checkpoint does not make a flawed aggregation correct."
+        "Define the job graph, sources, serializers, state, parallelism, and sinks. Then submit the job to the cluster.",
+        "A dashboard can aggregate event counts and write the results to Redis or another serving database.",
+        "Fraud detection can keep recent account state and evaluate event sequences. The job can send alerts to multiple sinks.",
+        "Correct checkpoints preserve computation state. They do not correct an invalid aggregation rule."
       ],
       "diagrams": [],
       "flows": []
@@ -100,10 +102,10 @@
       "title": "How Flink Works",
       "level": 3,
       "points": [
-        "The JobManager coordinates scheduling and recovery; TaskManagers execute parallel operator work.",
-        "Task slots allocate execution resources, while operator parallelism determines how work is divided.",
-        "Network shuffles, serialization, state access, and sink throughput can become bottlenecks.",
-        "Backpressure propagates upstream when downstream operators or sinks cannot keep up."
+        "The JobManager schedules tasks and coordinates recovery. TaskManagers execute the parallel operators.",
+        "Task slots allocate resources. Operator parallelism determines how many instances execute each operation.",
+        "Network transfers, serialization, state access, and sink capacity can limit throughput.",
+        "Slow downstream operators or sinks create backpressure. This pressure can reduce the upstream processing rate."
       ],
       "diagrams": [
         {
@@ -121,30 +123,43 @@
           "height": 270.0065002441406
         }
       ],
-      "flows": []
+      "flows": [
+        {
+          "title": "Distribute a job across TaskManagers",
+          "steps": [
+            "The client submits the job graph to the JobManager.",
+            "The JobManager constructs the execution plan and assigns tasks to available TaskManager slots.",
+            "TaskManagers execute their assigned operators and exchange stream records as the graph requires.",
+            "The JobManager monitors task health and coordinates checkpoints. It schedules recovery when tasks fail."
+          ],
+          "diagramFilenames": [
+            "04.svg"
+          ]
+        }
+      ]
     },
     {
       "title": "State Backends and Checkpoints",
       "level": 3,
       "points": [
-        "State backends determine where active state lives and how it is accessed; choose from expected size and latency requirements.",
-        "Checkpoints capture recoverable operator state and source positions consistently across the dataflow.",
-        "After failure, restore state and replay from the corresponding source positions.",
-        "Exactly-once internal state recovery does not automatically make an arbitrary external API side effect exactly once.",
-        "End-to-end guarantees require compatible transactional or idempotent sinks and replayable sources.",
-        "Savepoints support controlled upgrades or migration, with compatibility and state evolution planned explicitly."
+        "The state backend controls active state storage and access. Choose it for the expected state size and latency.",
+        "Checkpoints save recoverable operator state and source positions across the dataflow. Store recovery data durably.",
+        "After a failure, restore a completed checkpoint. Replay input from the corresponding source positions.",
+        "Exactly-once internal state recovery does not make an arbitrary external API call happen only once.",
+        "End-to-end guarantees require replayable sources and compatible transactional or idempotent sinks.",
+        "Savepoints support planned upgrades and migration. Preserve compatibility when changing the job's state model."
       ],
       "diagrams": [],
       "flows": [
         {
           "title": "Checkpoint and recover a streaming job",
           "steps": [
-            "The checkpoint coordinator initiates a checkpoint, and sources establish recoverable input positions and inject the corresponding barriers.",
-            "Operators follow the configured aligned or unaligned checkpoint protocol to snapshot state consistently with dataflow progress.",
-            "Each task writes its checkpoint state durably and reports completion; compatible sinks stage or record output under their checkpoint protocol.",
-            "The coordinator declares the checkpoint complete after the required participants succeed, enabling supported sink commits and retaining the recoverable boundary.",
-            "After a failure, tasks restore state and source positions from a completed checkpoint and replay later input.",
-            "End-to-end exactly-once effects require a compatible transactional or idempotent sink; an arbitrary external API call can still repeat."
+            "The coordinator starts a checkpoint. Sources record recoverable positions and inject checkpoint barriers into the dataflow.",
+            "Operators follow the selected checkpoint protocol to snapshot state consistently with stream progress.",
+            "Tasks save checkpoint state durably and report completion. Compatible sinks also follow their checkpoint protocol.",
+            "The coordinator completes the checkpoint after the required participants succeed.",
+            "After a failure, tasks restore state from a completed checkpoint. Sources replay input from its saved positions.",
+            "Replay can repeat external calls. End-to-end exactly-once effects require a compatible transactional or idempotent sink."
           ]
         }
       ]
@@ -153,10 +168,10 @@
       "title": "In Your Interview",
       "level": 3,
       "points": [
-        "Propose Flink for high-volume continuous computation with event-time or stateful requirements.",
-        "Name the partition key, state, windows, late-data policy, and sink behavior.",
-        "Explain recovery and hot-key handling, and monitor lag, checkpoint duration, backpressure, and state growth.",
-        "A small stateless queue worker may be simpler when these capabilities are unnecessary."
+        "Propose Flink when continuous computation needs managed state or event-time behavior.",
+        "Specify the partition key, state, windows, late-data policy, and sink updates.",
+        "Explain recovery and hot-key controls. Monitor lag, checkpoint duration, backpressure, and state growth.",
+        "Use a smaller queue worker when the application does not need Flink's state and time-processing capabilities."
       ],
       "diagrams": [],
       "flows": []
@@ -166,7 +181,7 @@
       "level": 3,
       "points": [
         "Flink combines parallel operators, managed state, and coordinated recovery.",
-        "Its value comes from the required computation semantics; correctness still depends on keys, time handling, state bounds, and external sink contracts."
+        "Correctness still depends on key choice, time handling, bounded state, and the external sink's guarantees."
       ],
       "diagrams": [],
       "flows": []

@@ -1,93 +1,112 @@
 Understanding the Problem
-- Build event discovery and ticket booking where many users may compete for the same seats.
-- Separate browsing availability from the authoritative reservation and purchase state of each ticket.
+- The service supports event discovery and ticket purchases. Many customers can compete for the same seat.
+- Browsing shows an availability estimate. The booking path decides which customer can purchase each ticket.
 
 Functional Requirements
-- View events and seating availability.
-- Search events by text, location, date, or other supported filters.
-- Reserve seats temporarily and purchase them after payment.
-- Release abandoned reservations so another customer can buy the tickets.
+- Users can view event details, venue layouts, and ticket availability.
+- Users can search events by text, location, date, and other supported filters.
+- Users can reserve seats temporarily. They can purchase the seats after payment succeeds.
+- An abandoned reservation must expire so another customer can claim the seats.
 
 Non-functional Requirements
-- Never sell a seat to two customers; booking consistency takes priority over accepting every request.
-- Scale browsing for popular events and keep discovery responsive.
-- Support short reservation lifetimes and reliable recovery from payment or application failures.
-- Treat availability shown in search or caches as a hint; the booking operation makes the final decision.
+- A seat must not have two successful purchases. Booking correctness takes priority when requests conflict.
+- Search should take less than 500 ms. The design must handle a popular event with 10 million interested users.
+- Reservations have short lifetimes. The system must recover from interrupted checkout, payment retries, and application failures.
+- Reads can exceed writes by approximately 100 to one. Cached availability does not authorize a purchase.
 
 Core Entities
-- Event and Venue describe the performance, schedule, location, and seating layout.
-- Ticket identifies an event seat, price, reservation owner, expiry, and booking status.
-- Booking groups the customer's tickets and payment state under a durable ID.
-- User identifies the authenticated buyer; retry keys distinguish a retried checkout from a new one.
+- Event, Performer, and Venue describe the performance, schedule, location, and seating layout.
+- Ticket identifies a seat at an event. It records the price and purchase state. The reservation design also tracks temporary ownership.
+- Booking groups one customer's tickets under a durable ID. It records the total price and payment state.
+- User identifies the authenticated buyer. An idempotency key distinguishes a retry from a new checkout attempt.
 
 API
-- Fetch an event and its seat map; search with filters and pagination.
-- Reserve selected ticket IDs and return a reservation token plus expiration time.
-- Confirm a booking using the reservation token and payment result; expose booking status for retry recovery.
-- Validate ownership and expiration on every state transition, not just when the reservation is created.
+- GET /events/:eventId returns event details and the seat map. The search API accepts filters and pagination parameters.
+- A reservation request claims selected tickets temporarily. The response contains a booking ID and expiration time.
+- A confirmation request supplies the booking ID and payment token. A status endpoint can support recovery after a lost response.
+- Each state change checks current ownership and purchase state. A reservation created earlier may have expired or changed owners.
 
 High-Level Design
 
 1) Browse and search
-- Event services read durable metadata and serve cacheable descriptions and seating layouts through caches or a CDN.
-- A search index provides text and filter queries; changes flow from the authoritative database into that index.
-- Seat availability changes frequently and has different caching rules from the event description.
+- The Event Service reads event, venue, and performer records from the database. The initial Search Service also queries that database.
+- The deep dives add caches and Elasticsearch. Committed database changes must reach the search index.
+- Seat availability changes more often than event descriptions. It needs a shorter refresh period and authoritative booking checks.
+
+Process: View an event in the initial design
+- 1. The client requests an event by ID through the API Gateway.
+- 2. The API Gateway routes the request to the Event Service.
+- 3. The Event Service reads the event, venue, performer, and ticket information from the database.
+- 4. The service returns the data needed for the event page and seat map.
+
+Process: Search the initial event database
+- 1. The client sends search terms and filters to the API Gateway.
+- 2. The API Gateway forwards the request to the Search Service.
+- 3. The Search Service queries the event database for matching records.
+- 4. The service returns a page of results. The later search design replaces this path with Elasticsearch.
 
 2) Book tickets
-- Atomically claim all requested available seats for a reservation; concurrent claims must conflict at the database boundary.
-- Use a short transaction for reservation creation, then perform payment without holding a database transaction open.
-- Confirm the purchase only for the current reservation owner and only if its state allows confirmation.
-- Handle retries idempotently so a lost response cannot create a second purchase or charge.
+- The initial Booking Service checks ticket availability and creates a booking within one PostgreSQL transaction.
+- The database must reject a competing claim. Row locks or optimistic concurrency checks protect the ticket update.
+- This initial design checks availability after the user enters payment details. The reservation deep dive improves that experience.
+- Payment callbacks can repeat. An idempotent handler must return or retain the existing booking result without another purchase.
 
-Process: Reserve seats, pay, and confirm a booking
-- 1. The customer selects seats and sends a reservation request with a retry-safe request ID.
-- 2. The booking service authenticates the customer and begins a short atomic claim of all requested seats.
-- 3. It verifies that each seat is unreserved or claimably expired, then records reservation owner, token/version, and expiry. A conflict rolls back the group.
-- 4. After the reservation commits, the service returns its token and checkout deadline; it does not hold database locks while the customer enters payment details.
-- 5. Checkout submits payment for that reservation through a durable payment attempt with a stable provider idempotency key.
-- 6. On confirmed payment, the booking service conditionally changes the current valid reservation to purchased and commits the booking.
-- 7. The customer receives confirmation only for the committed result. An expired or replaced reservation follows the defined reconciliation or refund policy instead of selling someone else's seat.
+Process: Claim tickets in the initial design
+- 1. The client submits selected ticket IDs to the Booking Service through the API Gateway.
+- 2. The Booking Service starts a PostgreSQL transaction. It checks whether the selected tickets are available.
+- 3. The transaction updates ticket state and inserts the booking record.
+- 4. A conflicting claim makes the transaction fail. Otherwise, the committed booking result returns to the client.
+- 5. The reservation deep dive adds a temporary hold before payment. The payment outcome must agree with the final committed booking.
 
 Deep Dives
 
 1) Reservation expiry
-- Holding a database lock throughout a user's checkout wastes connections and creates long blocking chains.
-- Store reservation status and expiry. A ticket is claimable if unreserved or its reservation has expired, checked atomically during the next claim.
-- A cleanup job improves housekeeping, but correctness must not depend on that job running exactly on time.
-- Redis locks with TTL can coordinate claims, but losing or expiring a lock must not permit two durable purchases.
-- Include reservation ownership or a version in final confirmation to reject stale clients and delayed payment callbacks.
+- A database transaction must not remain open while the customer completes checkout. Long locks block other work and occupy connections.
+- One alternative stores a reserved state and expiration in PostgreSQL. A short transaction can reclaim an expired reservation.
+- A cleanup job can remove expired state. Correctness must also check expiration during a new claim.
+- Diagram 6 uses Redis ticket locks with a ten-minute lifetime. PostgreSQL still prevents duplicate purchases if a lock expires or fails.
+- Final confirmation must check the current booking and ownership. A late payment for an invalid booking needs reconciliation or a refund.
 
-Process: Release or reclaim an abandoned reservation
-- 1. A cleanup worker or a new claimant reads the reservation's owner token, version, state, and expiry.
-- 2. It compares expiry with authoritative server time; an unexpired or purchased reservation is not eligible for release.
-- 3. It conditionally releases or replaces only that exact expired reservation version.
-- 4. If another action already purchased or replaced it, the condition fails and the worker leaves the new state untouched.
-- 5. The resulting availability change is published to interested clients. Booking correctness does not depend on viewers receiving that event immediately.
+Process: Reserve through Redis and confirm payment
+- 1. The customer selects tickets. The Booking Service attempts expiring Redis locks for those ticket IDs.
+- 2. If any required lock fails, the service releases this attempt's acquired locks. It reports that the group is unavailable.
+- 3. The service records an in-progress booking. It returns the booking ID and the ten-minute checkout deadline.
+- 4. The client obtains a Stripe payment token. The Booking Service creates the payment attempt for that booking.
+- 5. Stripe sends the payment result to the webhook handler. The handler checks the booking state and current ownership.
+- 6. For a valid successful payment, a PostgreSQL transaction marks the tickets sold and the booking confirmed.
+- 7. A repeated callback keeps the existing result. A paid but invalid reservation needs reconciliation or a refund.
+- 8. The service releases its remaining locks after success. Abandoned locks expire automatically.
 
 2) Scale event views
-- Horizontally scale stateless read services behind a load balancer.
-- Cache event metadata, partition by event where useful, and isolate booking capacity from browsing spikes.
-- Update or invalidate availability caches promptly, while retaining authoritative checks on reservation writes.
+- A load balancer distributes requests across stateless Event Service instances.
+- Redis or Memcached can store event metadata. Separate read capacity protects booking work from browsing spikes.
+- Cache expiration and invalidation limit stale results. The Event Service can show live reservations using entries with expiration timestamps.
 
 3) Handle high-demand onsales
-- SSE can push seat updates to connected browsers and reduce repeated polling.
-- A virtual waiting room admits customers at a rate the reservation service can sustain.
-- Queue admission needs a signed, expiring token; being in the waiting room does not reserve a seat.
-- Bound queue lifetimes, recover disconnected clients, and define fairness so retries cannot jump ahead.
+- SSE can send seat changes to connected browsers. This reduces repeated polling but cannot guarantee that a displayed seat remains available.
+- A virtual waiting room admits customers at a rate that the Booking Service can support.
+- The source stores admitted sessions in Redis with an expiration. The Booking Service checks admission before it accepts reservations.
+- Queue position updates help waiting customers. A reconnect must preserve queue identity. Admission alone does not reserve a seat.
 
 Process: Admit customers through the waiting room
-- 1. A customer joins the waiting room and receives a queue identity that can survive a reconnect.
-- 2. The admission service selects customers according to the fairness policy and current reservation-service capacity.
-- 3. It issues a signed, expiring admission token and permits the admitted client to access the reservation path.
-- 4. The booking API validates admission and then performs its normal atomic seat claim; admission alone does not guarantee a seat.
-- 5. Clients receive current seat updates while browsing, and expired admission or reservation tokens require the appropriate retry or rejoin path.
+- 1. The client joins the virtual queue. The system records its queue identity and opens an SSE or WebSocket connection.
+- 2. The queue selects customers from its front as booking capacity becomes available.
+- 3. The system records the admitted session in Redis with an expiration. It notifies the client that checkout is available.
+- 4. The Booking Service checks that admission record before it accepts a reservation request.
+- 5. An admitted customer still follows the normal ticket-claim process. Queue admission does not guarantee a ticket.
 
 4) Improve search
-- Begin with database indexes and query optimization, then use full-text indexes or Elasticsearch when query complexity warrants it.
-- Cache repeated searches and stable event details with keys that include every relevant filter.
-- Keep search freshness expectations explicit; a search result can become unavailable before checkout.
+- Database indexes and full-text search can support the first design. Elasticsearch supports more complex text queries and spelling variations.
+- Change data capture updates Elasticsearch from PostgreSQL. Search caches must include every relevant filter in their keys.
+- A search result can become stale before checkout. CDN caching is suitable only when the same query returns equivalent public results.
+
+Process: Query the search index
+- 1. PostgreSQL commits an event change. Change data capture sends that change to Elasticsearch.
+- 2. The Search Service receives search terms, filters, and pagination parameters.
+- 3. It queries Elasticsearch for matching events. A suitable cache can answer repeated equivalent requests.
+- 4. The service returns the result page. Ticket availability remains subject to the booking path's current checks.
 
 Final Design
-- Cached event discovery feeds a separate, strongly controlled reservation and booking path.
-- Expiring reservations, idempotent payment handling, and conditional confirmation protect seat ownership.
-- Waiting-room admission and live availability updates keep popular events usable without overwhelming the database.
+- The Event Service serves cached event details. The Search Service uses Elasticsearch and suitable query caches.
+- The Booking Service uses expiring Redis reservations and conditional PostgreSQL writes. Stripe callbacks update each booking idempotently.
+- The waiting room controls admission during popular events. Seat updates improve the display while the booking database protects ownership.

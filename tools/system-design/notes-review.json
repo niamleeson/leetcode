@@ -1,0 +1,2098 @@
+{
+  "reviewedOn": "2026-11-14",
+  "style": "ASD-STE100-style short active sentences and consistent technical terms; not formal controlled-dictionary certification.",
+  "method": "Review original saved article text and diagram labels; visually inspect figures where labels alone are insufficient. Separate initial designs, later alternatives, and additional safeguards. Preserve every section heading and original image. Bind only diagrams that illustrate the named process.",
+  "summary": {
+    "articles": 49,
+    "rewritten": 48,
+    "diagrams": 497,
+    "processes": 232,
+    "processSteps": 1122,
+    "componentAliases": 359
+  },
+  "pages": [
+    {
+      "slug": "bitly",
+      "sourceRevision": "af5f0d01935f",
+      "review": [
+        "Preserve the approved Bitly text, process order, headings, and diagram bindings."
+      ],
+      "diagramBindings": [
+        {
+          "section": "1) Create a short URL",
+          "process": "Create and return a short link",
+          "images": [
+            "03.svg"
+          ]
+        },
+        {
+          "section": "2) Redirect to the original URL",
+          "process": "Redirect through the database",
+          "images": [
+            "04.svg"
+          ]
+        },
+        {
+          "section": "1) Generate unique short codes",
+          "process": "Generate a short code with a hash",
+          "images": [
+            "05.svg"
+          ]
+        },
+        {
+          "section": "1) Generate unique short codes",
+          "process": "Generate a short code with a counter",
+          "images": [
+            "06.svg"
+          ]
+        },
+        {
+          "section": "2) Make redirects fast",
+          "process": "Resolve a short link through the cache and database",
+          "images": [
+            "07.svg"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "dropbox",
+      "sourceRevision": "02a29af2f0ff",
+      "review": [
+        "Bound direct uploads only to diagram 5, CDN downloads to 7, sync to 8, multipart to 10. Diagrams 3/4 are earlier upload alternatives and 6 is direct storage download.",
+        "Source uses last-write-wins; marked version checks/conflict copies as possible extensions rather than the source process.",
+        "Kept server verification of multipart ETags and final assembly. Source explicitly notes no notification for each multipart part.",
+        "Deletion markers, abandoned-part cleanup, and idempotency are implementation considerations; not claimed as depicted components.",
+        "Final review aligns the bound synchronization process with the polling diagram. Push notifications remain an explicitly identified extension."
+      ],
+      "caveats": [
+        "Diagram 8 labels polling while source also describes optional WebSocket/SSE notifications; process explicitly includes polling recovery."
+      ],
+      "diagramBindings": [
+        {
+          "section": "1) Upload files",
+          "process": "Upload directly to object storage",
+          "images": [
+            "05.svg"
+          ]
+        },
+        {
+          "section": "2) Download and share files",
+          "process": "Download through the CDN",
+          "images": [
+            "07.svg"
+          ]
+        },
+        {
+          "section": "3) Synchronize devices",
+          "process": "Propagate an edit through the illustrated polling path",
+          "images": [
+            "08.svg"
+          ]
+        },
+        {
+          "section": "1) Large files and resumable uploads",
+          "process": "Resume and finalize a multipart upload",
+          "images": [
+            "10.svg"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "yelp",
+      "sourceRevision": "555edc3c6579",
+      "review": [
+        "Initial flow now queries database through Business Service; removed Elasticsearch/named-area/cursor details from the initial diagram 3 flow.",
+        "Split basic details (4), review submission (5), synchronous rating (7), Elasticsearch+CDC (8), PostgreSQL alternative (9).",
+        "Retained cron alternative diagram 6 without falsely pairing it with synchronous update steps.",
+        "Restored <500 ms, 100M daily users, 10M businesses and precomputed named-area identifiers from source."
+      ],
+      "caveats": [
+        "Optimistic rating transaction and bounded retries are correctness requirements. Source uses average and count; notes also explain equivalent stored totals.",
+        "Source contains an imprecise polygon/bounding-box code example; notes describe genuine polygon membership without repeating the inaccurate example."
+      ],
+      "diagramBindings": [
+        {
+          "section": "1) Search businesses",
+          "process": "Find businesses in the initial design",
+          "images": [
+            "03.svg"
+          ]
+        },
+        {
+          "section": "2) Read details and write reviews",
+          "process": "Read business details and reviews",
+          "images": [
+            "04.svg"
+          ]
+        },
+        {
+          "section": "2) Read details and write reviews",
+          "process": "Submit a review",
+          "images": [
+            "05.svg"
+          ]
+        },
+        {
+          "section": "1) Maintain average ratings",
+          "process": "Update the average with optimistic locking",
+          "images": [
+            "07.svg"
+          ]
+        },
+        {
+          "section": "3) Search complex queries",
+          "process": "Search through Elasticsearch",
+          "images": [
+            "08.svg"
+          ]
+        },
+        {
+          "section": "3) Search complex queries",
+          "process": "Search with PostgreSQL extensions",
+          "images": [
+            "09.svg"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "local-delivery-service",
+      "sourceRevision": "731e412fccf6",
+      "review": [
+        "Replaced one-center assumption with source availability union across all eligible centers.",
+        "Separated initial distance selection (6), order transaction (7), drive-time candidate refinement (11), and Redis cache reads (12).",
+        "Removed payments from the demonstrated order flow; source explicitly excludes them.",
+        "Restored source scale and one-hour/<100 ms requirements."
+      ],
+      "caveats": [
+        "Source prose says 10M daily orders; diagram 1 says O(1m). Notes explicitly use the prose estimate.",
+        "Idempotency, cache key grouping, and consistent lock order are production implementation considerations, not claimed as extra diagram boxes."
+      ],
+      "diagramBindings": [
+        {
+          "section": "1) Find available items",
+          "process": "Determine deliverable inventory in the initial design",
+          "images": [
+            "06.svg"
+          ]
+        },
+        {
+          "section": "2) Place an order",
+          "process": "Commit an order without overselling",
+          "images": [
+            "07.svg"
+          ]
+        },
+        {
+          "section": "1) Incorporate traffic and driving time",
+          "process": "Check driving time for nearby candidates",
+          "images": [
+            "11.svg"
+          ]
+        },
+        {
+          "section": "2) Scale availability reads",
+          "process": "Read availability through Redis",
+          "images": [
+            "12.svg"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "ticketmaster",
+      "sourceRevision": "c5fc1d157ba1",
+      "review": [
+        "Initial diagrams 3/4/5 now show initial database reads and transactional booking; Redis reservation/payment flow is under diagram 6.",
+        "Waiting-room flow now follows source Redis admitted-session state instead of invented signed-token architecture.",
+        "Added source ten-minute lock, Stripe callback, duplicate-safe booking, late-payment/refund limitation.",
+        "Kept PostgreSQL-expiry and Redis-lock alternatives distinct."
+      ],
+      "caveats": [
+        "Final confirmation must validate reservation ownership in addition to preventing duplicate durable purchase; this tightens source failure handling.",
+        "Original diagram 5 blends Stripe and simple booking; process explicitly explains reservation deep dive improves it rather than asserting an atomic external payment transaction."
+      ],
+      "diagramBindings": [
+        {
+          "section": "1) Browse and search",
+          "process": "View an event in the initial design",
+          "images": [
+            "03.svg"
+          ]
+        },
+        {
+          "section": "1) Browse and search",
+          "process": "Search the initial event database",
+          "images": [
+            "04.svg"
+          ]
+        },
+        {
+          "section": "2) Book tickets",
+          "process": "Claim tickets in the initial design",
+          "images": [
+            "05.svg"
+          ]
+        },
+        {
+          "section": "1) Reservation expiry",
+          "process": "Reserve through Redis and confirm payment",
+          "images": [
+            "06.svg"
+          ]
+        },
+        {
+          "section": "3) Handle high-demand onsales",
+          "process": "Admit customers through the waiting room",
+          "images": [
+            "08.svg"
+          ]
+        },
+        {
+          "section": "4) Improve search",
+          "process": "Query the search index",
+          "images": [
+            "09.svg"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "instagram",
+      "sourceRevision": "16c6bb81b42b",
+      "review": [
+        "Restored initial server-mediated upload to diagram 3; direct upload is now explicitly diagram 8.",
+        "Initial feed reads authors through Post Service under 5; precomputed feed flow under 7, hybrid merge separately because no distinct hybrid diagram exists.",
+        "Media variants flow under 11, direct S3 and CDN alternatives retained as explanatory diagrams 9/10.",
+        "Retained stable timestamp/post-ID ordering and clarified upload readiness before advertising required variants."
+      ],
+      "caveats": [
+        "Source Redis feed list alone does not guarantee durable post publication; retry-safe queue publication is an implementation requirement.",
+        "Did not copy erroneous source implication that BatchGetItem can query recent posts by author; batch hydration applies to known post IDs."
+      ],
+      "diagramBindings": [
+        {
+          "section": "1) Publish posts",
+          "process": "Create a post in the initial design",
+          "images": [
+            "03.svg"
+          ]
+        },
+        {
+          "section": "2) Follow users",
+          "process": "Store a follow relationship",
+          "images": [
+            "04.svg"
+          ]
+        },
+        {
+          "section": "3) Read the chronological feed",
+          "process": "Assemble the initial feed on read",
+          "images": [
+            "05.svg"
+          ]
+        },
+        {
+          "section": "1) Feed latency and fanout",
+          "process": "Precompute ordinary followers' feeds",
+          "images": [
+            "07.svg"
+          ]
+        },
+        {
+          "section": "2) Fast media rendering",
+          "process": "Upload large media directly to S3",
+          "images": [
+            "08.svg"
+          ]
+        },
+        {
+          "section": "2) Fast media rendering",
+          "process": "Process and deliver media variants",
+          "images": [
+            "11.svg"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "fb-news-feed",
+      "sourceRevision": "4d412bb2b285",
+      "review": [
+        "Separated initial post creation (3), follow (4), and fanout-on-read feed (5).",
+        "Hybrid flow is now under diagram 8, replicated cache under 11.",
+        "Restored 2B users, <500 ms requests, <1 minute feed delay; retained bounded 200-entry example."
+      ],
+      "caveats": [
+        "Diagram 10 illustrates the hot-shard problem and stays explanatory.",
+        "Private visibility is outside source scope; mentioned only as extension when added."
+      ],
+      "diagramBindings": [
+        {
+          "section": "1) Posts and follows",
+          "process": "Create a durable post",
+          "images": [
+            "03.svg"
+          ]
+        },
+        {
+          "section": "1) Posts and follows",
+          "process": "Follow an account",
+          "images": [
+            "04.svg"
+          ]
+        },
+        {
+          "section": "2) Assemble and paginate feeds",
+          "process": "Assemble the initial feed page",
+          "images": [
+            "05.svg"
+          ]
+        },
+        {
+          "section": "2) Users with many followers",
+          "process": "Distribute ordinary posts and merge celebrity posts",
+          "images": [
+            "08.svg"
+          ]
+        },
+        {
+          "section": "3) Uneven post reads",
+          "process": "Read a hot post through replicated caches",
+          "images": [
+            "11.svg"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "tinder",
+      "sourceRevision": "38ce38f82dce",
+      "review": [
+        "Initial profile stack uses Profile DB (4); cached/indexed replenishment moves to deep dive diagram 10.",
+        "Initial sequential swipe/notification flow (6) is separate from atomic Redis pair flow (7).",
+        "Source does not require cursor pagination for recommendation stacks; removed that invented requirement.",
+        "Corrected source invalid Cassandra BATCH-with-SELECT implication and Redis failover/durability overclaim.",
+        "Clarified source client-side recent Swipe Cache, which previous condensed content omitted."
+      ],
+      "caveats": [
+        "Immediate, failure-safe matching requires durable capture/replay beyond Redis local script atomicity. Source periodic flushing does not establish this guarantee.",
+        "Final source diagram 13 omits Redis even though deep dive diagram 7 includes the matching alternative; notes explicitly identify 7."
+      ],
+      "diagramBindings": [
+        {
+          "section": "1) Profiles and candidate stacks",
+          "process": "Build the initial candidate stack",
+          "images": [
+            "04.svg"
+          ]
+        },
+        {
+          "section": "2) Swipes and matches",
+          "process": "Record a swipe and notify an existing reverse match",
+          "images": [
+            "06.svg"
+          ]
+        },
+        {
+          "section": "1) Consistent low-latency swiping",
+          "process": "Check reciprocal decisions atomically in Redis",
+          "images": [
+            "07.svg"
+          ]
+        },
+        {
+          "section": "2) Fast candidate generation",
+          "process": "Replenish a cached candidate stack",
+          "images": [
+            "10.svg"
+          ]
+        },
+        {
+          "section": "3) Exclude previous swipes",
+          "process": "Filter recent and historical decisions",
+          "images": [
+            "11.svg"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "leetcode",
+      "sourceRevision": "392b126086a4",
+      "review": [
+        "Initial container submission (7) is synchronous; queue+poll path moved to competition deep dive (12).",
+        "Initial leaderboard (8) queries durable submissions; Redis rank flow belongs to 10.",
+        "Inspected image 11: browser network screenshot showing repeated /check/ polling. Left explanatory, not bound as architecture.",
+        "Retained clean execution state and no credentials despite source suggestion to reuse containers; reused infrastructure must not leak submission state."
+      ],
+      "caveats": [
+        "Source scoring SQL MIN(submittedAt) does not reliably encode final solve time; notes require explicit contest tie rules rather than copying that query."
+      ],
+      "diagramBindings": [
+        {
+          "section": "1) Problem browsing",
+          "process": "Load a problem for the editor",
+          "images": [
+            "04.svg"
+          ]
+        },
+        {
+          "section": "2) Execute submissions",
+          "process": "Judge a submission in the initial container design",
+          "images": [
+            "07.svg"
+          ]
+        },
+        {
+          "section": "3) Competition leaderboard",
+          "process": "Build the initial leaderboard from results",
+          "images": [
+            "08.svg"
+          ]
+        },
+        {
+          "section": "2) Efficient rankings",
+          "process": "Update and read the Redis leaderboard",
+          "images": [
+            "10.svg"
+          ]
+        },
+        {
+          "section": "3) Competition bursts",
+          "process": "Queue execution and poll for results",
+          "images": [
+            "12.svg"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "whatsapp",
+      "sourceRevision": "a99190042265",
+      "review": [
+        "Replaced generic HTTP chat APIs with source WebSocket commands.",
+        "Replaced generic history/cursor flow with source durable Inbox records and per-device acknowledgment.",
+        "Basic single-server inbox flow (4), Pub/Sub routing (10), and multi-device inboxes (11) are separate.",
+        "Clarified source timestamp display order does not guarantee delivery order.",
+        "Restored last-seen disconnect update and live ONLINE query source detail."
+      ],
+      "caveats": [
+        "Chat creation near 100 participants exceeds one 100-item transaction when the Chat item is included; notes call out partial-creation recovery.",
+        "Message/inbox writes must be recoverable before acknowledgment; Pub/Sub alone is explicitly nondurable."
+      ],
+      "diagramBindings": [
+        {
+          "section": "1) Chats and message delivery",
+          "process": "Create a chat",
+          "images": [
+            "03.svg"
+          ]
+        },
+        {
+          "section": "1) Chats and message delivery",
+          "process": "Save and deliver a message on one Chat Server",
+          "images": [
+            "04.svg"
+          ]
+        },
+        {
+          "section": "2) Media attachments",
+          "process": "Transfer an attachment directly through blob storage",
+          "images": [
+            "07.svg"
+          ]
+        },
+        {
+          "section": "1) Connection routing at scale",
+          "process": "Route live delivery through Redis Pub/Sub",
+          "images": [
+            "10.svg"
+          ]
+        },
+        {
+          "section": "2) Multiple devices",
+          "process": "Track delivery separately for each device",
+          "images": [
+            "11.svg"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "strava",
+      "sourceRevision": "4f12922431a7",
+      "review": [
+        "Removed unsupported segment ranking. Source leaderboard sums completed distance by athlete/activity type/location.",
+        "Removed invented queue and background route-processing architecture; source keeps simple Activity Server and local recording.",
+        "Initial server GPS flow (4), completed reads (5), local offline recording (6), periodic distance ranking (8) now match their diagrams.",
+        "Corrected live sharing to source preferred periodic polling, with SSE/WebSockets as alternatives."
+      ],
+      "caveats": [
+        "Redis total-distance leaderboard has no separate deep-dive diagram; diagram 9 remains final design.",
+        "Completion-time sharding needs a policy to avoid one active hot shard; retained as explicit caveat."
+      ],
+      "diagramBindings": [
+        {
+          "section": "1) Record and display activity",
+          "process": "Record through the initial server-based path",
+          "images": [
+            "04.svg"
+          ]
+        },
+        {
+          "section": "2) Read completed activities",
+          "process": "Read a saved activity",
+          "images": [
+            "05.svg"
+          ]
+        },
+        {
+          "section": "1) Offline operation",
+          "process": "Record locally and synchronize after reconnection",
+          "images": [
+            "06.svg"
+          ]
+        },
+        {
+          "section": "4) Leaderboards",
+          "process": "Build periodic distance rankings",
+          "images": [
+            "08.svg"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "distributed-cache",
+      "sourceRevision": "3d6849536472",
+      "review": [
+        "Initial single-node operation (1) no longer silently contains distributed routing/replication.",
+        "Separated LRU/expiry (3), asynchronous replication (5), ring routing (7), copied hot values (9).",
+        "Added missing peer-to-peer alternative represented by diagram 6.",
+        "Restored <10 ms, 1 TB and 100k rps source requirements."
+      ],
+      "caveats": [
+        "Virtual nodes and fenced membership changes are implementation considerations.",
+        "Expiration cleanup scans are not constant-time overall; notes only claim constant-time hash/LRU access."
+      ],
+      "diagramBindings": [
+        {
+          "section": "1) In-memory operations",
+          "process": "Execute an operation on one Cache Node",
+          "images": [
+            "01.svg"
+          ]
+        },
+        {
+          "section": "2) TTL and eviction",
+          "process": "Read an entry and maintain LRU state",
+          "images": [
+            "03.svg"
+          ]
+        },
+        {
+          "section": "1) Availability and replication",
+          "process": "Replicate a write asynchronously",
+          "images": [
+            "05.svg"
+          ]
+        },
+        {
+          "section": "2) Distribution and growth",
+          "process": "Locate a key on the hash ring",
+          "images": [
+            "07.svg"
+          ]
+        },
+        {
+          "section": "3) Hot keys",
+          "process": "Distribute reads across copies of a hot value",
+          "images": [
+            "09.svg"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "rate-limiter",
+      "sourceRevision": "b2fbc6998918",
+      "review": [
+        "Token bucket flow bound to algorithm diagram 7; sharded request path separately bound to 8.",
+        "Configuration flow explicitly uses ZooKeeper/Etcd rule notifications (10).",
+        "Preserved Lua atomic read-refill-check-deduct; did not repeat source conflicting later assertion that a separate read plus MULTI is safe.",
+        "Restored <10 ms checks, 1M rps, 100M users and source fail-closed choice."
+      ],
+      "caveats": [
+        "Local token grants are marked optional rather than shown in the source architecture.",
+        "A single bucket can bottleneck one shard; more shards do not divide atomic state.",
+        "Asynchronous failover can lose deductions; exact global enforcement is not claimed."
+      ],
+      "diagramBindings": [
+        {
+          "section": "1) Identify and route requests",
+          "process": "Enforce limits at the API Gateway",
+          "images": [
+            "04.svg"
+          ]
+        },
+        {
+          "section": "2) Choose an algorithm",
+          "process": "Decide a request with a token bucket",
+          "images": [
+            "07.svg"
+          ]
+        },
+        {
+          "section": "1) Throughput",
+          "process": "Route a bucket check to its owning shard",
+          "images": [
+            "08.svg"
+          ]
+        },
+        {
+          "section": "4) Dynamic rules",
+          "process": "Refresh a rule through configuration notifications",
+          "images": [
+            "10.svg"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "online-auction",
+      "sourceRevision": "c1affb41de4e",
+      "review": [
+        "Restored Item entity, accepted/rejected bid history, 10M-auction scale, Kafka durability path, and final pub/sub distribution.",
+        "Diagram 4 is the initial non-atomic bid submission path. The auction-row transaction belongs to diagram 7.",
+        "Diagram 6 is an alternative Redis maximum with cross-store consistency problems, not the selected database transaction.",
+        "Diagram 8 depicts Kafka receipt and consumption, not auction closing. Replaced the incorrectly adjacent closing flow with the actual queue path.",
+        "Deadline, closure, request-ID recovery, and event ordering safeguards remain explicit design rules. Queued receipt is distinguished from committed acceptance."
+      ],
+      "diagramBindings": [
+        {
+          "section": "1) Create and view auctions",
+          "process": "Create an auction",
+          "images": [
+            "03.svg"
+          ]
+        },
+        {
+          "section": "1) Create and view auctions",
+          "process": "View an auction",
+          "images": [
+            "05.svg"
+          ]
+        },
+        {
+          "section": "2) Accept bids",
+          "process": "Submit a bid in the initial design",
+          "images": [
+            "04.svg"
+          ]
+        },
+        {
+          "section": "1) Strong consistency",
+          "process": "Accept a bid with an auction-row transaction",
+          "images": [
+            "07.svg"
+          ]
+        },
+        {
+          "section": "2) Durability and closing",
+          "process": "Retain and process bids through Kafka",
+          "images": [
+            "08.svg"
+          ]
+        },
+        {
+          "section": "3) Real-time updates",
+          "process": "Push the current highest bid",
+          "images": [
+            "09.svg"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "youtube",
+      "sourceRevision": "57606c8344bb",
+      "review": [
+        "Separated direct-original upload (3), whole-format processing alternative (4), segmented processing (5), basic playback (6), adaptive S3 playback (7), and detailed DAG processing (8).",
+        "Removed CDN from the flow attached to diagram 7; it is added in the final diagram 10.",
+        "Restored explicit splitter -> independent segment/audio/transcript tasks -> manifest -> ready order and Temporal as an orchestration option.",
+        "Diagram 9 is retained as an overview but is not bound to the part-progress flow: its event/Upload Monitor arrows do not express the prose's client-reported ETag verification accurately.",
+        "Did not repeat the source's exactly-once S3 notification claim. Candidates require duplicate-safe completion processing.",
+        "Private-video authorization and cleanup are identified as support rules/extensions rather than undisclosed source diagram components."
+      ],
+      "diagramBindings": [
+        {
+          "section": "1) Upload and process",
+          "process": "Upload the original video directly",
+          "images": [
+            "03.svg"
+          ]
+        },
+        {
+          "section": "2) Playback",
+          "process": "Start and adapt playback from object storage",
+          "images": [
+            "07.svg"
+          ]
+        },
+        {
+          "section": "1) Adaptive bitrate processing",
+          "process": "Produce segments and manifests",
+          "images": [
+            "08.svg"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "job-scheduler",
+      "sourceRevision": "d120515ce077",
+      "review": [
+        "Restored Task, Schedule, user-status index, due-time window, and near-term direct enqueue details.",
+        "The initial Task Executor in diagram 4 reads DynamoDB directly. Added delayed-queue processing separately under diagram 7.",
+        "SQS delay is a minimum delay, not a two-second execution guarantee. Candidate says the target needs measurement.",
+        "Source diagram 8's pre-creation queue is explicitly optional. Diagram 9/10 SQS partition labels are not repeated as a requirement to manually shard SQS.",
+        "Diagram 11 now describes SQS visibility renewal and redelivery. Custom fencing/lease behavior remains a separately identified alternative.",
+        "Cancellation/rescheduling marked outside initial scope instead of presented as a core API requirement."
+      ],
+      "diagramBindings": [
+        {
+          "section": "1) Schedule and dispatch",
+          "process": "Store and execute a job in the initial design",
+          "images": [
+            "04.svg"
+          ]
+        },
+        {
+          "section": "1) Scheduling precision",
+          "process": "Dispatch through a delayed queue",
+          "images": [
+            "07.svg"
+          ]
+        },
+        {
+          "section": "3) At-least-once execution",
+          "process": "Recover a worker that stops responding",
+          "images": [
+            "11.svg"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "fb-live-comments",
+      "sourceRevision": "c261bbaffc8d",
+      "review": [
+        "Diagram 3 stores a comment only. Diagram 4 is polling, not persistent connections or a snapshot/live handoff.",
+        "Separated SSE broadcast (6), partitioned pub/sub routing (8), and direct Dispatcher routing (9).",
+        "Final diagram 10 uses Dispatcher, not pub/sub. Final prose now reflects that selection and labels pub/sub as an alternative.",
+        "Restored mega-stream sampling and CDN snapshots, including the changed completeness/latency target and hysteresis.",
+        "Recovery flow has no borrowed diagram. It uses Last-Event-ID, bounded history, and deduplication as described by the source.",
+        "Did not repeat the source's inconsistent DynamoDB key annotations; candidate requires a coherent video + ordering-key schema."
+      ],
+      "diagramBindings": [
+        {
+          "section": "1) Post and store comments",
+          "process": "Store a comment",
+          "images": [
+            "03.svg"
+          ]
+        },
+        {
+          "section": "2) Deliver and read history",
+          "process": "Poll for new comments",
+          "images": [
+            "04.svg"
+          ]
+        },
+        {
+          "section": "1) Real-time transport",
+          "process": "Push comments through SSE",
+          "images": [
+            "06.svg"
+          ]
+        },
+        {
+          "section": "2) Audience fanout",
+          "process": "Route comments with partitioned pub-sub",
+          "images": [
+            "08.svg"
+          ]
+        },
+        {
+          "section": "2) Audience fanout",
+          "process": "Route comments with a dispatcher",
+          "images": [
+            "09.svg"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "news-aggregator",
+      "sourceRevision": "48d72bd0e6cd",
+      "review": [
+        "Initial collection (3) and regional DB feed query (4) now have distinct source-matching flows; removed queues/caches from those early paths.",
+        "Added CDC cache-update flow (6) and authenticated publisher webhook flow (9).",
+        "Restored regional Redis feeds, priority collection tiers, optional webpage extraction, CDN thumbnails, read replicas, and the source's category/personalization alternatives.",
+        "Kept publication-time + ID cursor; a time-ordered ingestion ID is not automatically publication order for late-discovered articles.",
+        "Avoided the source's universal millisecond timings, cache-hit percentages, and automatic capacity claims. Targets remain targets."
+      ],
+      "diagramBindings": [
+        {
+          "section": "1) Ingest and serve articles",
+          "process": "Collect article metadata",
+          "images": [
+            "03.svg"
+          ]
+        },
+        {
+          "section": "1) Ingest and serve articles",
+          "process": "Read the initial regional feed",
+          "images": [
+            "04.svg"
+          ]
+        },
+        {
+          "section": "2) Low-latency feeds",
+          "process": "Update and read cached regional feeds",
+          "images": [
+            "06.svg"
+          ]
+        },
+        {
+          "section": "3) Publication freshness",
+          "process": "Receive a publisher webhook",
+          "images": [
+            "09.svg"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "price-tracking-service",
+      "sourceRevision": "0a68914daef4",
+      "review": [
+        "Restored initial history read (3) and two-hour polling notification (4), then extension collection (8), event-driven alerts (9), and TimescaleDB queries (11).",
+        "Existing notes incorrectly treated verification-before-alert as the only source policy. Candidate now explains source trust-then-verify versus the stricter hold-until-verified option and their tradeoff.",
+        "Preserved consensus limitations, source limits, provenance, duplicate handling, and defined threshold semantics.",
+        "Kept scheduled rollups (10) as an alternative to source's TimescaleDB approach, not an unshown mandatory cache in diagram 11.",
+        "Corrected independent DB+stream dual-write reliability gap and avoided universal TimescaleDB milliseconds guarantees."
+      ],
+      "diagramBindings": [
+        {
+          "section": "1) History and collection",
+          "process": "Read stored price history",
+          "images": [
+            "03.svg"
+          ]
+        },
+        {
+          "section": "2) Subscriptions and alerts",
+          "process": "Check subscriptions with the initial cron job",
+          "images": [
+            "04.svg"
+          ]
+        },
+        {
+          "section": "1) Discover and refresh products",
+          "process": "Collect extension observations",
+          "images": [
+            "08.svg"
+          ]
+        },
+        {
+          "section": "3) Notify efficiently",
+          "process": "Send an event-driven price alert",
+          "images": [
+            "09.svg"
+          ]
+        },
+        {
+          "section": "4) Fast historical charts",
+          "process": "Query a time-series price history",
+          "images": [
+            "11.svg"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "notification-system",
+      "sourceRevision": "e9eeffb60eca",
+      "review": [
+        "Initial diagrams 3-5 send directly or through a DB-backed scheduler. They do not show durable workers or queues yet.",
+        "Source diagram 8 explicitly accepts immediate requests with a single durable SQS write. Replaced existing mandatory DB+outbox path with queue acknowledgement -> 202.",
+        "Outbox retained only as an alternative when a DB change and event must commit together; scheduled/campaign progress still needs recoverable publication.",
+        "Campaign flow now uses the source's segment snapshot and stable campaignId:userId identity.",
+        "Separated priority queues (9) from reserved worker/provider budgets (10).",
+        "Diagram 11 is successful-send cache deduplication, not provider reconciliation. Added matching flow and retained explicit provider-boundary uncertainty.",
+        "Distinguishes provider acceptance from recipient delivery and avoids universal exactly-once claims."
+      ],
+      "diagramBindings": [
+        {
+          "section": "1) Immediate and scheduled delivery",
+          "process": "Send directly in the initial design",
+          "images": [
+            "03.svg"
+          ]
+        },
+        {
+          "section": "1) Immediate and scheduled delivery",
+          "process": "Send a scheduled notification",
+          "images": [
+            "05.svg"
+          ]
+        },
+        {
+          "section": "2) Campaign expansion",
+          "process": "Expand a campaign's recipient snapshot",
+          "images": [
+            "06.svg"
+          ]
+        },
+        {
+          "section": "1) Do not lose accepted work",
+          "process": "Accept through a durable queue and deliver",
+          "images": [
+            "08.svg"
+          ]
+        },
+        {
+          "section": "2) Priority and provider capacity",
+          "process": "Protect an urgent send during a campaign",
+          "images": [
+            "10.svg"
+          ]
+        },
+        {
+          "section": "3) Duplicate prevention",
+          "process": "Check a completed send before redelivery",
+          "images": [
+            "11.svg"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "youtube-top-k",
+      "sourceRevision": "1db71fb3b991",
+      "review": [
+        "Restored source contract: exact counts, completed tumbling hour/day/month/all-time windows, K <= 1000, one-minute processing budget, and tens-of-ms reads.",
+        "Initial diagram 3 is Kafka -> View Consumer -> PostgreSQL, not the full salted-count/ranker pipeline. Diagram 5 is a window DB query.",
+        "Separate precomputation flow maps to 7, full Flink state/ranking flow maps to 13, and bucket subtraction maps to 15.",
+        "Final diagram 18 uses Flink -> Redis without a Views DB or Top-K Cron. Final prose now matches it.",
+        "Local top-K merge requires complete per-video scores on disjoint partitions; salt partials must merge first.",
+        "Checkpointing alone does not guarantee an arbitrary sink is exactly once; decreases in sliding totals require candidate recovery beyond a naive top-K-only heap.",
+        "CMS remains an explicit approximation extension, not a silent violation of initial exactness."
+      ],
+      "diagramBindings": [
+        {
+          "section": "1) All-time and windowed counts",
+          "process": "Count views in the initial database design",
+          "images": [
+            "03.svg"
+          ]
+        },
+        {
+          "section": "1) All-time and windowed counts",
+          "process": "Query an initial windowed ranking",
+          "images": [
+            "05.svg"
+          ]
+        },
+        {
+          "section": "1) Reduce repeated reads",
+          "process": "Read a precomputed ranking",
+          "images": [
+            "07.svg"
+          ]
+        },
+        {
+          "section": "3) Efficient top K",
+          "process": "Maintain ranking state in Flink",
+          "images": [
+            "13.svg"
+          ]
+        },
+        {
+          "section": "4) Sliding windows",
+          "process": "Advance a bucket-based sliding window",
+          "images": [
+            "15.svg"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "uber",
+      "sourceRevision": "82b28b2480ea",
+      "review": [
+        "Source uses Ride Service for fare calculation; replaced invented separate Pricing Service in the initial path.",
+        "Separated fare flow (3), ride creation (4), simple offer/accept flow (6), location Redis flow (7), driver reservation (8), and queued recovery (9).",
+        "Retained conditional offer ownership/version checks; a Redis TTL alone cannot prevent a stale worker from committing an assignment.",
+        "Restored source's explicit Temporal/Step Functions timeout alternative, labeled as unshown in the diagrams.",
+        "Restored Fare entity, under-one-minute matching target, geographic boundaries, and 100k-location surge.",
+        "Source's location cleanup uses timestamps; candidate does not imply Redis GEO members automatically expire."
+      ],
+      "diagramBindings": [
+        {
+          "section": "1) Estimate and request",
+          "process": "Estimate a fare",
+          "images": [
+            "03.svg"
+          ]
+        },
+        {
+          "section": "1) Estimate and request",
+          "process": "Create a ride from the stored fare",
+          "images": [
+            "04.svg"
+          ]
+        },
+        {
+          "section": "2) Match and accept",
+          "process": "Offer a ride in the initial design",
+          "images": [
+            "06.svg"
+          ]
+        },
+        {
+          "section": "1) Location ingestion and proximity",
+          "process": "Refresh a driver's searchable location",
+          "images": [
+            "07.svg"
+          ]
+        },
+        {
+          "section": "3) Prevent double assignment",
+          "process": "Reserve and confirm a driver",
+          "images": [
+            "08.svg"
+          ]
+        },
+        {
+          "section": "4) Reliable matching and timeouts",
+          "process": "Recover queued matching work",
+          "images": [
+            "09.svg"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "robinhood",
+      "sourceRevision": "1e8191116211",
+      "review": [
+        "Diagrams 3/4/5 are direct polling, internal-cache polling, and SSE alternatives. Added an SSE-specific flow at 5 and Redis fanout at 10.",
+        "Source rejects queued dispatch for the tight latency target. Restored synchronous Order Service -> Order Dispatch Gateway -> exchange in flow 9.",
+        "Restored externalOrderId -> (orderId,userId) metadata mapping, the actual purpose of diagram 11.",
+        "Cancellation/fill race remains under Order consistency without borrowing the unrelated mapping diagram.",
+        "Funds and positions are labeled as extensions when in scope, not invented core entities or mandatory nodes in the source diagram.",
+        "Submission timeouts remain uncertain until provider lookup; source wording that every failure means rejection is not repeated."
+      ],
+      "diagramBindings": [
+        {
+          "section": "1) Live prices",
+          "process": "Subscribe to current prices and live updates",
+          "images": [
+            "05.svg"
+          ]
+        },
+        {
+          "section": "2) Orders",
+          "process": "Submit an order through the dispatch gateway",
+          "images": [
+            "09.svg"
+          ]
+        },
+        {
+          "section": "1) Scale price delivery",
+          "process": "Distribute a price through shared subscriptions",
+          "images": [
+            "10.svg"
+          ]
+        },
+        {
+          "section": "2) Track order updates",
+          "process": "Apply an external execution report",
+          "images": [
+            "11.svg"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "google-docs",
+      "sourceRevision": "42235cfe1704",
+      "review": [
+        "Diagram 3 only creates metadata, not snapshot loading or presence. Added its creation flow and moved operation loading to diagram 7.",
+        "Source explicitly selects OT. Kept CRDT as an alternative and made final prose OT-specific.",
+        "Edit storage maps to 6, client broadcast/transforms to 8, owner routing through ZooKeeper to 10.",
+        "Separated external compaction service (11) from owner-controlled idle compaction (12). Both preserve durable version publication and concurrency checks.",
+        "Restored PostgreSQL metadata, Cassandra operations, 100-editor constraint, and documentVersionId strategy.",
+        "Detailed permissions/version history marked outside initial scope; permission checks remain an explicit extension rather than hidden source scope."
+      ],
+      "diagramBindings": [
+        {
+          "section": "1) Create and load",
+          "process": "Create document metadata",
+          "images": [
+            "03.svg"
+          ]
+        },
+        {
+          "section": "2) Concurrent editing",
+          "process": "Accept an edit with server-ordered OT",
+          "images": [
+            "06.svg"
+          ]
+        },
+        {
+          "section": "3) Broadcast and presence",
+          "process": "Load operations and join live editing",
+          "images": [
+            "07.svg"
+          ]
+        },
+        {
+          "section": "3) Broadcast and presence",
+          "process": "Send an accepted edit to collaborators",
+          "images": [
+            "08.svg"
+          ]
+        },
+        {
+          "section": "1) Connection scaling",
+          "process": "Connect to the document owner",
+          "images": [
+            "10.svg"
+          ]
+        },
+        {
+          "section": "2) Bound storage and replay",
+          "process": "Compact through a separate service",
+          "images": [
+            "11.svg"
+          ]
+        },
+        {
+          "section": "2) Bound storage and replay",
+          "process": "Compact when the last editor leaves",
+          "images": [
+            "12.svg"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "web-crawler",
+      "sourceRevision": "8ec262619d26",
+      "review": [
+        "Restored source's extracted-text output in addition to retained raw HTML.",
+        "Initial diagram 2 is a single crawler using DNS and S3. Split-stage durability belongs to 4, and shared host rules/rate limiting to 5.",
+        "Restored separate SQS parsing queue, URL Metadata DB, S3 raw/text data, DNS caching, and link-hop depth.",
+        "Retained handoff safety: fetch acknowledgement requires recoverable downstream parsing, beyond raw HTML storage alone.",
+        "Kept exact content index and Bloom-filter false-positive tradeoff. Calculated average target as ~23,150 successful pages/s rather than promising an assumed machine count.",
+        "Security bounds remain practical supporting rules; no unshown security component is claimed in the diagrams."
+      ],
+      "diagramBindings": [
+        {
+          "section": "High-Level Design",
+          "process": "Crawl and extract in the initial design",
+          "images": [
+            "02.svg"
+          ]
+        },
+        {
+          "section": "1) Fault tolerance and progress",
+          "process": "Fetch and parse through recoverable stages",
+          "images": [
+            "04.svg"
+          ]
+        },
+        {
+          "section": "2) Politeness",
+          "process": "Coordinate a host's next request",
+          "images": [
+            "05.svg"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "ad-click-aggregator",
+      "sourceRevision": "1209a56a6d76",
+      "review": [
+        "Separate baseline redirect from later stream durability policy.",
+        "Restore Cassandra, Spark, OLAP, Kinesis/Flink, raw S3 archive, and reconciliation roles omitted by generic notes.",
+        "Restore signed impression ID plus ad ID and cache deduplication. Advanced fraud detection stays outside scope.",
+        "Do not imply that ordinary sink increments automatically make replay exactly once."
+      ],
+      "diagramBindings": [
+        {
+          "section": "1) Click ingestion",
+          "process": "Record a click before redirecting",
+          "images": [
+            "02.svg"
+          ]
+        },
+        {
+          "section": "2) Aggregation",
+          "process": "Count raw events at query time",
+          "images": [
+            "03.svg"
+          ]
+        },
+        {
+          "section": "2) Aggregation",
+          "process": "Build counts with scheduled batches",
+          "images": [
+            "04.svg"
+          ]
+        },
+        {
+          "section": "2) Aggregation",
+          "process": "Maintain counts with stream processing",
+          "images": [
+            "05.svg"
+          ]
+        },
+        {
+          "section": "2) Durability and reconciliation",
+          "process": "Reconcile streaming totals with raw events",
+          "images": [
+            "08.svg"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "fb-post-search",
+      "sourceRevision": "1e64503875ac",
+      "review": [
+        "Previous notes incorrectly described a generic specialized search engine; restore the Redis-based design and its prohibition.",
+        "Privacy/personalization are explicitly out of scope in the source. Do not make visibility enforcement a primary requirement.",
+        "Restore two separate indexes, bigrams, like milestones, and cold keyword indexes.",
+        "Correct source overstatement that reranking a limited approximate candidate set guarantees exact global top results.",
+        "Baseline ingestion process does not contain Kafka; Kafka appears only in write-scale flows."
+      ],
+      "diagramBindings": [
+        {
+          "section": "1) Writes and indexing",
+          "process": "Publish a post into the basic index",
+          "images": [
+            "04.svg"
+          ]
+        },
+        {
+          "section": "2) Keyword retrieval",
+          "process": "Retrieve posts from a Redis inverted index",
+          "images": [
+            "08.svg"
+          ]
+        },
+        {
+          "section": "3) Sorting",
+          "process": "Read an index that already has the required order",
+          "images": [
+            "10.svg"
+          ]
+        },
+        {
+          "section": "3) Write scale",
+          "process": "Combine frequent like updates",
+          "images": [
+            "14.svg"
+          ]
+        },
+        {
+          "section": "3) Write scale",
+          "process": "Rerank candidates from approximate like scores",
+          "images": [
+            "15.svg"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "payment-system",
+      "sourceRevision": "18c425742df4",
+      "review": [
+        "Restore the article's core entities and concrete Payment/Transaction service split.",
+        "Split creation, authorization, status lookup, reconciliation, and webhook delivery into their matching diagram stages.",
+        "Avoid placing queue/workflow machinery or later tokenization in the baseline authorization diagram.",
+        "Describe hosted collection as exposure reduction without repeating absolute security/compliance claims from the source.",
+        "Retain the distinction between timeout, explicit failure, authorization, and settlement.",
+        "CDC and Kafka need monitoring and replay safeguards; they do not alone guarantee financial side effects happen once."
+      ],
+      "diagramBindings": [
+        {
+          "section": "1) Create and execute payments",
+          "process": "Create a payment intent",
+          "images": [
+            "03.svg"
+          ]
+        },
+        {
+          "section": "1) Create and execute payments",
+          "process": "Submit a transaction to the payment network",
+          "images": [
+            "04.svg"
+          ]
+        },
+        {
+          "section": "2) Status updates",
+          "process": "Read the current payment status",
+          "images": [
+            "05.svg"
+          ]
+        },
+        {
+          "section": "3) Transaction safety",
+          "process": "Resolve an uncertain external charge",
+          "images": [
+            "10.svg"
+          ]
+        },
+        {
+          "section": "4) Scale and webhooks",
+          "process": "Deliver a committed payment change",
+          "images": [
+            "11.svg"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "metrics-monitoring",
+      "sourceRevision": "877b20dbf50d",
+      "review": [
+        "Restore the source's push/agent ingestion path; pull collection is not the depicted baseline.",
+        "Keep scheduled stored-data alert evaluation separate from later Flink streaming evaluation.",
+        "Restore PostgreSQL policy storage and Redis series tracking omitted by generic quotas.",
+        "Separate raw/rollup query flow from the later Redis cache diagram.",
+        "Explain lossiness of rollups and need for histograms/sketches for percentiles.",
+        "Avoid claiming same-system monitoring proves availability; retain independent health checks."
+      ],
+      "diagramBindings": [
+        {
+          "section": "1) Ingestion",
+          "process": "Collect, buffer, and store metric batches",
+          "images": [
+            "06.svg"
+          ]
+        },
+        {
+          "section": "2) Dashboards",
+          "process": "Read a dashboard from time-series storage",
+          "images": [
+            "07.svg"
+          ]
+        },
+        {
+          "section": "3) Alerts and notifications",
+          "process": "Evaluate a rule and deliver its state transition",
+          "images": [
+            "09.svg"
+          ]
+        },
+        {
+          "section": "2) Low-latency alerts",
+          "process": "Evaluate an urgent alert from the stream",
+          "images": [
+            "12.svg"
+          ]
+        },
+        {
+          "section": "3) Availability and cardinality",
+          "process": "Enforce a metric's series limit",
+          "images": [
+            "13.svg"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "online-chess",
+      "sourceRevision": "d3d716c27846",
+      "review": [
+        "Restore rating from trusted server records and status polling for matchmaking.",
+        "Baseline rankings read PostgreSQL; Redis leaderboard is a later stage.",
+        "Distinguish single-owner routing from shared-state/pubsub alternative. Do not attach one process to both diagrams.",
+        "Restore ZooKeeper, Session Router, row-lock matching, and concrete clock-delay policy.",
+        "Source shared-state Pub/Sub needs state reload after missed messages; it is not a durable move log."
+      ],
+      "diagramBindings": [
+        {
+          "section": "1) Match players",
+          "process": "Pair two waiting players",
+          "images": [
+            "03.svg"
+          ]
+        },
+        {
+          "section": "2) Run games",
+          "process": "Accept and broadcast a chess move",
+          "images": [
+            "04.svg"
+          ]
+        },
+        {
+          "section": "3) Rankings",
+          "process": "Update ratings and read the basic leaderboard",
+          "images": [
+            "05.svg"
+          ]
+        },
+        {
+          "section": "2) Game-server scale",
+          "process": "Route both players to one game owner",
+          "images": [
+            "06.svg"
+          ]
+        },
+        {
+          "section": "2) Game-server scale",
+          "process": "Process a move with shared state instead",
+          "images": [
+            "07.svg"
+          ]
+        },
+        {
+          "section": "4) Leaderboard scale",
+          "process": "Refresh the derived Redis leaderboard",
+          "images": [
+            "08.svg"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "chatgpt",
+      "sourceRevision": "7fe402bdec4f",
+      "review": [
+        "Previous baseline process contained Run, queue, scheduler, and replay stream absent from baseline diagram. Replace it with the source's synchronous sequence.",
+        "Core entities start with User/Chat/Message. Introduce Run only as a later lifecycle record.",
+        "Redis Streams are short-lived working state, not guaranteed durable token history. PostgreSQL stores the final message.",
+        "Keep direct gRPC streaming, Pub/Sub alternative, retained Redis Stream, and queued workers as separate design stages.",
+        "Restore token reservation/refund and stable-prefix summary tradeoff.",
+        "Cancellation is explicit; disconnection intentionally does not imply cancellation."
+      ],
+      "diagramBindings": [
+        {
+          "section": "1) Submit and generate",
+          "process": "Generate a response in the baseline design",
+          "images": [
+            "03.svg"
+          ]
+        },
+        {
+          "section": "2) History",
+          "process": "Continue a saved conversation",
+          "images": [
+            "04.svg"
+          ]
+        },
+        {
+          "section": "1) Token streaming",
+          "process": "Forward tokens through gRPC and SSE",
+          "images": [
+            "06.svg"
+          ]
+        },
+        {
+          "section": "2) Reconnect and deploy recovery",
+          "process": "Resume delivery from a Redis Stream",
+          "images": [
+            "08.svg",
+            "09.svg"
+          ]
+        },
+        {
+          "section": "3) GPU scheduling",
+          "process": "Admit work to a continuous GPU batch",
+          "images": [
+            "10.svg"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "flash-sale",
+      "sourceRevision": "6a2ca44fb2f3",
+      "review": [
+        "Remove the later waiting room from the baseline reservation process.",
+        "Restore preferred individual ReservationUnit rows, contrasting Redis as an alternative.",
+        "Diagram 10 depicts delayed SQS expiry, not on-demand reclaim. Bind delayed flow to 10 and leave on-demand flow without a diagram.",
+        "Restore reclaiming one unit for the triggering buyer and returning the rest under a per-product lock.",
+        "Preserve late-payment/expiry caveat as a required consistency policy, not an invented mechanism drawn in the article.",
+        "Restore source-specific randomized pre-sale admission then FIFO, rather than only generic fairness choices."
+      ],
+      "diagramBindings": [
+        {
+          "section": "1) Browse and reserve",
+          "process": "Reserve inventory in the baseline design",
+          "images": [
+            "04.svg"
+          ]
+        },
+        {
+          "section": "2) Complete payment",
+          "process": "Convert a valid reservation into a purchase",
+          "images": [
+            "07.svg"
+          ]
+        },
+        {
+          "section": "1) Contention",
+          "process": "Claim an independent inventory unit",
+          "images": [
+            "09.svg"
+          ]
+        },
+        {
+          "section": "2) Expiration",
+          "process": "Expire a reservation with a delayed job",
+          "images": [
+            "10.svg"
+          ]
+        },
+        {
+          "section": "3) Crowd admission",
+          "process": "Admit waiting buyers at a sustainable rate",
+          "images": [
+            "12.svg",
+            "13.svg"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "real-time-updates",
+      "sourceRevision": "aea668b6601e",
+      "review": [
+        "Diagram 6 is WebSocket Service/Driver Service, not a generic durable publish/replay system. Bind a focused update flow.",
+        "Diagram 18 depicts hierarchical aggregation, not reconnect recovery. Give hierarchy its own matching process.",
+        "Keep reconnect cursor flow without a diagram; retain transport-independent recovery caveats.",
+        "Do not claim that HTTP requires one closed connection per response or that SSE always requires a particular HTTP/1 transfer header."
+      ],
+      "diagramBindings": [
+        {
+          "section": "3) SSE and WebSockets",
+          "process": "Deliver a driver update through a WebSocket service",
+          "images": [
+            "06.svg"
+          ]
+        },
+        {
+          "section": "4) WebRTC",
+          "process": "Connect two peers",
+          "images": [
+            "07.svg"
+          ]
+        },
+        {
+          "section": "2) Route by ownership",
+          "process": "Send an update to the connection owner",
+          "images": [
+            "13.svg"
+          ]
+        },
+        {
+          "section": "3) Pub/sub",
+          "process": "Register a connection for shared updates",
+          "images": [
+            "16.svg"
+          ]
+        },
+        {
+          "section": "3) Pub/sub",
+          "process": "Forward a published update to clients",
+          "images": [
+            "17.svg"
+          ]
+        },
+        {
+          "section": "Common Deep Dives",
+          "process": "Aggregate and distribute a high-volume channel",
+          "images": [
+            "18.svg"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "dealing-with-contention",
+      "sourceRevision": "69d2ed87f923",
+      "review": [
+        "Restore distinction between protecting total seat count and protecting a specific seat.",
+        "Keep fencing as a stricter additional safeguard; source lease examples themselves do not depict a fencing implementation.",
+        "Replace generic fencing workflow with a source-grounded reservation lease sequence.",
+        "Diagram 5 depicts queued hot-resource serialization; bind a matching queue/worker/database process.",
+        "Avoid repeating the source's overbroad claims about all weaker isolation implementations or every-field comparisons solving ABA."
+      ],
+      "diagramBindings": [
+        {
+          "section": "2) Pessimistic locking",
+          "process": "Update related rows while holding short-lived locks",
+          "images": [
+            "02.svg"
+          ]
+        },
+        {
+          "section": "Common Deep Dives",
+          "process": "Serialize requests for one hot resource",
+          "images": [
+            "05.svg"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "multi-step-processes",
+      "sourceRevision": "61455d202df5",
+      "review": [
+        "Existing notes incorrectly made diagrams 2/3 an outbox explanation. Source shows in-memory API orchestration then shared order state plus Pub/Sub. Restore that sequence.",
+        "Replace outbox process with source-grounded shared-state continuation and add choreography/Temporal flows.",
+        "Describe compensation as another business operation, without assuming all effects are perfectly reversible.",
+        "Recorded results prevent completed activity replay; uncertain completion can still cause retries.",
+        "Do not assert that at-least-once attempts magically provide exactly-once external effects."
+      ],
+      "diagramBindings": [
+        {
+          "section": "1) Single-server primitives",
+          "process": "Continue an order from recorded state",
+          "images": [
+            "03.svg"
+          ]
+        },
+        {
+          "section": "3) Event-driven choreography",
+          "process": "Advance an order through durable events",
+          "images": [
+            "04.svg"
+          ]
+        },
+        {
+          "section": "4) Workflow orchestration",
+          "process": "Execute and recover a Temporal workflow",
+          "images": [
+            "05.svg"
+          ]
+        },
+        {
+          "section": "When to Use",
+          "process": "Wait for a driver to accept a ride",
+          "images": [
+            "06.svg"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "scaling-reads",
+      "sourceRevision": "cdbd34844afd",
+      "review": [
+        "Bind diagram 7 to the simple cache-aside flow; advanced concurrency protection remains a deep dive.",
+        "Replace invented version-barrier flow with source versioned-key sequence.",
+        "Explicitly correct the source's overstated freshness guarantee: a stale version pointer can still select old data.",
+        "Preserve source-specific cache hot-key fanout and early/scheduled refresh."
+      ],
+      "diagramBindings": [
+        {
+          "section": "3) Application caching",
+          "process": "Serve a cache-aside read",
+          "images": [
+            "07.svg"
+          ]
+        },
+        {
+          "section": "4) CDN and edge caching",
+          "process": "Serve content from the nearest eligible edge",
+          "images": [
+            "08.svg"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "scaling-writes",
+      "sourceRevision": "b60784736218",
+      "review": [
+        "Add matching processes for slot routing, like batches, hierarchy, and additive subkeys.",
+        "Keep resharding as a generic source-supported sequence without an unrelated diagram binding.",
+        "Qualify dual writes with failure tracking and reconciliation; dual-write attempts alone cannot promise no data loss.",
+        "Do not repeat fixed Redis flush-default or database throughput claims from source as universal facts.",
+        "Atomic seat ownership is not interchangeable with freely split additive counters."
+      ],
+      "diagramBindings": [
+        {
+          "section": "2) Sharding and partitioning",
+          "process": "Route a Redis Cluster write to its slot owner",
+          "images": [
+            "02.svg"
+          ]
+        },
+        {
+          "section": "3) Queues and load shedding",
+          "process": "Accept a burst and drain the write queue",
+          "images": [
+            "04.svg"
+          ]
+        },
+        {
+          "section": "4) Batching and aggregation",
+          "process": "Combine like events before database writes",
+          "images": [
+            "06.svg"
+          ]
+        },
+        {
+          "section": "4) Batching and aggregation",
+          "process": "Aggregate updates through a processing hierarchy",
+          "images": [
+            "09.svg"
+          ]
+        },
+        {
+          "section": "2) Hot keys",
+          "process": "Split an additive counter across subkeys",
+          "images": [
+            "10.svg"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "handling-large-blobs",
+      "sourceRevision": "ca4a367f523e",
+      "review": [
+        "Separate direct upload, CDN download, multipart recovery, and storage-event metadata synchronization.",
+        "Diagram 6 shows pending metadata followed by object verification and reconciliation, not multipart transfer."
+      ],
+      "diagramBindings": [
+        {
+          "section": "1) Direct upload",
+          "process": "Upload bytes directly to object storage",
+          "images": [
+            "03.svg"
+          ]
+        },
+        {
+          "section": "2) Direct download",
+          "process": "Download through the CDN",
+          "images": [
+            "04.svg"
+          ]
+        },
+        {
+          "section": "3) Resumable uploads",
+          "process": "Retry only the unfinished parts",
+          "images": [
+            "05.svg"
+          ]
+        },
+        {
+          "section": "4) State synchronization",
+          "process": "Confirm storage completion in the database",
+          "images": [
+            "06.svg"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "managing-long-running-tasks",
+      "sourceRevision": "24c09a0a7d04",
+      "review": [
+        "Preserve the eight-stage pending/queue/processing/result/status sequence shown in diagram 5.",
+        "Retry and DLQ recovery use diagram 6. Idempotent execution uses diagram 7. Queue comparison and logo figures remain explanatory."
+      ],
+      "diagramBindings": [
+        {
+          "section": "3) End-to-end flow",
+          "process": "Submit and execute a background job",
+          "images": [
+            "05.svg"
+          ]
+        },
+        {
+          "section": "1) Failure and repeated failure",
+          "process": "Retry failures and isolate repeatedly failing jobs",
+          "images": [
+            "06.svg"
+          ]
+        },
+        {
+          "section": "2) Duplicate work",
+          "process": "Reuse the existing job for a repeated request",
+          "images": [
+            "07.svg"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "redis",
+      "sourceRevision": "cb8d22cf3bf8",
+      "review": [
+        "Separate cluster routing, cache-aside, Streams, and Pub/Sub processes.",
+        "Preserve 16384 hash slots, persistence/failover limits, expiration versus eviction, and atomic rate-limit updates."
+      ],
+      "diagramBindings": [
+        {
+          "section": "Infrastructure Configurations",
+          "process": "Route a key operation to its owning node",
+          "images": [
+            "02.svg"
+          ]
+        },
+        {
+          "section": "Performance and Caching",
+          "process": "Read a value through the cache",
+          "images": [
+            "03.svg"
+          ]
+        },
+        {
+          "section": "Streams and Pub/Sub",
+          "process": "Consume a Redis Stream job with recovery",
+          "images": [
+            "04.svg"
+          ]
+        },
+        {
+          "section": "Streams and Pub/Sub",
+          "process": "Deliver a live Pub/Sub message",
+          "images": [
+            "05.svg"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "elasticsearch",
+      "sourceRevision": "6dda272407a2",
+      "review": [
+        "Diagram 2 supports ingestion and distributed search. Segment internals and point-in-time pagination are separate explanations.",
+        "Restore refresh visibility, shard/replica routing, Lucene segments, and pagination consistency limits."
+      ],
+      "diagramBindings": [
+        {
+          "section": "1) Nodes and shards",
+          "process": "Index a document, then run a distributed search",
+          "images": [
+            "02.svg"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "kafka",
+      "sourceRevision": "407e3338fe84",
+      "review": [
+        "Bind publishing and consumption to diagram 8, and retry-topic processing to diagram 9.",
+        "Keep the sports walkthrough stages separate. State durability and delivery conditions instead of unconditional availability guarantees."
+      ],
+      "diagramBindings": [
+        {
+          "section": "How Kafka Works",
+          "process": "Publish a record and advance consumer progress",
+          "images": [
+            "08.svg"
+          ]
+        },
+        {
+          "section": "Handling Retries and Errors",
+          "process": "Move failed records through retry and dead-letter topics",
+          "images": [
+            "09.svg"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "temporal",
+      "sourceRevision": "f90019aff720",
+      "review": [
+        "Visually inspect all nine source diagrams, including labels stored as SVG paths.",
+        "Separate crash replay, timers, Signals, frontend/history/matching execution, and persistence-before-dispatch.",
+        "Use consistent Frontend Service, History Service, and Matching Service names. External Activity effects still need retry protection."
+      ],
+      "diagramBindings": [
+        {
+          "section": "1) Survive a crash",
+          "process": "Replay saved results after a worker failure",
+          "images": [
+            "01.svg"
+          ]
+        },
+        {
+          "section": "3) Wait and receive events",
+          "process": "Resume after a durable timer",
+          "images": [
+            "03.svg"
+          ]
+        },
+        {
+          "section": "3) Wait and receive events",
+          "process": "Resume after a delivery Signal",
+          "images": [
+            "04.svg"
+          ]
+        },
+        {
+          "section": "Temporal Under the Hood",
+          "process": "Execute a workflow Activity durably",
+          "images": [
+            "05.svg"
+          ]
+        },
+        {
+          "section": "State, Replay, and Workers",
+          "process": "Persist a state change before dispatching its work",
+          "images": [
+            "06.svg",
+            "07.svg"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "api-gateway",
+      "sourceRevision": "a6c204267cd6",
+      "review": [
+        "Diagram 1 starts with client validation and gateway middleware, then backend routing and response handling. Remove an unshown leading load balancer."
+      ],
+      "diagramBindings": [
+        {
+          "section": "Core Responsibilities and Request Flow",
+          "process": "Route one client request end to end",
+          "images": [
+            "01.svg"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "cassandra",
+      "sourceRevision": "10db04949b4b",
+      "review": [
+        "Separate coordinator routing, commit-log/memtable/SSTable writes, and hinted handoff.",
+        "Retain ticket-section partition and event_sections explanations for the UI figures. Chat pagination has no borrowed diagram."
+      ],
+      "diagramBindings": [
+        {
+          "section": "Consistency and Routing",
+          "process": "Route a request through a coordinator",
+          "images": [
+            "06.svg"
+          ]
+        },
+        {
+          "section": "Storage Model",
+          "process": "Store a mutation and flush it to disk",
+          "images": [
+            "07.svg"
+          ]
+        },
+        {
+          "section": "Gossip and Fault Tolerance",
+          "process": "Recover a missed write with hinted handoff",
+          "images": [
+            "08.svg"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "dynamodb",
+      "sourceRevision": "70d7e4d89f60",
+      "review": [
+        "Diagram 5 is DAX cache access, not DynamoDB Streams. Give Streams a separate process without that image.",
+        "Explain that direct DynamoDB writes do not automatically invalidate DAX results. Strongly consistent reads bypass the cache."
+      ],
+      "diagramBindings": [
+        {
+          "section": "DAX and Streams",
+          "process": "Read through DAX",
+          "images": [
+            "05.svg"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "postgresql",
+      "sourceRevision": "417013456fdd",
+      "review": [
+        "Retain the existing original study diagram beside replication and recovery. The source article has no original images.",
+        "Distinguish isolation levels, WAL durability, replica lag and fencing. Label the outbox as an extension."
+      ],
+      "diagramBindings": []
+    },
+    {
+      "slug": "flink",
+      "sourceRevision": "961328167e24",
+      "review": [
+        "Diagram 2 is the ad-ID five-minute counting example; diagram 4 is JobManager/TaskManager execution.",
+        "Keep checkpoint recovery separate from the window-types diagram. Watermarks estimate progress; external sink effects need their own guarantees."
+      ],
+      "diagramBindings": [
+        {
+          "section": "Basic Concepts",
+          "process": "Aggregate advertisement clicks in five-minute windows",
+          "images": [
+            "02.svg"
+          ]
+        },
+        {
+          "section": "How Flink Works",
+          "process": "Distribute a job across TaskManagers",
+          "images": [
+            "04.svg"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "zookeeper",
+      "sourceRevision": "71d1e4cff7ea",
+      "review": [
+        "Bind watch refresh to diagram 8, ZAB writes to 9, and smart routing to 10. Keep leader election separate.",
+        "Distinguish disconnect from session expiration, data watches from child watches, and fencing from mere lease ownership."
+      ],
+      "diagramBindings": [
+        {
+          "section": "ZooKeeper Basics",
+          "process": "Refresh a routing cache after a watched change",
+          "images": [
+            "08.svg"
+          ]
+        },
+        {
+          "section": "How ZooKeeper Works",
+          "process": "Commit a coordination write",
+          "images": [
+            "09.svg"
+          ]
+        },
+        {
+          "section": "When to Use",
+          "process": "Route a connection to the responsible chat server",
+          "images": [
+            "10.svg"
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,89 +1,112 @@
 Understanding the Problem
-- Provide a shared delivery service for immediate notifications, scheduled messages, and campaigns across multiple channels.
-- Accepting a request, sending it to a provider, and confirming delivery are different lifecycle stages.
+- Internal services use this platform to send immediate notifications, scheduled messages, and campaigns through email, SMS, or push providers.
+- Request acceptance, provider acceptance, and recipient delivery are different events. Record their states separately.
 
 Functional Requirements
-- Accept immediate or scheduled notifications from upstream services.
-- Expand campaigns to a defined user segment.
-- Respect users' channel preferences, opt-outs, and relevant delivery rules.
+- An upstream service can request an immediate or future notification.
+- An upstream service can send a campaign to a defined user segment.
+- Users can set channel opt-outs and quiet hours. Template authoring and delivery analytics are outside the core scope.
 
 Non-functional Requirements
-- Never silently drop an accepted notification; persist it before acknowledging acceptance.
-- Deliver high-priority messages within about five seconds even during large campaign blasts.
-- Tolerate provider outages and duplicate queue delivery while keeping user-visible duplication rare.
+- Provide at-least-once delivery attempts with best-effort deduplication. Confirm acceptance only after durable storage or queue acknowledgement.
+- The scenario has surges near 5,000 notifications per second. High-priority messages should reach the provider within about five seconds.
+- Provider outages and repeated queue delivery must not lose accepted work. The system can reduce duplicates but cannot eliminate every duplicate.
 
 Core Entities
-- Notification records recipient, template, payload, channel, priority, schedule, idempotency key, and state.
-- Campaign identifies a segment and expansion progress.
-- Preference stores consent and channel rules; DeliveryAttempt records provider request and response identifiers.
+- Notification identifies one user, channel, content, priority, schedule, stable ID, and outcome.
+- Campaign contains the segment, message or template, schedule, and expansion progress. Segment identifies the recipient membership.
+- User contains contact details, device tokens, and preferences. Delivery attempts record provider identifiers and responses.
 
 API
-- Submit a notification with recipient, template parameters, priority, schedule, and idempotency key.
-- Create a campaign and query its expansion and delivery status.
-- Update user preferences and query notification state.
-- Authenticate sending services and enforce tenant-specific quotas and authorized templates.
+- POST /notifications accepts the recipient, content, channel, priority, optional schedule, and idempotency key.
+- POST /campaigns accepts a segment, template, schedule, and idempotency key. It returns the accepted campaign ID.
+- PUT /users/{userId}/preferences replaces preferences. GET /notifications/{id} returns the recorded outcome. Device registration updates rotating push tokens.
+- Authenticate the sending service and its authority over the recipient. Internal callers can supply user IDs after performing their own authorization.
 
 High-Level Design
 
 1) Immediate and scheduled delivery
-- Validate and persist the request, then enqueue eligible work reliably.
-- Scheduled requests remain durable until a scheduler makes them eligible at the requested time.
-- Channel-specific workers render templates, recheck preferences, and call email, SMS, or push providers.
-- Record provider acceptance and callbacks separately from the initial API acknowledgement.
+- The initial Notification Service stores a pending row and calls the provider directly. It then records the provider's response.
+- Email uses an address, SMS uses a phone number, and push uses a device token. APNs and FCM maintain device connections.
+- A future request remains scheduled in the database. The Scheduler Cron finds due rows and sends them through the delivery path.
+- The durability deep dive moves immediate delivery to workers. After that change, the API reports acceptance before a provider result exists.
 
-Process: Accept and deliver a notification
-- 1. The sending service submits recipient, template, payload, channel, schedule, and idempotency key to the API.
-- 2. The API authenticates the sender and commits the notification plus recoverable publication state before returning its ID.
-- 3. Immediate work is enqueued now; scheduled work remains durable until the scheduler marks it due and publishes it.
-- 4. A priority-aware worker claims the task, checks the user's current preferences, and renders the authorized template.
-- 5. The worker sends to the provider using a stable provider idempotency key when supported and records the provider outcome.
-- 6. Only after durable outcome recording does it acknowledge queue delivery. Provider acceptance and final recipient delivery remain different states.
+Process: Send directly in the initial design
+- 1. The upstream service sends the recipient, channel, and content through the API Gateway.
+- 2. The Notification Service reads the recipient's address. It writes a pending notification row.
+- 3. The service calls the email provider. It records the provider's response as sent or failed.
+- 4. The service returns the notification ID and result. This initial sequence does not recover every crash safely.
+
+Process: Send a scheduled notification
+- 1. The Notification Service stores a future notification with its scheduled time.
+- 2. The Scheduler Cron queries scheduled rows whose time has arrived.
+- 3. It sends each due notification through the delivery path. The later durable design enqueues this work instead of calling providers inline.
+- 4. The system records progress with a stable notification ID. Repeated scheduling must refer to the same logical notification.
 
 2) Campaign expansion
-- Resolve the target segment and expand it into bounded batches of recipient work.
-- Track a cursor or checkpoint so restarting expansion neither skips users nor recreates unlimited duplicates.
-- Keep campaign throughput separate from transactional delivery capacity.
+- Store the campaign before returning its ID. At the scheduled time, the Scheduler Cron reads a snapshot of the segment membership.
+- Expand the snapshot into bounded recipient batches. Keep a cursor so a restart can continue the expansion.
+- Derive a stable notification ID from the campaign and user IDs. Repeated expansion then identifies the same logical sends.
+- The initial loop shares capacity with direct sends. The priority deep dive separates bulk work from urgent delivery.
 
-Process: Expand a campaign without starving urgent messages
-- 1. The campaign service commits the campaign definition and a stable segment snapshot or defined recipient-selection policy.
-- 2. An expander reads a bounded recipient batch from its saved cursor.
-- 3. It creates deduplicated recipient notification intents and commits expansion progress so restarting cannot silently skip the batch.
-- 4. A reliable publisher sends those intents to the bulk path, while urgent transactional work retains its reserved queue or worker capacity.
-- 5. Delivery workers apply provider limits and current preferences for each recipient; campaign progress counts durable outcomes rather than merely queued messages.
+Process: Expand a campaign's recipient snapshot
+- 1. The Notification Service stores a campaign with a stable ID and returns acceptance.
+- 2. When the campaign is due, the Scheduler Cron reads a snapshot of its segment membership.
+- 3. It creates a notification for each recipient. Each notification uses the campaign and user IDs as its stable identity.
+- 4. The cron records expansion progress after each bounded batch. A restart resumes or safely repeats that batch.
+- 5. The final design sends campaign work to the standard queue. Campaign completion and recipient delivery remain separate states.
 
 3) Preferences
-- Store preferences centrally and cache them with an explicit freshness policy.
-- Recheck at delivery time because users can unsubscribe after a campaign was scheduled.
-- Treat mandatory transactional messages and optional marketing messages according to the product's defined rules.
+- Store opt-outs, quiet hours, and timezone with user data. Any preference cache needs an explicit freshness rule.
+- Check preferences immediately before the provider call. A user can opt out after a campaign was created.
+- Record suppression with its reason. Apply the product's rules for high-priority messages and quiet hours consistently.
 
 Deep Dives
 
 1) Do not lose accepted work
-- A database write followed by an independent queue publish can fail between the two operations.
-- Use an outbox or another recoverable publication mechanism so committed requests are eventually enqueued.
-- Acknowledge queue messages only after recording the delivery outcome; retry transient failures and quarantine persistent failures.
-- Track age and state transitions so stuck work is observable instead of silently disappearing.
+- The source's improved immediate path writes directly to a durable queue. SQS acknowledgement is the acceptance boundary for that request.
+- A worker receives the message, checks preferences, calls the provider, and records the outcome in PostgreSQL. It then deletes the message.
+- A failed worker leaves the message available for retry after its visibility timeout. Repeated failures enter a dead-letter queue.
+- Scheduled requests and campaigns remain in the database until due. Their publisher needs recoverable progress and stable notification IDs.
+- A separate database write followed by queue publication can fail between operations. An outbox fits when both operations must commit together.
+- Track queued age and state changes. A retained but stuck message still needs detection and recovery.
+
+Process: Accept through a durable queue and deliver
+- 1. The Notification Service validates an immediate request and writes it to SQS with a stable notification ID.
+- 2. SQS acknowledges durable receipt. The service returns 202 and the notification ID.
+- 3. A worker receives the message. It checks contact details and current preferences.
+- 4. The worker calls the provider if delivery is allowed. It records the outcome or suppression in PostgreSQL.
+- 5. The worker deletes the queue message only after recording the result. A crash before deletion permits redelivery.
+- 6. Temporary failures retry with delay. Repeated failures move to a dead-letter queue for inspection.
 
 2) Priority and provider capacity
-- Separate high-priority and bulk queues or reserve worker capacity for urgent notifications.
-- Apply provider- and tenant-specific rate limits so campaigns cannot exhaust a shared provider quota.
-- Use backpressure, bounded retries, and circuit breaking during provider outages.
-- A priority label alone is insufficient if urgent work still waits behind a large non-preemptible batch.
+- Separate high-priority and standard queues. Reserve a worker pool for urgent notifications so slow bulk calls cannot occupy all workers.
+- Reserve part of each provider's rate budget for high-priority work. Redis token buckets can enforce the shared budget.
+- Apply tenant quotas as needed. A campaign must not consume every provider token available to urgent messages.
+- During provider failure, use bounded retries and a circuit breaker. Limit simultaneous calls to each provider.
+- A provider router can select a supported fallback. A complete provider outage can still break the delivery-time target.
+
+Process: Protect an urgent send during a campaign
+- 1. The Notification Service routes urgent work to the High Priority Queue. Campaign work enters the Standard Queue.
+- 2. A worker from the reserved urgent pool receives the high-priority notification.
+- 3. The worker obtains a provider token from the reserved Redis budget. Standard workers cannot spend that reserved allocation.
+- 4. The worker checks preferences and calls the provider. It records the result before acknowledging the queue message.
 
 3) Duplicate prevention
-- Deduplicate API requests using an idempotency key scoped to the sender and logical notification.
-- Queue consumers also need deduplication because at-least-once delivery can repeat work after a crash.
-- If a provider accepts a send but the response is lost, local state alone cannot prove whether another send is safe.
-- Use provider idempotency or status lookup when supported, and reconcile ambiguous outcomes instead of promising universal exactly-once delivery.
+- Derive notification IDs from stable caller keys. Campaign creation also needs a stable key, or retried campaigns produce new recipient IDs.
+- Check recent successful sends in Redis before delivery. On a cache miss, the durable outcome can confirm an earlier successful send.
+- Record a successful outcome and store its ID in the cache only after provider acceptance. A permanent claim before sending can lose work after a crash.
+- Two concurrent attempts can still race. A lost provider response also leaves an uncertain outcome that local state cannot fully resolve.
+- Use provider idempotency or status lookup when available. Otherwise, define the duplicate-risk policy and retain at-least-once semantics.
 
-Process: Recover an ambiguous provider send
-- 1. A worker times out after sending, so it cannot tell whether the provider accepted the message.
-- 2. It records the uncertain attempt with its provider request identity instead of immediately marking it definitely failed.
-- 3. It queries provider status or retries with the provider's supported idempotency key to resolve the same logical send.
-- 4. It persists the resolved outcome before acknowledging or rescheduling the task.
-- 5. If the provider offers neither deduplication nor status lookup, the service follows an explicit duplicate-risk policy rather than claiming guaranteed exactly-once delivery.
+Process: Check a completed send before redelivery
+- 1. A worker receives a notification with the same stable ID as an earlier attempt.
+- 2. It checks the Redis success cache. If necessary, it checks the durable successful outcome.
+- 3. If success exists, the worker skips the provider call. Otherwise, it sends and records the resulting outcome.
+- 4. After provider acceptance and outcome storage, it adds the ID to the success cache.
+- 5. A crash after provider acceptance can still cause a duplicate. Provider idempotency or status lookup can reduce this uncertain case.
 
 Final Design
-- Durable request storage and reliable queue publication form the acceptance boundary.
-- Scheduled and campaign producers feed priority-aware channel workers.
-- Delivery-time preference checks, provider-aware retries, and end-to-end idempotency keep the service dependable under both bursts and failures.
+- Immediate requests enter durable priority queues. Scheduled notifications and campaign batches enter the same path when they become due.
+- Separate worker pools and provider budgets protect urgent traffic. Workers check preferences and record sent, failed, or suppressed outcomes.
+- Stable IDs and a Redis success cache reduce duplicates. Provider-aware retries and explicit uncertain outcomes support recovery.

@@ -1,60 +1,67 @@
 Overview
-- DynamoDB is a managed key-value and document database whose efficiency depends heavily on access-pattern and key design.
-- Managed scaling reduces operational work but does not eliminate hot partitions, query limits, or consistency choices.
+- DynamoDB is a managed key-value and document database. Efficient access depends on the primary keys and required query patterns.
+- Managed scaling reduces operational work. It does not remove hot keys, query limits, or consistency decisions.
 
 The Data Model
-- A partition key distributes items; an optional sort key orders related items within that key.
-- GetItem addresses one item, while Query reads an identified partition with optional sort-key conditions.
-- Scan examines a broad set of data and is usually unsuitable for a frequent high-scale lookup.
-- Use sort-key prefixes or time ranges to support explicit query patterns while keeping item collections bounded.
+- The partition key distributes items. An optional sort key orders items that share the same partition-key value.
+- GetItem retrieves one complete primary key. Query retrieves one partition-key value, optionally restricted by sort-key conditions.
+- Scan examines a broad set of items. Avoid it for frequent lookups when a key-based query can answer the request.
+- Use sort-key prefixes or time ranges for known queries. Bound large item collections and highly active keys.
 
 Secondary Indexes
-- Global secondary indexes provide alternative partition and sort keys with their own capacity and eventual-consistency behavior.
-- Local secondary indexes share the base partition key and offer another sort order, with constraints that must be planned when creating the table.
-- Every index adds storage and write work; project only the fields required by its queries.
-- Filtering after a query is not the same as narrowing the key lookup and can still consume reads for discarded items.
+- A global secondary index supplies alternative partition and sort keys. It has additional capacity costs and eventually consistent reads.
+- A local secondary index keeps the table's partition key with a different sort key. Define it when creating the table.
+- Every index adds storage and write work. Project the fields that its queries need.
+- Filters run after items are read. Discarded results can still consume read capacity, so filters do not replace selective key conditions.
 
 Accessing Data
-- Use conditional writes for invariants such as version matching or claiming an available item.
-- Atomic updates can change counters without a client read-modify-write race.
-- Transactions coordinate supported multi-item operations at additional cost and with service limits.
-- Batch APIs reduce request overhead but require handling partial failures and retrying unprocessed items.
-- Use continuation keys for pagination instead of assuming one request returns an unlimited partition.
+- Use conditional writes for version checks or claims on available items. DynamoDB checks the condition with the supported write operation.
+- Atomic updates change counters without a client-side read-modify-write race. Retrying an uncertain increment can still repeat its effect.
+- Transactions coordinate supported operations across items. Account for their limits and additional cost.
+- Batch APIs reduce request overhead. Inspect partial failures and retry only unprocessed items where appropriate.
+- Use continuation keys for pagination. One request does not return an unlimited item collection.
 
 Process: Claim an item with a conditional write
-- 1. The application authenticates the caller and constructs the exact partition/sort key and required state predicate.
-- 2. It submits a conditional PutItem or UpdateItem, such as version = expected_version or inventory >= requested_quantity.
-- 3. DynamoDB evaluates the predicate and write atomically for the supported operation; a failed condition does not apply the requested mutation.
-- 4. The application handles a successful response as the committed operation outcome or handles a condition failure by reloading and re-evaluating the business rule.
-- 5. On a timeout, it reconciles or uses supported idempotency/transaction tokens as applicable rather than assuming an increment or side effect definitely failed.
-- 6. Subsequent reads select the supported consistency mode needed for their contract; a global secondary index can lag that write.
+- 1. The application identifies the complete item key. It defines a condition, such as sufficient inventory or an expected version.
+- 2. It submits the conditional write to DynamoDB.
+- 3. DynamoDB evaluates the condition and mutation atomically for that operation. A failed condition does not apply the requested change.
+- 4. The application returns success or handles the condition failure according to its business rule.
+- 5. After an uncertain timeout, it reconciles the result or uses a supported idempotency mechanism. It must not assume the write failed.
 
 Consistency, Scalability, and Availability
-- Choose eventual or strongly consistent reads where the table/API supports them; global secondary indexes do not offer the same strong-read option.
-- Regional replication and global-table configurations have specific consistency semantics; do not generalize one mode to every deployment.
-- Spread key traffic and avoid a single tenant or newest-time bucket receiving most writes.
-- Adaptive capacity helps uneven load but cannot make a single unlimited hot key free of constraints.
+- Choose eventual or strong reads where supported. Base tables and local secondary indexes support strong reads; global secondary indexes do not.
+- Global Tables replicate across regions. Check the selected configuration's consistency behavior before promising immediate visibility in every region.
+- Distribute traffic across partition keys. Avoid routing most writes to one tenant or one current-time bucket.
+- Adaptive capacity helps uneven traffic. It does not give one hot item unlimited throughput.
 
 Security and Capacity
-- Apply least-privilege IAM, encryption, and tenant-aware authorization in the application.
-- On-demand and provisioned capacity trade operational planning against usage cost and traffic predictability.
-- Item size, consistency choice, indexes, and access pattern affect capacity consumption.
-- Monitor throttling and retry with backoff; unbounded immediate retries amplify overload.
+- Use least-privilege IAM, encryption, and application permission checks. A valid database credential does not authorize every tenant's records.
+- On-demand capacity follows usage. Provisioned capacity requires planning for expected traffic. Compare costs for the actual workload.
+- Item size, indexes, read consistency, and access patterns affect consumed capacity. Returning fewer attributes does not necessarily reduce read capacity.
+- Monitor throttling. Retry with backoff so retries do not increase overload.
 
 DAX and Streams
-- DAX caches supported reads to reduce latency and read load, with cache freshness semantics that must fit the workload.
-- Streams expose item changes for derived views, notifications, or other event processing.
-- Consumers must handle repeated delivery and retain recovery state; stream retention is finite.
-- TTL expiration is asynchronous housekeeping, so applications must check expiry themselves when exact validity matters.
+- DAX stores supported DynamoDB read results in its cache. Strongly consistent reads pass through to DynamoDB without using a cached result.
+- The diagram is schematic. Direct DynamoDB writes do not automatically invalidate DAX results. Account for cache expiry and the write path.
+- DynamoDB Streams expose item changes for search indexes, notifications, and other derived data.
+- Consumers must tolerate repeated delivery and retain recovery progress. Stream retention is finite, so long outages can require a rebuild.
+- TTL deletion is asynchronous. Check expiry in the application when an expired item must become invalid immediately.
+
+Process: Read through DAX
+- 1. The application sends a supported read to DAX.
+- 2. If a valid cached result exists, DAX returns it.
+- 3. On a cache miss, DAX requests the data from DynamoDB.
+- 4. DynamoDB returns the data. DAX stores the eligible result in its cache and returns it to the application.
+- 5. DAX expires or evicts entries under its cache policy. Strongly consistent reads instead pass through without caching.
 
 Process: Update a derived view from table changes
-- 1. A committed table mutation produces a change record in the configured stream.
-- 2. A consumer reads records and maps each change to the required derived-view update or downstream event.
-- 3. It deduplicates or uses version-aware writes so replay cannot apply an old value over a new one.
-- 4. It persists the derived result before advancing recoverable processing progress.
-- 5. After a failure it resumes within the available retention window; an outage beyond retention needs a rebuild or other reconciliation source.
+- 1. A table mutation creates a record in its configured DynamoDB Stream.
+- 2. A consumer reads the change and computes the required update to the derived view.
+- 3. It applies the update with duplicate and version handling. A repeated old event must not replace a newer value.
+- 4. It saves recoverable progress after the result is safe.
+- 5. After a failure, it resumes within the retained stream window. An outage beyond retention requires another reconciliation source or a rebuild.
 
 When to Use and Limitations
-- DynamoDB suits predictable key-based access, high scale, and teams that value managed infrastructure.
-- Ad hoc joins, broad analytics, and frequently changing query requirements can be awkward or costly.
-- Describe the primary keys, index queries, conditional operations, and hot-key strategy before choosing the service.
+- DynamoDB suits predictable key-based access at scale. Managed infrastructure reduces the database operations that the team must perform.
+- Ad hoc joins, broad analytics, and changing query patterns can be awkward or expensive.
+- Specify the primary keys, secondary-index queries, conditional writes, and hot-key controls before choosing the service.

@@ -1,85 +1,113 @@
 Understanding the Problem
-- Build a media-sharing application with uploads, follows, and a chronological feed.
-- Media delivery and feed generation have different bottlenecks and should scale separately.
+- The application supports media posts, follows, and a chronological feed.
+- Media delivery and feed generation have different capacity limits. Each path can scale separately.
 
 Functional Requirements
-- Create posts with photos or videos and a caption.
-- Follow other users and fetch recent posts from followed accounts.
-- Page through the feed using stable ordering.
-- Ranking, messaging, and other social features are outside the core chronological-feed scope.
+- Users can create a post with photos or videos and a caption.
+- Users can follow accounts and read their recent posts.
+- Users can request successive feed pages in a stable order.
+- Likes, comments, stories, live video, and personalized ranking are outside the initial scope.
 
 Non-functional Requirements
-- Target feed responses below 500 ms and support roughly 500 million daily active users in the interview scenario.
-- Support photos up to 8 MB and videos up to 4 GB without routing their bytes through application servers.
-- Favor availability with eventual feed propagation while preserving durable posts and access controls.
+- Feed requests should take less than 500 ms. The scenario assumes 500 million daily users and 100 million daily posts.
+- The design supports photos up to 8 MB and videos up to 4 GB. The improved upload path bypasses application servers.
+- The feed favors availability. The article permits up to two minutes of propagation delay. Posts still need durable storage.
 
 Core Entities
-- User identifies the account and profile.
-- Post stores author, caption, creation time, media references, and processing state.
-- Follow stores a directed follower-to-followee edge with indexes for both access directions.
-- FeedEntry stores a recipient, post ID, and ordering key when feeds are precomputed.
+- User identifies an account and its profile.
+- Post records the author, caption, creation time, media reference, and upload status. Media contains the actual file bytes.
+- Follow is a directed relationship between a follower and a followed account. Both lookup directions need indexes.
+- FeedEntry associates a recipient with a post ID and ordering value when the design precomputes feeds.
 
 API
-- Create an upload session and then publish a post referencing verified uploaded media.
-- Follow or unfollow an account with an authenticated request.
-- Fetch the feed with a cursor and limit, returning post summaries and media URLs.
-- Use a timestamp plus stable ID as the cursor so simultaneous posts do not create ambiguous boundaries.
+- POST /posts creates a post. The large-file design also returns instructions for a direct media upload.
+- POST /follows identifies the account to follow. Authentication supplies the caller's identity.
+- GET /feed accepts a cursor and limit. It returns post metadata, media URLs, and the next cursor.
+- A creation timestamp and stable post ID form an unambiguous cursor when several posts share the same timestamp.
 
 High-Level Design
 
 1) Publish posts
-- Upload media directly to object storage using signed URLs; store lightweight post metadata in the database.
-- Process videos and image variants asynchronously, then transition the post to a viewable state.
-- Publish a durable post-created event to drive feed updates and other downstream work.
+- In the initial design, the Post Service receives the media and caption. It saves metadata in the database and bytes in S3.
+- Diagram 3 assumes a small upload. The media deep dive adds direct uploads and asynchronous media processing.
+- The initial response returns the post ID. A later design sends committed post IDs to the feed queue.
 
-Process: Publish media and fan out the post
-- 1. The client requests authorized upload instructions, transfers media directly to object storage, and submits the post metadata and media reference.
-- 2. The service validates ownership and upload completion, then persists a pending post and schedules any required media processing.
-- 3. Workers generate the required image or video variants and persist their outputs before making the post eligible for display.
-- 4. A committed post-ready event reaches feed workers through a reliable event pipeline.
-- 5. For an ordinary author, workers add the post ID to active followers' derived feed lists in retry-safe batches. Celebrity posts can remain on the read-time path.
-- 6. The publish API or status endpoint exposes the committed post state; asynchronous fanout may continue after publication is acknowledged.
+Process: Create a post in the initial design
+- 1. The client sends the media and caption to the API Gateway.
+- 2. The API Gateway routes the request to the Post Service.
+- 3. The Post Service stores the media bytes in S3. It stores the caption, author, and media reference in the database.
+- 4. After these writes succeed, the service returns the post ID. The large-media deep dive replaces this upload path.
 
 2) Follow users
-- Store follow edges separately from posts and user records.
-- Index by follower to find followed authors and by author to enumerate recipients during fanout.
-- Handle repeated follow/unfollow requests idempotently and apply visibility rules when serving a feed.
+- The Follower Service stores each directed follow relationship separately from posts.
+- An index by follower finds followed accounts. A reverse index finds the followers who need a new post.
+- Repeated follow requests must not create duplicate relationships. Visibility checks apply when the product supports restricted posts.
+
+Process: Store a follow relationship
+- 1. The client sends the account ID to follow. The API Gateway validates the caller's authentication.
+- 2. The Follower Service inserts the directed relationship in the Follow table.
+- 3. The relationship identifies both the follower and followed account. Indexes support queries in either direction.
+- 4. The service confirms the follow. Repeating the request must not create a duplicate relationship.
 
 3) Read the chronological feed
-- The simplest approach fetches recent posts from followed authors and merges them by creation time.
-- Fetch post IDs first, then hydrate post metadata in batches and return CDN URLs for media.
-- Cursor pagination avoids expensive offsets and reduces duplication as new posts arrive.
+- The initial Post Service finds followed accounts. It reads their recent posts and merges them by creation time.
+- Indexes on follower ID and author ID avoid full table scans. The post sort key includes creation time and post ID.
+- A cursor limits the query to the requested position. It avoids a growing numeric offset as posts arrive.
 
-Process: Read a hybrid feed page
-- 1. The client requests a page with its cursor; the feed service authenticates the reader and determines applicable visibility rules.
-- 2. It reads precomputed post IDs for ordinary followed accounts and recent posts for followed celebrity accounts.
-- 3. The service merges candidates by stable chronological ordering, removes duplicates, and applies deletion and visibility checks.
-- 4. It batch-fetches post metadata, filling post-cache misses from durable storage.
-- 5. The API returns a bounded page, media URLs, and the last ordering key as the next cursor.
-- 6. The client fetches images or video segments from the CDN independently of the feed metadata request.
+Process: Assemble the initial feed on read
+- 1. The client requests a feed page with a cursor and limit.
+- 2. The Post Service queries the Follow table for the reader's followed accounts.
+- 3. It queries the Post table for recent posts from those accounts before the cursor.
+- 4. It merges the posts in chronological order. It returns one page and the next cursor.
 
 Deep Dives
 
 1) Feed latency and fanout
-- Fanout on read avoids write amplification but makes reads expensive for users following many accounts.
-- Fanout on write asynchronously inserts each new post ID into followers' feed lists, making common reads cheap.
-- A celebrity's follower count can make write fanout excessive. Keep those posts on a read-time path and merge them with precomputed entries.
-- Workers process fanout in bounded batches with retries and deduplication; a post ID should not appear twice after a retry.
-- Cache feed IDs separately from shared post objects to avoid copying full post content into every recipient's cache.
-- Limit feed history and rebuild or backfill inactive users instead of maintaining unlimited lists for everyone.
+- Fanout on read avoids writes to every follower's feed. However, each read must query many authors. Diagram 6 adds a cache.
+- Fanout on write sends post IDs to a queue. The Feed Fan-out Service adds them to followers' precomputed Redis feeds.
+- A celebrity can have too many followers for cheap write fanout. The hybrid design reads those authors' posts during feed requests.
+- Workers can divide large recipient sets into batches. Retry-safe insertion prevents the same post from appearing twice.
+- A feed cache stores post IDs. A separate post cache shares metadata across feeds. Database reads fill missing metadata.
+- Feed lists need a size limit and a rebuild path. Redis persistence and failover reduce disruption after node failures.
+
+Process: Precompute ordinary followers' feeds
+- 1. The Post Service saves a new post and its media reference.
+- 2. It places the committed post ID on the message queue.
+- 3. The Feed Fan-out Service reads the queued item. It queries the reverse Follow index for recipients.
+- 4. The service inserts the post ID into each recipient's precomputed Redis feed. Batches and duplicate-safe writes support retries.
+- 5. A feed read obtains post IDs from Redis. A separate post cache or database lookup supplies the metadata.
+
+Process: Merge the hybrid feed
+- 1. The Post Service reads precomputed post IDs for ordinary followed accounts.
+- 2. It queries recent posts from followed celebrity accounts that do not use write fanout.
+- 3. It merges both sets by creation time and post ID. It removes duplicates.
+- 4. It fetches missing post metadata in batches. It returns one page with the next cursor.
 
 2) Fast media rendering
-- Direct object-storage delivery is durable but can be slow for distant users; a CDN puts popular bytes closer to viewers.
-- Generate appropriately sized thumbnails, image formats, and video variants rather than sending full-resolution media to every device.
-- Use asynchronous processing and publish readiness state; clients should not receive links to outputs that have not been generated.
-- Signed URLs and access checks remain necessary for private content even when a CDN serves the bytes.
+- Direct S3 downloads can be slow for distant users. A CDN stores frequently requested media near viewers.
+- An Image Processing Service generates image sizes and video quality variants. The client selects media suitable for its device and connection.
+- The server tracks upload and processing state. A post must not advertise a required variant before that output exists.
+- The CDN still needs access controls for private content. Signed URLs are one possible implementation when that feature is added.
+
+Process: Upload large media directly to S3
+- 1. The client requests a post upload. The Post Service stores pending metadata and creates a multipart upload when necessary.
+- 2. The service returns the upload ID and a signed upload URL for each part.
+- 3. The client uploads parts directly to S3. The multipart completion operation assembles the object.
+- 4. S3 sends an upload-complete notification. The backend verifies the object and updates the post's media reference and upload state.
+
+Process: Process and deliver media variants
+- 1. A completed upload sends a notification through a queue to the Image Processing Service.
+- 2. The service generates suitable image sizes or video quality variants. It saves the outputs in object storage.
+- 3. The feed response gives the client a ready media URL appropriate for its device and connection.
+- 4. The client requests that URL from the CDN. On a miss, the CDN fetches the variant from object storage.
+- 5. The CDN returns the media and stores a copy for later requests.
 
 3) Scale the system
-- Partition posts and follow data around their dominant access patterns, and isolate celebrity hot spots from ordinary traffic.
-- Scale feed workers using queue lag and keep ingestion responsive during fanout backlogs.
-- Monitor feed latency, propagation delay, cache hit rate, and media-processing failures separately.
+- Partition posts and follows by their main query keys. Separate celebrity traffic from ordinary feed updates.
+- Scale Feed Fan-out Service workers as queued work increases. Post creation should not wait for every follower update.
+- Measure feed latency, propagation delay, cache misses, and media-processing failures separately. Move rarely accessed media to cheaper storage when appropriate.
 
 Final Design
-- Durable post metadata and object storage form the source of truth.
-- Hybrid feed fanout, shared post caches, and cursor pagination keep reads predictable.
-- Background media processing and CDN delivery handle large files independently of feed computation.
+- The database keeps durable post metadata. S3 keeps the media bytes.
+- Hybrid fanout combines precomputed ordinary posts with celebrity posts read on demand. Shared post caches and cursors limit read work.
+- Media workers produce variants. The CDN delivers those variants separately from the feed metadata response.

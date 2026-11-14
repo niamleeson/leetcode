@@ -5,8 +5,8 @@
       "title": "Understanding the Problem",
       "level": 3,
       "points": [
-        "Continuously identify the most-viewed videos for specified time windows.",
-        "The challenge is aggregating a high-volume event stream and answering ranking queries without sorting the full video catalog each time."
+        "The system continuously identifies the most-viewed videos for a defined set of time windows.",
+        "A large event stream drives the counts. Ranking requests must avoid scanning and sorting the entire video catalog each time."
       ],
       "diagrams": [],
       "flows": []
@@ -15,9 +15,9 @@
       "title": "Functional Requirements",
       "level": 3,
       "points": [
-        "Return top K videos, with K bounded to a maximum such as 1,000.",
-        "Support all-time totals and tumbling windows such as an hour, day, or month.",
-        "Consider sliding windows and approximate answers as extensions with different state and accuracy costs."
+        "Clients can request the top K videos, with K limited to 1,000.",
+        "Support all-time totals and completed tumbling windows of one hour, one day, and one month.",
+        "Sliding windows and approximate results are extensions. Arbitrary historical intervals are outside the initial scope."
       ],
       "diagrams": [
         {
@@ -34,9 +34,9 @@
       "title": "Non-functional Requirements",
       "level": 3,
       "points": [
-        "Ingest a very large number of view events while keeping ranking queries fast.",
-        "Define freshness and accuracy explicitly; a recently updated cached ranking is different from an exact count at the current instant.",
-        "Recover stream processing after failures without permanently losing or double-counting events."
+        "The scenario uses about 70 billion views per day and billions of videos. Query responses should take tens of milliseconds.",
+        "The initial contract requires exact counts with at most one minute of processing delay. Window boundaries and freshness must be explicit.",
+        "Recovery must not permanently lose or count events twice. Checkpoints and downstream writes need compatible replay behavior."
       ],
       "diagrams": [
         {
@@ -53,9 +53,9 @@
       "title": "Core Entities",
       "level": 3,
       "points": [
-        "ViewEvent contains video ID, event ID, and event time.",
-        "WindowCount stores a video's aggregate for a specific window.",
-        "RankingSnapshot stores the top candidates and their counts for a completed or current window."
+        "ViewEvent contains the video ID and event time. An event ID can identify repeated source events when deduplication is required.",
+        "WindowCount holds a video's complete total for a specific window.",
+        "RankingSnapshot contains the selected videos, counts, window boundaries, and processing position."
       ],
       "diagrams": [],
       "flows": []
@@ -64,9 +64,9 @@
       "title": "API",
       "level": 3,
       "points": [
-        "Ingest a view event or batch with a stable event identity where deduplication is required.",
-        "Query top K for a window type and time boundary, returning ranking freshness metadata.",
-        "Validate supported windows and K limits to avoid unbounded query work."
+        "The source assumes an existing Kafka view-event stream. A separate ingestion API is not required for this service.",
+        "GET /views/top-k accepts a supported window and K. The response includes video IDs and view counts.",
+        "Validate the window and K limit. Return freshness information so clients know which completed results they received."
       ],
       "diagrams": [],
       "flows": []
@@ -82,10 +82,10 @@
       "title": "1) All-time and windowed counts",
       "level": 4,
       "points": [
-        "Persist events to a durable log, aggregate by video, and write compact counts to queryable storage.",
-        "Tumbling windows assign each event to a non-overlapping time interval.",
-        "Maintain a materialized ranking view instead of scanning every counter for each user query.",
-        "Event time and processing time differ; specify how delayed events affect published rankings."
+        "The initial View Consumer reads Kafka events and increments per-video counters in PostgreSQL.",
+        "The Top-K Service queries the largest counters. An index makes reads fast but adds work to each counter update.",
+        "Hourly per-video rows support tumbling-window queries. Longer ranges require aggregation across those rows before ranking.",
+        "Distinguish event time from arrival time. Delayed events need a defined cutoff or correction policy for published windows."
       ],
       "diagrams": [
         {
@@ -112,14 +112,27 @@
       ],
       "flows": [
         {
-          "title": "Convert views into ranked window totals",
+          "title": "Count views in the initial database design",
           "steps": [
-            "Producers append view events with video ID and event time to the durable ingestion log.",
-            "Consumers partition events by video or a deliberately salted partial-count key and assign each event to the relevant window.",
-            "Stateful processors update recoverable counts, applying the selected deduplication and late-event policy.",
-            "If hot-video writes were split, a merge stage combines all partial counts for a video/window before treating its score as complete.",
-            "Rankers maintain bounded local candidates from complete per-video scores, then a global merge selects top K across partitions.",
-            "The resulting ranking snapshot and freshness position are published to the query store or cache for API reads."
+            "The View Consumer reads a view event from Kafka.",
+            "It selects the PostgreSQL counter for the event's video ID.",
+            "It increments that counter. The query design uses the resulting totals to rank videos.",
+            "This initial path writes once per event. The ingestion deep dive adds partitioning and aggregation."
+          ],
+          "diagramFilenames": [
+            "03.svg"
+          ]
+        },
+        {
+          "title": "Query an initial windowed ranking",
+          "steps": [
+            "The Top-K Service receives a supported time window and K.",
+            "It selects per-video rows whose event-time buckets belong to that window.",
+            "PostgreSQL sums each video's rows and orders the totals by count.",
+            "The service returns the first K entries. Large windows make this repeated aggregation expensive."
+          ],
+          "diagramFilenames": [
+            "05.svg"
           ]
         }
       ]
@@ -135,9 +148,10 @@
       "title": "1) Reduce repeated reads",
       "level": 4,
       "points": [
-        "Cache the top results per window and refresh them on a defined cadence.",
-        "Precomputing rankings trades freshness for much lower query cost.",
-        "Reuse a larger top list to answer smaller K values rather than caching every possible K independently."
+        "Store results in the cache by window and boundary. On a miss, the initial cache design computes the ranking from the database.",
+        "A Top-K Cron can compute results before requests arrive. This removes slow database work from normal query responses.",
+        "Store a top-1,000 list and return its first K entries. Do not cache every possible K separately.",
+        "Monitor snapshot age. If precomputation fails, serve an explicitly older result or report that a fresh result is unavailable."
       ],
       "diagrams": [
         {
@@ -157,12 +171,15 @@
       ],
       "flows": [
         {
-          "title": "Answer a top-K request",
+          "title": "Read a precomputed ranking",
           "steps": [
-            "The client specifies the supported window, time boundary, and bounded K value.",
-            "The query service resolves the corresponding materialized snapshot and checks its freshness metadata.",
-            "It reads the top K entries from the shared larger ranking list, rather than querying and sorting every video's count again.",
-            "It returns ranked video IDs, counts, and freshness information; an unavailable snapshot follows a bounded fallback or explicit not-ready response."
+            "The Top-K Cron computes a ranking for each supported window before normal requests need it.",
+            "It writes a bounded ranking list and its window boundary to Redis.",
+            "The Top-K Service receives a request and reads the matching snapshot.",
+            "It returns the first K entries with freshness information. An unavailable or old snapshot follows the defined fallback policy."
+          ],
+          "diagramFilenames": [
+            "07.svg"
           ]
         }
       ]
@@ -171,10 +188,11 @@
       "title": "2) Ingestion and writes",
       "level": 4,
       "points": [
-        "Partition events by video ID so each video's count is combined consistently.",
-        "Batch local increments before writing downstream, reducing network and database write amplification.",
-        "A viral video is a hot key; split its ingestion into partial counters and merge them before final ranking.",
-        "Preserve event identity or use checkpointed processing with compatible sinks when exact counting is required."
+        "Partition Kafka and database writes by video ID. Different consumers update different video subsets.",
+        "Aggregate repeated views before writing totals. Flink can maintain window state and recover from checkpoints.",
+        "Completed hourly windows reduce write volume, but publication must respect the one-minute delay budget after each window boundary.",
+        "A viral video can overload one key. If partial counters split that key, combine them before the ranking stage.",
+        "A checkpoint alone does not make every external write exactly once. Use idempotent totals or a sink with compatible commit behavior."
       ],
       "diagrams": [
         {
@@ -198,10 +216,12 @@
       "title": "3) Efficient top K",
       "level": 4,
       "points": [
-        "A heap or sorted structure maintains a small candidate set more efficiently than repeatedly sorting every video.",
-        "Compute local top K on disjoint partitions, then merge candidates to obtain the global top K.",
-        "This works only when each video's complete score belongs to one partition at the ranking stage; partial counts must be combined first.",
-        "Keep durable aggregate state so a cache or ranker restart does not require guessing historical totals."
+        "A heap or sorted structure maintains a small candidate set. It avoids a full sort for each request.",
+        "Compute top K on each disjoint video partition. Merge those candidates to obtain the global top K.",
+        "Each video's complete score must belong to one partition at this stage. Merge partial counts before selecting local candidates.",
+        "Coarse aggregates reduce repeated summation. Dedicated window totals let the database index the exact values needed for ranking.",
+        "Alternatively, Flink can keep counts and ranking state, then write snapshots directly to Redis. This removes the Views DB and Top-K Cron.",
+        "Keep recoverable aggregate state. Rebuild a failed cache from a completed snapshot or replayable state, not guessed historical totals."
       ],
       "diagrams": [
         {
@@ -233,16 +253,31 @@
           "height": 686.8408203125
         }
       ],
-      "flows": []
+      "flows": [
+        {
+          "title": "Maintain ranking state in Flink",
+          "steps": [
+            "Flink reads Kafka events and assigns each event to its defined window.",
+            "It maintains recoverable per-video totals. Any split partial counts are combined before ranking.",
+            "Rankers select local candidates from complete scores. A merge stage calculates the global top K where partitions are used.",
+            "Flink writes the resulting snapshot to Redis with the window boundary and processing position.",
+            "The Top-K Service serves the requested prefix. Replay uses checkpoints and compatible sink behavior to avoid duplicate count effects."
+          ],
+          "diagramFilenames": [
+            "13.svg"
+          ]
+        }
+      ]
     },
     {
       "title": "4) Sliding windows",
       "level": 4,
       "points": [
-        "A sliding window continuously includes new events and removes expired contributions.",
-        "Bucket time into smaller intervals and combine the buckets covering the requested range, accepting boundary approximation if buckets are coarse.",
-        "Finer buckets improve precision but increase state and maintenance work.",
-        "Define watermarks, allowed lateness, and correction behavior rather than assuming events arrive in order."
+        "A sliding window adds new views and removes views that leave its time range.",
+        "Minute buckets let the processor add the newest contribution and subtract the expired one. All-time totals have no subtraction.",
+        "Retain buckets for the largest window and allowed late events. Finer buckets increase precision and storage work.",
+        "Define watermarks, lateness, and corrections. Coarse buckets approximate arbitrary boundaries unless the query contract aligns with them.",
+        "Sliding totals can decrease. The ranking structure must recover newly eligible candidates when an earlier leader loses views."
       ],
       "diagrams": [
         {
@@ -262,13 +297,16 @@
       ],
       "flows": [
         {
-          "title": "Advance a sliding ranking window",
+          "title": "Advance a bucket-based sliding window",
           "steps": [
-            "Incoming events update their time buckets using event time rather than blindly using arrival time.",
-            "As the window advances, processors add newly included bucket contributions and remove expired contributions.",
-            "They revise affected video scores and ranking candidates, while retaining the bucket state still needed for future windows or allowed late events.",
-            "A late event within the correction policy updates its bucket and affected materialized results; older events follow the defined discard or reconciliation path.",
-            "New snapshots are published only with the window boundaries they represent so clients do not mix results from different intervals."
+            "Flink groups new views into event-time buckets.",
+            "At the next boundary, the processor reads the oldest contribution that leaves the window.",
+            "It stores the newest bucket. It adds the new contribution and subtracts the expired contribution from each affected video total.",
+            "The ranking computation updates candidates from the revised complete totals. All-time counts have no expired contribution.",
+            "The system publishes a snapshot with its exact boundaries. Allowed late events update retained buckets according to the correction policy."
+          ],
+          "diagramFilenames": [
+            "15.svg"
           ]
         }
       ]
@@ -277,9 +315,11 @@
       "title": "5) Approximation and specialized storage",
       "level": 4,
       "points": [
-        "Count-Min Sketch estimates frequencies with bounded overestimation, but needs a separate candidate mechanism to enumerate heavy hitters.",
-        "Approximate algorithms reduce memory when exact ranking is unnecessary; explain their error and behavior near tied counts.",
-        "An analytical database can simplify window queries, but it still needs a scalable ingestion path and a justified freshness budget."
+        "Count-Min Sketch estimates frequency with possible overestimation. It does not retain the item IDs needed to list the top videos.",
+        "A separate heap or sorted set tracks candidate IDs. Approximation is allowed only after changing the initial exact-result contract.",
+        "Redis can store sketches and candidates. Flink can keep both in checkpointed state. Their recovery paths have different costs.",
+        "Explain the error bound and behavior near tied counts. Standard add-only sketches do not automatically solve window expiry.",
+        "An analytical database can maintain rollups, but it still needs sufficient ingestion and aggregation capacity. Measure freshness and query delay."
       ],
       "diagrams": [
         {
@@ -303,9 +343,9 @@
       "title": "Final Design",
       "level": 3,
       "points": [
-        "A durable event log feeds partitioned aggregation and materialized window counts.",
-        "Hierarchical candidate merging and cached ranking snapshots make queries cheap.",
-        "Hot-key splitting, recovery semantics, and explicit window/accuracy contracts determine correctness at scale."
+        "Kafka feeds the Flink Application. Flink maintains recoverable window totals and calculates ranking candidates.",
+        "Flink writes completed ranking snapshots to Redis. The Top-K Service returns the requested prefix through the API Gateway.",
+        "Partition ownership, hot-key handling, checkpoint behavior, and explicit window rules determine correctness. Approximation remains a separate option."
       ],
       "diagrams": [
         {

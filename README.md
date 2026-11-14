@@ -63,13 +63,23 @@ Reviewed note text is in `src/data/system-design-notes-source.txt`; Bitly retain
 its existing `src/data/bitly-condensed.txt` source.
 Process sequences are maintained in `src/data/system-design-processes.txt` and appear
 under the relevant section before its diagrams, including in downloaded notes.
-Bitly pilots a shared concept color key in `src/data/system-design-concepts.ts`:
+All 49 condensed articles use ASD-STE100-style short sentences and consistent
+technical terms. This is a readability adaptation, not a claim of certified
+dictionary compliance. Source-specific processes distinguish initial designs from
+later alternatives. Explicit diagram bindings keep each illustrated process beside
+its matching image; other figures retain their explanatory sections.
+`tools/system-design/notes-review.json` records source revisions, content corrections,
+and the reviewed process-to-diagram bindings for all 49 pages.
+The shared component color key is in `src/data/system-design-concepts.ts`:
 blue for data/storage, purple for traffic/routing, green for servers/services,
 amber for coordination, and gray for clients. Only main architecture components
 receive color. Commands, fields, algorithms, HTTP codes, and operational properties
 stay plain. Each component and its aliases have one category; the legend and inline
-highlights use the same palette. Redis is always storage; a counter is coordination.
+highlights use the same palette. Redis is always storage; counters, queues, and
+workflow coordinators use coordination. Workers and processing engines use green.
 New component names must use an existing category.
+Ambiguous aliases are limited to the pages where they name a main component.
+For example, Bitly's counter is colored; ordinary counter fields elsewhere stay plain.
 To refresh the verified exports, run
 `node tools/system-design/import-articles.cjs <export-directory>`, then
 `python tools/system-design/condense-articles.py` (requires Beautiful Soup 4), and rebuild.

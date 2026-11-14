@@ -1,85 +1,108 @@
 Understanding the Problem
-- Build a directory where users discover nearby businesses, inspect their details, and contribute reviews.
-- The central challenge is combining geographic search, text filters, and ratings while keeping review writes correct.
+- The service lists nearby businesses. Users can read business details and submit reviews.
+- The design combines geographic search, text filters, and ratings. Review writes must remain correct as search traffic increases.
 
 Functional Requirements
-- Search businesses by location and query criteria, including category and rating.
-- View a business's details and existing reviews.
-- Submit a rating and review for a business; enforce at most one review per user per business.
-- Advanced recommendations and business-owner management are outside the core design.
+- Users can search by location, text, category, and rating.
+- Users can read business details and existing reviews.
+- A user can submit a rating and review. Each business permits at most one review from that user.
+- The initial design does not include advanced recommendations or tools for business owners.
 
 Non-functional Requirements
-- Search and detail reads dominate traffic and should remain fast as the directory grows.
-- Favor availability for discovery while preserving durable reviews and correct uniqueness constraints.
-- Search indexes and cached ratings can have bounded freshness lag; describe that lag explicitly.
+- Most requests read search results or business details. The target search latency is below 500 ms. The design supports 100 million daily users and 10 million businesses.
+- Business discovery needs high availability. The database must retain reviews and enforce the rule for unique reviews.
+- Search indexes and cached ratings can lag behind the database. The design must specify the maximum acceptable delay.
 
 Core Entities
-- Business: ID, name, description, category, address, coordinates, and aggregate rating fields.
-- Review: business ID, author ID, rating, text, and timestamps.
-- User: authenticated reviewer identity. Enforce a unique composite key on user ID and business ID.
-- Location: a named region and its geometry when supporting city or neighborhood searches.
+- Business contains its ID, name, description, category, address, coordinates, and combined rating fields.
+- Review contains the business ID, author ID, rating, text, and timestamps.
+- User identifies the authenticated reviewer. A unique composite key on user ID and business ID prevents duplicate reviews.
+- Location contains a region name and its geometry. It supports searches within a city or neighborhood.
 
 API
-- Search with query text, latitude/longitude, radius, category, rating filters, and a pagination cursor.
-- Fetch business details and a paginated set of reviews by business ID.
-- Submit or update a review using the authenticated user, business ID, rating, and text.
-- Return the next cursor with stable ordering; avoid a growing offset for large result sets.
+- Search requests contain text, latitude and longitude, radius, category, rating filters, and an optional pagination cursor.
+- The client requests business details by business ID. It reads reviews in separate pages.
+- A review request contains the business ID, rating, and text. The service gets the author from authentication.
+- The response includes a cursor with a stable result order. This avoids large offsets as the user reads more results.
 
 High-Level Design
 
 1) Search businesses
-- The search service queries indexed business data and applies distance and other filters.
-- Start with database indexes appropriate to the access patterns; a full scan for every nearby-business query will not scale.
-- Return business summaries and rating aggregates without fetching every review.
+- The Business Service queries indexed business data. It applies distance and other filters.
+- Database indexes must support the required queries. A full scan for each nearby-business search cannot support large traffic volumes.
+- Search results contain business summaries and combined ratings. The service does not need to read every review for each result.
 
-Process: Find nearby businesses
-- 1. The client sends query text, coordinates or a named location, radius, filters, and an optional cursor to the search service.
-- 2. If the input is a named area, the service resolves it to coordinates or a region before building the spatial predicate.
-- 3. The service queries the chosen search index or indexed database, combining geography, text, category, and rating filters.
-- 4. The query orders eligible candidates and selects a bounded page; it does not load all reviews to compute each business's rating.
-- 5. The service fetches any missing business summary fields in a batch and returns results plus a stable next-page cursor.
-- 6. A later detail request reads the selected business and paginated reviews; cached discovery data does not replace the authoritative review records.
+Process: Find businesses in the initial design
+- 1. The client sends search terms, location, category, and pagination parameters to the API Gateway.
+- 2. The API Gateway routes the request to the Business Service.
+- 3. The Business Service builds a database query from the supplied filters.
+- 4. The database returns matching business records. The service returns one page of results through the API Gateway.
 
 2) Read details and write reviews
-- Fetch business details by primary key and reviews by business ID; cache popular business pages.
-- Validate review ownership, rating range, and business existence before committing.
-- Keep the review and its effect on aggregate rating consistent through a transaction or a clearly defined asynchronous projection.
-- Invalidate or refresh cached detail data after changes; search freshness may follow a separate update pipeline.
+- The service reads business details by primary key. It reads reviews by business ID. A cache stores frequently requested business pages.
+- Before commit, the Review Service validates the author, the 1-5 rating range, and the business record.
+- A transaction can keep the review and combined rating consistent. An asynchronous projection is another option with defined update rules.
+- After a change, the service updates or removes cached details. A separate process can update the search index.
 
-Process: Save a review and update its rating
-- 1. The client submits a business ID, rating, and review text; the service derives the author from the validated session.
-- 2. The service checks the business and allowed rating range, then begins the selected transactional update.
-- 3. The database inserts the review under the unique user/business constraint. For an allowed edit, it reads the previous rating instead of adding a second review.
-- 4. In the same consistency boundary, it updates rating sum and count, or applies the rating difference for an edit, using atomic or version-checked writes.
-- 5. On a uniqueness or version conflict, the transaction rolls back and the API returns the defined conflict or retries against fresh state.
-- 6. After commit, the service acknowledges success and updates or invalidates detail caches; the search projection receives the committed change asynchronously.
+Process: Read business details and reviews
+- 1. The client requests a business by its ID.
+- 2. The API Gateway routes the request to the Business Service.
+- 3. The Business Service reads the business and its reviews from the database.
+- 4. The service returns the business details and a page of reviews to the client.
+
+Process: Submit a review
+- 1. The client submits a business ID, a 1-5 rating, and optional review text.
+- 2. The API Gateway authenticates the request. It routes the request to the Review Service.
+- 3. The Review Service validates the request. It stores the review in the database.
+- 4. After the write succeeds, the service returns confirmation. The deep dives add rating updates and the uniqueness constraint.
 
 Deep Dives
 
 1) Maintain average ratings
-- Computing an average over every review on each search is expensive; store rating sum and review count instead.
-- A scheduled aggregation job reduces write coupling but leaves results stale between runs.
-- Synchronous updates provide fresher results. Use atomic increments or version-checked transactions to prevent concurrent reviews from overwriting each other.
-- On an edited review, add the difference between old and new ratings rather than increasing the review count.
-- Optimistic conflicts require retries with a bound; very popular businesses may need batching or an asynchronous aggregation path.
+- An average across all reviews is expensive to calculate for each search. The database can store the rating sum and review count.
+- A scheduled job updates combined ratings separately from review writes. Its results remain stale between runs. Diagram 6 shows this alternative.
+- Synchronous updates produce fresher ratings. The article uses optimistic locking to prevent lost updates. Diagram 7 shows this approach.
+- For an edited review, the service adds the difference between the old and new rating. The review count stays the same.
+- An optimistic conflict needs a bounded retry. A popular business can need batches of rating updates or asynchronous aggregation.
+
+Process: Update the average with optimistic locking
+- 1. The Review Service reads the current average rating and review count for the business.
+- 2. It calculates the new average from the old total and the submitted rating.
+- 3. It inserts the review and attempts the aggregate update within one transaction.
+- 4. The update checks that the observed version or review count has not changed.
+- 5. If another update won the race, the transaction fails. The service reads fresh state and retries within a defined limit.
+- 6. After commit, the new review and aggregate become visible together.
 
 2) Enforce one review per user
-- An application check followed by insertion has a race: two requests can both observe that no review exists.
-- A database unique constraint on the user/business pair makes the rule hold under concurrency and retries.
-- Decide whether repeat submissions edit the existing review or return a conflict, then make that behavior explicit in the API.
+- Two requests can both find that a review does not exist. A separate insertion after this check permits a race.
+- A unique constraint on the user and business pair prevents duplicate reviews. It also applies to concurrent requests and retries.
+- The API must define repeated submissions. It can edit the existing review or return a conflict.
 
 3) Search complex queries
-- Elasticsearch combines inverted indexes, text relevance, geospatial filtering, and sorting, but adds a second data model to maintain.
-- Publish database changes to the search index using a reliable change stream or outbox; support retries and reindexing.
-- PostgreSQL with full-text and spatial extensions is a simpler alternative when it meets the workload.
-- Choose based on actual query and scale requirements; specialized search adds operational cost and eventual consistency.
+- Elasticsearch combines inverted indexes, text relevance, geographic filters, and sorting. However, the service must maintain a second data model.
+- Change data capture sends committed database changes to Elasticsearch through a stream and consumer. Failed updates need retries or an index rebuild.
+- PostgreSQL with text and spatial extensions can provide a simpler design if it supports the required load.
+- Query and capacity requirements determine the search technology. A separate search system adds maintenance work and eventual consistency.
+
+Process: Search through Elasticsearch
+- 1. The primary database commits a business or rating change.
+- 2. Change data capture publishes the committed change to a stream.
+- 3. A consumer applies the change to Elasticsearch. Search results can lag while this update is pending.
+- 4. The Business Service sends a search query to Elasticsearch. The query combines geographic, text, and category filters.
+- 5. Elasticsearch returns matching businesses. The Business Service returns the result page to the client.
+
+Process: Search with PostgreSQL extensions
+- 1. The client submits search terms and geographic filters to the Business Service through the API Gateway.
+- 2. The Business Service builds a PostgreSQL query. It uses spatial and text indexes for the requested filters.
+- 3. PostgreSQL selects matching business records from the primary data store.
+- 4. The Business Service returns a bounded result page. This alternative does not require a separate Elasticsearch update stream.
 
 4) Search named locations
-- Resolve a city or neighborhood name to a region or polygon, then run the spatial query within that boundary.
-- Disambiguate duplicate names and distinguish a named area from a simple radius around a point.
-- Cache stable geographic metadata; exact business eligibility still depends on the business coordinates.
+- The service converts a city or neighborhood name into a region or polygon. Then it searches within that boundary.
+- Different places can have the same name. The service must identify the intended place. A named region differs from a radius around coordinates.
+- The service can compute each business's named areas when it creates the business. A keyword index on area identifiers avoids repeated polygon checks.
 
 Final Design
-- A durable business/review database owns the records and uniqueness rules.
-- Search indexes handle discovery; caches accelerate frequently viewed details.
-- Rating aggregates and index updates use explicit consistency and recovery rules, so performance improvements do not silently lose reviews.
+- The durable database owns business and review records. It enforces the uniqueness rules.
+- Search indexes support business discovery. Caches make repeated requests for details faster.
+- Combined ratings and search indexes need explicit consistency and recovery rules. Faster queries must not cause the loss of reviews.

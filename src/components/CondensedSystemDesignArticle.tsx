@@ -7,13 +7,12 @@ interface Notes { title: string; sections: { title: string; level: number; point
 const loaders = import.meta.glob<{ default: Notes }>('../data/system-design-notes/*.json');
 
 const conceptByTerm = new Map(systemDesignConcepts.flatMap(concept => concept.terms.map(term => [term.toLowerCase(), concept] as const)));
-const conceptPattern = new RegExp(`\\b(${[...conceptByTerm.keys()].sort((a, b) => b.length - a.length).join('|')})\\b(?![-\\w])`, 'gi');
+const conceptPattern = new RegExp(`\\b(${[...conceptByTerm.keys()].sort((a, b) => b.length - a.length).map(term => term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})\\b(?![-\\w])`, 'gi');
 
-function conceptText(text: string, enabled: boolean) {
-  if (!enabled) return text;
+function conceptText(text: string, slug: string) {
   return text.split(conceptPattern).map((part, index) => {
     const concept = conceptByTerm.get(part.toLowerCase());
-    if (!concept) return part;
+    if (!concept || (concept.onlyIn && !concept.onlyIn.includes(slug))) return part;
     const category = conceptCategories[concept.category];
     return <span key={index} data-concept={concept.key} data-category={concept.category} title={category.label} className={`box-decoration-clone rounded px-1 py-0.5 ${category.color}`}>{part}</span>;
   });
@@ -46,12 +45,12 @@ export default function CondensedSystemDesignArticle({ slug, title }: { slug: st
   if (error) return <div role="alert" className="space-y-2 text-sm text-gray-400 light:text-gray-600"><p>These notes could not be loaded. You can retry or open the full article.</p><button className="text-blue-400 hover:underline light:text-blue-700" onClick={() => setAttempt(value => value + 1)}>Retry notes</button></div>;
   if (!notes) return <p role="status" className="text-sm text-gray-400 light:text-gray-600">Loading notes…</p>;
   return <div aria-label={`${title} condensed notes`} className="space-y-5 text-base leading-6 text-gray-200 light:text-gray-800">
-    {slug === 'bitly' && <aside aria-label="Concept color key" className="space-y-2 text-sm leading-5 text-gray-400 light:text-gray-600">
+    <aside aria-label="Concept color key" className="space-y-2 text-sm leading-5 text-gray-400 light:text-gray-600">
       <p>Colors identify the main components by role. The same component keeps the same color.</p>
       <div className="flex flex-wrap gap-2">
         {Object.entries(conceptCategories).map(([key, category]) => <span key={key} data-category-legend={key} title={category.examples} className={`rounded px-2 py-0.5 ${category.color}`}>{category.label}</span>)}
       </div>
-    </aside>}
+    </aside>
     {notes.sections.map(({ title: sectionTitle, level, points, diagrams, flows }, index) => {
       const Heading = level === 4 ? 'h4' : 'h3';
       const id = `${slug}-notes-${index}`;
@@ -59,12 +58,12 @@ export default function CondensedSystemDesignArticle({ slug, title }: { slug: st
       return <section key={id} aria-labelledby={id} className="space-y-2">
         <Heading id={id} className={Heading === 'h3' ? 'text-lg font-semibold text-white light:text-gray-900' : 'text-base font-medium text-white light:text-gray-900'}>{sectionTitle}</Heading>
         {points.length > 0 && <ul className="list-none space-y-1">
-          {points.map((point, pointIndex) => <li key={pointIndex} className="flex gap-2"><span aria-hidden="true" className="shrink-0">-</span><span className="min-w-0 break-words">{conceptText(point, slug === 'bitly')}</span></li>)}
+          {points.map((point, pointIndex) => <li key={pointIndex} className="flex gap-2"><span aria-hidden="true" className="shrink-0">-</span><span className="min-w-0 break-words">{conceptText(point, slug)}</span></li>)}
         </ul>}
         {flows.map(flow => <div key={flow.title} role="group" aria-label={`${flow.title} process`} className="space-y-1 pt-2">
           <p className="font-medium text-white light:text-gray-900">Process: {flow.title}</p>
           <ul className="list-none space-y-1">
-            {flow.steps.map((step, stepIndex) => <li key={stepIndex} className="flex gap-2"><span aria-hidden="true" className="shrink-0">-</span><span className="min-w-0 break-words">{stepIndex + 1}. {conceptText(step, slug === 'bitly')}</span></li>)}
+            {flow.steps.map((step, stepIndex) => <li key={stepIndex} className="flex gap-2"><span aria-hidden="true" className="shrink-0">-</span><span className="min-w-0 break-words">{stepIndex + 1}. {conceptText(step, slug)}</span></li>)}
           </ul>
           {diagrams.filter(diagram => flow.diagramFilenames?.includes(diagram.filename)).map(diagram => <ArticleDiagram key={diagram.filename} diagram={diagram} slug={slug} />)}
         </div>)}

@@ -1,93 +1,114 @@
 Understanding the Problem
-- Sell a very limited inventory item when a large crowd arrives simultaneously.
-- The critical invariant is that successful reservations and purchases never exceed available units.
+- Sell limited inventory when millions of users arrive together. The example offers 10,000 units at a fixed sale time.
+- Successful reservations and purchases must never exceed inventory. A reservation temporarily holds a unit while payment completes.
 
 Functional Requirements
-- View the sale item and sale timing.
-- Reserve an available unit for a limited checkout period.
-- Complete payment for a valid reservation and release expired or abandoned claims.
+- Users can view the sale product, price, and sale window.
+- Users can reserve an available unit for a limited checkout period.
+- Users with valid reservations can pay for their units. General catalog search, shipping, returns, and sale administration are outside the scope.
 
 Non-functional Requirements
-- Preserve inventory consistency under extreme contention.
-- Keep admission and reservation feedback responsive during traffic spikes.
-- Recover payment and reservation failures without double-selling or holding inventory forever.
+- Prevent overselling even when many requests compete for the same unit.
+- Handle millions of arrivals within seconds. Give users a fair opportunity to reach the reservation path.
+- A failed payment must not hold inventory forever. Keep reservation state consistent when payment results or cleanup arrive late.
 
 Core Entities
-- SaleItem stores product metadata, sale window, and inventory definition.
-- Reservation records unit or quantity, owner, expiration, token/version, and state.
-- Order and PaymentAttempt track checkout and external payment outcomes.
-- AdmissionToken controls entry from the waiting room into the reservation path.
+- Product stores sale details, price, timing, and inventory. User identifies the buyer.
+- Reservation records the user, product, expiry, and current claim state. Later designs associate each claim with an individual unit.
+- Purchase links a reservation to payment amount and status. It distinguishes pending, completed, and failed purchases.
+- A later admission token proves that the Waiting Room Service allowed the user to attempt a reservation. It does not reserve inventory.
 
 API
-- Fetch cached sale details and approximate availability.
-- Request a reservation with an idempotency key and valid admission token where required.
-- Complete checkout for a specific reservation token and query order status.
-- Verify server time, ownership, sale state, and reservation validity on every authoritative transition.
+- GET /products/{id} returns sale details. Any displayed inventory count can change before the buyer reserves a unit.
+- POST /products/{id}/reservations attempts a temporary claim. A successful response includes the reservation ID and expiry.
+- POST /reservations/{id}/purchases starts checkout. GET /purchases/{id} lets the buyer recover the final result after a lost response.
+- Check sale timing, reservation ownership, state, and expiry on the server. A client countdown cannot authorize a purchase.
 
 High-Level Design
 
 1) Browse and reserve
-- Serve stable product details through caches or a CDN so browsers do not overload inventory storage.
-- Claim inventory with an atomic conditional update or transaction.
-- Persist a reservation with an explicit expiry instead of holding a database lock while the customer enters payment information.
-- Cached availability is advisory; only a successful reservation grants a temporary claim.
+- The basic read path is client, API Gateway, Sale Service, then PostgreSQL. The Sale Service returns the product record.
+- Initially, one transaction conditionally decrements the product inventory count and inserts a Reservation. Both changes must commit together.
+- The reservation has an explicit expiry. A cron job marks expired reservations and restores inventory in another transaction.
+- The reservation response grants a temporary claim. Do not keep a database transaction open while the buyer enters payment details.
 
-Process: Admit a buyer and claim one unit
-- 1. The buyer loads cacheable sale details and, when required, joins the waiting room.
-- 2. Admission issues a signed token when reservation capacity is available; the token grants access to try, not ownership of inventory.
-- 3. The buyer submits a reservation request with admission and idempotency tokens.
-- 4. The reservation service verifies sale timing and user limits, then atomically claims an eligible unit or inventory share with owner, version, and expiry.
-- 5. If no valid claim succeeds, it returns sold-out or retry feedback without inventing a reservation.
-- 6. After durable claim commit, it returns the reservation token and checkout deadline. Other buyers cannot purchase that current claim while it remains valid.
+Process: Reserve inventory in the baseline design
+- 1. The client requests a reservation through the API Gateway.
+- 2. The Sale Service starts a short PostgreSQL transaction and checks that the sale is active.
+- 3. It conditionally decrements available inventory and creates the buyer's Reservation with an expiry.
+- 4. The transaction commits both changes together. A failed claim must not create a reservation.
+- 5. The service returns the reservation ID and checkout deadline. The later waiting room limits who can reach this path.
 
 2) Complete payment
-- Coordinate payment through durable order state and stable provider idempotency keys.
-- Convert the current reservation to purchased only through a valid conditional transition.
-- Handle payment success racing reservation expiry explicitly, using a defined confirmation, reconciliation, or compensation policy.
-- Notify the client asynchronously and allow status recovery after a lost response.
+- The Sale Service validates the reservation and creates a pending Purchase. It creates a Stripe PaymentIntent and returns the client secret.
+- The client submits payment details directly to Stripe. A verified webhook later reports the result to the Sale Service.
+- Success updates Purchase and Reservation together. Define the policy for payment success after expiry; a late callback cannot take a reassigned unit.
+- The buyer polls Purchase status until it is final. A processor response alone does not prove that the local purchase has committed.
 
-Process: Convert a reservation into a purchase
-- 1. The buyer submits checkout for the specific reservation token; the service verifies current owner, version, state, and deadline.
-- 2. It records an order/payment attempt and sends payment using the stable provider idempotency key through a recoverable workflow.
-- 3. A verified payment outcome resumes the workflow; a timeout remains unresolved until provider lookup or reconciliation determines the result.
-- 4. The service conditionally commits purchase only for the reservation state allowed by the chosen expiry/payment policy.
-- 5. A payment that cannot be paired with a valid purchase follows the explicit reconciliation or refund path; it must not consume a unit now assigned to someone else.
-- 6. The client receives the committed order result and can retrieve it by ID after a lost response.
+Process: Convert a valid reservation into a purchase
+- 1. The client requests checkout for its reservation.
+- 2. The Sale Service verifies the claim and saves a pending Purchase.
+- 3. It creates a Stripe PaymentIntent and returns the client secret to the client.
+- 4. The client submits payment details directly to Stripe and confirms payment.
+- 5. Stripe sends a webhook with the result. The Sale Service verifies it and applies the allowed purchase and reservation transition.
+- 6. The client polls Purchase status for the committed result. A late success must follow the defined expiry or compensation policy.
 
 Deep Dives
 
 1) Contention
-- A single inventory counter becomes a serialization hot spot even if the rest of the database is sharded.
-- Redis atomic coordination can reduce latency, but durable purchase correctness must survive its failure and failover behavior.
-- Represent inventory as independently claimable units or buckets to spread contention, then atomically claim one eligible unit.
-- Include ownership and version checks so a stale client cannot purchase a unit that has already been reassigned.
-- Retry a bounded set of candidates; uncontrolled retries simply turn contention into more load.
+- One shared inventory row serializes all reservations. More Sale Service instances do not remove that database bottleneck.
+- Redis can atomically update a counter and reservation through a script. It is then authoritative state, with durability and reconciliation responsibilities.
+- The preferred design stores one ReservationUnit row per available unit. A transaction selects a row with FOR UPDATE SKIP LOCKED.
+- That transaction deletes the selected unit and creates the Reservation. Independent rows spread contention while both records stay in one database.
+- A temporary shortage of unlocked rows needs controlled retry behavior. Admission limits still protect the total database capacity.
+
+Process: Claim an independent inventory unit
+- 1. The Sale Service starts a PostgreSQL transaction for the reservation request.
+- 2. It selects an available ReservationUnit using FOR UPDATE SKIP LOCKED.
+- 3. It deletes that selected unit and inserts the buyer's Reservation within the same transaction.
+- 4. It commits the claim and returns the reservation. Other requests can claim different unlocked units concurrently.
+- 5. If no eligible unit is found, use the defined retry or expired-reservation path before reporting definitive unavailability.
 
 2) Expiration
-- Scheduled cleanup jobs are useful, but delays must not make expired inventory permanently unavailable.
-- Reclaim expired reservations during a new claim using an atomic predicate on state, expiration, and version.
-- A delayed cleanup task must verify that it still refers to the same reservation before releasing anything.
-- Define expiry against authoritative server time and keep terminal purchased state immune to reservation cleanup.
+- SQS delayed messages or durable timers can schedule expiry. Workers must recheck reservation state because jobs can run late or repeat.
+- The final design instead reclaims expired reservations when the available pool is empty. One short transaction claims a batch of expired units.
+- The reclaiming request keeps one unit and returns the others to the pool. A per-product lock prevents many requests from repeating this work.
+- Only active, expired claims can be reclaimed. Purchased claims and newer reservations must remain unchanged by delayed cleanup.
 
-Process: Reclaim a timed-out unit safely
-- 1. A scheduled cleanup or new claimant identifies an apparently expired reservation.
-- 2. It rereads or conditionally tests authoritative state, expiry, owner, and version together.
-- 3. It releases or reclaims only that exact expired version, atomically creating new ownership if this is an on-demand claim.
-- 4. A stale cleanup encountering a purchased or replaced reservation does nothing.
-- 5. Any late checkout or payment callback must still pass the current-token check before it can affect the unit.
+Process: Expire a reservation with a delayed job
+- 1. Reservation creation schedules a durable SQS message for its expiry time.
+- 2. After the delay, a worker receives the reservation ID.
+- 3. A short transaction verifies that the reservation remains active and has expired.
+- 4. The transaction marks it expired and returns its unit to the available pool.
+- 5. A repeated message or already purchased reservation changes nothing. This approach still depends on the worker running promptly.
+
+Process: Reclaim expired inventory on demand
+- 1. A buyer's request finds no available ReservationUnit.
+- 2. One request acquires the product's reclamation lock; competing requests wait briefly or retry the normal claim path.
+- 3. A short transaction selects active reservations whose expiry has passed and marks them expired.
+- 4. The request keeps one recovered unit for its new reservation and returns the remaining units to the available pool.
+- 5. The transaction commits and releases the lock. Subsequent buyers spread across the available rows.
 
 3) Crowd admission
-- A basic rate limit protects the backend but gives customers repeated errors and no clear place in line.
-- A virtual waiting room issues signed, expiring admission tokens at a sustainable rate.
-- Keep queue state independent of inventory claims; admission does not guarantee a unit.
-- Bound token reuse and recover reconnecting users without letting refreshes jump the queue.
+- A gateway rate limit protects storage but can cause repeated client retries. A waiting room gives users a controlled admission path.
+- The Waiting Room Service stores entries in Redis. An admission controller issues short-lived signed tokens at a rate the backend can sustain.
+- The API Gateway checks the token before forwarding a reservation request. Admitted users still compete for available inventory.
+- Scale waiting-room polling separately from reservations. If Redis state is sharded, the admission order must remain global.
+
+Process: Admit waiting buyers at a sustainable rate
+- 1. The client joins the Waiting Room Service, which stores its queue entry in Redis.
+- 2. The client checks its waiting status while the admission controller follows the chosen global order.
+- 3. The controller admits users at a rate that leaves capacity for reservation transactions.
+- 4. An admitted user receives a short-lived signed admission token.
+- 5. The API Gateway validates the token before forwarding the reservation request to the Sale Service.
+- 6. Admission grants permission to try. Only a committed reservation grants a temporary inventory claim.
 
 4) Fairness
-- Define whether admission is first-come-first-served, randomized, or another transparent policy.
-- Enforce per-user purchase limits at the durable order boundary, not solely in browser state.
-- Separate fairness from raw throughput: a fast atomic counter does not prevent one client from making disproportionate attempts.
+- Randomize users already waiting when the sale starts. Users who arrive afterward join in arrival order.
+- Allow one active queue entry per authenticated user for the sale. A bot challenge can make automated mass entry harder.
+- Signed admission tokens prevent direct bypass of the waiting room. Fast inventory claims alone do not make access fair.
 
 Final Design
-- Cached browsing and a waiting room control the arrival rate at a short atomic reservation path.
-- Versioned, expiring unit claims spread contention and prevent stale checkout actions.
-- Durable payment workflows and conditional completion preserve the inventory invariant through retries, timeouts, and cleanup.
+- The Waiting Room Service controls arrivals at the Sale Service. PostgreSQL transactions claim independent ReservationUnit rows.
+- On-demand reclamation recovers expired units when the pool is empty. State checks prevent stale checkout or cleanup from changing a newer claim.
+- Stripe handles payment collection. Verified webhooks and conditional purchase updates preserve the inventory rule across delayed or repeated messages.

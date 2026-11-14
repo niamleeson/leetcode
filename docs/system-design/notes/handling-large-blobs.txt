@@ -1,73 +1,77 @@
 The Problem
-- Large photos, videos, and documents stress application bandwidth, memory, request timeouts, and relational storage.
-- Separate the control plane for permissions and metadata from the data plane carrying bytes.
+- Large photos, videos, and documents consume application bandwidth and memory. Transfers can exceed request deadlines and overload relational storage.
+- Separate permission checks and metadata from file transfer. Application servers manage access. Object storage receives and serves the bytes.
 
 The Solution
-- Store blobs in object storage and lightweight metadata in a database.
-- Give clients short-lived, scoped transfer authorization so bytes can bypass application servers.
-- Use a CDN for appropriate downloads and multipart transfer for large or unreliable uploads.
+- Store file bytes in object storage. Store metadata in a database.
+- Give the client temporary permission for a specific transfer. The client sends bytes directly to object storage.
+- Use a CDN for frequent downloads. Use multipart uploads for large files or unreliable connections.
 
 1) Direct upload
-- The client requests an upload session with expected size, type, and ownership information.
-- The server validates the request, creates pending metadata, and returns signed storage instructions.
-- The client transfers directly to storage; the backend verifies completion before marking the object available.
-- Signed URLs grant bounded access to a particular operation and object, not unrestricted storage credentials.
+- The client requests permission to upload a file. The request includes its expected size, type, and owner.
+- The server validates the request. It creates pending metadata and signs the upload instructions with its local credentials.
+- The client uploads directly to object storage. The backend verifies the completed object before it makes the file available.
+- A signed URL permits a specific operation on a specific object. It does not give the client unrestricted storage credentials.
 
-Process: Upload bytes without proxying them through the application
-- 1. The client submits expected file metadata to the application service.
-- 2. The service authenticates ownership, checks quotas and limits, and commits pending upload metadata.
-- 3. It issues a short-lived signed transfer authorization scoped to the intended object and operation.
-- 4. The client uploads bytes directly to storage, then reports completion or waits for a trusted storage event.
-- 5. The backend verifies the completed object using provider evidence and conditionally marks metadata ready.
-- 6. Downstream processing and access are enabled from that committed ready state; an unverified client completion message is insufficient.
+Process: Upload bytes directly to object storage
+- 1. The client requests upload permission through the API Gateway. It supplies the expected file metadata.
+- 2. The server validates the user and transfer limits. It signs a URL for the intended object with its local credentials.
+- 3. The server returns the signed URL to the client.
+- 4. The client sends the file directly to object storage with the permitted upload request. Application servers do not forward the bytes.
 
 2) Direct download
-- Authenticate the caller and check object permissions before issuing a signed download URL.
-- Deliver through object storage or an authorized CDN path.
-- Keep URL lifetime and caching policy aligned with the sensitivity of the content and expected revocation behavior.
-- A previously issued bearer URL may remain valid until expiry, even if the application later changes permissions.
+- The service authenticates the caller. It checks file permissions before it issues a signed download URL.
+- The client downloads from object storage or a CDN. A CDN validates its own signed URL or cookie.
+- Set the URL lifetime and cache policy to match the content's sensitivity. Define how permission changes affect existing URLs.
+- A person with an issued URL can use it until it expires. An application permission change might not revoke it immediately.
 
-Process: Authorize a private download
-- 1. The client requests access to a specific object/version from the application service.
-- 2. The service checks current ownership or sharing permission and confirms that the object is ready.
-- 3. It returns a short-lived signed storage or CDN URL with the appropriate restrictions.
-- 4. The client requests bytes directly through that URL; the serving layer verifies its signature, scope, and expiry.
-- 5. A cache miss retrieves the object from the origin under the serving policy, without sending file bytes through the application API.
+Process: Download through the CDN
+- 1. The application checks access before it issues a signed CDN URL.
+- 2. The client sends the download request to the CDN. The CDN validates the signed URL.
+- 3. If the CDN has a permitted cached copy, it returns that copy.
+- 4. On a cache miss, the CDN fetches the object from blob storage. It returns the bytes to the client.
 
 3) Resumable uploads
-- Split the upload into numbered parts and track an upload ID plus confirmed part metadata.
-- Retry only missing or failed parts, then ask storage to finalize the object.
-- Bound concurrency and part size to avoid exhausting client memory or network connections.
-- Expire abandoned upload sessions and remove incomplete parts to control storage cost.
+- Split the file into numbered parts. Keep the upload ID and the storage provider's confirmation for each part.
+- After an interruption, upload only missing or failed parts. Then ask object storage to assemble the file.
+- Limit parallel transfers and part size. These limits prevent excessive client memory use and network connections.
+- Expire abandoned upload sessions. Remove incomplete parts to limit storage costs.
 
 Process: Retry only the unfinished parts
-- 1. The backend creates a multipart session and returns its identity plus authorized part-upload instructions.
-- 2. The client uploads parts with stable numbers and records provider-confirmed part identifiers.
-- 3. After interruption, the client and backend recover the same session and obtain the provider-verified set of existing parts.
-- 4. Only missing parts are retransmitted; the backend validates the part set and requests final assembly.
-- 5. It confirms the finalized object before marking the application record ready and eventually cleans up abandoned sessions separately.
+- 1. The client uses the upload session and the provider's SDK to divide the file into numbered parts.
+- 2. The client uploads parts directly to object storage. It keeps the provider's confirmations and the session identifier.
+- 3. After an interruption, the client checks which parts already exist in that session.
+- 4. The client uploads the missing parts. It then requests completion with the required part identifiers.
+- 5. Object storage assembles the parts into one object. An incomplete multipart upload does not yet provide the completed file.
 
 4) State synchronization
-- Database metadata and object storage do not share one transaction, so pending and completed states are necessary.
-- Treat client completion messages as claims to verify with storage APIs or trusted storage events.
-- Events can be duplicated or delayed; make completion transitions idempotent and run reconciliation for stuck uploads.
-- Multipart provider events may fire only for the completed object, so per-part verification needs the provider's multipart APIs.
+- The database and object storage do not share one transaction. Track pending uploads separately from completed files.
+- Verify a client completion message with a storage API or a trusted storage event.
+- Storage events can repeat or arrive late. Make completion updates idempotent. Periodically check uploads that remain pending.
+- A multipart event can describe only the completed object. Use the provider's multipart APIs to verify individual parts.
+
+Process: Confirm storage completion in the database
+- 1. The server creates pending metadata with the object key before it authorizes the upload.
+- 2. The client uploads the file to blob storage. Multipart uploads must complete before the final object is available.
+- 3. Blob storage emits an object completion event. The object key identifies the pending database record.
+- 4. The backend verifies the completion evidence. It updates the matching record without creating a second result for a repeated event.
+- 5. A periodic job checks records that remain pending. It compares their state with object storage and repairs missed updates.
 
 Cloud Provider Terminology
 - Providers use different names for signed URLs, multipart uploads, object versions, and completion checks.
-- Explain the required capability and failure behavior rather than relying on a product name alone.
+- Explain the required capability and its failure behavior. A product name alone does not explain the design.
 
 Common Deep Dives
-- A transfer failing at 99% should resume from verified parts, not restart from byte zero.
-- Apply user quotas, maximum object sizes, allowed content types, and bounded session lifetimes before granting upload authority.
-- Store metadata such as owner, object key, size, checksum, version, and processing state separately from the blob.
-- Do not assume an ETag is always a whole-file content hash; its semantics depend on provider and upload mode.
+- If a transfer fails at 99%, resume from verified parts. Do not upload completed parts again.
+- Check quotas, maximum file size, permitted content types, and session lifetime before granting access. Quarantine uploads until required scans pass.
+- Store the owner, object key, size, checksum, version, and processing state in the database. Keep these records separate from file bytes.
+- An ETag is not always a hash of the complete file. Its meaning depends on the provider and upload mode.
 
 Metadata and Download Performance
-- Immutable object versions simplify caching and avoid serving mixed content during replacement.
-- Use range requests, CDN caching, and suitable media variants where the client does not need the entire original object immediately.
-- Keep background scanning, thumbnailing, or transcoding outside the interactive metadata request path.
+- Give each immutable object version a separate identity. This simplifies caching and prevents mixed content during replacement.
+- Use range requests to resume downloads. A CDN serves popular content near users. Media variants reduce unnecessary transfer size.
+- Run scans, thumbnail generation, and transcoding in background workers. Keep this work outside the metadata request.
 
 Conclusion
-- Direct signed transfers remove application bandwidth bottlenecks, but verification and lifecycle state remain application responsibilities.
-- Multipart recovery, cleanup, access control, and reconciliation complete the design beyond simply adding an object-storage box.
+- Direct signed transfers reduce application bandwidth use. The application still controls permissions, metadata, and completion checks.
+- A complete design includes multipart recovery, cleanup, access control, and periodic checks for inconsistent state.

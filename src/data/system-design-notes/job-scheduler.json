@@ -5,8 +5,8 @@
       "title": "Understanding the Problem",
       "level": 3,
       "points": [
-        "Build a service that accepts immediate, future, and recurring jobs, then executes them reliably near their scheduled times.",
-        "Scheduling decides when work becomes eligible; execution decides which worker runs it and how failures are retried."
+        "The service accepts immediate, future, and recurring jobs. It starts each execution near its scheduled time.",
+        "Scheduling determines when a job is ready. Execution assigns the work to a worker and handles its result or failure."
       ],
       "diagrams": [],
       "flows": []
@@ -15,9 +15,9 @@
       "title": "Functional Requirements",
       "level": 3,
       "points": [
-        "Submit jobs for immediate execution, a future time, or a recurring schedule.",
-        "Execute due jobs and let users inspect their status.",
-        "Retry failed attempts according to policy and retain execution history."
+        "Users can schedule a task now, at a future time, or on a recurring schedule.",
+        "The system executes due jobs. Users can inspect each execution's status.",
+        "Failed attempts follow a retry policy. The system retains execution history. Cancellation and rescheduling are optional extensions."
       ],
       "diagrams": [],
       "flows": []
@@ -26,9 +26,9 @@
       "title": "Non-functional Requirements",
       "level": 3,
       "points": [
-        "Aim to begin jobs within about two seconds of their scheduled time.",
-        "Support around 10,000 jobs per second in the scenario and tolerate scheduler or worker crashes.",
-        "Provide at-least-once execution; side effects require idempotency because a crashed worker may have completed work before losing its acknowledgement."
+        "The target is to start a job within two seconds of its scheduled time. This is a target, not an SQS guarantee.",
+        "The scenario requires about 10,000 jobs per second. The service must tolerate scheduler and worker failures.",
+        "Execution is at least once. A worker can complete an external operation before losing its acknowledgement. Tasks must handle retries safely."
       ],
       "diagrams": [
         {
@@ -45,10 +45,10 @@
       "title": "Core Entities",
       "level": 3,
       "points": [
-        "Job describes the task, payload reference, owner, and schedule.",
-        "Execution identifies one scheduled occurrence with due time, status, attempt count, and result.",
-        "Lease or claim state records which worker currently owns an attempt and when that ownership expires.",
-        "Recurring definitions are separate from concrete executions so retries do not create extra scheduled occurrences."
+        "Task defines reusable work. Job identifies the task, user, parameters, and schedule.",
+        "Schedule contains a date or recurring expression. Execution identifies one occurrence, due time, status, attempt count, and result.",
+        "A lease can record the worker and an expiry time. A queue visibility timeout provides a related ownership mechanism.",
+        "Keep recurring job definitions separate from execution records. A retry must not create another occurrence of the same schedule."
       ],
       "diagrams": [
         {
@@ -65,10 +65,10 @@
       "title": "API",
       "level": 3,
       "points": [
-        "Submit a job with schedule and retry policy, returning a durable job ID.",
-        "Query job and execution status, including failures and next scheduled time.",
-        "Cancel or update pending work with version checks; define behavior if execution has already begun.",
-        "Use an idempotency key when submitting to avoid creating duplicate jobs after a timeout."
+        "POST /jobs accepts the task ID, schedule, and parameters. It returns a durable job identifier.",
+        "GET /jobs returns the user's executions. It can filter by status and time range.",
+        "Cancellation or rescheduling needs a defined rule for work that has already started. These operations are outside the initial scope.",
+        "A stable submission identifier can prevent duplicate jobs after a request timeout."
       ],
       "diagrams": [],
       "flows": []
@@ -84,10 +84,10 @@
       "title": "1) Schedule and dispatch",
       "level": 4,
       "points": [
-        "Persist job definitions and due executions before acknowledging acceptance.",
-        "A scheduler finds upcoming work using a due-time index and places eligible executions on a durable queue.",
-        "Workers claim queued executions, run the task, persist the result, and acknowledge successful processing.",
-        "Keep the payload small; large inputs live in storage and are referenced by the job."
+        "The Schedule Service stores the job definition and its next execution before confirming acceptance.",
+        "The initial Task Executor queries pending executions by due time. It loads the task parameters and runs the job.",
+        "The precision deep dive adds a Watcher and a delayed queue. These components separate database polling from execution time.",
+        "Keep queued messages small. Store large inputs separately and include their storage references in the job."
       ],
       "diagrams": [
         {
@@ -107,14 +107,16 @@
       ],
       "flows": [
         {
-          "title": "Schedule an execution and run it",
+          "title": "Store and execute a job in the initial design",
           "steps": [
-            "The caller submits a task, schedule, retry policy, and idempotency key; the API commits the job definition and its next occurrence.",
-            "A scheduler queries its assigned due-time range and atomically claims or records dispatch for an eligible occurrence.",
-            "It reliably publishes the occurrence ID to the execution queue; a repeated dispatch retains the same logical occurrence identity.",
-            "A worker claims the queue delivery, records its attempt/lease, and executes the task outside the scheduling transaction.",
-            "The worker persists success or failure and any result before acknowledging delivery.",
-            "For a recurring job, the system creates the next scheduled occurrence according to the recurrence policy; retries of this occurrence do not create extra future jobs."
+            "The client sends a task, schedule, and parameters to the Schedule Service.",
+            "The Schedule Service stores the job definition and the next pending execution in DynamoDB.",
+            "The Task Executor queries the relevant time bucket for pending executions that are due soon.",
+            "The executor loads the job parameters and starts the task at its scheduled time.",
+            "It records the result. A recurring definition produces a separate record for its next occurrence."
+          ],
+          "diagramFilenames": [
+            "04.svg"
           ]
         }
       ]
@@ -123,9 +125,9 @@
       "title": "2) Monitor status",
       "level": 4,
       "points": [
-        "Store transitions such as scheduled, queued, running, succeeded, and failed with timestamps.",
-        "Expose status without forcing clients to inspect the queue itself.",
-        "Correlate logs and results by execution ID so repeated attempts remain distinguishable."
+        "Workers update execution status, such as pending, running, completed, retrying, or failed. Each transition includes a timestamp.",
+        "A DynamoDB secondary index uses user ID and execution time. It supports ordered status queries without a full table scan.",
+        "Logs and results include the execution ID and attempt number. This separates a scheduled occurrence from its retries."
       ],
       "diagrams": [
         {
@@ -149,10 +151,11 @@
       "title": "1) Scheduling precision",
       "level": 4,
       "points": [
-        "Repeatedly scanning the entire jobs table cannot satisfy tight timing at scale.",
-        "Partition or index by scheduled time and poll a bounded upcoming interval.",
-        "Use a short-term priority queue or timing structure for imminent jobs while retaining durable state for restart recovery.",
-        "Handle clock skew and scheduler failover; persisted due times remain the authority after a process restarts."
+        "Frequent scans of the entire job table create excessive load. Index or partition pending executions by scheduled time.",
+        "The Watcher reads an upcoming window, such as five minutes. It places those executions in a queue before they are due.",
+        "SQS delivery delay hides each message until near its due time. Workers poll continuously. Actual startup delay still needs measurement.",
+        "A newly created job within the current window goes directly to the queue after durable storage. Otherwise, the Watcher could miss it.",
+        "Redis sorted sets are another option. They require custom retry and recovery logic. Persisted due times remain authoritative after restart."
       ],
       "diagrams": [
         {
@@ -170,16 +173,33 @@
           "height": 483.6671251290845
         }
       ],
-      "flows": []
+      "flows": [
+        {
+          "title": "Dispatch through a delayed queue",
+          "steps": [
+            "The Schedule Service persists the job and its next execution.",
+            "The Watcher queries its assigned time buckets for executions within the upcoming window.",
+            "The Watcher sends each execution to SQS with the appropriate delivery delay.",
+            "A newly created execution inside that window goes directly to SQS after storage. Stable execution IDs handle repeated dispatches.",
+            "Workers poll SQS. When a message becomes visible, a worker starts its task.",
+            "The worker stores the result before deleting the message. Measured queue and worker delay determines whether the timing target is met."
+          ],
+          "diagramFilenames": [
+            "07.svg"
+          ]
+        }
+      ]
     },
     {
       "title": "2) Throughput",
       "level": 4,
       "points": [
-        "Partition scheduled work and assign disjoint scheduler ownership to avoid duplicate dispatch storms.",
-        "Horizontally scale workers independently from scheduling and separate queues for different resource classes.",
-        "Apply backpressure and monitor oldest-job age; queue depth alone does not tell whether timing targets are being met.",
-        "Recurring jobs create future execution records using stable occurrence IDs so retries do not schedule the same occurrence twice."
+        "Partition job definitions by job ID. Add a shard suffix to time buckets so current-hour writes do not overload one partition.",
+        "Watchers query the assigned time-bucket shards. Coordinate their ownership or deduplicate repeated dispatches.",
+        "Add workers independently of schedulers. Separate queues can support different job types or priorities.",
+        "Measure the age of the oldest due job and queue depth. Add capacity before a backlog breaks the timing target.",
+        "Recurring jobs create the next execution with a stable occurrence ID. Retries must not create that occurrence twice.",
+        "The source shows an optional queue before job creation. Add it only if direct service and database scaling are insufficient."
       ],
       "diagrams": [
         {
@@ -210,11 +230,12 @@
       "title": "3) At-least-once execution",
       "level": 4,
       "points": [
-        "A visibility timeout or lease allows abandoned jobs to become eligible again after a worker crash.",
-        "Long-running workers renew leases; completion must be conditional on the current attempt or fencing token.",
-        "Retry transient failures with backoff and move repeatedly failing executions to a dead-letter or inspection state.",
-        "If an external side effect succeeded before a crash, replay may execute it again. Use downstream idempotency keys or transactional deduplication.",
-        "Persist completion before acknowledging queue delivery, accepting that a lost acknowledgement can cause a safe duplicate attempt."
+        "After receipt, SQS hides a message for its visibility timeout. If the worker stops, the message becomes available again.",
+        "A long-running worker extends visibility periodically. A timeout can still cause overlapping attempts, so task effects must be idempotent.",
+        "Visible failures retry with increasing delay. Stop after the retry limit and retain the failed execution for inspection.",
+        "A lost acknowledgement can repeat an external operation. Use downstream idempotency keys or a transaction that includes deduplication.",
+        "Persist completion before deleting the queue message. A repeated delivery must recognize an already completed occurrence.",
+        "A custom lease design needs conditional completion and ownership checks. A late worker must not overwrite a newer attempt's result."
       ],
       "diagrams": [
         {
@@ -229,11 +250,15 @@
         {
           "title": "Recover a worker that stops responding",
           "steps": [
-            "The worker misses heartbeats or fails to finish before its lease or queue visibility timeout.",
-            "The execution becomes eligible for another attempt; the new worker receives the same occurrence ID with new ownership metadata.",
-            "It checks for an already committed result before repeating work and uses the same downstream idempotency key where supported.",
-            "It executes or resumes the task, then commits completion conditionally on its current ownership token.",
-            "A late old worker cannot overwrite the newer result. If an external effect has an uncertain outcome, the worker reconciles it instead of assuming it never happened."
+            "A worker receives an SQS message. SQS hides that message from other workers for the visibility timeout.",
+            "While the task runs, the worker periodically extends visibility.",
+            "If the worker stops renewing visibility, SQS makes the message available again.",
+            "Another worker receives the same execution. It checks for a completed result and uses the same downstream idempotency key.",
+            "The worker completes or safely repeats the task. It stores the result before deleting the message.",
+            "Repeated failures reach the retry limit. The system retains the failed execution or moves the message to a dead-letter queue."
+          ],
+          "diagramFilenames": [
+            "11.svg"
           ]
         }
       ]
@@ -242,9 +267,9 @@
       "title": "Final Design",
       "level": 3,
       "points": [
-        "Durable schedule storage feeds partitioned schedulers and execution queues.",
-        "Leased worker attempts provide recovery, while explicit status records support monitoring and cancellation.",
-        "Stable occurrence IDs and idempotent task effects turn at-least-once delivery into predictable application behavior."
+        "Durable job and execution tables feed the Watcher. SQS delays eligible executions until near their due times.",
+        "Workers execute tasks, update status, and delete completed messages. Visibility renewal and retries support worker recovery.",
+        "The Query Service reads execution status. Stable occurrence IDs and idempotent task effects make repeated delivery safe."
       ],
       "diagrams": [
         {

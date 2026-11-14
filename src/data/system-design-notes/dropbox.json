@@ -5,8 +5,8 @@
       "title": "Understanding the Problem",
       "level": 3,
       "points": [
-        "Build cloud file storage with uploads, downloads, sharing, and synchronization across a user's devices.",
-        "Separate file bytes from file metadata. Object storage handles large immutable objects; the application handles ownership, permissions, and versions."
+        "The service stores files in the cloud. Users can upload, download, share, and synchronize files across their devices.",
+        "File bytes and metadata have separate storage. Object storage keeps large, immutable objects. The application manages ownership, permissions, and versions."
       ],
       "diagrams": [],
       "flows": []
@@ -15,10 +15,10 @@
       "title": "Functional Requirements",
       "level": 3,
       "points": [
-        "Upload and download files from any device.",
-        "Share files with other users and list files shared with the current user.",
-        "Synchronize local changes to the cloud and cloud changes to other devices.",
-        "Editing files in the browser and previewing their contents are outside the core scope."
+        "Users can upload and download files from any device.",
+        "Users can share files with other users. They can also list files that other users share with them.",
+        "The service sends local changes to the cloud. It sends cloud changes to the other devices.",
+        "The initial design does not include a browser editor or file previews."
       ],
       "diagrams": [],
       "flows": []
@@ -27,9 +27,9 @@
       "title": "Non-functional Requirements",
       "level": 3,
       "points": [
-        "Support files up to 50 GB without restarting an entire upload after a network failure.",
-        "Prioritize availability, durable storage, secure access, and fast transfers.",
-        "Metadata may propagate asynchronously, but permission checks and upload completion must remain authoritative."
+        "The service supports files up to 50 GB. After a network failure, the client can continue an upload.",
+        "The design needs high availability, durable storage, secure access, and fast transfers.",
+        "Metadata updates can reach devices at different times. Permission decisions and upload completion must use authoritative state."
       ],
       "diagrams": [
         {
@@ -46,10 +46,10 @@
       "title": "Core Entities",
       "level": 3,
       "points": [
-        "File: raw bytes stored in object storage, identified independently from its display name.",
-        "FileMetadata: file ID, owner, name, size, content type, storage location, version, and upload status.",
-        "SharedFiles: user ID and file ID mapping, plus permissions. Index by user to efficiently list incoming shares.",
-        "ChangeEvent and upload-part records support synchronization and resumable transfers."
+        "File: the bytes in object storage. Its identifier does not depend on its display name.",
+        "FileMetadata contains the file ID, owner, name, size, content type, storage location, version, and upload status.",
+        "SharedFiles connects a user ID to a file ID and its permissions. An index on user ID supports shared-file lists.",
+        "ChangeEvent records support synchronization. Records for each upload part let the client continue an interrupted transfer."
       ],
       "diagrams": [
         {
@@ -66,11 +66,11 @@
       "title": "API",
       "level": 3,
       "points": [
-        "Create an upload session with metadata; return a file ID and signed upload instructions.",
-        "Request a download URL after authenticating the user and checking access to the file.",
-        "Share a file with another user and list files owned by or shared with the caller.",
-        "Fetch changes since the last synchronization cursor; acknowledge or complete an upload only after server verification.",
-        "Derive the caller's identity from a validated session token, rather than a user ID supplied in the request body."
+        "The client creates an upload session with metadata. The API returns a file ID and signed upload instructions.",
+        "The service authenticates the user before it returns a download URL. It also verifies access to the file.",
+        "The API supports file sharing. It lists files that the caller owns or has permission to access.",
+        "The client requests changes after its last synchronization cursor. The server verifies an upload before it acknowledges completion.",
+        "The service gets the caller's identity from a validated session token. A user ID in the request does not establish identity."
       ],
       "diagrams": [],
       "flows": []
@@ -86,10 +86,10 @@
       "title": "1) Upload files",
       "level": 4,
       "points": [
-        "Storing files on an application server couples capacity and availability to that server and makes horizontal scaling difficult.",
-        "Forwarding every upload through the application to object storage fixes durability but doubles the transfer path and consumes application bandwidth.",
-        "Prefer a metadata request followed by direct client-to-object-storage transfer using a short-lived presigned URL.",
-        "Save metadata as pending first. Mark the file available after confirming the object or multipart upload actually exists."
+        "Files on an application server depend on that server's capacity and availability. Additional application servers cannot automatically access those files.",
+        "An application server can forward uploads to object storage for durability. However, each byte crosses two transfer paths. This consumes application bandwidth.",
+        "The client first requests upload metadata. Then it uploads directly to object storage with a presigned URL that expires soon.",
+        "The service first saves pending metadata. It marks the file available only after it verifies the object or completed multipart upload."
       ],
       "diagrams": [
         {
@@ -116,14 +116,16 @@
       ],
       "flows": [
         {
-          "title": "Upload a file and make it available",
+          "title": "Upload directly to object storage",
           "steps": [
-            "The client requests an upload session with file name, size, and content type; the file service authenticates the user and validates the request.",
-            "The service creates pending metadata and obtains or constructs scoped upload instructions for the intended object key.",
-            "The client uploads bytes directly to object storage using the signed URL or multipart session; the application server does not relay those bytes.",
-            "The client or storage notification reports completion. The backend verifies the actual object and required metadata with the storage provider.",
-            "Only after verification does the service mark the file available and record a change event for synchronization.",
-            "The API returns or exposes the completed file state. An interrupted upload remains pending and can resume or expire rather than appearing as a valid file."
+            "The client requests a presigned URL through the API Gateway. It supplies the file metadata.",
+            "The File Service creates metadata with an uploading status. It signs a URL for the intended S3 object.",
+            "The client uploads the file directly to S3 with that URL.",
+            "S3 sends a notification after the object upload completes.",
+            "The File Service verifies completion. Then it changes the metadata status to uploaded."
+          ],
+          "diagramFilenames": [
+            "05.svg"
           ]
         }
       ]
@@ -132,10 +134,10 @@
       "title": "2) Download and share files",
       "level": 4,
       "points": [
-        "The file service checks permissions and returns a signed object-storage or CDN URL; file bytes bypass application servers.",
-        "Use a CDN for geographically distributed downloads. Private content still requires signed URLs or equivalent authorization.",
-        "An embedded share list is simple, but finding all files shared with a user becomes expensive.",
-        "A separate user-to-file table supports that query directly and avoids maintaining conflicting copies of the share relationship."
+        "The file service verifies permissions. It returns a signed URL for object storage or a CDN. File bytes bypass application servers.",
+        "A CDN supports downloads across regions. Private files still need signed URLs or an equivalent authorization method.",
+        "A share list inside each file record is simple. However, a query for all files shared with one user is expensive.",
+        "A separate table connects users to files. It supports this query directly. One share record also avoids conflicting copies of permissions."
       ],
       "diagrams": [
         {
@@ -155,14 +157,17 @@
       ],
       "flows": [
         {
-          "title": "Authorize and download a shared file",
+          "title": "Download through the CDN",
           "steps": [
-            "The owner submits a sharing request identifying the file, recipient, and permission.",
-            "The service verifies the owner's sharing authority and commits the user-to-file permission record.",
-            "The recipient's file list queries the share mapping and returns authorized file metadata.",
-            "When the recipient requests a download, the file service checks current permission and file readiness again.",
-            "The service issues a short-lived object-storage or CDN download URL; the recipient downloads bytes directly through that URL.",
-            "The CDN or storage service verifies the signed request before serving the object. A failed authorization produces an error instead of a file transfer."
+            "The owner shares the file with a recipient. The File Service saves the user-to-file relationship in SharedFiles.",
+            "The recipient requests the file. The File Service checks permission in the metadata database.",
+            "The File Service returns a signed CDN URL with an expiration time.",
+            "The recipient requests the file from the CDN. The CDN validates the signature and expiration.",
+            "On a cache miss, the CDN fetches the file from S3. It returns the file to the recipient.",
+            "On a later cache hit, the CDN serves its local copy while the signed request remains valid."
+          ],
+          "diagramFilenames": [
+            "07.svg"
           ]
         }
       ]
@@ -171,10 +176,10 @@
       "title": "3) Synchronize devices",
       "level": 4,
       "points": [
-        "A local watcher detects changed files and uploads changed content, updating the authoritative metadata version.",
-        "Other devices consume change events and download newer content. Push notifications improve responsiveness; cursor-based polling recovers missed events.",
-        "Track create, update, and delete events. Retain tombstones long enough for offline devices to observe deletions.",
-        "Compare versions before overwriting content; concurrent local edits require an explicit conflict policy rather than silent data loss."
+        "A local watcher detects a file change. The client uploads the changed content. The service updates the authoritative metadata version.",
+        "Other devices read change events and download new content. Push notifications reduce delay. Polling from a saved cursor recovers missed events.",
+        "The change feed records file creation, updates, and deletion. A production design can retain deletion markers for offline devices.",
+        "The article uses last-write-wins for concurrent edits. This can discard an older edit. Version checks and conflict copies are possible extensions."
       ],
       "diagrams": [
         {
@@ -194,14 +199,17 @@
       ],
       "flows": [
         {
-          "title": "Propagate one device's edit to another",
+          "title": "Propagate an edit through the illustrated polling path",
           "steps": [
-            "A local file watcher notices an edit and persists the pending change on the device so it survives a restart.",
-            "The client identifies changed content and uploads missing or changed parts, reusing the resumable-upload process.",
-            "The backend verifies the new content and commits its metadata version. A stale base version triggers the chosen conflict policy rather than overwriting a concurrent edit silently.",
-            "A change-feed record identifies the updated file and version; a push message tells other devices that changes are available.",
-            "Each other device fetches changes after its saved cursor, downloads the authorized new version, and applies it locally.",
-            "The device advances its cursor only after applying the change. After a missed push or reconnect, polling the same change feed recovers the gap."
+            "A client-side watcher detects a local file change. The client adds the changed file to its upload queue.",
+            "The client uploads the changed content through the upload API. The File Service updates the metadata after completion.",
+            "Another device polls the File Service for changes after its last synchronization position.",
+            "The service returns the changed file metadata. The device downloads the new content through the download process.",
+            "The device applies the new content locally. It records the new synchronization position.",
+            "Each device repeats this poll. The source also describes push notifications as an extension to reduce delay."
+          ],
+          "diagramFilenames": [
+            "08.svg"
           ]
         }
       ]
@@ -217,11 +225,11 @@
       "title": "1) Large files and resumable uploads",
       "level": 4,
       "points": [
-        "Split large files into independently retryable parts and record an upload ID, part numbers, and returned ETags.",
-        "Resume by asking which parts already exist, uploading only missing parts, then completing the multipart upload.",
-        "Client reports are hints. Verify parts with the storage provider before marking them complete; ordinary object-created events do not report every multipart part.",
-        "Use file and chunk fingerprints to recognize repeated uploads and avoid transferring unchanged content.",
-        "Clean up abandoned upload sessions and incomplete parts after a bounded retention period."
+        "The client divides a large file into parts. Each part supports a separate retry. The client records the upload ID, part numbers, and returned ETags.",
+        "To continue an upload, the client requests the list of existing parts. It uploads missing parts. Then it completes the multipart upload.",
+        "Client reports do not prove completion. The server verifies parts with the storage provider. Ordinary object-created events do not describe every multipart part.",
+        "File and chunk fingerprints identify repeated content. The client can avoid another transfer of unchanged bytes.",
+        "A cleanup job removes abandoned sessions and incomplete parts after a defined retention period."
       ],
       "diagrams": [
         {
@@ -236,12 +244,17 @@
         {
           "title": "Resume and finalize a multipart upload",
           "steps": [
-            "The client opens an upload session, divides the file into parts, and tracks the upload ID and numbered parts.",
-            "It uploads parts independently and retains the storage provider's successful part identifiers or ETags.",
-            "After disconnection, it resumes the same session and asks which parts the server or provider has verified.",
-            "It uploads only missing parts; the backend verifies reported parts through the provider's multipart API rather than trusting client flags.",
-            "The backend requests completion using the verified ordered parts, then confirms the finalized object's existence and expected properties.",
-            "Only then does metadata transition to available. Abandoned sessions and orphaned parts are cleaned up separately."
+            "The client divides the file into parts. It calculates fingerprints for the file and each part.",
+            "The client checks for an existing upload of this content. For a new upload, the File Service creates a multipart session.",
+            "The service saves the upload ID and returns a presigned URL for each numbered part.",
+            "The client uploads each missing part to S3. It reports each successful part's ETag to the File Service.",
+            "The File Service checks the uploaded parts with S3 ListParts. It updates only verified part records.",
+            "After a disconnection, the client requests the existing part state. It uploads only the missing parts.",
+            "After all parts pass verification, the File Service calls CompleteMultipartUpload with the part numbers and ETags.",
+            "S3 assembles the object and confirms success. Only then does the service mark the file uploaded."
+          ],
+          "diagramFilenames": [
+            "10.svg"
           ]
         }
       ]
@@ -250,10 +263,10 @@
       "title": "2) Transfer performance",
       "level": 4,
       "points": [
-        "Upload independent parts concurrently within bandwidth and memory limits; expose progress using confirmed uploaded bytes.",
-        "Fixed-size chunks are simple, but an insertion shifts subsequent boundaries. Content-defined chunking can preserve reuse after edits.",
-        "Compress when the bandwidth savings exceed CPU cost; already compressed media may gain little. Compress before encryption.",
-        "Cache popular downloads near users and avoid caching every private file indefinitely."
+        "Independent parts can upload concurrently within bandwidth and memory limits. The progress display counts bytes that the provider has confirmed.",
+        "Fixed-size chunks are simple. However, an insertion changes later chunk boundaries. Content-defined chunking can retain reusable chunks after an edit.",
+        "Compression is useful when bandwidth savings exceed CPU costs. Previously compressed media can have little additional reduction. Compression occurs before encryption.",
+        "The cache keeps popular downloads near users. Private files do not need unlimited cache retention."
       ],
       "diagrams": [],
       "flows": []
@@ -262,9 +275,9 @@
       "title": "3) Security",
       "level": 4,
       "points": [
-        "Encrypt transfers with TLS and stored files with storage encryption; keep encryption keys separate from application data.",
-        "Recheck access before issuing a signed URL and choose a short expiration because an issued bearer URL remains usable until expiry.",
-        "Verify upload size, type, ownership, and completion on the server. Never trust a client-provided storage key to authorize access."
+        "TLS protects transfers. Storage encryption protects stored files. Encryption keys have separate storage from application data.",
+        "The service verifies access before it issues a signed URL. The URL expires soon because its holder can use it until expiration.",
+        "The server verifies upload size, type, ownership, and completion. A storage key from the client does not establish access permission."
       ],
       "diagrams": [],
       "flows": []
@@ -273,10 +286,10 @@
       "title": "Final Design",
       "level": 3,
       "points": [
-        "Clients transfer file bytes directly to object storage or the CDN; the file service manages metadata, permissions, and signed URLs.",
-        "Multipart state and server verification make uploads resumable without declaring incomplete files ready.",
-        "A change feed, device cursors, and version checks connect independent uploads into reliable synchronization.",
-        "Scale metadata services separately from storage bandwidth and background processing."
+        "Clients transfer bytes directly through object storage or a CDN. The file service manages metadata, permissions, and signed URLs.",
+        "Multipart records let uploads continue after failures. Server verification prevents the service from presenting incomplete files as ready.",
+        "The change feed and each device's last synchronization position connect separate uploads into a synchronization process.",
+        "Metadata services, storage transfers, and background workers can scale separately."
       ],
       "diagrams": [
         {

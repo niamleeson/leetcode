@@ -1,88 +1,104 @@
 Understanding the Problem
-- Track product prices over time and notify users when a price crosses their chosen threshold.
-- Discovery, trustworthy price collection, time-series storage, and notification fanout are separate parts of the pipeline.
+- The service records product prices over time. It alerts subscribers when a price meets their selected threshold.
+- Collection, validation, history queries, and notifications have separate responsibilities and capacity needs.
 
 Functional Requirements
-- Show price history from a website or browser extension.
-- Subscribe to price-drop notifications for a product and threshold.
-- Continuously discover and refresh product prices.
+- Users can view price history on the website or browser extension.
+- Users can subscribe to a product with a price threshold and notification preference.
+- The system discovers products and refreshes prices. Search, reviews, and comparisons across retailers are outside the initial scope.
 
 Non-functional Requirements
-- Scale to a catalog of around 500 million products without polling every product at the same high frequency.
-- Return chart data quickly and avoid duplicate or misleading alerts.
-- Treat extension-provided prices as untrusted observations, not automatically authoritative prices.
+- The scenario contains about 500 million products. The system cannot refresh every product at the same high frequency.
+- History requests should complete within 500 ms. The notification target is within one hour of the qualifying price change.
+- Favor availability, but distinguish unverified observations from trusted prices. Duplicate collection must not create misleading alerts.
 
 Core Entities
-- Product identifies a marketplace item and canonical URL.
-- PriceObservation records price, currency, timestamp, source, and validation state.
-- Subscription links a user and product to a threshold and delivery preferences.
-- CrawlJob and Notification track scheduled collection and retry-safe delivery.
+- Product identifies a marketplace item, canonical URL, and collection state. User contains contact details and notification preferences.
+- PriceObservation contains the product, price, currency, timestamp, source, and validation state.
+- Subscription connects a user and product with a threshold and delivery settings.
+- CrawlJob records scheduled collection. Notification records a qualifying price event and its delivery attempts.
 
 API
-- Query product history over a time range and requested chart resolution.
-- Create, update, or remove a threshold subscription.
-- Submit extension observations with product identity and evidence for validation.
-- Return subscription state and distinguish accepted observations from verified prices.
+- GET /products/{productId}/price accepts a period and granularity. It returns a bounded set of points for a chart.
+- POST /subscriptions creates a threshold subscription. The Subscription Service also supports changes and removal.
+- The extension reports product identity, observed price, and source evidence to the Price Update Service.
+- A response distinguishes receipt from verification. Subscription status shows the active threshold and delivery settings.
 
 High-Level Design
 
 1) History and collection
-- Collect prices through permitted source interfaces, scheduled fetches, and extension observations.
-- Normalize product identity, currency, and timestamps before storing a time series.
-- Index history by product and time; serve a bounded number of chart points rather than every raw observation.
+- The initial Web Crawler collects product prices. The Price History Service queries stored observations by product and time.
+- Normalize product identifiers, currency, and timestamps. Keep collection metadata in the Primary DB and history in the Price DB.
+- Index history by product and time. Return a useful chart resolution instead of every stored observation.
 
-Process: Collect and verify a price observation
-- 1. A scheduler, source interface, or browser extension supplies a product observation with price, currency, time, and provenance.
-- 2. The ingestion service normalizes product identity and validates the format, rate limits, and plausible value range.
-- 3. Untrusted or anomalous observations enter verification; they do not immediately replace the authoritative price or trigger alerts.
-- 4. The service persists a verified observation and compares it with the previous accepted price.
-- 5. A real change produces a durable price-change event for history projections and subscription evaluation; duplicates retain the same event identity.
+Process: Read stored price history
+- 1. The client requests a product and time range through the API Gateway.
+- 2. The API Gateway routes the request to the Price History Service.
+- 3. The service queries the Price DB for that product and range.
+- 4. It returns ordered price points. The website or extension renders the chart.
 
 2) Subscriptions and alerts
-- Store subscriptions indexed by product and threshold so a price change can locate eligible subscribers.
-- Publish verified price-change events and process notification work asynchronously.
-- Define whether an alert fires on crossing the threshold, every lower price, or once until rearmed.
+- The Subscription Service stores the user, product, and price threshold. An index supports product-based subscriber lookup.
+- The initial Notification Cron checks price changes every two hours. This cannot meet the one-hour target in the worst case.
+- The later design uses price-change events. Define whether an alert fires once, on each lower price, or after a threshold crossing.
+
+Process: Check subscriptions with the initial cron job
+- 1. The Subscription Service stores the user's product and threshold in the Primary DB.
+- 2. Every two hours, the Notification Cron queries recent price changes.
+- 3. For each change, it finds subscriptions whose thresholds match the new price.
+- 4. It sends email notifications and records which notifications were sent. This interval can exceed the one-hour delivery target.
 
 Deep Dives
 
 1) Discover and refresh products
-- A naive full-catalog crawl wastes work on unpopular products whose prices rarely change.
-- Prioritize tracked products, recently active products, and those with frequent price changes.
-- Use user activity and extension observations as discovery signals, then schedule authoritative verification where needed.
-- Keep per-source limits, retry backoff, and crawl state so failures do not restart the entire catalog scan.
-- Partition collection tasks by product or source while avoiding concentrated load on one publisher endpoint.
+- A full catalog crawl spends too much work on rarely viewed products. A frontier queue records URLs awaiting collection.
+- Prioritize products with active subscriptions, frequent views, or changing prices. Give less active products longer refresh intervals.
+- The extension supplies observations for products that users already visit. It also discovers products missing from the catalog.
+- Crawlers cover products without recent extension observations. Priority verification jobs check suspicious or conflicting reports.
+- Keep source limits, retry delays, and crawl checkpoints. A failed request must not restart the catalog scan.
+- Spread collection tasks across workers while preserving limits for each source. Priority alone does not remove source capacity constraints.
+
+Process: Collect extension observations
+- 1. The extension reads a product identifier and displayed price while the user views a product page.
+- 2. It sends the observation to the Price Update Service.
+- 3. The service normalizes the product and checks the observation. An unknown product creates a discovery record.
+- 4. The service records accepted observations and their provenance. Suspicious reports enter the chosen verification policy.
+- 5. The Scheduler gives verification jobs priority. Crawlers also refresh products without recent extension observations.
 
 2) Validate malicious observations
-- Authenticate clients where possible, rate-limit submissions, and compare observations with historical ranges and independent sources.
-- A single extreme report should trigger verification rather than immediately notify thousands of subscribers.
-- Store provenance and confidence so suspicious data can be corrected without losing the audit trail.
+- Validate format and plausible price ranges. Track report origin and reporter history. Several independent reports can increase confidence.
+- The source compares consensus with immediate acceptance followed by verification. Immediate alerts can still spread an incorrect price before correction.
+- For suspicious reports, a stricter option holds alerts until verification succeeds. This trades notification speed for fewer false alerts.
+- Keep provenance and validation status. Correct bad observations without deleting the record of how the error occurred.
 
 3) Notify efficiently
-- For a new price, query subscriptions whose threshold is satisfied using an indexed access path.
-- Batch recipient work and enqueue delivery jobs so a popular product does not block price ingestion.
-- Deduplicate by subscription and qualifying price event, then honor current notification preferences at delivery time.
-- Retry provider failures with backoff and retain a terminal failure state for inspection.
+- Database change capture publishes price changes to the Price Change Stream. Workers query subscriptions whose thresholds match the new price.
+- This replaces repeated scans for all changed prices. Split large recipient sets into bounded delivery work.
+- Deduplicate each subscription and qualifying event. Recheck whether the subscription is active before sending.
+- Retry temporary provider failures with delay. Retain a final failure state for inspection.
+- Independent database and stream writes can diverge after failure. Use recoverable publication, such as change capture or an outbox.
 
-Process: Send a threshold-crossing alert
-- 1. A consumer receives a verified price-change event and looks up subscriptions for that product whose thresholds may be satisfied.
-- 2. It checks each subscription's alert semantics, such as crossing from above the threshold to at or below it.
-- 3. It records a deduplicated notification intent keyed by subscription and qualifying event, then reliably enqueues delivery work.
-- 4. A delivery worker rechecks active preferences, sends through the chosen provider, and records the attempt outcome.
-- 5. Transient failures retry with the same logical notification identity; already applied events do not generate another alert merely because queue delivery repeated.
+Process: Send an event-driven price alert
+- 1. A committed price change enters the Price Change Stream through database change capture.
+- 2. A Price Change Worker reads the event. It queries matching subscriptions in the Primary DB.
+- 3. The worker applies each subscription's threshold rule. It records a notification identity for the subscription and event.
+- 4. Delivery work checks active preferences and sends the notification. It records the provider result.
+- 5. Temporary failures retry with the same identity. A repeated price event must not create a new logical alert.
 
 4) Fast historical charts
-- Partition time-series data by product and time to keep range scans bounded.
-- Precompute hourly or daily aggregates for long ranges, retaining recent detailed samples where useful.
-- Cache popular product/range combinations and ensure the resolution matches the displayed chart width.
-- Preserve meaningful minima and maxima when downsampling so a short-lived price drop is not erased.
+- Partition price history by product and time. A chart query should scan only the required range.
+- Scheduled aggregation can store daily, weekly, and monthly summaries. This reduces reads but introduces aggregation delay.
+- TimescaleDB is the source's alternative for partitioned time-series queries. Query performance still depends on indexes, data volume, and the requested range.
+- Store popular ranges in a cache or use rollups when measurement shows a need. Return a resolution suitable for the chart width.
+- Keep minimum and maximum prices when reducing detail. An average alone can hide a short price drop.
 
-Process: Return chart data at a useful resolution
-- 1. The client requests a product, time range, and desired chart resolution.
-- 2. The query service checks a compatible cached result, then selects raw data or an appropriate rollup for that range.
-- 3. It reads bounded product/time partitions and preserves the aggregates needed to represent meaningful price changes.
-- 4. It returns ordered points and resolution metadata; the client renders the chart without downloading every raw observation.
+Process: Query a time-series price history
+- 1. The client requests a product, time range, and aggregation interval.
+- 2. The Price History Service queries the matching range in TimescaleDB.
+- 3. The query groups observations into the requested intervals. The selected aggregates preserve the information needed for the chart.
+- 4. The service returns ordered points and resolution information. The client renders the chart without fetching all raw observations.
 
 Final Design
-- Adaptive collection and validation produce trustworthy price-change events.
-- Time-series storage and downsampled views serve history; indexed subscriptions drive asynchronous alerts.
-- Provenance, deduplication, and explicit alert semantics prevent noisy collection from becoming misleading notifications.
+- The Crawler and Price Update Service collect prices. The Scheduler prioritizes refreshes and verification work.
+- PostgreSQL stores products and subscriptions. TimescaleDB serves price history. Database change capture feeds the Price Change Stream.
+- Price Change Workers find eligible subscriptions and send alerts. Provenance, deduplication, and explicit threshold rules protect notification quality.

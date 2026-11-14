@@ -5,8 +5,8 @@
       "title": "The Challenge",
       "level": 3,
       "points": [
-        "Writes must update durable state, indexes, replication, and sometimes shared invariants.",
-        "Scaling is constrained by the hottest serialized resource, not merely the total number of application servers."
+        "Each write can update durable data, indexes, and replicas. Shared invariants can also force writes to run in sequence.",
+        "Find the busiest constrained component. Adding application servers does not remove a single hot row or storage bottleneck."
       ],
       "diagrams": [
         {
@@ -30,10 +30,10 @@
       "title": "1) Vertical scaling and write optimization",
       "level": 4,
       "points": [
-        "Improve CPU, memory, storage, and transaction efficiency before introducing unnecessary distribution.",
-        "Remove unused indexes, shorten transactions, reuse connections, and batch related writes where semantics permit.",
-        "B-tree and log-structured storage engines have different read, write, compaction, and space tradeoffs.",
-        "A database choice must match access patterns and durability needs rather than a generic SQL-versus-NoSQL slogan."
+        "Measure CPU, memory, disk, and network limits before adding distribution. Better hardware can provide useful capacity with less architectural complexity.",
+        "Shorten transactions, reuse connections, and remove unnecessary write work. Batch operations when their ordering and durability rules permit it.",
+        "B-tree and log-structured engines make different tradeoffs. Sequential writes can improve throughput but leave more read or compaction work.",
+        "Cassandra, time-series stores, and column stores fit different workloads. Choose from required operations and durability, not a generic SQL-versus-NoSQL label."
       ],
       "diagrams": [],
       "flows": []
@@ -42,11 +42,11 @@
       "title": "2) Sharding and partitioning",
       "level": 4,
       "points": [
-        "Horizontal sharding distributes records across independent write owners.",
-        "Choose a high-cardinality key that spreads traffic and keeps commonly related operations local.",
-        "Time-only keys can make the newest partition hot; tenant-only keys can overload a single large tenant.",
-        "Vertical partitioning separates data or services with different update patterns, reducing interference.",
-        "Cross-shard operations need coordination or redesigned boundaries; sharding does not preserve every single-node convenience."
+        "Horizontal sharding spreads records across write owners. Redis Cluster, for example, maps hashed key slots to server nodes.",
+        "Choose a key that spreads write traffic while keeping related reads local. A high number of possible keys alone does not ensure balance.",
+        "A country key can overload populous regions. Hashing user IDs often distributes work better, but unusually active users still need attention.",
+        "Vertical partitioning separates fields with different workloads. Post content, engagement counters, and analytics can use different stores or tables.",
+        "Check how many shards each common read and write touches. Cross-shard operations add coordination, network calls, and failure cases."
       ],
       "diagrams": [
         {
@@ -64,16 +64,29 @@
           "height": 482.49724397703864
         }
       ],
-      "flows": []
+      "flows": [
+        {
+          "title": "Route a Redis Cluster write to its slot owner",
+          "steps": [
+            "The Redis Client obtains the cluster's key-slot ownership map.",
+            "It hashes the requested key to determine the slot.",
+            "It sends the write to the server that owns that slot.",
+            "It refreshes routing information when ownership changes or the cluster redirects the request."
+          ],
+          "diagramFilenames": [
+            "02.svg"
+          ]
+        }
+      ]
     },
     {
       "title": "3) Queues and load shedding",
       "level": 4,
       "points": [
-        "A durable queue absorbs short bursts and allows workers to process at a sustainable rate.",
-        "Queues do not fix a permanently insufficient processing rate; backlog age grows without bound unless capacity or admission changes.",
-        "Return acceptance separately from completion when writes become asynchronous.",
-        "Reject, defer, or deprioritize work before overload exhausts memory and causes broader failure."
+        "Kafka or SQS can buffer a short write burst. Workers drain accepted requests at a rate the database can sustain.",
+        "A queue cannot fix permanent undercapacity. If arrivals remain faster than processing, both backlog size and completion delay keep growing.",
+        "Queue acknowledgement means acceptance, not database completion. Provide a status path when callers need to know that the write finished.",
+        "Shed or defer lower-priority writes before overload causes broader failure. For repeated location updates, a later update may replace an older one."
       ],
       "diagrams": [
         {
@@ -93,13 +106,16 @@
       ],
       "flows": [
         {
-          "title": "Accept a burst and drain it sustainably",
+          "title": "Accept a burst and drain the write queue",
           "steps": [
-            "The ingestion API validates the request and applies admission limits before promising more work than it can retain.",
-            "It persists the accepted intent or receives the required durable queue acknowledgement, then returns accepted status with an identifier.",
-            "Workers claim queued work at a rate the storage and downstream systems can sustain.",
-            "They batch compatible operations, commit the output, and acknowledge progress after the required durable boundary.",
-            "Queue age and capacity drive scaling or further admission control; a continuously growing backlog is not solved merely by keeping the queue open."
+            "The App Server validates the request and submits accepted work to the Write Queue.",
+            "It waits for the required queue acknowledgement before confirming acceptance to the caller.",
+            "A Worker reads the queued request and writes the result to the database.",
+            "It acknowledges progress only after the required output is safe.",
+            "The caller checks completion separately when needed. Queue age must remain bounded by capacity and admission policy."
+          ],
+          "diagramFilenames": [
+            "04.svg"
           ]
         }
       ]
@@ -108,11 +124,11 @@
       "title": "4) Batching and aggregation",
       "level": 4,
       "points": [
-        "Combine many small writes into fewer database operations to amortize network and transaction overhead.",
-        "Batch in clients, intermediate processors, or the database interface according to latency and failure requirements.",
-        "For counters or metrics, aggregate partial values locally and merge them hierarchically.",
-        "Preserve ordering and idempotency where required; retrying a batch must not add the same increments twice.",
-        "Larger batches improve throughput but increase delay and the amount of work replayed after failure."
+        "Batching combines small writes to reduce network, transaction, and storage overhead. It adds a delay before the combined operation runs.",
+        "Batch in an application or intermediate processor. Do not acknowledge volatile buffered data as durable unless a replayable source retains it.",
+        "A Like Batcher combines increments per post. Hierarchical Write Processors can aggregate local changes before a Root Processor merges them.",
+        "Broadcast Nodes then distribute the shared result to their clients. Retry and ordering rules must prevent repeated batches from duplicating effects.",
+        "Larger batches improve efficiency only when work combines usefully. One like per post per window provides little aggregation benefit."
       ],
       "diagrams": [
         {
@@ -144,15 +160,42 @@
           "height": 450.10743713378906
         }
       ],
-      "flows": []
+      "flows": [
+        {
+          "title": "Combine like events before database writes",
+          "steps": [
+            "Kafka receives individual like events.",
+            "The Like Batcher groups events by post during a chosen window.",
+            "It emits combined like-count changes into the downstream Kafka topic.",
+            "A consumer applies those changes to the Likes DB with the required retry protection.",
+            "The window trades fewer writes for delayed visibility. Sparse posts may gain little from this batch."
+          ],
+          "diagramFilenames": [
+            "06.svg"
+          ]
+        },
+        {
+          "title": "Aggregate updates through a processing hierarchy",
+          "steps": [
+            "Clients send comments and likes to Write Processors selected by the relevant comment ID.",
+            "Each Write Processor combines local changes over a short window.",
+            "The Root Processor merges the batches into a shared update.",
+            "Broadcast Nodes receive that update and forward it to their assigned clients.",
+            "Each layer handles less traffic than a single all-to-all processor, at the cost of additional delay."
+          ],
+          "diagramFilenames": [
+            "09.svg"
+          ]
+        }
+      ]
     },
     {
       "title": "When to Use",
       "level": 3,
       "points": [
-        "Apply this pattern to event ingestion, telemetry, click aggregation, feed fanout, and other write-heavy pipelines.",
-        "First estimate sustained and burst rates and identify whether the limit is storage I/O, lock contention, CPU, or a hot key.",
-        "Do not add sharding when a better index, shorter transaction, or modest hardware change solves the actual problem."
+        "This pattern fits telemetry, click processing, search ingestion, feed updates, and live comments. Each can produce more writes than one component handles.",
+        "Estimate normal and peak traffic. Identify whether storage I/O, CPU, network, lock contention, or one key causes the limit.",
+        "Start with a simpler fix when it meets the requirement. Sharding and queues add failure modes and operational work."
       ],
       "diagrams": [],
       "flows": []
@@ -168,20 +211,20 @@
       "title": "1) Resharding",
       "level": 4,
       "points": [
-        "Introduce a routing version, copy existing data, and capture concurrent changes during migration.",
-        "Switch ownership carefully and retain a rollback or reconciliation path.",
-        "Consistent hashing reduces key movement but does not by itself implement safe data transfer or concurrent-write handling."
+        "Reshard gradually while the system remains available. The source proposes copying records while writes reach both old and new locations.",
+        "Dual writes can partially fail. Track and reconcile migration progress before moving read preference or write ownership permanently.",
+        "Consistent hashing reduces how many keys move. It does not itself copy data or protect concurrent updates during migration."
       ],
       "diagrams": [],
       "flows": [
         {
-          "title": "Move a shard without losing concurrent writes",
+          "title": "Migrate records while writes continue",
           "steps": [
-            "The system chooses a new ownership map/version and establishes a migration boundary for the affected key range.",
-            "It copies existing records to the destination while capturing writes that occur during the copy.",
-            "The destination applies those changes and catches up to a verified point under the selected migration protocol.",
-            "Routing switches through a controlled ownership transition, with forwarding or version checks handling clients that still use the old map.",
-            "Old ownership is fenced before conflicting writes are possible; the source copy is retired only after validation and the rollback policy allow it."
+            "The system selects the destination shards and records the migration boundaries.",
+            "It copies existing records while routing new changes to both old and new locations under the chosen migration protocol.",
+            "It tracks partial write failures and reconciles the destination until it reaches the required state.",
+            "Reads prefer the verified destination as ownership transitions. Stale routes need explicit forwarding or rejection behavior.",
+            "Retire the old copy only after validation and the rollback policy permit it. Dual writes alone do not guarantee a lossless migration."
           ]
         }
       ]
@@ -190,10 +233,10 @@
       "title": "2) Hot keys",
       "level": 4,
       "points": [
-        "More shards do not divide writes to one atomic key.",
-        "Split aggregatable counters into subkeys and merge on read or in a second aggregation stage.",
-        "Dynamic splitting limits overhead to hot keys but requires routing metadata and a safe merge/transition protocol.",
-        "Some invariants cannot be freely split, such as claiming one unique seat; admission control or a serialized owner remains necessary."
+        "More shards do not divide writes to one key. A viral post can overload even a shard dedicated to that post.",
+        "Split an additive counter into subkeys and combine their values during reads. This trades lower write contention for more read work.",
+        "Split only hot keys when useful. Readers and writers must agree on all active subkeys before the transition can preserve totals.",
+        "Some operations cannot be split independently, such as claiming one specific seat. Keep an authoritative owner and control incoming demand."
       ],
       "diagrams": [
         {
@@ -204,15 +247,28 @@
           "height": 411.9807586669922
         }
       ],
-      "flows": []
+      "flows": [
+        {
+          "title": "Split an additive counter across subkeys",
+          "steps": [
+            "Writers and readers agree on the subkeys used for the logical counter.",
+            "Each writer chooses one subkey and applies its increment there.",
+            "A reader fetches all active subkeys and combines their values.",
+            "A dynamic split updates routing before new subkeys receive writes. Retried increments still need protection against duplicate application."
+          ],
+          "diagramFilenames": [
+            "10.svg"
+          ]
+        }
+      ]
     },
     {
       "title": "Conclusion",
       "level": 3,
       "points": [
-        "Optimize each write, distribute independent work, smooth bursts, and aggregate where the operation allows it.",
-        "Monitor queue age, per-partition load, retries, and compaction or replication lag rather than only total throughput.",
-        "Make the consistency and latency cost of each scaling step explicit."
+        "Reduce work per component through local optimization, partitioning, queues, or aggregation. Choose only strategies compatible with the required semantics.",
+        "Monitor queue age, partition load, retries, and storage or replication lag. Total throughput can hide one overloaded component.",
+        "Explain the delay, freshness, and correctness cost of each scaling choice. Higher throughput alone does not establish a successful design."
       ],
       "diagrams": [
         {

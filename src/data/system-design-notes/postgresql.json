@@ -5,8 +5,8 @@
       "title": "Overview",
       "level": 3,
       "points": [
-        "PostgreSQL is a relational database with transactions, constraints, flexible queries, and multiple index types.",
-        "It is a strong starting point when related records and correctness-sensitive updates fit within one database boundary."
+        "PostgreSQL is a relational database. It supports transactions, constraints, flexible queries, and several index types.",
+        "It is a strong starting point when related records and critical updates fit within one database's transaction boundary."
       ],
       "diagrams": [],
       "flows": []
@@ -15,10 +15,10 @@
       "title": "Read Performance",
       "level": 3,
       "points": [
-        "B-tree indexes support common equality, range, and ordering queries; composite index order must match access patterns.",
-        "Unique indexes enforce invariants such as one review per user/business pair under concurrency.",
-        "GIN indexes support appropriate document, array, and full-text workloads; spatial extensions provide specialized geographic capabilities.",
-        "Use EXPLAIN and measured query plans to inspect scans, joins, row estimates, and sorting rather than guessing which index helps."
+        "B-tree indexes support equality, range, and ordered queries. Choose composite index columns in the order needed by the access pattern.",
+        "A unique constraint can enforce one review per user and business, including concurrent submissions.",
+        "GIN indexes support suitable full-text, array, and JSONB queries. PostGIS adds spatial types and indexes for geographic queries.",
+        "Use EXPLAIN and measured plans to inspect scans, joins, row estimates, and sorting. Verify which operation causes the delay."
       ],
       "diagrams": [],
       "flows": [
@@ -26,10 +26,10 @@
           "title": "Execute an indexed read",
           "steps": [
             "The application sends a parameterized query through its connection pool.",
-            "PostgreSQL parses and plans the query, choosing scans, indexes, joins, and sorting based on available statistics and predicates.",
-            "Execution reads candidate tuples and checks visibility under the transaction's snapshot, using suitable indexes to avoid unnecessary rows.",
-            "The executor applies remaining filters and aggregation, orders or limits the result, and returns rows to the client.",
-            "A query on a replica observes that replica's replay progress; the application routes freshness-sensitive reads to a path that satisfies their requirement."
+            "PostgreSQL plans the query using its statistics, predicates, and available indexes.",
+            "Execution reads candidate rows and checks visibility under the transaction's snapshot.",
+            "The executor applies the remaining filters, joins, ordering, and limits. It returns the selected rows.",
+            "If the query uses a replica, its result reflects that replica's progress. Route freshness-sensitive reads accordingly."
           ]
         }
       ]
@@ -38,10 +38,10 @@
       "title": "Query Optimization",
       "level": 3,
       "points": [
-        "Covering indexes can avoid some table lookups, subject to visibility and query requirements.",
-        "Partial indexes target a useful subset, such as active records, reducing index size and maintenance work.",
-        "Cursor pagination and selective predicates avoid increasingly expensive offset scans.",
-        "Connection pooling bounds database connection overhead; it does not fix inefficient queries or lock contention."
+        "A covering index can supply required columns without some table lookups. Visibility checks and query requirements still affect execution.",
+        "A partial index covers a selected subset, such as active records. This can reduce index size and update work.",
+        "Selective filters and cursor pagination avoid repeatedly scanning and discarding earlier pages.",
+        "A connection pool such as PgBouncer limits database connection overhead. It does not repair an inefficient query or lock conflict."
       ],
       "diagrams": [],
       "flows": []
@@ -50,11 +50,11 @@
       "title": "Write Performance",
       "level": 3,
       "points": [
-        "Each write may update indexes, produce WAL, and participate in replication; unnecessary indexes make writes more expensive.",
-        "Keep transactions short and batch operations where their atomicity and latency requirements permit.",
-        "Bulk loading and appropriate upsert patterns reduce per-row overhead.",
-        "Partitioning can improve pruning and lifecycle management, but partitions inside one primary do not automatically provide independent write servers.",
-        "Monitor WAL, storage latency, checkpoints, autovacuum, and lock waits to identify the actual bottleneck."
+        "Writes change table data and indexes, produce WAL, and may wait for replication. Unnecessary indexes increase write cost.",
+        "Keep transactions short. Batch operations when their latency and atomicity requirements allow it.",
+        "Bulk loading and suitable upserts can reduce per-row request overhead.",
+        "Table partitioning helps query pruning and data lifecycle management. Partitions on one primary do not create independent write servers.",
+        "Monitor WAL, storage latency, checkpoints, autovacuum, and lock waits. Scale the measured bottleneck."
       ],
       "diagrams": [],
       "flows": []
@@ -63,11 +63,11 @@
       "title": "Replication and High Availability",
       "level": 3,
       "points": [
-        "Read replicas distribute read traffic and provide recovery candidates, but asynchronous replicas can lag.",
-        "Route read-after-write or other freshness-sensitive requests to a suitable authoritative path.",
-        "Synchronous replication improves specified acknowledgement guarantees at a latency and availability cost.",
-        "Failover needs a single writable primary and fencing against the old primary; promoting a replica alone does not solve split brain.",
-        "Backups and WAL-based recovery complement replication because replicas can also copy accidental deletion or bad writes."
+        "Read replicas distribute read traffic and provide failover candidates. Asynchronous replicas can lag behind the primary.",
+        "Send freshness-sensitive reads to a path that meets their requirement. A recent write may not yet appear on a replica.",
+        "Synchronous replication waits for the configured replica acknowledgement. This adds network delay and can reduce availability during replica failures.",
+        "Failover must leave one writable primary. Prevent the old primary from accepting conflicting writes when it returns.",
+        "Backups and WAL recovery complement replication. A replica can copy an accidental deletion or another unwanted write."
       ],
       "diagrams": [
         {
@@ -84,24 +84,26 @@
       "title": "Transactions and Concurrent Operations",
       "level": 3,
       "points": [
-        "ACID transactions commit related changes together and enforce database constraints.",
-        "A read followed by an unconditional update can still race under common isolation settings.",
-        "Use conditional updates, unique constraints, row locks, or serializable transactions according to the invariant.",
-        "Serializable conflicts and deadlocks require bounded whole-transaction retries.",
-        "Avoid keeping locks open across user interaction or external network calls; represent longer claims with explicit reservation state.",
-        "Use a transactional outbox when a committed database change must reliably produce an external event."
+        "A transaction commits related changes together. Database constraints reject changes that violate declared rules.",
+        "A read followed by an unconditional update can still race. Default Read Committed isolation does not prevent every concurrency anomaly.",
+        "Use conditional writes, unique constraints, row locks, or Serializable isolation for the specific invariant.",
+        "Retry the complete transaction after a retryable serialization failure or deadlock. Limit attempts.",
+        "Avoid holding row locks during user interaction or external network calls. Use explicit reservation state for longer claims.",
+        "If a committed change must publish an external event, a transactional outbox can make the publication recoverable.",
+        "Repeatable Read provides a stable transaction snapshot. PostgreSQL prevents phantom reads at this level, but serialization anomalies can remain.",
+        "Serializable execution prevents serialization anomalies by rejecting some conflicting transactions. The application must handle those failures."
       ],
       "diagrams": [],
       "flows": [
         {
           "title": "Commit a correctness-sensitive transaction",
           "steps": [
-            "The service begins a transaction and establishes the required isolation level and retry policy.",
-            "It obtains needed row locks or includes current-state/version predicates in the writes, then validates the business invariant against that protected state.",
-            "It updates related rows and any outbox/audit records; uniqueness and other constraints can reject invalid results before successful commit.",
-            "PostgreSQL commits according to the selected durability settings, including the required WAL flush and configured synchronous-replication acknowledgement conditions.",
-            "Only after successful commit does the service acknowledge the business operation. A rollback, deadlock, or serialization failure returns an error or causes a bounded whole-transaction retry.",
-            "Replicas apply WAL asynchronously or according to the selected synchronization mode, and background checkpoints persist dirty data pages separately from transaction commit."
+            "The service starts a transaction with the required isolation level.",
+            "It locks the required rows or includes current-state conditions in its writes. It checks the business invariant against that protected state.",
+            "It updates the related rows. Database constraints reject invalid results. Any required outbox record belongs in the same transaction.",
+            "PostgreSQL commits under the selected durability policy. This includes the required WAL flush and configured synchronous replica acknowledgement.",
+            "The service acknowledges success only after commit. It rolls back failures and retries the whole transaction when the error permits.",
+            "Background work writes dirty data pages later. A transaction does not wait for a full checkpoint before it can commit."
           ]
         }
       ]
@@ -110,10 +112,10 @@
       "title": "When to Use and Alternatives",
       "level": 3,
       "points": [
-        "Choose PostgreSQL for relational models, transactional workflows, flexible querying, and workloads an indexed primary can serve well.",
-        "Add replicas and caches when reads dominate, and consider specialized search or analytical stores for distinct query workloads.",
-        "Very high distributed write volume may require sharding or another storage model, with corresponding coordination costs.",
-        "Do not replace the database solely because a design is 'large'; estimate the workload and name the limiting operation."
+        "Use PostgreSQL for relational data, transactional workflows, flexible queries, and workloads that an indexed primary can serve.",
+        "Add replicas or caches for read-heavy traffic. Introduce specialized search or analytics stores when their query capabilities are needed.",
+        "Very high write traffic or multi-region write requirements can require sharding or another database. Explain the resulting coordination costs.",
+        "Large data volume alone does not justify replacing PostgreSQL. Estimate the workload and identify the limiting operation."
       ],
       "diagrams": [],
       "flows": []
@@ -122,10 +124,10 @@
       "title": "SQL and ACID Essentials",
       "level": 3,
       "points": [
-        "Tables represent related entities, primary keys identify rows, and foreign keys enforce supported relationships.",
-        "Atomicity means all-or-nothing transaction effects; consistency means preserving declared invariants.",
-        "Isolation describes concurrent transaction behavior; durability concerns committed data surviving failures under the configured guarantees.",
-        "SELECT reads data; INSERT, UPDATE, and DELETE modify it; schema and transaction commands define structure and execution boundaries."
+        "Tables store related records. Primary keys identify rows. Foreign keys enforce the relationships declared in the schema.",
+        "Atomicity means all transaction changes succeed together or fail together. Consistency means preserving the declared data invariants.",
+        "Isolation defines concurrent transaction behavior. Durability defines which committed changes survive failures under the selected settings.",
+        "SELECT reads data. INSERT, UPDATE, and DELETE change it. Schema commands define structure; transaction commands define execution boundaries."
       ],
       "diagrams": [],
       "flows": []
@@ -134,8 +136,8 @@
       "title": "Summary",
       "level": 3,
       "points": [
-        "Start with a sound schema, explicit constraints, and query-driven indexes.",
-        "Scale measured bottlenecks and retain clear transaction, replication, and recovery semantics as infrastructure grows."
+        "Start with a suitable schema, explicit constraints, and indexes for real queries.",
+        "Scale measured bottlenecks. Keep transaction, replication, and recovery guarantees clear as the architecture grows."
       ],
       "diagrams": [],
       "flows": []

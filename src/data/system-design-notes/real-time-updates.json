@@ -5,8 +5,8 @@
       "title": "The Problem",
       "level": 3,
       "points": [
-        "Deliver changes to interested clients quickly without forcing every client to repeatedly query the primary database.",
-        "Solve two separate routing problems: how a client maintains a connection, and how an event reaches the server holding that connection."
+        "Deliver new information to interested clients quickly. Repeated database polling becomes expensive when many clients need frequent updates.",
+        "Solve two paths separately: server to client, and update source to the server that holds the client connection."
       ],
       "diagrams": [],
       "flows": []
@@ -15,8 +15,8 @@
       "title": "The Solution",
       "level": 3,
       "points": [
-        "Choose a transport based on direction, latency, update frequency, and infrastructure constraints.",
-        "Keep durable event state separate from connection state when reconnecting clients must recover missed updates."
+        "Select a transport from the required direction, frequency, and latency. Every proxy on the path must support that transport.",
+        "A live connection does not retain history. Store events separately when clients must recover updates missed during a disconnection."
       ],
       "diagrams": [
         {
@@ -40,10 +40,10 @@
       "title": "1) Networking and load balancers",
       "level": 4,
       "points": [
-        "TCP establishes a connection between endpoints; HTTP defines requests and responses over a transport.",
-        "Layer 4 load balancers route connections without understanding application messages.",
-        "Layer 7 proxies understand HTTP and can terminate connections, apply routing, and create separate upstream connections.",
-        "Persistent connections require suitable proxy timeouts, keepalives, and a plan for draining connections during deployments."
+        "IP routes packets. TCP provides an ordered connection, while HTTP defines application requests and responses; connection setup adds latency.",
+        "A Layer 4 Load Balancer routes using transport information such as addresses and ports. It does not inspect application messages.",
+        "A Layer 7 Load Balancer can inspect HTTP requests and choose an upstream service. It can terminate the incoming connection.",
+        "Configure timeouts and keepalives for persistent connections. Plan for reconnects when a deployment drains or closes those connections."
       ],
       "diagrams": [
         {
@@ -74,10 +74,10 @@
       "title": "2) Polling and long polling",
       "level": 4,
       "points": [
-        "Simple polling requests updates on an interval. It is easy to implement but trades freshness against repeated empty requests.",
-        "Long polling holds a request until an update or timeout, then the client opens another request.",
-        "Long polling lowers idle request volume, but still needs connection capacity, retry handling, and a cursor to avoid missed events between requests.",
-        "Use ordinary polling when update frequency and latency requirements do not justify persistent infrastructure."
+        "Simple polling requests current data at a fixed interval. Shorter intervals improve freshness but produce more requests, including empty responses.",
+        "Long polling holds a request until an update arrives or a timeout occurs. After the response, the client opens another request.",
+        "Reopening long polls adds delay when updates arrive close together. Use a cursor and retained updates to cover gaps between requests.",
+        "Polling is suitable when a few seconds of delay is acceptable. It also works well for brief waits on asynchronous work."
       ],
       "diagrams": [
         {
@@ -94,10 +94,10 @@
       "title": "3) SSE and WebSockets",
       "level": 4,
       "points": [
-        "SSE sends a stream of server events over HTTP and suits notifications, live feeds, and token streaming.",
-        "Event IDs can support reconnection, but the server must retain data to replay; transport reconnection alone does not guarantee recovery.",
-        "WebSockets provide bidirectional messages on one connection and suit chat, collaboration, and interactive games.",
-        "Both require authentication, subscription authorization, heartbeats or liveness checks, and bounded buffering for slow clients."
+        "SSE sends server events through an open HTTP response. It fits one-way updates such as notifications, dashboards, and generated text.",
+        "EventSource can reconnect with the last event ID. The server still needs retained events to replay what the client missed.",
+        "WebSockets carry messages in both directions on one connection. They fit frequent interactive exchanges such as chat, games, and document editing.",
+        "A dedicated WebSocket Service can manage connections while application services remain stateless. Authenticate subscriptions and bound slow-client buffers."
       ],
       "diagrams": [
         {
@@ -110,13 +110,15 @@
       ],
       "flows": [
         {
-          "title": "Establish a subscription and deliver an update",
+          "title": "Deliver a driver update through a WebSocket service",
           "steps": [
-            "The client establishes its supported streaming connection through a proxy configured for the required lifetime and buffering behavior.",
-            "The connection server authenticates the client, validates the requested channels, and registers local subscriptions.",
-            "A producer commits an application change and reliably publishes the corresponding event when delivery must follow durable state.",
-            "Routing or pub/sub sends the event to connection servers with interested clients, which forward it over their existing connections.",
-            "Clients apply ordered events and retain a cursor when recovery is required; the transport itself does not create durable history."
+            "The client establishes a WebSocket connection through the Layer 4 Load Balancer to the WebSocket Service.",
+            "The WebSocket Service keeps the connection and associates it with the authorized user.",
+            "The Driver Service sends an update intended for that user.",
+            "The WebSocket Service forwards the update through the existing connection. The client applies it to its local display."
+          ],
+          "diagramFilenames": [
+            "06.svg"
           ]
         }
       ]
@@ -125,9 +127,9 @@
       "title": "4) WebRTC",
       "level": 4,
       "points": [
-        "WebRTC supports low-latency media or data channels and can connect peers directly when network conditions permit.",
-        "Signaling exchanges connection information; STUN assists address discovery and TURN relays traffic when direct connectivity fails.",
-        "It adds networking and media complexity, making it appropriate for calls or interactive media rather than every ordinary notification stream."
+        "WebRTC can connect peers directly for media or data transfer. A Signaling Server helps peers exchange connection information.",
+        "A STUN Server helps discover reachable addresses. A TURN Server relays traffic when the peers cannot establish a direct connection.",
+        "Peer connections reduce central bandwidth but add setup and network complexity. Use them when media or peer communication justifies that cost."
       ],
       "diagrams": [
         {
@@ -145,7 +147,21 @@
           "height": 736.2109375
         }
       ],
-      "flows": []
+      "flows": [
+        {
+          "title": "Connect two peers",
+          "steps": [
+            "Each client contacts the Signaling Server and discovers the other peer.",
+            "The clients use STUN to discover reachable addresses and exchange connection candidates through signaling.",
+            "They attempt a direct peer connection with that information.",
+            "If the direct path fails, a TURN Server relays their traffic.",
+            "The connected peers exchange media or data and refresh connection information as needed."
+          ],
+          "diagramFilenames": [
+            "07.svg"
+          ]
+        }
+      ]
     },
     {
       "title": "Server-Side Push and Pull",
@@ -166,8 +182,8 @@
       "title": "1) Pull from shared state",
       "level": 4,
       "points": [
-        "Connection servers can poll a shared store for updates and deliver them to local clients.",
-        "This simplifies routing but adds polling cost and delay; coalesce reads for clients subscribed to the same resource."
+        "An update source writes shared database state. A client poll causes the server to read new records and return them.",
+        "This separates producers from clients but adds polling delay and database reads. Estimate total poll traffic before choosing its interval."
       ],
       "diagrams": [
         {
@@ -184,10 +200,10 @@
       "title": "2) Route by ownership",
       "level": 4,
       "points": [
-        "Map a user or channel to a server so producers know where to send events.",
-        "Simple modulo hashing remaps many owners when the server count changes; consistent hashing reduces that movement.",
-        "Membership changes, dead owners, and stale routing still require coordination and reconnect handling.",
-        "A hot channel remains hot even if the total keyspace is evenly distributed."
+        "Assign each user or resource to a connection server. An Update Server can then route events to that owner.",
+        "Simple modulo hashing changes many assignments when the server count changes. Consistent hashing moves only affected portions of the keyspace.",
+        "ZooKeeper or etcd can distribute server membership. During reassignment, coordinate old and new owners and reconnect affected clients.",
+        "A hot user or channel can still overload its owner. Evenly distributed keys do not guarantee evenly distributed traffic."
       ],
       "diagrams": [
         {
@@ -226,16 +242,30 @@
           "height": 1132.7810387922777
         }
       ],
-      "flows": []
+      "flows": [
+        {
+          "title": "Send an update to the connection owner",
+          "steps": [
+            "The Update Server obtains the current server membership and routing information from ZooKeeper.",
+            "It hashes the destination user ID to identify the responsible connection server.",
+            "It sends the update to that server.",
+            "The destination server finds the user's existing connection and forwards the update.",
+            "Changes in membership require coordinated reassignment and reconnects. Hashing alone does not move an active connection."
+          ],
+          "diagramFilenames": [
+            "13.svg"
+          ]
+        }
+      ]
     },
     {
       "title": "3) Pub/sub",
       "level": 4,
       "points": [
-        "Servers subscribe to channels for their connected clients, and publishers send updates through the shared broker.",
-        "This decouples producers from connection ownership but adds broker cost and subscription management.",
-        "Ephemeral pub/sub drops messages while a subscriber is absent; use a durable history or log when replay is required.",
-        "Share upstream subscriptions among local clients instead of duplicating them unnecessarily."
+        "An Endpoint Server subscribes to topics for its connected clients. Publishers send updates to Redis Pub/Sub or another suitable broker.",
+        "The broker routes events without requiring the publisher to know each connection owner. It adds subscription state, capacity needs, and another network hop.",
+        "Redis Pub/Sub drops messages when subscribers are absent. Retained history or Redis Streams can support replay when the product requires it.",
+        "Track which local clients need each upstream topic. Reuse subscriptions and remove them when no local client needs them."
       ],
       "diagrams": [
         {
@@ -253,16 +283,41 @@
           "height": 590.41796875
         }
       ],
-      "flows": []
+      "flows": [
+        {
+          "title": "Register a connection for shared updates",
+          "steps": [
+            "A client connects to any available Endpoint Server.",
+            "The Endpoint Server associates the client with its authorized topics.",
+            "It subscribes to those topics in Redis Pub/Sub and records the local topic-to-connection mapping.",
+            "Several local clients can share the same upstream subscription when they need the same topic."
+          ],
+          "diagramFilenames": [
+            "16.svg"
+          ]
+        },
+        {
+          "title": "Forward a published update to clients",
+          "steps": [
+            "The Update Server publishes an event to the relevant Redis Pub/Sub topic.",
+            "Redis sends the event to connected Endpoint Servers subscribed to that topic.",
+            "Each Endpoint Server looks up its interested client connections.",
+            "It forwards the event over those connections. A disconnected subscriber needs a separate retained-history path to recover missed events."
+          ],
+          "diagramFilenames": [
+            "17.svg"
+          ]
+        }
+      ]
     },
     {
       "title": "Common Deep Dives",
       "level": 3,
       "points": [
-        "On reconnect, authenticate again, fetch a snapshot or resume after a cursor, and deduplicate overlapping events.",
-        "Use per-resource sequence numbers when ordering matters; timestamps from unrelated machines do not establish a reliable total order.",
-        "Replicate or hierarchically distribute high-fanout channels and bound slow-consumer queues.",
-        "Use backoff with jitter to avoid reconnect storms after an outage or deployment."
+        "Use heartbeats to detect dead connections. On reconnect, authenticate and resume after a cursor or fetch a current snapshot.",
+        "Route related events through one owner or partition when strict ordering is necessary. Independent wall clocks do not establish that order.",
+        "For a large audience, aggregate incoming events and distribute updates through Broadcast Nodes. Bound each component's work and client buffers.",
+        "Stagger reconnect attempts with backoff and jitter. This prevents all disconnected clients from immediately overloading replacement servers."
       ],
       "diagrams": [
         {
@@ -275,13 +330,26 @@
       ],
       "flows": [
         {
-          "title": "Recover after a disconnected stream",
+          "title": "Recover a disconnected stream",
           "steps": [
-            "Heartbeats or transport errors reveal the disconnection, and the client reconnects with bounded backoff and jitter.",
-            "It authenticates and presents its last applied event cursor or asks for a fresh snapshot.",
-            "The server replays retained events after the cursor and coordinates the transition to live delivery without leaving a gap.",
-            "The client removes duplicates and detects missing sequence positions before advancing its local cursor.",
-            "If the requested cursor is too old, the server supplies the supported snapshot/resynchronization path rather than pretending all missed events were delivered."
+            "A heartbeat failure or transport error causes the client to reconnect with backoff.",
+            "The client authenticates and presents its last applied event cursor.",
+            "The server replays retained events after that cursor, then joins live delivery without leaving a gap.",
+            "The client ignores duplicate event IDs and checks the expected ordering before advancing its cursor.",
+            "If retained history no longer covers the cursor, the client fetches a supported snapshot and resumes from that state."
+          ]
+        },
+        {
+          "title": "Aggregate and distribute a high-volume channel",
+          "steps": [
+            "Write Processors receive comments or like events for their assigned keys.",
+            "Each processor combines updates over a short window and sends a batch to the Root Processor.",
+            "The Root Processor merges those batches into the shared channel update.",
+            "It sends the result to Broadcast Nodes instead of contacting every viewer itself.",
+            "Each Broadcast Node forwards the update to its local clients."
+          ],
+          "diagramFilenames": [
+            "18.svg"
           ]
         }
       ]
@@ -290,9 +358,9 @@
       "title": "When to Use and Conclusion",
       "level": 3,
       "points": [
-        "Choose the simplest transport that satisfies the product's freshness and direction requirements.",
-        "Explain connection routing, replay, ordering, and overload behavior as well as the protocol name.",
-        "Keep ordinary polling for low-frequency updates and introduce persistent delivery where it materially improves the experience."
+        "Start with the simplest transport that meets the required freshness. Use SSE for one-way updates and WebSockets for frequent bidirectional messages.",
+        "Explain both routing paths, then address ordering, reconnects, and overload. A protocol name alone does not describe the whole system.",
+        "Keep polling where its delay is acceptable. Add persistent delivery when it provides a required product benefit."
       ],
       "diagrams": [
         {

@@ -1,72 +1,78 @@
 The Problem
-- Read latency and throughput degrade when queries scan too much data, perform expensive joins, or compete for limited database resources.
-- Identify the dominant query and freshness requirement before adding caches or shards.
+- Queries slow down when they scan too much data or compete for limited resources. Joins and repeated aggregates can add further work.
+- Identify the common queries and acceptable data age first. These requirements determine whether indexes, replicas, or caches will help.
 
 The Solution
 
 1) Optimize the existing database
-- Add indexes matching filters and ordering, and inspect query plans to verify they reduce work.
-- Composite index column order matters; an index that helps one query may not serve another access pattern.
-- More indexes consume storage and increase write cost, so measure rather than indexing every field.
-- Increase memory or faster storage when the working set or I/O path is the bottleneck.
-- Denormalize frequently joined fields or maintain materialized views when read savings justify update and consistency complexity.
+- Add indexes for frequent filters, joins, and sort orders. Inspect the query plan to confirm that the database uses them effectively.
+- Composite index column order matters. An index beginning with status may help status queries but not a query on creation time alone.
+- Indexes use storage and require updates during writes. Add useful indexes, then measure their read benefit and write cost.
+- More memory can keep frequently used data resident. Faster storage or additional CPU can help when the corresponding resource is the bottleneck.
+- Denormalization duplicates data to reduce joins. Materialized views precompute aggregates; both require a plan to update derived values.
 
 2) Scale database reads horizontally
-- Read replicas distribute queries but may lag the primary; route reads requiring immediate freshness appropriately.
-- Replicas do not increase the primary's write capacity and each may still need the full dataset.
-- Sharding splits the dataset and workload, but cross-shard joins, transactions, and fanout queries become harder.
-- Choose partition keys that match common reads and avoid concentrating traffic on one tenant or resource.
+- Read replicas distribute queries away from the primary database. Asynchronous replication can lag, so direct freshness-sensitive reads to an appropriate source.
+- Replicas do not reduce the primary's write workload. Each replica can still require the full dataset.
+- Sharding divides data across databases. It reduces each node's dataset but makes cross-shard queries and transactions more complex.
+- Functional shards separate business domains; geographic shards place data near users. Choose boundaries that fit common queries and avoid concentrated traffic.
 
 3) Application caching
-- Cache-aside checks the cache, loads a miss from the database, and stores the result with an expiry.
-- Cache popular, expensive, reusable results; include all relevant filters and authorization scope in the key.
-- Define TTL, invalidation, memory limits, and behavior when the cache is unavailable.
-- The cache is a derived view unless the design explicitly supplies its durability guarantees.
+- Cache-aside first checks Redis or Memcached. On a miss, the application reads the database and stores the result in the cache.
+- Store repeated, expensive results in a cache with a useful hit rate. Keys must distinguish every input that changes the returned data.
+- Define expiry, invalidation, memory limits, and failure behavior. The permitted data age should guide the cache policy.
+- The database normally remains authoritative. A cache hit provides the data under the chosen freshness rules, not automatic immediate consistency.
 
 Process: Serve a cache-aside read
-- 1. The service authenticates the request and builds a cache key containing all relevant query and visibility parameters.
-- 2. It looks up the cache; a valid hit returns immediately under the permitted freshness contract.
-- 3. On a miss, it coordinates or coalesces concurrent loads for that key where stampede protection is required.
-- 4. The selected loader reads authoritative storage and validates the result's version or expiry.
-- 5. It stores a bounded-lifetime cache entry using the chosen stale-write protection, then returns the result; cache-write failure need not fail a successful authoritative read.
-- 6. Waiting requests reuse the loaded result, while cache outages apply bounded database fallback rather than unlimited parallel misses.
+- 1. The server builds a cache key from the request's relevant inputs.
+- 2. It checks the cache and returns an acceptable hit.
+- 3. On a miss, it reads the requested value from the database.
+- 4. It stores that value in the cache under the selected expiry and update policy.
+- 5. It returns the value to the client. Concurrent-miss protection and failure limits are additional safeguards described in the deep dives.
 
 4) CDN and edge caching
-- Serve static assets and eligible shared responses near users to reduce origin load and geographic latency.
-- Correct cache-control and cache-key configuration are essential, especially for personalized or authenticated responses.
-- Version immutable assets and use bounded expiration or invalidation for mutable content.
+- A CDN serves shared content near users. Cache hits reduce both geographic delay and traffic to the origin server.
+- Configure cache keys and response headers correctly. Public shared data fits CDN caching better than private per-user responses.
+- Version immutable assets. Mutable content needs expiry or explicit invalidation, including a plan for propagation across edge locations.
+
+Process: Serve content from the nearest eligible edge
+- 1. The client requests a shared resource through the CDN.
+- 2. The CDN checks for a usable cached response under the request's cache key.
+- 3. On a hit, the edge returns the cached response directly.
+- 4. On a miss, it requests the response from the origin server. It stores a copy only when the policy permits.
+- 5. Later matching requests reuse the edge response until expiry or invalidation requires a new origin fetch.
 
 When to Use
-- Apply read scaling to feeds, search, profiles, product pages, and dashboards when measurements show repeated expensive reads.
-- A small workload with efficient indexed queries may not need another distributed subsystem.
-- Keep consistency requirements explicit: stale stock displays may be acceptable, but checkout must still validate authoritative inventory.
+- Read scaling fits feeds, search, profiles, product pages, and dashboards with repeated queries. Estimate the high-volume endpoints before choosing infrastructure.
+- A small system may only need efficient indexed queries. Add another distributed component when a measured requirement justifies it.
+- Cached inventory displays can be advisory. Checkout must still validate and claim authoritative inventory before confirming a purchase.
 
 Common Deep Dives
 
 1) Growing datasets
-- Inspect query complexity, index selectivity, rows scanned, and pagination strategy before assuming hardware is the only fix.
-- Cursor pagination and partition pruning avoid scanning increasing offsets or irrelevant historical data.
-- Rollups and materialized views are useful for repeated aggregate queries.
+- As data grows, inspect indexes, selectivity, and scanned rows. A full scan can explain slow lookups without any increase in query complexity.
+- Use bounded pagination and limit reads to relevant partitions. Avoid repeatedly scanning unrelated history to return a small page.
+- Precompute repeated aggregates in materialized views or rollups. Define how updates reach these derived results.
 
 2) Hot keys and stampedes
-- One popular cached key can overwhelm a shard; local replicas or replicated hot values spread reads.
-- Coalesce concurrent misses so only one worker rebuilds an entry while others wait or receive acceptable stale data.
-- Add expiry jitter and consider proactive refresh to avoid synchronized expiration.
-- Bound fallback traffic to the database during cache failures; an empty cache can be an availability incident.
+- One hot cache key can overload its node. Replicate that value across keys on different nodes, then invalidate every copy when necessary.
+- Coalesce simultaneous requests for the same entry. One loader can fetch the result while other local requests share its work.
+- Early or scheduled refresh can reduce stampedes at expiry. Stagger refresh work and allow stale responses only within the product's policy.
+- A cache failure can suddenly send all traffic to the database. Bound fallback concurrency instead of allowing unlimited simultaneous misses.
 
 3) Invalidation races
-- A reader can fetch old database data and refill a cache after a writer invalidates it.
-- Use versions, conditional cache writes, coordinated updates, or an explicit staleness bound to address that race.
-- TTL limits staleness but does not provide immediate consistency.
-- If a read must observe the latest committed state, use an authoritative path or a protocol that actually enforces that guarantee.
+- A slow reader can refill a cache with old data after a writer updates the database. Simple deletion does not remove every race.
+- The source uses versioned keys: update the record and its version together. Then store the new version in the cache separately.
+- Readers must obtain the correct current version. A stale cached version pointer can still select old data; versioned keys alone do not prevent that.
+- TTL bounds entry lifetime rather than guaranteeing immediate freshness. Use an authoritative or coordinated read path when the latest state is required.
 
-Process: Update data with version-aware cache protection
-- 1. The writer commits the new database value with a newer version.
-- 2. It publishes invalidation or cache-update work identifying that committed version.
-- 3. The cache path records or enforces a version barrier so a slow reader holding an older result cannot repopulate it as the newest value.
-- 4. A subsequent miss reloads the current database state and installs it only if the version check allows it.
-- 5. Reads requiring immediate freshness use the authoritative or coordinated path until that guarantee is satisfied; TTL alone is only a staleness bound.
+Process: Read and write with versioned cache keys
+- 1. A writer updates the database record and increments its version in the same transaction.
+- 2. After commit, it can populate the cache entry for that new version.
+- 3. A reader obtains the current version through the selected freshness-aware lookup path.
+- 4. It reads the cache key for that version. On a miss, it retrieves matching current data from the database and fills the entry.
+- 5. Older version entries can expire naturally. Immediate freshness still requires a correct current-version lookup, not a stale pointer.
 
 Conclusion
-- Start with efficient queries, then use replicas, derived views, caches, or sharding for the measured bottleneck.
-- Explain cache failure and freshness behavior as carefully as the normal fast path.
+- Start with efficient queries. Add replicas, derived views, caching, or sharding according to the remaining bottleneck.
+- Explain data freshness and cache failure behavior alongside the fast path. Every optimization needs a defined correctness boundary.

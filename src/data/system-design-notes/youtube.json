@@ -5,8 +5,8 @@
       "title": "Understanding the Problem",
       "level": 3,
       "points": [
-        "Design video upload and playback, including processing media into formats suitable for different devices and network conditions.",
-        "Application services manage metadata and access; storage, processing workers, and CDNs handle the media bytes."
+        "The service accepts video uploads and supports playback. It processes each upload into formats for different devices and network conditions.",
+        "The Video Service manages metadata. Object storage keeps media bytes. Processing workers create playable outputs. A CDN delivers popular media."
       ],
       "diagrams": [],
       "flows": []
@@ -15,9 +15,9 @@
       "title": "Functional Requirements",
       "level": 3,
       "points": [
-        "Upload videos and track processing readiness.",
-        "Watch published videos with an appropriate playback representation.",
-        "Support large uploads and efficient global delivery; recommendations and comments are separate features."
+        "Users can upload videos and inspect processing status.",
+        "Users can watch a published video in a format that their device supports.",
+        "Uploads must support large files and interrupted transfers. Recommendations, comments, search, and channel management are outside the core scope."
       ],
       "diagrams": [],
       "flows": []
@@ -26,9 +26,9 @@
       "title": "Non-functional Requirements",
       "level": 3,
       "points": [
-        "Keep playback startup fast and minimize buffering.",
-        "Retain durable uploaded originals and tolerate worker or upload failures.",
-        "Scale storage and delivery independently from expensive transcoding work."
+        "Playback must start quickly with little buffering, including on slow networks. The design favors availability.",
+        "Keep durable originals and recover from upload or worker failures. The service must support videos larger than 10 GB.",
+        "The scenario has about one million uploads and 100 million views each day. Scale storage, processing, and delivery separately."
       ],
       "diagrams": [
         {
@@ -45,10 +45,10 @@
       "title": "Core Entities",
       "level": 3,
       "points": [
-        "Video stores owner, title, status, original location, and available output variants.",
-        "UploadSession tracks multipart upload progress and completion.",
-        "ProcessingJob records input, desired rendition, attempts, and output state.",
-        "Manifest identifies playable segments and bitrate/resolution variants."
+        "User identifies an uploader or viewer. Video contains the media bytes. VideoMetadata stores the owner, title, status, and storage references.",
+        "An upload session tracks each numbered part and whether storage has confirmed it.",
+        "A processing job identifies the source, requested output format, attempts, and completion state.",
+        "A primary manifest lists available formats. Each media manifest lists playable segments for one format."
       ],
       "diagrams": [
         {
@@ -65,10 +65,10 @@
       "title": "API",
       "level": 3,
       "points": [
-        "Create an upload session and return a video ID plus signed transfer instructions.",
-        "Complete the upload after server verification and expose processing status.",
-        "Fetch video metadata and a playback manifest or authorized CDN URL.",
-        "Retrying creation or completion uses stable IDs so duplicate jobs do not publish inconsistent outputs."
+        "POST /presigned_url accepts video metadata. It returns signed instructions for a direct upload to object storage.",
+        "The server verifies upload completion before it starts processing. A status request distinguishes uploaded content from playable content.",
+        "GET /videos/{videoId} returns metadata and the manifest location. The client retrieves media from storage or the CDN.",
+        "Use stable upload and video identifiers for retries. Duplicate completion notifications must not publish conflicting outputs."
       ],
       "diagrams": [],
       "flows": []
@@ -77,9 +77,9 @@
       "title": "Background: Video Streaming",
       "level": 3,
       "points": [
-        "Video codecs compress content; containers package audio, video, and metadata.",
-        "Adaptive bitrate streaming divides media into segments at several qualities and lets the player switch based on bandwidth and buffer state.",
-        "The manifest describes those variants; storing only one large original file does not provide this playback behavior."
+        "A codec compresses and decompresses video. A container packages video, audio, and metadata. Devices support different combinations.",
+        "Bitrate measures data transferred per second. Adaptive bitrate streaming lets the player select a suitable format for each segment.",
+        "Manifests identify the available formats and segments. One large original file alone does not provide adaptive playback."
       ],
       "diagrams": [],
       "flows": []
@@ -95,10 +95,10 @@
       "title": "1) Upload and process",
       "level": 4,
       "points": [
-        "Upload directly to object storage rather than forwarding large files through application servers.",
-        "Once the original is verified, enqueue processing tasks referencing its storage location.",
-        "Workers decode, transcode, and package outputs, writing them back to storage before marking the video ready.",
-        "Keep failure and partial-readiness states explicit; never publish a manifest that points to missing output segments."
+        "The client uploads directly to object storage with a presigned URL. This avoids sending large files through application servers.",
+        "The initial design stores the original. A later design creates several complete video formats. The improved design creates playable segments.",
+        "After upload completion, the Video Processing Service splits the original into segments. It converts segments into the required formats.",
+        "Workers store completed outputs before the service marks them ready. A published manifest must not reference missing segments."
       ],
       "diagrams": [
         {
@@ -125,14 +125,15 @@
       ],
       "flows": [
         {
-          "title": "Turn an upload into a playable video",
+          "title": "Upload the original video directly",
           "steps": [
-            "The client creates an upload session and sends video parts directly to object storage using scoped signed instructions.",
-            "The backend verifies the completed original and records its durable object reference and video version.",
-            "A reliable event queues processing tasks referencing that original; upload acceptance does not yet imply every playback rendition is ready.",
-            "Workers transcode and package the required renditions and segments, persisting each output under retry-safe identifiers.",
-            "The workflow verifies required outputs and publishes a manifest that references only completed segments.",
-            "The metadata service marks the video or rendition set ready; failed tasks retry without publishing incomplete output as playable."
+            "The client sends video metadata to the Video Service through the API Gateway.",
+            "The Video Service stores the metadata and obtains a presigned upload URL.",
+            "The service returns the URL to the client. The client uploads the original directly to S3.",
+            "Completion verification starts the later processing stage. An uploaded original is not yet a playable set of video formats."
+          ],
+          "diagramFilenames": [
+            "03.svg"
           ]
         }
       ]
@@ -141,10 +142,10 @@
       "title": "2) Playback",
       "level": 4,
       "points": [
-        "Fetch metadata and a manifest, then stream segments through a CDN backed by object storage.",
-        "The client selects a suitable variant and can switch at segment boundaries.",
-        "CDN caching lowers geographic latency and origin bandwidth, especially for popular videos.",
-        "Enforce access control for private videos with appropriate signed requests or tokens."
+        "The Video Service returns metadata and the manifest location. The client downloads segments from storage in the initial design.",
+        "The client starts with a suitable format. It can change format at segment boundaries when bandwidth or buffer conditions change.",
+        "A later CDN addition stores manifests and segments near viewers. This reduces geographic delay and requests to object storage.",
+        "Private-video support would require authorized media requests, such as signed URLs. The source focuses on the upload and playback paths."
       ],
       "diagrams": [
         {
@@ -164,13 +165,16 @@
       ],
       "flows": [
         {
-          "title": "Start and adapt video playback",
+          "title": "Start and adapt playback from object storage",
           "steps": [
-            "The viewer requests the video; the metadata service checks access and readiness and returns the playback manifest location.",
-            "The player fetches the manifest through the authorized CDN path and chooses an initial bitrate based on available conditions.",
-            "It requests the first segments; CDN hits are served near the viewer and misses are fetched from object storage.",
-            "The player buffers and decodes those segments, then requests subsequent segments as playback advances.",
-            "At supported segment boundaries it switches renditions as bandwidth or buffer health changes, without restarting the whole video."
+            "The client requests video metadata from the Video Service.",
+            "The service returns the manifest location. The client downloads the manifest from S3.",
+            "The client chooses a format for its device and network conditions. It downloads the first segment.",
+            "The client plays that segment and downloads later segments in the background.",
+            "At a segment boundary, the client can select another format. The CDN is an addition in the final design."
+          ],
+          "diagramFilenames": [
+            "07.svg"
           ]
         }
       ]
@@ -186,10 +190,11 @@
       "title": "1) Adaptive bitrate processing",
       "level": 4,
       "points": [
-        "Create a task graph for the required resolutions, codecs, audio tracks, and packaging stages.",
-        "Parallelize independent outputs while respecting dependencies, such as needing source metadata before segmentation.",
-        "Make output paths and completion records idempotent so worker retries do not publish conflicting renditions.",
-        "Queue processing absorbs bursts; scale workers from backlog and job age rather than blocking upload requests."
+        "A task graph starts with video splitting. Segment transcoding, audio processing, and transcript generation can then run on separate workers.",
+        "Workers run independent tasks in parallel. Dependent tasks wait for their required inputs. An orchestrator such as Temporal manages this order.",
+        "Workers store temporary and final files in S3. Tasks pass storage references instead of transferring large files between workers.",
+        "The service builds manifests after the required outputs exist. Stable output identifiers make retries safe.",
+        "An internal queue can absorb upload bursts. Add workers when queued work or processing delay grows."
       ],
       "diagrams": [
         {
@@ -200,16 +205,32 @@
           "height": 1006.4746568087701
         }
       ],
-      "flows": []
+      "flows": [
+        {
+          "title": "Produce segments and manifests",
+          "steps": [
+            "The Video Processing Service receives the completed original's storage reference.",
+            "The Video Splitter divides the original into playable segments. It stores intermediate files in S3.",
+            "Workers transcode independent segments in parallel. Other tasks process audio and generate transcripts where required.",
+            "Dependent tasks wait for their inputs. Workers store completed outputs in S3.",
+            "The service builds media and primary manifests that reference the completed outputs.",
+            "The service stores the manifest locations in video metadata. It then marks the required processing complete."
+          ],
+          "diagramFilenames": [
+            "08.svg"
+          ]
+        }
+      ]
     },
     {
       "title": "2) Resumable uploads",
       "level": 4,
       "points": [
-        "Split large files into parts with an upload ID and numbered part state.",
-        "Retry missing parts, verify completion with the storage provider, and assemble the final object.",
-        "Clean up abandoned sessions and apply size limits before accepting unlimited storage usage.",
-        "An upload notification may be duplicated; deduplicate the processing trigger by video or upload version."
+        "The client splits a large original into parts. Metadata records the part identifiers, fingerprints, and confirmed upload status.",
+        "S3 returns a part number and ETag after a part upload. The client sends these values to the backend for verification.",
+        "On reconnect, the client requests upload progress. It sends only missing parts and then completes the multipart upload.",
+        "An object-level completion event starts processing. It does not report every uploaded part. Verify completion and handle duplicate notifications safely.",
+        "Expire abandoned upload sessions and incomplete parts. Apply upload size limits before allowing unlimited storage use."
       ],
       "diagrams": [
         {
@@ -220,16 +241,28 @@
           "height": 1031.4746568087685
         }
       ],
-      "flows": []
+      "flows": [
+        {
+          "title": "Resume an interrupted upload",
+          "steps": [
+            "The client divides the original into numbered parts. The backend records the planned parts and their upload status.",
+            "The client uploads a part to S3. S3 returns the part number and ETag.",
+            "The client reports those values to the backend. The backend verifies the part with S3 before updating progress.",
+            "After an interruption, the client requests progress. It uploads the missing parts and completes the multipart upload.",
+            "The backend verifies the complete object. An object-level event starts processing; part progress does not depend on that event."
+          ]
+        }
+      ]
     },
     {
       "title": "3) Scale storage and delivery",
       "level": 4,
       "points": [
-        "Separate metadata partitioning, worker scheduling, and CDN traffic because each scales differently.",
-        "Store multiple playback versions deliberately; more formats improve compatibility but increase processing and storage cost.",
-        "Cache popular media aggressively and keep durable originals available for reprocessing.",
-        "Monitor processing delay, playback startup time, buffering, and CDN hit rate as separate signals."
+        "Partition the Cassandra metadata database by video ID. Add Video Service instances behind a load balancer.",
+        "Store frequently requested video metadata in a cache. This reduces pressure on a popular video's database partition.",
+        "Store the formats needed for supported devices. Each additional format increases processing and storage cost.",
+        "A CDN stores popular manifests and segments near viewers. Keep durable originals for later processing.",
+        "Monitor processing delay, startup time, buffering, and CDN hit rate separately. These signals identify different capacity problems."
       ],
       "diagrams": [],
       "flows": []
@@ -238,9 +271,10 @@
       "title": "Final Design",
       "level": 3,
       "points": [
-        "Direct multipart uploads feed durable object storage and an asynchronous processing pipeline.",
-        "Verified manifests publish completed renditions through a global CDN.",
-        "Retry-safe jobs and independent metadata, processing, and delivery capacity keep the system recoverable under growth."
+        "Direct multipart uploads store originals in S3. The Video Service manages metadata and verified upload progress.",
+        "The Video Processing Service runs the task graph. It stores segments and manifests before marking the video ready.",
+        "A metadata cache accelerates popular lookups. The CDN serves completed manifests and segments near viewers.",
+        "Stable job identities and separate metadata, processing, and delivery capacity support recovery and growth."
       ],
       "diagrams": [
         {

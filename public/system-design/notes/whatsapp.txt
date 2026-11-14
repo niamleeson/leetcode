@@ -1,87 +1,110 @@
 Understanding the Problem
-- Build reliable private and group messaging with real-time delivery, offline recovery, and media attachments.
-- A live connection is only a delivery path. Durable messages and delivery state must survive connection and server failures.
+- The service delivers private and group messages, including media attachments. Offline users receive retained messages after they reconnect.
+- A live socket is only a delivery path. Durable messages and inbox records must survive a connection or server failure.
 
 Functional Requirements
-- Create group chats with up to 100 participants and send or receive messages.
-- Deliver messages missed while offline, retaining them for up to 30 days in the interview scope.
-- Support media attachments and multiple devices per user.
+- Users can create chats with up to 100 participants. They can send and receive messages in those chats.
+- Offline users can receive retained messages for up to 30 days.
+- Users can send media attachments. The device deep dive extends delivery to multiple devices per account.
 
 Non-functional Requirements
-- Keep online delivery latency low while scaling to a very large number of persistent connections.
-- Avoid losing acknowledged messages; accept retries and deduplicate them rather than assuming networks deliver exactly once.
-- Preserve a defined ordering within each conversation, with durable recovery after disconnection.
+- Online delivery should take less than 500 ms. The design must support billions of users and many persistent connections.
+- The service must retain accepted messages until delivery or the retention limit. Retries require duplicate detection.
+- Servers should retain messages no longer than necessary. Display ordering and missed-message recovery must work across connection failures.
 
 Core Entities
-- User, Chat, and ChatMember identify participants and membership permissions.
-- Message includes message ID, chat ID, sender, sequence or ordering key, body, and timestamp.
-- Device and delivery cursor track which messages each connected device has received.
-- Attachment stores metadata and a reference to bytes in object storage.
+- User, Chat, and ChatParticipant identify accounts, conversations, and membership.
+- Message contains its ID, chat ID, sender, body, and server timestamp. Sequence metadata can help detect delivery gaps.
+- Client identifies a device. Inbox records identify messages still awaiting acknowledgment from a user or, later, a device.
+- Attachment metadata refers to media bytes in blob storage.
 
 API
-- Use ordinary authenticated requests for chat creation, membership changes, and upload authorization.
-- Establish a WebSocket for bidirectional message events, acknowledgements, and delivery updates.
-- Send a client-generated message ID so retries can resolve to the same stored message.
-- Reconnect with a durable cursor and fetch messages after that position rather than relying only on live events.
+- An authenticated WebSocket carries createChat, sendMessage, and modifyChatParticipants commands.
+- The server sends chatUpdate and newMessage events over the same connection. Clients acknowledge received events.
+- A stable client message ID lets a retried send resolve to the same accepted message.
+- A reconnect triggers an inbox synchronization. The attachment flow uses a separate authorized HTTP transfer to blob storage.
 
 High-Level Design
 
 1) Chats and message delivery
-- Verify chat membership before accepting a message, then persist it before acknowledging durable acceptance.
-- Route live events to the servers holding recipients' active connections.
-- Keep undelivered messages or per-device cursors so offline recipients can catch up later.
-- Distinguish server acceptance, device delivery, and read receipts; they are different states.
+- A Chat Server creates chat and participant records in DynamoDB. The initial design assumes one server holds all active sockets.
+- Before returning success for a message, the server saves the message and each recipient's inbox entry.
+- The server attempts immediate delivery to connected recipients. Offline recipients retain inbox entries until they reconnect or retention expires.
+- An acknowledgment removes the applicable inbox entry. Server acceptance, device delivery, and a user reading the message are different events.
 
-Process: Send a message and acknowledge delivery
-- 1. The sender transmits a message over its authenticated connection with a chat ID and stable client message ID.
-- 2. The chat service checks membership and assigns the ordering information required by the conversation model.
-- 3. It persists the accepted message or recipient-delivery record before acknowledging durable acceptance to the sender.
-- 4. The routing or pub/sub layer forwards the event to connection servers holding recipients' active device sessions.
-- 5. Those servers send the message to their local devices. Offline devices retain a recoverable backlog or cursor gap in durable storage.
-- 6. Each device deduplicates by message ID, stores or displays the message in order, and acknowledges its own delivery position.
-- 7. Delivery or read receipts are separate updates; one device's acknowledgement does not prove every device or user has read the message.
+Process: Create a chat
+- 1. The authenticated client sends createChat over its WebSocket.
+- 2. The Chat Server validates the participant list and creates the Chat record in DynamoDB.
+- 3. It creates the corresponding ChatParticipant records. Near the participant limit, a single transaction may not hold every required item.
+- 4. The server returns the chat ID after the required records are durable. A partial creation needs retry or cleanup before publication.
+
+Process: Save and deliver a message on one Chat Server
+- 1. The sender sends a chat ID and message over its WebSocket.
+- 2. The Chat Server verifies membership and reads the chat's participants.
+- 3. It stores the Message record and each recipient's Inbox entry in DynamoDB.
+- 4. After the required writes succeed, it returns the accepted message ID to the sender.
+- 5. It attempts delivery over the recipient sockets held by this server.
+- 6. Each recipient acknowledges receipt. The server removes only that recipient's matching Inbox entry.
+- 7. Offline recipients retain their entries for later synchronization, subject to the retention limit.
 
 2) Media attachments
-- Storing media in the message database or relaying all bytes through chat servers makes storage and bandwidth expensive.
-- Upload directly to object storage using signed instructions, then send an authorized attachment reference in the message.
-- Downloads use signed URLs or equivalent access checks; protect private attachments even when served through a CDN.
+- Media stored in DynamoDB or relayed through Chat Servers consumes expensive database and application capacity.
+- The client obtains a presigned upload target. It sends bytes directly to blob storage and includes the attachment reference in a message.
+- Recipients download through authorized storage URLs. A CDN has limited reuse benefits for small private chats and is optional.
 
-Process: Send a media attachment
-- 1. The sender requests an authorized upload session and uploads the attachment directly to object storage.
-- 2. The backend verifies completion and produces an attachment reference with the required access metadata.
-- 3. The sender submits a normal chat message containing that reference; message acceptance follows the durable message flow.
-- 4. The recipient receives the reference, requests authorized access, and downloads the media directly from storage or a CDN.
-- 5. Attachment upload failure prevents publication of a ready attachment; chat servers do not need to buffer the large file during message fanout.
+Process: Transfer an attachment directly through blob storage
+- 1. The sender requests an authorized attachment upload target from the Chat Server.
+- 2. The server returns a presigned URL for the intended blob object.
+- 3. The sender uploads the media directly to blob storage. The backend verifies completion before treating the attachment as ready.
+- 4. The sender includes the attachment reference in a normal chat message.
+- 5. The recipient obtains authorized download access. It fetches the media directly from blob storage.
 
 Deep Dives
 
 1) Connection routing at scale
-- Stateless HTTP load balancing does not tell a sender which server owns a recipient's persistent connection.
-- Consistent hashing can assign users to chat servers, but membership changes and failover require reconnect and routing coordination.
-- Pub/sub lets connection servers subscribe to relevant users or conversations and receive events for their local clients.
-- A Kafka topic per user creates excessive coordination overhead; choose partitioned durable streams and a separate live fanout layer where appropriate.
-- Partitioning by chat preserves conversation locality; partitioning by user can simplify device delivery. Explain the fanout and subscription costs of the chosen model.
+- A load balancer can select a connection server. It does not identify which server holds each recipient's existing socket.
+- Consistent hashing can assign users to Chat Servers. An Etcd or ZooKeeper registry records ownership. Server changes require controlled reconnects.
+- Redis Pub/Sub lets each Chat Server subscribe for its connected users. Published messages then reach the correct local sockets.
+- A Kafka topic for every user has excessive per-topic overhead. The source chooses lightweight Redis channels for live delivery.
+- Per-user channels suit many small chats. Large groups can use chat-level channels, with overlap during subscription changes.
+
+Process: Route live delivery through Redis Pub/Sub
+- 1. A Chat Server accepts a user's WebSocket. It subscribes to that user's Redis Pub/Sub channel.
+- 2. The sending server persists the message and inbox entries before it publishes a live event.
+- 3. Redis sends the event to subscribed Chat Servers.
+- 4. Each receiving Chat Server forwards the message to its local sockets for that user.
+- 5. A missed Pub/Sub event leaves the durable inbox entry intact. Reconnection or periodic synchronization recovers that message.
 
 2) Multiple devices
-- Track sessions and delivery progress per device, not just per user.
-- Fan out to all active devices and retain enough history for an inactive device to resume.
-- Acknowledgement from one device must not incorrectly imply every device received the message.
+- A Clients table maps each user to registered devices. Delivery progress belongs to each device separately.
+- The server creates inbox entries for all recipient devices. Active devices receive live delivery; inactive devices synchronize later.
+- One device's acknowledgment clears only that device's pending entry. It must not erase another device's unread delivery backlog.
+
+Process: Track delivery separately for each device
+- 1. The server resolves each recipient account to registered client devices.
+- 2. It creates an Inbox entry for every recipient device that needs the message.
+- 3. Pub/Sub routes the message to servers with active sockets for those users.
+- 4. Each active device acknowledges its own delivery. The server clears only that device's Inbox entry.
+- 5. A disconnected device reads its retained Inbox entries when it reconnects.
 
 3) Failures, retries, and ordering
-- Heartbeats detect dead connections sooner than relying on TCP timeouts alone.
-- Retry unacknowledged messages with bounded backoff and stable IDs; clients and servers deduplicate repeated delivery.
-- Use per-chat sequence numbers or a defined ordering policy, and recover gaps from durable storage.
-- Treat pub/sub as a latency optimization when it is nondurable; missed live events must be recoverable from message history.
-- Expire retained messages according to policy and explain what happens when a device reconnects beyond the retention window.
+- Heartbeats detect broken sockets during quiet periods. Missing acknowledgments also trigger bounded delivery retries and eventual reconnection.
+- Retries retain the message ID. Clients and servers discard duplicate effects while still acknowledging repeated delivery.
+- Sequence values detect missing deliveries. The source displays messages by server timestamps; it does not guarantee their network arrival order.
+- Redis Pub/Sub does not retain messages. Inbox synchronization recovers a lost live notification. Sequence checks still need a polling backstop.
+- Retention limits apply to messages, inbox entries, and attachments. A device returning after expiration cannot recover data that no longer exists.
+- For last-seen status, the server records disconnect times instead of every heartbeat. A live query can return ONLINE through Pub/Sub.
+- The client combines the live response with the stored disconnect time. Conditional timestamp updates prevent an older disconnect from replacing a newer one.
 
 Process: Reconnect and recover missed messages
-- 1. The client detects a broken connection through an error or missed heartbeat and reconnects with backoff.
-- 2. It authenticates again and sends the last durably applied conversation or device cursor.
-- 3. The server queries retained messages after that cursor and coordinates the handoff to live updates so no gap is skipped.
-- 4. The client merges replay with any already received events, deduplicates IDs, and applies messages according to the ordering key.
-- 5. It advances its cursor after successful local application and resumes acknowledgements. A cursor outside retention follows an explicit history-unavailable recovery path.
+- 1. A missing heartbeat or delivery acknowledgment identifies a failed connection. The client reconnects with bounded backoff.
+- 2. After authentication, the Chat Server reads the device's remaining Inbox entries.
+- 3. It loads the corresponding Message records from DynamoDB. It sends them over the new connection.
+- 4. The client discards repeated message IDs and stores newly received messages. It displays them by the defined timestamp ordering.
+- 5. The client acknowledges receipt. The server deletes the acknowledged device entries.
+- 6. Sequence checks or periodic synchronization detect live events missed after reconnection. Expired history follows the retention policy.
 
 Final Design
-- Durable chat/message storage owns membership, ordering, and recovery state.
-- A horizontally scaled connection tier and routing or pub/sub layer deliver live events.
-- Object storage handles attachments, while device cursors, acknowledgements, and idempotent retries make delivery reliable.
+- DynamoDB retains chat membership, messages, and pending inbox deliveries.
+- Chat Servers hold WebSockets. Redis Pub/Sub routes live messages to the servers that serve each recipient.
+- Blob storage handles media. Per-device inboxes, acknowledgments, stable message IDs, and reconnect synchronization provide delivery recovery.

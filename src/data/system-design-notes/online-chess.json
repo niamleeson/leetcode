@@ -5,8 +5,8 @@
       "title": "Understanding the Problem",
       "level": 3,
       "points": [
-        "Match players by skill, run real-time chess games, and maintain global rankings.",
-        "The server is authoritative for legal moves, turn order, clocks, and game results."
+        "Players find an opponent of similar skill, play chess, and view rankings. This example uses three-minute blitz without added time.",
+        "The Game Service owns the board, move order, clocks, and result. Client displays must follow that authoritative state."
       ],
       "diagrams": [],
       "flows": []
@@ -15,9 +15,9 @@
       "title": "Functional Requirements",
       "level": 3,
       "points": [
-        "Enter matchmaking and start a game with an appropriate opponent.",
-        "Exchange moves and receive current game state in real time.",
-        "View global leaderboard positions and personal rank."
+        "Players can request an opponent of similar rating and start a game.",
+        "Players can send moves and receive board and clock updates in real time.",
+        "Players can view the global leaderboard and their own rank. Spectators, chat, tournaments, and engine detection are outside the scope."
       ],
       "diagrams": [],
       "flows": []
@@ -26,9 +26,9 @@
       "title": "Non-functional Requirements",
       "level": 3,
       "points": [
-        "Keep move acknowledgement and opponent updates low latency.",
-        "Support around 500,000 concurrent games and a leaderboard with millions of players.",
-        "Prevent double matching, duplicated moves, inconsistent results, and client-manipulated clocks."
+        "Moves should reach the opponent in less than 200 ms. Prefer consistent game state over availability when the owner is unreachable.",
+        "The example has 10 million registered players and 500,000 concurrent games. Each game needs two connections, for one million total.",
+        "Prevent duplicate matches and moves. Clients must not decide whether a move is legal or how much time remains."
       ],
       "diagrams": [
         {
@@ -45,10 +45,10 @@
       "title": "Core Entities",
       "level": 3,
       "points": [
-        "Player stores identity and rating; MatchmakingEntry stores mode, rating range, and wait time.",
-        "Game stores players, board, turn, clocks, version, and terminal state.",
-        "Move records a game sequence, player, move, and authoritative timing.",
-        "RatingChange and LeaderboardEntry connect finalized results to rankings."
+        "Player stores identity and rating. MatchRequest records the player's rating and whether the player is waiting or matched.",
+        "Game stores the two players, board, turn, remaining clock times, and result.",
+        "Move records the game, player, squares, move number, and time. Its history lets a replacement server rebuild the board.",
+        "Player records also contain ratings and win/loss totals. A later Redis leaderboard derives its scores from these durable records."
       ],
       "diagrams": [
         {
@@ -65,10 +65,10 @@
       "title": "API",
       "level": 3,
       "points": [
-        "Join or leave matchmaking using a stable request ID.",
-        "Send a move with game ID and expected version or sequence; receive accepted state or a conflict.",
-        "Reconnect to fetch a current snapshot and subsequent moves.",
-        "Query top players and a player's rank with defined ordering and tie rules."
+        "POST /matchmaking creates a request. The service obtains player identity and rating from trusted server records; clients poll request status.",
+        "A WebSocket at /games/{gameId} carries moves and acknowledgements. The expected move number prevents applying a retry as a new move.",
+        "On connection or recovery, the Game Service sends the current board, move number, and both clocks.",
+        "Leaderboard endpoints return a page of players or one player's rank. Define the ordering of equal ratings."
       ],
       "diagrams": [],
       "flows": []
@@ -84,9 +84,9 @@
       "title": "1) Match players",
       "level": 4,
       "points": [
-        "Queue eligible players by game mode and rating band, widening acceptable ranges as waiting time grows.",
-        "Atomically claim both players before creating a game so concurrent matchers cannot pair one player twice.",
-        "Remove or mark claimed queue entries and recover abandoned claims after failures."
+        "The Matchmaking Service writes a pending request in PostgreSQL. It searches for another pending player within an acceptable rating range.",
+        "Create the Game and mark both requests matched in one transaction. The contention deep dive adds row locks around candidate selection.",
+        "Clients poll until their requests contain a game ID. Widen the rating range as they wait, and eventually expire unmatched requests."
       ],
       "diagrams": [
         {
@@ -99,13 +99,16 @@
       ],
       "flows": [
         {
-          "title": "Pair players and start a game",
+          "title": "Pair two waiting players",
           "steps": [
-            "Each player joins a matchmaking queue with mode, rating, and a retry-safe request identity.",
-            "A matcher chooses compatible candidates and atomically claims both currently eligible entries.",
-            "It commits a game linking the two claimed players and records recoverable notifications before confirming the pairing.",
-            "The players receive the game ID and connect to its authoritative game owner.",
-            "If pairing fails before game creation, only the current claims are released or expired; late matchers cannot create a second game from superseded claims."
+            "The Player Client requests a match through the API Gateway.",
+            "The Matchmaking Service reads the player's trusted rating and stores a pending MatchRequest in PostgreSQL.",
+            "It finds another pending player within the permitted rating range.",
+            "A short transaction claims the two requests, creates the Game, and marks both requests matched with the same game ID.",
+            "Clients poll their request status and receive the game ID. The contention section explains the row locks that protect this claim."
+          ],
+          "diagramFilenames": [
+            "03.svg"
           ]
         }
       ]
@@ -114,10 +117,10 @@
       "title": "2) Run games",
       "level": 4,
       "points": [
-        "Route both players to the game owner or authoritative processing partition.",
-        "Validate turn, legal movement, promotion, and game-ending conditions before persisting a move.",
-        "Apply a move once using its sequence or ID, then broadcast the resulting state.",
-        "On reconnect, restore from a snapshot plus durable moves rather than trusting a client's board."
+        "Both players initially connect to one Game Service instance. It keeps the board in memory and processes moves sequentially.",
+        "The Game Service verifies membership, turn, move legality, and remaining time. It rejects invalid moves without changing the board.",
+        "Save each valid move and the updated Game record in one PostgreSQL transaction. Only after commit, acknowledge and broadcast the result.",
+        "Recover the board from stored moves and game state after failure. A client's local board cannot replace the authoritative record."
       ],
       "diagrams": [
         {
@@ -132,12 +135,15 @@
         {
           "title": "Accept and broadcast a chess move",
           "steps": [
-            "The active player submits a move with game ID, operation ID, and expected turn or sequence.",
-            "The authoritative game owner checks player identity, current board version, legal movement, and server-owned clock state.",
-            "An invalid, stale, duplicate, or late move receives the corresponding rejection or existing result without advancing the turn twice.",
-            "A valid move updates board, clocks, turn, and any terminal result within the game's serialized durable state transition.",
-            "The server acknowledges the committed move and broadcasts its new sequence/state to both players.",
-            "Clients reconcile their display with that state; after reconnect they load a snapshot and later committed moves rather than submitting their local board as authority."
+            "Both clients connect to the same Game Service instance and receive the current board and clocks.",
+            "A player submits a move and expected move number over the WebSocket.",
+            "The Game Service checks membership, turn, legal movement, and the server-owned clock.",
+            "It saves the valid move and updated Game record in one PostgreSQL transaction.",
+            "After commit, it updates the in-memory board and sends the accepted move and clocks to both clients.",
+            "A stale or duplicate request cannot advance the turn again. Reconnecting clients fetch the server's current state."
+          ],
+          "diagramFilenames": [
+            "04.svg"
           ]
         }
       ]
@@ -146,9 +152,9 @@
       "title": "3) Rankings",
       "level": 4,
       "points": [
-        "Finalized results trigger rating updates according to the selected rating system.",
-        "Store authoritative results durably and maintain a derived sorted leaderboard.",
-        "Deduplicate result application so retries do not change ratings twice for one game."
+        "When a game ends, the Game Service calculates both rating changes from the result and starting ratings.",
+        "Save the final result and both player ratings in one transaction. The basic leaderboard queries the Players table by rating.",
+        "A rating index makes the top page cheap to read. A player's rank still requires counting all higher-rated players."
       ],
       "diagrams": [
         {
@@ -161,13 +167,16 @@
       ],
       "flows": [
         {
-          "title": "Apply a completed game to ratings",
+          "title": "Update ratings and read the basic leaderboard",
           "steps": [
-            "A committed terminal game result produces a result event with the stable game ID.",
-            "The rating service checks that the game has not already been applied and reads the applicable rating inputs.",
-            "It commits both players' rating effects under the selected consistency rules and records that the game is processed.",
-            "A projection updates the leaderboard's sorted entries; failures can be retried or rebuilt from durable ratings.",
-            "Rank queries read the derived view with explicit tie rules, without rerunning rating changes each time the result event reappears."
+            "The Game Service determines the final game result.",
+            "It computes both players' rating changes from that result and their starting ratings.",
+            "One PostgreSQL transaction saves the final result and both rating updates.",
+            "A leaderboard request reads the Players table in rating order.",
+            "A personal-rank request counts higher-ranked players. The deep dive replaces this expensive count with a Redis ranking structure."
+          ],
+          "diagramFilenames": [
+            "05.svg"
           ]
         }
       ]
@@ -183,9 +192,9 @@
       "title": "1) Matchmaking consistency",
       "level": 4,
       "points": [
-        "A check-then-delete queue operation has races; use transactions, conditional claims, or atomic queue operations.",
-        "Include claim ownership and expiration so a delayed matcher cannot create a game after its claim was reassigned.",
-        "Rejoining and cancellation need defined transitions when a match is already being committed."
+        "Lock pending MatchRequests inside a PostgreSQL transaction. SELECT FOR UPDATE SKIP LOCKED avoids selecting an opponent that another matcher holds.",
+        "Recheck the requesting player's status under its lock. Before commit, failures roll back the game and both request changes.",
+        "If PostgreSQL matchmaking becomes a bottleneck, Redis can hold the waiting pool. An atomic script claims both players, but cross-store failures still need recovery."
       ],
       "diagrams": [],
       "flows": []
@@ -194,10 +203,10 @@
       "title": "2) Game-server scale",
       "level": 4,
       "points": [
-        "Partition by game ID and keep each game's updates serialized at one owner.",
-        "Separate persistent connection gateways from game state processing if connection scale and compute scale differ.",
-        "Use ownership epochs or fencing during failover to prevent two servers from accepting moves for the same game.",
-        "A durable move log and periodic snapshots let replacement owners recover quickly."
+        "A Session Router maps each game ID to one Game Service instance. Consistent hashing limits reassignment when the server fleet changes.",
+        "ZooKeeper supplies the current server list through registrations and heartbeats. Routers must use a consistent view of that list.",
+        "An alternative shares state in PostgreSQL and sends moves through Redis Pub/Sub. Version checks serialize concurrent updates; Pub/Sub alone cannot recover missed moves.",
+        "The final design keeps one in-memory owner for each game. Recover persisted state when routing changes or the owner fails."
       ],
       "diagrams": [
         {
@@ -215,15 +224,43 @@
           "height": 553.9065762224358
         }
       ],
-      "flows": []
+      "flows": [
+        {
+          "title": "Route both players to one game owner",
+          "steps": [
+            "Game Service instances register with ZooKeeper and send heartbeats.",
+            "The Session Router builds its consistent hash ring from the available server list.",
+            "It maps both clients' common game ID to the same Game Service instance.",
+            "That instance owns the active board and clocks and processes moves sequentially.",
+            "If membership changes, affected clients reconnect to the new owner, which recovers persisted state before play continues."
+          ],
+          "diagramFilenames": [
+            "06.svg"
+          ]
+        },
+        {
+          "title": "Process a move with shared state instead",
+          "steps": [
+            "In this alternative, clients can connect to different Game Service instances.",
+            "The receiving instance loads the current board, clocks, and version from shared state.",
+            "It validates the move and commits it in PostgreSQL only if the expected version still matches.",
+            "After commit, it publishes the accepted move through Redis Pub/Sub for that game.",
+            "The opponent's Game Service forwards the update through its client connection.",
+            "Clients detect missing move numbers and reload state. Redis Pub/Sub cannot replay a message missed during disconnection."
+          ],
+          "diagramFilenames": [
+            "07.svg"
+          ]
+        }
+      ]
     },
     {
       "title": "3) Fair clocks",
       "level": 4,
       "points": [
-        "Server time determines remaining time; client timers are estimates for display.",
-        "Define when time starts and stops around move acceptance, and cap any lag compensation policy.",
-        "Process flags and moves under the same authoritative ordering so a delayed client cannot revive an expired game."
+        "The server owns each player's remaining time. Local client timers only provide a smooth display.",
+        "WebSocket pings measure round-trip delay. Credit a bounded recent median delay per move; the cap limits deliberate delay manipulation.",
+        "The server also detects time expiry without waiting for another move. Regional servers reduce delay before clock compensation is necessary."
       ],
       "diagrams": [],
       "flows": []
@@ -232,9 +269,9 @@
       "title": "4) Leaderboard scale",
       "level": 4,
       "points": [
-        "A sorted set supports top ranges and rank lookup, while durable ratings remain the rebuild source.",
-        "Update both players' ratings consistently from the finalized result and preserve tie-breakers.",
-        "Partition or specialize ranking workloads only when the single ranking structure becomes the measured bottleneck."
+        "A Redis sorted set supports fast top ranges and exact rank positions. PostgreSQL remains the durable rating source.",
+        "Commit both player ratings with the final result, then update Redis. Retry failed updates or rebuild the set from PostgreSQL.",
+        "Define ties explicitly; the example uses player IDs to break equal scores. Approximate rating buckets are an alternative if exact rank is unnecessary."
       ],
       "diagrams": [
         {
@@ -245,15 +282,28 @@
           "height": 586.1630843979116
         }
       ],
-      "flows": []
+      "flows": [
+        {
+          "title": "Refresh the derived Redis leaderboard",
+          "steps": [
+            "The Game Service commits a final result and both new player ratings in PostgreSQL.",
+            "It updates the corresponding scores in the Redis Leaderboard sorted set.",
+            "Top-player and personal-rank requests read this derived set, using the chosen tie-breaker.",
+            "If an update fails, retry it or rebuild the set from PostgreSQL. The durable ratings remain authoritative while Redis catches up."
+          ],
+          "diagramFilenames": [
+            "08.svg"
+          ]
+        }
+      ]
     },
     {
       "title": "Final Design",
       "level": 3,
       "points": [
-        "Atomic matchmaking hands players to partitioned, authoritative game servers.",
-        "Durable moves and ownership fencing support reconnects and failover.",
-        "Idempotent result processing updates ratings and a fast derived leaderboard without allowing client state to decide outcomes."
+        "PostgreSQL transactions protect matchmaking and game results. The Session Router sends both players to the same Game Service instance.",
+        "The Game Service saves moves before sending updates and controls both clocks. ZooKeeper supplies the fleet membership used for routing.",
+        "PostgreSQL stores durable ratings, and Redis serves the leaderboard. Reconnects recover server state instead of trusting a client's board."
       ],
       "diagrams": [
         {

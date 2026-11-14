@@ -1,80 +1,98 @@
 Understanding the Problem
-- Design the cache itself: a distributed in-memory key-value service with expiration, eviction, and failure handling.
-- Clarify whether cached data is reconstructible from another store before choosing persistence and consistency guarantees.
+- The task is to build the cache itself. It stores key-value pairs in memory across several machines.
+- Confirm whether an authoritative store can rebuild lost data. The answer determines the required persistence and consistency guarantees.
 
 Functional Requirements
-- Set, retrieve, and delete key-value pairs.
-- Support per-key TTL and evict entries under memory pressure using an LRU policy.
-- Distribute keys across nodes while providing a usable client interface.
+- Clients can set, retrieve, and delete key-value pairs.
+- Each entry can have an expiration time. A full cache removes entries according to the required LRU policy.
+- The distributed design assigns keys to nodes and gives clients a way to locate those nodes.
 
 Non-functional Requirements
-- Keep operations low latency with high throughput and bounded memory usage.
-- Scale horizontally and remain available through node failures.
-- Explain whether stale reads or loss of recently cached writes is acceptable; replication policy depends on that contract.
+- Get and set operations should take less than 10 ms. The scenario stores 1 TB and handles 100,000 peak requests per second.
+- The cache scales across machines and remains available through individual node failures.
+- The article accepts eventual consistency and excludes restart durability. A stricter cache contract would require additional coordination or persistence.
 
 Core Entities
-- CacheEntry stores key, value, expiry, and eviction metadata.
-- Node owns a subset of keys and optional replicas; cluster membership maps keys to owners.
-- A client or routing layer locates the responsible node for each operation.
+- CacheEntry contains the key, value, expiration time, and data needed for eviction.
+- Cache Node owns a range of keys. The chosen replication model keeps additional copies on other nodes.
+- A client or proxy uses the ownership map to route each operation.
 
 API
-- get(key) returns a value or a miss; set(key, value, ttl) writes or replaces an entry.
-- delete(key) removes an entry idempotently.
-- Define key/value size limits and behavior for expired entries; an expired item must never be returned as a valid hit.
+- get(key) returns a value or a miss. set(key, value, ttl) creates or replaces an entry.
+- delete(key) removes the entry. Deleting a missing key can safely have no further effect.
+- The API defines key and value size limits. An expired entry must return a miss, even before background cleanup removes it.
 
 High-Level Design
 
 1) In-memory operations
-- Use a hash table for average constant-time key lookup.
-- Store values in memory and limit allocations and copying on the request path.
-- Synchronize concurrent mutations so the hash table and eviction bookkeeping remain consistent.
+- A hash table provides average constant-time key lookup and insertion.
+- The first design keeps values on one Cache Node. Small allocations and limited copying reduce request overhead.
+- Concurrent writes must preserve the hash table and associated metadata. A simple single-threaded loop or suitable locks can protect them.
 
-Process: Route and execute a cache operation
-- 1. The client or proxy hashes the key using the current ownership map and sends the request to its owning node.
-- 2. For GET, the node checks the hash table and expiration before returning a value; an absent or expired entry is a miss.
-- 3. For SET, the node validates size, atomically replaces the entry and TTL metadata, and updates eviction bookkeeping.
-- 4. It replicates the change according to the chosen policy and acknowledges after the required durability or replication boundary.
-- 5. If memory exceeds its limit, the node evicts eligible entries according to policy; eviction changes future reads into misses, not backing-store deletions.
-- 6. A stale ownership response causes the client to refresh routing and retry within a bound rather than repeatedly contacting the wrong node.
+Process: Execute an operation on one Cache Node
+- 1. The client sends a get, set, or delete request to the Cache Node.
+- 2. The node finds the key in its in-memory hash table.
+- 3. A get returns the value or a miss. A set creates or replaces the value. A delete removes the entry.
+- 4. The node returns the operation result. Expiration and eviction are added in the next design stage.
 
 2) TTL and eviction
-- Lazy expiration checks TTL on access; background cleanup reclaims expired entries that are never read again.
-- An LRU list plus hash table supports efficient promotion and removal, although strict global LRU creates coordination overhead.
-- Approximate or segmented eviction can reduce bookkeeping cost under high concurrency.
-- Eviction is distinct from expiration: an unexpired item may be removed because memory is full.
+- A read checks expiration before returning a value. A Janitor removes expired entries that no client reads again.
+- The LRU design combines a hash table with a doubly linked list. Each access moves the entry toward the most-recent end.
+- A full cache removes the least-recent entry from both structures. Approximate eviction is an alternative only if the requirement permits it.
+- Expiration removes an entry because its lifetime ended. Eviction can remove an unexpired entry because memory is full.
+
+Process: Read an entry and maintain LRU state
+- 1. The Cache Node looks up the entry in its hash table.
+- 2. If the entry is absent, the node returns a miss.
+- 3. If the entry has expired, the node removes it from the hash table and linked list. It returns a miss.
+- 4. Otherwise, the node moves the linked-list entry to the most-recent end. It returns the value.
+- 5. A new write that exceeds capacity removes the least-recent entry. The Janitor separately removes expired entries during cleanup.
 
 Deep Dives
 
 1) Availability and replication
-- Replicate entries to survive node loss and define how a replacement owner is selected.
-- Synchronous replication improves acknowledgement durability but adds latency and reduces availability during failures.
-- Asynchronous replication is faster but can lose recent writes or expose stale values after failover.
-- If the cache is reconstructible, controlled misses may be preferable to expensive strong consistency; protect the backing store during recovery.
+- Replicas retain additional copies. The cluster needs a defined method to select a new owner after a failure.
+- Synchronous replication waits for required replicas before acknowledgment. It adds latency and can block writes when a replica is unavailable.
+- Asynchronous replication acknowledges the primary first. A replica can be stale, and failover can lose changes that did not reach it.
+- Peer-to-peer replication lets several nodes accept writes. It requires conflict handling. For reconstructible data, controlled misses can be simpler than strong consistency.
 
-Process: Recover ownership after node failure
-- 1. Health checks or membership coordination identify an unavailable owner without letting clients independently invent competing owners.
-- 2. The cluster selects or promotes the eligible replica and publishes a new ownership epoch or map.
-- 3. Clients refresh routing and retry requests against the replacement; recently acknowledged writes are preserved only to the extent promised by the replication policy.
-- 4. Missing cache entries are fetched by applications from their authoritative stores, with bounded miss traffic during warm-up.
-- 5. The cluster restores replication and rebalances data in the background while preventing a recovered stale owner from accepting conflicting writes.
+Process: Replicate a write asynchronously
+- 1. The client sends a write to the leader for that key range.
+- 2. The leader applies the value and expiration changes in memory.
+- 3. It acknowledges the write without waiting for every replica.
+- 4. It forwards the change to its replicas. A lagging replica can temporarily return an older value if reads are permitted there.
+- 5. If the leader fails before replication completes, the replacement may lack that write. The cache contract must permit or prevent this loss.
 
 2) Distribution and growth
-- Modulo hashing remaps many keys when node count changes. Consistent hashing limits movement to affected ranges.
-- Virtual nodes improve balance and let larger machines own more ranges.
-- Membership changes require routing updates and careful migration so clients do not treat every moved key as permanently missing.
+- Modulo hashing moves many keys when the node count changes. Consistent hashing remaps only affected key ranges.
+- Virtual nodes can improve balance and represent unequal machine capacity. The routing map must identify their physical owners.
+- A membership change updates routing and transfers affected entries. Clients need bounded retries while ownership changes.
+
+Process: Locate a key on the hash ring
+- 1. The client hashes the key into a position on the current ring.
+- 2. It moves clockwise to the first owning node position.
+- 3. It sends the request to that node. The node executes the operation on its local cache.
+- 4. When membership changes, the cluster transfers affected ranges and publishes updated routing. Unaffected ranges retain their owners.
 
 3) Hot keys
-- A popular read key remains hot even when the overall keyspace is evenly partitioned.
-- Replicate hot values or add bounded local caches, accepting explicit invalidation and freshness costs.
-- Hot writes are harder because replicas must coordinate changes; batching, aggregation, or application-specific key splitting may help.
-- Do not claim arbitrary writes to one key become scalable merely by adding shards.
+- One popular key can overload a node even when key counts are evenly distributed.
+- A dedicated Hot Key Cache or replicated hot values spreads reads. Each extra copy also needs updates and invalidation.
+- Batched increments or separate counter shards can reduce hot writes when the operation permits later aggregation.
+- Arbitrary writes to one ordered value cannot scale merely by adding unrelated shards. The data's update semantics determine possible splitting.
+
+Process: Distribute reads across copies of a hot value
+- 1. Monitoring identifies a key with excessive read traffic.
+- 2. The system creates several suffixed copies. Consistent hashing places them on different cache nodes.
+- 3. A reader selects one copy, which spreads read traffic across those nodes.
+- 4. A write updates or invalidates every copy under the chosen freshness policy.
+- 5. When traffic falls, the system can remove extra copies. This method adds write work and suits mostly-read values.
 
 4) Performance and recovery
-- Use connection reuse, pipelining, compact serialization, and batching where the client can tolerate it.
-- Bound request and value sizes so one large value cannot monopolize a server.
-- Measure tail latency, eviction rate, hit rate, replication lag, and rebalancing pressure.
+- Clients reuse connections and batch suitable operations. Compact serialization and fewer network round trips reduce overhead.
+- Request and value size limits prevent one large transfer from occupying a node for too long.
+- Measure tail latency, hit rate, evictions, replication delay, and migration load. Rate-limit cache refill traffic after a failure.
 
 Final Design
-- Hash-table storage, TTL cleanup, and bounded eviction form each cache node.
-- Consistent hashing and virtual nodes distribute ownership; replicas provide the chosen failure semantics.
-- Hot-key handling and backing-store protection are explicit extensions rather than assumptions hidden behind horizontal scaling.
+- Each Cache Node combines a hash table, expiration checks, a Janitor, and LRU bookkeeping.
+- Consistent hashing routes keys. The illustrated design uses asynchronous primary-replica groups for availability.
+- Read replicas distribute hot reads. Splittable hot writes can use suffixed keys and batching. Backing-store protection limits recovery load.

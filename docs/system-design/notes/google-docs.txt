@@ -1,85 +1,111 @@
 Understanding the Problem
-- Support multiple people editing one document while seeing each other's changes and cursor positions.
-- Concurrent editing requires an operation-merging model; transmitting whole snapshots is not enough to prevent lost work.
+- Several editors can change one document and see each other's edits and cursors.
+- Concurrent edits need a defined merge model. Replacing the entire document with each client's snapshot can lose another editor's work.
 
 Functional Requirements
-- Create and load documents.
-- Apply concurrent edits and show updates in real time.
-- Display collaborator presence and cursors.
+- Users can create and load documents.
+- Multiple editors can change the same document and receive updates in real time.
+- Editors can see collaborator presence and cursor positions. Detailed access roles and version history are outside the initial scope.
 
 Non-functional Requirements
-- Keep typing responsive with local feedback and low-latency propagation.
-- Converge to a consistent document despite concurrent edits, retries, and reconnects.
-- Persist edits durably and scale connection handling independently from document storage.
+- Local typing must respond immediately. The target for remote updates is less than 100 ms.
+- Clients must eventually reach the same document state after concurrent edits, retries, and reconnects.
+- Edits must survive a server restart. The scenario has billions of documents and millions of users, with at most 100 editors per document.
 
 Core Entities
-- Document stores identity, permissions, and the latest snapshot/version.
-- Operation records an edit with client identity, operation ID, and ordering or causal metadata.
-- Session tracks an active collaborator; Presence stores ephemeral cursor and availability information.
+- Editor identifies a collaborator. Document contains its ID, title, and current content version.
+- Operation describes an insert or delete with a stable ID, client identity, and revision or causal information.
+- Cursor and presence describe an active editor's position and connection. They are temporary, unlike durable document edits.
 
 API
-- Create a document and fetch its snapshot plus synchronization position.
-- Open an authenticated document collaboration channel and submit operations with stable IDs.
-- Receive accepted operations and acknowledgements; reconnect from a known revision or synchronize using the chosen merge protocol.
-- Send presence separately from durable document edits because stale cursor updates can be discarded.
+- POST /docs creates document metadata and returns a document ID.
+- A document WebSocket carries edit operations and cursor updates. The client sends each operation with a stable identifier and base revision.
+- The server returns accepted operations and acknowledgements. Reconnecting clients resume from a known position or reload the current version.
+- Presence messages remain separate from durable edits. Old cursor updates can expire without changing document content.
 
 High-Level Design
 
 1) Create and load
-- Persist metadata and an initial snapshot, enforcing document access on both HTTP requests and persistent connections.
-- Load a snapshot and all operations after its position before presenting a fully synchronized document.
-- Buffer live events during initial loading or use a boundary token so edits are not missed between snapshot and subscription.
+- The Document Metadata Service stores a document ID and title in PostgreSQL. Content operations use separate storage later in the design.
+- Loading requires the selected document version and its operations. A compacted version reduces replay work in the final design.
+- If access control enters scope, check permission on both HTTP requests and persistent connections.
 
-Process: Load a document and join collaboration
-- 1. The client requests the document; the service checks read/edit permission before returning state or opening an edit channel.
-- 2. The synchronization service establishes a snapshot revision and a live-operation boundary, buffering or retaining changes needed during loading.
-- 3. The client loads the snapshot and applies operations after its revision in the order required by the chosen collaboration model.
-- 4. It merges buffered live operations and acknowledges the last applied position, avoiding a gap between snapshot loading and subscription.
-- 5. Presence is registered separately and expires if the session disappears; it is not part of the durable document content.
+Process: Create document metadata
+- 1. The client sends a document title to the API Gateway.
+- 2. The gateway routes the request to the Document Metadata Service.
+- 3. The service stores the document metadata in PostgreSQL. It returns the new document ID.
 
 2) Concurrent editing
-- Whole-document replacement allows one client's stale snapshot to overwrite another client's work.
-- Operational transformation adjusts incoming operations against concurrent edits, commonly with a server-defined order.
-- CRDTs encode operations or state so replicas can merge and converge under their defined rules.
-- Choose one model and explain its metadata, ordering, and storage costs rather than treating the two approaches as interchangeable boxes.
-- Apply edits locally for responsiveness, then reconcile acknowledgements and remote edits using that model.
+- Sending a full snapshot on every edit wastes bandwidth. The last snapshot can overwrite another user's changes.
+- Sending positions alone is insufficient. An insertion can move the character that another user's delete operation targets.
+- Operational transformation adjusts an operation against concurrent edits. The source chooses a central Document Service to order and transform edits.
+- CRDTs are an alternative with stable identifiers and merge rules. Their metadata, deletion handling, and storage costs depend on the implementation.
+- Use one defined collaboration model consistently. OT and CRDTs do not have interchangeable transformation or replay rules.
+- Apply an edit locally for fast typing. Reconcile pending local operations when acknowledgements or remote edits arrive.
 
-Process: Apply an edit with a server-ordered OT design
-- 1. The client applies the user's edit locally for responsiveness and sends an operation ID plus its base revision.
-- 2. The document owner verifies permission and deduplicates a previously accepted operation with the same ID.
-- 3. It transforms the operation against intervening accepted operations according to the chosen OT rules and assigns the next authoritative revision.
-- 4. The server durably appends the accepted operation before acknowledging the durable revision and broadcasting it to collaborators.
-- 5. Other clients transform or reconcile pending local edits and apply the remote operation; the origin reconciles its acknowledgement instead of applying its own insertion twice.
-- 6. After disconnecting, a client resumes from its acknowledged revision or a new snapshot. A CRDT-based design uses its causal/merge rules instead of this OT transformation step.
+Process: Accept an edit with server-ordered OT
+- 1. The client applies the edit locally. It sends an operation ID and base revision to the Document Service.
+- 2. The document owner checks whether it already accepted that operation.
+- 3. It transforms the operation against intervening edits using the OT protocol. It assigns the next accepted revision.
+- 4. It writes the accepted operation to the Document Operations DB before acknowledging it.
+- 5. The client reconciles the acknowledgement with its pending local edits. It does not apply its own insertion a second time.
 
 3) Broadcast and presence
-- Route document operations to the collaboration owner or shared document channel and broadcast accepted edits.
-- Deduplicate operations by ID; reconnect replay must not insert the same text twice.
-- Cursor positions need transformation or stable anchors as text changes around them.
-- Expire presence after missed heartbeats; a disconnected collaborator should not remain permanently online.
+- On connection, the Document Service loads and sends the current version's operations. It coordinates this initial state with later live edits.
+- After an operation is durable, the service broadcasts it to connected editors. Clients reconcile it using the same OT protocol.
+- Stable operation IDs prevent duplicate inserts after replay. Clients must not apply their own acknowledged insertion twice.
+- Transform cursor positions or use stable anchors when surrounding text changes. Keep cursor state in memory and expire disconnected users.
+
+Process: Load operations and join live editing
+- 1. The client opens the document connection. The Document Service selects the current document version.
+- 2. The service loads that version's stored operations and sends the initial state to the client.
+- 3. It retains or buffers edits that arrive during loading. The client applies them after the initial state using the same ordering rules.
+- 4. The client records its applied revision and continues live editing. Presence is registered separately from durable content.
+
+Process: Send an accepted edit to collaborators
+- 1. The Document Service transforms and stores an incoming operation.
+- 2. After storage succeeds, it sends the accepted operation to the document's other connected clients.
+- 3. Each client transforms or reconciles its pending local operations before applying the remote change.
+- 4. Clients advance their acknowledged positions. A reconnect replays from a known position without applying the same operation twice.
 
 Deep Dives
 
 1) Connection scaling
-- Partition active documents across collaboration servers and route all participants to the appropriate owner or channel.
-- Separate persistent connection gateways from durable operation storage when needed.
-- A very popular document remains a hot key; limit or specialize its collaboration path rather than assuming more document shards fix it.
-- On owner failure, recover from durable state and force clients to resume from acknowledged positions.
+- Partition documents across Document Service instances. ZooKeeper maintains the shared hash-ring configuration in the source design.
+- A client first contacts a server with the document ID. That server redirects it to the responsible document owner if necessary.
+- Editors of one document connect to the same owner. Persistent connection gateways can be separated when the architecture requires them.
+- Adding document shards does not split one busy document's edit ordering. The 100-editor limit bounds this problem in the initial contract.
+- On owner failure, restore durable state and reconnect clients from acknowledged positions. Ownership changes must not leave two active authorities.
+
+Process: Connect to the document owner
+- 1. The client contacts a Document Service instance with the document ID.
+- 2. The server reads the hash-ring configuration maintained through ZooKeeper.
+- 3. If another server owns the document, it redirects the client to that server.
+- 4. The correct owner upgrades the connection to a WebSocket and loads the document state.
+- 5. It registers the client among that document's collaborators. Later ownership changes trigger controlled reconnection and recovery.
 
 2) Bound storage and replay
-- An append-only operation log supports recovery but grows indefinitely and makes cold loads slow.
-- Periodically create a snapshot at a known log position, then replay only later operations.
-- Compact safely: retain what offline clients and the merge algorithm still need, including relevant tombstones or revision history.
-- Publish snapshots atomically with their boundary so readers cannot combine a new snapshot with the wrong operation range.
+- An append-only operation log supports recovery but grows over time. Long logs also make document loading slow.
+- Compaction creates a smaller representation under a new document version. Publish the new version only after its content is durable.
+- A separate Compaction Service must coordinate the version change with the Document Service. The source defers it for an active document.
+- Alternatively, the owning Document Service compacts after the last editor disconnects. Low-priority work limits interference with active edits.
+- Retain operations that reconnecting clients or the merge model still require. Snapshot boundaries must match the operations that readers replay.
 
-Process: Publish a consistent snapshot
-- 1. A snapshot worker chooses a committed document revision as its boundary.
-- 2. It reconstructs or captures the document exactly through that revision and writes the snapshot to durable storage.
-- 3. It atomically publishes the snapshot reference together with the covered revision after the write succeeds.
-- 4. New readers load that snapshot and replay only later operations; they do not combine it with an unrelated log boundary.
-- 5. Compaction removes history only after the retention and synchronization rules permit it, preserving metadata still needed by offline clients or the merge algorithm.
+Process: Compact through a separate service
+- 1. The Compaction Service reads operations for an eligible document version.
+- 2. It creates a compact representation and writes it under a new document version ID.
+- 3. It asks the Document Service to change the active version only after the new content is durable.
+- 4. The Document Service defers the change if the document is active under the source's chosen policy.
+- 5. A successful version change makes later readers load the compact representation. Old data remains until retention rules permit deletion.
+
+Process: Compact when the last editor leaves
+- 1. The owning Document Service detects that the last collaborator has disconnected.
+- 2. It selects the current committed version and prepares a compact representation in a low-priority task.
+- 3. It writes that representation under a new version ID in the operations database.
+- 4. After the write succeeds, it conditionally changes the metadata's active version.
+- 5. A new reader loads the published version and any later required operations. A concurrent reconnect must not race the version change.
 
 Final Design
-- Durable snapshots and an operation log support recovery and history.
-- A selected OT or CRDT model defines concurrent edit semantics; collaboration servers deliver its operations in real time.
-- Separate ephemeral presence, bounded replay, and authenticated document routing keep the editing experience responsive and recoverable.
+- PostgreSQL stores document metadata and the active version. Cassandra stores ordered operations for each document version.
+- The Document Service uses OT and broadcasts durable edits over WebSockets. ZooKeeper coordinates document-to-server routing.
+- Presence remains temporary. Owner-controlled compaction limits storage and replay while preserving the required recovery history.

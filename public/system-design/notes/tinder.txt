@@ -1,81 +1,99 @@
 Understanding the Problem
-- Build profile discovery and mutual matching based on preferences, distance, and swipe decisions.
-- Candidate generation can be eventually consistent; recording swipes and creating a mutual match need stronger coordination.
+- The application recommends profiles using preferences and distance. A match occurs when both users make a positive swipe.
+- Discovery can tolerate some stale data. Swipe handling needs coordination so concurrent positive swipes do not lose a match.
 
 Functional Requirements
-- Create a profile and configure preferences and maximum distance.
-- Browse a stack of eligible profiles.
-- Swipe yes or no once per candidate, and notify both users when their positive swipes form a match.
-- Messaging after a match and recommendation-model training are outside the core design.
+- Users can create profiles, set preferences, and choose a maximum distance.
+- Users can request a stack of eligible profiles.
+- Users can swipe yes or no on each profile. Both users receive a notification when their positive swipes form a match.
+- Photo uploads, chat after matching, and premium features are outside the initial scope.
 
 Non-functional Requirements
-- Keep swipe acknowledgement and stack retrieval fast.
-- Avoid missing a mutual match when users swipe concurrently, and avoid duplicate match records or notifications.
-- Support geographic queries and large swipe histories without scanning every profile or historical swipe.
+- The stack should load in less than 300 ms. The scenario assumes 20 million daily users and about 100 daily swipes each.
+- Concurrent swipes must not lose a mutual match. A retry must not create a second match or duplicate visible notification.
+- Geographic queries and swipe-history checks must scale without scanning every profile or historical swipe for each request.
 
 Core Entities
-- UserProfile stores preferences, location, and profile metadata; photos live in object storage.
-- Swipe stores swiper, target, decision, and time.
-- Match stores a canonical unordered pair of users and creation time.
-- CandidateStack is a derived, refreshable list of potential profiles for a user.
+- UserProfile stores profile metadata and preferences. The current request supplies location because the user can move.
+- Swipe records the initiating user, target user, decision, and time.
+- Match connects two users. A canonical pair key can identify one match regardless of which user swiped last.
+- CandidateStack is a temporary list of recommended profiles. The service refreshes it when necessary.
 
 API
-- Update profile, preferences, and location for the authenticated account.
-- Fetch a bounded candidate stack with a cursor or replenishment token.
-- Submit a swipe with target user ID, decision, and retry-safe request ID.
-- List matches and deliver match notifications through a persistent connection or push service.
+- POST /profile updates the authenticated user's preferences and maximum distance.
+- GET /feed accepts current coordinates and returns another bounded stack. This recommendation flow does not require conventional page numbers.
+- POST /swipe/:userId records a decision about the target profile. Authentication identifies the user making the swipe.
+- The swipe response can report an immediate match. APNS or FCM notifies the user who swiped earlier.
 
 High-Level Design
 
 1) Profiles and candidate stacks
-- Store profile metadata durably and serve images through object storage and a CDN.
-- Use geographic and preference indexes to generate candidates rather than scanning all users.
-- Filter blocked, ineligible, and previously swiped profiles before presenting the stack.
-- Precompute a limited stack for active users, then replenish as it is consumed or preferences change.
+- The Profile Service stores profile settings in the Profile DB. The initial stack query reads that database directly.
+- The query filters candidates by preferences and location. The deep dive adds geographic indexes and a stack cache.
+- The final candidate filter excludes profiles that do not meet current rules or have already received a swipe.
+- A later design precomputes small stacks for active users. It refreshes them as users consume them or change preferences.
 
-Process: Build and consume a candidate stack
-- 1. The user requests more candidates; the profile service reads current preferences, location, and eligibility state.
-- 2. It checks the user's cached stack and generates more candidates through geographic and preference indexes when the stack is low or stale.
-- 3. The service removes blocked, ineligible, or previously swiped candidates using exact history or the selected membership-filter strategy.
-- 4. It caches a bounded candidate pool and returns a small batch with authorized profile/media references.
-- 5. As the user consumes the stack, background replenishment continues; final eligibility checks prevent stale cached candidates from bypassing current rules.
+Process: Build the initial candidate stack
+- 1. The client sends its current location to the Profile Service through the API Gateway.
+- 2. The Profile Service reads the user's saved preferences and maximum distance.
+- 3. It queries the Profile DB for profiles within the requested area and preference filters.
+- 4. It returns a bounded stack. The user can request another stack when the current one is nearly empty.
 
 2) Swipes and matches
-- Persist the swipe and check the reverse positive swipe.
-- Coordinate both sides so simultaneous swipes cannot each miss the other's write and permanently lose the match.
-- Use a canonical pair key and a unique match constraint; retries must return the same match rather than insert another.
-- Publish a match event reliably and deduplicate notifications independently from the match record.
+- The Swipe Service persists the decision in Cassandra. It checks whether the target user already made a positive reverse swipe.
+- A simple write and reverse-read sequence needs stronger coordination under concurrency. The deep dive adds atomic matching on a shared pair key.
+- A canonical pair ID and unique match constraint make repeated detection safe. The same pair should not create another match.
+- The second swiper sees the match in the response. APNS or FCM sends a push notification to the first swiper.
 
-Process: Record a swipe and create a mutual match
-- 1. The client sends the target user, swipe decision, and stable request ID to the swipe service.
-- 2. The service authenticates the swiper and maps both users to a canonical pair key for the chosen atomic coordination boundary.
-- 3. Within that boundary, it records the decision and examines the other user's decision; a retry resolves to the same recorded decision.
-- 4. If both decisions are positive, it creates a uniquely keyed match for that pair. Concurrent swipes cannot each permanently miss the other.
-- 5. The service commits before acknowledging the swipe or match result.
-- 6. A reliable match event triggers notifications to both users, with delivery deduplication separate from the unique match record.
+Process: Record a swipe and notify an existing reverse match
+- 1. Person A has previously swiped yes on Person B. Cassandra stores that decision.
+- 2. Person B sends a yes decision about Person A to the Swipe Service.
+- 3. The Swipe Service stores Person B's decision. It reads the existing reverse swipe.
+- 4. If both decisions are yes, the service returns a match to Person B.
+- 5. It sends a notification for Person A through APNS or FCM. The following deep dive handles simultaneous swipes safely.
 
 Deep Dives
 
 1) Consistent low-latency swiping
-- Transactions can coordinate swipe and match updates when the relevant state fits one database boundary.
-- With partitioned storage, choose a canonical pair partition so both users' decisions can be checked together.
-- Cassandra conditional operations can help within a partition, but they have coordination cost and are not general cross-partition transactions.
-- Redis atomic scripts provide another coordination option, but persistence, failover, and replay must protect durable match state.
-- Periodic polling alone is slow and creates repeated work; use it only as recovery or reconciliation if needed.
+- A transactional store can protect a pair's swipe state and match decision when they share one transaction boundary.
+- A sorted pair of user IDs sends both directions to the same partition. Partition placement alone does not make separate operations atomic.
+- Cassandra lightweight transactions provide conditional operations within their supported scope. A normal batch cannot combine an arbitrary read and write transaction.
+- The illustrated Redis design atomically records one decision and reads the reverse decision with a Lua script. Cassandra retains durable history.
+- Redis failover can lose recent acknowledged writes. Durable capture, replay, and reconciliation are required before claiming failure-safe match guarantees.
+
+Process: Check reciprocal decisions atomically in Redis
+- 1. The Swipe Service sorts the two user IDs to construct one canonical pair key.
+- 2. It executes a Redis script for that key. The script writes the current decision and reads the other user's decision atomically.
+- 3. If both decisions are positive, the application creates or retrieves the uniquely identified match.
+- 4. It returns the match result to the current swiper. The notification path informs the other user.
+- 5. Durable capture and replay must recover decisions and pending notifications after failure. A Redis acknowledgment alone does not prove this recovery guarantee.
 
 2) Fast candidate generation
-- Indexed real-time queries reflect new preferences quickly but become expensive under heavy repeated traffic.
-- Precomputed stacks make reads cheap but can become stale when users move or change preferences.
-- Combine a cached candidate pool with final eligibility checks and background replenishment.
-- Keep pool sizes bounded, expire old stacks, and prioritize active users rather than generating stacks for every dormant account.
+- Elasticsearch can combine geographic and preference filters. Change data capture keeps its profile data aligned with the primary database.
+- Periodic jobs precompute stacks in the Stack Cache. Those stacks can become stale after location or preference changes.
+- The hybrid design serves cached candidates first. It queries Elasticsearch to replenish a low stack and applies current eligibility checks.
+- Stack size, expiration, and active-user thresholds limit background work. Significant preference or location changes trigger a refresh.
+
+Process: Replenish a cached candidate stack
+- 1. The Profile Service checks the user's Stack Cache for eligible recommendations.
+- 2. It serves a small batch from that cache. It triggers replenishment before the remaining stack becomes empty.
+- 3. The replenishment job queries Elasticsearch with current location and preferences.
+- 4. The service excludes previous swipes and updates the bounded stack. Profile changes reach Elasticsearch through change data capture.
+- 5. A preference or location change invalidates stale candidates. Expiration and active-user policies limit unnecessary precomputation.
 
 3) Exclude previous swipes
-- Querying the entire swipe history for every stack request is expensive.
-- Cache recent swipe membership or maintain a compact lookup structure alongside the durable swipe store.
-- A Bloom filter can cheaply reject previously seen candidates, but false positives may hide an unseen profile; it cannot enumerate the history.
-- Decide whether that tradeoff is acceptable, and keep exact records for correctness-sensitive match decisions.
+- A full history query becomes expensive for users with many swipes.
+- The backend checks durable swipe history. A client-side Swipe Cache filters recent decisions that storage replicas may not yet expose.
+- A Bloom filter can reject likely previous swipes with little memory. False positives can hide profiles that the user has never seen.
+- Exact swipe records still determine matches. A Bloom filter cannot enumerate history and needs a rebuild after cache loss.
+
+Process: Filter recent and historical decisions
+- 1. The backend queries the user's durable swipe history when it builds candidates.
+- 2. It removes candidates whose IDs appear in that history.
+- 3. The client receives the new stack. It checks candidates against its local recent Swipe Cache.
+- 4. The client removes profiles swiped since the backend's snapshot. It records each new swipe in that local cache.
 
 Final Design
-- Indexed profiles and a refreshable candidate cache support discovery.
-- An atomic, retry-safe swipe/match path owns mutual-match correctness.
-- Durable events drive notifications, while cached swipe membership reduces repeated profile filtering work.
+- The Profile DB, Elasticsearch, and Stack Cache support profile discovery and replenishment.
+- The Swipe Service needs atomic matching and durable recovery. The Redis matching alternative appears in diagram 7.
+- Push notifications inform matched users. Client-side swipe history and optional Bloom filters reduce repeated recommendations.

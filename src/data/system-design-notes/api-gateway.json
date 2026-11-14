@@ -5,9 +5,9 @@
       "title": "What Is an API Gateway?",
       "level": 3,
       "points": [
-        "An API gateway is a shared entry point that routes client requests to backend services.",
-        "It can apply common middleware without forcing every client to understand the internal service topology.",
-        "Request routing is its primary role; additional responsibilities should serve a concrete requirement."
+        "An API Gateway is a shared entry point. It routes client requests to backend services.",
+        "It applies common request policies. Clients do not need to know every internal service address.",
+        "Routing is its main role. Add other responsibilities only when the application requires them."
       ],
       "diagrams": [],
       "flows": []
@@ -16,8 +16,8 @@
       "title": "Core Responsibilities and Request Flow",
       "level": 3,
       "points": [
-        "Validate the request, apply middleware, select a backend, forward the request, and return or transform the response.",
-        "Keep gateway behavior bounded so a common entry point does not become a central business-logic bottleneck."
+        "Validate the request and run middleware. Select a backend, forward the request, and return the response in the required format.",
+        "Limit gateway work. A common entry point should not execute all application business logic."
       ],
       "diagrams": [
         {
@@ -32,13 +32,15 @@
         {
           "title": "Route one client request end to end",
           "steps": [
-            "A load balancer sends the incoming request to a gateway instance, which terminates or handles the configured transport connection.",
-            "The gateway validates request shape and limits, then applies configured identity, authorization-scope, and rate-limit middleware before expensive backend work.",
-            "It matches the path, method, or routing metadata to a backend service and selects a healthy instance.",
-            "If an authorized compatible response-cache hit is available, it can return that response without calling the backend; otherwise it forwards the request with bounded deadlines and trusted context.",
-            "The backend performs domain validation and business work and returns its result; the gateway does not replace the backend's resource-specific checks.",
-            "The gateway applies configured response headers or transformation, caches only eligible responses under the correct key, and sends the result to the client.",
-            "A backend timeout follows an explicit retry/idempotency policy; the gateway must not blindly retry an uncertain non-idempotent action."
+            "The client sends a request to the API Gateway.",
+            "The gateway validates the route, required headers, and request format. It rejects malformed requests.",
+            "It runs the configured middleware, such as authentication and rate limiting.",
+            "It routes the request to the appropriate backend. The diagram shows Business Service, Review Service, and Messaging Service as examples.",
+            "The selected backend performs its business checks and processes the request. It returns a response to the gateway.",
+            "The gateway applies required response transformations. It returns the result to the client and can cache eligible responses."
+          ],
+          "diagramFilenames": [
+            "01.svg"
           ]
         }
       ]
@@ -47,9 +49,9 @@
       "title": "1) Request Validation",
       "level": 4,
       "points": [
-        "Check supported routes, methods, required headers, body shape, and request-size limits.",
-        "Reject malformed requests early, while leaving domain-specific validation in the service that owns the data.",
-        "Validation at the gateway does not replace service authorization for the requested resource."
+        "Check the route, method, required headers, body format, and request-size limits.",
+        "Reject malformed requests early. The service that owns the data still validates business rules.",
+        "Gateway validation does not replace the backend's permission check for the requested resource."
       ],
       "diagrams": [],
       "flows": []
@@ -58,10 +60,10 @@
       "title": "2) Middleware",
       "level": 4,
       "points": [
-        "Common tasks include authentication, rate limiting, TLS termination, logging, tracing, CORS, and timeout enforcement.",
-        "Authenticate tokens using a trusted configuration and forward verified identity through a protected internal contract.",
-        "Scope rate limits appropriately by user, tenant, API key, or resource rather than assuming one global rule fits all traffic.",
-        "Avoid logging secrets or sensitive request bodies as a side effect of central traffic visibility."
+        "Common middleware handles authentication, rate limits, TLS termination, logs, tracing, CORS, and timeouts.",
+        "Validate identity with trusted configuration. Forward verified identity to services through a protected internal contract.",
+        "Apply limits to the appropriate user, tenant, API key, or resource. One global rule may not fit all traffic.",
+        "Exclude secrets and sensitive payloads from request logs."
       ],
       "diagrams": [],
       "flows": []
@@ -70,9 +72,9 @@
       "title": "3) Routing",
       "level": 4,
       "points": [
-        "Match paths, methods, headers, or versions to the appropriate backend service.",
-        "Integrate routing with service discovery and backend health information where needed.",
-        "Separate client-to-gateway load balancing from the gateway's distribution across backend instances."
+        "Match the request path, method, headers, or version to a backend service.",
+        "Use service discovery and health information when selecting a backend instance.",
+        "A load balancer distributes clients across gateways. The gateway can separately distribute requests across backend instances."
       ],
       "diagrams": [],
       "flows": []
@@ -81,9 +83,9 @@
       "title": "4) Backend Communication",
       "level": 4,
       "points": [
-        "Forward over HTTP or another supported internal protocol, with connection pooling and bounded timeouts.",
-        "Protocol translation can hide internal differences, but adds complexity and is not required for every architecture.",
-        "Retries must respect operation idempotency; retrying a timed-out payment request blindly can duplicate its effect."
+        "Forward requests over HTTP or another supported protocol. Reuse connections and enforce timeouts.",
+        "Translate protocols only when needed. Translation can simplify the client contract, but adds work and failure cases.",
+        "Retry only when the operation permits it. A timed-out payment request might already have charged the customer."
       ],
       "diagrams": [],
       "flows": []
@@ -92,10 +94,10 @@
       "title": "5) Response Transformation and Caching",
       "level": 4,
       "points": [
-        "Normalize response formats or headers where the client contract requires it.",
-        "Cache reusable responses only with correct keys, freshness rules, and authorization boundaries.",
-        "Personalized responses must not leak across users through a shared cache entry.",
-        "TTL or invalidation limits staleness; cache failure needs a bounded fallback path to backend services."
+        "Transform response fields or headers when the client contract requires a different format.",
+        "Store reusable responses in the cache with correct keys, expiry, and access rules.",
+        "Keep personalized responses separate. A shared cache entry must not expose one user's data to another user.",
+        "Expiry or invalidation limits stale results. Limit fallback traffic when a cache failure sends more requests to backend services."
       ],
       "diagrams": [],
       "flows": []
@@ -104,10 +106,10 @@
       "title": "Scaling an API Gateway",
       "level": 3,
       "points": [
-        "Run stateless gateway instances behind a load balancer and keep routing/policy configuration synchronized.",
-        "Deploy regional entry points when geographic latency and availability justify them.",
-        "Persistent streaming or WebSocket connections require suitable proxy buffering, timeouts, and graceful draining.",
-        "Rate-limit or shed load before downstream overload propagates through the gateway."
+        "Run stateless gateway instances behind a load balancer. Keep their routing rules and policies consistent.",
+        "Use regional gateways when geographic delay or availability requirements justify them.",
+        "Configure proxy buffering and timeouts for streaming or WebSocket traffic. Drain connections carefully when an instance stops.",
+        "Reject or limit excess requests before downstream services become overloaded."
       ],
       "diagrams": [],
       "flows": []
@@ -116,9 +118,9 @@
       "title": "Managed and Self-Hosted Options",
       "level": 3,
       "points": [
-        "Managed gateways reduce operational work and integrate with cloud identity and monitoring, at the cost of service limits and usage pricing.",
-        "Self-hosted gateways offer more control but require ownership of upgrades, scaling, availability, and configuration rollout.",
-        "The interview decision should focus on required behavior rather than a catalog of product names."
+        "Managed gateways reduce operational work and integrate with cloud identity and monitoring. Account for service limits and usage charges.",
+        "Self-hosted gateways give more control. The team must manage upgrades, capacity, availability, and configuration changes.",
+        "Explain the required behavior when choosing a gateway. Listing product names does not explain the design."
       ],
       "diagrams": [],
       "flows": []
@@ -127,9 +129,9 @@
       "title": "When to Propose One",
       "level": 3,
       "points": [
-        "A gateway is useful when clients need a stable facade over multiple services and shared request policies.",
-        "A simple application with one backend may not benefit from another routing layer.",
-        "Explain routing and essential middleware briefly, then spend design time on the application's harder data and coordination problems."
+        "A gateway gives clients a stable interface to multiple services. It also centralizes common request policies.",
+        "A simple application with one backend may not need another routing layer.",
+        "Describe routing and required middleware briefly. Spend most design time on the application's difficult data and coordination problems."
       ],
       "diagrams": [],
       "flows": []

@@ -5,8 +5,8 @@
       "title": "Understanding the Problem",
       "level": 3,
       "points": [
-        "Build timed auctions where only a bid higher than the current highest bid is accepted.",
-        "Bid acceptance and auction closure are correctness-sensitive state transitions, even if auction browsing is eventually consistent."
+        "Users list items in timed auctions. A bid must exceed the current highest bid to be accepted.",
+        "Bid acceptance needs strong consistency. Auction descriptions can tolerate delayed updates. The server determines the auction state and end time."
       ],
       "diagrams": [],
       "flows": []
@@ -15,9 +15,9 @@
       "title": "Functional Requirements",
       "level": 3,
       "points": [
-        "Create an auction with item information, starting price, and end time.",
-        "Place bids and inspect the current highest bid.",
-        "Show bid updates and determine a winner after the auction closes."
+        "Users can create an auction with an item, a starting price, and an end time.",
+        "Users can submit bids and view the current highest bid.",
+        "The system shows bid updates. The highest accepted bidder wins when the auction ends."
       ],
       "diagrams": [],
       "flows": []
@@ -26,9 +26,9 @@
       "title": "Non-functional Requirements",
       "level": 3,
       "points": [
-        "Serialize competing bids for the same auction and preserve durable bid history.",
-        "Keep bid feedback and live updates responsive while supporting many concurrent auctions.",
-        "Recover safely from retries and process failures without reopening a completed auction or accepting a stale bid."
+        "The system orders competing bids for each auction. It must keep a durable record of each bid outcome.",
+        "The scenario has 10 million concurrent auctions. Bid responses and updates must remain fast.",
+        "Retries and process failures must not lose bids. They must not reopen a closed auction or accept an outdated bid."
       ],
       "diagrams": [
         {
@@ -45,9 +45,10 @@
       "title": "Core Entities",
       "level": 3,
       "points": [
-        "Auction includes seller, item, end time, state, highest bid, and version.",
-        "Bid includes auction ID, bidder, amount, request ID, and authoritative acceptance time.",
-        "User identifies the authenticated seller or bidder; settlement can be a separate workflow."
+        "Auction contains the seller, item ID, starting price, end time, state, and highest bid. A version supports conditional updates.",
+        "Item contains its name, description, and image URLs. A separate item record supports a later auction for the same item.",
+        "Bid contains the auction ID, bidder, amount, time, and accepted or rejected status. A request ID can identify retries.",
+        "User identifies the seller or bidder. Payment and settlement can use a separate workflow."
       ],
       "diagrams": [
         {
@@ -64,10 +65,10 @@
       "title": "API",
       "level": 3,
       "points": [
-        "Create an auction with validated timing and price parameters.",
-        "Submit a bid with auction ID, amount, and idempotency key.",
-        "Fetch auction details and bid history; subscribe to live bid updates.",
-        "Return whether a bid was accepted, distinguishing that result from merely receiving the request."
+        "POST /auctions creates an auction and its item record. The service validates the dates and starting price.",
+        "POST /auctions/{auctionId}/bids submits a bid. A stable request ID can prevent duplicate processing after a timeout.",
+        "GET /auctions/{auctionId} returns auction and item details. Live updates deliver later changes to the highest bid.",
+        "A response must distinguish a received bid from an accepted bid. Bid history is an optional extension to the core API."
       ],
       "diagrams": [],
       "flows": []
@@ -83,9 +84,9 @@
       "title": "1) Create and view auctions",
       "level": 4,
       "points": [
-        "Persist auction metadata and serve read-heavy descriptions through cacheable views.",
-        "The server owns the clock and auction state; client countdowns are only a display.",
-        "Live notifications update the UI, but the authoritative bid path still checks the database."
+        "The API Gateway sends auction requests to the Auction Service. The service validates and stores auction and item data.",
+        "The server controls time and auction state. The countdown on the client is only a display.",
+        "The initial view returns a snapshot. Polling refreshes the highest bid. Later sections replace frequent polling with pushed updates."
       ],
       "diagrams": [
         {
@@ -103,15 +104,41 @@
           "height": 442.59839243886864
         }
       ],
-      "flows": []
+      "flows": [
+        {
+          "title": "Create an auction",
+          "steps": [
+            "The client sends the item, starting price, and end time to the API Gateway.",
+            "The API Gateway routes the request to the Auction Service.",
+            "The Auction Service validates the request. It stores the auction and item records in the database.",
+            "The service returns the created auction to the client."
+          ],
+          "diagramFilenames": [
+            "03.svg"
+          ]
+        },
+        {
+          "title": "View an auction",
+          "steps": [
+            "The client requests an auction by its ID.",
+            "The API Gateway routes the request to the Auction Service.",
+            "The Auction Service reads auction and item details from the database. It returns the current highest bid with the response.",
+            "The client polls for later changes in this initial design."
+          ],
+          "diagramFilenames": [
+            "05.svg"
+          ]
+        }
+      ]
     },
     {
       "title": "2) Accept bids",
       "level": 4,
       "points": [
-        "Atomically check that the auction is open, its deadline has not passed, and the bid exceeds the current highest value.",
-        "Write the accepted bid and update auction state within the same consistency boundary.",
-        "A separate read followed by an unconditional write allows lower or competing bids to overwrite each other."
+        "The Bid Service checks whether a bid exceeds the current highest bid. It stores the accepted or rejected result.",
+        "Keep bid history. Replacing only the highest price would remove evidence needed for audits and disputes.",
+        "The initial read followed by a write has a race condition. The consistency deep dive adds an atomic update.",
+        "The acceptance rule must also reject closed auctions and bids after the server's deadline."
       ],
       "diagrams": [
         {
@@ -124,14 +151,16 @@
       ],
       "flows": [
         {
-          "title": "Accept or reject a bid",
+          "title": "Submit a bid in the initial design",
           "steps": [
-            "The bidder sends auction ID, amount, and an idempotency key to the bid service.",
-            "The service authenticates the bidder and resolves any previously completed request using that key.",
-            "It locks the auction row or uses an expected version, then checks current highest bid, auction state, and authoritative deadline together.",
-            "If the auction is closed or the bid is not high enough, the attempt fails without changing accepted bid history.",
-            "Otherwise the service inserts the bid and updates the auction's highest bid in the same transaction, then commits.",
-            "Only after commit does it acknowledge acceptance and publish the live update. Viewers process the committed ordering/version so an older event cannot move the displayed bid backward."
+            "The client submits a bid through the API Gateway.",
+            "The API Gateway routes the request to the Bid Service.",
+            "The Bid Service reads the highest bid from the database. It compares the new amount with that value.",
+            "The service stores the bid with an accepted or rejected status. It returns the result to the client.",
+            "This initial sequence has a race condition. The next deep dive adds concurrency control."
+          ],
+          "diagramFilenames": [
+            "04.svg"
           ]
         }
       ]
@@ -147,10 +176,12 @@
       "title": "1) Strong consistency",
       "level": 4,
       "points": [
-        "Row locking or optimistic version checks can serialize updates for a single auction.",
-        "Optimistic conflicts need retries that re-evaluate the current highest price and deadline, rather than blindly repeating an old update.",
-        "A per-auction ordered processing stream is an alternative, but the system must distinguish queued bids from accepted bids.",
-        "Use a unique request ID so retrying after a lost response returns the original outcome."
+        "Locking existing bid rows does not prevent new bid inserts. Lock one auction row instead, for a short transaction.",
+        "Redis can compare and update a cached maximum atomically. However, a cache update and a database write can fail separately.",
+        "Keep the maximum bid on the auction row to use one database transaction. Store the bid result in that transaction.",
+        "Optimistic concurrency uses the previous maximum or version as a condition. On conflict, read the current value and validate again.",
+        "A queue can order bids for each auction. A queued bid is not yet an accepted bid.",
+        "A unique request ID lets a retry return the original outcome after a lost response."
       ],
       "diagrams": [
         {
@@ -168,16 +199,31 @@
           "height": 521.0644618053029
         }
       ],
-      "flows": []
+      "flows": [
+        {
+          "title": "Accept a bid with an auction-row transaction",
+          "steps": [
+            "The Bid Service starts a transaction. It locks the auction row or reads its version for an optimistic update.",
+            "It compares the bid with the current maximum. The acceptance rule also checks auction state and the server's deadline.",
+            "For a valid higher bid, it updates the auction maximum. It stores the bid outcome in the same transaction.",
+            "The service commits the transaction before confirming acceptance. A version conflict requires a new read and validation.",
+            "A retried request uses its stable ID to recover the original outcome."
+          ],
+          "diagramFilenames": [
+            "07.svg"
+          ]
+        }
+      ]
     },
     {
       "title": "2) Durability and closing",
       "level": 4,
       "points": [
-        "Persist accepted bids before acknowledging them, with replication and recovery appropriate to the durability requirement.",
-        "Closing the auction must compete atomically with bids; late requests must not be accepted after closure.",
-        "Use authoritative server time and an explicit rule for bids racing the deadline.",
-        "Background closing jobs may be delayed, so a stale open flag alone must not allow bids after the end time."
+        "A producer writes incoming bids to Kafka before the system confirms receipt. Partition by auction ID to keep their order.",
+        "The Bid Service consumes queued bids and stores their outcomes. A failed consumer can retry a retained message.",
+        "Configure persistence and replication for the required durability. Confirm acceptance only after the database commits the outcome.",
+        "Closing must use the same consistency boundary as acceptance. A delayed closing job must not permit bids after the deadline.",
+        "Define how the deadline applies to queued bids. Server receipt time and processing time can differ during a queue delay."
       ],
       "diagrams": [
         {
@@ -190,13 +236,16 @@
       ],
       "flows": [
         {
-          "title": "Close an auction and select the winner",
+          "title": "Retain and process bids through Kafka",
           "steps": [
-            "A deadline worker attempts closure; bid acceptance independently checks the deadline so a late worker cannot extend bidding accidentally.",
-            "The worker enters the same serialization boundary used by bids and verifies that the auction has ended and is still open.",
-            "It marks the auction closed and records the highest accepted bidder as the winner, or a no-bids result, in one committed transition.",
-            "A duplicate closing attempt observes the existing terminal result instead of selecting a new winner.",
-            "Notifications and any settlement workflow consume that committed result and retry independently without reopening the auction."
+            "The client sends a bid through the API Gateway. The gateway routes it to a producer.",
+            "The producer writes the bid to Kafka with the auction ID as its partition key.",
+            "Kafka confirms the write. The client can now receive confirmation of receipt, but acceptance is still pending.",
+            "The Bid Service consumes the bid. It validates the bid and commits the outcome in the database.",
+            "A failed consumer retries the retained message. A stable request ID prevents a second application of the same bid."
+          ],
+          "diagramFilenames": [
+            "08.svg"
           ]
         }
       ]
@@ -205,10 +254,10 @@
       "title": "3) Real-time updates",
       "level": 4,
       "points": [
-        "Publish accepted bid events to viewers through SSE or WebSockets.",
-        "Fan out from shared channels to connection servers rather than opening a separate database poll for every viewer.",
-        "On reconnect, fetch the latest auction snapshot and resume events from a cursor when available.",
-        "Duplicated or out-of-order notifications must not move the displayed highest bid backward."
+        "The source design uses SSE to send highest-bid updates from the server to clients. WebSockets are another option.",
+        "Each server keeps its local client connections. Shared publish-subscribe channels deliver updates to the other relevant servers.",
+        "On reconnect, the client fetches the current auction state. An event cursor can support recovery where the event system retains history.",
+        "Compare event versions or ordering information. An old or duplicate event must not reduce the displayed highest bid."
       ],
       "diagrams": [
         {
@@ -219,15 +268,29 @@
           "height": 564.0644330676205
         }
       ],
-      "flows": []
+      "flows": [
+        {
+          "title": "Push the current highest bid",
+          "steps": [
+            "The client opens an SSE connection when it views the auction.",
+            "The Bid Service commits an accepted bid and the new highest value.",
+            "The server sends the updated value to its connected viewers. The final design uses publish-subscribe channels between server instances.",
+            "The client applies the update only if it is newer than its displayed state."
+          ],
+          "diagramFilenames": [
+            "09.svg"
+          ]
+        }
+      ]
     },
     {
       "title": "4) Scale",
       "level": 4,
       "points": [
-        "Partition by auction ID so unrelated auctions proceed independently.",
-        "A single popular auction is still a hot key; isolate it, control admission, and keep its serialized write path short.",
-        "Cache static item data separately from rapidly changing bid state."
+        "Partition Kafka and the database by auction ID. This keeps each auction's ordered operations together.",
+        "The source estimates about 15,000 bids per second at peak. Measure actual capacity before deciding the number of database shards.",
+        "Add Bid Service and Auction Service instances independently. A popular auction remains a hot key despite partitioning.",
+        "Keep the serialized bid operation short. Store stable item details in a cache, separate from the changing bid state."
       ],
       "diagrams": [],
       "flows": []
@@ -236,9 +299,10 @@
       "title": "Final Design",
       "level": 3,
       "points": [
-        "A durable transactional auction/bid store decides acceptance and winners.",
-        "Caches and live event fanout scale the viewing experience independently.",
-        "Idempotent requests, atomic closure, and recovery records preserve correctness around deadlines and failures."
+        "The Auction Service manages auction details. Kafka retains incoming bids. The Bid Service commits bid outcomes in the database.",
+        "A maximum on each auction row supports consistent acceptance. The database retains the complete bid history.",
+        "Shared publish-subscribe channels connect Bid Service instances. Each instance pushes updates to its connected clients through SSE.",
+        "Stable request IDs, atomic closure, and durable recovery records protect retries, deadlines, and failures."
       ],
       "diagrams": [
         {

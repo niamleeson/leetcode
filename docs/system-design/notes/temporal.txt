@@ -1,65 +1,83 @@
 Overview
-- Temporal coordinates durable workflows that survive process crashes, waits, retries, and external events.
-- It separates deterministic workflow decisions from activities that perform network calls or other side effects.
+- Temporal coordinates durable workflows across process crashes, retries, long waits, and external events.
+- Workflow code makes deterministic decisions. Activities perform external operations, such as database writes and network calls.
 
 Building Durable Execution
 
 1) Survive a crash
-- Record workflow events and completed activity results in durable history.
-- After a worker restart, replay the workflow against that history to reconstruct progress.
-- Completed activity results are supplied from history rather than blindly repeating the same decision path's external calls.
-- An activity can still repeat if its side effect completed before its result was recorded; its business effects must be idempotent.
+- Temporal records workflow events and completed Activity results in durable history.
+- After a worker failure, another worker replays that history to reconstruct workflow progress.
+- Replay supplies recorded Activity results. It does not call the external service again for an already recorded completion.
+- An Activity can repeat if its side effect succeeds before Temporal records completion. Make external effects safe to retry.
 
-Process: Resume after a worker failure
-- 1. A workflow or activity worker stops responding, and the relevant timeout or task-recovery mechanism makes work eligible again.
-- 2. A replacement workflow worker loads history and replays deterministic decisions; already recorded activity results are supplied from history.
-- 3. An activity whose completion was never recorded may run again, even if its external side effect already happened.
-- 4. That activity resolves the same business idempotency key or queries the external outcome before causing a duplicate effect.
-- 5. Once the result is durably recorded, workflow execution continues from the recovered logical progress rather than restarting the whole business process.
+Process: Replay saved results after a worker failure
+- 1. The order Workflow completes payment and inventory reservation. Temporal records both Activity results.
+- 2. The worker fails before it requests shipment.
+- 3. Another worker loads the history and replays the Workflow from the beginning.
+- 4. Replay returns the saved payment and inventory results. It does not repeat those recorded external operations.
+- 5. The Workflow reaches the shipment Activity without a saved result. Temporal schedules that unfinished work.
 
 2) Predictable replay
-- Workflow code must make the same decisions for the same history.
-- Use workflow-safe time, randomness, and orchestration APIs; ordinary nondeterministic I/O belongs in activities.
-- Deploy code changes with compatible versioning so old histories do not become impossible to replay.
+- The same history must produce the same workflow decisions.
+- Use workflow-safe time, randomness, and orchestration APIs. Put nondeterministic network or database operations in Activities.
+- Deploy compatible workflow changes. Existing histories must remain replayable under the selected versioning strategy.
 
 3) Wait and receive events
-- Durable timers let a workflow sleep without keeping a worker thread occupied for the whole delay.
-- Signals or other supported interaction mechanisms deliver external events to a waiting workflow.
-- Correlate incoming events with the correct workflow and handle duplicate, late, or unexpected events explicitly.
+- A durable timer lets a Workflow wait without occupying a worker for the entire delay.
+- A Signal records external input in workflow history. It can resume a Workflow that is waiting for an event.
+- Route events to the correct Workflow. Define how it handles duplicate, late, and unexpected input.
+
+Process: Resume after a durable timer
+- 1. The Workflow requests a wait. History Service persists the timer and its deadline.
+- 2. The worker becomes available for other work. No worker must remain active for the full waiting period.
+- 3. When the deadline arrives, History Service records the timer firing and schedules a Workflow Task.
+- 4. A worker resumes the Workflow from history. The completed timer allows the next operation to run.
+
+Process: Resume after a delivery Signal
+- 1. The order Workflow waits for confirmation that the package was delivered.
+- 2. The carrier sends a webhook. The application Signals the correct Workflow with the delivery event.
+- 3. Temporal records the Signal in history and schedules workflow execution.
+- 4. A worker observes the recorded event during execution or replay. The Workflow can now schedule the review email Activity.
 
 Temporal Under the Hood
-- The service stores workflow history and schedules tasks; application workers poll task queues and execute workflow or activity code.
-- Workflow tasks advance orchestration decisions, while activity tasks perform the actual business work.
-- Workers can fail or scale independently because durable workflow state is not confined to their memory.
+- Frontend Service accepts client and worker requests. History Service manages durable workflow state. Matching Service connects Task Queues to polling workers.
+- Workflow Tasks run orchestration decisions. Activity Tasks run the business operations. Application workers execute both kinds of code.
+- Workers can fail or scale separately from Temporal. Durable workflow state does not depend on one worker's memory.
 
-Process: Execute a workflow activity durably
-- 1. A caller starts a workflow with a stable workflow identity, and Temporal records the start in durable history.
-- 2. A workflow worker receives a task, replays or uses cached compatible history, and decides that an activity should run.
-- 3. Temporal records the scheduling decision and puts an activity task on the appropriate task queue.
-- 4. An activity worker polls the task and performs the external operation using the workflow's stable business idempotency key.
-- 5. The worker reports completion, which is recorded in history before the workflow advances using that result.
-- 6. A later workflow task consumes the recorded result and chooses the next activity, timer, wait, or terminal outcome.
+Process: Execute a workflow Activity durably
+- 1. A client starts a Workflow through Frontend Service. History Service records its start and schedules a Workflow Task.
+- 2. Matching Service gives the task to a polling Workflow Worker. The worker reconstructs state from history or its compatible cache.
+- 3. Workflow code decides to run an Activity. Temporal records that decision and schedules an Activity Task.
+- 4. Matching Service delivers the Activity Task to an appropriate worker. The worker performs the external operation with a stable business identity.
+- 5. The worker reports completion through Frontend Service. History Service records the Activity result and schedules further workflow work.
+- 6. A Workflow Worker receives the next task. It uses the recorded result to choose another Activity, a wait, or completion.
 
 State, Replay, and Workers
-- History records decisions and results needed for replay, rather than serializing arbitrary application memory.
-- Worker caches or sticky execution reduce repeated replay work, but durable history remains the recovery basis.
-- Task queues route work to compatible worker pools and allow independent scaling by workload.
-- Heartbeats and timeouts help detect failed or stalled long-running activities.
-- Bound history growth and keep large payloads in external storage with durable references.
+- History Service stores Event History and Mutable State. It commits required internal tasks with state changes so later work remains recoverable.
+- A Workflow Cache and Sticky Queue reduce repeated replay. After a cache loss, a worker reconstructs state from durable history.
+- Task Queues direct work to compatible worker pools. Matching Service can partition queues to increase dispatch capacity.
+- Heartbeats and timeouts detect stalled Activities. The retry policy determines when another attempt can start.
+- Limit history growth. Keep large payloads in external storage and retain durable references in workflow state.
+
+Process: Persist a state change before dispatching its work
+- 1. History Service receives an Activity completion and computes the resulting workflow state change.
+- 2. It commits Event History, Mutable State, and an internal Transfer Task together.
+- 3. A background processor reads the committed Transfer Task. It dispatches the required task to Matching Service.
+- 4. If History Service fails after the commit, another instance recovers the pending task. The state change does not lose its required follow-up work.
 
 When to Use
-- Use durable workflows for payments, reservations, fulfillment, scheduled multi-step processes, and other work needing explicit recovery.
-- Activities can retry with backoff, while workflow logic decides compensation or escalation after terminal failure.
-- A workflow's state makes progress and waiting conditions observable across long business processes.
-- Simple one-step jobs may only need a durable queue and idempotent worker.
+- Use durable workflows for dependent business operations that need recovery. Examples include payments, reservations, fulfillment, and media-processing stages.
+- Activities can retry with backoff. Workflow logic decides when to compensate, escalate, or stop after a terminal failure.
+- Stored workflow state makes progress and waiting conditions observable, including waits that last several days.
+- A durable queue and an idempotent worker can be enough for one independent job.
 
 Limitations
-- Temporal does not make an external system transactional or guarantee that an email or charge happens exactly once.
-- Workflow determinism, code versioning, activity timeout policy, and history size are application design responsibilities.
-- Cancellation must be cooperatively handled by activities and external services; it does not erase already completed side effects.
-- Service operation and workflow debugging add complexity that should be justified by the recovery requirements.
+- Temporal does not make an external system transactional. An email or charge still needs protection against repeated attempts.
+- The application owns workflow determinism, compatible code changes, timeout policies, and history limits.
+- Activities and external services must cooperate with cancellation. Cancellation does not undo side effects that already completed.
+- Running Temporal and debugging workflows adds complexity. Use it when durable coordination justifies that cost.
 
 Summary
-- Durable history plus deterministic replay reconstructs workflow progress.
-- Retry-safe activities perform side effects, and timers/signals represent waits without long-held processes.
-- Choose Temporal when this durable coordination replaces substantial custom recovery logic, not merely because a task runs asynchronously.
+- Durable history and deterministic replay reconstruct workflow progress after failure.
+- Activities perform external work safely across retries. Timers and Signals represent waits without keeping a process active throughout.
+- Choose Temporal when it replaces substantial workflow state, retry, and recovery logic. Asynchronous execution alone does not require it.

@@ -5,8 +5,8 @@
       "title": "Understanding the Problem",
       "level": 3,
       "points": [
-        "Crawl a large web corpus, retain fetched pages, and discover links for further crawling.",
-        "The system is a controlled traversal pipeline, not a browser making unlimited parallel requests."
+        "The crawler follows links from seed URLs. It extracts text and stores that text for later processing.",
+        "Crawling is a controlled traversal across many sites. It must limit work and respect each site's capacity."
       ],
       "diagrams": [],
       "flows": []
@@ -15,9 +15,9 @@
       "title": "Functional Requirements",
       "level": 3,
       "points": [
-        "Accept seed URLs and repeatedly fetch eligible pages.",
-        "Store fetched HTML and extract links to expand the crawl frontier.",
-        "Deduplicate URLs and obey per-site crawl policies."
+        "Accept seed URLs and fetch eligible linked pages.",
+        "Extract and store text from fetched HTML. Extract links to continue the crawl.",
+        "Avoid duplicate work and follow site crawl policies. Dynamic rendering, login-only pages, and non-text processing are outside the initial scope."
       ],
       "diagrams": [],
       "flows": []
@@ -26,9 +26,9 @@
       "title": "Non-functional Requirements",
       "level": 3,
       "points": [
-        "Crawl roughly 10 billion pages within five days in the scenario, requiring substantial parallelism.",
-        "Remain polite to individual sites and recover without losing large amounts of progress.",
-        "Bound repeated work, crawler traps, resource consumption, and the impact of slow or failing hosts."
+        "The scenario targets about 10 billion pages within five days. This requires substantial parallel work across different sites.",
+        "Recover from failures without losing crawl progress. Respect robots rules and avoid overloading individual hosts.",
+        "Bound retries, crawl depth, response sizes, and concurrency. Slow hosts and crawler traps must not consume unlimited resources."
       ],
       "diagrams": [
         {
@@ -45,10 +45,10 @@
       "title": "Core Entities",
       "level": 3,
       "points": [
-        "URLTask records normalized URL, host, priority, next eligible time, and attempt state.",
-        "CrawlResult records status, fetch time, content hash, and object-storage location.",
-        "HostPolicy stores robots rules, crawl delay, and next allowed request time.",
-        "SeenURL or fingerprint state suppresses duplicate discovery and repeated content."
+        "URLTask contains the normalized URL, host, depth, priority, next eligible time, and attempt state.",
+        "CrawlResult contains status, fetch time, content hash, and storage locations for raw HTML and extracted text.",
+        "HostPolicy contains robots rules, request limits, and the next allowed request time.",
+        "URL metadata and content fingerprints identify earlier discoveries and repeated content."
       ],
       "diagrams": [],
       "flows": []
@@ -57,9 +57,9 @@
       "title": "API and Data Flow",
       "level": 3,
       "points": [
-        "Submit seeds or crawl configuration and inspect crawl progress through control-plane APIs.",
-        "Workers consume URL tasks, fetch pages, persist results, extract links, and enqueue eligible discoveries.",
-        "Keep large HTML bodies in object storage and pass references through queues."
+        "The control interface accepts seeds and crawl configuration. It exposes progress rather than a user-facing page API.",
+        "Crawlers resolve DNS, fetch HTML, extract text and links, store results, and add eligible discoveries to the frontier.",
+        "Large HTML and text bodies belong in object storage. Queue messages contain identifiers or storage references."
       ],
       "diagrams": [],
       "flows": []
@@ -68,11 +68,11 @@
       "title": "High-Level Design",
       "level": 3,
       "points": [
-        "Normalize discovered URLs and check the visited/frontier state before enqueueing them.",
-        "A host-aware frontier schedules eligible work; fetchers apply timeouts, response-size limits, and policy checks.",
-        "Store raw content before acknowledging the task, then parse links and metadata in a retryable stage.",
-        "Separate fetching from parsing when CPU-heavy parsing would otherwise reduce network utilization.",
-        "Limit accepted protocols and redirects, and protect workers from access to private infrastructure through arbitrary URLs."
+        "The initial Frontier Queue contains seed URLs. A Crawler takes a URL and resolves its host through DNS.",
+        "The crawler fetches the page, extracts text, and writes the text to S3. It adds discovered links to the frontier.",
+        "Normalize URLs and check duplicate-discovery state before adding more work. Limit link depth and accepted URL schemes.",
+        "The fault-tolerance deep dive separates fetching from parsing. This allows either stage to retry without repeating all prior work.",
+        "Apply timeouts, redirect limits, and response-size limits. Restrict worker access to private infrastructure when URLs come from untrusted pages."
       ],
       "diagrams": [
         {
@@ -85,14 +85,16 @@
       ],
       "flows": [
         {
-          "title": "Crawl one URL from discovery to completion",
+          "title": "Crawl and extract in the initial design",
           "steps": [
-            "A seed or extracted link is normalized, checked against URL eligibility and duplicate-discovery state, and added durably to the frontier.",
-            "The host-aware scheduler waits until that host is eligible under robots rules, rate limits, and backoff, then leases the task to a fetcher.",
-            "The fetcher checks the current policy and fetches with bounded redirects, response size, and timeout, excluding forbidden destinations.",
-            "It persists the fetched content and result metadata before considering the fetch durably complete.",
-            "Parsing extracts links and metadata; eligible new URLs are inserted through a retry-safe discovery stage.",
-            "The worker acknowledges the task only after its required output or downstream work is recoverable. A crash causes a replay of the same task identity, not loss of the frontier position."
+            "The Frontier Queue supplies a seed URL to the Crawler.",
+            "The Crawler resolves the hostname through DNS and fetches the webpage.",
+            "It extracts the text and saves that text in S3.",
+            "It extracts links and adds eligible new URLs to the Frontier Queue.",
+            "The crawler repeats this sequence. Later sections add durable stage boundaries and shared host limits."
+          ],
+          "diagramFilenames": [
+            "02.svg"
           ]
         }
       ]
@@ -108,11 +110,12 @@
       "title": "1) Fault tolerance and progress",
       "level": 4,
       "points": [
-        "Use a durable queue with visibility timeouts or leases so unfinished work returns after a worker crash.",
-        "Acknowledge only after required output is persisted; stable task and content identifiers make replay safe.",
-        "Retry transient failures with backoff and cap attempts for permanently failing URLs.",
-        "Track visited and in-progress state durably; relying only on worker memory causes widespread recrawling after restarts.",
-        "A Bloom filter saves memory but can falsely classify a new URL as seen; decide whether that coverage loss is acceptable."
+        "The fetch stage stores raw HTML in S3 and records its location in the URL Metadata DB.",
+        "A separate Parsing Queue supplies HTML references to Parsing Workers. They store extracted text and discover more URLs.",
+        "SQS visibility timeouts return unfinished tasks after a worker failure. Delete a message only after required output or downstream work is recoverable.",
+        "Stable task and output identifiers make a repeated attempt safe. Persist visited and in-progress state outside worker memory.",
+        "Increase retry delay after temporary failures. Move repeatedly failing tasks to a dead-letter queue instead of retrying forever.",
+        "A Bloom filter saves memory but can report unseen content as already present. Use an exact index when that coverage loss is unacceptable."
       ],
       "diagrams": [
         {
@@ -130,16 +133,32 @@
           "height": 821.2647067925245
         }
       ],
-      "flows": []
+      "flows": [
+        {
+          "title": "Fetch and parse through recoverable stages",
+          "steps": [
+            "A Crawler receives a URL from the SQS Frontier Queue.",
+            "It resolves the host and fetches the page under the applicable limits.",
+            "It stores raw HTML in S3 and its reference in the URL Metadata DB.",
+            "It makes parsing work recoverable before deleting the fetch message. The Parsing Queue carries the URL or storage identifier.",
+            "A Parsing Worker reads the HTML and checks duplicate content. It stores extracted text and enqueues eligible discovered URLs.",
+            "The worker deletes the parsing message after its required outputs are recoverable. Failed tasks retry with delay or enter the dead-letter queue."
+          ],
+          "diagramFilenames": [
+            "04.svg"
+          ]
+        }
+      ]
     },
     {
       "title": "2) Politeness",
       "level": 4,
       "points": [
-        "Fetch and cache robots.txt rules per host and respect applicable disallow rules and crawl delays.",
-        "Coordinate rate limits across all workers contacting the same host; a per-worker limit does not protect the site globally.",
-        "A domain-oriented frontier or partition assignment makes per-host scheduling practical.",
-        "Slow down on errors or throttling responses, identify the crawler appropriately, and avoid infinite URL spaces."
+        "Fetch each host's robots.txt rules and store them in the cache. Check disallowed paths and apply the chosen policy for crawl-delay directives.",
+        "Coordinate request limits across all crawlers for that host. Separate per-worker limits do not enforce a shared host budget.",
+        "A host-oriented frontier or shared rate limiter can schedule requests. An atomic claim prevents two workers from granting the same slot.",
+        "Defer an already received SQS message by changing its visibility timeout. A new-message delivery delay does not change an in-flight message.",
+        "Back off after throttling or repeated errors. Add random delay to avoid simultaneous retries. Identify the crawler and bound infinite URL spaces."
       ],
       "diagrams": [
         {
@@ -152,13 +171,16 @@
       ],
       "flows": [
         {
-          "title": "Schedule requests across workers for one host",
+          "title": "Coordinate a host's next request",
           "steps": [
-            "A discovered URL is assigned to its host's frontier rather than immediately fetched by whichever worker saw it.",
-            "The scheduler loads or refreshes cached robots rules and rejects disallowed URLs.",
-            "It checks shared host concurrency, next-allowed time, and error backoff so multiple workers do not each grant themselves the full host rate.",
-            "It releases a bounded request when eligible and advances the host's scheduling state.",
-            "The response updates host health and retry timing; throttling or repeated failures slow subsequent requests independently of other hosts."
+            "The worker obtains cached robots rules for the URL's host. It refreshes them according to the selected policy.",
+            "It rejects a disallowed URL and records that terminal result.",
+            "For an allowed URL, it checks the shared host delay and rate budget. An atomic claim reserves the next permitted request slot.",
+            "If the host is not eligible, the worker defers the task rather than sending immediately.",
+            "After the request, it updates host timing and health. Throttling or repeated failures increase delay for that host."
+          ],
+          "diagramFilenames": [
+            "05.svg"
           ]
         }
       ]
@@ -167,11 +189,12 @@
       "title": "3) Throughput and scale",
       "level": 4,
       "points": [
-        "Divide target pages by available seconds to estimate required average throughput, then include failures, retries, and peak headroom.",
-        "Partition the frontier across workers while preserving host-level scheduling constraints.",
-        "Use asynchronous I/O or bounded concurrency to overlap network waits without opening unlimited connections.",
-        "Deduplicate both canonical URLs and identical page content; redirects and tracking parameters can otherwise multiply work.",
-        "Monitor successful pages per second, host error rates, queue age, storage throughput, and duplicate rates independently."
+        "Ten billion pages in five days requires about 23,150 successful pages per second. Add capacity for failed requests, retries, and variation.",
+        "Distribute work across hosts while preserving each host's request limits. A single busy host cannot use all available crawl capacity.",
+        "Use asynchronous I/O or bounded concurrent requests to overlap network waits. Scale Parsing Workers independently from network fetchers.",
+        "Store DNS results in a cache and measure resolver capacity. DNS delay can limit throughput even when fetch bandwidth is available.",
+        "Deduplicate normalized URLs before fetching. After fetching, compare content hashes so identical pages need not repeat expensive parsing.",
+        "Limit crawl depth by link hops from a seed. Monitor successful fetches, host errors, queue age, storage throughput, and duplicate rates."
       ],
       "diagrams": [],
       "flows": []
@@ -180,9 +203,9 @@
       "title": "Final Design",
       "level": 3,
       "points": [
-        "A durable, host-aware frontier feeds bounded fetch and parse workers.",
-        "Object storage preserves page content while metadata and deduplication indexes preserve progress.",
-        "Lease recovery, idempotent output, and coordinated politeness allow large-scale parallel crawling without losing control of individual hosts."
+        "A durable SQS frontier feeds bounded Crawlers. Shared host rules, a rate limiter, and DNS caching control the fetch path.",
+        "S3 retains raw HTML and extracted text. The URL Metadata DB stores progress, content hashes, and crawl depth.",
+        "A separate Parsing Queue supports recoverable extraction. Visibility renewal, idempotent output, and coordinated host limits keep parallel crawling controlled."
       ],
       "diagrams": [
         {

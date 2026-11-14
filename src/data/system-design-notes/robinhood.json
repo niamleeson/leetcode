@@ -5,8 +5,8 @@
       "title": "Understanding the Problem",
       "level": 3,
       "points": [
-        "Build a brokerage-facing application that streams stock prices and submits customer orders to external trading infrastructure.",
-        "Displayed prices, submitted orders, exchange acknowledgements, and executions are distinct records with different timing guarantees."
+        "The application displays stock prices and manages customer orders. External trading infrastructure accepts orders and reports executions.",
+        "A displayed price, a submitted order, an external acknowledgement, and an execution are different records with different timing."
       ],
       "diagrams": [],
       "flows": []
@@ -15,9 +15,9 @@
       "title": "Functional Requirements",
       "level": 3,
       "points": [
-        "View live stock prices and manage stock orders.",
-        "Track order status and resulting account changes.",
-        "Integrate with external market-data and execution services rather than designing an exchange matching engine."
+        "Users can view live stock prices. They can create and cancel market or limit orders.",
+        "Users can list their orders and inspect the latest recorded state.",
+        "The system integrates with an external exchange interface. Designing an exchange matching engine is outside this scope."
       ],
       "diagrams": [],
       "flows": []
@@ -26,9 +26,9 @@
       "title": "Non-functional Requirements",
       "level": 3,
       "points": [
-        "Keep market-data updates responsive while preserving correct and durable order state.",
-        "Avoid duplicate order submission after retries and recover ambiguous external outcomes.",
-        "Scale popular-symbol fanout independently from the transactional order path."
+        "Order state needs strong consistency and durability. The target is less than 200 ms for normal price updates and order requests.",
+        "The scenario has 20 million daily users and about five trades per user. Repeated requests must not create unintended orders.",
+        "Minimize expensive external feed connections. Scale popular-symbol delivery separately from order processing."
       ],
       "diagrams": [
         {
@@ -45,10 +45,10 @@
       "title": "Core Entities",
       "level": 3,
       "points": [
-        "Account and Position represent ownership and reserved or available funds/holdings.",
-        "Order stores customer intent, symbol, side, quantity, type, limit price where applicable, and lifecycle state.",
-        "Execution records a fill, including quantity, price, external ID, and time.",
-        "Quote stores symbol, price information, source sequence, and timestamp."
+        "User identifies the authenticated customer. Symbol identifies a traded stock.",
+        "Order contains its owner, symbol, side, quantity, type, limit price where applicable, and lifecycle state.",
+        "Execution records a fill quantity, price, external identifier, and time. External order metadata maps provider IDs to local orders.",
+        "Quote contains symbol, price, sequence information, and timestamp. Account and Position records are needed if portfolio management enters scope."
       ],
       "diagrams": [
         {
@@ -65,10 +65,10 @@
       "title": "API",
       "level": 3,
       "points": [
-        "Subscribe to prices for a set of symbols and fetch a current snapshot.",
-        "Submit an order with a stable client request ID; return an order ID and current acceptance state.",
-        "Query orders and positions and request cancellation of an eligible order.",
-        "Treat cancellation as a request until external confirmation; an order may fill while cancellation is in flight."
+        "GET /symbol/{name} returns a price snapshot. A subscription request lists the symbols for live updates.",
+        "POST /order creates an order with a stable client request ID. Represent currency with a defined exact numeric representation.",
+        "GET /orders lists the authenticated user's orders. DELETE /order/{id} requests cancellation of an eligible order.",
+        "A cancellation request does not prove cancellation. The order can fill before the external system confirms the request."
       ],
       "diagrams": [],
       "flows": []
@@ -84,10 +84,10 @@
       "title": "1) Live prices",
       "level": 4,
       "points": [
-        "Ingest market feeds once, normalize updates, and cache the latest value by symbol.",
-        "Connection servers subscribe to symbols needed by their clients and fan updates out locally.",
-        "Separate market-data ingestion from browser connections so reconnecting clients do not create new external feed subscriptions.",
-        "Include timestamps or sequence information so clients can detect stale or reordered updates."
+        "Direct client polling of the exchange creates redundant external calls. An internal Symbol Price Processor can share the upstream feed.",
+        "The processor updates the Symbol Cache. The initial internal design lets clients poll the Symbol Service for current values.",
+        "The improved Symbol Service sends an initial snapshot and later updates through SSE. Clients no longer poll for every change.",
+        "Include timestamps or sequence information. A client must not replace a newer displayed price with an older update."
       ],
       "diagrams": [
         {
@@ -114,13 +114,15 @@
       ],
       "flows": [
         {
-          "title": "Distribute a market-price update",
+          "title": "Subscribe to current prices and live updates",
           "steps": [
-            "The market-data adapter receives an external quote, validates its source ordering, and normalizes the symbol and fields.",
-            "It updates the latest quote cache and publishes the new version to the symbol's shared channel.",
-            "Connection servers subscribed to that symbol receive the event once for their local interested clients.",
-            "They send or coalesce display updates according to the freshness policy, and clients ignore older versions.",
-            "A reconnecting client fetches a current snapshot before resuming live updates rather than replaying an unlimited stale-price backlog."
+            "The Symbol Price Processor receives the external price feed and updates the Symbol Cache.",
+            "The client requests a symbol subscription through the API Gateway.",
+            "The Symbol Service reads the current prices from the cache and sends that snapshot.",
+            "It keeps an SSE connection open. Later processor updates reach the client through that connection."
+          ],
+          "diagramFilenames": [
+            "05.svg"
           ]
         }
       ]
@@ -129,10 +131,11 @@
       "title": "2) Orders",
       "level": 4,
       "points": [
-        "Validate the authenticated account, order parameters, and available buying power or holdings.",
-        "Persist the order and required reservation before submitting to the external execution path.",
-        "Use stable external/client order identifiers to reconcile retries and avoid duplicate orders.",
-        "Apply execution reports to durable order, cash, and position state with idempotent processing."
+        "Direct client submission leaves order tracking on an unreliable device. A server-side Order Service owns the durable local record.",
+        "A queued dispatcher can absorb bursts, but queue delay can exceed the order target. The source selects synchronous dispatch through a gateway.",
+        "The Order Service stores a pending order before contacting the exchange through the Order Dispatch Gateway.",
+        "After acknowledgement, it stores the external order ID and marks the order submitted. The Trade Processor later applies execution reports.",
+        "Stable client order IDs support recovery after a lost response. Local acceptance must not claim that the order has filled."
       ],
       "diagrams": [
         {
@@ -166,15 +169,17 @@
       ],
       "flows": [
         {
-          "title": "Submit and process a stock order",
+          "title": "Submit an order through the dispatch gateway",
           "steps": [
-            "The customer sends side, symbol, quantity, order type, and a stable client request ID to the order API.",
-            "The service authenticates the account, validates the order, and checks for an existing request result.",
-            "Within the account/order consistency boundary, it reserves the required buying power or holdings and persists a pending order.",
-            "After that commit, a recoverable submission worker sends the order to external execution infrastructure using the stable external order identity.",
-            "The service records external acknowledgement or rejection. Local request acceptance is not a claim that the exchange has accepted or filled the order.",
-            "Execution reports update filled quantity, cash, positions, and remaining reservations idempotently; partial fills leave the remainder open according to order rules.",
-            "Only committed transitions are sent to the customer. A submission timeout triggers status reconciliation before any potentially duplicate external resubmission."
+            "The client submits order parameters and a stable request ID to the Order Service.",
+            "The service validates the authenticated request. It stores a pending order in the Orders DB.",
+            "It sends the order through the Order Dispatch Gateway to the external exchange.",
+            "The exchange returns its order ID. The service records that ID and the submitted state.",
+            "The service returns the confirmed submission result. A timeout triggers reconciliation instead of an unchecked second order.",
+            "Later execution reports update the order through the Trade Processor. Submission is not proof of a fill."
+          ],
+          "diagramFilenames": [
+            "09.svg"
           ]
         }
       ]
@@ -190,9 +195,10 @@
       "title": "1) Scale price delivery",
       "level": 4,
       "points": [
-        "Popular symbols create hot channels; share subscriptions across clients and replicate fanout capacity.",
-        "Coalesce updates where the product only needs the latest displayed price, without dropping authoritative execution events.",
-        "Bound slow-client buffers and provide a fresh snapshot after reconnect rather than replaying an unlimited stale-price backlog."
+        "The Symbol Price Processor publishes updates through Redis Pub/Sub. Each Symbol Service instance subscribes only to symbols its clients need.",
+        "One server subscription can serve many local clients. Remove the upstream subscription when that server has no interested clients.",
+        "Coalesce display updates if the product only needs the latest price. Keep authoritative execution events separate from that lossy path.",
+        "Bound buffers for slow clients. After reconnecting, send a fresh snapshot instead of an unlimited backlog of old prices."
       ],
       "diagrams": [
         {
@@ -203,16 +209,31 @@
           "height": 1645.7566161769528
         }
       ],
-      "flows": []
+      "flows": [
+        {
+          "title": "Distribute a price through shared subscriptions",
+          "steps": [
+            "A Symbol Service instance records the symbols requested by its connected clients.",
+            "It subscribes to each needed Redis Pub/Sub channel once for that server.",
+            "The Symbol Price Processor updates the latest quote and publishes the change to the symbol's channel.",
+            "Interested Symbol Service instances receive the update. Each sends it to the relevant local clients.",
+            "When no local client needs a symbol, the server removes that subscription. Reconnecting clients receive a fresh snapshot."
+          ],
+          "diagramFilenames": [
+            "10.svg"
+          ]
+        }
+      ]
     },
     {
       "title": "2) Track order updates",
       "level": 4,
       "points": [
-        "Model pending, acknowledged, partially filled, filled, cancelled, and rejected states explicitly.",
-        "Deduplicate external events using execution/report IDs and preserve cumulative filled quantities.",
-        "Reconcile against the external provider when an acknowledgement or status update is missing.",
-        "Publish customer-facing updates after committing state so a notification cannot claim a fill that was never recorded."
+        "Partition the Orders DB by user ID. Keep a separate mapping from external order ID to local order ID and user ID.",
+        "The Trade Processor uses that mapping to find the correct database partition and order. It applies each execution report once.",
+        "Model pending, submitted, partially filled, filled, pending cancellation, cancelled, and rejected states explicitly.",
+        "Preserve cumulative fills and external report IDs. Reconcile missing acknowledgements or reports with the external provider.",
+        "Publish customer-facing changes after committing state. A notification must not announce a fill that the system failed to record."
       ],
       "diagrams": [
         {
@@ -225,13 +246,16 @@
       ],
       "flows": [
         {
-          "title": "Handle cancellation racing a fill",
+          "title": "Apply an external execution report",
           "steps": [
-            "The customer requests cancellation of an eligible open order; the service records the request without immediately declaring the order cancelled.",
-            "The execution adapter submits the cancellation using the provider's order identity.",
-            "Meanwhile, any execution report is applied by its unique fill/report ID, including fills arriving before cancellation takes effect.",
-            "When external cancellation is confirmed, the service closes the unfilled remainder and releases only its remaining reserved funds or securities.",
-            "The final customer state includes actual fills plus the cancelled remainder; it never erases a completed fill because a cancellation was requested first."
+            "The Trade Processor receives a report containing the external order ID.",
+            "It queries the External Order Metadata DB for the corresponding local order ID and user ID.",
+            "The user ID identifies the Orders DB partition. The processor loads the order from that partition.",
+            "It deduplicates the execution report and updates the cumulative fill and order state.",
+            "It commits the update before notifying the customer. An unresolved mapping or missing report enters reconciliation."
+          ],
+          "diagramFilenames": [
+            "11.svg"
           ]
         }
       ]
@@ -240,21 +264,33 @@
       "title": "3) Order consistency",
       "level": 4,
       "points": [
-        "Reserve funds or securities atomically with accepting the relevant order intent.",
-        "Partial fills, cancellation, and rejection release or consume only the remaining reserved amount.",
-        "A timeout does not prove the provider rejected the order; query status before deciding whether resubmission is safe.",
-        "Keep an auditable history of transitions rather than overwriting all evidence with the latest status."
+        "Store pending intent before submission. After an uncertain response, query the provider using the stable client order ID.",
+        "The Order Clean-up Job checks unresolved pending and cancellation states. It repairs local records from confirmed external outcomes.",
+        "A timeout does not prove rejection. An unverified retry can create a second order.",
+        "If funds and positions enter scope, reserve the required amount atomically with order acceptance. Fills consume only their corresponding reservation.",
+        "Cancellation or rejection releases only the unfilled remainder. Keep transition history so audits can reconstruct what occurred."
       ],
       "diagrams": [],
-      "flows": []
+      "flows": [
+        {
+          "title": "Resolve cancellation racing a fill",
+          "steps": [
+            "The Order Service records a cancellation request as pending cancellation.",
+            "It submits the request through the Order Dispatch Gateway using the provider's order ID.",
+            "The Trade Processor continues applying valid execution reports. A cancellation request cannot undo an already completed fill.",
+            "After external confirmation, the service closes only the unfilled remainder.",
+            "If the response is uncertain, the Order Clean-up Job queries external status and repairs the local record."
+          ]
+        }
+      ]
     },
     {
       "title": "Final Design",
       "level": 3,
       "points": [
-        "A dedicated market-data pipeline handles snapshots and high-volume price fanout.",
-        "A durable order state machine coordinates account reservations, external submission, and execution reports.",
-        "Idempotency and reconciliation handle the uncertainty inherent in external trading systems."
+        "The Symbol Price Processor maintains the cache and shared price channels. Symbol Service instances send relevant updates to clients.",
+        "The Order Service stores intent and submits through the Order Dispatch Gateway. The Trade Processor updates orders using external-ID mappings.",
+        "The Order Clean-up Job reconciles uncertain outcomes. Stable identifiers and durable transitions support retries and recovery."
       ],
       "diagrams": [
         {

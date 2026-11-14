@@ -1,81 +1,107 @@
 Understanding the Problem
-- Record advertisement clicks, redirect users promptly, and expose aggregate click metrics to advertisers.
-- The user-facing redirect should remain fast while durable event collection and aggregation run asynchronously.
+- The system records advertisement clicks and redirects users to advertisers. Advertisers query the recorded click totals.
+- Redirects must remain fast. Separate click collection from aggregation so analytics work does not delay redirects.
 
 Functional Requirements
-- Accept an ad click and redirect to the configured destination.
-- Query click totals over time at one-minute granularity.
-- Address duplicate events and repeated-click abuse according to explicit counting rules.
+- Users can click an ad and reach its configured destination.
+- Advertisers can query click totals over time. The smallest requested interval is one minute.
+- Count one click for each ad impression. Ad targeting, ad serving, and advanced fraud detection are outside the scope.
 
 Non-functional Requirements
-- Handle around 10,000 clicks per second in the scenario with low redirect latency.
-- Avoid losing accepted click data and support rebuilding aggregates.
-- Serve analytics queries quickly without scanning every raw click.
+- The example has 10 million active ads and a peak of 10,000 clicks per second. Analytics queries should take less than one second.
+- Retain accepted click events durably. The system must recover counts after a processor failure.
+- Advertisers need recent totals. Precompute aggregates so each query does not scan all raw events.
 
 Core Entities
-- Ad identifies advertiser and authorized destination.
-- ClickEvent includes event ID, ad ID, timestamp, and permitted attribution fields.
-- MinuteAggregate stores an ad/window count; raw event storage supports audit and reconciliation.
+- An Ad record identifies the advertiser and redirect URL. The Ad Placement Service supplies this metadata.
+- A ClickEvent contains an event ID, ad ID, user ID when available, and timestamp.
+- A MinuteAggregate contains an ad ID, minute timestamp, and click count. Retain raw events for reconciliation.
 
 API and Data Flow
-- A click endpoint resolves the ad destination, records the event through a durable path, and returns a redirect.
-- A metrics endpoint accepts ad ID and time range and returns bounded aggregate buckets.
-- Validate destinations from stored ad metadata instead of accepting an unrestricted redirect URL from the caller.
-- Ingestion flows through a durable stream to aggregators and query storage, with raw events retained separately.
+- The /click endpoint records a click and returns a 302 redirect. The browser then requests the advertiser's URL.
+- A metrics endpoint accepts an ad ID and time range. It returns counts for the requested time intervals.
+- The Click Processor uses the destination associated with the ad. The browser does not choose an arbitrary redirect destination.
+- The data path is click collection, durable storage, aggregation, then analytics queries. Later designs add a separate raw archive.
 
 High-Level Design
 
 1) Click ingestion
-- Assign a stable event ID and append to durable transport before treating the event as accepted.
-- Keep slow aggregate updates off the redirect path.
-- Define the failure policy if durable ingestion is unavailable; fast redirects and guaranteed recording can conflict during an outage.
+- The browser sends the ad click to the Click Processor. The processor records the click before returning the redirect.
+- A direct browser redirect with a separate tracking request is simpler. However, users can reach the destination without recording a click.
+- Server redirects add a request to the path. Define what happens when recording fails; a fast redirect alone does not prove durability.
 
 Process: Record a click before redirecting
-- 1. The browser calls the click endpoint with the ad identity and applicable event information.
-- 2. The service validates the ad and reads its authorized destination; it does not trust an unrestricted redirect URL supplied by the browser.
-- 3. It creates a stable click event and waits for the selected durable-ingestion acknowledgement when recording is required before success.
-- 4. It returns the redirect response and the browser separately requests the advertiser's destination.
-- 5. Aggregation consumes the event later. If durable ingestion fails, the endpoint follows its explicit availability-versus-recording policy instead of claiming the click was safely recorded.
+- 1. The browser sends the ad click to the Click Processor.
+- 2. The Click Processor obtains the redirect URL associated with the ad.
+- 3. The processor records the click through the selected storage path. The next section compares those paths.
+- 4. The processor returns a 302 response with the destination URL.
+- 5. The browser follows the redirect to the advertiser.
 
 2) Aggregation
-- Scanning raw clicks for every query is simple but expensive as history grows.
-- Stream processors group by ad and minute, then materialize counts for efficient range reads.
-- Event-time windows need an explicit late-event policy and correction mechanism.
-- Store raw events independently so aggregate bugs or failures can be repaired by replay.
+- The basic design writes raw clicks to an analytics database. Queries count matching records, which becomes expensive as traffic grows.
+- A batch design writes events to Cassandra. Scheduled Spark jobs aggregate them into an OLAP database, but results lag between jobs.
+- A streaming design sends events through Kafka or Kinesis to Flink. Flink groups events by ad and event-time minute.
+- Flink writes aggregates to the OLAP database. Watermarks and a late-event policy handle delayed events; frequent flushes expose provisional counts.
 
-Process: Materialize a minute of click counts
-- 1. A processor reads click events from the durable log using its recoverable position.
-- 2. It removes delivery duplicates according to the counting contract and assigns accepted events to ad/time windows.
-- 3. It updates recoverable window state, combining salted partial counts if a hot ad is distributed across workers.
-- 4. It writes minute aggregates through an idempotent or checkpoint-compatible sink, with the defined policy for late events.
-- 5. Only after the processing state and output are recoverable does it advance the corresponding committed progress.
-- 6. Query requests read the materialized buckets; reconciliation can rebuild affected windows from the raw archive without adding the same history twice.
+Process: Count raw events at query time
+- 1. The Click Processor writes each event to the Analytics DB.
+- 2. An advertiser requests counts for an ad and a time range.
+- 3. The Analytics Service queries the matching raw events and groups them by time interval.
+- 4. The service returns the counts. This scan becomes expensive as event history and query traffic grow.
+
+Process: Build counts with scheduled batches
+- 1. The Click Processor writes raw events to Cassandra.
+- 2. The cron Scheduler starts a Spark job at the configured interval.
+- 3. Spark reads the events and groups them by ad ID and minute.
+- 4. Spark writes the aggregates to the OLAP DB.
+- 5. The Analytics Service reads those aggregates for advertiser queries. Results remain stale until the next batch finishes.
+
+Process: Maintain counts with stream processing
+- 1. The Click Processor writes events to Kinesis or Kafka.
+- 2. Flink reads the events and assigns them to ad ID and event-time windows.
+- 3. Flink updates each window's count and handles delayed events under the configured policy.
+- 4. Flink writes aggregates to the OLAP DB. Frequent flushes can expose provisional totals before a minute finishes.
+- 5. The Analytics Service reads the stored totals for the advertiser.
 
 Deep Dives
 
 1) Scale ingestion and hot ads
-- Partition events by ad ID for aggregation locality, but a viral ad can overload one partition.
-- Salt hot ad keys into partial counters, then combine them into the final ad/window aggregate.
-- Batch increments to reduce sink writes while bounding how stale query results become.
-- Apply backpressure and monitor consumer lag instead of allowing buffers to grow indefinitely.
+- A load balancer distributes clicks across Click Processor instances. Partition the stream and Flink work by ad ID.
+- A popular ad can overload one partition. Add a suffix to its partition key, then combine counts under the original ad ID.
+- Batch aggregate updates to reduce database writes. Choose a flush interval that meets the required freshness.
+- Monitor stream lag and available capacity. The OLAP database must combine partial counts without losing or repeating updates.
 
 2) Durability and reconciliation
-- Replicate the event log and commit consumer progress only after recoverable aggregate state is safe.
-- Retries can duplicate events; deduplicate by event ID or use a processing/sink protocol with compatible transactional guarantees.
-- Periodically reconcile materialized totals against retained raw events.
-- Reprocessing must replace or idempotently update affected windows, not add the same historical counts again.
+- Replicate the stream and retain events for recovery. The example uses seven days of retention; small windows can be replayed.
+- Flink checkpoints preserve processing state. Recovery also needs a sink that handles replay without counting an event twice.
+- Archive raw events in S3. Scheduled Spark jobs recompute totals, and a Reconciliation Worker compares them with streaming results.
+- Correct affected OLAP records from the reconciled totals. Do not add the same historical count again during replay.
+
+Process: Reconcile streaming totals with raw events
+- 1. An independent stream consumer archives raw click events in S3.
+- 2. A scheduled Spark job reads an archive interval and recomputes its totals.
+- 3. The Reconciliation Worker compares those totals with the OLAP DB results.
+- 4. The worker investigates differences and updates affected records with corrected totals.
+- 5. Repeated reconciliation must replace or safely update those records. It must not add the same historical totals again.
 
 3) Abuse and repeated clicks
-- Transport deduplication removes repeated delivery of one event; it does not automatically detect separate fraudulent clicks.
-- Define counting windows and identity signals for repeated-click filtering, respecting the data available to the product.
-- Keep suspicious events distinguishable from valid billable counts so rules can be audited and revised.
+- A user/ad pair is too broad for deduplication. The same user can legitimately see a new instance of the same ad.
+- The Ad Placement Service generates a unique impression ID. It signs the impression ID and ad ID before sending the ad.
+- The Click Processor verifies the signature and checks a Redis cache. It writes new clicks to the stream before caching their IDs. Reconciliation handles duplicates that survive a failure.
+
+Process: Count one click for each impression
+- 1. The Ad Placement Service creates an impression ID and signs it together with the ad ID.
+- 2. The browser sends that identity and signature with the click.
+- 3. The Click Processor verifies the signature and checks the Redis cache for a previously accepted impression.
+- 4. For a new impression, the processor writes the click to the stream before adding its ID to the cache.
+- 5. Reconciliation handles duplicates that survive a race or cache failure. Advanced fraud detection remains outside this design.
 
 4) Query latency
-- Index aggregates by advertiser/ad and time, cache frequent ranges, and preaggregate longer periods when appropriate.
-- Restrict query ranges and response bucket counts to avoid expensive unbounded scans.
-- Report freshness or provisional windows so consumers understand that recent counts can change.
+- Query precomputed OLAP records by advertiser, ad, and time. This avoids repeated raw-event scans.
+- Precompute daily or weekly totals for long queries. Keep minute totals available when advertisers need finer detail.
+- Recent windows can be incomplete. Expose their freshness so advertisers know that the latest counts can change.
 
 Final Design
-- Durable click ingestion feeds a replayable stream and raw archive.
-- Partitioned processors maintain minute-level aggregates with late-event and duplicate handling.
-- A dedicated query store and cache serve advertiser metrics independently of redirect traffic.
+- The Click Processor verifies impression IDs, records clicks, and redirects users. Kinesis or Kafka retains the accepted events.
+- Flink maintains minute aggregates in the OLAP database. S3, Spark, and the Reconciliation Worker provide a separate correction path.
+- The Analytics Service reads precomputed totals. Partitioning, impression deduplication, and reconciliation support scale and accurate counts.
