@@ -46,7 +46,6 @@ export default function CondensedSystemDesignArticle({ slug, title }: { slug: st
   if (!notes) return <p role="status" className="text-sm text-gray-400 light:text-gray-600">Loading notes…</p>;
   return <div aria-label={`${title} condensed notes`} className="space-y-5 text-base leading-6 text-gray-200 light:text-gray-800">
     <aside aria-label="Concept color key" className="space-y-2 text-sm leading-5 text-gray-400 light:text-gray-600">
-      <p>Colors identify the main components by role. The same component keeps the same color.</p>
       <div className="flex flex-wrap gap-2">
         {Object.entries(conceptCategories).map(([key, category]) => <span key={key} data-category-legend={key} title={category.examples} className={`rounded px-2 py-0.5 ${category.color}`}>{category.label}</span>)}
       </div>

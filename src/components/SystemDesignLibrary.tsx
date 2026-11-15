@@ -139,16 +139,15 @@ export default function SystemDesignLibrary() {
       <section className="min-w-0 space-y-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Link to="/system-design" className={textLink}>← All articles</Link>
-          <span className="text-xs text-gray-500 light:text-gray-600">{article.category}</span>
+          {!condensed && <span className="text-xs text-gray-500 light:text-gray-600">{article.category}</span>}
         </div>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-2xl font-semibold text-white light:text-gray-900">{article.title}</h2>
-          <a className={textLink} href={article.sourceUrl} target="_blank" rel="noreferrer">Original article</a>
+          {!condensed && <a className={textLink} href={article.sourceUrl} target="_blank" rel="noreferrer">Original article</a>}
         </div>
         <nav aria-label={`${article.title} reading mode`} className="flex flex-wrap gap-5 border-b border-gray-800 pb-3 light:border-gray-200">
             <Link to={`/system-design/${article.slug}`} aria-current={condensed ? 'page' : undefined} className={`${textLink} ${condensed ? 'font-semibold underline underline-offset-4' : ''}`}>Condensed notes</Link>
             <Link to={`/system-design/${article.slug}?view=full`} aria-current={!condensed ? 'page' : undefined} className={`${textLink} ${!condensed ? 'font-semibold underline underline-offset-4' : ''}`}>Full article</Link>
-            {condensed && <a href={`${import.meta.env.BASE_URL}system-design/notes/${article.slug}.txt`} download className={`${textLink} sm:ml-auto`}>Download notes</a>}
         </nav>
         {condensed ? (
           <CondensedSystemDesignArticle key={article.slug} slug={article.slug} title={article.title} />
