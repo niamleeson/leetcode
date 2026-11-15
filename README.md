@@ -59,6 +59,13 @@ All 49 articles have compact hyphen notes, topic-specific sections, explicit ste
 process flows, downloadable text,
 and diagrams that open at full size. Notes load individually on demand. The 496
 original images are retained; PostgreSQL adds an original study diagram.
+Full-article solution accordions are interactive: Great Solution starts open,
+while Bad Solution and Good Solution start closed. Open/closed choices and separate
+scroll positions for each article's two views are retained during app navigation.
+The reading-mode links stay visible while scrolling. Restoration waits for the
+notes or iframe layout to load, including after browser back/forward and load retries.
+`tools/system-design/reader-interactions-check.cjs` covers these interactions on
+desktop and mobile; `tools/system-design/browser-check.cjs` checks the full library.
 Reviewed note text is in `src/data/system-design-notes-source.txt`; Bitly retains
 its existing `src/data/bitly-condensed.txt` source.
 Process sequences are maintained in `src/data/system-design-processes.txt` and appear

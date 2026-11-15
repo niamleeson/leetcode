@@ -28,10 +28,13 @@ function ArticleDiagram({ diagram, slug }: { diagram: Diagram; slug: string }) {
   </figure>;
 }
 
-export default function CondensedSystemDesignArticle({ slug, title }: { slug: string; title: string }) {
+export default function CondensedSystemDesignArticle({ slug, title, onReady }: { slug: string; title: string; onReady?: () => void }) {
   const [notes, setNotes] = useState<Notes | null>(null);
   const [error, setError] = useState(false);
   const [attempt, setAttempt] = useState(0);
+  useEffect(() => {
+    if (notes) onReady?.();
+  }, [notes, onReady]);
   useEffect(() => {
     let active = true;
     setError(false);

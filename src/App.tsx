@@ -29,6 +29,7 @@ export default function App() {
   const { pathname } = useLocation();
   const isNeetCodePage = ['/neetcode', '/neetcode150', '/blind75'].includes(pathname.replace(/\/+$/, ''));
   const isLogicPage = pathname === '/practice' || pathname.startsWith('/practice/');
+  const isSystemDesignArticle = pathname.startsWith('/system-design/');
   const [highlighted, setHighlighted] = useState('');
   const [panelPos, setPanelPos] = useState<{ top: number; left: number } | null>(null);
   const panelLockedRef = useRef(false);
@@ -98,7 +99,7 @@ export default function App() {
         dailyGoal={store.dailyGoal}
         getTopicStats={store.getTopicStats}
       />
-      <main className={`mx-auto ${isLogicPage ? 'logic-main' : isNeetCodePage ? 'neetcode-main' : 'p-2 md:p-6 pt-14 overflow-y-auto max-w-5xl'}`}>
+      <main className={`mx-auto ${isLogicPage ? 'logic-main' : isNeetCodePage ? 'neetcode-main' : `p-2 md:p-6 pt-14 max-w-5xl ${isSystemDesignArticle ? 'overflow-visible' : 'overflow-y-auto'}`}`}>
         <Suspense fallback={<p role="status" className="p-4 text-sm text-gray-400 light:text-gray-600">Loading page…</p>}>
         <Routes>
           <Route path="/" element={

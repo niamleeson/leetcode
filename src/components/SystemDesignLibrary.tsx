@@ -1,20 +1,26 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { systemDesignArticles } from '../data/system-design-articles';
 import CondensedSystemDesignArticle from './CondensedSystemDesignArticle';
+import { useReadingPosition } from '../hooks/useReadingPosition';
 
 const categories = ['Question breakdowns', 'Patterns', 'Key technologies'] as const;
 type Article = typeof systemDesignArticles[number];
 const articleUrl = (article: Article) => `${import.meta.env.BASE_URL}system-design/hello-interview/${article.filename}?v=${article.revision}`;
 const textLink = 'text-sm text-blue-400 hover:underline light:text-blue-700';
+const accordionStates = new Map<string, Map<string, boolean>>();
 
-function ArticleFrame({ article }: { article: Article }) {
+function ArticleFrame({ article, onReady }: { article: Article; onReady: () => void }) {
   const frameRef = useRef<HTMLIFrameElement>(null);
   const cleanupRef = useRef<() => void>(() => {});
   const navigate = useNavigate();
   const [attempt, setAttempt] = useState(0);
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const [height, setHeight] = useState(900);
+
+  useLayoutEffect(() => {
+    if (status === 'ready') onReady();
+  }, [status, onReady]);
 
   useEffect(() => {
     setStatus('loading');
@@ -41,6 +47,9 @@ function ArticleFrame({ article }: { article: Article }) {
       body { display: flow-root !important; color: rgb(var(--foreground)); }
       #markdown { width: 100%; max-width: none !important; margin: 0 !important; padding: 0 !important; }
       #markdown img { background: white; }
+      #markdown [data-reader-panel] { animation: none !important; }
+      #markdown [data-reader-panel][hidden] { display: none !important; }
+      #markdown button[aria-controls] { transition: none !important; }
     `;
     doc.head.appendChild(readerStyle);
     const syncTheme = () => {
@@ -53,8 +62,41 @@ function ArticleFrame({ article }: { article: Article }) {
     const resize = () => setHeight(Math.max(640, Math.ceil(doc.body.getBoundingClientRect().height)));
     const observer = new ResizeObserver(resize);
     observer.observe(doc.body);
+    const savedAccordions = accordionStates.get(article.slug) ?? new Map<string, boolean>();
+    accordionStates.set(article.slug, savedAccordions);
+    const accordions = new Map<HTMLButtonElement, HTMLElement>();
+    const setExpanded = (button: HTMLButtonElement, panel: HTMLElement, expanded: boolean) => {
+      const state = expanded ? 'open' : 'closed';
+      button.setAttribute('aria-expanded', String(expanded));
+      button.dataset.state = state;
+      panel.dataset.state = state;
+      panel.hidden = !expanded;
+      // Keep the original header, chevron, and wrapper styles in sync with the panel.
+      const heading = button.parentElement;
+      if (heading) heading.dataset.state = state;
+      if (heading?.parentElement) heading.parentElement.dataset.state = state;
+    };
+    content.querySelectorAll<HTMLButtonElement>('button[aria-expanded][aria-controls]').forEach(button => {
+      const panel = doc.getElementById(button.getAttribute('aria-controls')!);
+      if (!panel || !content.contains(panel)) return;
+      const label = button.textContent?.trim() ?? '';
+      const solution = /^(Bad|Good|Great) Solution\b/i.test(label);
+      const defaultExpanded = solution ? /^Great Solution\b/i.test(label) : button.getAttribute('aria-expanded') === 'true';
+      panel.dataset.readerPanel = '';
+      accordions.set(button, panel);
+      setExpanded(button, panel, savedAccordions.get(panel.id) ?? defaultExpanded);
+    });
     const handleClick = (event: MouseEvent) => {
       const target = event.target as Element | null;
+      const button = target?.closest<HTMLButtonElement>('button[aria-controls]');
+      const panel = button && accordions.get(button);
+      if (button && panel) {
+        const expanded = button.getAttribute('aria-expanded') !== 'true';
+        setExpanded(button, panel, expanded);
+        savedAccordions.set(panel.id, expanded);
+        resize();
+        return;
+      }
       const anchor = target?.closest<HTMLAnchorElement>('a[href]');
       if (!anchor || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
       const url = new URL(anchor.href);
@@ -65,7 +107,20 @@ function ArticleFrame({ article }: { article: Article }) {
           let id = url.hash.slice(1);
           try { id = decodeURIComponent(id); } catch { /* Keep malformed anchors harmless. */ }
           const heading = doc.getElementById(id);
-          if (heading) window.scrollTo({ top: window.scrollY + frame.getBoundingClientRect().top + heading.getBoundingClientRect().top - 20 });
+          if (heading) {
+            // A direct section link can target content inside a collapsed solution.
+            accordions.forEach((panel, button) => {
+              if (panel.contains(heading)) {
+                setExpanded(button, panel, true);
+                savedAccordions.set(panel.id, true);
+              }
+            });
+            resize();
+            requestAnimationFrame(() => {
+              const toolbarHeight = document.querySelector('[data-reading-mode-nav]')?.getBoundingClientRect().height ?? 0;
+              window.scrollTo({ top: window.scrollY + frame.getBoundingClientRect().top + heading.getBoundingClientRect().top - toolbarHeight - 20 });
+            });
+          }
         } else {
           navigate(`/system-design/${linked.slug}?view=full`);
         }
@@ -82,8 +137,11 @@ function ArticleFrame({ article }: { article: Article }) {
       doc.removeEventListener('click', handleClick);
       readerStyle.remove();
     };
-    resize();
-    setStatus('ready');
+    void doc.fonts.ready.then(() => {
+      if (!frame.isConnected || frame.contentDocument !== doc) return;
+      resize();
+      setStatus('ready');
+    });
   }, [article.slug, navigate]);
 
   return (
@@ -111,14 +169,45 @@ function ArticleFrame({ article }: { article: Article }) {
   );
 }
 
+function ArticleReader({ article, condensed }: { article: Article; condensed: boolean }) {
+    const [ready, setReady] = useState(false);
+    const onReady = useCallback(() => setReady(true), []);
+    const rememberPosition = useReadingPosition(`${article.slug}:${condensed ? 'condensed' : 'full'}`, ready);
+    const index = systemDesignArticles.findIndex(item => item.slug === article.slug);
+    const previous = systemDesignArticles[index - 1];
+    const next = systemDesignArticles[index + 1];
+    return (
+      <section data-reading-ready={ready} className="min-w-0 space-y-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Link to="/system-design" className={textLink}>← All articles</Link>
+          {!condensed && <span className="text-xs text-gray-500 light:text-gray-600">{article.category}</span>}
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-2xl font-semibold text-white light:text-gray-900">{article.title}</h2>
+          {!condensed && <a className={textLink} href={article.sourceUrl} target="_blank" rel="noreferrer">Original article</a>}
+        </div>
+        <nav data-reading-mode-nav aria-label={`${article.title} reading mode`} className="sticky top-0 z-20 flex flex-wrap gap-5 border-b border-gray-800 bg-gray-950 py-3 light:border-gray-200 light:bg-white">
+            <Link to={`/system-design/${article.slug}`} onClick={rememberPosition} aria-current={condensed ? 'page' : undefined} className={`${textLink} ${condensed ? 'font-semibold underline underline-offset-4' : ''}`}>Condensed notes</Link>
+            <Link to={`/system-design/${article.slug}?view=full`} onClick={rememberPosition} aria-current={!condensed ? 'page' : undefined} className={`${textLink} ${!condensed ? 'font-semibold underline underline-offset-4' : ''}`}>Full article</Link>
+        </nav>
+        {condensed ? (
+          <CondensedSystemDesignArticle key={article.slug} slug={article.slug} title={article.title} onReady={onReady} />
+        ) : <ArticleFrame key={article.slug} article={article} onReady={onReady} />}
+        <nav aria-label="Adjacent articles" className="flex flex-wrap justify-between gap-4 border-t border-gray-800 pt-5 light:border-gray-200">
+          {previous ? <Link className={textLink} to={`/system-design/${previous.slug}`}>← {previous.title}</Link> : <span />}
+          {next && <Link className={textLink} to={`/system-design/${next.slug}`}>{next.title} →</Link>}
+        </nav>
+      </section>
+    );
+}
+
 export default function SystemDesignLibrary() {
   const { slug } = useParams<{ slug: string }>();
   const [params, setParams] = useSearchParams();
   const query = params.get('q') || '';
   const category = params.get('category') || 'All';
   const article = systemDesignArticles.find(item => item.slug === slug);
-
-  useEffect(() => { if (slug) window.scrollTo(0, 0); }, [slug]);
+  const condensed = params.get('view') !== 'full';
 
   const updateFilter = (key: string, value: string) => {
     const next = new URLSearchParams(params);
@@ -129,36 +218,7 @@ export default function SystemDesignLibrary() {
   if (slug && !article) {
     return <div className="space-y-3 text-gray-300 light:text-gray-700"><p>Article not found.</p><Link className={textLink} to="/system-design">Back to all articles</Link></div>;
   }
-
-  if (article) {
-    const condensed = params.get('view') !== 'full';
-    const index = systemDesignArticles.findIndex(item => item.slug === article.slug);
-    const previous = systemDesignArticles[index - 1];
-    const next = systemDesignArticles[index + 1];
-    return (
-      <section className="min-w-0 space-y-5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <Link to="/system-design" className={textLink}>← All articles</Link>
-          {!condensed && <span className="text-xs text-gray-500 light:text-gray-600">{article.category}</span>}
-        </div>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-2xl font-semibold text-white light:text-gray-900">{article.title}</h2>
-          {!condensed && <a className={textLink} href={article.sourceUrl} target="_blank" rel="noreferrer">Original article</a>}
-        </div>
-        <nav aria-label={`${article.title} reading mode`} className="flex flex-wrap gap-5 border-b border-gray-800 pb-3 light:border-gray-200">
-            <Link to={`/system-design/${article.slug}`} aria-current={condensed ? 'page' : undefined} className={`${textLink} ${condensed ? 'font-semibold underline underline-offset-4' : ''}`}>Condensed notes</Link>
-            <Link to={`/system-design/${article.slug}?view=full`} aria-current={!condensed ? 'page' : undefined} className={`${textLink} ${!condensed ? 'font-semibold underline underline-offset-4' : ''}`}>Full article</Link>
-        </nav>
-        {condensed ? (
-          <CondensedSystemDesignArticle key={article.slug} slug={article.slug} title={article.title} />
-        ) : <ArticleFrame key={article.slug} article={article} />}
-        <nav aria-label="Adjacent articles" className="flex flex-wrap justify-between gap-4 border-t border-gray-800 pt-5 light:border-gray-200">
-          {previous ? <Link className={textLink} to={`/system-design/${previous.slug}`}>← {previous.title}</Link> : <span />}
-          {next && <Link className={textLink} to={`/system-design/${next.slug}`}>{next.title} →</Link>}
-        </nav>
-      </section>
-    );
-  }
+  if (article) return <ArticleReader key={`${article.slug}:${condensed}`} article={article} condensed={condensed} />;
 
   const filtered = systemDesignArticles.filter(item => (category === 'All' || item.category === category) && item.title.toLowerCase().includes(query.trim().toLowerCase()));
   return (

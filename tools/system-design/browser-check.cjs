@@ -114,7 +114,9 @@ const articles = JSON.parse(data.slice(data.indexOf('=')+1,data.lastIndexOf('as 
     await page.getByRole('link',{name:'Full article',exact:true}).click();
     let frame=await ready();
     assert.equal(await frame.locator('#markdown img').count(),8);
-    assert.equal(await frame.locator('#markdown button[aria-expanded=false]').count(),0);
+    assert.ok(await frame.getByRole('button',{name:/^Bad Solution:/}).count()>0);
+    assert.equal(await frame.getByRole('button',{name:/^Bad Solution:/}).first().getAttribute('aria-expanded'),'false');
+    assert.equal(await frame.getByRole('button',{name:/^Great Solution:/}).first().getAttribute('aria-expanded'),'true');
     await frame.locator('a[href*="/patterns/scaling-reads"]').first().click();
     await page.waitForURL(/#\/system-design\/scaling-reads\?view=full$/);
     await ready();
@@ -135,13 +137,30 @@ const articles = JSON.parse(data.slice(data.indexOf('=')+1,data.lastIndexOf('as 
       await page.waitForFunction(()=>[...document.querySelector('iframe').contentDocument.querySelectorAll('#markdown img')].every(i=>i.complete));
       const check=await page.locator('iframe').evaluate(f=>{
         const d=f.contentDocument,r=d.querySelector('#markdown'),imgs=[...r.querySelectorAll('img')];
-        return {text:r.innerText.length,images:imgs.length,missing:imgs.filter(i=>!i.naturalWidth).length,closed:r.querySelectorAll('button[aria-expanded=false]').length,
+        const accordionErrors=[...r.querySelectorAll('button[aria-expanded][aria-controls]')].filter(button=>{
+          const label=button.textContent.trim(),panel=d.getElementById(button.getAttribute('aria-controls'));
+          const expanded=/^(Bad|Good|Great) Solution\b/i.test(label)?/^Great Solution\b/i.test(label):true;
+          return !panel || button.getAttribute('aria-expanded')!==String(expanded) || panel.hidden===expanded;
+        }).map(button=>button.textContent.trim());
+        return {text:r.innerText.length,images:imgs.length,missing:imgs.filter(i=>!i.naturalWidth).length,accordionErrors,
           excluded:[...r.querySelectorAll('h1,h2,h3,h4,h5,h6,p')].some(e=>/^(What is Expected at Each Level|Test Your Knowledge|Try it yourself first|Watch Video Walkthrough)/i.test(e.textContent.trim()))};
       });
       assert.ok(check.text>1000,article.title);
       assert.equal(check.images,article.imageCount,article.title);
       assert.equal(check.missing,0,article.title);
-      assert.equal(check.closed,0,article.title);
+      assert.deepEqual(check.accordionErrors,[],article.title+' accordion defaults');
+      const toggleErrors=await page.locator('iframe').evaluate(f=>{
+        const d=f.contentDocument;
+        return [...d.querySelectorAll('#markdown button[aria-expanded][aria-controls]')].filter(button=>{
+          const panel=d.getElementById(button.getAttribute('aria-controls'));
+          const before=button.getAttribute('aria-expanded');
+          button.click();
+          const changed=button.getAttribute('aria-expanded')!==before && panel.hidden===(before==='true');
+          button.click();
+          return !changed || button.getAttribute('aria-expanded')!==before || panel.hidden!==(before==='false');
+        }).map(button=>button.textContent.trim());
+      });
+      assert.deepEqual(toggleErrors,[],article.title+' accordions toggle both ways');
       assert.equal(check.excluded,false,article.title);
       await page.setViewportSize({width:390,height:844});
       await page.waitForFunction(()=>{const f=document.querySelector('iframe');return f.contentDocument.documentElement.scrollHeight<=f.clientHeight+1;});
