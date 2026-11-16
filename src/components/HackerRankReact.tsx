@@ -93,7 +93,7 @@ function ChallengeIndex({ query, onQueryChange, greatFrontendSort, onSortChange,
             <section key={collection} aria-labelledby={`collection-${collection}`} className="space-y-4">
               <div>
                 <h2 id={`collection-${collection}`} className={heading}>{collectionTitles[collection]}</h2>
-                {collection === 'Games' && <p className={`mt-2 ${muted}`}>Five React interview exercises with complete solutions, game rules, state modeling, and edge cases.</p>}
+                {collection === 'Games' && <p className={`mt-2 ${muted}`}>React interview exercises with complete solutions, game rules, state modeling, and edge cases.</p>}
                 {collection === 'GreatFrontEnd' && <p className={`mt-2 ${muted}`}>40 UI problems and 31 hooks, keeping the highest numbered level in each series. Original study solutions include summarized prompts, examples, and explicit assumptions.</p>}
                 {collection === 'GreatFrontEnd' && (
                   <div className="mt-3 flex flex-wrap items-center gap-2">

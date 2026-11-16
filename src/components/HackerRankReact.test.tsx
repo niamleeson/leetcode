@@ -69,7 +69,7 @@ it('lists all collections in order, keeps only the requested GreatFrontEnd level
   showPage();
   expect(screen.getByRole('heading', { name: 'React questions', level: 1 })).toBeTruthy();
   const games = screen.getByRole('region', { name: 'React interview games' });
-  expect(within(games).getAllByRole('heading', { level: 3 }).map(node => node.textContent)).toEqual(['Tic-tac-toe', 'Memory Matching', 'Connect Four', 'Minesweeper', 'Sudoku']);
+  expect(within(games).getAllByRole('heading', { level: 3 }).map(node => node.textContent)).toEqual(['Tic-tac-toe', 'Memory Matching', 'Flip Order Memory', 'Connect Four', 'Minesweeper', 'Sudoku']);
   for (const name of ['HackerRank React', 'Another AI interview questions', 'Other interview questions']) expect(screen.queryByRole('region', { name })).toBeNull();
   const reference = screen.getByRole('region', { name: 'Interview reference' });
   const practice = screen.getByRole('region', { name: 'Additional practice' });
@@ -84,7 +84,7 @@ it('lists all collections in order, keeps only the requested GreatFrontEnd level
   expect(practice.compareDocumentPosition(reference) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   expect(within(practice).getByRole('heading', { name: 'Spreadsheet' })).toBeTruthy();
   expect(within(reference).getByRole('heading', { name: 'ARIA Interview Essentials' })).toBeTruthy();
-  expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(78);
+  expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(79);
   const search = screen.getByRole('searchbox', { name: 'Find a question or concept' });
   fireEvent.change(search, { target: { value: 'Minesweeper' } });
   expect(screen.getAllByRole('heading', { level: 3 }).map(node => node.textContent)).toEqual(['Minesweeper']);
@@ -97,7 +97,7 @@ it('lists all collections in order, keeps only the requested GreatFrontEnd level
   fireEvent.change(search, { target: { value: 'no-such-question' } });
   expect(screen.queryAllByRole('heading', { level: 2 })).toHaveLength(0);
   fireEvent.click(screen.getByRole('button', { name: 'Clear search' }));
-  expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(78);
+  expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(79);
 });
 
 it.each(reactChallenges)('opens $title with its complete solution and source', challenge => {
@@ -159,13 +159,18 @@ it('navigates from the index, between questions, and back to the catalog', () =>
   const nav = screen.getByRole('navigation', { name: 'React question navigation' });
   fireEvent.click(within(nav).getByRole('link', { name: 'Memory Matching →' }));
   expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Memory Matching');
+  fireEvent.click(screen.getByRole('link', { name: 'Flip Order Memory →' }));
+  expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Flip Order Memory');
+  fireEvent.click(screen.getByRole('link', { name: 'Connect Four →' }));
+  expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Connect Four');
   fireEvent.change(screen.getByRole('combobox', { name: 'Jump to question' }), { target: { value: 'sudoku' } });
   expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Sudoku');
-  fireEvent.click(within(screen.getByRole('navigation', { name: 'React question navigation' })).getByRole('link', { name: `${reactChallenges[5].title} →` }));
-  expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(reactChallenges[5].title);
+  const afterSudoku = reactChallenges[reactChallenges.findIndex(challenge => challenge.slug === 'sudoku') + 1];
+  fireEvent.click(within(screen.getByRole('navigation', { name: 'React question navigation' })).getByRole('link', { name: `${afterSudoku.title} →` }));
+  expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(afterSudoku.title);
   fireEvent.change(screen.getByRole('combobox', { name: 'Jump to question' }), { target: { value: reactChallenges[reactChallenges.length - 1].slug } });
   fireEvent.click(screen.getByRole('link', { name: 'Back to all questions →' }));
-  expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(78);
+  expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(79);
 });
 
 it('copies the full displayed solution and resets its confirmation on navigation', async () => {

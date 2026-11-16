@@ -7,9 +7,9 @@ import { loadSolution } from './greatfrontend/testUtils';
 const code = (slug: string) => loadSolution(gameChallenges.find(game => game.slug === slug)!.code);
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); });
 
-describe('the five published game solutions', () => {
+describe('the published game solutions', () => {
   it('compiles all complete snippets', () => {
-    expect(gameChallenges).toHaveLength(5);
+    expect(gameChallenges).toHaveLength(6);
     for (const game of gameChallenges) expect(loadSolution(game.code).default).toBeTypeOf('function');
   });
   it('plays Tic-tac-toe, stops a win, detects a draw, and resets', () => {
@@ -44,14 +44,39 @@ describe('the five published game solutions', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Card 1: hidden' }));
     fireEvent.click(screen.getByRole('button', { name: 'Card 2: hidden' }));
     fireEvent.click(screen.getByRole('button', { name: 'New game' }));
+    expect(screen.getAllByRole('button', {name:/^Card \d+: hidden$/})).toHaveLength(16);
     fireEvent.click(screen.getByRole('button', { name: 'Card 1: hidden' }));
     act(() => vi.advanceTimersByTime(1000));
     expect(screen.getByRole('button', { name: /^Card 1:/ })).not.toHaveTextContent('?');
     expect(screen.getByRole('status')).toHaveTextContent('Moves: 0');
   });
-  it('ignores duplicate memory flips, keeps matches visible, and announces completion', () => {
+  it('deals sixteen unique cards, completes all eight pairs, and resets the full deck', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.37);
     const { default: Game, makeDeck } = code('memory-matching');
-    expect(makeDeck(() => 0).map((c: any) => c.value).sort()).toEqual('AABBCCDDEEFF'.split(''));
+    const cards = makeDeck(() => 0.37);
+    expect(cards).toHaveLength(16);
+    expect(new Set(cards.map((card: any) => card.id)).size).toBe(16);
+    expect(cards.map((card: any) => card.value).sort()).toEqual('AABBCCDDEEFFGGHH'.split(''));
+    render(<Game />);
+    expect(screen.getAllByRole('button', {name:/^Card \d+: hidden$/})).toHaveLength(16);
+    for (const value of 'ABCDEFGH') {
+      cards.forEach((card: any, index: number) => {
+        if (card.value === value) {
+          fireEvent.click(screen.getByRole('button', {name:`Card ${index + 1}: hidden`}));
+        }
+      });
+    }
+    expect(screen.getByRole('status')).toHaveTextContent('All pairs found! Moves: 8');
+    for (const card of screen.getAllByRole('button', {name:/^Card /})) expect(card).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', {name:'New game'}));
+    const resetCards = screen.getAllByRole('button', {name:/^Card \d+: hidden$/});
+    expect(resetCards).toHaveLength(16);
+    for (const card of resetCards) expect(card).toBeEnabled();
+    expect(screen.getByRole('status')).toHaveTextContent('Moves: 0');
+    expect(screen.getByRole('status')).not.toHaveTextContent('All pairs found!');
+  });
+  it('ignores duplicate memory flips, keeps matches visible, and announces completion', () => {
+    const { default: Game } = code('memory-matching');
     const cards = [{id:0,value:'A'},{id:1,value:'A'},{id:2,value:'B'},{id:3,value:'B'}];
     render(<Game initialCards={cards} />);
     fireEvent.click(screen.getByRole('button', {name:'Card 1: hidden'}));
