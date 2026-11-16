@@ -23,7 +23,7 @@ export const gameChallenges: ReactChallenge[] = [
   },
   {
     collection: 'Games', slug: 'memory-matching', title: 'Memory Matching', difficulty: 'Medium',
-    topics: ['Reducers', 'Effects', 'Timers', 'State machines'],
+    topics: ['useState', 'Effects', 'Timers', 'State machines'],
     sourceLabel: 'Original React interview practice solution',
     summary: 'Reveal pairs of shuffled cards with a mismatch delay, move count, and safe reset.',
     prompt: 'Build a memory game with six pairs of cards. A player reveals two cards at a time. Matching cards stay face up; mismatches hide after 800 ms. Track attempts and show completion when every pair is found.',
@@ -31,9 +31,9 @@ export const gameChallenges: ReactChallenge[] = [
     assumptions: ['Six letter pairs and a fixed 800 ms mismatch delay.', 'initialCards is an optional deterministic deck for testing; a new game uses a fresh shuffle.'],
     example: { actions: 'Reveal A and B, try a third card, then wait 800 ms.', result: 'The third card stays hidden. A and B hide after the delay, and the move count is one.' },
     code: memory,
-    steps: ['Give every physical card a unique ID even when two cards share a value.', 'Use Fisher–Yates to shuffle a new deck and a reducer to make each flip an atomic state transition.', 'The first flip records one ID. The second compares values and either records a match or leaves the pair visible.', 'An effect schedules hiding only for a mismatch; its cleanup cancels the timeout when state changes or the component unmounts.', 'Derive completion from matched-card count and render card values only while visible.'],
-    complexity: 'Deck creation and shuffling use O(N) time and space. This readable implementation uses array membership and lookup, so a flip and render are O(N); sets/maps can optimize lookup for much larger decks.',
-    pitfalls: ['Using the pair value as the React key creates duplicate keys.', 'Random sort comparators produce biased shuffles.', 'Starting uncancelled timeouts lets an old game hide cards in a new game.', 'Only disabling the UI is insufficient: the reducer must reject invalid and third flips too.'],
+    steps: ['Give every physical card a unique ID even when two cards share a value, then shuffle the deck with Fisher–Yates.', 'Keep cards, flipped IDs, matched IDs, and moves in one useState object. Pass an initializer function so rendering an existing game does not shuffle another deck.', 'In handleFlip, use setState(previous => ...) to read the latest game state. Ignore a card that is already revealed or matched, and block a third flip while a mismatch is visible.', 'The first flip records one ID. The second compares values and counts one move. A match adds both IDs to matched and clears flipped; a mismatch leaves both IDs in flipped.', 'An effect waits 800 ms before clearing a mismatched pair. Its cleanup cancels the timeout when the flipped cards change or the component unmounts.', 'In handleNewGame, create a fresh deck and reset flipped, matched, and moves together.', 'Derive completion from matched-card count and render card values only while visible.'],
+    complexity: 'N = number of cards. Deck creation and shuffling use O(N) time and space. This readable implementation uses array membership and lookup, so a flip and render are O(N); sets/maps can optimize lookup for much larger decks.',
+    pitfalls: ['Using the pair value as the React key creates duplicate keys.', 'Random sort comparators produce biased shuffles.', 'Starting uncancelled timeouts lets an old game hide cards in a new game.', 'Only disabling the UI is insufficient: handleFlip must reject invalid and third flips too.', 'Reading a captured state value when calculating the next state can miss queued updates. Use the previous state supplied to the setState updater.'],
     testCases: [{ action: 'Click the same card twice.', expected: 'Only one card is revealed and the move count stays zero.' }, { action: 'Reveal two different cards and try a third.', expected: 'The third is ignored until the mismatch delay finishes.' }, { action: 'Match every pair.', expected: 'All cards remain visible and completion is announced.' }, { action: 'Reset during the mismatch delay.', expected: 'The old timeout is cancelled and the new game starts with no revealed cards or moves.' }],
   },
   {

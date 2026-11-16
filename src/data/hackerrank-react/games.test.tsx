@@ -32,8 +32,15 @@ describe('the five published game solutions', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Card 1: hidden' }));
     fireEvent.click(screen.getByRole('button', { name: 'Card 2: hidden' }));
     expect(screen.getByRole('button', { name: 'Card 3: hidden' })).toBeDisabled();
-    act(() => vi.advanceTimersByTime(800));
+    fireEvent.click(screen.getByRole('button', { name: 'Card 3: hidden' }));
+    expect(screen.getByRole('button', { name: 'Card 3: hidden' })).toHaveTextContent('?');
+    expect(screen.getByRole('status')).toHaveTextContent('Moves: 1');
+    act(() => vi.advanceTimersByTime(799));
+    expect(screen.getByRole('button', { name: 'Card 1: A' })).toHaveTextContent('A');
+    expect(screen.getByRole('button', { name: 'Card 2: B' })).toHaveTextContent('B');
+    act(() => vi.advanceTimersByTime(1));
     expect(screen.getByRole('button', { name: 'Card 1: hidden' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Card 2: hidden' })).toBeEnabled();
     fireEvent.click(screen.getByRole('button', { name: 'Card 1: hidden' }));
     fireEvent.click(screen.getByRole('button', { name: 'Card 2: hidden' }));
     fireEvent.click(screen.getByRole('button', { name: 'New game' }));
@@ -42,17 +49,37 @@ describe('the five published game solutions', () => {
     expect(screen.getByRole('button', { name: /^Card 1:/ })).not.toHaveTextContent('?');
     expect(screen.getByRole('status')).toHaveTextContent('Moves: 0');
   });
-  it('keeps memory matches visible and announces completion', () => {
-    const { default: Game, makeDeck, memoryReducer } = code('memory-matching');
+  it('ignores duplicate memory flips, keeps matches visible, and announces completion', () => {
+    const { default: Game, makeDeck } = code('memory-matching');
     expect(makeDeck(() => 0).map((c: any) => c.value).sort()).toEqual('AABBCCDDEEFF'.split(''));
-    const cards = [{id:0,value:'A'},{id:1,value:'A'}];
-    let state = { cards, flipped: [], matched: [], moves: 0 };
-    state = memoryReducer(state, {type:'flip',id:0});
-    expect(memoryReducer(state, {type:'flip',id:0})).toBe(state);
+    const cards = [{id:0,value:'A'},{id:1,value:'A'},{id:2,value:'B'},{id:3,value:'B'}];
     render(<Game initialCards={cards} />);
     fireEvent.click(screen.getByRole('button', {name:'Card 1: hidden'}));
+    fireEvent.click(screen.getByRole('button', {name:'Card 1: A'}));
+    expect(screen.getByRole('status')).toHaveTextContent('Moves: 0');
+    expect(screen.getByRole('button', {name:'Card 2: hidden'})).toBeEnabled();
     fireEvent.click(screen.getByRole('button', {name:'Card 2: hidden'}));
-    expect(screen.getByRole('status')).toHaveTextContent('All pairs found! Moves: 1');
+    expect(screen.getByRole('button', {name:'Card 1: A'})).toBeDisabled();
+    expect(screen.getByRole('button', {name:'Card 2: A'})).toBeDisabled();
+    expect(screen.getByRole('status')).toHaveTextContent('Moves: 1');
+    expect(screen.getByRole('status')).not.toHaveTextContent('All pairs found!');
+    fireEvent.click(screen.getByRole('button', {name:'Card 1: A'}));
+    fireEvent.click(screen.getByRole('button', {name:'Card 3: hidden'}));
+    expect(screen.getByRole('button', {name:'Card 1: A'})).toHaveTextContent('A');
+    expect(screen.getByRole('button', {name:'Card 2: A'})).toHaveTextContent('A');
+    fireEvent.click(screen.getByRole('button', {name:'Card 4: hidden'}));
+    expect(screen.getByRole('status')).toHaveTextContent('All pairs found! Moves: 2');
+    for (const card of screen.getAllByRole('button', {name:/^Card /})) expect(card).toBeDisabled();
+  });
+  it('cancels the pending memory mismatch timer on unmount', () => {
+    vi.useFakeTimers();
+    const { default: Game } = code('memory-matching');
+    const { unmount } = render(<Game initialCards={[{id:0,value:'A'},{id:1,value:'B'}]} />);
+    fireEvent.click(screen.getByRole('button', {name:'Card 1: hidden'}));
+    fireEvent.click(screen.getByRole('button', {name:'Card 2: hidden'}));
+    expect(vi.getTimerCount()).toBe(1);
+    unmount();
+    expect(vi.getTimerCount()).toBe(0);
   });
   it('uses Connect Four gravity, rejects full columns, and detects every direction without wrapping', () => {
     const { default: Game, drop, winner } = code('connect-four');
