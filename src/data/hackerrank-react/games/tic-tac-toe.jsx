@@ -14,6 +14,7 @@ export default function TicTacToe() {
   const draw = !result && board.every(Boolean);
   const next = board.filter(Boolean).length % 2 === 0 ? 'X' : 'O';
   function play(index) {
+    // Ignore occupied squares and stop accepting moves after someone wins.
     if (board[index] || result) return;
     const copy = [...board];
     copy[index] = next;

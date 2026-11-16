@@ -21,6 +21,8 @@ export default function MemoryMatching({ initialCards }) {
   }));
 
   function handleFlip(id) {
+    // Block a third flip while two mismatched cards are visible.
+    // Also ignore cards that are already face up or matched.
     if (
       state.flipped.length === 2 ||
       state.flipped.includes(id) ||
@@ -30,6 +32,7 @@ export default function MemoryMatching({ initialCards }) {
     }
 
     const card = state.cards.find(item => item.id === id);
+    // Ignore IDs that do not belong to this deck.
     if (!card) return;
 
     const flipped = [...state.flipped, id];
@@ -68,6 +71,7 @@ export default function MemoryMatching({ initialCards }) {
   }
 
   useEffect(() => {
+    // Schedule hiding only when two mismatched cards are visible.
     if (state.flipped.length !== 2) return;
 
     const timer = setTimeout(() => {

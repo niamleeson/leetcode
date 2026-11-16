@@ -420,11 +420,13 @@ export default function Slides({ slides }) {
   const slide = slides[index];
 
   function handlePrevious() {
+    // Stop at the first slide so the index cannot become negative.
     if (isFirst) return;
     setIndex(index - 1);
   }
 
   function handleNext() {
+    // Stop at the last slide so the index stays inside the slides array.
     if (isLast) return;
     setIndex(index + 1);
   }

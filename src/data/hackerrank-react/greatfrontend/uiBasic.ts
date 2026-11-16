@@ -139,6 +139,7 @@ export function hasWon(board, row, column, player) {
 export default function ConnectFour() {
   const [game, setGame] = useState(initialGame);
   function drop(column) {
+    // Ignore full columns and stop accepting moves after a win or draw.
     if (game.result || game.board[0][column]) return;
 
     const board = game.board.map(row => [...row]);
@@ -425,6 +426,7 @@ const positions = [0, 1, 2, 3, 5, 6, 7, 8];
 export default function GridLights({ delay = 300 }) {
   const [state, setState] = useState({ order: [], draining: false });
   useEffect(() => {
+    // Start the automatic turn-off timer only after every light has been activated.
     if (!state.draining) return;
     const timer = setTimeout(() => setState(current => {
       const order = current.order.slice(0, -1);
@@ -433,6 +435,7 @@ export default function GridLights({ delay = 300 }) {
     return () => clearTimeout(timer);
   }, [state, delay]);
   function activate(position) {
+    // Ignore lights that are already on, and block clicks while lights turn off.
     if (state.draining || state.order.includes(position)) return;
 
     const order = [...state.order, position];
@@ -644,11 +647,13 @@ export default function MemoryGame({ random = Math.random, delay = 1000 }) {
   const [game, setGame] = useState(() => makeGame(random));
   const locked = game.open.length === 2;
   useEffect(() => {
+    // Schedule hiding only while a mismatched pair is visible.
     if (!locked) return;
     const timer = setTimeout(() => setGame(current => ({ ...current, open: [] })), delay);
     return () => clearTimeout(timer);
   }, [game, locked, delay]);
   function reveal(index) {
+    // Block a third flip while a mismatch is visible, and ignore open or matched cards.
     if (locked || game.open.includes(index) || game.matched.includes(index)) return;
 
     const open = [...game.open, index];

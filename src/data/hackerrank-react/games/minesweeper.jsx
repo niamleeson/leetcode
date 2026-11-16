@@ -32,6 +32,7 @@ function createInitialState() {
 }
 
 function canChangeCell(state, index) {
+  // A cell must be inside the board, still hidden, and part of a game that has not ended.
   return Number.isInteger(index) &&
     index >= 0 && index < ROWS * COLS &&
     state.phase !== 'won' && state.phase !== 'lost' &&
@@ -42,11 +43,13 @@ export default function Minesweeper() {
   const [state, setState] = useState(createInitialState);
 
   function handleReveal(index) {
+    // Ignore invalid or open cells, finished games, and flagged cells.
     if (!canChangeCell(state, index) || state.flags[index]) return;
 
     const board = state.board || createBoard(index);
     const revealed = [...state.revealed];
 
+    // Hitting a mine ends the game immediately, without expanding nearby cells.
     if (board[index] === -1) {
       revealed[index] = true;
       setState({ ...state, board, revealed, phase: 'lost' });
@@ -59,6 +62,7 @@ export default function Minesweeper() {
 
     for (let cursor = 0; cursor < queue.length; cursor++) {
       const cell = queue[cursor];
+      // Reveal numbered cells, but stop the empty-area expansion at their boundary.
       if (board[cell] !== 0) continue;
 
       for (const next of neighbors(cell)) {
@@ -74,6 +78,7 @@ export default function Minesweeper() {
   }
 
   function handleFlag(index) {
+    // Only place or remove flags on valid, hidden cells before the game ends.
     if (!canChangeCell(state, index)) return;
 
     const flags = [...state.flags];

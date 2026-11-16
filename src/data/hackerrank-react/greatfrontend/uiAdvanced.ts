@@ -723,6 +723,7 @@ export default function TicTacToe({ initialSize = 3, initialTarget = 3 }) {
   const [game, setGame] = useState(() => fresh(startSize, startTarget));
   const [size, setSize] = useState(startSize), [target, setTarget] = useState(startTarget);
   function play(index) {
+    // Ignore occupied squares and stop accepting moves after a win or draw.
     if (game.winner || game.board[index]) return;
 
     const board = [...game.board];
