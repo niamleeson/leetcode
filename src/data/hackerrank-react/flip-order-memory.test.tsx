@@ -12,7 +12,16 @@ const cells = () => screen.getAllByRole('button', { name: /^Row / });
 const advance = (milliseconds: number) => act(() => vi.advanceTimersByTime(milliseconds));
 function randomFor(...positions: number[]) {
   let cursor = 0;
-  return () => positions[cursor++ % positions.length] / 16;
+  let available: number[] = [];
+  return () => {
+    if (cursor % 4 === 0) available = Array.from({ length: 16 }, (_, index) => index);
+    const position = positions[cursor++ % positions.length];
+    const index = available.indexOf(position);
+    if (index === -1) throw new Error('Test positions must be distinct within each round.');
+    const random = (index + 0.5) / available.length;
+    available.splice(index, 1);
+    return random;
+  };
 }
 
 afterEach(() => {
@@ -21,15 +30,22 @@ afterEach(() => {
 });
 
 describe('Flip Order Memory', () => {
-  it('generates four valid positions and permits repeated flips', () => {
-    expect(createSequence(() => 0)).toEqual([0, 0, 0, 0]);
-    expect(createSequence(() => 1 - Number.EPSILON)).toEqual([15, 15, 15, 15]);
-    expect(createSequence(randomFor(0, 5, 5, 15))).toEqual([0, 5, 5, 15]);
+  it('generates four distinct valid positions even when random always returns the same value', () => {
+    for (const value of [0, 1 - Number.EPSILON, 0.5]) {
+      const random = vi.fn(() => value);
+      const sequence = createSequence(random);
+      expect(sequence).toHaveLength(4);
+      expect(new Set(sequence).size).toBe(4);
+      expect(sequence.every((position: number) => Number.isInteger(position) && position >= 0 && position < 16)).toBe(true);
+      expect(random).toHaveBeenCalledTimes(4);
+    }
+    expect(createSequence(randomFor(0, 5, 10, 15))).toEqual([0, 5, 10, 15]);
+    expect(createSequence(() => 0)).toEqual(createSequence(() => 0));
   });
 
-  it('shows the flip order with blank gaps, including a repeated cell, before accepting input', () => {
+  it('shows four distinct flips in order with blank gaps before accepting input', () => {
     vi.useFakeTimers();
-    render(<Game random={randomFor(0, 5, 5, 15)} />);
+    render(<Game random={randomFor(0, 5, 10, 15)} />);
     expect(cells()).toHaveLength(16);
     for (const button of cells()) expect(button).toBeDisabled();
 
@@ -45,7 +61,7 @@ describe('Flip Order Memory', () => {
     advance(500);
     expect(cell(5)).toHaveAttribute('aria-pressed', 'false');
     advance(300);
-    expect(cell(5)).toHaveAttribute('aria-pressed', 'true');
+    expect(cell(10)).toHaveAttribute('aria-pressed', 'true');
     advance(800);
     expect(cell(15)).toHaveAttribute('aria-pressed', 'true');
     advance(799);
@@ -58,12 +74,12 @@ describe('Flip Order Memory', () => {
     }
   });
 
-  it('checks each chosen position, accepts repeats, and completes after four correct flips', () => {
+  it('checks each chosen position and completes after four correct flips', () => {
     vi.useFakeTimers();
-    render(<Game random={randomFor(0, 5, 5, 15)} />);
+    render(<Game random={randomFor(0, 5, 10, 15)} />);
     fireEvent.click(screen.getByRole('button', { name: 'New round' }));
     advance(3200);
-    for (const [step, position] of [0, 5, 5, 15].entries()) {
+    for (const [step, position] of [0, 5, 10, 15].entries()) {
       fireEvent.click(cell(position));
       expect(screen.getByRole('status')).toHaveTextContent(step === 3
         ? 'Correct order! All four flips remembered.'
@@ -79,13 +95,13 @@ describe('Flip Order Memory', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Correct! Choose flip 2 of 4.');
   });
 
-  it('stops at the first wrong choice and resets partial progress for a new round', () => {
+  it('rejects repeating a previously correct cell and resets partial progress for a new round', () => {
     vi.useFakeTimers();
-    render(<Game random={randomFor(0, 5, 5, 15)} />);
+    render(<Game random={randomFor(0, 5, 10, 15)} />);
     fireEvent.click(screen.getByRole('button', { name: 'New round' }));
     advance(3200);
     fireEvent.click(cell(0));
-    fireEvent.click(cell(1));
+    fireEvent.click(cell(0));
     expect(screen.getByRole('status')).toHaveTextContent('Wrong order at flip 2. Start a new round.');
     for (const button of cells()) expect(button).toBeDisabled();
     fireEvent.click(cell(5));

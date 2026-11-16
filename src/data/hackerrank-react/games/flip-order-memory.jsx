@@ -1,11 +1,21 @@
 import { useEffect, useState } from 'react';
 
 export function createSequence(random = Math.random) {
-  // Inclusive range: Math.floor(random() * (max - min + 1)) + min.
-  // The sixteen grid positions run from 0 through 15.
-  return Array.from({ length: 4 }, () =>
-    Math.floor(random() * (15 - 0 + 1)) + 0
-  );
+  const availableCells = Array.from({ length: 16 }, (_, index) => index);
+  const sequence = [];
+
+  for (let step = 0; step < 4; step++) {
+    // Inclusive range: Math.floor(random() * (max - min + 1)) + min.
+    // Choose an index from 0 through the last index in the remaining cells.
+    const randomIndex = Math.floor(random() * (availableCells.length - 1 - 0 + 1)) + 0;
+    const cell = availableCells[randomIndex];
+    sequence.push(cell);
+
+    // Remove this cell so it cannot be chosen again in the same round.
+    availableCells.splice(randomIndex, 1);
+  }
+
+  return sequence;
 }
 
 export default function FlipOrderMemory({ random = Math.random }) {
@@ -28,7 +38,7 @@ export default function FlipOrderMemory({ random = Math.random }) {
     const timers = [];
     sequence.forEach((cell, step) => {
       // Each flip is visible for 500 ms, followed by a 300 ms blank gap.
-      // The gap makes two consecutive flips of the same cell distinguishable.
+      // The gap clearly separates one flip from the next.
       timers.push(setTimeout(() => setActiveCell(cell), step * 800));
       timers.push(setTimeout(() => setActiveCell(null), step * 800 + 500));
     });
