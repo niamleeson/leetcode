@@ -4,7 +4,9 @@ export function makeDeck(random = Math.random) {
   const cards = ['A', 'B', 'C', 'D', 'E', 'F'].flatMap(value => [value, value])
     .map((value, id) => ({ id, value }));
   for (let i = cards.length - 1; i > 0; i--) {
-    const j = Math.floor(random() * (i + 1));
+    // Inclusive range: Math.floor(random() * (max - min + 1)) + min.
+    // min = 0; max = i, which starts at cards.length - 1.
+    const j = Math.floor(random() * (i - 0 + 1)) + 0;
     [cards[i], cards[j]] = [cards[j], cards[i]];
   }
   return cards;
