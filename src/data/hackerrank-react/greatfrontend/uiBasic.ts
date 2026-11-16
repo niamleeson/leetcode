@@ -116,7 +116,7 @@ export default function BirthYearHistogram({ endpoint = SAMPLE, fetcher = fetch 
     requirements: ['Use a six-row, seven-column board and alternate red/yellow turns.', 'Reject full columns and all moves after a win or draw.', 'Recognize horizontal, vertical, and both diagonal wins; support restart.'],
     assumptions: ['The premium prompt is not visible. This implementation uses standard 6 × 7 Connect Four rules and local players.'],
     example: { actions: 'Alternate columns 1 and 2, with Red dropping into column 1 four times.', result: 'Red wins vertically; the board stops accepting moves.' },
-    steps: ['Store board, next player, and result in one state object.', 'Locate the bottom empty row and copy the board before placing a disc.', 'Count both directions on each of four axes, then check for a full board.'],
+    steps: ['Store board, next player, and result in one state object.', 'At the start of the click handler, ignore a full column or a finished game before calling setGame.', 'Locate the bottom empty row and copy the board before placing a disc.', 'Count both directions on each of four axes, then check for a full board and save the next game state.'],
     pitfalls: ['Checking only one diagonal direction misses wins.', 'Full-column clicks must not consume a turn.'],
     complexity: 'O(rows × columns) per move to copy the board; O(rows × columns) space.',
     testCases: [{ action: 'Play a vertical win.', expected: 'The winner is announced and all drop buttons disable.' }, { action: 'Fill a column or restart.', expected: 'A full column rejects moves; restart clears every disc.' }],
@@ -139,16 +139,15 @@ export function hasWon(board, row, column, player) {
 export default function ConnectFour() {
   const [game, setGame] = useState(initialGame);
   function drop(column) {
-    setGame(current => {
-      if (current.result || current.board[0][column]) return current;
-      const board = current.board.map(row => [...row]);
-      let row = 5;
-      while (board[row][column]) row--;
-      board[row][column] = current.player;
-      const result = hasWon(board, row, column, current.player) ? current.player + ' wins!'
-        : board.every(cells => cells.every(Boolean)) ? 'Draw!' : '';
-      return { board, result, player: current.player === 'Red' ? 'Yellow' : 'Red' };
-    });
+    if (game.result || game.board[0][column]) return;
+
+    const board = game.board.map(row => [...row]);
+    let row = 5;
+    while (board[row][column]) row--;
+    board[row][column] = game.player;
+    const result = hasWon(board, row, column, game.player) ? game.player + ' wins!'
+      : board.every(cells => cells.every(Boolean)) ? 'Draw!' : '';
+    setGame({ board, result, player: game.player === 'Red' ? 'Yellow' : 'Red' });
   }
   return <section style={{ maxWidth: 490 }}>
     <h2>Connect Four</h2><p role="status">{game.result || game.player + "'s turn"}</p>
@@ -415,7 +414,7 @@ export default function GenerateTable() {
     requirements: ['Only inactive lights accept activation.', 'When all eight are on, lock interaction and remove one every 300 ms in reverse order.', 'Unlock when all lights are off and clean up scheduled work.'],
     assumptions: ['The premium prompt is unavailable. This version uses a 3 × 3 board with a center hole and a configurable delay defaulting to 300 ms.'],
     example: { actions: 'Activate every light, ending with the top-left corner.', result: 'Top-left turns off first; the first light selected turns off last.' },
-    steps: ['Keep the activation order as a stack.', 'Enter a draining phase once the stack reaches eight.', 'Schedule one pop per effect run so cleanup cancels obsolete timers.'],
+    steps: ['Keep the activation order as a stack.', 'Before setting state in the click handler, ignore an active light or a click during draining.', 'Append the clicked light and enter a draining phase once the stack reaches eight.', 'Schedule one pop per effect run so cleanup cancels obsolete timers. In the timeout, use a functional update to read the latest state.'],
     pitfalls: ['A Set alone does not make reverse-order removal explicit.', 'Letting users click during the drain changes the intended sequence.'],
     complexity: 'O(n) update/rendering time and O(n) space for n lights; n is 8 here.',
     testCases: [{ action: 'Activate all lights in a known order.', expected: 'Each delay removes the latest remaining light.' }, { action: 'Unmount during draining.', expected: 'No pending timeout remains.' }],
@@ -434,11 +433,10 @@ export default function GridLights({ delay = 300 }) {
     return () => clearTimeout(timer);
   }, [state, delay]);
   function activate(position) {
-    setState(current => {
-      if (current.draining || current.order.includes(position)) return current;
-      const order = [...current.order, position];
-      return { order, draining: order.length === positions.length };
-    });
+    if (state.draining || state.order.includes(position)) return;
+
+    const order = [...state.order, position];
+    setState({ order, draining: order.length === positions.length });
   }
   return <section>
     <p role="status">{state.draining ? 'Turning lights off…' : 'Activate every light.'}</p>
@@ -626,7 +624,7 @@ export default function LikeButton({ endpoint = 'https://questions.greatfrontend
     requirements: ['Shuffle two copies of each symbol using Fisher–Yates.', 'Ignore revealed and matched cards and lock the board while a mismatched pair is visible.', 'Count attempts, announce completion, and cancel mismatch timers on reset or unmount.'],
     assumptions: ['The premium prompt is unavailable. This version uses six pairs, one-second mismatch exposure, and an injectable random function for testing.'],
     example: { actions: 'Reveal a mismatched pair, wait one second, then reveal a matching pair.', result: 'The mismatch hides; the match remains visible; attempts total 2.' },
-    steps: ['Give each card a distinct index after shuffling duplicated symbols.', 'Keep open indexes, matched indexes, and attempt count in one state object.', 'Resolve matches immediately and schedule a cleaned-up timeout for mismatches.'],
+    steps: ['Give each card a distinct index after shuffling duplicated symbols.', 'Keep open indexes, matched indexes, and attempt count in one state object.', 'Before calling setGame in the click handler, ignore open or matched cards and block a third card while a mismatch is visible.', 'Save the first open card, then resolve the second card as a match or mismatch and count one attempt.', 'Schedule a cleaned-up timeout for mismatches. Use a functional update in that timeout to preserve the latest game state while clearing the open cards.'],
     pitfalls: ['Sorting with a random comparator does not create an unbiased shuffle.', 'A timeout from an old game must not hide cards in a restarted game.'],
     complexity: 'O(n) initialization and rendering time; O(n) space for n cards.',
     testCases: [{ action: 'Reveal two unequal cards, then try a third.', expected: 'The third is ignored until the pair hides.' }, { action: 'Restart while a mismatch is visible.', expected: 'The old timer is cancelled and a fresh board starts.' }],
@@ -651,13 +649,20 @@ export default function MemoryGame({ random = Math.random, delay = 1000 }) {
     return () => clearTimeout(timer);
   }, [game, locked, delay]);
   function reveal(index) {
-    setGame(current => {
-      if (current.open.length === 2 || current.open.includes(index) || current.matched.includes(index)) return current;
-      const open = [...current.open, index];
-      if (open.length < 2) return { ...current, open };
-      const match = current.cards[open[0]] === current.cards[open[1]];
-      return { ...current, open: match ? [] : open,
-        matched: match ? [...current.matched, ...open] : current.matched, attempts: current.attempts + 1 };
+    if (locked || game.open.includes(index) || game.matched.includes(index)) return;
+
+    const open = [...game.open, index];
+    if (open.length < 2) {
+      setGame({ ...game, open });
+      return;
+    }
+
+    const match = game.cards[open[0]] === game.cards[open[1]];
+    setGame({
+      ...game,
+      open: match ? [] : open,
+      matched: match ? [...game.matched, ...open] : game.matched,
+      attempts: game.attempts + 1,
     });
   }
   return <section>

@@ -44,49 +44,41 @@ export default function Minesweeper() {
   function handleReveal(index) {
     if (!canChangeCell(state, index) || state.flags[index]) return;
 
-    // Generate the first board here so the state updater does not use randomness.
-    const preparedBoard = state.board || createBoard(index);
+    const board = state.board || createBoard(index);
+    const revealed = [...state.revealed];
 
-    setState(previous => {
-      if (!canChangeCell(previous, index) || previous.flags[index]) return previous;
-
-      const board = previous.board || preparedBoard;
-      const revealed = [...previous.revealed];
-
-      if (board[index] === -1) {
-        revealed[index] = true;
-        return { ...previous, board, revealed, phase: 'lost' };
-      }
-
-      // Open this cell, then expand through connected empty cells.
-      const queue = [index];
+    if (board[index] === -1) {
       revealed[index] = true;
+      setState({ ...state, board, revealed, phase: 'lost' });
+      return;
+    }
 
-      for (let cursor = 0; cursor < queue.length; cursor++) {
-        const cell = queue[cursor];
-        if (board[cell] !== 0) continue;
+    // Open this cell, then expand through connected empty cells.
+    const queue = [index];
+    revealed[index] = true;
 
-        for (const next of neighbors(cell)) {
-          if (!revealed[next] && !previous.flags[next] && board[next] !== -1) {
-            revealed[next] = true;
-            queue.push(next);
-          }
+    for (let cursor = 0; cursor < queue.length; cursor++) {
+      const cell = queue[cursor];
+      if (board[cell] !== 0) continue;
+
+      for (const next of neighbors(cell)) {
+        if (!revealed[next] && !state.flags[next] && board[next] !== -1) {
+          revealed[next] = true;
+          queue.push(next);
         }
       }
+    }
 
-      const won = board.every((value, cell) => value === -1 || revealed[cell]);
-      return { ...previous, board, revealed, phase: won ? 'won' : 'playing' };
-    });
+    const won = board.every((value, cell) => value === -1 || revealed[cell]);
+    setState({ ...state, board, revealed, phase: won ? 'won' : 'playing' });
   }
 
   function handleFlag(index) {
-    setState(previous => {
-      if (!canChangeCell(previous, index)) return previous;
+    if (!canChangeCell(state, index)) return;
 
-      const flags = [...previous.flags];
-      flags[index] = !flags[index];
-      return { ...previous, flags };
-    });
+    const flags = [...state.flags];
+    flags[index] = !flags[index];
+    setState({ ...state, flags });
   }
 
   function handleToggleFlagMode() {

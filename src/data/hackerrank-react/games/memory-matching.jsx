@@ -21,41 +21,41 @@ export default function MemoryMatching({ initialCards }) {
   }));
 
   function handleFlip(id) {
-    setState(previous => {
-      if (
-        previous.flipped.length === 2 ||
-        previous.flipped.includes(id) ||
-        previous.matched.includes(id)
-      ) {
-        return previous;
-      }
+    if (
+      state.flipped.length === 2 ||
+      state.flipped.includes(id) ||
+      state.matched.includes(id)
+    ) {
+      return;
+    }
 
-      const card = previous.cards.find(item => item.id === id);
-      if (!card) return previous;
+    const card = state.cards.find(item => item.id === id);
+    if (!card) return;
 
-      const flipped = [...previous.flipped, id];
+    const flipped = [...state.flipped, id];
 
-      // Record the first card and wait for the second.
-      if (flipped.length === 1) {
-        return { ...previous, flipped };
-      }
+    // Record the first card and wait for the second.
+    if (flipped.length === 1) {
+      setState({ ...state, flipped });
+      return;
+    }
 
-      // The second card completes one attempt.
-      const firstCard = previous.cards.find(item => item.id === flipped[0]);
-      const moves = previous.moves + 1;
+    // The second card completes one attempt.
+    const firstCard = state.cards.find(item => item.id === flipped[0]);
+    const moves = state.moves + 1;
 
-      if (firstCard.value === card.value) {
-        return {
-          ...previous,
-          flipped: [],
-          matched: [...previous.matched, ...flipped],
-          moves,
-        };
-      }
+    if (firstCard.value === card.value) {
+      setState({
+        ...state,
+        flipped: [],
+        matched: [...state.matched, ...flipped],
+        moves,
+      });
+      return;
+    }
 
-      // Leave a mismatch visible until the effect hides it.
-      return { ...previous, flipped, moves };
-    });
+    // Leave a mismatch visible until the effect hides it.
+    setState({ ...state, flipped, moves });
   }
 
   function handleNewGame() {

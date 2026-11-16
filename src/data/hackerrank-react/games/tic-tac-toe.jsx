@@ -14,12 +14,10 @@ export default function TicTacToe() {
   const draw = !result && board.every(Boolean);
   const next = board.filter(Boolean).length % 2 === 0 ? 'X' : 'O';
   function play(index) {
-    setBoard(current => {
-      if (current[index] || winner(current)) return current;
-      const copy = [...current];
-      copy[index] = current.filter(Boolean).length % 2 === 0 ? 'X' : 'O';
-      return copy;
-    });
+    if (board[index] || result) return;
+    const copy = [...board];
+    copy[index] = next;
+    setBoard(copy);
   }
   return <section aria-label="Tic-tac-toe">
     <p role="status">{result ? `${result} wins` : draw ? 'Draw' : `${next} to play`}</p>

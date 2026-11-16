@@ -696,7 +696,7 @@ export default function Tabs({ items = sample, orientation = 'horizontal', activ
     topics: ['Game Logic', 'Arrays', 'State Management'],
     requirements: ['Allow N from 3 to 10 and M from 3 to N.', 'Check contiguous runs in four directions from the last move.', 'Prevent occupied-cell moves and moves after a terminal result.', 'Display the current player or winner/draw and provide restart/configuration.'],
     example: { actions: 'On a 5×5 board with M=3, X fills three adjacent cells in row four.', result: 'X wins even though the streak does not span the entire row.' },
-    steps: ['Store board, turn and terminal result together.', 'Count matching marks in both directions along four axes.', 'Reset the board whenever configuration is applied.'],
+    steps: ['Store board, turn and terminal result together.', 'At the start of play, ignore an occupied cell or a finished game before calling setGame.', 'Copy the board, place the current player’s mark, and count matching marks in both directions along four axes.', 'Save the new board, result and next turn together. Reset the board whenever configuration is applied.'],
     pitfalls: ['Checking only entire rows misses shorter winning runs.', 'Diagonal checks must guard both row and column bounds.'],
     complexity: 'O(N²) immutable board copy/render per move; victory detection O(M) and storage O(N²).',
     testCases: [{ action: 'Complete an off-center diagonal of M marks.', expected: 'The last mover wins.' }, { action: 'Click an occupied cell.', expected: 'Neither the board nor the current player changes.' }],
@@ -723,12 +723,12 @@ export default function TicTacToe({ initialSize = 3, initialTarget = 3 }) {
   const [game, setGame] = useState(() => fresh(startSize, startTarget));
   const [size, setSize] = useState(startSize), [target, setTarget] = useState(startTarget);
   function play(index) {
-    setGame(previous => {
-      if (previous.winner || previous.board[index]) return previous;
-      const board = [...previous.board]; board[index] = previous.turn;
-      const winner = won(board, index, previous.turn, previous.size, previous.target) ? previous.turn : board.every(Boolean) ? 'draw' : null;
-      return { ...previous, board, winner, turn: previous.turn === 'X' ? 'O' : 'X' };
-    });
+    if (game.winner || game.board[index]) return;
+
+    const board = [...game.board];
+    board[index] = game.turn;
+    const winner = won(board, index, game.turn, game.size, game.target) ? game.turn : board.every(Boolean) ? 'draw' : null;
+    setGame({ ...game, board, winner, turn: game.turn === 'X' ? 'O' : 'X' });
   }
   return <section>
     <form onSubmit={event => { event.preventDefault(); setGame(fresh(size, target)); }}>

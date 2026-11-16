@@ -31,11 +31,17 @@ export default function ConnectFour() {
   const [state, setState] = useState(fresh);
   const result = winner(state.board);
   const draw = !result && state.board.every(Boolean);
+  function handleDrop(column) {
+    const nextState = drop(state, column);
+    if (nextState === state) return;
+    setState(nextState);
+  }
+
   return <section aria-label="Connect four">
     <p role="status">{result ? `${result} wins` : draw ? 'Draw' : `${state.turn} to play`}</p>
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 40px)', gap: 3 }}>
       {Array.from({ length: COLS }, (_, c) => <button key={c} aria-label={`Drop in column ${c + 1}`}
-        disabled={Boolean(state.board[c] || result || draw)} onClick={() => setState(current => drop(current, c))}>↓</button>)}
+        disabled={Boolean(state.board[c] || result || draw)} onClick={() => handleDrop(c)}>↓</button>)}
       {state.board.map((color, i) => <div key={i}
         aria-label={`Row ${Math.floor(i / COLS) + 1} column ${i % COLS + 1}: ${color || 'empty'}`}
         style={{ height: 40, border: '1px solid #64748b', borderRadius: '50%', textAlign: 'center', lineHeight: '40px',

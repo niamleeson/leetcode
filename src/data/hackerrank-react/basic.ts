@@ -402,7 +402,7 @@ export default function ContactForm() {
       'Store the current array index rather than a second copy of the slide object.',
       'Read the displayed title and text directly from slides[index].',
       'Calculate first/last flags from the index. Use them to disable unavailable actions.',
-      'Change the index with functional setters and clamp navigation to the valid range. Restart sets the index to zero.',
+      'In the Prev and Next handlers, return early at the first or last slide before calling setIndex. Move one index at a time; Restart sets the index to zero.',
     ],
     pitfalls: [
       'The last index is slides.length - 1, not slides.length.',
@@ -419,6 +419,16 @@ export default function Slides({ slides }) {
   const isLast = index === slides.length - 1;
   const slide = slides[index];
 
+  function handlePrevious() {
+    if (isFirst) return;
+    setIndex(index - 1);
+  }
+
+  function handleNext() {
+    if (isLast) return;
+    setIndex(index + 1);
+  }
+
   return (
     <section>
       <nav aria-label="Slide controls">
@@ -427,15 +437,13 @@ export default function Slides({ slides }) {
         </button>
         <button
           disabled={isFirst}
-          onClick={() => setIndex(current => Math.max(0, current - 1))}
+          onClick={handlePrevious}
         >
           Prev
         </button>
         <button
           disabled={isLast}
-          onClick={() => setIndex(current =>
-            Math.min(slides.length - 1, current + 1)
-          )}
+          onClick={handleNext}
         >
           Next
         </button>
