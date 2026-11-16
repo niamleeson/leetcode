@@ -108,21 +108,60 @@ describe('the five published game solutions', () => {
     }
     expect(neighbors(0).sort((a:number,b:number)=>a-b)).toEqual([1,8,9]);
   });
-  it('flood fills safely, protects flags, stops on loss, and wins by revealing safe cells', () => {
-    const {fresh,minesReducer,neighbors} = code('minesweeper');
-    const board = Array(64).fill(0); board[63]=-1; neighbors(63).forEach((i:number)=>board[i]=1);
-    let state = minesReducer(fresh(),{type:'flag',index:0});
-    state = minesReducer(state,{type:'reveal',index:1,board});
-    expect(state.revealed[0]).toBe(false);
-    expect(state.phase).toBe('playing');
-    state = minesReducer(state,{type:'flag',index:0});
-    state = minesReducer(state,{type:'reveal',index:0});
-    expect(state.phase).toBe('won');
-    expect(minesReducer(state,{type:'reveal',index:63})).toBe(state);
-    const lost = minesReducer({...fresh(),board,phase:'playing'},{type:'reveal',index:63});
-    expect(lost.phase).toBe('lost');
-    expect(minesReducer(lost,{type:'flag',index:0})).toBe(lost);
-    expect(minesReducer(lost,{type:'reset'}).board).toBeNull();
+  it('protects flags during a safe first reveal and flood fill, then wins by opening every safe cell', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0);
+    const {default: Game, createBoard} = code('minesweeper');
+    const board = createBoard(63, () => 0);
+    const cell = (index: number) => screen.getByRole('button', {
+      name: new RegExp(`^Row ${Math.floor(index / 8) + 1} column ${index % 8 + 1}:`),
+    });
+    render(<Game />);
+    fireEvent.contextMenu(cell(62));
+    fireEvent.click(cell(62));
+    expect(cell(62)).toHaveAccessibleName('Row 8 column 7: flagged');
+    expect(screen.queryAllByRole('button', {name:/adjacent mines$/})).toHaveLength(0);
+    fireEvent.click(cell(63));
+    expect(board[63]).toBe(0);
+    expect(cell(63)).toHaveAccessibleName('Row 8 column 8: 0 adjacent mines');
+    expect(screen.getAllByRole('button', {name:/adjacent mines$/}).length).toBeGreaterThan(1);
+    expect(cell(62)).toHaveAccessibleName('Row 8 column 7: flagged');
+    board.forEach((value: number, index: number) => {
+      if (value === -1) expect(cell(index)).toHaveAccessibleName(/hidden$/);
+      else if (index !== 62) fireEvent.click(cell(index));
+    });
+    expect(screen.getByRole('status')).toHaveTextContent('Find the safe cells');
+    fireEvent.contextMenu(cell(62));
+    fireEvent.click(cell(62));
+    expect(screen.getByRole('status')).toHaveTextContent('You win!');
+    for (const button of screen.getAllByRole('button', {name:/^Row /})) expect(button).toBeDisabled();
+  });
+  it('reveals mines on loss, locks the board, and starts a fresh game on reset', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0);
+    const {default: Game, createBoard} = code('minesweeper');
+    const board = createBoard(0, () => 0);
+    const cell = (index: number) => screen.getByRole('button', {
+      name: new RegExp(`^Row ${Math.floor(index / 8) + 1} column ${index % 8 + 1}:`),
+    });
+    render(<Game />);
+    fireEvent.click(cell(0));
+    expect(cell(0)).toHaveAccessibleName(`Row 1 column 1: ${board[0]} adjacent mines`);
+    const mine = board.indexOf(-1);
+    fireEvent.click(cell(mine));
+    expect(screen.getByRole('status')).toHaveTextContent('Game over');
+    expect(screen.getAllByRole('button', {name:/: mine$/})).toHaveLength(10);
+    for (const button of screen.getAllByRole('button', {name:/^Row /})) expect(button).toBeDisabled();
+    const hidden = screen.getAllByRole('button', {name:/: hidden$/})[0];
+    fireEvent.click(hidden);
+    fireEvent.contextMenu(hidden);
+    expect(hidden).toHaveAccessibleName(/hidden$/);
+    expect(screen.getByRole('status')).toHaveTextContent('Flags: 0/10');
+    fireEvent.click(screen.getByRole('button', {name:'New game'}));
+    expect(screen.getByRole('status')).toHaveTextContent('Find the safe cells');
+    expect(screen.getAllByRole('button', {name:/: hidden$/})).toHaveLength(64);
+    for (const button of screen.getAllByRole('button', {name:/^Row /})) expect(button).toBeEnabled();
+    fireEvent.click(cell(mine));
+    expect(cell(mine)).toHaveAccessibleName(/adjacent mines$/);
+    expect(screen.getByRole('status')).not.toHaveTextContent('Game over');
   });
   it('supports keyboard-accessible Minesweeper flag mode', () => {
     const {default:Game} = code('minesweeper'); render(<Game />);
@@ -131,6 +170,8 @@ describe('the five published game solutions', () => {
     expect(screen.getByRole('button',{name:'Row 1 column 1: flagged'})).toHaveTextContent('F');
     fireEvent.click(screen.getByRole('button',{name:'New game'}));
     expect(screen.getByRole('button',{name:'Flag mode'})).toHaveAttribute('aria-pressed','false');
+    expect(screen.getByRole('status')).toHaveTextContent('Flags: 0/10');
+    expect(screen.getAllByRole('button',{name:/: hidden$/})).toHaveLength(64);
   });
   it('solves Sudoku without mutating clues and rejects invalid input', () => {
     const {PUZZLE,solve,conflicts} = code('sudoku');
