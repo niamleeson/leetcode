@@ -519,16 +519,16 @@ export default function PixelArt({ size = 8 }) {
     topics: ['Scheduling', 'Timers', 'State Machines'],
     requirements: ['Enforce a hard concurrency cap of three.', 'Track queued, running, paused and complete states.', 'Preserve progress on pause/resume and promote waiting jobs in order.', 'Use elapsed time and clean up the scheduler timer.', 'Expose labeled progress elements and global pause/reset controls.'],
     example: { actions: 'Add four jobs and pause the first.', result: 'The first freezes and the fourth starts; only three are running.' },
-    steps: ['Centralize slot admission in a pure scheduling helper.', 'Advance running jobs from elapsed clock time in one interval.', 'Schedule after completion, pause, resume and insertion.'],
+    steps: ['Count running jobs and fill the remaining slots from the oldest queued jobs, keeping at most three running.', 'Advance running jobs from elapsed clock time in one interval.', 'Schedule after completion, pause, resume and insertion.'],
     pitfalls: ['A separate interval per job makes the concurrency limit difficult to enforce.', 'Resuming must not create a fourth running job.'],
     complexity: 'O(n log n) worst-case work per scheduler tick due to queue sorting; O(n) job storage.',
     testCases: [{ action: 'Add five jobs.', expected: 'Three run and two remain queued.' }, { action: 'Pause all, wait, then resume.', expected: 'Progress is unchanged during the pause and continues afterward.' }],
     assumptions: [premiumAssumption, 'Each job takes two seconds of active time. Paused jobs release their slot, and resumed jobs join behind existing queued jobs.'], sourceUrl: source('progress-bars-iv'),
     code: String.raw`import React, { useEffect, useRef, useState } from 'react';
 function schedule(jobs) {
-  let slots = 3 - jobs.filter(job => job.status === 'running').length;
+  const slots = 3 - jobs.filter(job => job.status === 'running').length;
   const admitted = new Set(jobs.filter(job => job.status === 'queued')
-    .sort((a, b) => a.order - b.order).slice(0, Math.max(0, slots)).map(job => job.id));
+    .sort((a, b) => a.order - b.order).slice(0, slots).map(job => job.id));
   return jobs.map(job => admitted.has(job.id) ? { ...job, status: 'running' } : job);
 }
 export default function ProgressBars({ duration = 2000 }) {
@@ -1020,14 +1020,15 @@ export default function UsersDatabase({ initialUsers = sample }) {
     pitfalls: ['Rapid clicks can score twice if the guard only reads stale state.', 'A restarted round must cancel timers from the previous round.'],
     complexity: 'O(1) state and per-tick work for a fixed nine-hole board.',
     testCases: [{ action: 'Double-click one appearance.', expected: 'Only one point is awarded.' }, { action: 'Advance beyond the deadline.', expected: 'The board is disabled and the final score stays fixed.' }],
-    assumptions: [premiumAssumption, 'One visible mole, nine holes and a thirty-second round are explicit practice rules. Duration and randomness are injectable for deterministic tests.'], sourceUrl: source('whack-a-mole'),
+    assumptions: [premiumAssumption, 'One visible mole, nine holes and a thirty-second round are explicit practice rules. Duration and a Math.random-compatible random function are injectable for deterministic tests.'], sourceUrl: source('whack-a-mole'),
     code: String.raw`import React, { useEffect, useRef, useState } from 'react';
 export default function WhackAMole({ duration = 30, random = Math.random }) {
   const [round, setRound] = useState(0), [running, setRunning] = useState(false);
   const [score, setScore] = useState(0), [remaining, setRemaining] = useState(duration), [mole, setMole] = useState(null);
   const active = useRef(null), deadline = useRef(0), lastHole = useRef(null);
   function spawn() {
-    let next = Math.min(8, Math.max(0, Math.floor(random() * 9)));
+    // Inclusive range: Math.floor(random() * (max - min + 1)) + min.
+    let next = Math.floor(random() * (8 - 0 + 1)) + 0;
     if (next === lastHole.current) next = (next + 1) % 9;
     lastHole.current = next; active.current = next; setMole(next);
   }
@@ -1048,7 +1049,7 @@ export default function WhackAMole({ duration = 30, random = Math.random }) {
     setScore(0); setRemaining(duration); setRunning(true); setRound(value => value + 1);
   }
   function hit(index) {
-    if (!running || Date.now() >= deadline.current || active.current !== index) return;
+    if (Date.now() >= deadline.current || active.current !== index) return;
     active.current = null; setMole(null); setScore(value => value + 1);
   }
   return <section>

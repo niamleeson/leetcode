@@ -30,7 +30,7 @@ export const formChallenges: ReactChallenge[] = [
       'Import medical_records from medicalRecords.js. Each item is a patient group with a string id and a data array. Sort a copy by numeric ID without changing the imported array.',
       'Read the patient’s userName, userDob, and meta.height from data[0]. Map every item in data into a table row using timestamp, diagnosis.name, meta.weight, and doctor.name.',
       'Show validates the selection and stores the displayed ID. Look up the corresponding patient during rendering.',
-      'Next finds the displayed index and advances with (index + 1) % patients.length.',
+      'Render Next only when a patient is displayed. Its handler advances with (displayedIndex + 1) % patients.length.',
       'Pass data and handlers into Search and Records. The parent coordinates the two components.',
     ],
     pitfalls: [
@@ -137,7 +137,6 @@ export default function PatientMedicalRecords() {
   }
 
   function nextPatient() {
-    if (displayedIndex === -1 || patients.length === 0) return;
     const nextIndex = (displayedIndex + 1) % patients.length;
     setDisplayedId(patients[nextIndex].id);
   }

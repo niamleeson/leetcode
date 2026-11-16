@@ -32,9 +32,6 @@ export default function MemoryMatching({ initialCards }) {
     }
 
     const card = state.cards.find(item => item.id === id);
-    // Ignore IDs that do not belong to this deck.
-    if (!card) return;
-
     const flipped = [...state.flipped, id];
 
     // Record the first card and wait for the second.

@@ -15,8 +15,8 @@ export function winner(board) {
   return null;
 }
 export function drop(state, column) {
-  // Reject invalid column numbers and moves after someone has won.
-  if (!Number.isInteger(column) || column < 0 || column >= COLS || winner(state.board)) return state;
+  // Stop accepting moves after someone has won.
+  if (winner(state.board)) return state;
   for (let row = ROWS - 1; row >= 0; row--) {
     const index = row * COLS + column;
     if (!state.board[index]) {
@@ -34,7 +34,7 @@ export default function ConnectFour() {
   const draw = !result && state.board.every(Boolean);
   function handleDrop(column) {
     const nextState = drop(state, column);
-    // An invalid or full column, or a finished game, leaves the state unchanged.
+    // A full column or a finished game leaves the state unchanged.
     // Skip the setter because this move was rejected.
     if (nextState === state) return;
     setState(nextState);

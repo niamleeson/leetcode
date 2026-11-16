@@ -51,7 +51,7 @@ export const sunoAudioChallenge: ReactChallenge = {
     'Playlist buttons request playback. Previous and Next read the current element’s paused property to decide whether the next selection should play.',
     'In an effect, capture the selected audio element and await play only when requested. Show an alert for playback failures; an AbortError from pausing a pending request is expected.',
     'Cleanup sets isCancelled to true and pauses the captured element. The flag does not cancel the promise: if it resolves later, pause the old audio again; if it rejects later, leave the current track’s error message alone.',
-    'Handle ended by selecting the next track with playback enabled. At the last track, leave the selection unchanged and let native playback stop.',
+    'Handle ended by requesting the next track with playback enabled. selectTrack checks the index bounds, so the final track leaves the selection unchanged and native playback stops.',
   ],
   pitfalls: [
     'A play request is asynchronous and may fail because of browser playback policies, a missing file, or an unsupported format. Do not assume it always starts.',
@@ -130,9 +130,7 @@ export default function AudioPlaylist({ tracks = TRACKS }) {
   }
 
   function handleEnded() {
-    if (selection.index < tracks.length - 1) {
-      selectTrack(selection.index + 1);
-    }
+    selectTrack(selection.index + 1);
   }
 
   if (!track) return <p>No tracks available.</p>;

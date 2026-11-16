@@ -184,7 +184,7 @@ export default function useCountdown(initialCount, intervalMs = 1000) {
     const id = setInterval(() => {
       setState(current => {
         if (!current.isRunning) return current;
-        const count = Math.max(0, current.count - 1);
+        const count = current.count - 1;
         return { count, isRunning: count > 0 };
       });
     }, Math.max(1, intervalMs));
