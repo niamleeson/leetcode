@@ -2,6 +2,7 @@ import ticTacToe from './games/tic-tac-toe.jsx?raw';
 import memory from './games/memory-matching.jsx?raw';
 import flipOrderMemory from './games/flip-order-memory.jsx?raw';
 import connectFour from './games/connect-four.jsx?raw';
+import connectFourOptimized from './games/connect-four-optimized.jsx?raw';
 import minesweeper from './games/minesweeper.jsx?raw';
 import sudoku from './games/sudoku.jsx?raw';
 import type { ReactChallenge } from './types';
@@ -62,8 +63,14 @@ export const gameChallenges: ReactChallenge[] = [
     assumptions: ['Fixed 6-row, 7-column board with four required in a row.', 'Local two-player mode without an AI opponent.'],
     example: { actions: 'Drop in columns 1, 2, 1, 2, 1, 2, 1.', result: 'Red forms four vertically in column 1 and the game stops.' },
     code: connectFour,
+    codeLanguage: 'jsx',
+    solutionSections: [{
+      title: 'Optimized: check only the last move',
+      body: 'A new line of four must include the disc that was just dropped, so there is no need to scan the whole board. After each drop, check only the four lines through the new disc: horizontal, vertical, and both diagonals.\n\nEach line is a pair of opposite directions. Count matching discs both ways and add 1 for the new disc; a total of four or more wins. Counting only one way misses wins where the new disc lands in the middle of a line, such as filling the gap in R R _ R.\n\nThe board alone no longer tells you the winner, so store it in state: set it in handleDrop and clear it on restart. Each check walks at most three discs in each of eight directions, so win detection is O(1) per move instead of O(RC).',
+      code: connectFourOptimized,
+    }],
     steps: ['Create the board with Array.from so each of the six rows is its own seven-cell array. Keep the board and the current player in useState.', 'Derive the winner, draw, and game-over state from the board on every render instead of storing them.', 'In getWinner, treat each occupied cell as the start of a line. For each direction (right, down, down-right, down-left), count up to four matching cells. board[r]?.[c] is undefined off the board, so it ends the line without bounds math.', 'In handleDrop, return early if the game is over. Start at the bottom row and move up to the first empty cell; return if the whole column is full.', 'Copy every row, place the current player’s disc in the copy, then update the board and switch players.', 'Render one drop button per column, disabled when that column is full or the game is over. Restart clears the board and makes Red go first.'],
-    complexity: 'For R rows and C columns, getWinner checks four directions from each cell, so it takes O(RC) time. Copying and rendering the board also take O(RC) time, and the board uses O(RC) space. Checking only around the last move can reduce win detection work, but the full scan is simpler for a fixed 6 × 7 board.',
+    complexity: 'For R rows and C columns, getWinner checks four directions from each cell, so it takes O(RC) time. Copying and rendering the board also take O(RC) time, and the board uses O(RC) space. The optimized solution checks only the lines through the last move, which makes win detection O(1) per move; the full scan is simpler and fast enough for a fixed 6 × 7 board.',
     pitfalls: ['Array(ROWS).fill(Array(COLS).fill(null)) reuses one row array, so a single drop appears in every row. Create each row separately.', 'Checking only horizontal and vertical lines misses diagonal wins.', 'A full column must not place a disc or switch the current player.', 'A final move can both fill the board and win; check the winner before a draw.', 'Copying only the outer array still mutates the existing rows. Copy each row before placing a disc.'],
     testCases: [{ action: 'Use the example sequence.', expected: 'Red wins vertically and all drop controls disable.' }, { action: 'Create either diagonal orientation.', expected: 'Four contiguous diagonal discs win.' }, { action: 'Fill one column and click it again.', expected: 'The board and turn do not change.' }, { action: 'Reset a finished game.', expected: 'All 42 cells clear and Red moves first.' }],
   },

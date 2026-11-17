@@ -106,8 +106,9 @@ describe('the published game solutions', () => {
     unmount();
     expect(vi.getTimerCount()).toBe(0);
   });
-  it('uses Connect Four gravity, rejects full columns, detects every direction and a draw, and restarts', () => {
-    const { default: Game } = code('connect-four');
+  it.each(['solution', 'optimized solution'])('uses Connect Four gravity, rejects full columns, detects every direction and a draw, and restarts (%s)', version => {
+    const game = gameChallenges.find(item => item.slug === 'connect-four')!;
+    const { default: Game } = loadSolution(version === 'solution' ? game.code : game.solutionSections![0].code!);
     render(<Game />);
     const column = (col: number) => screen.getByRole('button', { name: new RegExp(`^Drop \\w+ in column ${col}$`) });
     const play = (cols: number[]) => cols.forEach(col => fireEvent.click(column(col)));
@@ -119,8 +120,8 @@ describe('the published game solutions', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Current player: Yellow');
     play([3]);
     expect(screen.getByRole('status')).toHaveTextContent('Current player: Yellow');
-    // Horizontal, vertical, and both diagonals; only the last move completes four.
-    for (const cols of [[1,1,2,2,3,3,4],[1,2,1,2,1,2,1],[1,2,2,3,4,3,3,4,5,4,4],[7,6,6,5,4,5,5,4,3,4,4]]) {
+    // Horizontal, a disc filling the middle of a line, vertical, and both diagonals; only the last move completes four.
+    for (const cols of [[1,1,2,2,3,3,4],[1,1,2,2,4,4,3],[1,2,1,2,1,2,1],[1,2,2,3,4,3,3,4,5,4,4],[7,6,6,5,4,5,5,4,3,4,4]]) {
       restart();
       play(cols.slice(0, -1));
       expect(screen.getByRole('status')).toHaveTextContent('Current player: Red');
