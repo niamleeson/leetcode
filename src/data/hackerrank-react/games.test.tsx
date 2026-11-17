@@ -106,22 +106,34 @@ describe('the published game solutions', () => {
     unmount();
     expect(vi.getTimerCount()).toBe(0);
   });
-  it('uses Connect Four gravity, rejects full columns, and detects every direction without wrapping', () => {
-    const { default: Game, drop, winner } = code('connect-four');
-    let state = {board:Array(42).fill(null),turn:'Red'};
-    for (let i=0;i<6;i++) state = drop(state, 0);
-    expect(state.board[35]).toBe('Red');
-    expect(drop(state,0)).toBe(state);
-    for (const cells of [[35,36,37,38],[0,7,14,21],[0,8,16,24],[6,12,18,24]]) {
-      const board = Array(42).fill(null); cells.forEach(i=>board[i]='Red');
-      expect(winner(board)).toBe('Red');
-    }
-    const wrapped = Array(42).fill(null); [5,6,7,8].forEach(i=>wrapped[i]='Red');
-    expect(winner(wrapped)).toBeNull();
+  it('uses Connect Four gravity, rejects full columns, detects every direction and a draw, and restarts', () => {
+    const { default: Game } = code('connect-four');
     render(<Game />);
-    for (const col of [1,2,1,2,1,2,1]) fireEvent.click(screen.getByRole('button',{name:`Drop in column ${col}`}));
-    expect(screen.getByRole('status')).toHaveTextContent('Red wins');
-    expect(screen.getByRole('button',{name:'Drop in column 7'})).toBeDisabled();
+    const column = (col: number) => screen.getByRole('button', { name: new RegExp(`^Drop \\w+ in column ${col}$`) });
+    const play = (cols: number[]) => cols.forEach(col => fireEvent.click(column(col)));
+    const restart = () => fireEvent.click(screen.getByRole('button', { name: 'Restart' }));
+    play([1]);
+    expect(screen.getByTitle('Row 6, column 1: Red')).toHaveTextContent('R');
+    play([3,3,3,3,3,3]);
+    expect(column(3)).toBeDisabled();
+    expect(screen.getByRole('status')).toHaveTextContent('Current player: Yellow');
+    play([3]);
+    expect(screen.getByRole('status')).toHaveTextContent('Current player: Yellow');
+    // Horizontal, vertical, and both diagonals; only the last move completes four.
+    for (const cols of [[1,1,2,2,3,3,4],[1,2,1,2,1,2,1],[1,2,2,3,4,3,3,4,5,4,4],[7,6,6,5,4,5,5,4,3,4,4]]) {
+      restart();
+      play(cols.slice(0, -1));
+      expect(screen.getByRole('status')).toHaveTextContent('Current player: Red');
+      play(cols.slice(-1));
+      expect(screen.getByRole('status')).toHaveTextContent('Red wins!');
+      expect(column(7)).toBeDisabled();
+    }
+    restart();
+    play([1,1,1,1,1,1,2,2,2,2,2,2,3,3,3,3,3,3,5,4,4,4,4,4,4,5,5,5,5,5,6,6,6,6,6,6,7,7,7,7,7,7]);
+    expect(screen.getByRole('status')).toHaveTextContent('Draw!');
+    restart();
+    expect(screen.getByRole('status')).toHaveTextContent('Current player: Red');
+    expect(screen.getAllByTitle(/: empty$/)).toHaveLength(42);
   });
   it('generates distinct mines with a safe first reveal and correct edge counts', () => {
     const {createBoard,neighbors} = code('minesweeper');

@@ -1,57 +1,178 @@
-import { useState } from 'react';
+import { useState } from "react";
 
-export const ROWS = 6, COLS = 7;
-const fresh = () => ({ board: Array(ROWS * COLS).fill(null), turn: 'Red' });
-export function winner(board) {
-  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
-    const color = board[r * COLS + c];
-    if (!color) continue;
-    for (const [dr, dc] of [[0,1],[1,0],[1,1],[1,-1]]) {
-      const endR = r + 3 * dr, endC = c + 3 * dc;
-      if (endR < 0 || endR >= ROWS || endC < 0 || endC >= COLS) continue;
-      if ([1,2,3].every(n => board[(r + n * dr) * COLS + c + n * dc] === color)) return color;
-    }
-  }
-  return null;
+const ROWS = 6;
+const COLS = 7;
+
+const DIRECTIONS = [
+  [0, 1],  // Right
+  [1, 0],  // Down
+  [1, 1],  // Down-right
+  [1, -1], // Down-left
+];
+
+function createBoard() {
+  // Each row must be a separate array.
+  return Array.from(
+    { length: ROWS },
+    () => Array(COLS).fill(null)
+  );
 }
-export function drop(state, column) {
-  // Stop accepting moves after someone has won.
-  if (winner(state.board)) return state;
-  for (let row = ROWS - 1; row >= 0; row--) {
-    const index = row * COLS + column;
-    if (!state.board[index]) {
-      const board = [...state.board];
-      board[index] = state.turn;
-      return { board, turn: state.turn === 'Red' ? 'Yellow' : 'Red' };
+
+function getWinner(board) {
+  // Treat each occupied cell as a potential start of a winning line.
+  for (let row = 0; row < ROWS; row++) {
+    for (let col = 0; col < COLS; col++) {
+      const player = board[row][col];
+
+      if (player === null) {
+        continue;
+      }
+
+      for (const [dr, dc] of DIRECTIONS) {
+        let count = 0;
+
+        for (let step = 0; step < 4; step++) {
+          const r = row + dr * step;
+          const c = col + dc * step;
+
+          // Out-of-bounds positions evaluate to undefined.
+          // A different player or an empty cell also breaks the line.
+          if (board[r]?.[c] !== player) {
+            break;
+          }
+
+          count++;
+        }
+
+        if (count === 4) {
+          return player;
+        }
+      }
     }
   }
-  return state; // A full column does not consume a turn.
+
+  return null;
 }
 
 export default function ConnectFour() {
-  const [state, setState] = useState(fresh);
-  const result = winner(state.board);
-  const draw = !result && state.board.every(Boolean);
-  function handleDrop(column) {
-    const nextState = drop(state, column);
-    // A full column or a finished game leaves the state unchanged.
-    // Skip the setter because this move was rejected.
-    if (nextState === state) return;
-    setState(nextState);
+  const [board, setBoard] = useState(createBoard);
+  const [player, setPlayer] = useState("Red");
+
+  const winner = getWinner(board);
+
+  const isDraw =
+    !winner &&
+    board.every((row) => row.every((cell) => cell !== null));
+
+  const gameOver = Boolean(winner) || isDraw;
+
+  function handleDrop(col) {
+    if (gameOver) {
+      return;
+    }
+
+    // Start at the bottom and move up until we find an empty cell.
+    let row = ROWS - 1;
+
+    while (row >= 0 && board[row][col] !== null) {
+      row--;
+    }
+
+    // The entire column is full.
+    if (row < 0) {
+      return;
+    }
+
+    // Copy every row because the board is a nested array.
+    const nextBoard = board.map((currentRow) => [...currentRow]);
+    nextBoard[row][col] = player;
+
+    setBoard(nextBoard);
+    setPlayer(player === "Red" ? "Yellow" : "Red");
   }
 
-  return <section aria-label="Connect four">
-    <p role="status">{result ? `${result} wins` : draw ? 'Draw' : `${state.turn} to play`}</p>
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 40px)', gap: 3 }}>
-      {Array.from({ length: COLS }, (_, c) => <button key={c} aria-label={`Drop in column ${c + 1}`}
-        disabled={Boolean(state.board[c] || result || draw)} onClick={() => handleDrop(c)}>↓</button>)}
-      {state.board.map((color, i) => <div key={i}
-        aria-label={`Row ${Math.floor(i / COLS) + 1} column ${i % COLS + 1}: ${color || 'empty'}`}
-        style={{ height: 40, border: '1px solid #64748b', borderRadius: '50%', textAlign: 'center', lineHeight: '40px',
-          color: '#111827', background: color === 'Red' ? '#f87171' : color === 'Yellow' ? '#fde047' : '#e2e8f0' }}>
-        {color ? color[0] : '·'}
-      </div>)}
-    </div>
-    <button onClick={() => setState(fresh())}>Reset game</button>
-  </section>;
+  function resetGame() {
+    setBoard(createBoard());
+    setPlayer("Red");
+  }
+
+  let status = `Current player: ${player}`;
+
+  if (winner) {
+    status = `${winner} wins!`;
+  } else if (isDraw) {
+    status = "Draw!";
+  }
+
+  return (
+    <main style={{ padding: 20, fontFamily: "sans-serif" }}>
+      <h1>Connect Four</h1>
+
+      <p role="status">{status}</p>
+      <p>Choose a column to drop your disc.</p>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: `repeat(${COLS}, 44px)`,
+          gap: 4,
+          padding: 8,
+          width: "fit-content",
+          background: "#2563eb",
+          borderRadius: 8,
+        }}
+      >
+        {/* One control per column. */}
+        {board[0].map((_, col) => (
+          <button
+            key={`drop-${col}`}
+            type="button"
+            onClick={() => handleDrop(col)}
+            disabled={gameOver || board[0][col] !== null}
+            aria-label={`Drop ${player} in column ${col + 1}`}
+            style={{ height: 32 }}
+          >
+            ↓
+          </button>
+        ))}
+
+        {/* Render the board below the column controls. */}
+        {board.flatMap((row, rowIndex) =>
+          row.map((cell, colIndex) => (
+            <div
+              key={`${rowIndex}-${colIndex}`}
+              title={
+                `Row ${rowIndex + 1}, column ${colIndex + 1}: ` +
+                (cell ?? "empty")
+              }
+              style={{
+                height: 44,
+                borderRadius: "50%",
+                display: "grid",
+                placeItems: "center",
+                fontWeight: "bold",
+                color: cell === "Red" ? "#fff" : "#111",
+                background:
+                  cell === "Red"
+                    ? "#dc2626"
+                    : cell === "Yellow"
+                      ? "#fde047"
+                      : "#fff",
+              }}
+            >
+              {cell === "Red" ? "R" : cell === "Yellow" ? "Y" : ""}
+            </div>
+          ))
+        )}
+      </div>
+
+      <button
+        type="button"
+        onClick={resetGame}
+        style={{ marginTop: 16 }}
+      >
+        Restart
+      </button>
+    </main>
+  );
 }
