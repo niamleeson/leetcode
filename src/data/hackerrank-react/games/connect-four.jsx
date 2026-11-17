@@ -11,11 +11,8 @@ const DIRECTIONS = [
 ];
 
 function createBoard() {
-  // Each row must be a separate array.
-  return Array.from(
-    { length: ROWS },
-    () => Array(COLS).fill(null)
-  );
+  // fill() gives map real slots to visit; map creates a separate array for each row.
+  return Array(ROWS).fill().map(() => Array(COLS).fill(null));
 }
 
 function getWinner(board) {
