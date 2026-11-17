@@ -15,6 +15,7 @@ export interface ReactChallenge {
   additionalSources?: { label: string; url: string }[];
   solutionTitle?: string;
   solutionSections?: { title: string; body: string; code?: string }[];
+  additionalSolutions?: { title: string; body: string; code: string }[];
   codeLanguage?: 'jsx' | 'javascript';
   slug: string;
   title: string;

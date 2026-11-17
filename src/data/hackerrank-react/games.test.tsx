@@ -108,7 +108,7 @@ describe('the published game solutions', () => {
   });
   it.each(['solution', 'optimized solution'])('uses Connect Four gravity, rejects full columns, detects every direction and a draw, and restarts (%s)', version => {
     const game = gameChallenges.find(item => item.slug === 'connect-four')!;
-    const { default: Game } = loadSolution(version === 'solution' ? game.code : game.solutionSections![0].code!);
+    const { default: Game } = loadSolution(version === 'solution' ? game.code : game.additionalSolutions![0].code);
     render(<Game />);
     const column = (col: number) => screen.getByRole('button', { name: new RegExp(`^Drop \\w+ in column ${col}$`) });
     const play = (cols: number[]) => cols.forEach(col => fireEvent.click(column(col)));

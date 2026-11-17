@@ -259,6 +259,11 @@ function ChallengeDetail({ challenge }: { challenge: ReactChallenge }) {
         {challenge.code && <p className={muted}>{isHackerRank ? 'Use this standalone implementation as a reference. In HackerRank’s starter project, keep its existing component exports and test selectors.' : 'This implementation follows the practice requirements and assumptions above.'}</p>}
         {copyStatus !== 'idle' && <p role="status" className={muted}>{copyStatus === 'copied' ? 'Solution copied to clipboard.' : 'Clipboard access is unavailable. Select and copy the solution below.'}</p>}
         {challenge.code && <CodeBlock code={challenge.code} language={challenge.codeLanguage ?? 'jsx'} />}
+        {challenge.additionalSolutions?.map(solution => <div key={solution.title} className="space-y-3 pt-3">
+          <h3 className="text-base font-semibold text-white light:text-gray-900">{solution.title}</h3>
+          <p className={`whitespace-pre-line ${muted}`}>{solution.body}</p>
+          <CodeBlock code={solution.code} language={challenge.codeLanguage ?? 'jsx'} />
+        </div>)}
         {challenge.solutionSections?.map(section => <div key={section.title} className={panel}><h3 className="text-sm font-semibold text-gray-200 light:text-gray-800">{section.title}</h3><p className={`mt-3 whitespace-pre-line ${muted}`}>{section.body}</p>{section.code && <div className="mt-4"><CodeBlock code={section.code} language={challenge.codeLanguage ?? 'javascript'} /></div>}</div>)}
         {challenge.integrationNotes && challenge.integrationNotes.length > 0 && (
           <div className={panel}>

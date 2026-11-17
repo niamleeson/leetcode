@@ -63,8 +63,7 @@ export const gameChallenges: ReactChallenge[] = [
     assumptions: ['Fixed 6-row, 7-column board with four required in a row.', 'Local two-player mode without an AI opponent.'],
     example: { actions: 'Drop in columns 1, 2, 1, 2, 1, 2, 1.', result: 'Red forms four vertically in column 1 and the game stops.' },
     code: connectFour,
-    codeLanguage: 'jsx',
-    solutionSections: [{
+    additionalSolutions: [{
       title: 'Optimized: check only the last move',
       body: 'A new line of four must include the disc that was just dropped, so there is no need to scan the whole board. After each drop, check only the four lines through the new disc: horizontal, vertical, and both diagonals.\n\nEach line is a pair of opposite directions. Count matching discs both ways and add 1 for the new disc; a total of four or more wins. Counting only one way misses wins where the new disc lands in the middle of a line, such as filling the gap in R R _ R.\n\nThe board alone no longer tells you the winner, so store it in state: set it in handleDrop and clear it on restart. Each check walks at most three discs in each of eight directions, so win detection is O(1) per move instead of O(RC).',
       code: connectFourOptimized,
