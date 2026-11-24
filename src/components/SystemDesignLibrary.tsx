@@ -52,6 +52,28 @@ function ArticleFrame({ article, onReady }: { article: Article; onReady: () => v
       #markdown button[aria-controls] { transition: none !important; }
     `;
     doc.head.appendChild(readerStyle);
+    const images = [...content.querySelectorAll<HTMLImageElement>('img')];
+    content.querySelectorAll<HTMLButtonElement>('button[aria-label="zoom-in"]').forEach(button => {
+      const image = button.parentElement?.querySelector<HTMLImageElement>('img');
+      if (!image) return;
+      const index = images.indexOf(image);
+      const format = image.getAttribute('src')?.match(/^data:image\/([^;]+);base64,/)?.[1];
+      if (!format) return;
+      const extension = format === 'svg+xml' ? 'svg' : format === 'jpeg' ? 'jpg' : format;
+      // condense-articles.py extracts full-size files in this same image order.
+      // Use those files because browsers block opening embedded data URLs in new tabs.
+      const filename = `${String(index + 1).padStart(2, '0')}.${extension}`;
+      const link = doc.createElement('a');
+      // The imported article's <base> points to its original site, so use our app's origin.
+      link.href = new URL(`${import.meta.env.BASE_URL}system-design/notes/${article.slug}/${filename}?v=${article.revision}`, window.location.href).href;
+      link.className = button.className;
+      link.dataset.diagramZoom = '';
+      const caption = image.alt || image.closest('[role="img"]')?.getAttribute('aria-label') || `${article.title} diagram ${index + 1}`;
+      link.setAttribute('aria-label', `Open ${caption} at full size`);
+      link.title = 'Open full-size image in a new tab';
+      link.append(...button.childNodes);
+      button.replaceWith(link);
+    });
     const syncTheme = () => {
       const theme = document.documentElement.classList.contains('light') ? 'light' : 'dark';
       doc.documentElement.dataset.theme = theme;
