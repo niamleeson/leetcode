@@ -670,7 +670,7 @@ export const solutionFiles: Record<number, string> = {
   "1347": "1347-291014884f2b7920.json",
   "1348": "1348-f19633a3642aac90.json",
   "1351": "1351-f80cb1154d80c5d1.json",
-  "1352": "1352-86c69f2d8c42768b.json",
+  "1352": "1352-70e8cd76f6ecc87e.json",
   "1356": "1356-1a043f63381cbbdc.json",
   "1358": "1358-b3b5fb75c4b4a3ba.json",
   "1361": "1361-49356c23a4cf1b62.json",

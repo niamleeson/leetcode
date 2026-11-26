@@ -1,0 +1,26 @@
+{
+  "id": 2124,
+  "date": "2026-11-22",
+  "comparison": {
+    "kind": "same-approach",
+    "summary": "Same ordering rule; your solution uses a seenB flag instead of searching for the substring ba.",
+    "details": [
+      "Your solution scans characters, sets seenB after a b, and returns false if a later character is a.",
+      "The existing TypeScript returns !s.includes('ba'); Python checks that \"ba\" is absent. These are equivalent because the input contains only a and b.",
+      "Both take O(n) time and O(1) extra space. No JavaScript implementation was saved."
+    ]
+  },
+  "solutions": [
+    {
+      "title": "Track whether b has appeared",
+      "code": "var checkString = function(s) {\n    let seenB = false;\n\n    for (const char of s) {\n        if (char === 'b') {\n            seenB = true;\n        }\n        if (char === 'a' && seenB) {\n            return false;\n        }\n    }\n\n    return true;\n};",
+      "approach": "Track whether a `b` has appeared; any subsequent `a` makes the answer false.",
+      "timeComplexity": "O(n)",
+      "spaceComplexity": "O(1)",
+      "variables": {
+        "n": "Number of characters in s."
+      },
+      "example": "checkString(\"abab\") → false"
+    }
+  ]
+}

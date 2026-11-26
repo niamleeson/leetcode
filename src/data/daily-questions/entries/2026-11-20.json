@@ -1,0 +1,27 @@
+{
+  "id": 3041,
+  "date": "2026-11-20",
+  "comparison": {
+    "kind": "different-approach",
+    "summary": "Your solution avoids sorting by scanning consecutive value groups; the existing Python solution sorts first.",
+    "details": [
+      "Both keep the longest consecutive chain ending at each value and consider keeping x or increasing it to x + 1.",
+      "Your frequency map records real copies, possible contains x and x + 1, and each consecutive group starts only where the previous possible value is absent. Every actual copy is processed once.",
+      "Your update reads both previous DP states before writing either result. The existing Python writes dp[num + 1] before dp[num] to avoid reusing the same element.",
+      "Your expected time is O(n) with O(n) extra space. The existing Python uses sorted(nums), so its time is O(n log n) and its extra space is O(n). No JavaScript or TypeScript implementation was saved."
+    ]
+  },
+  "solutions": [
+    {
+      "title": "Frequency groups and dynamic programming",
+      "code": "var maxSelectedElements = function(nums) {\n    const freq = new Map();\n    const possible = new Set();\n    const dp = new Map();\n    let best = 0;\n\n    for (const x of nums) {\n        freq.set(x, (freq.get(x) ?? 0) + 1);\n        possible.add(x);\n        possible.add(x + 1);\n    }\n\n    // Process one real copy of x: either keep x or increase it to x + 1.\n    function update(x) {\n        // Read both BEFORE writing, so this input element is not used twice.\n        const prev = dp.get(x - 1) ?? 0;\n        const curr = dp.get(x) ?? 0;\n\n        const keep = prev + 1;\n        const inc = curr + 1;\n\n        dp.set(x, keep);\n        dp.set(x + 1, inc);\n        best = Math.max(best, keep, inc);\n    }\n\n    for (const start of possible) {\n        // Each consecutive group is processed from its smallest possible value.\n        if (possible.has(start - 1)) continue;\n\n        let x = start;\n        while (possible.has(x)) {\n            const copies = freq.get(x) ?? 0;\n            for (let copy = 0; copy < copies; copy++) {\n                update(x);\n            }\n            x++;\n        }\n    }\n\n    return best;\n};",
+      "approach": "No-sort version we ended on: frequency map, possible final-value set, and DP that processes each real copy.",
+      "timeComplexity": "O(n) expected",
+      "spaceComplexity": "O(n)",
+      "variables": {
+        "n": "Number of elements in nums."
+      },
+      "example": "maxSelectedElements([2,1,5,1,1]) → 3"
+    }
+  ]
+}

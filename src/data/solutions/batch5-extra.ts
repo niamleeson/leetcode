@@ -2523,7 +2523,7 @@ TweetCounts.prototype.getTweetCountsPerFrequency = function(freq, tweetName, sta
     description:
       'Implement the ProductOfNumbers class that supports add(num) to add a number to the back of the list and getProduct(k) to return the product of the last k numbers. You can assume the current list always has at least k numbers when getProduct is called.',
     examples:
-      'Input: ["ProductOfNumbers","add","add","add","getProduct","add","getProduct"]\n[[],[3],[0],[2],[2],[5],[3]]\nOutput: [null,null,null,null,0,null,20]',
+      'Input: ["ProductOfNumbers","add","add","add","getProduct","add","getProduct"]\n[[],[3],[0],[2],[2],[5],[3]]\nOutput: [null,null,null,null,0,null,0]',
     intuition:
       'Prefix products give O(1) range product queries, just like prefix sums give O(1) range sum queries. The twist is zeros: when a zero appears, it wipes out all previous products, so we reset the prefix array.',
     approach:

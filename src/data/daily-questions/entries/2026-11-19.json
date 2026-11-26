@@ -1,0 +1,26 @@
+{
+  "id": 2567,
+  "date": "2026-11-19",
+  "comparison": {
+    "kind": "different-approach",
+    "summary": "Your solution takes O(n) time by retaining six extremes; the existing solution sorts the full array.",
+    "details": [
+      "Both compare the same three choices: change the two smallest values, one value at each end, or the two largest values.",
+      "Your smallest and largest arrays contain at most four values before trimming, so each small sort takes constant time. The input array is unchanged.",
+      "The existing Python and TypeScript implementations sort nums in place, taking O(n log n) time. No JavaScript implementation was saved for this problem."
+    ]
+  },
+  "solutions": [
+    {
+      "title": "Track three smallest and largest values",
+      "code": "var minimizeSum = function(nums) {\n    const smallest = [];\n    const largest = [];\n\n    for (const num of nums) {\n        smallest.push(num);\n        smallest.sort((a, b) => a - b);\n        if (smallest.length > 3) smallest.pop();\n\n        largest.push(num);\n        largest.sort((a, b) => b - a);\n        if (largest.length > 3) largest.pop();\n    }\n\n    return Math.min(\n        largest[0] - smallest[2], // Change the two smallest.\n        largest[1] - smallest[1], // Change the smallest and largest.\n        largest[2] - smallest[0]  // Change the two largest.\n    );\n};",
+      "approach": "Ideal O(n) version: track only the three smallest and three largest values, then compare the three ways to change extremes.",
+      "timeComplexity": "O(n)",
+      "spaceComplexity": "O(1)",
+      "variables": {
+        "n": "Number of elements in nums."
+      },
+      "example": "minimizeSum([1,4,7,8,5]) → 3"
+    }
+  ]
+}

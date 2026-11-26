@@ -1,0 +1,25 @@
+{
+  "id": 2914,
+  "date": "2026-11-18",
+  "comparison": {
+    "kind": "same-approach",
+    "summary": "Same pair-counting approach; the loop starts at the other index of each pair.",
+    "details": [
+      "Your solution checks s[i] against s[i + 1] starting at i = 0. The existing JavaScript checks s[i] against s[i - 1] starting at i = 1. Both inspect the same non-overlapping pairs.",
+      "Your counter is named changes; the existing JavaScript uses ans. Both take O(n) time and O(1) extra space."
+    ]
+  },
+  "solutions": [
+    {
+      "title": "Greedy pair scan",
+      "code": "var minChanges = function(s) {\n    let changes = 0;\n\n    for (let i = 0; i < s.length; i += 2) {\n        if (s[i] !== s[i + 1]) {\n            changes++;\n        }\n    }\n\n    return changes;\n};",
+      "approach": "Greedy: check pairs at indices `(0,1)`, `(2,3)`, etc. One flip per mismatched pair.",
+      "timeComplexity": "O(n)",
+      "spaceComplexity": "O(1)",
+      "variables": {
+        "n": "Number of characters in s."
+      },
+      "example": "minChanges(\"1001\") → 2"
+    }
+  ]
+}

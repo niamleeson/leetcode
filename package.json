@@ -7,7 +7,7 @@
     "dev": "ollama serve & node server.mjs & vite",
     "dev:vite": "vite",
     "dev:server": "node server.mjs",
-    "build": "node tools/walkthroughs/check-artifacts.cjs && node tools/walkthroughs/check-python-artifacts.cjs && node tools/solutions/generate.cjs && node tools/catalog/check-catalog.cjs && node tools/logic/generate.cjs --check && node tools/logic/generate-javascript-adapter.cjs --check && node tools/logic/generate-guided.cjs --check-artifacts && node tools/logic/check-guided-coverage.cjs && tsc -b && vite build",
+    "build": "npm run daily:check && node tools/walkthroughs/check-artifacts.cjs && node tools/walkthroughs/check-python-artifacts.cjs && node tools/solutions/generate.cjs && node tools/catalog/check-catalog.cjs && node tools/logic/generate.cjs --check && node tools/logic/generate-javascript-adapter.cjs --check && node tools/logic/generate-guided.cjs --check-artifacts && node tools/logic/check-guided-coverage.cjs && tsc -b && vite build",
     "preview": "vite preview",
     "hackerrank:test": "vitest run --config vitest.hackerrank.config.ts",
     "walkthroughs:generate": "node tools/walkthroughs/verify.cjs --write && node tools/walkthroughs/verify-python.cjs --write",
@@ -25,7 +25,9 @@
     "logic:guided:check": "node tools/logic/generate-curriculum.cjs --check && node tools/logic/generate-guided.cjs --check-artifacts && node tools/logic/check-guided-coverage.cjs",
     "logic:guided:verify": "node tools/logic/generate-guided.cjs --check && node tools/logic/verify-guided-javascript.cjs",
     "logic:guided:test": "python3 -B tools/logic/guided.test.py && python3 -B tools/logic/guided-wording.test.py && node --test tools/logic/verify-guided-javascript.test.cjs tools/logic/curriculum.test.cjs tools/logic/check-guided-coverage.test.cjs tools/logic/generate-guided-javascript.test.cjs",
-    "logic:javascript:verify": "node tools/logic/generate-javascript-adapter.cjs --check && node tools/logic/verify-javascript-runtime.cjs"
+    "logic:javascript:verify": "node tools/logic/generate-javascript-adapter.cjs --check && node tools/logic/verify-javascript-runtime.cjs",
+    "daily:check": "node tools/daily-questions/check-data.cjs",
+    "daily:test": "node --test tools/daily-questions/*.test.cjs"
   },
   "dependencies": {
     "@excalidraw/excalidraw": "^0.18.0",

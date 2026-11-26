@@ -50,7 +50,7 @@ function loadDocument(id: number) {
   return request;
 }
 
-function RichText({ text }: { text: string }) {
+export function RichText({ text }: { text: string }) {
   return <div className="catalog-prose">
     <ReactMarkdown
       remarkPlugins={[remarkGfm, remarkMath]}
@@ -63,11 +63,23 @@ function RichText({ text }: { text: string }) {
   </div>;
 }
 
-export default function CatalogProblemContent({ id }: { id: number }) {
-  return <DocumentContent key={id} id={id}/>;
+function CatalogAttribution({ document }: { document: CatalogDocument }) {
+  return <details className="catalog-attribution">
+    <summary>Sources and licenses</summary>
+    <p className="mt-3">Problem: <a href={document.originalUrl} target="_blank" rel="noopener noreferrer">LeetCode #{document.id}</a>.</p>
+    {document.sources.map(source => <div key={source.id} className="mt-3">
+      <a href={source.url} target="_blank" rel="noopener noreferrer">{source.name}</a>
+      {' · '}<a href={source.licenseUrl} target="_blank" rel="noopener noreferrer">{source.license}</a>
+      {source.modifications && <p className="mt-1">{source.modifications}</p>}
+    </div>)}
+  </details>;
 }
 
-function DocumentContent({ id }: { id: number }) {
+export default function CatalogProblemContent({ id, descriptionOnly = false }: { id: number; descriptionOnly?: boolean }) {
+  return <DocumentContent key={id} id={id} descriptionOnly={descriptionOnly}/>;
+}
+
+function DocumentContent({ id, descriptionOnly }: { id: number; descriptionOnly: boolean }) {
   const [language, setLanguage] = useProgrammingLanguage();
   const [document, setDocument] = useState<CatalogDocument>();
   const [error, setError] = useState<string>();
@@ -92,6 +104,12 @@ function DocumentContent({ id }: { id: number }) {
     {error && <button type="button" onClick={() => setAttempt(value => value + 1)}>Retry</button>}
   </div>;
 
+  const description = <section aria-label="Problem description">
+    <h2 className="catalog-section-title">Problem</h2>
+    <RichText text={document.descriptionHtml}/>
+  </section>;
+  if (descriptionOnly) return <div className="space-y-4">{description}<CatalogAttribution document={document}/></div>;
+
   const preferredIndex = document.solutions.findIndex(item => item.language === language);
   const selected = selection?.preference === language
     ? selection.index
@@ -113,10 +131,7 @@ function DocumentContent({ id }: { id: number }) {
     if (binaryLanguage) setLanguage(binaryLanguage);
   }
   return <div className="space-y-6">
-    <section aria-label="Problem description">
-      <h2 className="catalog-section-title">Problem</h2>
-      <RichText text={document.descriptionHtml}/>
-    </section>
+    {description}
     <section aria-label="Solution explanation">
       <h2 className="catalog-section-title">Explanation</h2>
       {document.approachTitle && <h3 className="mb-3 font-semibold text-gray-200 light:text-gray-800">{document.approachTitle}</h3>}
@@ -138,14 +153,6 @@ function DocumentContent({ id }: { id: number }) {
       </p>}
       <CodeBlock code={solution.code} language={solution.language}/>
     </section>
-    <details className="catalog-attribution">
-      <summary>Sources and licenses</summary>
-      <p className="mt-3">Problem: <a href={document.originalUrl} target="_blank" rel="noopener noreferrer">LeetCode #{id}</a>.</p>
-      {document.sources.map(source => <div key={source.id} className="mt-3">
-        <a href={source.url} target="_blank" rel="noopener noreferrer">{source.name}</a>
-        {' · '}<a href={source.licenseUrl} target="_blank" rel="noopener noreferrer">{source.license}</a>
-        {source.modifications && <p className="mt-1">{source.modifications}</p>}
-      </div>)}
-    </details>
+    <CatalogAttribution document={document}/>
   </div>;
 }

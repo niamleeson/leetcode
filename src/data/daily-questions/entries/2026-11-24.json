@@ -1,0 +1,27 @@
+{
+  "id": 3411,
+  "date": "2026-11-24",
+  "comparison": {
+    "kind": "same-approach",
+    "summary": "Same subarray enumeration; your solution stops sooner once product exceeds the current GCD × LCM.",
+    "details": [
+      "Both extend each starting index while maintaining the product, GCD, and LCM, and record a length when product equals GCD × LCM.",
+      "Your code stops at prod > gcdVal * lcmVal. The existing Python computes a global limit lcm(*nums) * max(nums) and stops only after the product exceeds that limit.",
+      "For positive input values, once product exceeds the current GCD × LCM, extending the subarray cannot restore equality. Your earlier stop is valid.",
+      "Your code writes out gcd and lcm helpers. The existing Python uses its math functions. Both have O(n²) worst-case time for the bounded values and O(1) extra space. No JavaScript or TypeScript implementation was saved."
+    ]
+  },
+  "solutions": [
+    {
+      "title": "Extend subarrays with product, GCD, and LCM",
+      "code": "var maxLength = function(nums) {\n    function gcd(a, b) {\n        while (b !== 0) {\n            const rem = a % b;\n            a = b;\n            b = rem;\n        }\n        return a;\n    }\n\n    function lcm(a, b) {\n        return (a / gcd(a, b)) * b;\n    }\n\n    let best = 0;\n\n    for (let left = 0; left < nums.length; left++) {\n        let prod = 1;\n        let gcdVal = 0;\n        let lcmVal = 1;\n\n        for (let right = left; right < nums.length; right++) {\n            const num = nums[right];\n            prod *= num;\n            gcdVal = gcd(gcdVal, num);\n            lcmVal = lcm(lcmVal, num);\n\n            const target = gcdVal * lcmVal;\n\n            if (prod === target) {\n                best = Math.max(best, right - left + 1);\n            } else if (prod > target) {\n                break;\n            }\n        }\n    }\n\n    return best;\n};",
+      "approach": "Scan all starts, extending the end while updating product, GCD, and LCM; stop when equality can no longer return.",
+      "timeComplexity": "O(n²) for the stated bounded values",
+      "spaceComplexity": "O(1)",
+      "variables": {
+        "n": "Number of elements in nums."
+      },
+      "example": "maxLength([2,3,4,5,6]) → 3"
+    }
+  ]
+}

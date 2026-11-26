@@ -1,6 +1,7 @@
 import { lazy, Suspense, useState } from 'react';
-import { Link, useParams, Navigate } from 'react-router-dom';
+import { Link, useParams, useSearchParams, Navigate } from 'react-router-dom';
 import { uniqueProblems } from '../data/problems';
+import { findDailyQuestion } from '../data/daily-questions';
 import { hasSolution } from '../data/solutions/lazy';
 import { solutionProse } from '../data/solutions/prose';
 import { hasLogicProblem } from '../data/logic';
@@ -14,6 +15,7 @@ import FollowUpSolution from './FollowUpSolution';
 import SolutionComplexity from './SolutionComplexity';
 
 const CatalogProblemContent = lazy(() => import('./CatalogProblemContent'));
+const DailyProblemContent = lazy(() => import('./DailyProblemContent'));
 
 interface ProblemPageProps {
   getProgress: (id: number) => ProblemProgress;
@@ -104,12 +106,14 @@ function buildPseudocode(approach: string, explanation: string): { concept: stri
 
 export default function ProblemPage({ getProgress, onRate, onUpdateNotes, onReset }: ProblemPageProps) {
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
   const [showNotes, setShowNotes] = useState(false);
   const [revealedHints, setRevealedHints] = useState(0);
   const [language, setLanguage] = useProgrammingLanguage();
 
   const problemId = Number(id);
-  const { solution, error, retry } = useProblemSolution(problemId);
+  const dailyQuestion = findDailyQuestion(problemId, searchParams.get('daily'));
+  const { solution, error, retry } = useProblemSolution(dailyQuestion ? undefined : problemId);
   const problem = uniqueProblems.find(p => p.id === problemId);
   if (!problem) return <Navigate to="/problems" replace />;
 
@@ -147,7 +151,11 @@ export default function ProblemPage({ getProgress, onRate, onUpdateNotes, onRese
       {hasLogicProblem(problem.id) && <Link to={`/practice/${problem.id}`}
         className="inline-flex items-center min-h-11 px-4 py-2 rounded-lg bg-cyan-600 text-white font-medium text-sm">Practice the approach and implementation</Link>}
 
-      {solution ? (
+      {dailyQuestion ? (
+        <Suspense fallback={<p role="status" className="text-sm text-gray-400 light:text-gray-600">Loading daily question…</p>}>
+          <DailyProblemContent key={dailyQuestion.date} id={problem.id} date={dailyQuestion.date} />
+        </Suspense>
+      ) : solution ? (
         <>
           {/* ── Problem Description ── */}
           <section className="space-y-3">

@@ -11,6 +11,7 @@ const HackerRankReact = lazy(() => import('./components/HackerRankReact'));
 const TopicView = lazy(() => import('./components/TopicView'));
 const StudySession = lazy(() => import('./components/StudySession'));
 const AllProblems = lazy(() => import('./components/AllProblems'));
+const DailyQuestions = lazy(() => import('./components/DailyQuestions'));
 const SearchView = lazy(() => import('./components/SearchView'));
 const ProblemPage = lazy(() => import('./components/ProblemPage'));
 const DSAReference = lazy(() => import('./components/DSAReference'));
@@ -126,6 +127,7 @@ export default function App() {
               stats={store.stats}
             />
           } />
+          <Route path="/daily" element={<DailyQuestions />} />
           <Route path="/search" element={
             <SearchView
               getProgress={store.getProgress}

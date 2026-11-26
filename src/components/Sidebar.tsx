@@ -17,6 +17,7 @@ const navItems = [
   { path: '/study', label: 'Study Session', badgeKey: 'due' as const },
   { path: '/practice', label: 'Practice logic' },
   { path: '/problems', label: 'All Problems' },
+  { path: '/daily', label: 'Daily Questions' },
   { path: '/dsa', label: 'DSA Reference' },
   { path: '/blind75', label: 'NeetCode Blind 75' },
   { path: '/neetcode150', label: 'NeetCode 150' },
@@ -120,6 +121,8 @@ export default function Sidebar({
         <nav className="p-2 space-y-0.5 shrink-0 max-h-[55vh] overflow-y-auto">
           {navItems.map(item => {
             const isActive = location.pathname === item.path || (
+              item.path === '/daily' && location.pathname.startsWith('/problem/') && new URLSearchParams(location.search).has('daily')
+            ) || (
               item.path === '/practice' && location.pathname.startsWith('/practice/')
             ) || (
               item.path === '/hackerrank-react' && location.pathname.startsWith('/hackerrank-react/')

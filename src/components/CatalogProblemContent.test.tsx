@@ -171,3 +171,17 @@ it('uses the latest preference when it changes during the document request', asy
   await screen.findByRole('heading', { name: 'Solution · JavaScript' });
   expect((screen.getByRole('combobox', { name: 'Solution language' }) as HTMLSelectElement).value).toBe('2');
 });
+
+it('provides the full statement and source credits for a daily page without duplicating the existing solution', async () => {
+  localStorage.setItem('lc-language', JSON.stringify('python'));
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => multilingualDocument(4016) }));
+  const page = render(<CatalogProblemContent id={4016} descriptionOnly/>);
+  await screen.findByText('Statement 4016');
+  expect(screen.getByRole('cell', { name: '123' })).toBeTruthy();
+  expect(screen.getAllByRole('region', { name: 'Problem description' })).toHaveLength(1);
+  expect(screen.queryByRole('region', { name: 'Solution implementation' })).toBeNull();
+  expect(page.container.querySelector('pre code')).toBeNull();
+  expect(JSON.parse(localStorage.getItem('lc-language')!)).toBe('python');
+  fireEvent.click(screen.getByText('Sources and licenses'));
+  expect(screen.getByRole('link', { name: 'Credited author' })).toBeTruthy();
+});
