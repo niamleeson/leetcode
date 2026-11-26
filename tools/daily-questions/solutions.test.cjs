@@ -167,30 +167,125 @@ test('3411: early stopping agrees with all subarrays using exact BigInt arithmet
   }
 });
 
-test('3934: all three implementations handle repeated, overlapping, and hash-collision inputs', () => {
+const loadUniqueSubarrayVariants = () => {
   const solutions = readEntry(3934).solutions;
-  assert.deepEqual(solutions.map(solution => solution.title), ['Simple suffix sorting + LCP', 'Optimized suffix array + LCP', 'Suffix automaton']);
-  const variants = solutions.map(({ code }) => {
+  assert.deepEqual(solutions.map(solution => solution.title), ['Binary search + rolling hash', 'Simple suffix sorting + LCP', 'Optimized suffix array + LCP', 'Suffix automaton']);
+  return solutions.map(({ title, code }) => {
     const name = code.match(/^var (\w+) = function\(/)?.[1];
     assert.ok(name, 'Each saved implementation declares its entry function');
-    return vm.runInNewContext(`${code}\n;${name}`, {}, { timeout: 1000 });
+    return { title, solve: vm.runInNewContext(`${code}\n;${name}`, {}, { timeout: 1000 }) };
   });
-  const cases = [[[1, 2, 1, 2, 1], 3], [[3, 3, 3], 3], [[2, 1, 2, 3, 3], 1], [[1, 1, 2, 2, 1], 2], [[1, 20, 2, 1, 20, 2], 2], [[100000], 1]];
-  for (const [input, expected] of cases) for (const solve of variants) equal(solve(input), expected, input);
-  const brute = values => {
-    for (let length = 1; length <= values.length; length++) {
-      const frequencies = new Map();
-      for (let start = 0; start + length <= values.length; start++) {
-        const key = JSON.stringify(values.slice(start, start + length));
-        frequencies.set(key, (frequencies.get(key) ?? 0) + 1);
-      }
-      if ([...frequencies.values()].includes(1)) return length;
+};
+const bruteSmallestUniqueSubarray = values => {
+  for (let length = 1; length <= values.length; length++) {
+    const frequencies = new Map();
+    for (let start = 0; start + length <= values.length; start++) {
+      const key = JSON.stringify(values.slice(start, start + length));
+      frequencies.set(key, (frequencies.get(key) ?? 0) + 1);
     }
-  };
-  for (let length = 1; length <= 6; length++) for (const input of arrays(length, 3)) {
-    const expected = brute(input);
-    for (const solve of variants) equal(solve(input), expected, input);
+    if ([...frequencies.values()].includes(1)) return length;
   }
-  // The learning version copies every suffix; reserve large inputs for the two optimized variants.
-  for (const solve of variants.slice(1)) assert.equal(solve(Array(10000).fill(7)), 10000);
+};
+const rollingHashCode = () => readEntry(3934).solutions.find(solution => solution.title === 'Binary search + rolling hash').code;
+
+test('3934: all four implementations match exhaustive and randomized subarray counts', () => {
+  const variants = loadUniqueSubarrayVariants();
+  const cases = [[[1, 2, 1, 2, 1], 3], [[3, 3, 3], 3], [[2, 1, 2, 3, 3], 1], [[1, 1, 2, 2, 1], 2], [[1, 20, 2, 1, 20, 2], 2], [[100000], 1], [[100000, 99999, 100000, 99999], 2]];
+  for (const [input, expected] of cases) for (const { solve } of variants) equal(solve(input), expected, input);
+  for (let length = 1; length <= 6; length++) for (const input of arrays(length, 3)) {
+    const expected = bruteSmallestUniqueSubarray(input);
+    for (const { solve } of variants) equal(solve(input), expected, input);
+  }
+  const alphabet = [1, 2, 9994, 10001, 99999, 100000];
+  for (let trial = 0; trial < 300; trial++) {
+    const length = 1 + random(30);
+    const period = 1 + random(8);
+    const pattern = Array.from({ length: period }, () => alphabet[random(alphabet.length)]);
+    const input = Array.from({ length }, (_, i) => trial % 2 === 0 ? pattern[i % period] : alphabet[random(alphabet.length)]);
+    const before = [...input];
+    const expected = bruteSmallestUniqueSubarray(input);
+    for (const { solve } of variants) {
+      equal(solve(input), expected, input);
+      equal(input, before, 'Input must remain unchanged');
+    }
+  }
+  // Direct window comparisons and copied suffixes are learning versions; stress the optimized variants.
+  const optimized = new Set(['Optimized suffix array + LCP', 'Suffix automaton']);
+  for (const { title, solve } of variants) {
+    if (optimized.has(title)) assert.equal(solve(Array(10000).fill(7)), 10000);
+  }
+});
+
+test('3934: exact comparisons separate a real production-modulus hash collision', () => {
+  const input = [1, 9994, 100000, 10001, 1, 9994, 100000, 10001];
+  const base = 100001n;
+  const modulus = 1000000007n;
+  const first = 1n * base + 9994n;
+  const second = 10001n * base + 1n;
+  assert.equal(second - first, modulus);
+  assert.equal(first % modulus, 109995n);
+  assert.equal(second % modulus, 109995n);
+  assert.equal(bruteSmallestUniqueSubarray(input), 2);
+  for (const { solve } of loadUniqueSubarrayVariants()) equal(solve(input), 2, input);
+
+  // Without comparing actual elements, [1,9994] (twice) hides [10001,1] (once).
+  const code = rollingHashCode();
+  const comparison = 'if (sameWindow(group.start, start)) {';
+  assert.ok(code.includes(comparison));
+  const hashOnly = vm.runInNewContext(`${code.replace(comparison, 'if (true) {')}\n;smallestUniqueSubarray`, {}, { timeout: 1000 });
+  equal(hashOnly(input), 3, input);
+});
+
+test('3934: exact grouping remains correct with deliberately frequent modulo-7 collisions', () => {
+  const code = rollingHashCode();
+  const declaration = 'const MOD = 1000000007;';
+  assert.ok(code.includes(declaration));
+  const solve = vm.runInNewContext(`${code.replace(declaration, 'const MOD = 7;')}\n;smallestUniqueSubarray`, {}, { timeout: 1000 });
+  for (let length = 1; length <= 6; length++) for (const input of arrays(length, 3)) {
+    equal(solve(input), bruteSmallestUniqueSubarray(input), input);
+  }
+  for (const input of [[1, 6, 1, 6], [100000, 99999, 100000, 99999], [1, 9994, 100000, 10001, 1, 9994, 100000, 10001]]) {
+    equal(solve(input), bruteSmallestUniqueSubarray(input), input);
+  }
+});
+
+test('3934: every rolling hash matches independent BigInt arithmetic through modulo wraparound', () => {
+  const code = rollingHashCode();
+  const record = 'function recordWindow(start) {';
+  assert.ok(code.includes(record));
+  const previous = new Map();
+  let largeOutgoing = 0;
+  let negativeDifference = 0;
+  let checkedWindows = 0;
+  const inspectWindow = (start, length, hash, highestPower, base, modulus, nums) => {
+    const exactBase = BigInt(base);
+    const exactModulus = BigInt(modulus);
+    let expected = 0n;
+    for (let offset = 0; offset < length; offset++) expected = expected * exactBase + BigInt(nums[start + offset]);
+    assert.equal(hash, Number(expected % exactModulus));
+    assert.equal(highestPower, Number(exactBase ** BigInt(length - 1) % exactModulus));
+    assert.ok(Number.isSafeInteger(hash) && hash >= 0 && hash < modulus);
+    if (start > 0) {
+      const rawOutgoing = nums[start - 1] * highestPower;
+      assert.ok(Number.isSafeInteger(rawOutgoing));
+      if (rawOutgoing >= modulus) largeOutgoing++;
+      if (previous.get(length) - rawOutgoing % modulus < 0) negativeDifference++;
+    }
+    previous.set(length, hash);
+    checkedWindows++;
+  };
+  const instrumented = code.replace(record, `${record}\n            inspectWindow(start, length, hash, highestPower, BASE, MOD, nums);`);
+  const solve = vm.runInNewContext(`${instrumented}\n;smallestUniqueSubarray`, { inspectWindow }, { timeout: 1000 });
+  const inputs = [
+    [1, 9994, 100000, 10001, 1, 9994, 100000, 10001],
+    Array.from({ length: 40 }, (_, i) => [100000, 99999, 1, 9994, 10001][i % 5]),
+    Array(40).fill(100000),
+  ];
+  for (const input of inputs) {
+    previous.clear();
+    equal(solve(input), bruteSmallestUniqueSubarray(input), input);
+  }
+  assert.ok(checkedWindows > 100, 'Validate each window in multiple binary-search iterations');
+  assert.ok(largeOutgoing > 0, 'Exercise outgoing products that need modulo reduction');
+  assert.ok(negativeDifference > 0, 'Exercise negative subtraction before modular normalization');
 });

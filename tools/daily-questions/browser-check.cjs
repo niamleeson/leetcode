@@ -48,6 +48,20 @@ fs.mkdirSync(screenshotDirectory, { recursive: true });
     assert.ok(layout.document <= layout.width + 1, `Page overflows horizontally: ${JSON.stringify(layout)}`);
     assert.ok(layout.body <= layout.width + 1, `Body overflows horizontally: ${JSON.stringify(layout)}`);
   };
+  const rollingWalkthrough = page => page.getByRole('region', { name: 'Binary search + rolling hash walkthrough', exact: true });
+  const checkRollingWalkthrough = async page => {
+    const walkthrough = rollingWalkthrough(page);
+    await walkthrough.waitFor();
+    assert.equal(await walkthrough.locator('h4').count(), 9, 'All walkthrough sections render');
+    assert.equal(await walkthrough.locator('details:not([open])').count(), 0, 'Walkthrough is expanded');
+    const text = await walkthrough.innerText();
+    for (const heading of ['4. Binary-search check 1: length 3', '5. Binary-search check 2: length 1', '6. Binary-search check 3: length 2', '7. Finish the search', '8. A collision example: one length-2 check']) {
+      assert.equal(await walkthrough.getByRole('heading', { name: heading, exact: true }).count(), 1);
+    }
+    assert.match(text, /The shortest unique subarray is \[2, 1, 2\], so its length is 3/);
+    assert.match(text, /1000110002 - 109995 = 1000000007/);
+    assert.equal(await walkthrough.locator('table').count(), 4, 'Input, maximum scan, results, and collision tables render');
+  };
   const readyDaily = async (page, entry) => {
     await page.waitForURL(url => url.hash === `#/problem/${entry.id}?daily=${entry.date}`);
     await page.locator(`main time[datetime="${entry.date}"]`).waitFor();
@@ -114,9 +128,10 @@ fs.mkdirSync(screenshotDirectory, { recursive: true });
       await checkDaily(page, entry, index);
       assert.deepEqual([...dailyChunks].sort(), entries.slice(0, index + 1).map(item => item.date).sort(), 'Only opened dates fetch saved solution bodies');
       if (entry.id === 3934) {
+        await checkRollingWalkthrough(page);
         await page.screenshot({ path: path.join(screenshotDirectory, 'problem-desktop-dark.png') });
         assert.deepEqual(await page.locator('section[aria-label^="Saved solution:"] > div > h2').allTextContents(), [
-          'Simple suffix sorting + LCP', 'Optimized suffix array + LCP', 'Suffix automaton',
+          'Binary search + rolling hash', 'Simple suffix sorting + LCP', 'Optimized suffix array + LCP', 'Suffix automaton',
         ]);
       }
       if (entry.id === 1352) {
@@ -166,6 +181,16 @@ fs.mkdirSync(screenshotDirectory, { recursive: true });
         await firstCode.scrollIntoViewIfNeeded();
         await checkOverflow(themedPage);
         await themedPage.screenshot({ path: path.join(screenshotDirectory, `code-${width}-${theme}.png`) });
+        await checkRollingWalkthrough(themedPage);
+        for (const [label, heading] of [
+          ['walkthrough', '4. Binary-search check 1: length 3'],
+          ['result', '7. Finish the search'],
+          ['collision', '8. A collision example: one length-2 check'],
+        ]) {
+          await rollingWalkthrough(themedPage).getByRole('heading', { name: heading, exact: true }).evaluate(element => element.scrollIntoView({ block: 'start' }));
+          await checkOverflow(themedPage);
+          await themedPage.screenshot({ path: path.join(screenshotDirectory, `${label}-${width}-${theme}.png`) });
+        }
         results.push({ width, theme, exactSavedImplementations: entries[0].solutions.length, overflow: false, activation: width < 600 ? 'touch' : 'keyboard' });
       }
     }
