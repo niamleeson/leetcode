@@ -49,6 +49,20 @@ fs.mkdirSync(screenshotDirectory, { recursive: true });
     assert.ok(layout.body <= layout.width + 1, `Body overflows horizontally: ${JSON.stringify(layout)}`);
   };
   const rollingWalkthrough = page => page.getByRole('region', { name: 'Binary search + rolling hash walkthrough', exact: true });
+  const sequenceWalkthrough = page => page.getByRole('region', { name: 'Binary search + exact sequence IDs walkthrough', exact: true });
+  const checkSequenceWalkthrough = async page => {
+    const walkthrough = sequenceWalkthrough(page);
+    await walkthrough.waitFor();
+    assert.equal(await walkthrough.locator('h4').count(), 11, 'All exact-ID walkthrough sections render');
+    assert.equal(await walkthrough.locator('details:not([open])').count(), 0, 'Exact-ID walkthrough is expanded');
+    for (const heading of ['3. Build level 1: blocks of length 2', '4. Build level 2: blocks of length 4', '7. Binary-search check 1: length 3', '8. Binary-search check 2: length 1', '9. Binary-search check 3: length 2', '10. Finish and return the answer']) {
+      assert.equal(await walkthrough.getByRole('heading', { name: heading, exact: true }).count(), 1);
+    }
+    const text = await walkthrough.innerText();
+    assert.match(text, /level 1, block length 2: \[0, 1, 0, 1\]/);
+    assert.match(text, /level 2, block length 4: \[0, 1\]/);
+    assert.match(text, /The shortest unique subarray is \[2, 1, 2\], with length 3/);
+  };
   const checkRollingWalkthrough = async page => {
     const walkthrough = rollingWalkthrough(page);
     await walkthrough.waitFor();
@@ -128,10 +142,11 @@ fs.mkdirSync(screenshotDirectory, { recursive: true });
       await checkDaily(page, entry, index);
       assert.deepEqual([...dailyChunks].sort(), entries.slice(0, index + 1).map(item => item.date).sort(), 'Only opened dates fetch saved solution bodies');
       if (entry.id === 3934) {
+        await checkSequenceWalkthrough(page);
         await checkRollingWalkthrough(page);
         await page.screenshot({ path: path.join(screenshotDirectory, 'problem-desktop-dark.png') });
         assert.deepEqual(await page.locator('section[aria-label^="Saved solution:"] > div > h2').allTextContents(), [
-          'Binary search + rolling hash', 'Simple suffix sorting + LCP', 'Optimized suffix array + LCP', 'Suffix automaton',
+          'Binary search + exact sequence IDs', 'Binary search + rolling hash', 'Simple suffix sorting + LCP', 'Optimized suffix array + LCP', 'Suffix automaton',
         ]);
       }
       if (entry.id === 1352) {
@@ -181,6 +196,17 @@ fs.mkdirSync(screenshotDirectory, { recursive: true });
         await firstCode.scrollIntoViewIfNeeded();
         await checkOverflow(themedPage);
         await themedPage.screenshot({ path: path.join(screenshotDirectory, `code-${width}-${theme}.png`) });
+        await checkSequenceWalkthrough(themedPage);
+        for (const [label, heading] of [
+          ['sequence-build', '3. Build level 1: blocks of length 2'],
+          ['sequence-proof', '5. Why these IDs and two blocks identify the exact sequence'],
+          ['sequence-query', '7. Binary-search check 1: length 3'],
+          ['sequence-result', '10. Finish and return the answer'],
+        ]) {
+          await sequenceWalkthrough(themedPage).getByRole('heading', { name: heading, exact: true }).evaluate(element => element.scrollIntoView({ block: 'start' }));
+          await checkOverflow(themedPage);
+          await themedPage.screenshot({ path: path.join(screenshotDirectory, `${label}-${width}-${theme}.png`) });
+        }
         await checkRollingWalkthrough(themedPage);
         for (const [label, heading] of [
           ['walkthrough', '4. Binary-search check 1: length 3'],

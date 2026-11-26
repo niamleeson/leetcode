@@ -169,7 +169,7 @@ test('3411: early stopping agrees with all subarrays using exact BigInt arithmet
 
 const loadUniqueSubarrayVariants = () => {
   const solutions = readEntry(3934).solutions;
-  assert.deepEqual(solutions.map(solution => solution.title), ['Binary search + rolling hash', 'Simple suffix sorting + LCP', 'Optimized suffix array + LCP', 'Suffix automaton']);
+  assert.deepEqual(solutions.map(solution => solution.title), ['Binary search + exact sequence IDs', 'Binary search + rolling hash', 'Simple suffix sorting + LCP', 'Optimized suffix array + LCP', 'Suffix automaton']);
   return solutions.map(({ title, code }) => {
     const name = code.match(/^var (\w+) = function\(/)?.[1];
     assert.ok(name, 'Each saved implementation declares its entry function');
@@ -187,8 +187,9 @@ const bruteSmallestUniqueSubarray = values => {
   }
 };
 const rollingHashCode = () => readEntry(3934).solutions.find(solution => solution.title === 'Binary search + rolling hash').code;
+const exactSequenceCode = () => readEntry(3934).solutions.find(solution => solution.title === 'Binary search + exact sequence IDs').code;
 
-test('3934: all four implementations match exhaustive and randomized subarray counts', () => {
+test('3934: all five implementations match exhaustive and randomized subarray counts', () => {
   const variants = loadUniqueSubarrayVariants();
   const cases = [[[1, 2, 1, 2, 1], 3], [[3, 3, 3], 3], [[2, 1, 2, 3, 3], 1], [[1, 1, 2, 2, 1], 2], [[1, 20, 2, 1, 20, 2], 2], [[100000], 1], [[100000, 99999, 100000, 99999], 2]];
   for (const [input, expected] of cases) for (const { solve } of variants) equal(solve(input), expected, input);
@@ -213,6 +214,60 @@ test('3934: all four implementations match exhaustive and randomized subarray co
   const optimized = new Set(['Optimized suffix array + LCP', 'Suffix automaton']);
   for (const { title, solve } of variants) {
     if (optimized.has(title)) assert.equal(solve(Array(10000).fill(7)), 10000);
+  }
+});
+
+test('3934: exact sequence IDs check every length across power-of-two boundaries and overlapping blocks', () => {
+  const code = exactSequenceCode();
+  const result = 'return answer;';
+  assert.ok(code.includes(result));
+  let hasUnique;
+  const inspect = check => { hasUnique = check; };
+  const solve = vm.runInNewContext(`${code.replace(result, `inspect(hasUnique);\n    ${result}`)}\n;smallestUniqueSubarray`, { inspect }, { timeout: 1000 });
+  const lengths = [1, 2, 3, 4, 5, 7, 8, 9, 15, 16, 17, 31, 32, 33, 63, 64, 65];
+  const inputs = [
+    [1, 2, 1, 2, 1],
+    [100000, 9994, 9994, 100000, 100000, 9994, 9994, 100000],
+    [1, 9994, 100000, 10001, 1, 9994, 100000, 10001],
+  ];
+  for (const length of lengths) {
+    inputs.push(Array(length).fill(100000));
+    inputs.push(Array.from({ length }, (_, i) => [9994, 100000][i % 2]));
+    inputs.push(Array.from({ length }, (_, i) => [9994, 100000, 1, 10001, 9994][i % 5]));
+  }
+  let checkedLengths = 0;
+  for (const input of inputs) {
+    equal(solve(input), bruteSmallestUniqueSubarray(input), input);
+    for (let length = 1; length <= input.length; length++) {
+      const windows = new Map();
+      for (let start = 0; start + length <= input.length; start++) {
+        const sequence = JSON.stringify(input.slice(start, start + length));
+        windows.set(sequence, (windows.get(sequence) ?? 0) + 1);
+      }
+      const expected = [...windows.values()].includes(1);
+      assert.equal(hasUnique(length), expected, JSON.stringify({ input, length }));
+      checkedLengths++;
+    }
+  }
+  assert.ok(checkedLengths > 1000, 'Check complete windows at every length, including overlapping first/last blocks');
+});
+
+test('3934: exact sequence IDs handle 100,000 repeated and high-cardinality values', () => {
+  const solve = vm.runInNewContext(`${exactSequenceCode()}\n;smallestUniqueSubarray`, {}, { timeout: 1000 });
+  const length = 100000;
+  const cases = [
+    // Every block at a level shares ID 0; the entire array is the only unique window.
+    [Array(length).fill(100000), length],
+    [Array.from({ length }, (_, i) => i + 1), 1],
+    // Two equal blocks repeat every value, but their joining pair occurs once.
+    [Array.from({ length }, (_, i) => i % (length / 2) + 1), 2],
+    // Three remaining windows have counts 2 and 1; four have counts 2 and 2.
+    [Array.from({ length }, (_, i) => i % 2 + 1), length - 2],
+  ];
+  for (const [input, expected] of cases) {
+    const before = [...input];
+    assert.equal(solve(input), expected, `Expected ${expected} for a 100,000-element input`);
+    equal(input, before, 'Exact sequence IDs must not modify the input');
   }
 });
 
