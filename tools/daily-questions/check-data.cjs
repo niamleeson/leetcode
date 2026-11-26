@@ -24,6 +24,19 @@ for (const filename of fs.readdirSync(importsDirectory).filter(name => name.ends
   }
 }
 
+for (const filename of fs.readdirSync(importsDirectory).filter(name => name.endsWith('.js'))) {
+  const match = filename.match(/^(\d{4}-\d{2}-\d{2})-(\d+)-[a-z0-9-]+\.js$/);
+  assert.ok(match, `${filename}: supplemental code identifies its study date and problem ID`);
+  const [, date, id] = match;
+  const reference = references.get(date);
+  assert.ok(reference, `${filename}: supplemental code belongs to an imported date`);
+  assert.equal(Number(id), reference.id, `${filename}: supplemental problem ID matches the date`);
+  const code = fs.readFileSync(path.join(importsDirectory, filename), 'utf8').replace(/\r?\n$/, '');
+  assert.ok(/^(?:var|class|function)\s/.test(code), `${filename}: a complete selected solution is present`);
+  assert.ok(!reference.codes.includes(code), `${filename}: supplemental code is not a duplicate`);
+  reference.codes.push(code);
+}
+
 const entries = fs.readdirSync(entriesDirectory).filter(name => name.endsWith('.json'));
 assert.equal(entries.length, references.size, 'Every imported date has one saved entry');
 let solutionCount = 0;

@@ -13,7 +13,7 @@
     {
       "title": "Greedy pair scan",
       "code": "var minChanges = function(s) {\n    let changes = 0;\n\n    for (let i = 0; i < s.length; i += 2) {\n        if (s[i] !== s[i + 1]) {\n            changes++;\n        }\n    }\n\n    return changes;\n};",
-      "approach": "Greedy: check pairs at indices `(0,1)`, `(2,3)`, etc. One flip per mismatched pair.",
+      "approach": "Check the string in pairs: (0, 1), (2, 3), and so on. A matching pair needs no changes, while a mismatched pair needs exactly one flip. Count those mismatched pairs to get the minimum number of changes.",
       "timeComplexity": "O(n)",
       "spaceComplexity": "O(1)",
       "variables": {

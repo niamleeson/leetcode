@@ -15,7 +15,7 @@
     {
       "title": "Extend subarrays with product, GCD, and LCM",
       "code": "var maxLength = function(nums) {\n    function gcd(a, b) {\n        while (b !== 0) {\n            const rem = a % b;\n            a = b;\n            b = rem;\n        }\n        return a;\n    }\n\n    function lcm(a, b) {\n        return (a / gcd(a, b)) * b;\n    }\n\n    let best = 0;\n\n    for (let left = 0; left < nums.length; left++) {\n        let prod = 1;\n        let gcdVal = 0;\n        let lcmVal = 1;\n\n        for (let right = left; right < nums.length; right++) {\n            const num = nums[right];\n            prod *= num;\n            gcdVal = gcd(gcdVal, num);\n            lcmVal = lcm(lcmVal, num);\n\n            const target = gcdVal * lcmVal;\n\n            if (prod === target) {\n                best = Math.max(best, right - left + 1);\n            } else if (prod > target) {\n                break;\n            }\n        }\n    }\n\n    return best;\n};",
-      "approach": "Scan all starts, extending the end while updating product, GCD, and LCM; stop when equality can no longer return.",
+      "approach": "Try each starting position and extend the subarray one number at a time, updating its product, GCD, and LCM. Record its length whenever product equals GCD × LCM. Stop extending that start once product is greater, because adding more positive values cannot restore equality.",
       "timeComplexity": "O(n²) for the stated bounded values",
       "spaceComplexity": "O(1)",
       "variables": {

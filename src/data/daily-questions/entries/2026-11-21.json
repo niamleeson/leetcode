@@ -15,7 +15,7 @@
     {
       "title": "Recursive DFS with copied ancestor maps",
       "code": "var findSubtreeSizes = function(parent, s) {\n    const n = parent.length;\n    const kids = Array.from({ length: n }, () => []);\n    const size = new Array(n).fill(1);\n\n    for (let node = 1; node < n; node++) {\n        kids[parent[node]].push(node);\n    }\n\n    function dfs(node, last) {\n        const char = s[node];\n        let newParent = parent[node];\n\n        if (last.has(char)) {\n            newParent = last.get(char);\n        }\n\n        // This map belongs only to the current recursive call.\n        last.set(char, node);\n\n        for (const child of kids[node]) {\n            dfs(child, new Map(last));\n        }\n\n        // Add this completed subtree to its parent in the MODIFIED tree.\n        if (newParent !== -1) {\n            size[newParent] += size[node];\n        }\n    }\n\n    dfs(0, new Map());\n    return size;\n};",
-      "approach": "Recursive DFS over the original tree. Give each child `new Map(last)` to avoid ancestor-map restoration.",
+      "approach": "Traverse the original tree while remembering the closest ancestor for each letter. Give each child its own copy of that map so visiting one child does not change the ancestors seen by another. After finishing a node’s children, add its completed subtree size to the closest same-letter ancestor, or to its original parent if none exists.",
       "timeComplexity": "O(n) for the fixed alphabet",
       "spaceComplexity": "O(n)",
       "variables": {

@@ -167,8 +167,14 @@ test('3411: early stopping agrees with all subarrays using exact BigInt arithmet
   }
 });
 
-test('3934: both implementations handle repeated, overlapping, and hash-collision inputs', () => {
-  const variants = [load(3934, 'smallestUniqueSubarray'), load(3934, 'smallestUniqueSubarraySuffixArray')];
+test('3934: all three implementations handle repeated, overlapping, and hash-collision inputs', () => {
+  const solutions = readEntry(3934).solutions;
+  assert.deepEqual(solutions.map(solution => solution.title), ['Simple suffix sorting + LCP', 'Optimized suffix array + LCP', 'Suffix automaton']);
+  const variants = solutions.map(({ code }) => {
+    const name = code.match(/^var (\w+) = function\(/)?.[1];
+    assert.ok(name, 'Each saved implementation declares its entry function');
+    return vm.runInNewContext(`${code}\n;${name}`, {}, { timeout: 1000 });
+  });
   const cases = [[[1, 2, 1, 2, 1], 3], [[3, 3, 3], 3], [[2, 1, 2, 3, 3], 1], [[1, 1, 2, 2, 1], 2], [[1, 20, 2, 1, 20, 2], 2], [[100000], 1]];
   for (const [input, expected] of cases) for (const solve of variants) equal(solve(input), expected, input);
   const brute = values => {
@@ -185,5 +191,6 @@ test('3934: both implementations handle repeated, overlapping, and hash-collisio
     const expected = brute(input);
     for (const solve of variants) equal(solve(input), expected, input);
   }
-  for (const solve of variants) assert.equal(solve(Array(10000).fill(7)), 10000);
+  // The learning version copies every suffix; reserve large inputs for the two optimized variants.
+  for (const solve of variants.slice(1)) assert.equal(solve(Array(10000).fill(7)), 10000);
 });

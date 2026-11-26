@@ -15,7 +15,7 @@
     {
       "title": "Prefix products since the last zero",
       "code": "class ProductOfNumbers {\n    constructor() {\n        this.prefix = [1];\n    }\n\n    add(num) {\n        if (num === 0) {\n            this.prefix = [1];\n            return;\n        }\n\n        const last = this.prefix[this.prefix.length - 1];\n        this.prefix.push(last * num);\n    }\n\n    getProduct(k) {\n        const count = this.prefix.length - 1;\n\n        if (k > count) {\n            return 0;\n        }\n\n        const total = this.prefix[count];\n        const before = this.prefix[count - k];\n        return total / before;\n    }\n}",
-      "approach": "Prefix products since the latest zero, with division for `getProduct(k)`.",
+      "approach": "Store cumulative products since the most recent zero, starting with [1], and reset that list whenever zero is added. If k reaches past the values stored since that reset, the requested product includes zero. Otherwise divide the latest cumulative product by the cumulative product just before the last k values.",
       "timeComplexity": "add: O(1) amortized; getProduct: O(1)",
       "spaceComplexity": "O(n)",
       "variables": {

@@ -58,6 +58,9 @@ fs.mkdirSync(screenshotDirectory, { recursive: true });
     for (let i = 0; i < entry.solutions.length; i++) {
       assert.equal(await saved.nth(i).locator(':scope > pre.code-block code').textContent(), entry.solutions[i].code, `${entry.id}: exact saved source ${i + 1}`);
       assert.equal(await saved.nth(i).locator('details:not([open])').count(), 0, `${entry.id}: saved code is open`);
+      const explanation = saved.nth(i).locator(':scope > .catalog-prose');
+      assert.ok((await explanation.innerText()).trim().length > 40, `${entry.id}: short explanation accompanies the code`);
+      assert.equal(await explanation.evaluate(element => Boolean(element.compareDocumentPosition(element.parentElement.querySelector(':scope > pre.code-block')) & Node.DOCUMENT_POSITION_FOLLOWING)), true, `${entry.id}: explanation comes before the code`);
     }
   };
   const checkDaily = async (page, entry, index) => {
@@ -112,7 +115,9 @@ fs.mkdirSync(screenshotDirectory, { recursive: true });
       assert.deepEqual([...dailyChunks].sort(), entries.slice(0, index + 1).map(item => item.date).sort(), 'Only opened dates fetch saved solution bodies');
       if (entry.id === 3934) {
         await page.screenshot({ path: path.join(screenshotDirectory, 'problem-desktop-dark.png') });
-        assert.equal(await page.locator('section[aria-label^="Saved solution:"]').count(), 2);
+        assert.deepEqual(await page.locator('section[aria-label^="Saved solution:"] > div > h2').allTextContents(), [
+          'Simple suffix sorting + LCP', 'Optimized suffix array + LCP', 'Suffix automaton',
+        ]);
       }
       if (entry.id === 1352) {
         await page.getByRole('link', { name: 'View existing app solution', exact: true }).click();
@@ -137,7 +142,7 @@ fs.mkdirSync(screenshotDirectory, { recursive: true });
     await page.waitForFunction(() => window.scrollY <= 1);
     await page.goBack();
     await readyDaily(page, entries[1]);
-    results.push({ width: 1280, theme: 'dark', allDates: 8, exactSavedImplementations: 9, lazyLoading: true, sharedLanguagePreserved: true });
+    results.push({ width: 1280, theme: 'dark', allDates: entries.length, exactSavedImplementations: entries.reduce((count, entry) => count + entry.solutions.length, 0), lazyLoading: true, sharedLanguagePreserved: true });
 
     for (const width of [1280, 390]) {
       const themedPage = await makePage(width);
@@ -161,7 +166,7 @@ fs.mkdirSync(screenshotDirectory, { recursive: true });
         await firstCode.scrollIntoViewIfNeeded();
         await checkOverflow(themedPage);
         await themedPage.screenshot({ path: path.join(screenshotDirectory, `code-${width}-${theme}.png`) });
-        results.push({ width, theme, exactSavedImplementations: 2, overflow: false, activation: width < 600 ? 'touch' : 'keyboard' });
+        results.push({ width, theme, exactSavedImplementations: entries[0].solutions.length, overflow: false, activation: width < 600 ? 'touch' : 'keyboard' });
       }
     }
     assert.deepEqual(errors, [], 'No runtime errors');
