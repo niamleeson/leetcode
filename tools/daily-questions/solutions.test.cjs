@@ -10,7 +10,11 @@ const entryById = new Map(readdirSync(entries).filter(name => name.endsWith('.js
   return [entry.id, entry];
 }));
 const readEntry = id => { assert.ok(entryById.has(id), `Missing daily problem ${id}`); return entryById.get(id); };
-const load = (id, name, index = 0) => vm.runInNewContext(`${readEntry(id).solutions[index].code}\n;${name}`, {}, { timeout: 1000 });
+const load = (id, name) => {
+  const solution = readEntry(id).solutions.find(({ code }) => new RegExp(`^(?:var|class|function) ${name}\\b`).test(code));
+  assert.ok(solution, `Missing implementation ${name} for daily problem ${id}`);
+  return vm.runInNewContext(`${solution.code}\n;${name}`, {}, { timeout: 1000 });
+};
 const equal = (actual, expected, input) => assert.deepEqual(JSON.parse(JSON.stringify(actual)), expected, JSON.stringify(input));
 let seed = 20261126;
 const random = max => {
@@ -164,7 +168,7 @@ test('3411: early stopping agrees with all subarrays using exact BigInt arithmet
 });
 
 test('3934: both implementations handle repeated, overlapping, and hash-collision inputs', () => {
-  const variants = [load(3934, 'smallestUniqueSubarray'), load(3934, 'smallestUniqueSubarraySuffixArray', 1)];
+  const variants = [load(3934, 'smallestUniqueSubarray'), load(3934, 'smallestUniqueSubarraySuffixArray')];
   const cases = [[[1, 2, 1, 2, 1], 3], [[3, 3, 3], 3], [[2, 1, 2, 3, 3], 1], [[1, 1, 2, 2, 1], 2], [[1, 20, 2, 1, 20, 2], 2], [[100000], 1]];
   for (const [input, expected] of cases) for (const solve of variants) equal(solve(input), expected, input);
   const brute = values => {

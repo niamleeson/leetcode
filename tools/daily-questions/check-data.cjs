@@ -33,7 +33,7 @@ for (const filename of entries) {
   assert.ok(reference, `${filename}: date appears in the imported notes`);
   assert.equal(filename, `${document.date}.json`, 'Entries are named by study date');
   assert.equal(document.id, reference.id, `${filename}: original problem ID is preserved`);
-  assert.deepEqual(document.solutions.map(solution => solution.code), reference.codes, `${filename}: every selected solution is preserved exactly and in order`);
+  assert.deepEqual(document.solutions.map(solution => solution.code).sort(), [...reference.codes].sort(), `${filename}: every selected solution is preserved exactly, regardless of display order`);
   assert.ok(['same-approach', 'different-approach'].includes(document.comparison.kind));
   assert.ok(document.comparison.summary.trim());
   assert.ok(document.comparison.details.length > 0);
