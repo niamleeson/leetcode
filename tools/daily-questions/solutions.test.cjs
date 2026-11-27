@@ -171,7 +171,8 @@ const loadUniqueSubarrayVariants = () => {
   const solutions = readEntry(3934).solutions;
   assert.deepEqual(solutions.map(solution => solution.title), ['Binary search + exact sequence IDs', 'Binary search + rolling hash', 'Simple suffix sorting + LCP', 'Optimized suffix array + LCP', 'Suffix automaton']);
   return solutions.map(({ title, code }) => {
-    const name = code.match(/^var (\w+) = function\(/)?.[1];
+    const declaration = code.match(/^(?:var (\w+) = function|function (\w+))\(/);
+    const name = declaration?.[1] ?? declaration?.[2];
     assert.ok(name, 'Each saved implementation declares its entry function');
     return { title, solve: vm.runInNewContext(`${code}\n;${name}`, {}, { timeout: 1000 }) };
   });
@@ -191,7 +192,7 @@ const exactSequenceCode = () => readEntry(3934).solutions.find(solution => solut
 
 test('3934: all five implementations match exhaustive and randomized subarray counts', () => {
   const variants = loadUniqueSubarrayVariants();
-  const cases = [[[1, 2, 1, 2, 1], 3], [[3, 3, 3], 3], [[2, 1, 2, 3, 3], 1], [[1, 1, 2, 2, 1], 2], [[1, 20, 2, 1, 20, 2], 2], [[100000], 1], [[100000, 99999, 100000, 99999], 2]];
+  const cases = [[[1, 2, 1, 2, 1], 3], [[3, 3, 3], 3], [[2, 1, 2, 3, 3], 1], [[1, 1, 2, 2, 1], 2], [[1, 20, 2, 1, 20, 2], 2], [[100000], 1], [[100000, 99999, 100000, 99999], 2], [[1, 11, 11, 1, 11, 11], 2]];
   for (const [input, expected] of cases) for (const { solve } of variants) equal(solve(input), expected, input);
   for (let length = 1; length <= 6; length++) for (const input of arrays(length, 3)) {
     const expected = bruteSmallestUniqueSubarray(input);
@@ -219,7 +220,7 @@ test('3934: all five implementations match exhaustive and randomized subarray co
 
 test('3934: exact sequence IDs check every length across power-of-two boundaries and overlapping blocks', () => {
   const code = exactSequenceCode();
-  const result = 'return answer;';
+  const result = 'return lo;';
   assert.ok(code.includes(result));
   let hasUnique;
   const inspect = check => { hasUnique = check; };
@@ -227,6 +228,8 @@ test('3934: exact sequence IDs check every length across power-of-two boundaries
   const lengths = [1, 2, 3, 4, 5, 7, 8, 9, 15, 16, 17, 31, 32, 33, 63, 64, 65];
   const inputs = [
     [1, 2, 1, 2, 1],
+    // The delimiter distinguishes [1,11] (twice) from [11,1] (once).
+    [1, 11, 11, 1, 11, 11],
     [100000, 9994, 9994, 100000, 100000, 9994, 9994, 100000],
     [1, 9994, 100000, 10001, 1, 9994, 100000, 10001],
   ];

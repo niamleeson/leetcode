@@ -53,15 +53,16 @@ fs.mkdirSync(screenshotDirectory, { recursive: true });
   const checkSequenceWalkthrough = async page => {
     const walkthrough = sequenceWalkthrough(page);
     await walkthrough.waitFor();
-    assert.equal(await walkthrough.locator('h4').count(), 11, 'All exact-ID walkthrough sections render');
+    assert.equal(await walkthrough.locator('h4').count(), 10, 'All exact-ID walkthrough sections render');
     assert.equal(await walkthrough.locator('details:not([open])').count(), 0, 'Exact-ID walkthrough is expanded');
-    for (const heading of ['3. Build level 1: blocks of length 2', '4. Build level 2: blocks of length 4', '7. Binary-search check 1: length 3', '8. Binary-search check 2: length 1', '9. Binary-search check 3: length 2', '10. Finish and return the answer']) {
+    for (const heading of ['3. Build level 1: blocks of length 2', '4. Build level 2: blocks of length 4', '7. Binary-search check 1: length 3', '8. Binary-search check 2: length 2', '9. Finish and return the shortest length']) {
       assert.equal(await walkthrough.getByRole('heading', { name: heading, exact: true }).count(), 1);
     }
     const text = await walkthrough.innerText();
-    assert.match(text, /level 1, block length 2: \[0, 1, 0, 1\]/);
-    assert.match(text, /level 2, block length 4: \[0, 1\]/);
-    assert.match(text, /The shortest unique subarray is \[2, 1, 2\], with length 3/);
+    assert.match(text, /level 1, length 2: \[0, 1, 0, 1\]/);
+    assert.match(text, /level 2, length 4: \[0, 1\]/);
+    assert.match(text, /The shortest unique subarray is \[2, 1, 2\], whose length is 3/);
+    assert.equal(await walkthrough.getByRole('heading', { name: /Binary-search check.*length 1/ }).count(), 0, 'The shorter search does not execute a length-one check');
   };
   const checkRollingWalkthrough = async page => {
     const walkthrough = rollingWalkthrough(page);
@@ -199,9 +200,9 @@ fs.mkdirSync(screenshotDirectory, { recursive: true });
         await checkSequenceWalkthrough(themedPage);
         for (const [label, heading] of [
           ['sequence-build', '3. Build level 1: blocks of length 2'],
-          ['sequence-proof', '5. Why these IDs and two blocks identify the exact sequence'],
+          ['sequence-proof', '5. Why the IDs and pair keys are exact'],
           ['sequence-query', '7. Binary-search check 1: length 3'],
-          ['sequence-result', '10. Finish and return the answer'],
+          ['sequence-result', '9. Finish and return the shortest length'],
         ]) {
           await sequenceWalkthrough(themedPage).getByRole('heading', { name: heading, exact: true }).evaluate(element => element.scrollIntoView({ block: 'start' }));
           await checkOverflow(themedPage);
