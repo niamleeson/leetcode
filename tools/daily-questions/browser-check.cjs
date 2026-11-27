@@ -9,6 +9,9 @@ const origin = new URL(base).origin;
 const directory = path.join(root, 'src/data/daily-questions/entries');
 const entries = fs.readdirSync(directory).filter(name => name.endsWith('.json')).sort().reverse()
   .map(name => JSON.parse(fs.readFileSync(path.join(directory, name), 'utf8')));
+const practiceDirectory = path.join(root, 'src/data/knapsack/entries');
+const practices = ['zero-one-knapsack', 'unbounded-knapsack', 'mixed-knapsack']
+  .map(slug => JSON.parse(fs.readFileSync(path.join(practiceDirectory, `${slug}.json`), 'utf8')));
 const screenshotDirectory = process.env.DAILY_SCREENSHOTS_DIR || '/tmp/leetcode-daily-ui';
 fs.mkdirSync(screenshotDirectory, { recursive: true });
 
@@ -50,6 +53,22 @@ fs.mkdirSync(screenshotDirectory, { recursive: true });
   };
   const rollingWalkthrough = page => page.getByRole('region', { name: 'Binary search + rolling hash walkthrough', exact: true });
   const sequenceWalkthrough = page => page.getByRole('region', { name: 'Binary search + exact sequence IDs walkthrough', exact: true });
+  const checkTemplate = async (page, solutions) => {
+    const preference = await page.evaluate(() => JSON.parse(localStorage.getItem('lc-language') || '"javascript"'));
+    const sections = page.locator('section[aria-label^="Saved solution:"]');
+    assert.equal(await sections.count(), solutions.length);
+    for (let index = 0; index < solutions.length; index++) {
+      const section = sections.nth(index);
+      const solution = solutions[index];
+      const expectedCode = preference === 'python' && solution.pythonCode ? solution.pythonCode : solution.code;
+      assert.equal(await section.locator(':scope > pre.code-block code').textContent(), expectedCode, `${solution.title}: exact code in selected language`);
+      for (const name of ['Approach', 'Example', 'Solution', 'Complexity', 'Step-by-step walkthrough']) {
+        assert.equal(await section.getByRole('heading', { name, exact: true }).count(), 1, `${solution.title}: ${name}`);
+      }
+      assert.equal(await section.locator('details:not([open])').count(), 0);
+      assert.equal(await section.getByRole('region', { name: `${solution.title} walkthrough`, exact: true }).isVisible(), true);
+    }
+  };
   const checkSequenceWalkthrough = async page => {
     const walkthrough = sequenceWalkthrough(page);
     await walkthrough.waitFor();
@@ -85,12 +104,12 @@ fs.mkdirSync(screenshotDirectory, { recursive: true });
     await saved.first().locator(':scope > pre.code-block code').waitFor();
     assert.equal(await saved.count(), entry.solutions.length, `${entry.id}: saved solution count`);
     for (let i = 0; i < entry.solutions.length; i++) {
-      assert.equal(await saved.nth(i).locator(':scope > pre.code-block code').textContent(), entry.solutions[i].code, `${entry.id}: exact saved source ${i + 1}`);
       assert.equal(await saved.nth(i).locator('details:not([open])').count(), 0, `${entry.id}: saved code is open`);
       const explanation = saved.nth(i).locator(':scope > .catalog-prose');
       assert.ok((await explanation.innerText()).trim().length > 40, `${entry.id}: short explanation accompanies the code`);
       assert.equal(await explanation.evaluate(element => Boolean(element.compareDocumentPosition(element.parentElement.querySelector(':scope > pre.code-block')) & Node.DOCUMENT_POSITION_FOLLOWING)), true, `${entry.id}: explanation comes before the code`);
     }
+    await checkTemplate(page, entry.solutions);
   };
   const checkDaily = async (page, entry, index) => {
     await readyDaily(page, entry);
@@ -119,12 +138,15 @@ fs.mkdirSync(screenshotDirectory, { recursive: true });
   };
 
   try {
-    assert.equal(entries.length, 8);
+    assert.equal(entries.length, 9);
     const page = await makePage(1280);
     const dailyChunks = new Set();
+    const practiceChunks = new Set();
     page.on('request', request => {
       const match = request.url().match(/\/(2026-11-\d{2})-[^/]+\.js(?:\?|$)/);
       if (match) dailyChunks.add(match[1]);
+      const practice = request.url().match(/\/(zero-one-knapsack|unbounded-knapsack|mixed-knapsack)-[^/]+\.js(?:\?|$)/);
+      if (practice) practiceChunks.add(practice[1]);
     });
     // Choose Python using the existing UI; the saved JavaScript view must not reset it.
     await page.goto(`${base}#/problem/1352`);
@@ -132,9 +154,11 @@ fs.mkdirSync(screenshotDirectory, { recursive: true });
     assert.equal(await page.getByRole('button', { name: 'Python', exact: true }).getAttribute('aria-pressed'), 'true');
     await openMenuDaily(page);
     const rows = dailyList(page).locator('li');
-    assert.equal(await rows.count(), 8);
+    assert.equal(await rows.count(), entries.length);
     assert.deepEqual(await rows.locator('time').evaluateAll(elements => elements.map(element => element.getAttribute('datetime'))), entries.map(entry => entry.date));
     assert.equal(dailyChunks.size, 0, 'Daily list does not fetch saved solution bodies');
+    assert.equal(practiceChunks.size, 0, 'Daily list does not fetch knapsack solution bodies');
+    assert.equal(await page.getByRole('list', { name: 'Knapsack practice', exact: true }).locator('li').count(), 3);
     await page.screenshot({ path: path.join(screenshotDirectory, 'list-desktop-dark.png'), fullPage: true });
 
     for (let index = 0; index < entries.length; index++) {
@@ -149,6 +173,12 @@ fs.mkdirSync(screenshotDirectory, { recursive: true });
         assert.deepEqual(await page.locator('section[aria-label^="Saved solution:"] > div > h2').allTextContents(), [
           'Binary search + exact sequence IDs', 'Binary search + rolling hash', 'Simple suffix sorting + LCP', 'Optimized suffix array + LCP', 'Suffix automaton',
         ]);
+      }
+      if (entry.id === 3946) {
+        await page.getByRole('button', { name: 'JavaScript', exact: true }).click();
+        await checkTemplate(page, entry.solutions);
+        await page.getByRole('button', { name: 'Python', exact: true }).click();
+        await checkTemplate(page, entry.solutions);
       }
       if (entry.id === 1352) {
         await page.getByRole('link', { name: 'View existing app solution', exact: true }).click();
@@ -197,6 +227,14 @@ fs.mkdirSync(screenshotDirectory, { recursive: true });
         await firstCode.scrollIntoViewIfNeeded();
         await checkOverflow(themedPage);
         await themedPage.screenshot({ path: path.join(screenshotDirectory, `code-${width}-${theme}.png`) });
+        await themedPage.getByRole('button', { name: 'Python', exact: true }).click();
+        await checkTemplate(themedPage, entries[0].solutions);
+        await themedPage.locator('section[aria-label$=" walkthrough"]').first().getByRole('heading', { name: 'Step-by-step walkthrough', exact: true }).scrollIntoViewIfNeeded();
+        await checkOverflow(themedPage);
+        await themedPage.screenshot({ path: path.join(screenshotDirectory, `sale-walkthrough-${width}-${theme}.png`) });
+        const suffixEntry = entries.find(entry => entry.id === 3934);
+        await themedPage.goto(`${base}#/problem/3934?daily=${suffixEntry.date}`);
+        await checkDaily(themedPage, suffixEntry, entries.indexOf(suffixEntry));
         await checkSequenceWalkthrough(themedPage);
         for (const [label, heading] of [
           ['sequence-build', '3. Build level 1: blocks of length 2'],
@@ -219,6 +257,38 @@ fs.mkdirSync(screenshotDirectory, { recursive: true });
           await themedPage.screenshot({ path: path.join(screenshotDirectory, `${label}-${width}-${theme}.png`) });
         }
         results.push({ width, theme, exactSavedImplementations: entries[0].solutions.length, overflow: false, activation: width < 600 ? 'touch' : 'keyboard' });
+        for (const practice of practices) {
+          await themedPage.goto(`${base}#/daily`);
+          await themedPage.getByRole('list', { name: 'Knapsack practice', exact: true }).getByRole('link', { name: new RegExp(practice.title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')) }).click();
+          await themedPage.waitForURL(url => url.hash === `#/daily?practice=${practice.slug}`);
+          await themedPage.getByRole('heading', { name: practice.title, level: 1, exact: true }).waitFor();
+          assert.equal(await themedPage.getByRole('region', { name: 'Problem description', exact: true }).count(), 1);
+          await checkTemplate(themedPage, practice.solutions);
+          await themedPage.getByRole('button', { name: 'JavaScript', exact: true }).click();
+          await checkTemplate(themedPage, practice.solutions);
+          const js = await themedPage.getByRole('button', { name: 'JavaScript', exact: true }).boundingBox();
+          const py = await themedPage.getByRole('button', { name: 'Python', exact: true }).boundingBox();
+          assert.ok(js.x < py.x, 'JavaScript is left of Python');
+          await themedPage.getByRole('button', { name: 'Python', exact: true }).click();
+          await checkTemplate(themedPage, practice.solutions);
+          await checkOverflow(themedPage);
+          await themedPage.screenshot({ path: path.join(screenshotDirectory, `${practice.slug}-${width}-${theme}.png`) });
+          await themedPage.getByRole('heading', { name: 'Step-by-step walkthrough', exact: true }).scrollIntoViewIfNeeded();
+          await checkOverflow(themedPage);
+          await themedPage.screenshot({ path: path.join(screenshotDirectory, `${practice.slug}-walkthrough-${width}-${theme}.png`) });
+        }
+        // Adjacent practice pages reset scroll, retain language, and support browser Back.
+        await themedPage.getByRole('link', { name: '← Previous problem', exact: true }).click();
+        await themedPage.getByRole('heading', { name: 'Unbounded Knapsack', level: 1, exact: true }).waitFor();
+        await themedPage.waitForFunction(() => window.scrollY <= 1);
+        await checkTemplate(themedPage, practices[1].solutions);
+        await themedPage.goBack();
+        await themedPage.getByRole('heading', { name: 'Mixed Knapsack', level: 1, exact: true }).waitFor();
+        await checkTemplate(themedPage, practices[2].solutions);
+        await themedPage.reload();
+        await themedPage.getByRole('heading', { name: 'Mixed Knapsack', level: 1, exact: true }).waitFor();
+        await checkTemplate(themedPage, practices[2].solutions);
+        results.push({ width, theme, knapsackProblems: practices.length, bothLanguages: true, sharedTemplate: true });
       }
     }
     assert.deepEqual(errors, [], 'No runtime errors');

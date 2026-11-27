@@ -26,8 +26,8 @@
     "logic:guided:verify": "node tools/logic/generate-guided.cjs --check && node tools/logic/verify-guided-javascript.cjs",
     "logic:guided:test": "python3 -B tools/logic/guided.test.py && python3 -B tools/logic/guided-wording.test.py && node --test tools/logic/verify-guided-javascript.test.cjs tools/logic/curriculum.test.cjs tools/logic/check-guided-coverage.test.cjs tools/logic/generate-guided-javascript.test.cjs",
     "logic:javascript:verify": "node tools/logic/generate-javascript-adapter.cjs --check && node tools/logic/verify-javascript-runtime.cjs",
-    "daily:check": "node tools/daily-questions/check-data.cjs",
-    "daily:test": "node --test tools/daily-questions/*.test.cjs"
+    "daily:check": "node tools/daily-questions/check-data.cjs && node tools/knapsack/check-data.cjs",
+    "daily:test": "node --test tools/daily-questions/*.test.cjs tools/knapsack/*.test.cjs"
   },
   "dependencies": {
     "@excalidraw/excalidraw": "^0.18.0",

@@ -19,7 +19,8 @@
       "variables": {
         "n": "Number of characters in s."
       },
-      "example": "minChanges(\"1001\") → 2"
+      "example": "minChanges(\"1001\") → 2",
+      "walkthroughMarkdown": "#### 1. Start with the saved example\n\nUse `s = \"1001\"`, with indices `0, 1, 2, 3`. Set `changes = 0`. The loop advances by two, so the only pairs are indices `(0, 1)` and `(2, 3)`.\n\nEach final group must have even length and one repeated character. Its boundaries therefore fall between these pairs. Making each pair equal is necessary and sufficient: unequal neighboring pairs may remain separate length-2 groups. A mismatched pair needs one flip; an equal pair needs none.\n\n#### 2. Visit every pair\n\n**Pair starting at `i = 0`.** Check `0 < s.length`, or `0 < 4`: true. Read `s[0] = \"1\"` and `s[0 + 1] = s[1] = \"0\"`.\n\nCheck `s[i] !== s[i + 1]`: `\"1\" !== \"0\"` is `true`. Execute `changes++`: `0 → 1`.\n\nExecute `i += 2`: `0 + 2 = 2`.\n\n**Pair starting at `i = 2`.** Check `2 < s.length`, or `2 < 4`: true. Read `s[2] = \"0\"` and `s[2 + 1] = s[3] = \"1\"`.\n\nCheck `s[i] !== s[i + 1]`: `\"0\" !== \"1\"` is `true`. Execute `changes++`: `1 → 2`.\n\nExecute `i += 2`: `2 + 2 = 4`.\n\n#### 3. Stop and return\n\nAt `i = 4`, `4 < 4` is false. Exit the loop and return `changes = 2`. One valid result is `\"1100\"`: flip index `1` from `0` to `1` and index `3` from `1` to `0`. The two final groups are `\"11\"` and `\"00\"`.\n\nThe algorithm examines `n / 2` pairs, where `n` is the number of characters. This is `O(n)` time and `O(1)` extra space."
     }
   ]
 }

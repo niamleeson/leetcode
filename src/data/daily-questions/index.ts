@@ -1,6 +1,7 @@
 import type { DailyQuestionDocument } from './types';
 
 export const dailyQuestions = [
+  { date: '2026-11-27', problemId: 3946 },
   { date: '2026-11-25', problemId: 3934 },
   { date: '2026-11-24', problemId: 3411 },
   { date: '2026-11-23', problemId: 1352 },

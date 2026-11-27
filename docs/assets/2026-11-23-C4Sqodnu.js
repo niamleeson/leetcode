@@ -1,0 +1,27 @@
+const r=1352,e="2026-11-23",t={kind:"same-approach",summary:"Same prefix-product algorithm; your solution uses class methods and direct division.",details:["Both reset prefix to [1] after zero and return zero if the requested range crosses that reset.","Your JavaScript uses a class, an early return after zero, and named count, total, and before values. The existing curated JavaScript uses a constructor function with prototype methods and an else branch.","Your guard k > count is equivalent to the existing k >= prefix.length. Your direct division returns the same integer as the existing Math.floor division under the problem’s guarantees.","Both have O(1) amortized add, O(1) getProduct, and O(n) space. A wrong output in the previous curated example was also corrected with this import: after adding 3, 0, 2, and 5, getProduct(3) is 0, not 20. The supplied example is correct."]},n=[{title:"Prefix products since the last zero",code:`class ProductOfNumbers {
+    constructor() {
+        this.prefix = [1];
+    }
+
+    add(num) {
+        if (num === 0) {
+            this.prefix = [1];
+            return;
+        }
+
+        const last = this.prefix[this.prefix.length - 1];
+        this.prefix.push(last * num);
+    }
+
+    getProduct(k) {
+        const count = this.prefix.length - 1;
+
+        if (k > count) {
+            return 0;
+        }
+
+        const total = this.prefix[count];
+        const before = this.prefix[count - k];
+        return total / before;
+    }
+}`,approach:"Store cumulative products since the most recent zero, starting with [1], and reset that list whenever zero is added. If k reaches past the values stored since that reset, the requested product includes zero. Otherwise divide the latest cumulative product by the cumulative product just before the last k values.",timeComplexity:"add: O(1) amortized; getProduct: O(1)",spaceComplexity:"O(n)",variables:{n:"Number of values added; the current prefix array stores only values since the most recent zero.",k:"Number of most recently added values requested by getProduct."},example:"After add(3), add(0), add(2), add(5), add(4): getProduct(2) → 20; getProduct(4) → 0",walkthroughMarkdown:"#### 1. Construct the object\n\nCreate `new ProductOfNumbers()`. The constructor sets `this.prefix = [1]`. The initial `1` is the product of zero values; it makes later product division work even when a query includes all values since the last zero.\n\n#### 2. Execute every add operation\n\n**Call `add(3)`.** Before the call, `this.prefix = [1]`. Check `num === 0`: `3 === 0` is `false`.\n\nCalculate `this.prefix.length - 1 = 1 - 1 = 0`. Read `last = this.prefix[0] = 1`.\n\nCalculate `last * num = 1 × 3 = 3` and push it. Now `this.prefix = [1, 3]`. Reach the end of `add` and return.\n\n**Call `add(0)`.** Before the call, `this.prefix = [1, 3]`. Check `num === 0`: `0 === 0` is `true`.\n\nSet `this.prefix = [1]` and return immediately. The previous nonzero products are discarded. The later `last` lookup and multiplication are not executed for this call.\n\n**Call `add(2)`.** Before the call, `this.prefix = [1]`. Check `num === 0`: `2 === 0` is `false`.\n\nCalculate `this.prefix.length - 1 = 1 - 1 = 0`. Read `last = this.prefix[0] = 1`.\n\nCalculate `last * num = 1 × 2 = 2` and push it. Now `this.prefix = [1, 2]`. Reach the end of `add` and return.\n\n**Call `add(5)`.** Before the call, `this.prefix = [1, 2]`. Check `num === 0`: `5 === 0` is `false`.\n\nCalculate `this.prefix.length - 1 = 2 - 1 = 1`. Read `last = this.prefix[1] = 2`.\n\nCalculate `last * num = 2 × 5 = 10` and push it. Now `this.prefix = [1, 2, 10]`. Reach the end of `add` and return.\n\n**Call `add(4)`.** Before the call, `this.prefix = [1, 2, 10]`. Check `num === 0`: `4 === 0` is `false`.\n\nCalculate `this.prefix.length - 1 = 3 - 1 = 2`. Read `last = this.prefix[2] = 10`.\n\nCalculate `last * num = 10 × 4 = 40` and push it. Now `this.prefix = [1, 2, 10, 40]`. Reach the end of `add` and return.\n\nThe added sequence is now `[3, 0, 2, 5, 4]`, while the retained prefix products are `[1, 2, 10, 40]` for the values after the zero.\n\n#### 3. Execute every query\n\n**Call `getProduct(2)`.** Set `count = this.prefix.length - 1 = 4 - 1 = 3`. Check `k > count`: `2 > 3` is `false`.\n\nRead `total = this.prefix[3] = 40`. Calculate `count - k = 3 - 2 = 1` and read `before = this.prefix[1] = 2`.\n\nReturn `total / before = 40 / 2 = 20`. The earlier prefix product cancels, leaving the product of the last `2` values. `this.prefix` stays `[1, 2, 10, 40]`.\n\n**Call `getProduct(4)`.** Set `count = this.prefix.length - 1 = 4 - 1 = 3`. Check `k > count`: `4 > 3` is `true`.\n\nThe last `4` values extend beyond the `3` values since the latest zero, so the requested range includes zero. Execute `return 0` immediately. No prefix lookup or division follows.\n\n#### 4. Match the returned values to the input\n\n`getProduct(2)` returns `20`, matching `5 × 4`. `getProduct(4)` returns `0`, matching `0 × 2 × 5 × 4`. Queries leave the stored state unchanged.\n\nEach add has amortized `O(1)` cost for appending to an array; each query uses `O(1)` arithmetic and indexing. Space is `O(n)` after `n` adds, although only the values since the last zero remain in the current prefix array. `k` is the number of most recently added values requested by a query."}],a={id:1352,date:e,comparison:t,solutions:n};export{t as comparison,e as date,a as default,r as id,n as solutions};

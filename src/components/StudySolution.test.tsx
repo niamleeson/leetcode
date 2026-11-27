@@ -1,0 +1,92 @@
+import { afterEach, beforeEach, expect, it } from 'vitest';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import type { DailySavedSolution } from '../data/daily-questions/types';
+import { useProgrammingLanguage } from '../hooks/useProgrammingLanguage';
+import StudySolution from './StudySolution';
+
+beforeEach(() => { localStorage.clear(); });
+afterEach(cleanup);
+
+const solution: DailySavedSolution = {
+  title: 'Count items',
+  code: 'function count(items) { return items.length; }',
+  pythonCode: 'def count(items):\n    return len(items)',
+  approach: 'Count the items in the input.',
+  example: 'count([1, 2]) → 2',
+  timeComplexity: 'O(1)',
+  spaceComplexity: 'O(1)',
+  variables: { n: 'Number of input items.' },
+  walkthroughMarkdown: 'Read `items.length`, then return 2.',
+  pythonWalkthroughMarkdown: 'Read `len(items)`, then return 2.',
+};
+
+function PreferenceControl() {
+  const [language, setLanguage] = useProgrammingLanguage();
+  return <>
+    <output aria-label="Shared preference">{language}</output>
+    <button onClick={() => setLanguage('python')}>Use Python elsewhere</button>
+  </>;
+}
+
+it('shares the selected language across solutions and pages while showing matching code and walkthroughs', () => {
+  localStorage.setItem('lc-language', JSON.stringify('python'));
+  render(<>
+    <PreferenceControl />
+    <StudySolution solution={solution} />
+    <StudySolution solution={{ ...solution, title: 'Alternative count' }} index={1} />
+  </>);
+
+  const first = screen.getByRole('region', { name: 'Saved solution: Count items' });
+  const alternative = screen.getByRole('region', { name: 'Saved solution: Alternative count' });
+  expect(within(first).getAllByRole('button').map(button => button.textContent)).toEqual(['JavaScript', 'Python']);
+  expect(first.querySelector(':scope > pre.code-block > code')?.textContent).toBe(solution.pythonCode);
+  expect(first.querySelector(':scope > pre.code-block > code')?.className).toContain('language-python');
+  expect(within(first).getByRole('region', { name: 'Count items walkthrough' }).textContent).toContain('len(items)');
+  expect(within(first).getByRole('button', { name: 'Python' }).getAttribute('aria-pressed')).toBe('true');
+
+  fireEvent.click(within(first).getByRole('button', { name: 'JavaScript' }));
+  for (const section of [first, alternative]) {
+    expect(section.querySelector(':scope > pre.code-block > code')?.textContent).toBe(solution.code);
+    expect(within(section).getByRole('button', { name: 'JavaScript' }).getAttribute('aria-pressed')).toBe('true');
+    expect(within(section).getByRole('region').textContent).toContain('items.length');
+    expect(within(section).getByRole('region').textContent).not.toContain('len(items)');
+  }
+  expect(screen.getByLabelText('Shared preference').textContent).toBe('javascript');
+  expect(JSON.parse(localStorage.getItem('lc-language')!)).toBe('javascript');
+
+  fireEvent.click(screen.getByRole('button', { name: 'Use Python elsewhere' }));
+  expect(first.querySelector(':scope > pre.code-block > code')?.textContent).toBe(solution.pythonCode);
+  expect(alternative.querySelector(':scope > pre.code-block > code')?.textContent).toBe(solution.pythonCode);
+});
+
+it('keeps saved JavaScript visible without changing a Python preference and retains the shared template', () => {
+  localStorage.setItem('lc-language', JSON.stringify('python'));
+  const javascriptOnly = { ...solution, pythonCode: undefined, pythonWalkthroughMarkdown: undefined };
+  const page = render(<><PreferenceControl /><StudySolution solution={javascriptOnly} /></>);
+  const section = screen.getByRole('region', { name: 'Saved solution: Count items' });
+  expect(section.querySelector(':scope > pre.code-block > code')?.textContent).toBe(solution.code);
+  expect(section.querySelector(':scope > pre.code-block > code')?.className).toContain('language-javascript');
+  expect(within(section).queryByRole('group', { name: 'Implementation language' })).toBeNull();
+  expect(within(section).getByText('JavaScript')).toBeTruthy();
+  expect(screen.getByLabelText('Shared preference').textContent).toBe('python');
+  expect(JSON.parse(localStorage.getItem('lc-language')!)).toBe('python');
+  for (const name of ['Approach', 'Example', 'Solution', 'Complexity', 'Step-by-step walkthrough']) {
+    expect(within(section).getByRole('heading', { name })).toBeTruthy();
+  }
+  expect(within(section).getByText('Number of input items.', { exact: false })).toBeTruthy();
+  expect(section.querySelectorAll(':scope > .catalog-prose')).toHaveLength(1);
+  expect(section.querySelector('details')).toBeNull();
+
+  page.rerender(<><PreferenceControl /><StudySolution solution={solution} /></>);
+  expect(section.querySelector(':scope > pre.code-block > code')?.textContent).toBe(solution.pythonCode);
+});
+
+it('does not substitute a JavaScript walkthrough when Python code has no matching walkthrough', () => {
+  localStorage.setItem('lc-language', JSON.stringify('python'));
+  render(<StudySolution solution={{ ...solution, pythonWalkthroughMarkdown: undefined }} />);
+  const section = screen.getByRole('region', { name: 'Saved solution: Count items' });
+  expect(section.querySelector(':scope > pre.code-block > code')?.textContent).toBe(solution.pythonCode);
+  expect(within(section).queryByRole('region', { name: 'Count items walkthrough' })).toBeNull();
+  fireEvent.click(within(section).getByRole('button', { name: 'JavaScript' }));
+  expect(within(section).getByRole('region', { name: 'Count items walkthrough' }).textContent).toContain('items.length');
+});

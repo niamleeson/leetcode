@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { dailyQuestions, formatDailyDate, loadDailyQuestion } from '../data/daily-questions';
 import type { DailyQuestionDocument } from '../data/daily-questions/types';
-import CatalogProblemContent, { RichText } from './CatalogProblemContent';
-import CodeBlock from './CodeBlock';
+import CatalogProblemContent from './CatalogProblemContent';
+import StudySolution from './StudySolution';
 
 const textLink = 'text-sm text-blue-400 hover:underline light:text-blue-700';
 
@@ -40,25 +40,7 @@ export default function DailyProblemContent({ id, date }: { id: number; date: st
       <p>{error ?? 'Loading saved solutions…'}</p>
       {error && <button type="button" className={textLink} onClick={() => setAttempt(value => value + 1)}>Retry saved solutions</button>}
     </div> : <>
-      {document.solutions.map((solution, solutionIndex) => <section key={solution.title} aria-label={`Saved solution: ${solution.title}`} className="space-y-3">
-        <div>
-          <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-emerald-400 light:text-emerald-700">{solutionIndex === 0 ? 'Saved JavaScript solution' : 'Alternative JavaScript solution'}</p>
-          <h2 className="text-lg font-semibold text-white light:text-gray-900">{solution.title}</h2>
-        </div>
-        <RichText text={solution.approach} />
-        <p className="whitespace-pre-wrap break-words font-mono text-xs leading-6 text-gray-300 light:text-gray-700">{solution.example}</p>
-        {solution.notes?.map(note => <p key={note} className="text-sm leading-relaxed text-amber-300 light:text-amber-800">{note}</p>)}
-        <CodeBlock code={solution.code} language="javascript" />
-        <dl className="space-y-1 text-sm text-gray-400 light:text-gray-600">
-          <div><dt className="inline font-medium">Time: </dt><dd className="inline">{solution.timeComplexity}</dd></div>
-          <div><dt className="inline font-medium">Extra space: </dt><dd className="inline">{solution.spaceComplexity}</dd></div>
-          {Object.entries(solution.variables).map(([variable, meaning]) => <div key={variable}><dt className="inline font-mono">{variable}</dt><dd className="inline"> — {meaning}</dd></div>)}
-        </dl>
-        {solution.walkthroughMarkdown && <section aria-label={`${solution.title} walkthrough`} className="space-y-3">
-          <h3 className="font-semibold text-white light:text-gray-900">Example walkthrough</h3>
-          <RichText text={solution.walkthroughMarkdown} />
-        </section>}
-      </section>)}
+      {document.solutions.map((solution, solutionIndex) => <StudySolution key={solution.title} solution={solution} index={solutionIndex} />)}
 
       <section aria-label="Solution comparison" className="space-y-3 border-t border-gray-800 pt-5 light:border-gray-200">
         <h2 className="text-lg font-semibold text-white light:text-gray-900">Compared with the existing app solution</h2>

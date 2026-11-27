@@ -18,9 +18,11 @@ for (const filename of fs.readdirSync(importsDirectory).filter(name => name.ends
     const date = `${year}-${String(monthIndex + 1).padStart(2, '0')}-${day.padStart(2, '0')}`;
     const codes = [...section.matchAll(/```javascript\r?\n([\s\S]*?)\r?\n```/g)]
       .map(match => match[1]).filter(code => /^(?:var|class|function)\s/.test(code));
+    const pythonCodes = [...section.matchAll(/```python\r?\n([\s\S]*?)\r?\n```/g)]
+      .map(match => match[1]).filter(code => /^(?:class|def)\s/.test(code));
     assert.ok(codes.length, `${date}: selected solutions are present`);
     assert.ok(!references.has(date), `${date}: only one source entry per date`);
-    references.set(date, { id: Number(id), codes });
+    references.set(date, { id: Number(id), codes, pythonCodes });
   }
 }
 
@@ -47,15 +49,17 @@ for (const filename of entries) {
   assert.equal(filename, `${document.date}.json`, 'Entries are named by study date');
   assert.equal(document.id, reference.id, `${filename}: original problem ID is preserved`);
   assert.deepEqual(document.solutions.map(solution => solution.code).sort(), [...reference.codes].sort(), `${filename}: every selected solution is preserved exactly, regardless of display order`);
+  assert.deepEqual(document.solutions.flatMap(solution => solution.pythonCode ? [solution.pythonCode] : []).sort(), [...reference.pythonCodes].sort(), `${filename}: saved Python solutions match the source`);
   assert.ok(['same-approach', 'different-approach'].includes(document.comparison.kind));
   assert.ok(document.comparison.summary.trim());
   assert.ok(document.comparison.details.length > 0);
   for (const solution of document.solutions) {
-    for (const field of ['title', 'approach', 'timeComplexity', 'spaceComplexity', 'example']) {
+    for (const field of ['title', 'approach', 'timeComplexity', 'spaceComplexity', 'example', 'walkthroughMarkdown']) {
       assert.ok(typeof solution[field] === 'string' && solution[field].trim(), `${filename}: ${field} is present`);
     }
     assert.ok(Object.keys(solution.variables).length, `${filename}: complexity variables are explained`);
     assert.ok(Object.values(solution.variables).every(value => typeof value === 'string' && value.trim()));
+    if (solution.pythonCode) assert.ok(solution.pythonWalkthroughMarkdown?.trim(), `${filename}: Python has its own matching walkthrough`);
     solutionCount++;
   }
 }

@@ -1,6 +1,7 @@
 export interface DailySavedSolution {
   title: string;
   code: string;
+  pythonCode?: string;
   approach: string;
   timeComplexity: string;
   spaceComplexity: string;
@@ -8,6 +9,7 @@ export interface DailySavedSolution {
   example: string;
   notes?: string[];
   walkthroughMarkdown?: string;
+  pythonWalkthroughMarkdown?: string;
 }
 
 export interface DailyQuestionDocument {
