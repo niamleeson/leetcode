@@ -1,3 +1,4 @@
+import CopyableBlock from '../CopyableBlock';
 import { useEffect, useMemo, useState } from 'react';
 import { ExecutionTrace, ExecutionStep, TraceLanguage, VariableGroup, dataStepIndex, formatTraceResult, formatTraceValue, groupVariables, hasNodes, isReference, materialize, truthy, valueChanged } from '../../data/walkthroughs/execution';
 import { useWalkthroughHighlight } from '../../hooks/useWalkthroughHighlight';
@@ -125,7 +126,7 @@ export function ExecutionPlayer({ trace }: { trace: ExecutionTrace }) {
           <ExecutionGraph id={trace.id} input={step.input} state={step.state} heap={heap} context={{...graphContexts[index],variant:trace.variant,language}}/>
           {inputs.length>0&&<section className="traversal-panel execution-input" aria-label="Input values"><h5>Input</h5>{inputs.map(group=><div className="execution-value-block" role="group" aria-label={group.names.join(', ')} data-variable-names={JSON.stringify(group.names)} key={isReference(group.value)?group.value.$ref:group.names[0]}><h5>{group.names.join(' · ')}</h5>{collectionValues(group,true)}</div>)}</section>}
           {collections.map(group=><section className="traversal-panel" role="group" aria-label={group.names.join(', ')} data-variable-names={JSON.stringify(group.names)} key={isReference(group.value)?group.value.$ref:group.names[0]}><h5>{group.names.join(' · ')}</h5>{collectionValues(group)}</section>)}
-          {done&&<div className="traversal-panel traversal-answer" aria-label="Final result"><h5>Result</h5><pre className="execution-result">{formatTraceResult(example.result,language)}</pre></div>}
+          {done&&<div className="traversal-panel traversal-answer" aria-label="Final result"><h5>Result</h5><CopyableBlock text={formatTraceResult(example.result,language)}><pre className="execution-result">{formatTraceResult(example.result,language)}</pre></CopyableBlock></div>}
         </div>
       </div>
     </div>

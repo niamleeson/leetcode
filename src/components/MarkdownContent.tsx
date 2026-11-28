@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import mermaid from 'mermaid';
+import MarkdownCodeBlock, { markdownCodeText } from './MarkdownCodeBlock';
 
 mermaid.initialize({
   startOnLoad: false,
@@ -63,32 +64,18 @@ export default function MarkdownContent({ content, className }: { content: strin
           ),
           strong: ({ children }) => <strong className="text-gray-200 light:text-gray-800 font-semibold">{children}</strong>,
           em: ({ children }) => <em className="text-gray-300 light:text-gray-700">{children}</em>,
-          code: ({ className: codeClassName, children }) => {
-            const hasLang = codeClassName?.startsWith('language-');
-            const text = String(children);
-            const lang = hasLang ? codeClassName!.replace('language-', '') : '';
-
-            if (lang === 'mermaid') {
-              return <MermaidBlock chart={text} />;
-            }
-
-            const isBlock = hasLang || text.includes('\n');
-            if (isBlock) {
-              return (
-                <pre className="!bg-gray-950 light:!bg-gray-50 !border !border-gray-800 light:!border-gray-200 !rounded-md !p-4 !text-xs overflow-x-auto !leading-relaxed !m-0 mb-3">
-                  <code className={lang ? `language-${lang}` : 'text-gray-300 light:text-gray-700 font-mono whitespace-pre'}>
-                    {text.trim()}
-                  </code>
-                </pre>
-              );
-            }
-            return (
+          code: ({ children }) => (
               <code className="bg-gray-800 light:bg-gray-100 text-blue-300 light:text-blue-700 px-1.5 py-0.5 rounded text-xs font-mono">
                 {children}
               </code>
-            );
+          ),
+          pre: props => {
+            const code = props.node?.children.find(child => child.type === 'element' && child.tagName === 'code');
+            if (code?.type === 'element' && Array.isArray(code.properties.className) && code.properties.className.includes('language-mermaid')) {
+              return <MermaidBlock chart={markdownCodeText(code)} />;
+            }
+            return <MarkdownCodeBlock {...props} />;
           },
-          pre: ({ children }) => <>{children}</>,
           blockquote: ({ children }) => (
             <blockquote className="border-l-2 border-blue-500 pl-3 my-2 text-gray-400 light:text-gray-600 italic text-sm">
               {children}

@@ -1,8 +1,8 @@
-import { afterEach, expect, it } from 'vitest';
-import { cleanup, render } from '@testing-library/react';
+import { afterEach, expect, it, vi } from 'vitest';
+import { cleanup, fireEvent, render, waitFor } from '@testing-library/react';
 import WalkthroughCode from './WalkthroughCode';
 
-afterEach(cleanup);
+afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 it('preserves multiline syntax and source text while toggling step highlights', () => {
   const code = '/* first\nsecond */\nconst message = `first\nsecond`;\n';
@@ -24,4 +24,15 @@ it('uses Python syntax while preserving indentation, multiline strings and exact
   expect([...page.container.querySelectorAll('.traversal-line-content')].map(line => line.textContent).join('\n')).toBe(code);
   expect(page.container.querySelector('[data-line="4"][aria-current="step"] .token.keyword')?.textContent).toBe('return');
   expect(page.container.querySelector('code')?.className).toBe('language-python');
+});
+
+it('copies the original source without line numbers or active-line labels', async () => {
+  const code = 'def solve(value):\n    # Keep indentation.\n    return value\n';
+  const writeText = vi.fn().mockResolvedValue(undefined);
+  vi.stubGlobal('navigator', { clipboard: { writeText } });
+  const page = render(<WalkthroughCode code={code} lines={[3]} enabled language="python" />);
+  fireEvent.click(page.getByRole('button', { name: 'Copy code' }));
+  await waitFor(() => expect(writeText).toHaveBeenCalledWith(code));
+  expect(page.container.querySelector('[data-line="3"][aria-current="step"]')).toBeTruthy();
+  expect(page.container.querySelectorAll('.traversal-line-number')).toHaveLength(4);
 });

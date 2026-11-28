@@ -1,3 +1,4 @@
+import CopyableBlock from './CopyableBlock';
 import { ProblemSolution } from '../data/solutions/types';
 import { solutionProse } from '../data/solutions/prose';
 import { useProblemSolution } from '../hooks/useProblemSolution';
@@ -34,9 +35,9 @@ function InlineSolution({ solution, language }: { solution: ProblemSolution; lan
       )}
 
       {solution.examples && (
-        <pre className="bg-gray-950 light:bg-gray-50 border border-gray-800 light:border-gray-200 rounded-md p-3 text-[11px] text-gray-300 light:text-gray-700 overflow-x-auto whitespace-pre-wrap font-mono">
+        <CopyableBlock text={solution.examples}><pre className="bg-gray-950 light:bg-gray-50 border border-gray-800 light:border-gray-200 rounded-md p-3 text-[11px] text-gray-300 light:text-gray-700 overflow-x-auto whitespace-pre-wrap font-mono">
           {solution.examples}
-        </pre>
+        </pre></CopyableBlock>
       )}
 
       {prose.intuition && (
@@ -68,7 +69,7 @@ function InlineSolution({ solution, language }: { solution: ProblemSolution; lan
           : showJs && solution.jsWalkthrough && (
           <div className="mt-3 bg-gray-950 light:bg-sky-50 border border-sky-900/30 light:border-sky-200 rounded-md p-3">
             <h4 className="text-[10px] font-semibold text-sky-400 light:text-sky-700 uppercase tracking-wider mb-2">Step-by-Step Walkthrough</h4>
-            <pre className="text-sky-200/90 light:text-sky-700 whitespace-pre-wrap overflow-x-auto font-mono text-xs leading-relaxed">{solution.jsWalkthrough}</pre>
+            <CopyableBlock text={solution.jsWalkthrough}><pre className="text-sky-200/90 light:text-sky-700 whitespace-pre-wrap overflow-x-auto font-mono text-xs leading-relaxed">{solution.jsWalkthrough}</pre></CopyableBlock>
           </div>
         )}
       </div>

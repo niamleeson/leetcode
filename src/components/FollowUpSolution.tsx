@@ -1,3 +1,4 @@
+import CopyableBlock from './CopyableBlock';
 import { SolutionFollowUp } from '../data/solutions/types';
 import CodeBlock from './CodeBlock';
 import SolutionComplexity from './SolutionComplexity';
@@ -26,7 +27,7 @@ export default function FollowUpSolution({ solution, language, problemId }: {
       {!interactive && showJs && solution.jsWalkthrough && (
         <div>
           <h4 className="text-xs font-semibold text-sky-400 light:text-sky-700 mb-2">Step-by-Step Walkthrough</h4>
-          <pre className="text-xs text-gray-300 light:text-gray-700 whitespace-pre-wrap leading-relaxed">{solution.jsWalkthrough}</pre>
+          <CopyableBlock text={solution.jsWalkthrough}><pre className="text-xs text-gray-300 light:text-gray-700 whitespace-pre-wrap leading-relaxed">{solution.jsWalkthrough}</pre></CopyableBlock>
         </div>
       )}
       <h4 className="text-xs font-semibold text-yellow-400 light:text-yellow-700">Explanation</h4>

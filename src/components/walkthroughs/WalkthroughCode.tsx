@@ -1,9 +1,13 @@
+import CopyableBlock from '../CopyableBlock';
 import { ReactNode, useMemo } from 'react';
 import Prism from 'prismjs';
 import 'prismjs/components/prism-javascript';
 import 'prismjs/components/prism-python';
 import { TraceLanguage } from '../../data/walkthroughs/execution';
 import '../../styles/prism-themes.css';
+
+// React owns the line wrappers and step markers; Prism only supplies tokens.
+Prism.manual = true;
 
 type SyntaxToken = string | Prism.Token;
 
@@ -34,7 +38,7 @@ export default function WalkthroughCode({ code, lines, enabled, noop, language =
 
   return <div className="traversal-source">
     <div className="traversal-source-heading"><span>{label}</span><span>{enabled && lines.length > 0 ? `${lines.length === 1 ? 'Line' : 'Lines'} ${lines.join(', ')}` : ''}</span></div>
-    <pre tabIndex={0} aria-label={`Walkthrough ${label} code`} className="traversal-source-code">
+    <CopyableBlock text={code}><pre tabIndex={0} aria-label={`Walkthrough ${label} code`} className="traversal-source-code">
       <code className={`language-${language}`}>{syntaxLines.map((tokens, index) => {
         const active = enabled && lines.includes(index + 1);
         return <span key={index} data-line={index + 1} aria-current={active ? 'step' : undefined} className={`traversal-source-line ${active ? noop ? 'is-noop' : 'is-active' : ''}`}>
@@ -42,6 +46,6 @@ export default function WalkthroughCode({ code, lines, enabled, noop, language =
           <span className="traversal-line-content">{renderSyntax(tokens)}</span>
         </span>;
       })}</code>
-    </pre>
+    </pre></CopyableBlock>
   </div>;
 }

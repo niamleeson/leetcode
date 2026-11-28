@@ -1,3 +1,4 @@
+import CopyableBlock from './CopyableBlock';
 import { useState } from 'react';
 import { lessons } from '../data/lessons';
 import { useProgrammingLanguage } from '../hooks/useProgrammingLanguage';
@@ -17,7 +18,7 @@ function WalkthroughSection({ text }: { text: string }) {
         <span className="text-sky-600 light:text-sky-700 text-xs">{open ? '▾' : '▸'}</span>
       </button>
       {open && (
-        <pre className="p-4 text-xs text-sky-200/90 light:text-sky-700 leading-relaxed whitespace-pre-wrap font-mono">{text}</pre>
+        <CopyableBlock text={text}><pre className="p-4 text-xs text-sky-200/90 light:text-sky-700 leading-relaxed whitespace-pre-wrap font-mono">{text}</pre></CopyableBlock>
       )}
     </div>
   );

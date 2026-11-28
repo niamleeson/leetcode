@@ -1,6 +1,6 @@
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import LogicEditor from './LogicEditor';
 import type { LogicProblem } from '../../data/logic/types';
@@ -23,9 +23,26 @@ function statement(code: string) {
   expect(button, `Statement ${code} available`).toBeTruthy(); fireEvent.click(button!);
 }
 beforeEach(() => { localStorage.clear(); vi.clearAllMocks(); Element.prototype.scrollIntoView = vi.fn(); mocks.run.mockResolvedValue(failed); });
-afterEach(cleanup);
+afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 describe('logic practice learner interactions', () => {
+  it('copies the assembled source without changing the selected line or running it', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal('navigator', { clipboard: { writeText } });
+    show();
+    statement('seen = {}');
+    const line = screen.getByRole('button', { name: /^Line \d+: seen = \{\}/ });
+    fireEvent.click(line);
+    const source = document.querySelector('.copyable-logic-source') as HTMLElement;
+    fireEvent.click(within(source).getByRole('button', { name: 'Copy code' }));
+    await waitFor(() => expect(writeText).toHaveBeenCalledOnce());
+    expect(line.getAttribute('aria-pressed')).toBe('true');
+    expect(mocks.run).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Run tests' }));
+    await screen.findByText('0 / 1 practice tests passed');
+    expect(writeText).toHaveBeenCalledWith(mocks.run.mock.calls[0][0].code);
+    expect(writeText.mock.calls[0][0]).not.toContain('Add here');
+  });
   it('starts empty with competing operations and only creates Python on Run', async () => {
     show();
     expect(document.querySelectorAll('.logic-source-line').length).toBe(0);

@@ -1,3 +1,4 @@
+import CopyableBlock from './CopyableBlock';
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { lessons, TopicLesson } from '../data/lessons';
@@ -130,7 +131,7 @@ function WalkthroughSection({ text }: { text: string }) {
         <span className="text-sky-600 light:text-sky-700 text-xs">{open ? '▾' : '▸'}</span>
       </button>
       {open && (
-        <pre className="p-4 text-xs text-sky-200/90 light:text-sky-700 leading-relaxed whitespace-pre-wrap font-mono">{text}</pre>
+        <CopyableBlock text={text}><pre className="p-4 text-xs text-sky-200/90 light:text-sky-700 leading-relaxed whitespace-pre-wrap font-mono">{text}</pre></CopyableBlock>
       )}
     </div>
   );
@@ -148,7 +149,7 @@ function VerifySection({ text }: { text: string }) {
         <span className="text-emerald-600 light:text-emerald-700 text-xs">{open ? '▾' : '▸'}</span>
       </button>
       {open && (
-        <pre className="p-4 text-xs text-emerald-200/80 light:text-emerald-700 leading-relaxed whitespace-pre-wrap font-mono">{text}</pre>
+        <CopyableBlock text={text}><pre className="p-4 text-xs text-emerald-200/80 light:text-emerald-700 leading-relaxed whitespace-pre-wrap font-mono">{text}</pre></CopyableBlock>
       )}
     </div>
   );

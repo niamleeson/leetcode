@@ -39,7 +39,7 @@ it.each(solutions)('renders Python $key with exact code, debugger values and lin
     expect(screen.getByRole('region', { name: 'Debugger variables' })).toBeTruthy();
     expect(screen.getByRole('region', { name: 'Local variables' })).toBeTruthy();
   }
-  expect(screen.getByLabelText('Final result').textContent).toBe(`Result${formatTraceResult(example.result, 'python')}`);
+  expect(screen.getByLabelText('Final result').querySelector('pre')?.textContent).toBe(formatTraceResult(example.result, 'python'));
   expect((screen.getByRole('button', { name: 'Next →' }) as HTMLButtonElement).disabled).toBe(true);
 });
 

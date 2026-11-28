@@ -94,7 +94,8 @@ describe('completed guided code', () => {
     render(<GuidedCodeRunner problem={design} code={code} />);
     fireEvent.click(screen.getByRole('button', { name: 'Run tests' }));
     const table = await screen.findByRole('table', { name: 'Constructor and calls in order' });
-    expect(within(table).getAllByRole('row').map(row => row.textContent)).toEqual(['CallExpectedActual', 'MinStack()nullnull', 'push(5)nullnull', 'getMin()57']);
+    expect(within(table).getAllByRole('row').map(row => [...row.querySelectorAll('th, td')]
+      .map(cell => cell.querySelector('pre')?.textContent ?? cell.textContent).join(''))).toEqual(['CallExpectedActual', 'MinStack()nullnull', 'push(5)nullnull', 'getMin()57']);
     expect(screen.getByRole('alert').textContent).toBe('ValueError at line 2: Bad value');
     expect(screen.getByText(/The final frame jumps/)).toBeTruthy();
   });
@@ -113,5 +114,26 @@ describe('completed guided code', () => {
     expect(screen.getByLabelText('Current executed statement').textContent).toBe('return [0, 1];');
     expect(screen.getByLabelText('JavaScript variables')).toBeTruthy();
     view.unmount(); expect(mocks.disposeJs).toHaveBeenCalledOnce();
+  });
+
+  it('copies the complete call-results table with one control and keeps individual cells compact', async () => {
+    const previous = Object.getOwnPropertyDescriptor(navigator, 'clipboard');
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
+    try {
+      const design: LogicProblem = { ...problem, id: 155, fixtures: [{ name: 'Stack calls', entry: 'MinStack', args: [], operations: [['push', [5]], ['getMin', []]], expected: [null, null, 5] }] };
+      mocks.run.mockResolvedValue({ passed: 0, total: 1, tests: [{ ...result.tests[0], name: 'Stack calls', input: [], expected: [null, null, 5], actual: [null, null, 7], passed: false }] });
+      render(<GuidedCodeRunner problem={design} code={code} />);
+      fireEvent.click(screen.getByRole('button', { name: 'Run tests' }));
+      const table = await screen.findByRole('table', { name: 'Constructor and calls in order' });
+      expect(within(table).queryByRole('button', { name: 'Copy code' })).toBeNull();
+      const block = table.closest('.copyable-operation-table') as HTMLElement;
+      await act(async () => fireEvent.click(within(block).getByRole('button', { name: 'Copy code' })));
+      expect(writeText).toHaveBeenCalledExactlyOnceWith('Call\tExpected\tActual\nMinStack()\tnull\tnull\npush(5)\tnull\tnull\ngetMin()\t5\t7');
+      expect(mocks.run).toHaveBeenCalledOnce();
+    } finally {
+      if (previous) Object.defineProperty(navigator, 'clipboard', previous);
+      else Reflect.deleteProperty(navigator, 'clipboard');
+    }
   });
 });

@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { systemDesignArticles } from '../data/system-design-articles';
 import CondensedSystemDesignArticle from './CondensedSystemDesignArticle';
 import { useReadingPosition } from '../hooks/useReadingPosition';
+import ArticleCodeCopies from './ArticleCodeCopies';
 
 const categories = ['Question breakdowns', 'Patterns', 'Key technologies'] as const;
 type Article = typeof systemDesignArticles[number];
@@ -17,6 +18,7 @@ function ArticleFrame({ article, onReady }: { article: Article; onReady: () => v
   const [attempt, setAttempt] = useState(0);
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const [height, setHeight] = useState(900);
+  const [codeContent, setCodeContent] = useState<HTMLElement | null>(null);
 
   useLayoutEffect(() => {
     if (status === 'ready') onReady();
@@ -37,6 +39,7 @@ function ArticleFrame({ article, onReady }: { article: Article; onReady: () => v
     const doc = frame?.contentDocument;
     const content = doc?.querySelector<HTMLElement>('#markdown');
     if (!frame || !doc || !content) {
+      setCodeContent(null);
       setStatus('error');
       return;
     }
@@ -77,6 +80,7 @@ function ArticleFrame({ article, onReady }: { article: Article; onReady: () => v
     const syncTheme = () => {
       const theme = document.documentElement.classList.contains('light') ? 'light' : 'dark';
       doc.documentElement.dataset.theme = theme;
+      doc.documentElement.classList.toggle('light', theme === 'light');
     };
     syncTheme();
     const themeObserver = new MutationObserver(syncTheme);
@@ -153,6 +157,7 @@ function ArticleFrame({ article, onReady }: { article: Article; onReady: () => v
       anchor.rel = 'noopener noreferrer';
     });
     doc.addEventListener('click', handleClick);
+    setCodeContent(content);
     cleanupRef.current = () => {
       observer.disconnect();
       themeObserver.disconnect();
@@ -187,6 +192,7 @@ function ArticleFrame({ article, onReady }: { article: Article; onReady: () => v
         className={`block w-full border-0 bg-transparent ${status !== 'ready' ? 'invisible h-0' : ''}`}
         style={{ height: status === 'ready' ? height : 0 }}
       />
+      <ArticleCodeCopies content={codeContent} />
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import CopyableBlock from '../CopyableBlock';
 import React, { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import type { LogicProblem } from '../../data/logic/types';
 import { createPythonRunner } from './runtime/pythonRunner';
@@ -80,7 +81,7 @@ export default function GuidedCodeRunner({ problem, code, language = 'python', e
   return <section className="guided-runner" aria-label={`Completed ${languageName} solution`}>
     <header className="guided-runner-heading"><h2>Your completed solution</h2><p>Read how your decisions fit together, then run the practice tests.</p></header>
     <div className="guided-runner-source" aria-label={`Completed ${languageName} code`}>
-      <Suspense fallback={<pre>{code}</pre>}><CodeBlock code={code} language={language} /></Suspense>
+      <Suspense fallback={<CopyableBlock text={code}><pre>{code}</pre></CopyableBlock>}><CodeBlock code={code} language={language} /></Suspense>
     </div>
     <div className="guided-runner-actions">
       <button type="button" className="guided-runner-primary" onClick={busy ? () => { runner.current?.stop(); javascript.current?.stop(); } : run}>{busy ? 'Stop' : 'Run tests'}</button>
@@ -114,17 +115,20 @@ function GuidedTestDetails({ test, code, languageName, fixture, step, setStep }:
   const calls: [string, unknown[]][] = operations ? [[fixture.entry, test.input], ...operations] : [];
   const expectedOperations = Array.isArray(test.expected) ? test.expected : [];
   const actualOperations = Array.isArray(test.actual) ? test.actual : [];
+  const callResults = ['Call\tExpected\tActual', ...calls.map(([name, args], index) =>
+    `${name}(${args.map(arg => JSON.stringify(arg)).join(', ')})\t${display(expectedOperations[index])}\t${index < actualOperations.length ? display(actualOperations[index]) : 'No result'}`,
+  )].join('\n');
   const actualStatement = current ? current.statement ?? code.split('\n')[current.line - 1] : undefined;
   return <div className="guided-runner-detail">
-    {operations ? <div className="guided-runner-operation-scroll" tabIndex={0}>
+    {operations ? <CopyableBlock text={callResults} className="copyable-operation-table"><div className="guided-runner-operation-scroll" tabIndex={0}>
       <table className="guided-runner-operation-table"><caption>Constructor and calls in order</caption><thead><tr><th scope="col">Call</th><th scope="col">Expected</th><th scope="col">Actual</th></tr></thead><tbody>{calls.map(([name, args], index) => <tr key={index}>
         <th scope="row"><code>{name}({args.map(arg => JSON.stringify(arg)).join(', ')})</code></th>
         <td><pre>{display(expectedOperations[index])}</pre></td><td><pre>{index < actualOperations.length ? display(actualOperations[index]) : 'No result'}</pre></td>
       </tr>)}</tbody></table>
-    </div> : <dl className="guided-runner-values">
-      <div><dt>Input</dt><dd><pre>{display(test.input)}</pre></dd></div>
-      <div><dt>Expected</dt><dd><pre>{display(test.expected)}</pre></dd></div>
-      <div><dt>Actual</dt><dd><pre>{display(test.actual)}</pre></dd></div>
+    </div></CopyableBlock> : <dl className="guided-runner-values">
+      <div><dt>Input</dt><dd><CopyableBlock text={display(test.input)}><pre>{display(test.input)}</pre></CopyableBlock></dd></div>
+      <div><dt>Expected</dt><dd><CopyableBlock text={display(test.expected)}><pre>{display(test.expected)}</pre></CopyableBlock></dd></div>
+      <div><dt>Actual</dt><dd><CopyableBlock text={display(test.actual)}><pre>{display(test.actual)}</pre></CopyableBlock></dd></div>
     </dl>}
     {test.error && <p className="guided-runner-error" role="alert">{test.error.type}{test.error.line ? ` at line ${test.error.line}` : ''}: {test.error.message}</p>}
     {!!test.trace.length && <section className="guided-runner-debugger" aria-label={`${languageName} execution debugger`}>
@@ -139,7 +143,7 @@ function GuidedTestDetails({ test, code, languageName, fixture, step, setStep }:
       {test.traceTruncated && <p className="guided-runner-note">The trace is shortened. The final frame jumps to the latest recorded step.</p>}
       {current && <div className="guided-runner-debug-state">
         <div className="guided-runner-statement"><h4>{current.kind === 'call' ? 'Entering this function' : current.kind === 'error' ? 'Statement that raised an error' : 'Executed statement'}</h4>
-          <pre aria-label="Current executed statement"><code>{actualStatement?.trim() ?? 'Source line unavailable'}</code></pre>
+          <CopyableBlock text={actualStatement?.trim() ?? 'Source line unavailable'}><pre aria-label="Current executed statement"><code>{actualStatement?.trim() ?? 'Source line unavailable'}</code></pre></CopyableBlock>
           {current.stack.length > 1 && <p className="guided-runner-stack">Calls: {current.stack.join(' → ')}</p>}
         </div>
         <div className="guided-runner-variables"><h4>{current.kind === 'call' ? 'Variables on entry' : current.kind === 'error' ? 'Variables when execution stopped' : 'Variables after this step'}</h4>
@@ -147,6 +151,6 @@ function GuidedTestDetails({ test, code, languageName, fixture, step, setStep }:
         </div>
       </div>}
     </section>}
-    {!!test.stdout && <details className="guided-runner-stdout"><summary>Printed output</summary><pre>{test.stdout}</pre></details>}
+    {!!test.stdout && <details className="guided-runner-stdout"><summary>Printed output</summary><CopyableBlock text={test.stdout}><pre>{test.stdout}</pre></CopyableBlock></details>}
   </div>;
 }

@@ -1,3 +1,4 @@
+import CopyableBlock from './CopyableBlock';
 import { TimeComplexityBreakdown, TimeComplexityCalculation } from '../data/solutions/types';
 import ComplexityVariables from './ComplexityVariables';
 
@@ -9,10 +10,10 @@ function Calculation({ calculation }: { calculation: TimeComplexityCalculation }
         <li key={label}>{label}: <code className="text-gray-300 light:text-gray-700">{cost}</code></li>
       ))}
     </ol>
-    <pre className="complexity-equation whitespace-pre-wrap break-words font-mono text-gray-300 light:text-gray-700">
+    <CopyableBlock text={calculation.phases.map(phase => phase.cost).join(' + ') + calculation.simplifications.map(expression => `\n= ${expression}`).join('')}><pre className="complexity-equation whitespace-pre-wrap break-words font-mono text-gray-300 light:text-gray-700">
       {calculation.phases.map(phase => phase.cost).join(' + ')}
       {calculation.simplifications.map(expression => `\n= ${expression}`).join('')}
-    </pre>
+    </pre></CopyableBlock>
     <p>{calculation.note}</p>
   </>;
 }

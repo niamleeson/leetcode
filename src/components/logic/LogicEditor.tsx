@@ -1,3 +1,4 @@
+import CopyableBlock from '../CopyableBlock';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { LogicProblem } from '../../data/logic/types';
@@ -133,11 +134,12 @@ export default function LogicEditor({ problem }: { problem: LogicProblem }) {
 
   return <div className="logic-editor">
     <header className="logic-heading"><div><Link to="/practice">← Practice problems</Link><h1>{problem.title}</h1><div className="logic-heading-meta">#{problem.id} · {problem.difficulty} · Python</div></div><span className="logic-save" role="status">{saved ? 'Draft saved on this device' : 'Draft could not save'}</span></header>
-    <details className="logic-question" open><summary>Problem & examples</summary><div className="logic-question-content"><p>{problem.description}</p>{problem.examples.slice(0, 2).map((example, i) => <pre key={i}>{example.name}{'\n'}Input: {display(example.input)}{example.operations && `\nOperations: ${display(example.operations)}`}{'\n'}Expected: {display(example.expected)}</pre>)}</div></details>
+    <details className="logic-question" open><summary>Problem & examples</summary><div className="logic-question-content"><p>{problem.description}</p>{problem.examples.slice(0, 2).map((example, i) => <CopyableBlock text={`${example.name}\nInput: ${display(example.input)}${example.operations ? `\nOperations: ${display(example.operations)}` : ''}\nExpected: ${display(example.expected)}`} key={i}><pre>{example.name}{'\n'}Input: {display(example.input)}{example.operations && `\nOperations: ${display(example.operations)}`}{'\n'}Expected: {display(example.expected)}</pre></CopyableBlock>)}</div></details>
     <div className="logic-workspace">
       <section className="logic-code-panel" aria-label="Your Python code">
         <div className="logic-code-top"><strong>Your code</strong><span>Tap a line to change it</span></div>
         {program.units.length > 1 && <label className="logic-unit-select"><select aria-label="Choose function to build" value={unit.id} disabled={busy} onChange={e => { setProgram(p => selectUnit(p, e.target.value)); setSelectedId(null); }}>{program.units.map(u => <option key={u.id} value={u.id}>{u.className ? `${u.className}.` : ''}{u.name}</option>)}</select></label>}
+        <CopyableBlock text={code} className="copyable-logic-source">
         <div className="logic-source" ref={codeArea}>
           {unit.className && <div className="logic-source-header"><span className="logic-line-number">{sourceLines.findIndex(line => line.trim() === `class ${unit.className}:`) + 1}</span><code>class {unit.className}:</code></div>}
           <div className="logic-source-header"><span className="logic-line-number">{headerIndex + 1}</span><code>{unit.className ? '    ' : ''}{unit.signature}</code></div>
@@ -148,6 +150,7 @@ export default function LogicEditor({ problem }: { problem: LogicProblem }) {
           </div>)}
           {program.cursor.index >= unit.lines.length && !selected && <div className="logic-insert-point" style={{ paddingLeft: 44 + (program.cursor.indent + (unit.className ? 2 : 1)) * 16 }}>Add here{program.cursor.indent > 0 ? ' · inside block' : ''}</div>}
         </div>
+        </CopyableBlock>
         <div className="logic-editor-toolbar">
           {selected ? <>
             <button disabled={busy} onClick={() => { setSelectedId(null); setProgram(p => setCursor(p, { unitId: unit.id, index: unit.lines.findIndex(l => l.id === selected.id) + 1, indent: selected.indent + (selected.text.endsWith(':') ? 1 : 0) })); }}>Insert after</button>
@@ -201,9 +204,9 @@ function TestDetails({ test, step, setStep, operations, code }: { test: LogicTes
     {!!test.trace.length && <div className="logic-debug">
       <div className="logic-debug-controls"><button className="logic-small-button" disabled={step < 0} onClick={() => setStep(Math.max(-1, step - 1))}>Back</button><input type="range" aria-label="Execution step" min={-1} max={test.trace.length - 1} value={step} onChange={e => setStep(Number(e.target.value))} /><button className="logic-small-button" disabled={step >= test.trace.length - 1} onClick={() => setStep(step + 1)}>{step < 0 ? 'Step through' : 'Next'}</button></div>
       <p className="logic-debug-caption">{current ? `Step ${step + 1} / ${test.trace.length} · line ${current.line} · ${current.functionName} · ${current.kind === 'call' ? 'entering function' : current.kind === 'return' ? 'returning' : current.kind === 'error' ? 'error' : 'after execution'}` : 'Predict what changes, then step through your code.'}{test.traceTruncated && ' · Trace shortened: the final frame jumps to the latest step.'}</p>
-      {current && <pre className="logic-current-statement" aria-label="Current executed statement"><code>{code.split('\n')[current.line - 1]?.trim() ?? 'Execution finished'}</code></pre>}
+      {current && <CopyableBlock text={code.split('\n')[current.line - 1]?.trim() ?? 'Execution finished'}><pre className="logic-current-statement" aria-label="Current executed statement"><code>{code.split('\n')[current.line - 1]?.trim() ?? 'Execution finished'}</code></pre></CopyableBlock>}
       {current && <dl className="logic-locals">{Object.entries(current.locals).map(([name, value]) => <div key={name}><dt>{name}</dt><dd>{value}</dd></div>)}{current.value !== undefined && <div><dt>return</dt><dd>{current.value}</dd></div>}</dl>}
     </div>}
-    {test.stdout && <details><summary>Printed output</summary><pre>{test.stdout}</pre></details>}
+    {test.stdout && <details><summary>Printed output</summary><CopyableBlock text={test.stdout}><pre>{test.stdout}</pre></CopyableBlock></details>}
   </div>;
 }

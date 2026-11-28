@@ -1,3 +1,4 @@
+import CopyableBlock from './CopyableBlock';
 import { useState, type ReactNode } from 'react';
 import type { ProgrammingLanguage } from '../hooks/useProgrammingLanguage';
 import CodeBlock from './CodeBlock';
@@ -70,7 +71,7 @@ export default function ProblemSolutionTemplate({
         className="mt-3 bg-gray-950 light:bg-sky-50 border border-sky-900/30 light:border-sky-200 rounded-md p-4 text-sm leading-relaxed"
       >
         <h3 className="text-xs font-semibold text-sky-400 light:text-sky-700 uppercase tracking-wider mb-3">Step-by-Step Walkthrough</h3>
-        <pre className="text-sky-200/90 light:text-sky-700 whitespace-pre-wrap break-words font-mono text-xs leading-relaxed">{walkthroughText}</pre>
+        <CopyableBlock text={walkthroughText}><pre className="text-sky-200/90 light:text-sky-700 whitespace-pre-wrap break-words font-mono text-xs leading-relaxed">{walkthroughText}</pre></CopyableBlock>
       </section>}
     </section>
 

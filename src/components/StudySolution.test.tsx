@@ -44,14 +44,14 @@ it('shares the selected language across solutions and pages while showing matchi
   const first = screen.getByRole('region', { name: 'Saved solution: Count items' });
   const alternative = screen.getByRole('region', { name: 'Saved solution: Alternative count' });
   expect(within(within(first).getByRole('group', { name: 'Implementation language' })).getAllByRole('button').map(button => button.textContent)).toEqual(['JavaScript', 'Python']);
-  expect(first.querySelector('[data-solution-section="solution"] > pre.code-block > code')?.textContent).toBe(solution.pythonCode);
-  expect(first.querySelector('[data-solution-section="solution"] > pre.code-block > code')?.className).toContain('language-python');
+  expect(first.querySelector('[data-solution-section="solution"] pre.code-block > code')?.textContent).toBe(solution.pythonCode);
+  expect(first.querySelector('[data-solution-section="solution"] pre.code-block > code')?.className).toContain('language-python');
   expect(within(first).getByRole('region', { name: 'Count items walkthrough' }).textContent).toContain('len(items)');
   expect(within(first).getByRole('button', { name: 'Python' }).getAttribute('aria-pressed')).toBe('true');
 
   fireEvent.click(within(first).getByRole('button', { name: 'JavaScript' }));
   for (const section of [first, alternative]) {
-    expect(section.querySelector('[data-solution-section="solution"] > pre.code-block > code')?.textContent).toBe(solution.code);
+    expect(section.querySelector('[data-solution-section="solution"] pre.code-block > code')?.textContent).toBe(solution.code);
     expect(within(section).getByRole('button', { name: 'JavaScript' }).getAttribute('aria-pressed')).toBe('true');
     expect(within(section).getByRole('region').textContent).toContain('items.length');
     expect(within(section).getByRole('region').textContent).not.toContain('len(items)');
@@ -60,8 +60,8 @@ it('shares the selected language across solutions and pages while showing matchi
   expect(JSON.parse(localStorage.getItem('lc-language')!)).toBe('javascript');
 
   fireEvent.click(screen.getByRole('button', { name: 'Use Python elsewhere' }));
-  expect(first.querySelector('[data-solution-section="solution"] > pre.code-block > code')?.textContent).toBe(solution.pythonCode);
-  expect(alternative.querySelector('[data-solution-section="solution"] > pre.code-block > code')?.textContent).toBe(solution.pythonCode);
+  expect(first.querySelector('[data-solution-section="solution"] pre.code-block > code')?.textContent).toBe(solution.pythonCode);
+  expect(alternative.querySelector('[data-solution-section="solution"] pre.code-block > code')?.textContent).toBe(solution.pythonCode);
 });
 
 it('keeps saved JavaScript visible without changing a Python preference and retains the shared template', () => {
@@ -69,8 +69,8 @@ it('keeps saved JavaScript visible without changing a Python preference and reta
   const javascriptOnly = { ...solution, pythonCode: undefined, pythonWalkthrough: undefined };
   const page = render(<><PreferenceControl /><StudySolution solution={javascriptOnly} /></>);
   const section = screen.getByRole('region', { name: 'Saved solution: Count items' });
-  expect(section.querySelector('[data-solution-section="solution"] > pre.code-block > code')?.textContent).toBe(solution.code);
-  expect(section.querySelector('[data-solution-section="solution"] > pre.code-block > code')?.className).toContain('language-javascript');
+  expect(section.querySelector('[data-solution-section="solution"] pre.code-block > code')?.textContent).toBe(solution.code);
+  expect(section.querySelector('[data-solution-section="solution"] pre.code-block > code')?.className).toContain('language-javascript');
   expect(within(section).queryByRole('group', { name: 'Implementation language' })).toBeNull();
   expect(within(section).getByRole('heading', { name: 'JavaScript Solution' })).toBeTruthy();
   expect(screen.getByLabelText('Shared preference').textContent).toBe('python');
@@ -84,14 +84,14 @@ it('keeps saved JavaScript visible without changing a Python preference and reta
   expect(section.querySelector('details')).toBeNull();
 
   page.rerender(<><PreferenceControl /><StudySolution solution={solution} /></>);
-  expect(section.querySelector('[data-solution-section="solution"] > pre.code-block > code')?.textContent).toBe(solution.pythonCode);
+  expect(section.querySelector('[data-solution-section="solution"] pre.code-block > code')?.textContent).toBe(solution.pythonCode);
 });
 
 it('does not substitute a JavaScript walkthrough when Python code has no matching walkthrough', () => {
   localStorage.setItem('lc-language', JSON.stringify('python'));
   render(<StudySolution solution={{ ...solution, pythonWalkthrough: undefined }} />);
   const section = screen.getByRole('region', { name: 'Saved solution: Count items' });
-  expect(section.querySelector('[data-solution-section="solution"] > pre.code-block > code')?.textContent).toBe(solution.pythonCode);
+  expect(section.querySelector('[data-solution-section="solution"] pre.code-block > code')?.textContent).toBe(solution.pythonCode);
   expect(within(section).queryByRole('region', { name: 'Count items walkthrough' })).toBeNull();
   fireEvent.click(within(section).getByRole('button', { name: 'JavaScript' }));
   expect(within(section).getByRole('region', { name: 'Count items walkthrough' }).textContent).toContain('items.length');
@@ -107,13 +107,13 @@ it('uses the standard execution-trace template with language-specific traces and
   render(<StudySolution solution={traceSolution} />);
   const section = screen.getByRole('region', { name: 'Saved solution: Count items' });
   const trace = within(section).getByRole('region', { name: 'Count items walkthrough' });
-  expect(trace.querySelector(':scope > pre')?.textContent).toBe(traceSolution.walkthrough);
+  expect(trace.querySelector(':scope pre')?.textContent).toBe(traceSolution.walkthrough);
   expect(trace.querySelector('.catalog-prose')).toBeNull();
   expect(section.querySelector('[data-solution-section="approach"] pre')).toBeNull();
   expect(section.querySelector('[data-solution-section="explanation"]')?.textContent).toContain('The input stays unchanged.');
   fireEvent.click(within(section).getByRole('button', { name: 'Python' }));
-  expect(trace.querySelector(':scope > pre')?.textContent).toBe(traceSolution.pythonWalkthrough);
-  expect(trace.querySelector(':scope > pre')?.className).toContain('font-mono');
+  expect(trace.querySelector(':scope pre')?.textContent).toBe(traceSolution.pythonWalkthrough);
+  expect(trace.querySelector(':scope pre')?.className).toContain('font-mono');
 });
 
 
@@ -129,6 +129,6 @@ it('reveals hints in order for each alternative independently and keeps the solu
   fireEvent.click(within(first).getByRole('button', { name: 'Reveal Hint 2' }));
   expect(within(first).getByText(solution.hints[1], { exact: false })).toBeTruthy();
   expect(within(first).queryByRole('button', { name: /Reveal Hint/ })).toBeNull();
-  expect(first.querySelector('[data-solution-section="solution"] > pre.code-block > code')?.textContent).toBe(solution.code);
+  expect(first.querySelector('[data-solution-section="solution"] pre.code-block > code')?.textContent).toBe(solution.code);
   expect(first.querySelector('details')).toBeNull();
 });

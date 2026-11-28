@@ -1,0 +1,1 @@
+import{f as e,r as t,j as a}from"./index-b70EkQs1.js";import"./CodeBlock-DXYDCFup.js";import"./CopyableBlock-BSgRA0J3.js";import{u as i}from"./useGlossary-CmcW-B2O.js";e();function m({text:r,className:s}){i();const[l,o]=t.useState(null);return t.useCallback(()=>o(null),[]),a.jsx("span",{className:s,children:r})}export{m as G};

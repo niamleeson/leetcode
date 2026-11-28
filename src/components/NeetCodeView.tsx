@@ -1,3 +1,4 @@
+import CopyableBlock from './CopyableBlock';
 import { lazy, Suspense, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useLocalStorage } from '../hooks/useLocalStorage';
@@ -172,9 +173,9 @@ function TemplateCard({
 
       <div className="min-w-0 py-3">
         {tab === 'pseudocode' ? (
-          <pre tabIndex={0} aria-label="Template pseudocode" className="text-xs text-gray-300 light:text-gray-700 leading-relaxed whitespace-pre overflow-x-auto font-mono bg-gray-950 light:bg-gray-50 border border-gray-800 light:border-gray-200 rounded-md p-2 sm:p-3">
+          <CopyableBlock text={template.pseudocode}><pre tabIndex={0} aria-label="Template pseudocode" className="text-xs text-gray-300 light:text-gray-700 leading-relaxed whitespace-pre overflow-x-auto font-mono bg-gray-950 light:bg-gray-50 border border-gray-800 light:border-gray-200 rounded-md p-2 sm:p-3">
             {template.pseudocode}
-          </pre>
+          </pre></CopyableBlock>
         ) : language === 'javascript' && template.reference ? (
           <CodeReference reference={template.reference} code={template.javascript} />
         ) : (

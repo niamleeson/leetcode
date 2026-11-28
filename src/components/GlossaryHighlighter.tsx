@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import Markdown from 'react-markdown';
+import MarkdownCodeBlock from './MarkdownCodeBlock';
 import { useGlossary, GlossaryEntry } from '../hooks/useGlossary';
 
 function GlossaryTooltip({ entry, anchorRect, onClose }: {
@@ -67,7 +68,7 @@ function GlossaryTooltip({ entry, anchorRect, onClose }: {
       </div>
       <p className="text-xs text-gray-500 light:text-gray-500 mb-1 italic">Q: {entry.question}</p>
       <div className="text-sm text-gray-300 light:text-gray-700 leading-relaxed prose prose-invert prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-code:text-blue-300 prose-code:bg-gray-800 prose-code:px-1 prose-code:rounded">
-        <Markdown>{entry.answer}</Markdown>
+        <Markdown components={{ pre: MarkdownCodeBlock }}>{entry.answer}</Markdown>
       </div>
     </div>,
     document.body

@@ -1,3 +1,4 @@
+import CopyableBlock from './CopyableBlock';
 import { lazy, Suspense } from 'react';
 import { Link, useParams, useSearchParams, Navigate } from 'react-router-dom';
 import { uniqueProblems } from '../data/problems';
@@ -149,9 +150,9 @@ export default function ProblemPage({ getProgress, onReset }: ProblemPageProps) 
           <section aria-label="Problem description" className="space-y-3">
             <h2 className="text-xs font-semibold text-gray-500 light:text-gray-500 uppercase tracking-wider">Problem</h2>
             <GlossaryHighlighter text={solution.description} className="text-sm text-gray-300 light:text-gray-700 leading-relaxed whitespace-pre-line" />
-            <pre className="bg-gray-950 light:bg-white border border-gray-800 light:border-gray-200 rounded-md p-3 text-xs text-gray-300 light:text-gray-700 overflow-x-auto whitespace-pre-wrap font-mono">
+            <CopyableBlock text={solution.examples}><pre className="bg-gray-950 light:bg-white border border-gray-800 light:border-gray-200 rounded-md p-3 text-xs text-gray-300 light:text-gray-700 overflow-x-auto whitespace-pre-wrap font-mono">
               {solution.examples}
-            </pre>
+            </pre></CopyableBlock>
           </section>
 
           <ProblemSolutionTemplate

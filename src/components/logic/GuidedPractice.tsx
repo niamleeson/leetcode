@@ -1,3 +1,4 @@
+import CopyableBlock from '../CopyableBlock';
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { LogicProblem } from '../../data/logic/types';
@@ -84,7 +85,7 @@ export default function GuidedPractice(props: Props) {
     <section className="guided-problem" aria-labelledby="guided-problem-title">
       <h2 id="guided-problem-title">Full problem & examples</h2>
       <p className="guided-problem-description">{problem.description}</p>
-      {problem.examples.slice(0, 2).map((example, i) => <pre className="guided-problem-example" key={i}>{example.name}{'\n'}Input: {display(example.input)}{example.operations && `\nCalls: ${display(example.operations)}`}{'\n'}Expected: {display(example.expected)}</pre>)}
+      {problem.examples.slice(0, 2).map((example, i) => <CopyableBlock text={`${example.name}\nInput: ${display(example.input)}${example.operations ? `\nCalls: ${display(example.operations)}` : ''}\nExpected: ${display(example.expected)}`} key={i}><pre className="guided-problem-example">{example.name}{'\n'}Input: {display(example.input)}{example.operations && `\nCalls: ${display(example.operations)}`}{'\n'}Expected: {display(example.expected)}</pre></CopyableBlock>)}
       {hasSavedDraft(problem.id) && <Link className="guided-saved-draft" to={`/practice/${problem.id}?draft=1`}>Open your saved Python draft</Link>}
     </section>
     {!currentLesson ? <section className="guided-question-card"><p role={error ? 'alert' : 'status'}>{error || 'Loading guided questions…'}</p>{error && <button type="button" className="logic-small-button" onClick={() => setRetry(value => value + 1)}>Retry questions</button>}</section> : <GuidedSession key={`${problem.id}:${language}:${currentLesson.revision}`} problem={problem} language={language} lesson={currentLesson}/>}
@@ -203,7 +204,7 @@ function GuidedSession({ problem, language, lesson }: { problem: LogicProblem; l
       <div className="logic-eyebrow">{stageNames[question.stage]}{question.stage === 'structure' ? ` · Step ${questionIndex} of ${structureCount}` : question.stage === 'implementation' ? ` · ${language === 'python' ? 'Python' : 'JavaScript'}` : ''}</div>
       <h2 ref={heading} tabIndex={-1}>{question.prompt}</h2>
       {question.stage === 'pattern' && <p className="guided-question-note">Choose one of eight patterns. This lesson follows one worked approach; other approaches can also be valid.</p>}
-      {question.stage === 'implementation' && question.context && <pre className="guided-context" aria-label="Implementation context"><code>{question.context}</code></pre>}
+      {question.stage === 'implementation' && question.context && <CopyableBlock text={question.context}><pre className="guided-context" aria-label="Implementation context"><code>{question.context}</code></pre></CopyableBlock>}
       <div className={`guided-choices ${question.stage === 'implementation' ? 'guided-code-choices' : question.stage === 'structure' ? 'guided-structure-choices' : ''}`}>{question.choices.map((choice, index) => <button key={`${question.id}:${choice.id}`} type="button" className="guided-choice" data-attempted={wrongChoices.includes(choice.id)} onClick={() => answer(choice)}>
         <span className="guided-choice-letter" aria-hidden="true">{String.fromCharCode(65 + index)}</span>
         <span>{question.stage === 'implementation' && choice.code ? <code>{choice.code.trim()}</code> : <strong>{choice.label}</strong>}{wrongChoices.includes(choice.id) && <small>Try a different choice</small>}</span>
@@ -215,7 +216,7 @@ function GuidedSession({ problem, language, lesson }: { problem: LogicProblem; l
       <RecoverableLazy errorTitle="The code runner couldn't open." onBeforeReload={saveRecovery}>
         <Suspense fallback={<p role="status" className="logic-solution-status">Loading the completed implementation…</p>}><GuidedCodeRunner problem={problem} code={lesson.source} language={language} execution={lesson.execution}/></Suspense>
       </RecoverableLazy>
-      <details className="guided-review"><summary>Review your decisions</summary><ol>{lesson.questions.map(item => { const correct=item.choices.find(choice => choice.correct)!; return <li key={item.id}><strong>{item.prompt}</strong><small className="guided-review-status">{progress.answered.includes(item.id) ? 'Answered correctly' : 'Skipped'}</small>{correct.code ? <pre><code>{correct.code.trim()}</code></pre> : <p>{correct.label}</p>}<p>{correct.feedback}</p></li>; })}</ol></details>
+      <details className="guided-review"><summary>Review your decisions</summary><ol>{lesson.questions.map(item => { const correct=item.choices.find(choice => choice.correct)!; return <li key={item.id}><strong>{item.prompt}</strong><small className="guided-review-status">{progress.answered.includes(item.id) ? 'Answered correctly' : 'Skipped'}</small>{correct.code ? <CopyableBlock text={correct.code.trim()}><pre><code>{correct.code.trim()}</code></pre></CopyableBlock> : <p>{correct.label}</p>}<p>{correct.feedback}</p></li>; })}</ol></details>
     </>}
     <RecoverableLazy key={revealKey} errorTitle="The solution couldn't open." onBeforeReload={saveRecovery}>
       <SolutionReveal id={problem.id} language={language} approach={correctPattern?.label} explanation={revealedPlan}/>

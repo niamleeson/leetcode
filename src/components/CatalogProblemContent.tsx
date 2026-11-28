@@ -27,6 +27,7 @@ import 'prismjs/components/prism-dart';
 import { catalogDocumentUrl, type CatalogDocument } from '../data/catalog';
 import { useProgrammingLanguage } from '../hooks/useProgrammingLanguage';
 import CodeBlock from './CodeBlock';
+import MarkdownCodeBlock from './MarkdownCodeBlock';
 import './catalogProblemContent.css';
 
 const cache = new Map<number, Promise<CatalogDocument>>();
@@ -56,6 +57,7 @@ export function RichText({ text, problemTemplate = false }: { text: string; prob
       remarkPlugins={[remarkGfm, remarkMath]}
       rehypePlugins={[rehypeRaw, rehypeSanitize, rehypeKatex]}
       components={{
+        pre: MarkdownCodeBlock,
         a: ({ node, children, ...props }) => <a {...props} target="_blank" rel="noopener noreferrer">{children}</a>,
         img: ({ node, ...props }) => <img {...props} loading="lazy" decoding="async" />,
         div: ({ node, children, ...props }) => {
