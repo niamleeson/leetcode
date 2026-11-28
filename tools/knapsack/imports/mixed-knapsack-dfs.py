@@ -9,8 +9,12 @@ def knapsack(items, capacity):
         if c < w:
             return skip
 
-        next = i if unlimited else i + 1
-        take = v + dfs(next, c - w)
+        if unlimited:
+            # Unbounded: stay on the same item.
+            take = v + dfs(i, c - w)
+        else:
+            # 0/1: move to the next item.
+            take = v + dfs(i + 1, c - w)
 
         return max(skip, take)
 

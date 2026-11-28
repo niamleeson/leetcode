@@ -136,8 +136,14 @@ function knapsack(items, capacity) {
 
         if (c < w) return skip;
 
-        const next = unlimited ? i : i + 1;
-        const take = v + dfs(next, c - w);
+        let take;
+        if (unlimited) {
+            // Unbounded: stay on the same item.
+            take = v + dfs(i, c - w);
+        } else {
+            // 0/1: move to the next item.
+            take = v + dfs(i + 1, c - w);
+        }
 
         return Math.max(skip, take);
     }
@@ -180,7 +186,7 @@ function knapsack(items, capacity) {
 |---|---|---|---|
 | Item reuse | At most once | Unlimited | Depends on item |
 | DFS skip | `dfs(i + 1, c)` | `dfs(i + 1, c)` | `dfs(i + 1, c)` |
-| DFS take | `v + dfs(i + 1, c - w)` | `v + dfs(i, c - w)` | `v + dfs(unlimited ? i : i + 1, c - w)` |
+| DFS take | `v + dfs(i + 1, c - w)` | `v + dfs(i, c - w)` | If unlimited: `v + dfs(i, c - w)`; else: `v + dfs(i + 1, c - w)` |
 | DP direction per item | Backward | Forward | Depends on item |
 | DP loop | `c = capacity; c >= w; c--` | `c = w; c <= capacity; c++` | Choose either loop |
 | Bottom-up time | O(nC) | O(nC) | O(nC) |

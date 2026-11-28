@@ -7,8 +7,14 @@ function knapsack(items, capacity) {
 
         if (c < w) return skip;
 
-        const next = unlimited ? i : i + 1;
-        const take = v + dfs(next, c - w);
+        let take;
+        if (unlimited) {
+            // Unbounded: stay on the same item.
+            take = v + dfs(i, c - w);
+        } else {
+            // 0/1: move to the next item.
+            take = v + dfs(i + 1, c - w);
+        }
 
         return Math.max(skip, take);
     }
