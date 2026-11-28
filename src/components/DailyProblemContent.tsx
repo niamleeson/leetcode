@@ -41,7 +41,7 @@ export default function DailyProblemContent({ id, date, compareSolutions = false
       <p>{error ?? 'Loading saved solutions…'}</p>
       {error && <button type="button" className={textLink} onClick={() => setAttempt(value => value + 1)}>Retry saved solutions</button>}
     </div> : <>
-      {compareSolutions ? <SolutionComparison solutions={document.solutions} dfsLabel="DFS + memoization" />
+      {compareSolutions ? <SolutionComparison solutions={document.solutions.slice(0, 2)} memoizedDfs={document.solutions[2]} />
         : document.solutions.map((solution, solutionIndex) => <StudySolution key={solution.title} solution={solution} index={solutionIndex} />)}
 
       <section aria-label="Solution comparison" className="space-y-3 border-t border-gray-800 pt-5 light:border-gray-200">

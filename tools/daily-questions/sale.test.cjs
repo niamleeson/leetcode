@@ -7,13 +7,16 @@ const test = require('node:test');
 
 const entry = JSON.parse(fs.readFileSync(path.join(__dirname, '../../src/data/daily-questions/entries/2026-11-27.json'), 'utf8'));
 assert.equal(entry.id, 3946);
-const dp = entry.solutions.find(solution => solution.title === '0/1 first purchases + cheapest extra copies');
-assert.ok(dp, 'The existing DP solution remains available');
-const dfs = {
-  code: fs.readFileSync(path.join(__dirname, 'imports/2026-11-27-3946-dfs.js'), 'utf8'),
-  pythonCode: fs.readFileSync(path.join(__dirname, 'imports/2026-11-27-3946-dfs.py'), 'utf8'),
-};
-const variants = [{ name: 'DFS', ...dfs }, { name: 'DP', ...dp }];
+const variants = [
+  ['DFS without memoization', 'maximumSaleItemsDFS'],
+  ['DFS with memoization', 'maximumSaleItemsMemo'],
+  ['Bottom-up DP (Mixed Knapsack)', 'maximumSaleItemsDP'],
+].map(([title, name]) => {
+  const solution = entry.solutions.find(solution => solution.title === title);
+  assert.ok(solution, `${title} is available`);
+  return { ...solution, name };
+});
+const [dfs, memo, dp] = variants;
 
 // Enumerate actual paid-copy counts, then award each purchased type's gifts once.
 // This does not use the solutions' first-purchase/cheapest-extra decomposition.
@@ -49,8 +52,7 @@ const cases = [
   { items: [[2, 1], [4, 9], [8, 9]], budget: 1, expected: 3 },
   // Different types with identical factors each grant gifts once.
   { items: [[1, 1], [1, 1]], budget: 2, expected: 4 },
-  // Skipping the cheapest type's activation undercounts its gifts at a leaf;
-  // the branch activating that type must still find the true optimum.
+  // The first paid copy must include that type's free rewards.
   { items: [[1, 1], [2, 2]], budget: 1, expected: 2 },
   { items: [[2, 1], [3, 1], [5, 2]], budget: 1, expected: 1 },
 ];
@@ -80,17 +82,13 @@ const boundaries = [
   { items: Array.from({ length: 1000 }, () => [1, 1500]), budget: 1500, expected: 1000 },
   { items: Array.from({ length: 1000 }, () => [1, 1500]), budget: 1499, expected: 0 },
 ];
-const allCases = [...cases, ...boundaries];
-
-test('3946: DFS and DP match independent purchase enumeration and the maximum bounds in both languages', () => {
-  assert.equal(cases.length, 2056);
-  for (const item of cases) assert.equal(brute(item.items, item.budget), item.expected);
-  const originalInputs = JSON.stringify(allCases);
-  for (const variant of variants) {
-    const context = vm.createContext({ cases: allCases, answers: [] });
-    vm.runInContext(`${variant.code}\nfor (const item of cases) answers.push(maximumSaleItems(item.items, item.budget));`, context, { timeout: 15000 });
-    assert.deepEqual(Array.from(context.answers), allCases.map(item => item.expected), `${variant.name}: all JavaScript answers`);
-    assert.equal(JSON.stringify(allCases), originalInputs, `${variant.name}: JavaScript inputs are unchanged`);
+function checkVariants(solutions, inputs) {
+  const originalInputs = JSON.stringify(inputs);
+  for (const solution of solutions) {
+    const context = vm.createContext({ cases: inputs, answers: [] });
+    vm.runInContext(`${solution.code}\nfor (const item of cases) answers.push(${solution.name}(item.items, item.budget));`, context, { timeout: 30000 });
+    assert.deepEqual(Array.from(context.answers), inputs.map(item => item.expected), `${solution.name}: all JavaScript answers`);
+    assert.equal(JSON.stringify(inputs), originalInputs, `${solution.name}: JavaScript inputs are unchanged`);
   }
   const pythonCode = [
     'import copy,json,sys',
@@ -110,40 +108,107 @@ test('3946: DFS and DP match independent purchase enumeration and the maximum bo
     'print(json.dumps(answers))',
   ].join('\n');
   const python = spawnSync('python3', ['-c', pythonCode], {
-    input: JSON.stringify({ sources: variants.map(variant => ({ name: variant.name, code: variant.pythonCode })), cases: allCases }),
-    encoding: 'utf8', timeout: 30000, maxBuffer: 4 * 1024 * 1024,
+    input: JSON.stringify({ sources: solutions.map(solution => ({ name: solution.name, code: solution.pythonCode })), cases: inputs }),
+    encoding: 'utf8', timeout: 60000, maxBuffer: 4 * 1024 * 1024,
   });
   assert.ifError(python.error);
   assert.equal(python.status, 0, python.stderr);
-  assert.deepEqual(JSON.parse(python.stdout), variants.map(() => allCases.map(item => item.expected)));
+  assert.deepEqual(JSON.parse(python.stdout), solutions.map(() => inputs.map(item => item.expected)));
+}
+
+test('3946: all three solutions match independent purchase enumeration in both languages', () => {
+  assert.equal(cases.length, 2056);
+  for (const item of cases) assert.equal(brute(item.items, item.budget), item.expected);
+  checkVariants(variants, cases);
 });
 
-test('3946: DFS caches each repeated state once, including a valid zero answer', () => {
-  const cacheRead = 'if (memo[i][rem] !== -1) return memo[i][rem];';
-  const cacheWrite = 'memo[i][rem] = best;';
-  assert.ok(dfs.code.includes(cacheRead) && dfs.code.includes(cacheWrite));
-  const checks = [];
+test('3946: memoization and DP handle the maximum item and budget bounds in both languages', () => {
+  // Plain DFS deliberately explores the full tree and is only suitable for small inputs.
+  checkVariants([memo, dp], boundaries);
+});
+
+test('3946: purchased is part of the memo key and cached zero answers are reused', () => {
+  const hits = [];
   const writes = [];
-  const code = dfs.code
-    .replace(cacheRead, `recordCheck(i, rem, memo[i][rem]);\n    ${cacheRead}`)
-    .replace(cacheWrite, `recordWrite(i, rem, best);\n    ${cacheWrite}`);
-  const items = [[2, 1], [3, 1], [5, 2]];
-  const budget = 1;
-  const result = vm.runInNewContext(`${code}\nmaximumSaleItems(items, budget)`, {
-    items, budget,
-    recordCheck: (index, remaining, value) => checks.push({ index, remaining, value }),
-    recordWrite: (index, remaining, value) => writes.push({ index, remaining, value }),
+  class TrackedMap extends Map {
+    has(key) {
+      const found = super.has(key);
+      if (found) hits.push({ key, value: super.get(key) });
+      return found;
+    }
+    set(key, value) {
+      writes.push({ key, value });
+      return super.set(key, value);
+    }
+  }
+  const items = [[2, 1], [3, 1], [5, 5]];
+  const budget = 3;
+  const result = vm.runInNewContext(`${memo.code}\n${memo.name}(items, budget)`, {
+    items, budget, Map: TrackedMap,
   }, { timeout: 1000 });
-  assert.equal(result, 1);
-  assert.ok(checks.some(check => check.value === 0), 'A cached zero answer is reused');
-  assert.equal(new Set(writes.map(({ index, remaining }) => `${index},${remaining}`)).size, writes.length);
-  assert.equal(checks.filter(check => check.value === -1).length, writes.length);
-  assert.ok(writes.length <= items.length * (budget + 1));
+  assert.equal(result, brute(items, budget));
+  assert.ok(hits.some(hit => hit.value === 0), 'A cached zero answer is reused');
+  assert.equal(new Set(writes.map(({ key }) => key)).size, writes.length, 'Every state is computed once');
+  const keys = new Set(writes.map(({ key }) => key));
+  assert.ok([...keys].some(key => key.endsWith(',false') && keys.has(key.replace(/false$/, 'true'))),
+    'States with the same item and budget distinguish whether its first purchase already happened');
+  assert.ok(writes.length <= 2 * items.length * (budget + 1));
 });
 
-test('3946: the existing DP walkthrough still covers all capacity updates and final allowances', () => {
+test('3946: walkthroughs include every recursive call, cache reuse, and DP update in execution order', () => {
+  const items = [[2, 2], [4, 2]];
+  const budget = 6;
+  for (const solution of [dfs, memo]) {
+    const calls = [];
+    const hits = [];
+    const writes = [];
+    class TraceMap extends Map {
+      has(key) {
+        const found = super.has(key);
+        if (found) hits.push(key);
+        return found;
+      }
+      set(key, value) {
+        writes.push({ key, value });
+        return super.set(key, value);
+      }
+    }
+    const code = solution.code.replace('function dfs(i, remaining, purchased) {',
+      'function dfs(i, remaining, purchased) { recordCall(i, remaining, purchased);');
+    assert.notEqual(code, solution.code, 'Instrument the saved recursive function');
+    const result = vm.runInNewContext(`${code}\n${solution.name}(items, budget)`, {
+      items, budget, Map: TraceMap,
+      recordCall: (...args) => calls.push(args),
+    }, { timeout: 1000 });
+    assert.equal(result, 4);
+    for (const trace of [solution.walkthrough, solution.pythonWalkthrough]) {
+      const recorded = [...trace.matchAll(/^\s*Call (\d+): dfs\((\d+), (\d+), (true|false)\)/gim)];
+      assert.deepEqual(recorded.map(match => Number(match[1])), calls.map((_, i) => i + 1));
+      assert.deepEqual(recorded.map(match => [Number(match[2]), Number(match[3]), match[4].toLowerCase() === 'true']), calls,
+        `${solution.title}: every call and state in the walkthrough matches execution`);
+      assert.equal((trace.match(/The key is cached:/g) || []).length, hits.length, 'Every cache hit is shown');
+      assert.equal((trace.match(/Save memo(?:\[|\.set\()/g) || []).length, writes.length, 'Every cache write is shown');
+    }
+  }
+
+  const updates = [];
+  const code = dp.code.replace('Array(budget + 1).fill(0)', 'observe(Array(budget + 1).fill(0))');
+  const result = vm.runInNewContext(`${code}\n${dp.name}(items, budget)`, {
+    items, budget,
+    observe: values => new Proxy(values, {
+      set(target, key, value) {
+        target[key] = value;
+        updates.push({ c: Number(key), values: [...target] });
+        return true;
+      },
+    }),
+  }, { timeout: 1000 });
+  assert.equal(result, 4);
+  assert.equal(updates.length, 20);
   for (const trace of [dp.walkthrough, dp.pythonWalkthrough]) {
-    assert.equal((trace.match(/^Capacity \d+\./gm) || []).length, 18);
-    assert.equal((trace.match(/^cap = \d+\./gm) || []).length, 10);
+    const capacities = [...trace.matchAll(/^Capacity (\d+) \((?:first|additional) purchase\)\./gm)].map(match => Number(match[1]));
+    const snapshots = [...trace.matchAll(/^  dp = (\[[^\n]+\])/gm)].map(match => JSON.parse(match[1]));
+    assert.deepEqual(capacities, updates.map(update => update.c), 'Every capacity is shown in execution order');
+    assert.deepEqual(snapshots, updates.map(update => update.values), 'The entire DP array matches after every update');
   }
 });

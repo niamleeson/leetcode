@@ -84,20 +84,30 @@ fs.mkdirSync(screenshotDirectory, { recursive: true });
   };
   const checkComparison = async (page, width) => {
     const variants = page.getByRole('region', { name: 'DFS and DP solutions', exact: true }).locator(':scope > section');
-    assert.equal(await variants.count(), 2);
-    assert.equal(await variants.nth(0).getByText('DFS + memoization', { exact: true }).count(), 1);
-    assert.equal(await variants.nth(1).getByText('Bottom-up DP', { exact: true }).count(), 1);
-    const left = await variants.nth(0).boundingBox();
-    const right = await variants.nth(1).boundingBox();
+    assert.equal(await variants.count(), 3);
+    assert.deepEqual(await variants.locator(':scope > div > h2').allTextContents(), [
+      'DFS without memoization', 'DFS with memoization', 'Bottom-up DP (Mixed Knapsack)',
+    ], 'Read plain DFS, then memoized DFS, then DP on mobile and with assistive technology');
+    const dfs = page.getByRole('region', { name: 'Saved solution: DFS without memoization', exact: true });
+    const memo = page.getByRole('region', { name: 'Saved solution: DFS with memoization', exact: true });
+    const dp = page.getByRole('region', { name: 'Saved solution: Bottom-up DP (Mixed Knapsack)', exact: true });
+    const left = await dfs.boundingBox();
+    const below = await memo.boundingBox();
+    const right = await dp.boundingBox();
     if (width >= 1024) {
       assert.ok(left.x + left.width <= right.x, 'DFS is left of DP');
+      assert.ok(Math.abs(left.y - right.y) <= 1, 'Plain DFS and DP start together');
+      assert.ok(Math.abs(left.x - below.x) <= 1 && Math.abs(left.width - below.width) <= 1, 'Memoized DFS uses the same left column');
+      assert.ok(left.y + left.height <= below.y, 'The complete memoized solution sits below plain DFS');
       for (const name of referenceSections.map(section => section.name)) {
-        const first = await variants.nth(0).locator(`[data-solution-section="${name}"]`).boundingBox();
-        const second = await variants.nth(1).locator(`[data-solution-section="${name}"]`).boundingBox();
+        const first = await dfs.locator(`[data-solution-section="${name}"]`).boundingBox();
+        const second = await dp.locator(`[data-solution-section="${name}"]`).boundingBox();
         assert.ok(Math.abs(first.y - second.y) <= 1, `${name}: comparison columns align`);
       }
     } else {
-      assert.ok(left.y + left.height <= right.y, 'DFS and DP stack on mobile');
+      assert.ok(left.y + left.height <= below.y, 'Plain DFS stacks above memoized DFS on mobile');
+      assert.ok(below.y + below.height <= right.y, 'Memoized DFS stacks above DP on mobile');
+      assert.ok(Math.abs(left.x - below.x) <= 1 && Math.abs(left.x - right.x) <= 1, 'All mobile solutions use the same column');
     }
   };
   const rollingWalkthrough = page => page.getByRole('region', { name: 'Binary search + rolling hash walkthrough', exact: true });
@@ -108,10 +118,17 @@ fs.mkdirSync(screenshotDirectory, { recursive: true });
     const sections = page.locator('section[aria-label^="Saved solution:"]');
     assert.equal(await sections.count(), solutions.length);
     for (let index = 0; index < solutions.length; index++) {
-      const section = sections.nth(index);
       const solution = solutions[index];
+      const section = page.getByRole('region', { name: `Saved solution: ${solution.title}`, exact: true });
       const expectedCode = preference === 'python' && solution.pythonCode ? solution.pythonCode : solution.code;
       assert.equal(await section.locator('[data-solution-section="solution"] > pre.code-block code').textContent(), expectedCode, `${solution.title}: exact code in selected language`);
+      if (solution.pythonCode) {
+        const js = section.getByRole('button', { name: 'JavaScript', exact: true });
+        const py = section.getByRole('button', { name: 'Python', exact: true });
+        assert.equal(await js.getAttribute('aria-pressed'), String(preference === 'javascript'), `${solution.title}: shared JavaScript selection`);
+        assert.equal(await py.getAttribute('aria-pressed'), String(preference === 'python'), `${solution.title}: shared Python selection`);
+        assert.ok((await js.boundingBox()).x < (await py.boundingBox()).x, `${solution.title}: JavaScript is left of Python`);
+      }
       assert.deepEqual(await templateSections(section), referenceSections, `${solution.title}: same template and heading styles as problem #2`);
       assert.ok((await section.locator('[data-solution-section="intuition"]').innerText()).includes(solution.intuition));
       assert.ok((await section.locator('[data-solution-section="explanation"]').innerText()).includes(solution.explanation));
@@ -249,7 +266,7 @@ fs.mkdirSync(screenshotDirectory, { recursive: true });
       await checkDaily(page, entry, index);
       const variants = page.locator('section[aria-label^="Saved solution:"]');
       for (let variantIndex = 0; variantIndex < entry.solutions.length; variantIndex++) {
-        const variant = variants.nth(variantIndex);
+        const variant = page.getByRole('region', { name: `Saved solution: ${entry.solutions[variantIndex].title}`, exact: true });
         for (let hintIndex = 0; hintIndex < entry.solutions[variantIndex].hints.length; hintIndex++) {
           await variant.getByRole('button', { name: `Reveal Hint ${hintIndex + 1}`, exact: true }).click();
           assert.ok((await variant.locator('[data-solution-section="hints"]').innerText()).includes(entry.solutions[variantIndex].hints[hintIndex]));
@@ -270,6 +287,7 @@ fs.mkdirSync(screenshotDirectory, { recursive: true });
         await checkComparison(page, 1280);
         await variants.nth(1).getByRole('button', { name: 'Python', exact: true }).click();
         await checkTemplate(page, entry.solutions);
+        await checkComparison(page, 1280);
       }
       if (entry.id === 2914) await page.screenshot({ animations: 'disabled', path: path.join(screenshotDirectory, 'daily-template-desktop.png'), fullPage: true });
       if (entry.id === 1352) {
@@ -314,6 +332,8 @@ fs.mkdirSync(screenshotDirectory, { recursive: true });
         if (width < 600) await firstLink.tap();
         else { await firstLink.focus(); await firstLink.press('Enter'); }
         await checkDaily(themedPage, entries[0], 0);
+        await themedPage.getByRole('region', { name: 'Saved solution: DFS without memoization', exact: true }).getByRole('button', { name: 'JavaScript', exact: true }).click();
+        await checkTemplate(themedPage, entries[0].solutions);
         await checkComparison(themedPage, width);
         await themedPage.screenshot({ animations: 'disabled', path: path.join(screenshotDirectory, `problem-${width}-${theme}.png`) });
         await themedPage.locator('[data-solution-section="intuition"]').first().scrollIntoViewIfNeeded();
@@ -322,9 +342,16 @@ fs.mkdirSync(screenshotDirectory, { recursive: true });
         await firstCode.scrollIntoViewIfNeeded();
         await checkOverflow(themedPage);
         await themedPage.screenshot({ animations: 'disabled', path: path.join(screenshotDirectory, `code-${width}-${theme}.png`) });
-        await themedPage.locator('section[aria-label^="Saved solution:"]').nth(1).getByRole('button', { name: 'Python', exact: true }).click();
+        const memoCode = themedPage.getByRole('region', { name: 'Saved solution: DFS with memoization', exact: true }).locator('[data-solution-section="solution"]');
+        await memoCode.evaluate(element => element.scrollIntoView({ block: 'start' }));
+        await checkOverflow(themedPage);
+        await themedPage.screenshot({ animations: 'disabled', path: path.join(screenshotDirectory, `sale-memo-javascript-${width}-${theme}.png`) });
+        await themedPage.getByRole('region', { name: 'Saved solution: Bottom-up DP (Mixed Knapsack)', exact: true }).getByRole('button', { name: 'Python', exact: true }).click();
         await checkTemplate(themedPage, entries[0].solutions);
         await checkComparison(themedPage, width);
+        await memoCode.evaluate(element => element.scrollIntoView({ block: 'start' }));
+        await checkOverflow(themedPage);
+        await themedPage.screenshot({ animations: 'disabled', path: path.join(screenshotDirectory, `sale-memo-python-${width}-${theme}.png`) });
         await themedPage.locator('section[aria-label$=" walkthrough"]').first().getByRole('heading', { name: 'Step-by-Step Walkthrough', exact: true }).scrollIntoViewIfNeeded();
         await checkOverflow(themedPage);
         await themedPage.screenshot({ animations: 'disabled', path: path.join(screenshotDirectory, `sale-walkthrough-${width}-${theme}.png`) });
