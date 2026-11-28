@@ -1,7 +1,6 @@
 import { afterEach, expect, it } from 'vitest';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
-import SearchView from './SearchView';
 import AllProblems from './AllProblems';
 import { uniqueProblems } from '../data/problems';
 import type { ProblemProgress } from '../types';
@@ -32,20 +31,6 @@ function renderAllProblems(url = '/problems', progress = getProgress) {
 const params = () => new URLSearchParams(screen.getByTestId('catalog-search-params').textContent || '');
 const searchAll = (value: string) => fireEvent.change(screen.getByRole('searchbox', { name: 'Search all problems' }), { target: { value } });
 const rowLinks = () => screen.queryAllByRole('link').map(link => link.getAttribute('href'));
-
-it('keeps every catalog match reachable while rendering at most fifty rows', () => {
-  render(<MemoryRouter><SearchView getProgress={getProgress}/></MemoryRouter>);
-  const input = screen.getByRole('textbox');
-  fireEvent.change(input, { target: { value: 'Easy' } });
-  expect(screen.getAllByRole('link')).toHaveLength(50);
-  const first = screen.getAllByRole('link')[0].getAttribute('href');
-  fireEvent.click(screen.getByRole('button', { name: 'Next' }));
-  expect(screen.getAllByRole('link')).toHaveLength(50);
-  expect(screen.getAllByRole('link')[0].getAttribute('href')).not.toBe(first);
-  fireEvent.change(input, { target: { value: '4101' } });
-  expect(screen.getByRole('link', { name: /4101/ }).getAttribute('href')).toBe('/problem/4101');
-  expect(screen.queryByRole('navigation', { name: 'Search result pages' })).toBeNull();
-});
 
 it('shows complete catalog coverage without mutating its shared ordering', () => {
   const order = uniqueProblems.map(problem => problem.id);

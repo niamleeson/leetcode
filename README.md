@@ -7,7 +7,6 @@ A self-contained React app for mastering LeetCode problems with spaced repetitio
 - **4,101 LeetCode problems** with local statements, explanations, and implementations across available languages, plus 30 system-design study problems (catalog snapshot: November 7, 2026)
 - **16 topic lessons** with pattern guides, code templates, common mistakes, and tips
 - **Spaced repetition** (SM-2 algorithm) to resurface problems you struggle with
-- **Difficulty progression** — study queues prioritize: due reviews > unseen easy > medium > hard
 - **Syntax-highlighted Python code** with Prism.js
 - **Pseudocode for memorization** — terse natural-language steps for each problem
 - **Bookmarkable URLs** — every topic, problem, and filter state has its own route
@@ -34,10 +33,10 @@ Open http://localhost:5173
 
 | Path | Page |
 |---|---|
-| `/` | Dashboard |
-| `/study` | Study session |
-| `/problems` | All problems (filterable) |
-| `/search` | Search |
+| `/` | Redirects to NeetCode 250 |
+| `/neetcode` | NeetCode 250 |
+| `/problems` | All problems (searchable and filterable) |
+| `/search` | Legacy link redirects to All Problems |
 | `/system-design` | 49 Hello Interview articles, grouped and searchable |
 | `/system-design/:slug` | Condensed notes with diagrams; switch to the full saved article |
 | `/system-design?view=practice` | Existing 30-problem system design reference |

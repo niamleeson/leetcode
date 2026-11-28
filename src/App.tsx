@@ -2,17 +2,14 @@ import { lazy, Suspense, useState, useCallback, useEffect, useRef } from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAppStore } from './store/useStore';
 import Sidebar from './components/Sidebar';
-import Dashboard from './components/Dashboard';
 import { slugToTopic } from './utils/topic-routing';
 import { useParams } from 'react-router-dom';
 
 const ENABLE_ASK_CLAUDE = false;
 const HackerRankReact = lazy(() => import('./components/HackerRankReact'));
 const TopicView = lazy(() => import('./components/TopicView'));
-const StudySession = lazy(() => import('./components/StudySession'));
 const AllProblems = lazy(() => import('./components/AllProblems'));
 const DailyQuestions = lazy(() => import('./components/DailyQuestions'));
-const SearchView = lazy(() => import('./components/SearchView'));
 const ProblemPage = lazy(() => import('./components/ProblemPage'));
 const DSAReference = lazy(() => import('./components/DSAReference'));
 const NeetCode250 = lazy(() => import('./components/NeetCode250'));
@@ -20,7 +17,6 @@ const NeetCode150 = lazy(() => import('./components/NeetCode150'));
 const NeetCodeBlind75 = lazy(() => import('./components/NeetCodeBlind75'));
 const SystemDesignReference = lazy(() => import('./components/SystemDesignHub'));
 const SDIVol1Reference = lazy(() => import('./components/SDIVol1Reference'));
-const GlossaryPage = lazy(() => import('./components/GlossaryPage'));
 const AskClaudePanel = lazy(() => import('./components/AskClaudePanel'));
 const StudyMode = lazy(() => import('./components/study/StudyMode'));
 const LogicPractice = lazy(() => import('./components/logic/LogicPractice'));
@@ -94,33 +90,11 @@ export default function App() {
 
   return (
     <div className="relative min-h-screen bg-gray-950 light:bg-white">
-      <Sidebar
-        dueCount={store.dueProblems.length}
-        solvedToday={store.solvedToday}
-        dailyGoal={store.dailyGoal}
-        getTopicStats={store.getTopicStats}
-      />
+      <Sidebar />
       <main className={`mx-auto ${isLogicPage ? 'logic-main' : isNeetCodePage ? 'neetcode-main' : `p-2 md:p-6 pt-14 max-w-5xl ${isSystemDesignArticle ? 'overflow-visible' : 'overflow-y-auto'}`}`}>
         <Suspense fallback={<p role="status" className="p-4 text-sm text-gray-400 light:text-gray-600">Loading page…</p>}>
         <Routes>
-          <Route path="/" element={
-            <Dashboard
-              stats={store.stats}
-              dueCount={store.dueProblems.length}
-              solvedToday={store.solvedToday}
-              dailyGoal={store.dailyGoal}
-              setDailyGoal={store.setDailyGoal}
-              getTopicStats={store.getTopicStats}
-            />
-          } />
-          <Route path="/study" element={
-            <StudySession
-              topic={null}
-              getProgress={store.getProgress}
-              getStudyQueue={store.getStudyQueue}
-              dueCount={store.dueProblems.length}
-            />
-          } />
+          <Route path="/" element={<Navigate to="/neetcode" replace />} />
           <Route path="/problems" element={
             <AllProblems
               getProgress={store.getProgress}
@@ -128,11 +102,7 @@ export default function App() {
             />
           } />
           <Route path="/daily" element={<DailyQuestions />} />
-          <Route path="/search" element={
-            <SearchView
-              getProgress={store.getProgress}
-            />
-          } />
+          <Route path="/search" element={<Navigate to="/problems" replace />} />
           <Route path="/dsa" element={<DSAReference />} />
           <Route path="/neetcode" element={<NeetCode250 />} />
           <Route path="/practice/:id?" element={<LogicPractice />} />
@@ -142,7 +112,6 @@ export default function App() {
           <Route path="/sdi-book" element={<SDIVol1Reference />} />
           <Route path="/train/sdi" element={<StudyMode source="sdi" />} />
           <Route path="/train/dsa" element={<StudyMode source="dsa" />} />
-          <Route path="/glossary" element={<GlossaryPage />} />
           <Route path="/hackerrank-react/:slug?" element={
             <Suspense fallback={<p className="text-gray-400 light:text-gray-600">Loading React solutions…</p>}>
               <HackerRankReact />
@@ -159,7 +128,7 @@ export default function App() {
               onReset={store.resetProgress}
             />
           } />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<Navigate to="/neetcode" replace />} />
         </Routes>
         </Suspense>
       </main>
@@ -184,7 +153,7 @@ function TopicRoute({ store }: { store: ReturnType<typeof useAppStore> }) {
   const { slug } = useParams();
   const topic = slugToTopic(slug || '');
 
-  if (!topic) return <Navigate to="/" replace />;
+  if (!topic) return <Navigate to="/neetcode" replace />;
 
   return (
     <TopicView

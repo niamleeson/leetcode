@@ -1,20 +1,8 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Topic } from '../types';
-import { STUDY_ORDER } from '../data/problems';
-import { topicToSlug } from '../utils/topic-routing';
 import { useTheme } from '../hooks/useTheme';
 
-interface SidebarProps {
-  dueCount: number;
-  solvedToday: number;
-  dailyGoal: number;
-  getTopicStats: (topic: Topic) => { total: number; solved: number; attempted: number };
-}
-
 const navItems = [
-  { path: '/', label: 'Dashboard' },
-  { path: '/study', label: 'Study Session', badgeKey: 'due' as const },
   { path: '/practice', label: 'Practice logic' },
   { path: '/problems', label: 'All Problems' },
   { path: '/daily', label: 'Daily Questions' },
@@ -25,16 +13,9 @@ const navItems = [
   { path: '/hackerrank-react', label: 'React questions' },
   { path: '/system-design', label: 'System Design' },
   { path: '/sdi-book', label: 'SDI Book Notes' },
-  { path: '/glossary', label: 'Glossary' },
-  { path: '/search', label: 'Search' },
 ];
 
-export default function Sidebar({
-  dueCount,
-  solvedToday,
-  dailyGoal,
-  getTopicStats,
-}: SidebarProps) {
+export default function Sidebar() {
   const location = useLocation();
   const [open, setOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
@@ -69,8 +50,8 @@ export default function Sidebar({
         }`}
       >
         {/* Header with close button */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-800 light:border-gray-200">
-          <Link to="/" onClick={() => setOpen(false)}>
+        <div className="flex shrink-0 items-center justify-between p-4 border-b border-gray-800 light:border-gray-200">
+          <Link to="/neetcode" onClick={() => setOpen(false)}>
             <h1 className="text-lg font-bold text-white light:text-gray-900">DSA</h1>
             <p className="text-xs text-gray-500 mt-1 light:text-gray-500">Master algorithms with spaced repetition</p>
           </Link>
@@ -103,22 +84,8 @@ export default function Sidebar({
           </div>
         </div>
 
-        {/* Daily progress */}
-        <div className="p-4 border-b border-gray-800 light:border-gray-200">
-          <div className="flex justify-between text-xs text-gray-400 mb-1 light:text-gray-600">
-            <span>Today's progress</span>
-            <span>{solvedToday}/{dailyGoal}</span>
-          </div>
-          <div className="w-full bg-gray-800 rounded-full h-2 overflow-hidden light:bg-gray-200">
-            <div
-              className="h-full bg-emerald-500 transition-all duration-500 rounded-full"
-              style={{ width: `${Math.min(100, (solvedToday / dailyGoal) * 100)}%` }}
-            />
-          </div>
-        </div>
-
         {/* Navigation */}
-        <nav className="p-2 space-y-0.5 shrink-0 max-h-[55vh] overflow-y-auto">
+        <nav aria-label="Main navigation" className="min-h-0 flex-1 overflow-y-auto p-2 space-y-0.5">
           {navItems.map(item => {
             const isActive = location.pathname === item.path || (
               item.path === '/daily' && location.pathname.startsWith('/problem/') && new URLSearchParams(location.search).has('daily')
@@ -129,12 +96,12 @@ export default function Sidebar({
             ) || (
               item.path === '/system-design' && location.pathname.startsWith('/system-design/')
             );
-            const badge = item.badgeKey === 'due' ? dueCount : 0;
 
             return (
               <Link
                 key={item.path}
                 to={item.path}
+                aria-current={isActive ? 'page' : undefined}
                 onClick={() => setOpen(false)}
                 className={`w-full block px-3 py-2 rounded-md text-sm flex items-center justify-between transition-colors ${
                   isActive
@@ -143,54 +110,11 @@ export default function Sidebar({
                 }`}
               >
                 {item.label}
-                {badge > 0 && (
-                  <span className="bg-red-500/20 text-red-400 text-xs px-1.5 py-0.5 rounded-full light:bg-red-100 light:text-red-700">
-                    {badge}
-                  </span>
-                )}
               </Link>
             );
           })}
         </nav>
 
-        {/* Topics */}
-        <div className="flex-1 overflow-y-auto border-t border-gray-800 mt-2 light:border-gray-200">
-          <p className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider light:text-gray-500">
-            Topics
-          </p>
-          <div className="px-2 pb-4 space-y-0.5">
-            {STUDY_ORDER.map(topic => {
-              const tStats = getTopicStats(topic as Topic);
-              const pct = tStats.total > 0 ? Math.round((tStats.solved / tStats.total) * 100) : 0;
-              const slug = topicToSlug(topic);
-              const isSelected = location.pathname === `/topic/${slug}`;
-
-              return (
-                <Link
-                  key={topic}
-                  to={`/topic/${slug}`}
-                  onClick={() => setOpen(false)}
-                  className={`w-full block px-3 py-1.5 rounded-md text-sm flex items-center gap-2 transition-colors ${
-                    isSelected
-                      ? 'bg-blue-600/20 text-blue-400 light:bg-blue-100 light:text-blue-700'
-                      : 'text-gray-400 hover:bg-gray-800 hover:text-gray-200 light:text-gray-600 light:hover:bg-gray-100 light:hover:text-gray-900'
-                  }`}
-                >
-                  <span className="flex-1 truncate">{topic}</span>
-                  <span className="text-xs text-gray-600 whitespace-nowrap light:text-gray-500">
-                    {tStats.solved}/{tStats.total}
-                  </span>
-                  <div className="w-8 bg-gray-800 rounded-full h-1.5 overflow-hidden light:bg-gray-200">
-                    <div
-                      className="h-full bg-emerald-500 rounded-full"
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
       </aside>
     </>
   );
