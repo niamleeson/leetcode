@@ -119,14 +119,14 @@ test('3946: DFS and DP match independent purchase enumeration and the maximum bo
 });
 
 test('3946: DFS caches each repeated state once, including a valid zero answer', () => {
-  const cacheRead = 'if (memo[index][remaining] !== -1) return memo[index][remaining];';
-  const cacheWrite = 'memo[index][remaining] = best;';
+  const cacheRead = 'if (memo[i][rem] !== -1) return memo[i][rem];';
+  const cacheWrite = 'memo[i][rem] = best;';
   assert.ok(dfs.code.includes(cacheRead) && dfs.code.includes(cacheWrite));
   const checks = [];
   const writes = [];
   const code = dfs.code
-    .replace(cacheRead, `recordCheck(index, remaining, memo[index][remaining]);\n    ${cacheRead}`)
-    .replace(cacheWrite, `recordWrite(index, remaining, best);\n    ${cacheWrite}`);
+    .replace(cacheRead, `recordCheck(i, rem, memo[i][rem]);\n    ${cacheRead}`)
+    .replace(cacheWrite, `recordWrite(i, rem, best);\n    ${cacheWrite}`);
   const items = [[2, 1], [3, 1], [5, 2]];
   const budget = 1;
   const result = vm.runInNewContext(`${code}\nmaximumSaleItems(items, budget)`, {
@@ -144,6 +144,6 @@ test('3946: DFS caches each repeated state once, including a valid zero answer',
 test('3946: the existing DP walkthrough still covers all capacity updates and final allowances', () => {
   for (const trace of [dp.walkthrough, dp.pythonWalkthrough]) {
     assert.equal((trace.match(/^Capacity \d+\./gm) || []).length, 18);
-    assert.equal((trace.match(/^reserved = \d+\./gm) || []).length, 10);
+    assert.equal((trace.match(/^cap = \d+\./gm) || []).length, 10);
   }
 });

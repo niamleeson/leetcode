@@ -6,40 +6,40 @@ class Solution:
         # A path can have n + 1 calls, and n can be 1000.
         sys.setrecursionlimit(max(sys.getrecursionlimit(), n + 100))
 
-        first_purchase_gains = [0] * n
-        cheapest_price = float("inf")
+        gain = [0] * n
+        min_price = float("inf")
 
-        for index in range(n):
-            factor, price = items[index]
-            cheapest_price = min(cheapest_price, price)
+        for i in range(n):
+            factor, price = items[i]
+            min_price = min(min_price, price)
 
             # Include the paid copy itself and every other type received as a gift.
-            for other_factor, _ in items:
-                if other_factor % factor == 0:
-                    first_purchase_gains[index] += 1
+            for other, _ in items:
+                if other % factor == 0:
+                    gain[i] += 1
 
         # -1 means uncomputed; zero is a valid cached answer.
         memo = [[-1] * (budget + 1) for _ in range(n)]
 
-        def dfs(index, remaining):
+        def dfs(i, rem):
             # All first-purchase choices are made; spend the rest on cheapest copies.
-            if index == n:
-                return remaining // cheapest_price
+            if i == n:
+                return rem // min_price
 
             # Reuse the answer for the same item index and remaining budget.
-            if memo[index][remaining] != -1:
-                return memo[index][remaining]
+            if memo[i][rem] != -1:
+                return memo[i][rem]
 
-            price = items[index][1]
-            skip = dfs(index + 1, remaining)
+            price = items[i][1]
+            skip = dfs(i + 1, rem)
             best = skip
 
-            if price <= remaining:
+            if price <= rem:
                 # Advance the index so this type's first-purchase gain is counted once.
-                take = first_purchase_gains[index] + dfs(index + 1, remaining - price)
+                take = gain[i] + dfs(i + 1, rem - price)
                 best = max(best, take)
 
-            memo[index][remaining] = best
+            memo[i][rem] = best
             return best
 
         return dfs(0, budget)

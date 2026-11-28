@@ -332,7 +332,7 @@ test('3934: every rolling hash matches independent BigInt arithmetic through mod
     previous.set(length, hash);
     checkedWindows++;
   };
-  const instrumented = code.replace(record, `${record}\n            inspectWindow(start, length, hash, highestPower, BASE, MOD, nums);`);
+  const instrumented = code.replace(record, `${record}\n            inspectWindow(start, k, hash, power, BASE, MOD, nums);`);
   const solve = vm.runInNewContext(`${instrumented}\n;smallestUniqueSubarray`, { inspectWindow }, { timeout: 1000 });
   const inputs = [
     [1, 9994, 100000, 10001, 1, 9994, 100000, 10001],
