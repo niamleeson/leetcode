@@ -1,26 +1,16 @@
-function zeroOneKnapsackDfs(items, capacity) {
-  const memo = new Map();
+function knapsack(items, capacity) {
+    function dfs(i, c) {
+        if (i === items.length) return 0;
 
-  function dfs(index, remaining) {
-    // No items remain to choose from.
-    if (index === items.length) return 0;
+        const [w, v] = items[i];
+        const skip = dfs(i + 1, c);
 
-    const key = `${index},${remaining}`;
-    if (memo.has(key)) return memo.get(key);
+        if (c < w) return skip;
 
-    const { weight, value } = items[index];
-    const skip = dfs(index + 1, remaining);
-    let best = skip;
+        const take = v + dfs(i + 1, c - w);
 
-    if (weight <= remaining) {
-      // Move to the next item so this one cannot be taken twice.
-      const take = value + dfs(index + 1, remaining - weight);
-      best = Math.max(best, take);
+        return Math.max(skip, take);
     }
 
-    memo.set(key, best);
-    return best;
-  }
-
-  return dfs(0, capacity);
+    return dfs(0, capacity);
 }

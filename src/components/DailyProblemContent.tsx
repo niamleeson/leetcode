@@ -4,10 +4,11 @@ import { dailyQuestions, formatDailyDate, loadDailyQuestion } from '../data/dail
 import type { DailyQuestionDocument } from '../data/daily-questions/types';
 import CatalogProblemContent from './CatalogProblemContent';
 import StudySolution from './StudySolution';
+import SolutionComparison from './SolutionComparison';
 
 const textLink = 'text-sm text-blue-400 hover:underline light:text-blue-700';
 
-export default function DailyProblemContent({ id, date }: { id: number; date: string }) {
+export default function DailyProblemContent({ id, date, compareSolutions = false }: { id: number; date: string; compareSolutions?: boolean }) {
   const [document, setDocument] = useState<DailyQuestionDocument>();
   const [error, setError] = useState<string>();
   const [attempt, setAttempt] = useState(0);
@@ -40,7 +41,8 @@ export default function DailyProblemContent({ id, date }: { id: number; date: st
       <p>{error ?? 'Loading saved solutions…'}</p>
       {error && <button type="button" className={textLink} onClick={() => setAttempt(value => value + 1)}>Retry saved solutions</button>}
     </div> : <>
-      {document.solutions.map((solution, solutionIndex) => <StudySolution key={solution.title} solution={solution} index={solutionIndex} />)}
+      {compareSolutions ? <SolutionComparison solutions={document.solutions} dfsLabel="DFS + memoization" />
+        : document.solutions.map((solution, solutionIndex) => <StudySolution key={solution.title} solution={solution} index={solutionIndex} />)}
 
       <section aria-label="Solution comparison" className="space-y-3 border-t border-gray-800 pt-5 light:border-gray-200">
         <h2 className="text-lg font-semibold text-white light:text-gray-900">Compared with the existing app solution</h2>

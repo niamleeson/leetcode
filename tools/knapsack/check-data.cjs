@@ -5,6 +5,11 @@ const path = require('node:path');
 const entriesDirectory = path.resolve(__dirname, '../../src/data/knapsack/entries');
 const importsDirectory = path.join(__dirname, 'imports');
 const expected = ['mixed-knapsack', 'unbounded-knapsack', 'zero-one-knapsack'];
+const suppliedMarkdown = fs.readFileSync(path.join(__dirname, 'source.md'), 'utf8');
+const suppliedCode = [...suppliedMarkdown.matchAll(/```javascript\n([\s\S]*?)\n```/g)]
+  .map(match => match[1]).filter(code => code.startsWith('function knapsack(items, capacity) {'));
+assert.equal(suppliedCode.length, 6, 'The saved user document contains exactly six complete implementations');
+const suppliedOrder = ['zero-one-knapsack', 'unbounded-knapsack', 'mixed-knapsack'];
 const filenames = fs.readdirSync(entriesDirectory).filter(name => name.endsWith('.json')).sort();
 assert.deepEqual(filenames, expected.map(slug => `${slug}.json`), 'Each practice problem has one entry');
 assert.deepEqual(fs.readdirSync(importsDirectory).sort(), expected.flatMap(slug => [`${slug}.js`, `${slug}.py`, `${slug}-dfs.js`, `${slug}-dfs.py`]).sort(), 'Each problem has exact JavaScript and Python references for DFS and DP');
@@ -24,7 +29,9 @@ for (const filename of filenames) {
   assert.equal(entry.solutions.length, 2, `${filename}: DFS and DP solutions are present`);
   for (const [index, solution] of entry.solutions.entries()) {
     const variant = index === 0 ? 'dfs' : 'dp';
-    for (const field of ['title', 'code', 'pythonCode', 'intuition', 'approach', 'explanation', 'timeComplexity', 'spaceComplexity', 'example', 'walkthroughMarkdown', 'pythonWalkthroughMarkdown']) {
+    const suppliedIndex = suppliedOrder.indexOf(entry.slug) * 2 + index;
+    assert.equal(solution.code, suppliedCode[suppliedIndex], `${filename}: ${variant} exactly preserves the user-supplied JavaScript`);
+    for (const field of ['title', 'code', 'pythonCode', 'intuition', 'approach', 'explanation', 'timeComplexity', 'spaceComplexity', 'example', 'walkthrough', 'pythonWalkthrough']) {
       assert.ok(typeof solution[field] === 'string' && solution[field].trim(), `${filename}: ${field} is present`);
     }
     assert.ok(Array.isArray(solution.hints) && solution.hints.length > 0 && solution.hints.every(hint => typeof hint === 'string' && hint.trim()), `${filename}: incremental hints are present`);
@@ -40,30 +47,31 @@ for (const filename of filenames) {
     }
     assert.ok(Object.keys(solution.variables).length >= 2, `${filename}: complexity symbols are defined`);
     assert.ok(Object.values(solution.variables).every(value => typeof value === 'string' && value.trim()));
-    assert.ok(solution.variables.N && solution.variables.C);
-    if (entry.slug === 'mixed-knapsack' && variant === 'dp') assert.ok(solution.variables.B);
+    assert.ok(solution.variables.n && solution.variables.C, `${filename}: n and C are defined`);
+    assert.equal(solution.variables.B, undefined, `${filename}: mixed knapsack has no bounded-copy limit`);
     assert.ok(Array.isArray(solution.notes) && solution.notes.every(note => typeof note === 'string' && note.trim()));
     const jsName = solution.code.match(/^function (\w+)\(/)?.[1];
     const pythonName = solution.pythonCode.match(/^def (\w+)\(/)?.[1];
-    assert.ok(jsName && pythonName, `${filename}: complete named functions`);
-    assert.ok(solution.walkthroughMarkdown.includes(`${jsName}(items,`));
-    assert.ok(solution.pythonWalkthroughMarkdown.includes(`${pythonName}(items,`));
-    for (const field of ['walkthroughMarkdown', 'pythonWalkthroughMarkdown']) {
+    assert.equal(jsName, 'knapsack', `${filename}: supplied JavaScript function name`);
+    assert.equal(pythonName, 'knapsack', `${filename}: matching Python function name`);
+    assert.ok(solution.walkthrough.includes(`${jsName}(items,`));
+    assert.ok(solution.pythonWalkthrough.includes(`${pythonName}(items,`));
+    for (const field of ['walkthrough', 'pythonWalkthrough']) {
       const trace = solution[field];
+      assert.equal(solution[field + 'Markdown'], undefined, `${filename}: only the standard execution trace is saved`);
+      assert.doesNotMatch(trace, /^#{1,6} |^```/m, `${filename}: trace is plain text`);
       if (variant === 'dfs') {
         assert.match(trace, /dfs\(/, `${filename}: ${field} follows recursive calls`);
-        assert.match(trace, /(?:memo|cache)/i, `${filename}: ${field} explains memoization`);
-        assert.match(trace, /return/i, `${filename}: ${field} reaches the result`);
+        const expectedCalls = entry.slug === 'zero-one-knapsack' ? 7 : entry.slug === 'unbounded-knapsack' ? 25 : 13;
+        assert.equal([...trace.matchAll(/^\s*Call \d+: dfs\(\d+, \d+\)/gm)].length, expectedCalls, `${filename}: ${field} shows every plain recursive call`);
+        assert.equal([...trace.matchAll(/^\s*Return call \d+: \d+/gm)].length, expectedCalls, `${filename}: ${field} shows every recursive return`);
+        assert.match(trace, /Return from knapsack: \d+/, `${filename}: ${field} reaches the result`);
         continue;
       }
-      const expectedIterations = entry.slug === 'mixed-knapsack' ? 25 : 5;
-      assert.equal([...trace.matchAll(/^\*\*current = \d+\*\*$/gm)].length, expectedIterations, `${filename}: ${field} covers every capacity iteration`);
+      assert.equal([...trace.matchAll(/^c = \d+$/gm)].length, 13, `${filename}: ${field} covers every capacity iteration`);
       assert.ok(trace.includes('return dp[capacity]'), `${filename}: ${field} reaches the return`);
-      if (entry.slug === 'mixed-knapsack') {
-        assert.equal([...trace.matchAll(/`count = [12]`:/g)].length, 17, `${filename}: ${field} covers every bounded candidate`);
-      }
     }
     solutions++;
   }
 }
-console.log(JSON.stringify({ passed: true, knapsackProblems: filenames.length, solutions, exactLanguageImplementations: solutions * 2 }));
+console.log(JSON.stringify({ passed: true, knapsackProblems: filenames.length, solutions, exactUserJavaScriptImplementations: suppliedCode.length, exactLanguageImplementations: solutions * 2 }));

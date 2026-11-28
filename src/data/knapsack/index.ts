@@ -11,7 +11,7 @@ export interface KnapsackDocument {
 export const knapsackProblems = [
   { slug: 'zero-one-knapsack', title: '0/1 Knapsack', summary: 'Choose each item at most once.' },
   { slug: 'unbounded-knapsack', title: 'Unbounded Knapsack', summary: 'Choose any number of copies of each item.' },
-  { slug: 'mixed-knapsack', title: 'Mixed Knapsack', summary: 'Combine single-use, unlimited, and limited-copy items.' },
+  { slug: 'mixed-knapsack', title: 'Mixed Knapsack', summary: 'Combine items you can use once with items you can reuse.' },
 ];
 
 const loaders = import.meta.glob<{ default: KnapsackDocument }>('./entries/*.json');

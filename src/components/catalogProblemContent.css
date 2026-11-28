@@ -26,3 +26,26 @@
 .light .catalog-prose pre, .light .catalog-prose th, .light .catalog-prose td, .light .catalog-attribution { border-color: #d1d5db; }
 .light .catalog-section-title, .light .catalog-attribution, .light .catalog-loading { color: #4b5563; }
 .light .catalog-prose a, .light .catalog-attribution a, .light .catalog-loading button { color: #1d4ed8; }
+
+/* Daily problem bodies use the same typography and examples as ProblemPage. */
+.problem-template-description .catalog-prose { line-height: 1.625; }
+.problem-template-description .catalog-prose > * + * { margin-top: .75rem; }
+.problem-template-description .catalog-prose pre,
+.problem-template-description .problem-template-example {
+  padding: .75rem;
+  border: 1px solid #1f2937;
+  border-radius: .375rem;
+  font-size: .75rem;
+  line-height: 1rem;
+  color: #d1d5db;
+  background: #030712;
+}
+.problem-template-description .catalog-prose pre code,
+.problem-template-description .problem-template-example code { font-size: inherit; color: inherit; }
+.problem-template-example > * + * { margin-top: .5rem; }
+.light .problem-template-description .catalog-prose pre,
+.light .problem-template-description .problem-template-example {
+  color: #374151;
+  border-color: #e5e7eb;
+  background: #fff;
+}

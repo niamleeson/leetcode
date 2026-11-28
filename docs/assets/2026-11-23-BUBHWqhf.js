@@ -1,0 +1,93 @@
+const r=1352,e="2026-11-23",t={kind:"same-approach",summary:"Same prefix-product algorithm; your solution uses class methods and direct division.",details:["Both reset prefix to [1] after zero and return zero if the requested range crosses that reset.","Your JavaScript uses a class, an early return after zero, and named count, total, and before values. The existing curated JavaScript uses a constructor function with prototype methods and an else branch.","Your guard k > count is equivalent to the existing k >= prefix.length. Your direct division returns the same integer as the existing Math.floor division under the problem’s guarantees.","Both have O(1) amortized add, O(1) getProduct, and O(n) space. A wrong output in the previous curated example was also corrected with this import: after adding 3, 0, 2, and 5, getProduct(3) is 0, not 20. The supplied example is correct."]},n=[{title:"Prefix products since the last zero",code:`class ProductOfNumbers {
+    constructor() {
+        this.prefix = [1];
+    }
+
+    add(num) {
+        if (num === 0) {
+            this.prefix = [1];
+            return;
+        }
+
+        const last = this.prefix[this.prefix.length - 1];
+        this.prefix.push(last * num);
+    }
+
+    getProduct(k) {
+        const count = this.prefix.length - 1;
+
+        if (k > count) {
+            return 0;
+        }
+
+        const total = this.prefix[count];
+        const before = this.prefix[count - k];
+        return total / before;
+    }
+}`,approach:"Store cumulative products since the most recent zero, starting with [1], and reset that list whenever zero is added. If k reaches past the values stored since that reset, the requested product includes zero. Otherwise divide the latest cumulative product by the cumulative product just before the last k values.",timeComplexity:"add: O(1) amortized; getProduct: O(1)",spaceComplexity:"O(n)",variables:{n:"Number of values added; the current prefix array stores only values since the most recent zero.",k:"Number of most recently added values requested by getProduct."},example:"After add(3), add(0), add(2), add(5), add(4): getProduct(2) → 20; getProduct(4) → 0",intuition:"The product of a suffix can be obtained by dividing two cumulative products, but division cannot undo a zero. A zero also makes every query that crosses it equal to zero. Reset the cumulative-product list at each zero, then answer queries entirely within the current nonzero run by division.",hints:["How can two cumulative products give the product of the last k numbers?","What goes wrong with division when a zero was added, and what is the answer to any query that includes that zero?","Keep only products since the most recent zero, starting with the empty product 1. Compare k with the number of values in that current run."],pseudocode:{concept:"Divide prefix products within the current nonzero run; return zero for queries crossing its reset.",steps:["Initialize the prefix list to [1], representing the product of zero numbers.","When adding zero, replace the prefix list with [1] and finish that add operation.","When adding a nonzero value, append the last prefix product multiplied by that value.","For a query, let count be the prefix length minus one: the number of values since the last zero.","If k is greater than count, return zero because the requested suffix includes a zero.","Otherwise return prefix[count] divided by prefix[count - k]."]},explanation:`1. The leading 1 is the product of an empty run. It makes a query for all current nonzero values work without a special case: the denominator is prefix[0] = 1.
+2. Adding a nonzero value extends the cumulative product. Adding zero discards the previous run because all future queries reaching into it must include that zero.
+3. For a valid query with k greater than the current run length, the last k numbers cross the most recent zero, so their product is zero.
+4. Otherwise, prefix[count] contains all values in the current run and prefix[count - k] contains exactly the values before the requested suffix. Their quotient leaves only the last k values. The denominator is nonzero because the list contains only the run after the last reset.`,timeComplexityBreakdown:{variables:"n is the number of add calls and q is the number of getProduct queries. k is the suffix length requested by one query.",phases:[{label:"Construct the initial prefix list",cost:"O(1)"},{label:"Perform n additions, each with constant amortized append or reset work",cost:"O(n) amortized"},{label:"Perform q queries, each using direct indexes and one division",cost:"O(q)"}],simplifications:["O(1 + n + q)","O(n + q) amortized"],note:"This batch bound is equivalent to O(1) amortized per add and O(1) per getProduct. A query does not loop over its k values. The problem bounds the products so multiplication and division fit the numeric representation.",operations:[{title:"One add call",phases:[{label:"Check for zero and either create [1] or read the last prefix value",cost:"O(1)"},{label:"Multiply and append for a nonzero input",cost:"O(1) amortized"}],simplifications:["O(1) amortized"],note:"A dynamic array may occasionally grow its storage, so appending is constant time amortized across additions. Resetting replaces the list rather than scanning its entries."},{title:"One getProduct call",phases:[{label:"Calculate the run length and test whether the suffix crosses a zero",cost:"O(1)"},{label:"Read two prefix entries and divide when the suffix stays within the run",cost:"O(1)"}],simplifications:["O(1)"],note:"The requested k changes the denominator index, not the number of operations."}]},walkthrough:`Operations: add(3), add(0), add(2), add(5), add(4),
+            getProduct(2), getProduct(4)
+Construct ProductOfNumbers.
+constructor: prefix = [1]
+
+Call add(3), before: prefix = [1]
+  num === 0: 3 === 0 -> false
+  last index = 1 - 1 = 0
+  last = prefix[0] = 1
+  last * num = 1 * 3 = 3
+  push -> prefix = [1, 3]
+  End add; return.
+
+Call add(0), before: prefix = [1, 3]
+  num === 0: 0 === 0 -> true
+  Reset prefix = [1]; return immediately.
+  No last lookup or multiplication runs.
+
+Call add(2), before: prefix = [1]
+  num === 0: 2 === 0 -> false
+  last index = 1 - 1 = 0
+  last = prefix[0] = 1
+  last * num = 1 * 2 = 2
+  push -> prefix = [1, 2]
+  End add; return.
+
+Call add(5), before: prefix = [1, 2]
+  num === 0: 5 === 0 -> false
+  last index = 2 - 1 = 1
+  last = prefix[1] = 2
+  last * num = 2 * 5 = 10
+  push -> prefix = [1, 2, 10]
+  End add; return.
+
+Call add(4), before: prefix = [1, 2, 10]
+  num === 0: 4 === 0 -> false
+  last index = 3 - 1 = 2
+  last = prefix[2] = 10
+  last * num = 10 * 4 = 40
+  push -> prefix = [1, 2, 10, 40]
+  End add; return.
+
+Added sequence = [3, 0, 2, 5, 4]
+Current nonzero run = [2, 5, 4]
+prefix = [1, 2, 10, 40]
+
+Call getProduct(2)
+  count = 4 - 1 = 3
+  k > count: 2 > 3 -> false
+  total = prefix[3] = 40
+  before index = 3 - 2 = 1
+  before = prefix[1] = 2
+  Return 40 / 2 = 20
+
+Call getProduct(4)
+  count = 4 - 1 = 3
+  k > count: 4 > 3 -> true
+  Query crosses the zero; return 0.
+  No prefix lookup or division follows.
+
+Returned query values: [20, 0]
+  Last 2 values: 5 * 4 = 20
+  Last 4 values: 0 * 2 * 5 * 4 = 0
+Queries leave prefix = [1, 2, 10, 40] unchanged.`}],a={id:1352,date:e,comparison:t,solutions:n};export{t as comparison,e as date,a as default,r as id,n as solutions};

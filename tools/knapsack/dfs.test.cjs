@@ -1,175 +1,154 @@
 const assert = require('node:assert/strict');
-const { readFileSync } = require('node:fs');
+const {readFileSync} = require('node:fs');
 const path = require('node:path');
-const { spawnSync } = require('node:child_process');
+const {spawnSync} = require('node:child_process');
 const test = require('node:test');
 const vm = require('node:vm');
-
-const names = {
-  'zero-one-knapsack': ['zeroOneKnapsackDfs', 'zero_one_knapsack_dfs'],
-  'unbounded-knapsack': ['unboundedKnapsackDfs', 'unbounded_knapsack_dfs'],
-  'mixed-knapsack': ['mixedKnapsackDfs', 'mixed_knapsack_dfs'],
-};
-const sources = Object.fromEntries(Object.keys(names).map(slug => [slug, {
-  javascript: readFileSync(path.join(__dirname, `imports/${slug}-dfs.js`), 'utf8'),
-  python: readFileSync(path.join(__dirname, `imports/${slug}-dfs.py`), 'utf8'),
-}]));
-
-function runJavaScript(slug, items, capacity, extras = {}, code = sources[slug].javascript) {
-  // Run the invocation inside the VM too, so its timeout covers recursion.
-  return vm.runInNewContext(`${code}\n${names[slug][0]}(items, capacity);`, { items, capacity, ...extras }, { timeout: 2000 });
-}
-
-function observeMemo() {
-  const observations = [];
-  class Memo extends Map {
-    constructor() {
-      super();
-      this.stats = { hits: 0, misses: 0, reads: 0, zeroHits: 0, writes: [] };
-      observations.push(this);
-    }
-    has(key) {
-      const found = super.has(key);
-      this.stats[found ? 'hits' : 'misses']++;
-      return found;
-    }
-    get(key) {
-      assert.ok(super.has(key), 'Only completed states can be reused');
-      this.stats.reads++;
-      const answer = super.get(key);
-      if (answer === 0) this.stats.zeroHits++;
-      return answer;
-    }
-    set(key, value) {
-      assert.equal(super.has(key), false, `A cached state must not be recomputed: ${key}`);
-      this.stats.writes.push(key);
-      return super.set(key, value);
-    }
+const slugs=['zero-one-knapsack','unbounded-knapsack','mixed-knapsack'];
+const entries=Object.fromEntries(slugs.map(slug=>[slug,
+  JSON.parse(readFileSync(path.resolve(__dirname,`../../src/data/knapsack/entries/${slug}.json`),'utf8')),
+]));
+function trace(slug,items,capacity) {
+  const calls=[],events=[],stack=[];
+  let maximumDepth=0;
+  const original=entries[slug].solutions[0].code;
+  const replacements=[
+    ['function dfs(i, c) {','function dfs(i, c) { const callId = enter(i, c);'],
+    ['if (i === items.length) return 0;','if (i === items.length) return leave(callId, 0);'],
+    ['if (c < w) return skip;','if (c < w) return leave(callId, skip);'],
+    ['return Math.max(skip, take);','return leave(callId, Math.max(skip, take));'],
+  ];
+  let code=original;
+  for(const [find,replacement] of replacements) {
+    assert.equal(code.split(find).length,2,`One instrumentation site: ${find}`);
+    code=code.replace(find,replacement);
   }
-  return { Memo, observations };
+  const answer=vm.runInNewContext(`${code}\nknapsack(items, capacity);`,{
+    items,capacity,
+    enter(i,c) {
+      const call={id:calls.length+1,i,c,parent:stack.at(-1)?.id??null,children:[]};
+      if(stack.length) stack.at(-1).children.push(call.id);
+      calls.push(call);events.push({kind:'call',id:call.id,i,c});stack.push(call);
+      maximumDepth=Math.max(maximumDepth,stack.length);
+      return call.id;
+    },
+    leave(id,answer) {
+      const call=stack.pop();assert.equal(call.id,id);call.answer=answer;
+      events.push({kind:'return',id,answer});return answer;
+    },
+  },{timeout:2000});
+  assert.equal(stack.length,0);assert.ok(calls.length>0);
+  return {answer,calls,events,maximumDepth};
 }
-
-test('DFS reuses overlapping states, including cached zero answers, and computes each state once', () => {
-  for (const slug of Object.keys(names)) {
-    for (const value of [0, 3]) {
-      const items = Array.from({ length: 12 }, (_, index) => ({
-        weight: 1,
-        value,
-        ...(slug === 'mixed-knapsack' ? { kind: index % 2 === 0 ? 'unlimited' : 'bounded', limit: 2 } : {}),
-      }));
-      const capacity = 12;
-      const { Memo, observations } = observeMemo();
-      assert.equal(runJavaScript(slug, items, capacity, { Map: Memo }), value * capacity);
-      assert.equal(observations.length, 1, 'Each invocation owns one memo table');
-      const memo = observations[0];
-      const { hits, misses, reads, zeroHits, writes } = memo.stats;
-      assert.ok(hits > 0, `${slug}: overlapping recursive branches must use cached states`);
-      assert.equal(reads, hits);
-      assert.equal(writes.length, misses);
-      assert.equal(new Set(writes).size, writes.length);
-      assert.ok(memo.size <= items.length * (capacity + 1), `${slug}: at most N × (C + 1) non-base states`);
-      for (const key of writes) {
-        const [index, remaining] = key.split(',').map(Number);
-        assert.ok(Number.isInteger(index) && index >= 0 && index < items.length);
-        assert.ok(Number.isInteger(remaining) && remaining >= 0 && remaining <= capacity);
-      }
-      if (value === 0) assert.ok(zeroHits > 0, `${slug}: zero is a valid cached result`);
-    }
-  }
-});
-
-const depthCases = [];
-for (const slug of Object.keys(names)) {
-  const items = Array.from({ length: 100 }, (_, index) => ({
-    weight: 1,
-    value: 2,
-    ...(slug === 'mixed-knapsack' ? { kind: ['once', 'unlimited', 'bounded'][index % 3], limit: 2 } : {}),
-  }));
-  depthCases.push({ slug, items, capacity: 0, expected: 0, depth: 101 });
-  depthCases.push({ slug, items, capacity: 30, expected: 60, depth: 101 });
-  depthCases.push({ slug, items: [], capacity: 30, expected: 0, depth: 1 });
+const cases=[];
+for(const slug of slugs) {
+  const items=slug==='mixed-knapsack'?[[2,3,false],[3,4,true]]:[[2,3],[3,4]];
+  cases.push({slug,items,capacity:8,expected:slug==='zero-one-knapsack'?7:slug==='unbounded-knapsack'?12:11});
+  cases.push({slug,items,capacity:0,expected:0});
+  cases.push({slug,items:[],capacity:8,expected:0});
+  cases.push({slug,items:slug==='mixed-knapsack'?[[9,100,true],[10,200,false]]:[[9,100],[10,200]],capacity:8,expected:0});
 }
-depthCases.push(
-  { slug: 'unbounded-knapsack', items: [{ weight: 1, value: 7 }], capacity: 1000, expected: 7000, depth: 2 },
-  { slug: 'mixed-knapsack', items: [{ weight: 1, value: 7, kind: 'unlimited' }], capacity: 1000, expected: 7000, depth: 2 },
-  { slug: 'mixed-knapsack', items: [{ weight: 1, value: 1000, kind: 'bounded', limit: 0 }, { weight: 3, value: 8, kind: 'once' }, { weight: 2, value: 3, kind: 'unlimited' }], capacity: 7, expected: 14, depth: 4 },
-  { slug: 'zero-one-knapsack', items: [{ weight: 100, value: 1000 }, { weight: 1, value: 4 }], capacity: 3, expected: 4, depth: 3 },
-  { slug: 'unbounded-knapsack', items: [{ weight: 100, value: 1000 }, { weight: 1, value: 4 }], capacity: 3, expected: 12, depth: 3 },
+cases.push(
+  {slug:'zero-one-knapsack',items:[[1,7]],capacity:5,expected:7},
+  {slug:'unbounded-knapsack',items:[[1,7]],capacity:5,expected:35},
+  {slug:'mixed-knapsack',items:[[1,7,true]],capacity:5,expected:35},
+  {slug:'mixed-knapsack',items:[[1,7,false]],capacity:5,expected:7},
+  {slug:'zero-one-knapsack',items:[[1,0],[1,0],[1,0]],capacity:3,expected:0},
+  {slug:'unbounded-knapsack',items:[[1,0],[1,0]],capacity:3,expected:0},
+  {slug:'mixed-knapsack',items:[[1,0,false],[1,0,true]],capacity:3,expected:0},
 );
-
-test('JavaScript DFS advances one item per stack frame even with 100 types or capacity 1000', () => {
-  for (const { slug, items, capacity, expected, depth } of depthCases) {
-    const source = sources[slug].javascript;
-    const opening = 'function dfs(index, remaining) {';
-    const closing = '  }\n\n  return dfs(0, capacity);';
-    assert.ok(source.includes(opening) && source.includes(closing));
-    const code = source.replace(opening, `${opening}\n    enter(index, remaining);\n    try {`)
-      .replace(closing, '    } finally { leave(); }\n  }\n\n  return dfs(0, capacity);');
-    const stack = [];
-    let maximumDepth = 0;
-    const enter = (index, remaining) => {
-      assert.equal(index, stack.length, `${slug}: each call advances to the next item`);
-      assert.ok(remaining >= 0 && remaining <= capacity);
-      if (stack.length) assert.ok(remaining <= stack[stack.length - 1]);
-      stack.push(remaining);
-      maximumDepth = Math.max(maximumDepth, stack.length);
-    };
-    const leave = () => { stack.pop(); };
-    assert.equal(runJavaScript(slug, items, capacity, { enter, leave }, code), expected);
-    assert.equal(maximumDepth, depth);
-    assert.ok(maximumDepth <= items.length + 1);
-    assert.equal(stack.length, 0);
+test('actual DFS calls skip first, control reuse by index, and return every branch value',()=>{
+  for(const {slug,items,capacity,expected} of cases) {
+    const result=trace(slug,items,capacity);assert.equal(result.answer,expected);
+    for(const call of result.calls) {
+      assert.ok(call.c>=0&&call.c<=capacity);
+      if(call.i===items.length) {
+        assert.deepEqual(call.children,[]);assert.equal(call.answer,0);continue;
+      }
+      const [w,v,unlimited]=items[call.i];
+      const skip=result.calls[call.children[0]-1];
+      assert.deepEqual([skip.i,skip.c],[call.i+1,call.c],'The first branch skips');
+      if(call.c<w) {
+        assert.equal(call.children.length,1);assert.equal(call.answer,skip.answer);continue;
+      }
+      assert.equal(call.children.length,2);
+      const take=result.calls[call.children[1]-1];
+      const reusable=slug==='unbounded-knapsack'||slug==='mixed-knapsack'&&unlimited;
+      assert.deepEqual([take.i,take.c],[reusable?call.i:call.i+1,call.c-w]);
+      assert.equal(call.answer,Math.max(skip.answer,v+take.answer));
+    }
+    const minimumWeight=items.length?Math.min(...items.map(item=>item[0])):1;
+    const bound=slug==='zero-one-knapsack'?items.length+1:items.length+Math.floor(capacity/minimumWeight)+1;
+    assert.ok(result.maximumDepth<=bound);
   }
 });
-
-test('Python DFS handles the same depth and zero-copy cases without changing the recursion limit', () => {
-  const python = [
+test('plain DFS recomputes overlapping states and unlimited takes increase call depth',()=>{
+  for(const slug of slugs) {
+    const items=slug==='mixed-knapsack'?[[1,0,false],[1,0,true],[1,0,false]]:[[1,0],[1,0],[1,0]];
+    const result=trace(slug,items,3);
+    const states=result.calls.filter(c=>c.i<items.length).map(c=>`${c.i},${c.c}`);
+    assert.ok(new Set(states).size<states.length,`${slug}: overlapping states are not memoized`);
+  }
+  assert.equal(trace('zero-one-knapsack',[[1,7]],5).maximumDepth,2);
+  assert.equal(trace('unbounded-knapsack',[[1,7]],5).maximumDepth,7);
+  assert.equal(trace('mixed-knapsack',[[1,7,true]],5).maximumDepth,7);
+});
+test('Python and JavaScript execute the same complete DFS call/return sequence',()=>{
+  const python=[
     'import json, sys',
     'payload = json.load(sys.stdin)',
     'functions = {}',
     'for source in payload["sources"]:',
     '    namespace = {}',
     '    exec(source["code"], namespace)',
-    '    functions[source["slug"]] = namespace[source["name"]]',
-    'original_limit = sys.getrecursionlimit()',
+    '    functions[source["slug"]] = namespace["knapsack"]',
     'results = []',
     'for case in payload["cases"]:',
-    '    stack = []',
-    '    stats = {"max_depth": 0}',
+    '    stack, events = [], []',
+    '    stats = {"count": 0}',
     '    def profile(frame, event, arg):',
-    '        if frame.f_code.co_name != "dfs":',
-    '            return',
+    '        if frame.f_code.co_name != "dfs": return',
     '        if event == "call":',
-    '            index = frame.f_locals["index"]',
-    '            remaining = frame.f_locals["remaining"]',
-    '            assert index == len(stack), "Each frame must advance one item"',
-    '            assert 0 <= remaining <= case["capacity"]',
-    '            if stack:',
-    '                assert remaining <= stack[-1]',
-    '            stack.append(remaining)',
-    '            stats["max_depth"] = max(stats["max_depth"], len(stack))',
+    '            stats["count"] += 1',
+    '            identifier = stats["count"]',
+    '            stack.append(identifier)',
+    '            events.append({"kind":"call", "id":identifier, "i":frame.f_locals["i"], "c":frame.f_locals["c"]})',
     '        elif event == "return":',
-    '            stack.pop()',
+    '            events.append({"kind":"return", "id":stack.pop(), "answer":arg})',
     '    sys.setprofile(profile)',
     '    try:',
     '        answer = functions[case["slug"]](case["items"], case["capacity"])',
     '    finally:',
     '        sys.setprofile(None)',
     '    assert not stack',
-    '    assert sys.getrecursionlimit() == original_limit',
-    '    results.append({"answer": answer, "depth": stats["max_depth"]})',
+    '    results.append({"answer":answer, "events":events})',
     'print(json.dumps(results))',
   ].join('\n');
-  const result = spawnSync('python3', ['-c', python], {
-    input: JSON.stringify({ sources: Object.keys(names).map(slug => ({ slug, name: names[slug][1], code: sources[slug].python })), cases: depthCases }),
-    encoding: 'utf8', timeout: 15000, maxBuffer: 1024 * 1024,
+  const result=spawnSync('python3',['-c',python],{
+    input:JSON.stringify({sources:slugs.map(slug=>({slug,code:entries[slug].solutions[0].pythonCode})),cases}),
+    encoding:'utf8',timeout:15000,maxBuffer:4*1024*1024,
   });
-  assert.ifError(result.error);
-  assert.equal(result.status, 0, result.stderr);
-  const answers = JSON.parse(result.stdout);
-  assert.equal(answers.length, depthCases.length);
-  answers.forEach(({ answer, depth }, index) => {
-    assert.equal(answer, depthCases[index].expected, `Python case ${index}: result`);
-    assert.equal(depth, depthCases[index].depth, `Python case ${index}: maximum recursive depth`);
+  assert.ifError(result.error);assert.equal(result.status,0,result.stderr);
+  const actual=JSON.parse(result.stdout);assert.equal(actual.length,cases.length);
+  actual.forEach((item,index)=>{
+    const c=cases[index],expected=trace(c.slug,c.items,c.capacity);
+    assert.equal(item.answer,c.expected);assert.deepEqual(item.events,expected.events);
   });
+});
+test('both language walkthroughs show every actual recursive call and return in execution order',()=>{
+  for(const slug of slugs) {
+    const items=slug==='mixed-knapsack'?[[2,3,false],[3,4,true]]:[[2,3],[3,4]];
+    const result=trace(slug,items,8);
+    for(const field of ['walkthrough','pythonWalkthrough']) {
+      const actual=[];
+      for(const text of entries[slug].solutions[0][field].split('\n')) {
+        const call=text.match(/^\s*Call (\d+): dfs\((\d+), (\d+)\)/);
+        const returned=text.match(/^\s*Return call (\d+): (\d+)/);
+        if(call) actual.push({kind:'call',id:Number(call[1]),i:Number(call[2]),c:Number(call[3])});
+        if(returned) actual.push({kind:'return',id:Number(returned[1]),answer:Number(returned[2])});
+      }
+      assert.deepEqual(actual,result.events,`${slug} ${field}: complete trace`);
+      assert.ok(entries[slug].solutions[0][field].includes(`Return from knapsack: ${result.answer}`));
+    }
+  }
 });

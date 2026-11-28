@@ -26,17 +26,18 @@ for (const filename of fs.readdirSync(importsDirectory).filter(name => name.ends
   }
 }
 
-for (const filename of fs.readdirSync(importsDirectory).filter(name => name.endsWith('.js'))) {
-  const match = filename.match(/^(\d{4}-\d{2}-\d{2})-(\d+)-[a-z0-9-]+\.js$/);
+for (const filename of fs.readdirSync(importsDirectory).filter(name => /\.(js|py)$/.test(name))) {
+  const match = filename.match(/^(\d{4}-\d{2}-\d{2})-(\d+)-[a-z0-9-]+\.(js|py)$/);
   assert.ok(match, `${filename}: supplemental code identifies its study date and problem ID`);
-  const [, date, id] = match;
+  const [, date, id, language] = match;
   const reference = references.get(date);
   assert.ok(reference, `${filename}: supplemental code belongs to an imported date`);
   assert.equal(Number(id), reference.id, `${filename}: supplemental problem ID matches the date`);
   const code = fs.readFileSync(path.join(importsDirectory, filename), 'utf8').replace(/\r?\n$/, '');
-  assert.ok(/^(?:var|class|function)\s/.test(code), `${filename}: a complete selected solution is present`);
-  assert.ok(!reference.codes.includes(code), `${filename}: supplemental code is not a duplicate`);
-  reference.codes.push(code);
+  assert.ok((language === 'py' ? /^(?:class|def)\s/ : /^(?:var|class|function)\s/).test(code), `${filename}: a complete selected solution is present`);
+  const codes = language === 'py' ? reference.pythonCodes : reference.codes;
+  assert.ok(!codes.includes(code), `${filename}: supplemental code is not a duplicate`);
+  codes.push(code);
 }
 
 const entries = fs.readdirSync(entriesDirectory).filter(name => name.endsWith('.json'));
@@ -54,7 +55,7 @@ for (const filename of entries) {
   assert.ok(document.comparison.summary.trim());
   assert.ok(document.comparison.details.length > 0);
   for (const solution of document.solutions) {
-    for (const field of ['title', 'intuition', 'approach', 'explanation', 'timeComplexity', 'spaceComplexity', 'example', 'walkthroughMarkdown']) {
+    for (const field of ['title', 'intuition', 'approach', 'explanation', 'timeComplexity', 'spaceComplexity', 'example', 'walkthrough']) {
       assert.ok(typeof solution[field] === 'string' && solution[field].trim(), `${filename}: ${field} is present`);
     }
     assert.ok(Array.isArray(solution.hints) && solution.hints.length > 0 && solution.hints.every(hint => typeof hint === 'string' && hint.trim()), `${filename}: incremental hints are present`);
@@ -66,7 +67,12 @@ for (const filename of entries) {
     assert.ok(Array.isArray(breakdown.simplifications) && breakdown.simplifications.length > 0 && breakdown.simplifications.every(expression => expression.trim()), `${filename}: complexity calculation is present`);
     assert.ok(Object.keys(solution.variables).length, `${filename}: complexity variables are explained`);
     assert.ok(Object.values(solution.variables).every(value => typeof value === 'string' && value.trim()));
-    if (solution.pythonCode) assert.ok(solution.pythonWalkthroughMarkdown?.trim(), `${filename}: Python has its own matching walkthrough`);
+    if (solution.pythonCode) assert.ok(solution.pythonWalkthrough?.trim(), `${filename}: Python has its own matching walkthrough`);
+    for (const trace of [solution.walkthrough, solution.pythonWalkthrough].filter(Boolean)) {
+      assert.doesNotMatch(trace, /^#{1,6}\s|^```/m, `${filename}: walkthrough is an execution trace, not Markdown`);
+    }
+    assert.equal(solution.walkthroughMarkdown, undefined, `${filename}: use the shared execution-trace format`);
+    assert.equal(solution.pythonWalkthroughMarkdown, undefined, `${filename}: use the shared Python execution-trace format`);
     solutionCount++;
   }
 }

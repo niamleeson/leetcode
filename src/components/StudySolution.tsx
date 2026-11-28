@@ -1,8 +1,8 @@
 import type { DailySavedSolution } from '../data/daily-questions/types';
 import { useProgrammingLanguage } from '../hooks/useProgrammingLanguage';
-import { RichText } from './CatalogProblemContent';
 import ProblemSolutionTemplate from './ProblemSolutionTemplate';
 import SolutionComplexity from './SolutionComplexity';
+import GlossaryHighlighter from './GlossaryHighlighter';
 
 export default function StudySolution({ solution, index = 0, label }: {
   solution: DailySavedSolution;
@@ -14,7 +14,7 @@ export default function StudySolution({ solution, index = 0, label }: {
   const language = hasPython ? preferredLanguage : 'javascript';
   const languageName = language === 'python' ? 'Python' : 'JavaScript';
   const code = language === 'python' ? solution.pythonCode! : solution.code;
-  const walkthrough = language === 'python' ? solution.pythonWalkthroughMarkdown : solution.walkthroughMarkdown;
+  const walkthroughText = language === 'python' ? solution.pythonWalkthrough : solution.walkthrough;
 
   return <section aria-label={`Saved solution: ${solution.title}`} className="study-solution min-w-0 space-y-6">
     <div>
@@ -25,19 +25,18 @@ export default function StudySolution({ solution, index = 0, label }: {
     </div>
     <ProblemSolutionTemplate
       intuition={solution.intuition}
-      approach={<RichText text={solution.approach} />}
-      approachNote={<div className="mt-3 space-y-2">
-        <pre className="bg-gray-950 light:bg-white border border-gray-800 light:border-gray-200 rounded-md p-3 text-xs text-gray-300 light:text-gray-700 overflow-x-auto whitespace-pre-wrap font-mono">{solution.example}</pre>
-        {solution.notes?.map(note => <p key={note} className="text-sm leading-relaxed text-amber-300 light:text-amber-800">{note}</p>)}
-      </div>}
+      approach={<GlossaryHighlighter text={solution.approach.replace(/`([^`]+)`/g, '$1')} className="text-sm text-gray-400 light:text-gray-600 leading-relaxed" />}
       hints={solution.hints}
       code={code}
       language={language}
       setLanguage={hasPython ? setLanguage : undefined}
-      walkthrough={walkthrough ? <RichText text={walkthrough} /> : undefined}
+      walkthroughText={walkthroughText}
       walkthroughLabel={`${solution.title} walkthrough`}
       pseudocode={solution.pseudocode}
-      explanation={<span className="text-sm text-gray-400 light:text-gray-600 leading-relaxed whitespace-pre-line">{solution.explanation}</span>}
+      explanation={<>
+        <GlossaryHighlighter text={solution.explanation} className="text-sm text-gray-400 light:text-gray-600 leading-relaxed whitespace-pre-line" />
+        {solution.notes?.map(note => <p key={note} className="mt-2 text-sm text-gray-400 light:text-gray-600 leading-relaxed">{note}</p>)}
+      </>}
       complexity={<SolutionComplexity solution={{ ...solution, complexityVariables: solution.variables }} language={language} />}
     />
   </section>;

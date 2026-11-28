@@ -50,7 +50,7 @@ function loadDocument(id: number) {
   return request;
 }
 
-export function RichText({ text }: { text: string }) {
+export function RichText({ text, problemTemplate = false }: { text: string; problemTemplate?: boolean }) {
   return <div className="catalog-prose">
     <ReactMarkdown
       remarkPlugins={[remarkGfm, remarkMath]}
@@ -58,6 +58,14 @@ export function RichText({ text }: { text: string }) {
       components={{
         a: ({ node, children, ...props }) => <a {...props} target="_blank" rel="noopener noreferrer">{children}</a>,
         img: ({ node, ...props }) => <img {...props} loading="lazy" decoding="async" />,
+        div: ({ node, children, ...props }) => {
+          // Newer problem statements use a div for each rich example instead of pre.
+          const example = problemTemplate && node?.children.some(child =>
+            child.type === 'element' && child.tagName === 'p' && child.children.some(label =>
+              label.type === 'element' && label.tagName === 'strong' && label.children.some(text =>
+                text.type === 'text' && /^Input\s*:/i.test(text.value))));
+          return <div {...props} className={example ? 'problem-template-example font-mono' : undefined}>{children}</div>;
+        },
       }}
     >{text}</ReactMarkdown>
   </div>;
@@ -104,9 +112,9 @@ function DocumentContent({ id, descriptionOnly }: { id: number; descriptionOnly:
     {error && <button type="button" onClick={() => setAttempt(value => value + 1)}>Retry</button>}
   </div>;
 
-  const description = <section aria-label="Problem description">
-    <h2 className="catalog-section-title">Problem</h2>
-    <RichText text={document.descriptionHtml}/>
+  const description = <section aria-label="Problem description" className={descriptionOnly ? 'problem-template-description space-y-3' : undefined}>
+    <h2 className={descriptionOnly ? 'text-xs font-semibold text-gray-500 light:text-gray-500 uppercase tracking-wider' : 'catalog-section-title'}>Problem</h2>
+    <RichText text={document.descriptionHtml} problemTemplate={descriptionOnly}/>
   </section>;
   if (descriptionOnly) return <div className="space-y-4">{description}<CatalogAttribution document={document}/></div>;
 

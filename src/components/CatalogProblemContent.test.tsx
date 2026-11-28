@@ -185,3 +185,17 @@ it('provides the full statement and source credits for a daily page without dupl
   fireEvent.click(screen.getByText('Sources and licenses'));
   expect(screen.getByRole('link', { name: 'Credited author' })).toBeTruthy();
 });
+
+it('keeps rich daily examples complete in the shared example style without treating other divs as examples', async () => {
+  const data = document(4017);
+  data.descriptionHtml = '<p>Example 1:</p><div><p><strong>Input:</strong> items = [[2, 3]]</p><p><strong>Output:</strong> 3</p><ul><li>Take the item.</li></ul></div><div><p>Additional constraint.</p></div>';
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => data }));
+  const page = render(<CatalogProblemContent id={4017} descriptionOnly/>);
+  await screen.findByText('Take the item.');
+  const examples = page.container.querySelectorAll('.problem-template-example');
+  expect(examples).toHaveLength(1);
+  expect(examples[0].textContent).toContain('Input: items = [[2, 3]]');
+  expect(examples[0].textContent).toContain('Output: 3');
+  expect(examples[0].querySelector('li')?.textContent).toBe('Take the item.');
+  expect(screen.getByText('Additional constraint.').closest('.problem-template-example')).toBeNull();
+});

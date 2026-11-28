@@ -109,7 +109,7 @@ export default function ProblemPage({ getProgress, onReset }: ProblemPageProps) 
   const prose = solutionProse(solution, language === 'javascript' && solution?.jsCode ? 'javascript' : 'python');
 
   return (
-    <div className="space-y-6 max-w-3xl">
+    <div className={`space-y-6 ${dailyQuestion?.compareSolutions ? '' : 'max-w-3xl'}`}>
       {/* Back + Header */}
       <div className="flex items-start gap-3">
         <button
@@ -141,12 +141,12 @@ export default function ProblemPage({ getProgress, onReset }: ProblemPageProps) 
 
       {dailyQuestion ? (
         <Suspense fallback={<p role="status" className="text-sm text-gray-400 light:text-gray-600">Loading daily question…</p>}>
-          <DailyProblemContent key={dailyQuestion.date} id={problem.id} date={dailyQuestion.date} />
+          <DailyProblemContent key={dailyQuestion.date} id={problem.id} date={dailyQuestion.date} compareSolutions={dailyQuestion.compareSolutions} />
         </Suspense>
       ) : solution ? (
         <>
           {/* ── Problem Description ── */}
-          <section className="space-y-3">
+          <section aria-label="Problem description" className="space-y-3">
             <h2 className="text-xs font-semibold text-gray-500 light:text-gray-500 uppercase tracking-wider">Problem</h2>
             <GlossaryHighlighter text={solution.description} className="text-sm text-gray-300 light:text-gray-700 leading-relaxed whitespace-pre-line" />
             <pre className="bg-gray-950 light:bg-white border border-gray-800 light:border-gray-200 rounded-md p-3 text-xs text-gray-300 light:text-gray-700 overflow-x-auto whitespace-pre-wrap font-mono">
@@ -165,7 +165,7 @@ export default function ProblemPage({ getProgress, onReset }: ProblemPageProps) 
             setLanguage={setLanguage}
             solutionTitle={solution.solutionTitle}
             codeNotice={language === 'javascript' && !solution.jsCode && <p className="text-xs text-gray-500 light:text-gray-500 mt-1">JavaScript solution not available, showing Python.</p>}
-            walkthrough={language === 'javascript' && solution.jsWalkthrough && <pre className="text-sky-200/90 light:text-sky-700 whitespace-pre-wrap font-mono text-xs leading-relaxed">{solution.jsWalkthrough}</pre>}
+            walkthroughText={language === 'javascript' ? solution.jsWalkthrough : undefined}
             pseudocode={buildPseudocode(prose.approach, prose.explanation)}
             explanation={<GlossaryHighlighter text={prose.explanation} className="text-sm text-gray-400 light:text-gray-600 leading-relaxed whitespace-pre-line" />}
             complexity={<SolutionComplexity solution={solution} language={language === 'javascript' && solution.jsCode ? 'javascript' : 'python'} />}

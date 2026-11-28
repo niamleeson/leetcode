@@ -15,8 +15,8 @@ export interface DailySavedSolution {
   variables: Record<string, string>;
   example: string;
   notes?: string[];
-  walkthroughMarkdown?: string;
-  pythonWalkthroughMarkdown?: string;
+  walkthrough?: string;
+  pythonWalkthrough?: string;
 }
 
 export interface DailyQuestionDocument {

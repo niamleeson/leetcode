@@ -1,0 +1,58 @@
+const n=2124,e="2026-11-22",a={kind:"same-approach",summary:"Same ordering rule; your solution uses a seenB flag instead of searching for the substring ba.",details:["Your solution scans characters, sets seenB after a b, and returns false if a later character is a.",`The existing TypeScript returns !s.includes('ba'); Python checks that "ba" is absent. These are equivalent because the input contains only a and b.`,"Both take O(n) time and O(1) extra space. No JavaScript implementation was saved."]},t=[{title:"Track whether b has appeared",code:`var checkString = function(s) {
+    let seenB = false;
+
+    for (const char of s) {
+        if (char === 'b') {
+            seenB = true;
+        }
+        if (char === 'a' && seenB) {
+            return false;
+        }
+    }
+
+    return true;
+};`,approach:"Scan from left to right and set seenB when the first b appears. If any later character is a, return false; otherwise all a characters come before all b characters.",timeComplexity:"O(n)",spaceComplexity:"O(1)",variables:{n:"Number of characters in s."},example:'checkString("abab") → false',intuition:"A valid string has an initial run of a characters followed by a run of b characters; either run may be empty. The only forbidden event is seeing an a after a b. Remembering whether a b has appeared is enough—there is no need to count either character.",hints:["What single ordering violation makes the answer false?","Once a b has appeared, every later character must also be b. Keep one boolean that records this transition."],pseudocode:{concept:"Reject the first a that appears after any b.",steps:["Start with seenB set to false.","Scan the string from left to right.","When the current character is b, set seenB to true.","When the current character is a and seenB is true, return false immediately.","If the scan finishes without a violation, return true."]},explanation:`1. Before the first b, any number of a characters is allowed. The flag remains false during that initial run.
+2. Seeing b permanently sets the flag. Any later a now proves that at least one b occurs before an a, so the function can return false without examining the rest of the string.
+3. If the loop finishes, no such pair exists. All a characters therefore precede all b characters, including strings containing only one of the two letters.`,timeComplexityBreakdown:{variables:"n is the number of characters in the string.",phases:[{label:"Initialize the flag",cost:"O(1)"},{label:"Visit at most n characters with constant work per character",cost:"O(n)"},{label:"Return the result",cost:"O(1)"}],simplifications:["O(n + 1)","O(n)"],note:"An ordering violation can end the scan early, but a valid string requires reading all n characters. The worst-case bound is therefore linear."},walkthrough:`Input: s = "abab"
+Initial state: seenB = false
+
+Iteration 1: index = 0, char = "a"
+  char === "b" -> false
+  seenB stays false
+  char === "a" -> true
+  seenB = false; true && false -> false
+  No early return. Advance to the next character.
+
+Iteration 2: index = 1, char = "b"
+  char === "b" -> true
+  seenB = true
+  char === "a" -> false
+  && short-circuits; condition is false.
+  No early return. Advance to the next character.
+
+Iteration 3: index = 2, char = "a"
+  char === "b" -> false
+  seenB stays true
+  char === "a" -> true
+  seenB = true; true && true -> true
+  Return false immediately.
+Index 3 is not visited; final return true is not reached.
+
+Input: s = "ab"
+Initial state: seenB = false
+
+Iteration 1: index = 0, char = "a"
+  char === "b" -> false
+  seenB stays false
+  char === "a" -> true
+  seenB = false; true && false -> false
+  No early return. Advance to the next character.
+
+Iteration 2: index = 1, char = "b"
+  char === "b" -> true
+  seenB = true
+  char === "a" -> false
+  && short-circuits; condition is false.
+  No early return. Advance to the next character.
+
+No characters remain. Return true.`}],r={id:2124,date:e,comparison:a,solutions:t};export{a as comparison,e as date,r as default,n as id,t as solutions};

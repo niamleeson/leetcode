@@ -13,19 +13,18 @@ interface ProblemSolutionTemplateProps {
   preferredLanguage?: ProgrammingLanguage;
   setLanguage?: (language: ProgrammingLanguage) => void;
   solutionTitle?: string;
-  walkthrough?: ReactNode;
+  walkthroughText?: string;
   walkthroughLabel?: string;
   pseudocode: { concept: string; steps: string[] };
   explanation: ReactNode;
   complexity: ReactNode;
   codeNotice?: ReactNode;
-  approachNote?: ReactNode;
 }
 
 export default function ProblemSolutionTemplate({
   intuition, approach, hints, code, language, preferredLanguage = language,
-  setLanguage, solutionTitle, walkthrough, walkthroughLabel,
-  pseudocode, explanation, complexity, codeNotice, approachNote,
+  setLanguage, solutionTitle, walkthroughText, walkthroughLabel,
+  pseudocode, explanation, complexity, codeNotice,
 }: ProblemSolutionTemplateProps) {
   const [revealedHints, setRevealedHints] = useState(0);
 
@@ -40,7 +39,6 @@ export default function ProblemSolutionTemplate({
     <section data-solution-section="approach">
       <h2 className="text-xs font-semibold text-blue-400 light:text-blue-700 uppercase tracking-wider mb-2">Approach</h2>
       {approach}
-      {approachNote}
     </section>
 
     {hints.length > 0 && <section data-solution-section="hints" className="space-y-2">
@@ -67,12 +65,12 @@ export default function ProblemSolutionTemplate({
       </div>
       <CodeBlock code={code} language={language} />
       {codeNotice}
-      {walkthrough && <section
+      {walkthroughText && <section
         aria-label={walkthroughLabel ?? 'Step-by-step walkthrough'}
         className="mt-3 bg-gray-950 light:bg-sky-50 border border-sky-900/30 light:border-sky-200 rounded-md p-4 text-sm leading-relaxed"
       >
         <h3 className="text-xs font-semibold text-sky-400 light:text-sky-700 uppercase tracking-wider mb-3">Step-by-Step Walkthrough</h3>
-        {walkthrough}
+        <pre className="text-sky-200/90 light:text-sky-700 whitespace-pre-wrap break-words font-mono text-xs leading-relaxed">{walkthroughText}</pre>
       </section>}
     </section>
 

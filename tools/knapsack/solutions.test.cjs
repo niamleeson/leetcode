@@ -1,213 +1,189 @@
 const assert = require('node:assert/strict');
-const { readFileSync } = require('node:fs');
+const {readFileSync} = require('node:fs');
 const path = require('node:path');
-const { spawnSync } = require('node:child_process');
+const {spawnSync} = require('node:child_process');
 const test = require('node:test');
 const vm = require('node:vm');
-
-const names = {
-  'zero-one-knapsack': ['zeroOneKnapsack', 'zero_one_knapsack'],
-  'unbounded-knapsack': ['unboundedKnapsack', 'unbounded_knapsack'],
-  'mixed-knapsack': ['mixedKnapsack', 'mixed_knapsack'],
-};
-const dfsNames = {
-  'zero-one-knapsack': ['zeroOneKnapsackDfs', 'zero_one_knapsack_dfs'],
-  'unbounded-knapsack': ['unboundedKnapsackDfs', 'unbounded_knapsack_dfs'],
-  'mixed-knapsack': ['mixedKnapsackDfs', 'mixed_knapsack_dfs'],
-};
-const entries = new Map(Object.keys(names).map(slug => {
-  const entry = JSON.parse(readFileSync(path.resolve(__dirname, `../../src/data/knapsack/entries/${slug}.json`), 'utf8'));
-  return [slug, entry];
-}));
-const solution = slug => entries.get(slug).solutions[1];
-const dfsSolution = slug => entries.get(slug).solutions[0];
-const load = (slug, context = {}, code = solution(slug).code) => vm.runInNewContext(`${code}\n;${names[slug][0]}`, context, { timeout: 1000 });
-const solvers = new Map(Object.keys(names).map(slug => [slug, load(slug)]));
-const dfsSolvers = new Map(Object.keys(names).map(slug => [slug,
-  vm.runInNewContext(`${dfsSolution(slug).code}\n;${dfsNames[slug][0]}`, {}, { timeout: 1000 }),
+const slugs = ['zero-one-knapsack', 'unbounded-knapsack', 'mixed-knapsack'];
+const entries = Object.fromEntries(slugs.map(slug => [slug,
+  JSON.parse(readFileSync(path.resolve(__dirname, `../../src/data/knapsack/entries/${slug}.json`), 'utf8')),
 ]));
+const solvers = Object.fromEntries(slugs.map(slug => [slug, entries[slug].solutions.map(solution =>
+  vm.runInNewContext(`${solution.code}\n;knapsack`, {}, {timeout: 1000}))]));
 
-// Enumerate complete selections independently of the DP and its loop directions.
-const brute = (slug, items, capacity) => {
-  const visit = (index, remaining) => {
-    if (index === items.length) return 0;
-    const item = items[index];
-    const kind = slug === 'zero-one-knapsack' ? 'once' : slug === 'unbounded-knapsack' ? 'unlimited' : item.kind;
-    const available = kind === 'once' ? 1 : kind === 'bounded' ? item.limit : Math.floor(remaining / item.weight);
-    const maximum = Math.min(available, Math.floor(remaining / item.weight));
-    let best = 0;
+// Enumerate complete copy-count selections independently of skip/take recursion
+// and in-place DP. Score total value only when total weight fits the capacity.
+function enumerate(slug, items, capacity) {
+  let best = 0;
+  function visit(index, weightSoFar, valueSoFar) {
+    if (index === items.length) { best = Math.max(best, valueSoFar); return; }
+    const [weight, value, unlimited] = items[index];
+    const reusable = slug === 'unbounded-knapsack' || slug === 'mixed-knapsack' && unlimited;
+    const maximum = reusable ? Math.floor(capacity / weight) : 1;
     for (let copies = 0; copies <= maximum; copies++) {
-      best = Math.max(best, copies * item.value + visit(index + 1, remaining - copies * item.weight));
+      const weightAfter = weightSoFar + copies * weight;
+      if (weightAfter <= capacity) visit(index + 1, weightAfter, valueSoFar + copies * value);
     }
-    return best;
-  };
-  return visit(0, capacity);
-};
-
+  }
+  visit(0, 0, 0);
+  return best;
+}
 let seed = 20261127;
-const random = max => {
-  seed ^= seed << 13;
-  seed ^= seed >>> 17;
-  seed ^= seed << 5;
+function random(max) {
+  seed ^= seed << 13; seed ^= seed >>> 17; seed ^= seed << 5;
   return Math.floor((seed >>> 0) / 4294967296 * max);
-};
+}
 const cases = [];
-const add = (slug, items, capacity, expected = brute(slug, items, capacity)) => cases.push({ slug, items, capacity, expected });
-const itemChoices = [1, 2].flatMap(weight => [0, 1, 2].map(value => ({ weight, value })));
-for (const slug of ['zero-one-knapsack', 'unbounded-knapsack']) {
+function add(slug, items, capacity, expected = enumerate(slug, items, capacity)) {
+  cases.push({slug, items, capacity, expected});
+}
+for (const slug of slugs) {
+  const choices = slug === 'mixed-knapsack'
+    ? [1,2].flatMap(w => [0,3].flatMap(v => [false,true].map(unlimited => [w,v,unlimited])))
+    : [1,2].flatMap(w => [0,1,2].map(v => [w,v]));
   for (let length = 0; length <= 3; length++) {
-    for (let encoding = 0; encoding < itemChoices.length ** length; encoding++) {
-      let value = encoding;
-      const items = Array.from({ length }, () => {
-        const item = { ...itemChoices[value % itemChoices.length] };
-        value = Math.floor(value / itemChoices.length);
+    for (let encoding = 0; encoding < choices.length ** length; encoding++) {
+      let encoded = encoding;
+      const items = Array.from({length}, () => {
+        const item = [...choices[encoded % choices.length]];
+        encoded = Math.floor(encoded / choices.length);
         return item;
       });
       for (let capacity = 0; capacity <= 7; capacity++) add(slug, items, capacity);
     }
   }
 }
-for (let trial = 0; trial < 800; trial++) {
-  const items = Array.from({ length: random(6) }, () => {
-    const kind = ['once', 'unlimited', 'bounded'][random(3)];
-    const item = { weight: 1 + random(5), value: random(10), kind };
-    if (kind === 'bounded') item.limit = random(5);
+for (let trial = 0; trial < 450; trial++) {
+  const slug = slugs[trial % 3];
+  const items = Array.from({length: random(5)}, () => {
+    const item = [1+random(6), random(15)];
+    if (slug === 'mixed-knapsack') item.push(Boolean(random(2)));
     return item;
   });
-  add('mixed-knapsack', items, random(13));
+  add(slug, items, random(11));
 }
-const mixedExample = [
-  { weight: 3, value: 8, kind: 'once' },
-  { weight: 2, value: 3, kind: 'unlimited' },
-  { weight: 1, value: 2, kind: 'bounded', limit: 2 },
+[
+  ['zero-one-knapsack', [[2,3],[3,4]], 8, 7],
+  ['unbounded-knapsack', [[2,3],[3,4]], 8, 12],
+  ['mixed-knapsack', [[2,3,false],[3,4,true]], 8, 11],
+  ['zero-one-knapsack', [[2,3]], 8, 3],
+  ['unbounded-knapsack', [[2,3]], 8, 12],
+  ['mixed-knapsack', [[2,3,false]], 8, 3],
+  ['mixed-knapsack', [[2,3,true]], 8, 12],
+  ['zero-one-knapsack', [[2,5],[2,5]], 4, 10],
+  ['mixed-knapsack', [[2,5,false],[2,5,false]], 4, 10],
+  ['mixed-knapsack', [[1,10,false],[2,3,true]], 5, 16],
+  ['mixed-knapsack', [[2,3,true],[1,10,false]], 5, 16],
+  ['mixed-knapsack', [[1,10,true],[2,100,false]], 5, 130],
+  ['mixed-knapsack', [[2,100,false],[1,10,true]], 5, 130],
+  ['zero-one-knapsack', [[4,20]], 3, 0],
+  ['unbounded-knapsack', [[4,20]], 3, 0],
+  ['mixed-knapsack', [[4,20,true],[5,30,false]], 3, 0],
+  ['zero-one-knapsack', [[1,100],[2,200]], 0, 0],
+  ['unbounded-knapsack', [[1,100],[2,200]], 0, 0],
+  ['mixed-knapsack', [[1,100,false],[2,200,true]], 0, 0],
+].forEach(args => add(...args));
+
+// Plain DFS has no memo table. Only DP gets the larger input checks.
+const dpCases = [
+  {slug:'zero-one-knapsack',items:Array.from({length:100},()=>[1,1000]),capacity:1000,expected:100000},
+  {slug:'zero-one-knapsack',items:Array.from({length:100},(_,i)=>[2,i+1]),capacity:100,expected:3775},
+  {slug:'unbounded-knapsack',items:[[1,1000]],capacity:10000,expected:10000000},
+  {slug:'unbounded-knapsack',items:[[3,5],[7,10]],capacity:1000,expected:1665},
+  {slug:'mixed-knapsack',items:[[1,1000,true]],capacity:10000,expected:10000000},
+  {slug:'mixed-knapsack',items:[[1,1000,false],[2,3,true]],capacity:1000,expected:2497},
+  {slug:'mixed-knapsack',items:[[2,3,true],[1,1000,false]],capacity:1000,expected:2497},
+  {slug:'mixed-knapsack',items:Array.from({length:100},()=>[1,1000,false]),capacity:1000,expected:100000},
 ];
-for (const [slug, items, capacity, expected] of [
-  ['zero-one-knapsack', [{ weight: 2, value: 3 }, { weight: 3, value: 4 }], 4, 4],
-  ['unbounded-knapsack', [{ weight: 2, value: 3 }, { weight: 3, value: 4 }], 4, 6],
-  ['zero-one-knapsack', [{ weight: 2, value: 3 }], 4, 3],
-  ['unbounded-knapsack', [{ weight: 2, value: 3 }], 4, 6],
-  ['zero-one-knapsack', [{ weight: 2, value: 5 }, { weight: 2, value: 5 }], 4, 10],
-  ['unbounded-knapsack', [{ weight: 3, value: 5 }], 2, 0],
-  ['mixed-knapsack', mixedExample, 9, 18],
-  ['mixed-knapsack', [{ weight: 2, value: 3, kind: 'bounded', limit: 2 }], 6, 6],
-  ['mixed-knapsack', [{ weight: 1, value: 1000, kind: 'bounded', limit: 0 }], 9, 0],
-  ['mixed-knapsack', [{ weight: 1000, value: 1000, kind: 'once' }], 999, 0],
-  ['zero-one-knapsack', Array.from({ length: 100 }, () => ({ weight: 1, value: 1000 })), 1000, 100000],
-  ['unbounded-knapsack', [{ weight: 1, value: 1000 }], 1000, 1000000],
-  ['mixed-knapsack', [{ weight: 1, value: 1000, kind: 'unlimited' }], 1000, 1000000],
-  ['mixed-knapsack', [{ weight: 1, value: 1000, kind: 'bounded', limit: 100 }], 1000, 100000],
-]) add(slug, items, capacity, expected);
-
-test('DFS and DP for all three knapsack problems match independent enumeration and preserve inputs', () => {
-  for (const { slug, items, capacity, expected } of cases) {
-    const before = JSON.stringify(items);
-    assert.equal(solvers.get(slug)(items, capacity), expected, JSON.stringify({ slug, items, capacity }));
-    assert.equal(dfsSolvers.get(slug)(items, capacity), expected, `DFS: ${JSON.stringify({ slug, items, capacity })}`);
-    assert.equal(JSON.stringify(items), before, `${slug}: input remains unchanged`);
+test(`DFS and DP match independent enumeration on ${cases.length} small cases`, () => {
+  for (const {slug,items,capacity,expected} of cases) {
+    for (const [variant,solve] of solvers[slug].entries()) {
+      const before = JSON.stringify(items);
+      assert.equal(solve(items,capacity), expected, JSON.stringify({slug,variant,items,capacity}));
+      assert.equal(JSON.stringify(items),before,`${slug}: input remains unchanged`);
+    }
   }
 });
-
-test('mixed item kinds reduce to the corresponding knapsack rules and are independent of item order', () => {
-  const once = solvers.get('zero-one-knapsack');
-  const unlimited = solvers.get('unbounded-knapsack');
-  const mixed = solvers.get('mixed-knapsack');
-  for (let trial = 0; trial < 250; trial++) {
-    const capacity = random(16);
-    const items = Array.from({ length: random(6) }, () => ({ weight: 1 + random(6), value: random(15) }));
-    assert.equal(mixed(items.map(item => ({ ...item, kind: 'once' })), capacity), once(items, capacity));
-    assert.equal(mixed(items.map(item => ({ ...item, kind: 'bounded', limit: 1 })), capacity), once(items, capacity));
-    assert.equal(mixed(items.map(item => ({ ...item, kind: 'unlimited' })), capacity), unlimited(items, capacity));
-    assert.equal(mixed(items.map(item => ({ ...item, kind: 'bounded', limit: Math.floor(capacity / item.weight) })), capacity), unlimited(items, capacity));
+test('mixed flags reduce to once/unlimited rules and order cannot change the answer', () => {
+  for (let trial=0; trial<120; trial++) {
+    const items=Array.from({length:random(5)},()=>[1+random(6),random(15)]);
+    const capacity=random(11);
+    for (const variant of [0,1]) {
+      const mixed=solvers['mixed-knapsack'][variant];
+      assert.equal(mixed(items.map(item=>[...item,false]),capacity),solvers['zero-one-knapsack'][variant](items,capacity));
+      assert.equal(mixed(items.map(item=>[...item,true]),capacity),solvers['unbounded-knapsack'][variant](items,capacity));
+    }
   }
-  for (const entry of cases.filter(({ slug, items, capacity }) => slug === 'mixed-knapsack' && items.length <= 5 && capacity <= 12)) {
-    const { items, capacity, expected } = entry;
-    assert.equal(mixed([...items].reverse(), capacity), expected);
-    assert.ok(mixed(items, capacity + 1) >= expected, 'More capacity cannot reduce the best attainable value');
+  for (const {items,capacity,expected} of cases.filter(c=>c.slug==='mixed-knapsack')) {
+    for (const solve of solvers['mixed-knapsack']) {
+      assert.equal(solve([...items].reverse(),capacity),expected);
+      assert.ok(solve(items,capacity+1)>=expected,'Extra capacity cannot reduce value');
+    }
   }
 });
-
-test('Python DFS and DP match JavaScript and independent answers on the same 4,958 cases', () => {
-  assert.equal(cases.length, 4958);
-  const sources = Object.keys(names).flatMap(slug => [
-    { slug: `${slug}:dp`, name: names[slug][1], code: solution(slug).pythonCode },
-    { slug: `${slug}:dfs`, name: dfsNames[slug][1], code: dfsSolution(slug).pythonCode },
-  ]);
-  const python = [
+test('bottom-up DP handles larger capacities and item counts without recursion', () => {
+  for (const {slug,items,capacity,expected} of dpCases) {
+    const before=JSON.stringify(items);
+    assert.equal(solvers[slug][1](items,capacity),expected,JSON.stringify({slug,capacity}));
+    assert.equal(JSON.stringify(items),before);
+  }
+});
+test('Python matches independent answers on every small case and the DP-only larger cases', () => {
+  const sources=slugs.flatMap(slug=>entries[slug].solutions.map((solution,index)=>({id:`${slug}:${index}`,code:solution.pythonCode})));
+  const python=[
     'import copy, json, sys',
     'payload = json.load(sys.stdin)',
     'functions = {}',
     'for source in payload["sources"]:',
     '    namespace = {}',
     '    exec(source["code"], namespace)',
-    '    functions[source["slug"]] = namespace[source["name"]]',
+    '    functions[source["id"]] = namespace["knapsack"]',
     'answers = []',
     'for case in payload["cases"]:',
-    '    for variant in ["dp", "dfs"]:',
+    '    variants = [1] if case.get("dpOnly") else [0, 1]',
+    '    for variant in variants:',
     '        before = copy.deepcopy(case["items"])',
-    '        answers.append(functions[case["slug"] + ":" + variant](case["items"], case["capacity"]))',
-    '        assert case["items"] == before, "Python modified the input"',
+    '        answers.append(functions[case["slug"] + ":" + str(variant)](case["items"], case["capacity"]))',
+    '        assert case["items"] == before, "Python modified input"',
     'print(json.dumps(answers))',
   ].join('\n');
-  const result = spawnSync('python3', ['-c', python], {
-    input: JSON.stringify({ sources, cases }), encoding: 'utf8', timeout: 20000, maxBuffer: 4 * 1024 * 1024,
+  const allCases=[...cases,...dpCases.map(c=>({...c,dpOnly:true}))];
+  const result=spawnSync('python3',['-c',python],{
+    input:JSON.stringify({sources,cases:allCases}),encoding:'utf8',timeout:20000,maxBuffer:4*1024*1024,
   });
-  assert.ifError(result.error);
-  assert.equal(result.status, 0, result.stderr);
-  const answers = JSON.parse(result.stdout);
-  assert.equal(answers.length, cases.length * 2);
-  answers.forEach((answer, index) => {
-    const caseIndex = Math.floor(index / 2);
-    assert.equal(answer, cases[caseIndex].expected, `Python ${index % 2 ? 'DFS' : 'DP'} case ${caseIndex}: ${JSON.stringify(cases[caseIndex])}`);
-  });
+  assert.ifError(result.error); assert.equal(result.status,0,result.stderr);
+  assert.deepEqual(JSON.parse(result.stdout),allCases.flatMap(c=>c.dpOnly?[c.expected]:[c.expected,c.expected]));
 });
 
-test('the once/unlimited walkthroughs show every executed update and the actual resulting arrays', () => {
-  for (const slug of ['zero-one-knapsack', 'unbounded-knapsack']) {
-    const saved = solution(slug);
-    const events = [];
-    const update = 'dp[current] = Math.max(skip, take);';
+test('every DP walkthrough records the actual capacity order, numeric operands, and resulting arrays', () => {
+  for (const slug of slugs) {
+    const saved=entries[slug].solutions[1];
+    const events=[];
+    const update='dp[c] = Math.max(dp[c], dp[c - w] + v);';
     assert.ok(saved.code.includes(update));
-    const code = saved.code.replace(update, `${update}\n      record({ current, weight, value, skip, take, dp: Array.from(dp) });`);
-    const solve = load(slug, { record: event => events.push(event) }, code);
-    const expected = slug === 'zero-one-knapsack' ? 4 : 6;
-    assert.equal(solve([{ weight: 2, value: 3 }, { weight: 3, value: 4 }], 4), expected);
-    assert.equal(events.length, 5);
-    assert.deepEqual(events.map(({ current }) => current), slug === 'zero-one-knapsack' ? [4, 3, 2, 4, 3] : [2, 3, 4, 3, 4]);
-    for (const field of ['walkthroughMarkdown', 'pythonWalkthroughMarkdown']) {
-      for (const { current, weight, value, skip, take, dp } of events) {
-        assert.ok(saved[field].includes(`skip = dp[${current}] = ${skip}`));
-        assert.ok(saved[field].includes(`take = dp[${current} - ${weight}] + ${value} = dp[${current - weight}] + ${value} = ${take - value} + ${value} = ${take}`));
-        assert.ok(saved[field].includes(`dp = [${dp.join(', ')}]`));
-      }
-    }
-  }
-});
-
-test('the mixed walkthrough includes every bounded candidate and always reads the unchanged snapshot', () => {
-  const saved = solution('mixed-knapsack');
-  const simple = [];
-  const bounded = [];
-  let code = saved.code.replaceAll('dp[current] = Math.max(skip, take);', 'dp[current] = Math.max(skip, take);\n        recordSimple({ kind, current, weight, value, skip, take, dp: Array.from(dp) });');
-  code = code.replace('dp[current] = Math.max(dp[current], candidate);', 'const before = dp[current];\n          dp[current] = Math.max(dp[current], candidate);\n          recordBounded({ current, count, remaining, candidate, before, previous: Array.from(previous), dp: Array.from(dp) });');
-  const solve = load('mixed-knapsack', { recordSimple: event => simple.push(event), recordBounded: event => bounded.push(event) }, code);
-  assert.equal(solve(mixedExample, 9), 18);
-  assert.equal(simple.length, 15);
-  assert.equal(bounded.length, 17);
-  const snapshot = [0, 0, 3, 8, 8, 11, 11, 14, 14, 17];
-  for (const field of ['walkthroughMarkdown', 'pythonWalkthroughMarkdown']) {
-    for (const { current, weight, value, skip, take, dp } of simple) {
-      assert.ok(saved[field].includes(`skip = dp[${current}] = ${skip}`));
-      assert.ok(saved[field].includes(`take = dp[${current} - ${weight}] + ${value} = dp[${current - weight}] + ${value} = ${take - value} + ${value} = ${take}`));
-      assert.ok(saved[field].includes(`dp = [${dp.join(', ')}]`));
-    }
-    for (const { current, count, remaining, candidate, before, previous, dp } of bounded) {
-      assert.deepEqual(Array.from(previous), snapshot);
-      const actual = brute('mixed-knapsack', mixedExample.slice(0, 2), remaining) + count * 2;
-      assert.equal(candidate, actual);
-      assert.ok(saved[field].includes(`remaining = current - count * weight = ${current} - ${count} * 1 = ${remaining}`));
-      assert.ok(saved[field].includes(`candidate = previous[${remaining}] + ${count} * 2 = ${previous[remaining]} + ${count * 2} = ${candidate}`));
-      const max = field === 'walkthroughMarkdown' ? 'Math.max' : 'max';
-      assert.ok(saved[field].includes(`dp[${current}] = ${max}(${before}, ${candidate}) = ${dp[current]}`));
+    const code=saved.code.replaceAll(update,
+      'recordBefore({c,w,v,skip:dp[c],take:dp[c-w]+v}); '+update+' recordAfter(Array.from(dp));');
+    const items=slug==='mixed-knapsack'?[[2,3,false],[3,4,true]]:[[2,3],[3,4]];
+    const result=vm.runInNewContext(`${code}\nknapsack(items,8);`,{
+      items,recordBefore:event=>events.push(event),recordAfter:dp=>{events.at(-1).dp=dp;},
+    },{timeout:1000});
+    const expected=slug==='zero-one-knapsack'?7:slug==='unbounded-knapsack'?12:11;
+    assert.equal(result,expected); assert.equal(events.length,13);
+    const capacities=events.map(e=>e.c);
+    assert.deepEqual(capacities,slug==='zero-one-knapsack'?[8,7,6,5,4,3,2,8,7,6,5,4,3]
+      :slug==='unbounded-knapsack'?[2,3,4,5,6,7,8,3,4,5,6,7,8]
+      :[8,7,6,5,4,3,2,3,4,5,6,7,8]);
+    for(const field of ['walkthrough','pythonWalkthrough']) {
+      const text=saved[field];
+      assert.deepEqual([...text.matchAll(/^c = (\d+)$/gm)].map(m=>Number(m[1])),capacities);
+      const updates=text.split(/^c = \d+$/m).slice(1);
+      updates.forEach((block,i)=>{
+        const {c,w,v,skip,take,dp}=events[i];
+        assert.ok(block.includes(`skip = dp[${c}] = ${skip}`),`${slug} ${field} update${i}: skip`);
+        assert.ok(block.includes(`take = dp[${c} - ${w}] + ${v} = dp[${c-w}] + ${v} = ${take-v} + ${v} = ${take}`),`${slug} ${field} update${i}: take`);
+        assert.ok(block.includes(`dp = [${dp.join(', ')}]`),`${slug} ${field} update${i}: resulting state`);
+      });
+      assert.ok(text.includes(`return dp[capacity] -> dp[8] = ${expected}`));
     }
   }
 });

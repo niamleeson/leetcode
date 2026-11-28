@@ -23,13 +23,18 @@ fs.mkdirSync(screenshotDirectory, { recursive: true });
   const badResponses = [];
   const results = [];
   let referenceSections;
+  let referenceTrace;
+  let referenceApproach;
+  let referenceProblemHeading;
+  let referenceProblemText;
+  let referenceExample;
   const contexts = [];
   const makePage = async width => {
     const context = await browser.newContext({ viewport: { width, height: 900 }, ...(width < 600 ? { isMobile: true, hasTouch: true } : {}) });
     contexts.push(context);
     const page = await context.newPage();
     page.on('pageerror', error => errors.push(error.message));
-    page.on('console', message => { if (message.type() === 'error') consoleErrors.push(message.text()); });
+    page.on('console', message => { if (message.type() === 'error') consoleErrors.push({ text: message.text(), location: message.location() }); });
     page.on('requestfailed', request => {
       if (request.url().startsWith(origin) && request.failure()?.errorText !== 'net::ERR_ABORTED') {
         requestFailures.push({ url: request.url(), error: request.failure()?.errorText });
@@ -61,6 +66,40 @@ fs.mkdirSync(screenshotDirectory, { recursive: true });
     name: element.getAttribute('data-solution-section'),
     headingClass: element.querySelector(':scope > h2, :scope > div > h2')?.className ?? null,
   })));
+  const typography = locator => locator.evaluate(element => {
+    const style = getComputedStyle(element);
+    return Object.fromEntries(['fontSize', 'lineHeight', 'fontFamily', 'padding', 'borderRadius', 'whiteSpace']
+      .map(key => [key, style[key]]));
+  });
+  const checkProblemTemplate = async page => {
+    const description = page.getByRole('region', { name: 'Problem description', exact: true });
+    assert.equal(await description.locator(':scope > h2').getAttribute('class'), referenceProblemHeading, 'Problem heading matches #2');
+    const text = await typography(description.locator(':scope > .catalog-prose'));
+    assert.equal(text.fontSize, referenceProblemText.fontSize, 'Problem text size matches #2');
+    assert.equal(text.lineHeight, referenceProblemText.lineHeight, 'Problem text line height matches #2');
+    const example = description.locator('pre, .problem-template-example').first();
+    const actual = await typography(example);
+    if (await example.evaluate(element => element.tagName !== 'PRE')) actual.whiteSpace = referenceExample.whiteSpace;
+    assert.deepEqual(actual, referenceExample, 'Example typography matches #2');
+  };
+  const checkComparison = async (page, width) => {
+    const variants = page.getByRole('region', { name: 'DFS and DP solutions', exact: true }).locator(':scope > section');
+    assert.equal(await variants.count(), 2);
+    assert.equal(await variants.nth(0).getByText('DFS + memoization', { exact: true }).count(), 1);
+    assert.equal(await variants.nth(1).getByText('Bottom-up DP', { exact: true }).count(), 1);
+    const left = await variants.nth(0).boundingBox();
+    const right = await variants.nth(1).boundingBox();
+    if (width >= 1024) {
+      assert.ok(left.x + left.width <= right.x, 'DFS is left of DP');
+      for (const name of referenceSections.map(section => section.name)) {
+        const first = await variants.nth(0).locator(`[data-solution-section="${name}"]`).boundingBox();
+        const second = await variants.nth(1).locator(`[data-solution-section="${name}"]`).boundingBox();
+        assert.ok(Math.abs(first.y - second.y) <= 1, `${name}: comparison columns align`);
+      }
+    } else {
+      assert.ok(left.y + left.height <= right.y, 'DFS and DP stack on mobile');
+    }
+  };
   const rollingWalkthrough = page => page.getByRole('region', { name: 'Binary search + rolling hash walkthrough', exact: true });
   const sequenceWalkthrough = page => page.getByRole('region', { name: 'Binary search + exact sequence IDs walkthrough', exact: true });
   const checkTemplate = async (page, solutions) => {
@@ -77,40 +116,49 @@ fs.mkdirSync(screenshotDirectory, { recursive: true });
       assert.ok((await section.locator('[data-solution-section="intuition"]').innerText()).includes(solution.intuition));
       assert.ok((await section.locator('[data-solution-section="explanation"]').innerText()).includes(solution.explanation));
       assert.deepEqual(await section.locator('[data-solution-section="pseudocode"] li').allTextContents(), solution.pseudocode.steps);
+      assert.ok((await section.locator('[data-solution-section="pseudocode"]').innerText()).includes(solution.pseudocode.concept));
       assert.ok((await section.locator('[data-solution-section="complexity"]').innerText()).includes(solution.timeComplexityBreakdown.note));
+      for (const definition of Object.values(solution.variables)) {
+        assert.ok((await section.locator('[data-solution-section="complexity"]').innerText()).includes(definition));
+      }
       for (const name of ['Intuition', 'Approach', 'Hints', 'Pseudocode (for memorization)', 'Explanation', 'Step-by-Step Walkthrough']) {
         assert.equal(await section.getByRole('heading', { name, exact: true }).count(), 1, `${solution.title}: ${name}`);
       }
       assert.equal(await section.locator('details:not([open])').count(), 0);
       assert.equal(await section.getByRole('region', { name: `${solution.title} walkthrough`, exact: true }).isVisible(), true);
+      if (solution.walkthrough) {
+        const trace = section.getByRole('region', { name: `${solution.title} walkthrough`, exact: true }).locator(':scope > pre');
+        const expectedTrace = preference === 'python' && solution.pythonCode ? solution.pythonWalkthrough : solution.walkthrough;
+        assert.equal(await trace.textContent(), expectedTrace, `${solution.title}: complete execution trace`);
+        assert.equal(await trace.getAttribute('class'), referenceTrace, `${solution.title}: same trace renderer as #2`);
+        const approach = section.locator('[data-solution-section="approach"] > span');
+        assert.equal(await approach.getAttribute('class'), referenceApproach);
+        assert.equal(await section.locator('[data-solution-section="approach"] pre').count(), 0, 'No repeated example in Approach');
+        for (const note of solution.notes || []) {
+          assert.ok((await section.locator('[data-solution-section="explanation"]').innerText()).includes(note));
+        }
+      }
     }
   };
   const checkSequenceWalkthrough = async page => {
     const walkthrough = sequenceWalkthrough(page);
     await walkthrough.waitFor();
-    assert.equal(await walkthrough.locator('h4').count(), 10, 'All exact-ID walkthrough sections render');
-    assert.equal(await walkthrough.locator('details:not([open])').count(), 0, 'Exact-ID walkthrough is expanded');
-    for (const heading of ['3. Build level 1: blocks of length 2', '4. Build level 2: blocks of length 4', '7. Binary-search check 1: length 3', '8. Binary-search check 2: length 2', '9. Finish and return the shortest length']) {
-      assert.equal(await walkthrough.getByRole('heading', { name: heading, exact: true }).count(), 1);
-    }
-    const text = await walkthrough.innerText();
-    assert.match(text, /level 1, length 2: \[0, 1, 0, 1\]/);
-    assert.match(text, /level 2, length 4: \[0, 1\]/);
-    assert.match(text, /The shortest unique subarray is \[2, 1, 2\], whose length is 3/);
-    assert.equal(await walkthrough.getByRole('heading', { name: /Binary-search check.*length 1/ }).count(), 0, 'The shorter search does not execute a length-one check');
+    const saved = entries.find(entry => entry.id === 3934).solutions[0];
+    assert.equal(await walkthrough.locator(':scope > pre').textContent(), saved.walkthrough);
+    assert.equal(await walkthrough.locator('table, .catalog-prose, details').count(), 0);
+    assert.equal([...saved.walkthrough.matchAll(/^Block i =/gm)].length, 6);
+    assert.equal([...saved.walkthrough.matchAll(/^  Window i =/gm)].length, 7);
+    assert.match(saved.walkthrough, /Output: return lo = 3/);
   };
   const checkRollingWalkthrough = async page => {
     const walkthrough = rollingWalkthrough(page);
     await walkthrough.waitFor();
-    assert.equal(await walkthrough.locator('h4').count(), 9, 'All walkthrough sections render');
-    assert.equal(await walkthrough.locator('details:not([open])').count(), 0, 'Walkthrough is expanded');
-    const text = await walkthrough.innerText();
-    for (const heading of ['4. Binary-search check 1: length 3', '5. Binary-search check 2: length 1', '6. Binary-search check 3: length 2', '7. Finish the search', '8. A collision example: one length-2 check']) {
-      assert.equal(await walkthrough.getByRole('heading', { name: heading, exact: true }).count(), 1);
-    }
-    assert.match(text, /The shortest unique subarray is \[2, 1, 2\], so its length is 3/);
-    assert.match(text, /1000110002 - 109995 = 1000000007/);
-    assert.equal(await walkthrough.locator('table').count(), 4, 'Input, maximum scan, results, and collision tables render');
+    const saved = entries.find(entry => entry.id === 3934).solutions[1];
+    assert.equal(await walkthrough.locator(':scope > pre').textContent(), saved.walkthrough);
+    assert.equal(await walkthrough.locator('table, .catalog-prose, details').count(), 0);
+    assert.equal([...saved.walkthrough.matchAll(/^Binary check/gm)].length, 3);
+    assert.equal([...saved.walkthrough.matchAll(/^  recordWindow\(/gm)].length, 19);
+    assert.ok(saved.walkthrough.includes('1000110002 - 109995 = 1000000007'));
   };
   const readyDaily = async (page, entry) => {
     await page.waitForURL(url => url.hash === `#/problem/${entry.id}?daily=${entry.date}`);
@@ -121,7 +169,7 @@ fs.mkdirSync(screenshotDirectory, { recursive: true });
     assert.equal(await saved.count(), entry.solutions.length, `${entry.id}: saved solution count`);
     for (let i = 0; i < entry.solutions.length; i++) {
       assert.equal(await saved.nth(i).locator('details:not([open])').count(), 0, `${entry.id}: saved code is open`);
-      const explanation = saved.nth(i).locator('[data-solution-section="approach"] > .catalog-prose');
+      const explanation = saved.nth(i).locator('[data-solution-section="approach"] > span');
       assert.ok((await explanation.innerText()).trim().length > 40, `${entry.id}: short explanation accompanies the code`);
       assert.equal(await explanation.evaluate(element => Boolean(element.compareDocumentPosition(element.closest('section[aria-label^="Saved solution:"]').querySelector('[data-solution-section="solution"] > pre.code-block')) & Node.DOCUMENT_POSITION_FOLLOWING)), true, `${entry.id}: explanation comes before the code`);
     }
@@ -132,6 +180,7 @@ fs.mkdirSync(screenshotDirectory, { recursive: true });
     const description = page.getByRole('region', { name: 'Problem description', exact: true });
     await description.waitFor();
     assert.equal(await description.count(), 1, `${entry.id}: single problem statement`);
+    await checkProblemTemplate(page);
     const problemText = await description.innerText();
     assert.match(problemText, /Example(?:\s*1)?\s*:/i, `${entry.id}: examples included`);
     assert.match(problemText, /Input/i);
@@ -141,7 +190,8 @@ fs.mkdirSync(screenshotDirectory, { recursive: true });
     assert.ok((await comparison.innerText()).includes(entry.comparison.summary));
     for (const detail of entry.comparison.details) assert.ok((await comparison.innerText()).includes(detail));
     for (const solution of entry.solutions) {
-      for (const note of solution.notes || []) assert.equal(await page.getByText(note, { exact: true }).isVisible(), true, `${entry.id}: implementation note visible`);
+      const section = page.getByRole('region', { name: `Saved solution: ${solution.title}`, exact: true });
+      for (const note of solution.notes || []) assert.equal(await section.getByText(note, { exact: true }).isVisible(), true, `${entry.id}: implementation note visible`);
     }
     const adjacent = page.getByRole('navigation', { name: 'Adjacent daily questions', exact: true });
     const previous = adjacent.getByRole('link', { name: '← Previous question', exact: true });
@@ -159,11 +209,16 @@ fs.mkdirSync(screenshotDirectory, { recursive: true });
     await page.goto(`${base}#/problem/2`);
     await page.getByRole('heading', { name: 'Pseudocode (for memorization)', exact: true }).waitFor();
     referenceSections = await templateSections(page.locator('main'));
+    referenceTrace = await page.getByRole('region', { name: 'Step-by-step walkthrough', exact: true }).locator(':scope > pre').getAttribute('class');
+    referenceApproach = await page.locator('[data-solution-section="approach"] > span').getAttribute('class');
+    referenceProblemHeading = await page.getByRole('region', { name: 'Problem description', exact: true }).locator(':scope > h2').getAttribute('class');
+    referenceProblemText = await typography(page.getByRole('region', { name: 'Problem description', exact: true }).locator(':scope > span'));
+    referenceExample = await typography(page.getByRole('region', { name: 'Problem description', exact: true }).locator(':scope > pre'));
     assert.deepEqual(referenceSections.map(section => section.name), ['intuition', 'approach', 'hints', 'solution', 'pseudocode', 'explanation', 'complexity']);
     await checkRemovedControls(page);
     await page.getByRole('button', { name: 'Reveal Hint 1', exact: true }).click();
     assert.equal(await page.getByText('Hint 1:', { exact: true }).count(), 1);
-    await page.screenshot({ path: path.join(screenshotDirectory, 'reference-problem-2-desktop.png'), fullPage: true });
+    await page.screenshot({ animations: 'disabled', path: path.join(screenshotDirectory, 'reference-problem-2-desktop.png'), fullPage: true });
     await page.goto(`${base}#/problem/4101`);
     await page.getByRole('region', { name: 'Solution implementation', exact: true }).waitFor();
     await checkRemovedControls(page);
@@ -186,7 +241,7 @@ fs.mkdirSync(screenshotDirectory, { recursive: true });
     assert.equal(dailyChunks.size, 0, 'Daily list does not fetch saved solution bodies');
     assert.equal(practiceChunks.size, 0, 'Daily list does not fetch knapsack solution bodies');
     assert.equal(await page.getByRole('list', { name: 'Knapsack practice', exact: true }).locator('li').count(), 3);
-    await page.screenshot({ path: path.join(screenshotDirectory, 'list-desktop-dark.png'), fullPage: true });
+    await page.screenshot({ animations: 'disabled', path: path.join(screenshotDirectory, 'list-desktop-dark.png'), fullPage: true });
 
     for (let index = 0; index < entries.length; index++) {
       const entry = entries[index];
@@ -204,18 +259,19 @@ fs.mkdirSync(screenshotDirectory, { recursive: true });
       if (entry.id === 3934) {
         await checkSequenceWalkthrough(page);
         await checkRollingWalkthrough(page);
-        await page.screenshot({ path: path.join(screenshotDirectory, 'problem-desktop-dark.png') });
+        await page.screenshot({ animations: 'disabled', path: path.join(screenshotDirectory, 'problem-desktop-dark.png') });
         assert.deepEqual(await page.locator('section[aria-label^="Saved solution:"] > div > h2').allTextContents(), [
           'Binary search + exact sequence IDs', 'Binary search + rolling hash', 'Simple suffix sorting + LCP', 'Optimized suffix array + LCP', 'Suffix automaton',
         ]);
       }
       if (entry.id === 3946) {
-        await page.getByRole('button', { name: 'JavaScript', exact: true }).click();
+        await variants.nth(0).getByRole('button', { name: 'JavaScript', exact: true }).click();
         await checkTemplate(page, entry.solutions);
-        await page.getByRole('button', { name: 'Python', exact: true }).click();
+        await checkComparison(page, 1280);
+        await variants.nth(1).getByRole('button', { name: 'Python', exact: true }).click();
         await checkTemplate(page, entry.solutions);
       }
-      if (entry.id === 2914) await page.screenshot({ path: path.join(screenshotDirectory, 'daily-template-desktop.png'), fullPage: true });
+      if (entry.id === 2914) await page.screenshot({ animations: 'disabled', path: path.join(screenshotDirectory, 'daily-template-desktop.png'), fullPage: true });
       if (entry.id === 1352) {
         await page.getByRole('link', { name: 'View existing app solution', exact: true }).click();
         await page.getByRole('button', { name: 'Python', exact: true }).waitFor();
@@ -253,50 +309,41 @@ fs.mkdirSync(screenshotDirectory, { recursive: true });
           await themedPage.waitForFunction(() => document.querySelector('aside').getBoundingClientRect().right <= 0);
         }
         await checkOverflow(themedPage);
-        await themedPage.screenshot({ path: path.join(screenshotDirectory, `list-${width}-${theme}.png`), fullPage: true });
+        await themedPage.screenshot({ animations: 'disabled', path: path.join(screenshotDirectory, `list-${width}-${theme}.png`), fullPage: true });
         const firstLink = dailyList(themedPage).locator('a').first();
         if (width < 600) await firstLink.tap();
         else { await firstLink.focus(); await firstLink.press('Enter'); }
         await checkDaily(themedPage, entries[0], 0);
-        await themedPage.screenshot({ path: path.join(screenshotDirectory, `problem-${width}-${theme}.png`) });
+        await checkComparison(themedPage, width);
+        await themedPage.screenshot({ animations: 'disabled', path: path.join(screenshotDirectory, `problem-${width}-${theme}.png`) });
         await themedPage.locator('[data-solution-section="intuition"]').first().scrollIntoViewIfNeeded();
-        await themedPage.screenshot({ path: path.join(screenshotDirectory, `intuition-${width}-${theme}.png`) });
+        await themedPage.screenshot({ animations: 'disabled', path: path.join(screenshotDirectory, `intuition-${width}-${theme}.png`) });
         const firstCode = themedPage.locator('[data-solution-section="solution"] > pre.code-block').first();
         await firstCode.scrollIntoViewIfNeeded();
         await checkOverflow(themedPage);
-        await themedPage.screenshot({ path: path.join(screenshotDirectory, `code-${width}-${theme}.png`) });
-        await themedPage.getByRole('button', { name: 'Python', exact: true }).click();
+        await themedPage.screenshot({ animations: 'disabled', path: path.join(screenshotDirectory, `code-${width}-${theme}.png`) });
+        await themedPage.locator('section[aria-label^="Saved solution:"]').nth(1).getByRole('button', { name: 'Python', exact: true }).click();
         await checkTemplate(themedPage, entries[0].solutions);
+        await checkComparison(themedPage, width);
         await themedPage.locator('section[aria-label$=" walkthrough"]').first().getByRole('heading', { name: 'Step-by-Step Walkthrough', exact: true }).scrollIntoViewIfNeeded();
         await checkOverflow(themedPage);
-        await themedPage.screenshot({ path: path.join(screenshotDirectory, `sale-walkthrough-${width}-${theme}.png`) });
+        await themedPage.screenshot({ animations: 'disabled', path: path.join(screenshotDirectory, `sale-walkthrough-${width}-${theme}.png`) });
         await themedPage.locator('[data-solution-section="pseudocode"]').first().scrollIntoViewIfNeeded();
         await checkOverflow(themedPage);
-        await themedPage.screenshot({ path: path.join(screenshotDirectory, `pseudocode-${width}-${theme}.png`) });
+        await themedPage.screenshot({ animations: 'disabled', path: path.join(screenshotDirectory, `pseudocode-${width}-${theme}.png`) });
         const suffixEntry = entries.find(entry => entry.id === 3934);
         await themedPage.goto(`${base}#/problem/3934?daily=${suffixEntry.date}`);
         await checkDaily(themedPage, suffixEntry, entries.indexOf(suffixEntry));
         await checkSequenceWalkthrough(themedPage);
-        for (const [label, heading] of [
-          ['sequence-build', '3. Build level 1: blocks of length 2'],
-          ['sequence-proof', '5. Why the IDs and pair keys are exact'],
-          ['sequence-query', '7. Binary-search check 1: length 3'],
-          ['sequence-result', '9. Finish and return the shortest length'],
-        ]) {
-          await sequenceWalkthrough(themedPage).getByRole('heading', { name: heading, exact: true }).evaluate(element => element.scrollIntoView({ block: 'start' }));
+        for (const solution of suffixEntry.solutions) {
+          const section = themedPage.getByRole('region', { name: `Saved solution: ${solution.title}`, exact: true });
+          const trace = section.getByRole('region', { name: `${solution.title} walkthrough`, exact: true });
+          await trace.evaluate(element => element.scrollIntoView({ block: 'start' }));
           await checkOverflow(themedPage);
-          await themedPage.screenshot({ path: path.join(screenshotDirectory, `${label}-${width}-${theme}.png`) });
+          const slug = solution.title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+          await themedPage.screenshot({ animations: 'disabled', path: path.join(screenshotDirectory, `${slug}-${width}-${theme}.png`) });
         }
         await checkRollingWalkthrough(themedPage);
-        for (const [label, heading] of [
-          ['walkthrough', '4. Binary-search check 1: length 3'],
-          ['result', '7. Finish the search'],
-          ['collision', '8. A collision example: one length-2 check'],
-        ]) {
-          await rollingWalkthrough(themedPage).getByRole('heading', { name: heading, exact: true }).evaluate(element => element.scrollIntoView({ block: 'start' }));
-          await checkOverflow(themedPage);
-          await themedPage.screenshot({ path: path.join(screenshotDirectory, `${label}-${width}-${theme}.png`) });
-        }
         results.push({ width, theme, exactSavedImplementations: entries[0].solutions.length, overflow: false, activation: width < 600 ? 'touch' : 'keyboard' });
         for (const practice of practices) {
           await themedPage.goto(`${base}#/daily`);
@@ -304,10 +351,11 @@ fs.mkdirSync(screenshotDirectory, { recursive: true });
           await themedPage.waitForURL(url => url.hash === `#/daily?practice=${practice.slug}`);
           await themedPage.getByRole('heading', { name: practice.title, level: 1, exact: true }).waitFor();
           assert.equal(await themedPage.getByRole('region', { name: 'Problem description', exact: true }).count(), 1);
+          await checkProblemTemplate(themedPage);
           await checkTemplate(themedPage, practice.solutions);
           const variants = themedPage.locator('section[aria-label^="Saved solution:"]');
           assert.equal(await variants.count(), 2, 'DFS and DP are both visible');
-          assert.equal(await variants.nth(0).getByText('DFS + memoization', { exact: true }).count(), 1);
+          assert.equal(await variants.nth(0).getByText('DFS', { exact: true }).count(), 1);
           assert.equal(await variants.nth(1).getByText('Bottom-up DP', { exact: true }).count(), 1);
           const dfsBox = await variants.nth(0).boundingBox();
           const dpBox = await variants.nth(1).boundingBox();
@@ -327,7 +375,7 @@ fs.mkdirSync(screenshotDirectory, { recursive: true });
           await checkTemplate(themedPage, practice.solutions);
           await variants.nth(0).locator('[data-solution-section="solution"]').evaluate(element => element.scrollIntoView({ block: 'start' }));
           await checkOverflow(themedPage);
-          await themedPage.screenshot({ path: path.join(screenshotDirectory, `${practice.slug}-javascript-${width}-${theme}.png`) });
+          await themedPage.screenshot({ animations: 'disabled', path: path.join(screenshotDirectory, `${practice.slug}-javascript-${width}-${theme}.png`) });
           const js = await variants.nth(0).getByRole('button', { name: 'JavaScript', exact: true }).boundingBox();
           const py = await variants.nth(0).getByRole('button', { name: 'Python', exact: true }).boundingBox();
           assert.ok(js.x < py.x, 'JavaScript is left of Python');
@@ -341,7 +389,7 @@ fs.mkdirSync(screenshotDirectory, { recursive: true });
           assert.equal(await variants.nth(1).getByText('Hint 1:', { exact: true }).count(), 0);
           await checkOverflow(themedPage);
           await variants.nth(0).locator('[data-solution-section="solution"]').evaluate(element => element.scrollIntoView({ block: 'start' }));
-          await themedPage.screenshot({ path: path.join(screenshotDirectory, `${practice.slug}-${width}-${theme}.png`) });
+          await themedPage.screenshot({ animations: 'disabled', path: path.join(screenshotDirectory, `${practice.slug}-${width}-${theme}.png`) });
           if (width >= 1024) {
             const leftCode = await variants.nth(0).locator('[data-solution-section="solution"] > pre.code-block').boundingBox();
             const rightCode = await variants.nth(1).locator('[data-solution-section="solution"] > pre.code-block').boundingBox();
@@ -349,7 +397,7 @@ fs.mkdirSync(screenshotDirectory, { recursive: true });
           }
           await variants.nth(0).getByRole('heading', { name: 'Step-by-Step Walkthrough', exact: true }).scrollIntoViewIfNeeded();
           await checkOverflow(themedPage);
-          await themedPage.screenshot({ path: path.join(screenshotDirectory, `${practice.slug}-walkthrough-${width}-${theme}.png`) });
+          await themedPage.screenshot({ animations: 'disabled', path: path.join(screenshotDirectory, `${practice.slug}-walkthrough-${width}-${theme}.png`) });
         }
         // Adjacent practice pages reset scroll, retain language, and support browser Back.
         await themedPage.getByRole('link', { name: '← Previous problem', exact: true }).click();

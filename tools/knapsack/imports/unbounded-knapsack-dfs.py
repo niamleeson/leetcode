@@ -1,27 +1,16 @@
-def unbounded_knapsack_dfs(items, capacity):
-    memo = {}
-
-    def dfs(index, remaining):
-        # No item types remain to choose from.
-        if index == len(items):
+def knapsack(items, capacity):
+    def dfs(i, c):
+        if i == len(items):
             return 0
 
-        key = (index, remaining)
-        if key in memo:
-            return memo[key]
+        w, v = items[i]
+        skip = dfs(i + 1, c)
 
-        item = items[index]
-        weight = item["weight"]
-        value = item["value"]
-        max_copies = remaining // weight
-        best = 0
+        if c < w:
+            return skip
 
-        # Choose this type's complete copy count, then move to the next type.
-        for count in range(max_copies + 1):
-            candidate = count * value + dfs(index + 1, remaining - count * weight)
-            best = max(best, candidate)
+        take = v + dfs(i, c - w)
 
-        memo[key] = best
-        return best
+        return max(skip, take)
 
     return dfs(0, capacity)

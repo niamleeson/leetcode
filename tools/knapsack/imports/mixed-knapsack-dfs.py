@@ -1,34 +1,17 @@
-def mixed_knapsack_dfs(items, capacity):
-    memo = {}
-
-    def dfs(index, remaining):
-        # No item types remain, so no more value can be added.
-        if index == len(items):
+def knapsack(items, capacity):
+    def dfs(i, c):
+        if i == len(items):
             return 0
 
-        key = (index, remaining)
-        if key in memo:
-            return memo[key]
+        w, v, unlimited = items[i]
+        skip = dfs(i + 1, c)
 
-        item = items[index]
-        weight = item["weight"]
-        value = item["value"]
-        kind = item["kind"]
-        max_copies = remaining // weight
+        if c < w:
+            return skip
 
-        if kind == "once":
-            max_copies = min(1, max_copies)
-        elif kind == "bounded":
-            max_copies = min(item["limit"], max_copies)
-        # For an unlimited type, only the remaining capacity limits copies.
+        next = i if unlimited else i + 1
+        take = v + dfs(next, c - w)
 
-        best = 0
-        for count in range(max_copies + 1):
-            next_remaining = remaining - count * weight
-            candidate = count * value + dfs(index + 1, next_remaining)
-            best = max(best, candidate)
-
-        memo[key] = best
-        return best
+        return max(skip, take)
 
     return dfs(0, capacity)

@@ -1,27 +1,16 @@
-def zero_one_knapsack_dfs(items, capacity):
-    memo = {}
-
-    def dfs(index, remaining):
-        # No items remain to choose from.
-        if index == len(items):
+def knapsack(items, capacity):
+    def dfs(i, c):
+        if i == len(items):
             return 0
 
-        key = (index, remaining)
-        if key in memo:
-            return memo[key]
+        w, v = items[i]
+        skip = dfs(i + 1, c)
 
-        item = items[index]
-        weight = item["weight"]
-        value = item["value"]
-        skip = dfs(index + 1, remaining)
-        best = skip
+        if c < w:
+            return skip
 
-        if weight <= remaining:
-            # Move to the next item so this one cannot be taken twice.
-            take = value + dfs(index + 1, remaining - weight)
-            best = max(best, take)
+        take = v + dfs(i + 1, c - w)
 
-        memo[key] = best
-        return best
+        return max(skip, take)
 
     return dfs(0, capacity)

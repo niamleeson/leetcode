@@ -21,8 +21,8 @@ const solution: DailySavedSolution = {
   timeComplexityBreakdown: { variables: 'n is the number of input items.', phases: [{ label: 'Read length', cost: 'O(1)' }], simplifications: ['O(1)'], note: 'No item traversal is needed.' },
   spaceComplexity: 'O(1)',
   variables: { n: 'Number of input items.' },
-  walkthroughMarkdown: 'Read `items.length`, then return 2.',
-  pythonWalkthroughMarkdown: 'Read `len(items)`, then return 2.',
+  walkthrough: 'Read items.length = 2\nReturn 2',
+  pythonWalkthrough: 'Read len(items) = 2\nReturn 2',
 };
 
 function PreferenceControl() {
@@ -66,7 +66,7 @@ it('shares the selected language across solutions and pages while showing matchi
 
 it('keeps saved JavaScript visible without changing a Python preference and retains the shared template', () => {
   localStorage.setItem('lc-language', JSON.stringify('python'));
-  const javascriptOnly = { ...solution, pythonCode: undefined, pythonWalkthroughMarkdown: undefined };
+  const javascriptOnly = { ...solution, pythonCode: undefined, pythonWalkthrough: undefined };
   const page = render(<><PreferenceControl /><StudySolution solution={javascriptOnly} /></>);
   const section = screen.getByRole('region', { name: 'Saved solution: Count items' });
   expect(section.querySelector('[data-solution-section="solution"] > pre.code-block > code')?.textContent).toBe(solution.code);
@@ -89,12 +89,31 @@ it('keeps saved JavaScript visible without changing a Python preference and reta
 
 it('does not substitute a JavaScript walkthrough when Python code has no matching walkthrough', () => {
   localStorage.setItem('lc-language', JSON.stringify('python'));
-  render(<StudySolution solution={{ ...solution, pythonWalkthroughMarkdown: undefined }} />);
+  render(<StudySolution solution={{ ...solution, pythonWalkthrough: undefined }} />);
   const section = screen.getByRole('region', { name: 'Saved solution: Count items' });
   expect(section.querySelector('[data-solution-section="solution"] > pre.code-block > code')?.textContent).toBe(solution.pythonCode);
   expect(within(section).queryByRole('region', { name: 'Count items walkthrough' })).toBeNull();
   fireEvent.click(within(section).getByRole('button', { name: 'JavaScript' }));
   expect(within(section).getByRole('region', { name: 'Count items walkthrough' }).textContent).toContain('items.length');
+});
+
+it('uses the standard execution-trace template with language-specific traces and notes in Explanation', () => {
+  const traceSolution = {
+    ...solution,
+    walkthrough: 'Input: items = [1, 2]\nRead items.length = 2\nReturn 2',
+    pythonWalkthrough: 'Input: items = [1, 2]\nRead len(items) = 2\nReturn 2',
+    notes: ['The input stays unchanged.'],
+  };
+  render(<StudySolution solution={traceSolution} />);
+  const section = screen.getByRole('region', { name: 'Saved solution: Count items' });
+  const trace = within(section).getByRole('region', { name: 'Count items walkthrough' });
+  expect(trace.querySelector(':scope > pre')?.textContent).toBe(traceSolution.walkthrough);
+  expect(trace.querySelector('.catalog-prose')).toBeNull();
+  expect(section.querySelector('[data-solution-section="approach"] pre')).toBeNull();
+  expect(section.querySelector('[data-solution-section="explanation"]')?.textContent).toContain('The input stays unchanged.');
+  fireEvent.click(within(section).getByRole('button', { name: 'Python' }));
+  expect(trace.querySelector(':scope > pre')?.textContent).toBe(traceSolution.pythonWalkthrough);
+  expect(trace.querySelector(':scope > pre')?.className).toContain('font-mono');
 });
 
 
