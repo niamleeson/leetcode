@@ -22,6 +22,7 @@ fs.mkdirSync(screenshotDirectory, { recursive: true });
   const requestFailures = [];
   const badResponses = [];
   const results = [];
+  let referenceSections;
   const contexts = [];
   const makePage = async width => {
     const context = await browser.newContext({ viewport: { width, height: 900 }, ...(width < 600 ? { isMobile: true, hasTouch: true } : {}) });
@@ -51,9 +52,19 @@ fs.mkdirSync(screenshotDirectory, { recursive: true });
     assert.ok(layout.document <= layout.width + 1, `Page overflows horizontally: ${JSON.stringify(layout)}`);
     assert.ok(layout.body <= layout.width + 1, `Body overflows horizontally: ${JSON.stringify(layout)}`);
   };
+  const checkRemovedControls = async page => {
+    assert.equal(await page.getByRole('heading', { name: 'Rate your confidence', exact: true }).count(), 0);
+    assert.equal(await page.getByRole('button', { name: /^(?:Add notes\.\.\.|Hide notes|[0-5]\s+(?:Blackout|Wrong|Hard|OK|Good|Easy))$/ }).count(), 0);
+    assert.equal(await page.getByPlaceholder('Your notes (patterns, approach, key insight)...').count(), 0);
+  };
+  const templateSections = root => root.locator('[data-solution-section]').evaluateAll(elements => elements.map(element => ({
+    name: element.getAttribute('data-solution-section'),
+    headingClass: element.querySelector(':scope > h2, :scope > div > h2')?.className ?? null,
+  })));
   const rollingWalkthrough = page => page.getByRole('region', { name: 'Binary search + rolling hash walkthrough', exact: true });
   const sequenceWalkthrough = page => page.getByRole('region', { name: 'Binary search + exact sequence IDs walkthrough', exact: true });
   const checkTemplate = async (page, solutions) => {
+    await checkRemovedControls(page);
     const preference = await page.evaluate(() => JSON.parse(localStorage.getItem('lc-language') || '"javascript"'));
     const sections = page.locator('section[aria-label^="Saved solution:"]');
     assert.equal(await sections.count(), solutions.length);
@@ -61,8 +72,13 @@ fs.mkdirSync(screenshotDirectory, { recursive: true });
       const section = sections.nth(index);
       const solution = solutions[index];
       const expectedCode = preference === 'python' && solution.pythonCode ? solution.pythonCode : solution.code;
-      assert.equal(await section.locator(':scope > pre.code-block code').textContent(), expectedCode, `${solution.title}: exact code in selected language`);
-      for (const name of ['Approach', 'Example', 'Solution', 'Complexity', 'Step-by-step walkthrough']) {
+      assert.equal(await section.locator('[data-solution-section="solution"] > pre.code-block code').textContent(), expectedCode, `${solution.title}: exact code in selected language`);
+      assert.deepEqual(await templateSections(section), referenceSections, `${solution.title}: same template and heading styles as problem #2`);
+      assert.ok((await section.locator('[data-solution-section="intuition"]').innerText()).includes(solution.intuition));
+      assert.ok((await section.locator('[data-solution-section="explanation"]').innerText()).includes(solution.explanation));
+      assert.deepEqual(await section.locator('[data-solution-section="pseudocode"] li').allTextContents(), solution.pseudocode.steps);
+      assert.ok((await section.locator('[data-solution-section="complexity"]').innerText()).includes(solution.timeComplexityBreakdown.note));
+      for (const name of ['Intuition', 'Approach', 'Hints', 'Pseudocode (for memorization)', 'Explanation', 'Step-by-Step Walkthrough']) {
         assert.equal(await section.getByRole('heading', { name, exact: true }).count(), 1, `${solution.title}: ${name}`);
       }
       assert.equal(await section.locator('details:not([open])').count(), 0);
@@ -101,13 +117,13 @@ fs.mkdirSync(screenshotDirectory, { recursive: true });
     await page.locator(`main time[datetime="${entry.date}"]`).waitFor();
     await page.getByRole('region', { name: 'Solution comparison', exact: true }).waitFor();
     const saved = page.locator('section[aria-label^="Saved solution:"]');
-    await saved.first().locator(':scope > pre.code-block code').waitFor();
+    await saved.first().locator('[data-solution-section="solution"] > pre.code-block code').waitFor();
     assert.equal(await saved.count(), entry.solutions.length, `${entry.id}: saved solution count`);
     for (let i = 0; i < entry.solutions.length; i++) {
       assert.equal(await saved.nth(i).locator('details:not([open])').count(), 0, `${entry.id}: saved code is open`);
-      const explanation = saved.nth(i).locator(':scope > .catalog-prose');
+      const explanation = saved.nth(i).locator('[data-solution-section="approach"] > .catalog-prose');
       assert.ok((await explanation.innerText()).trim().length > 40, `${entry.id}: short explanation accompanies the code`);
-      assert.equal(await explanation.evaluate(element => Boolean(element.compareDocumentPosition(element.parentElement.querySelector(':scope > pre.code-block')) & Node.DOCUMENT_POSITION_FOLLOWING)), true, `${entry.id}: explanation comes before the code`);
+      assert.equal(await explanation.evaluate(element => Boolean(element.compareDocumentPosition(element.closest('section[aria-label^="Saved solution:"]').querySelector('[data-solution-section="solution"] > pre.code-block')) & Node.DOCUMENT_POSITION_FOLLOWING)), true, `${entry.id}: explanation comes before the code`);
     }
     await checkTemplate(page, entry.solutions);
   };
@@ -140,6 +156,17 @@ fs.mkdirSync(screenshotDirectory, { recursive: true });
   try {
     assert.equal(entries.length, 9);
     const page = await makePage(1280);
+    await page.goto(`${base}#/problem/2`);
+    await page.getByRole('heading', { name: 'Pseudocode (for memorization)', exact: true }).waitFor();
+    referenceSections = await templateSections(page.locator('main'));
+    assert.deepEqual(referenceSections.map(section => section.name), ['intuition', 'approach', 'hints', 'solution', 'pseudocode', 'explanation', 'complexity']);
+    await checkRemovedControls(page);
+    await page.getByRole('button', { name: 'Reveal Hint 1', exact: true }).click();
+    assert.equal(await page.getByText('Hint 1:', { exact: true }).count(), 1);
+    await page.screenshot({ path: path.join(screenshotDirectory, 'reference-problem-2-desktop.png'), fullPage: true });
+    await page.goto(`${base}#/problem/4101`);
+    await page.getByRole('region', { name: 'Solution implementation', exact: true }).waitFor();
+    await checkRemovedControls(page);
     const dailyChunks = new Set();
     const practiceChunks = new Set();
     page.on('request', request => {
@@ -165,6 +192,14 @@ fs.mkdirSync(screenshotDirectory, { recursive: true });
       const entry = entries[index];
       await dailyList(page).locator(`a[href="#/problem/${entry.id}?daily=${entry.date}"]`).click();
       await checkDaily(page, entry, index);
+      const variants = page.locator('section[aria-label^="Saved solution:"]');
+      for (let variantIndex = 0; variantIndex < entry.solutions.length; variantIndex++) {
+        const variant = variants.nth(variantIndex);
+        for (let hintIndex = 0; hintIndex < entry.solutions[variantIndex].hints.length; hintIndex++) {
+          await variant.getByRole('button', { name: `Reveal Hint ${hintIndex + 1}`, exact: true }).click();
+          assert.ok((await variant.locator('[data-solution-section="hints"]').innerText()).includes(entry.solutions[variantIndex].hints[hintIndex]));
+        }
+      }
       assert.deepEqual([...dailyChunks].sort(), entries.slice(0, index + 1).map(item => item.date).sort(), 'Only opened dates fetch saved solution bodies');
       if (entry.id === 3934) {
         await checkSequenceWalkthrough(page);
@@ -180,6 +215,7 @@ fs.mkdirSync(screenshotDirectory, { recursive: true });
         await page.getByRole('button', { name: 'Python', exact: true }).click();
         await checkTemplate(page, entry.solutions);
       }
+      if (entry.id === 2914) await page.screenshot({ path: path.join(screenshotDirectory, 'daily-template-desktop.png'), fullPage: true });
       if (entry.id === 1352) {
         await page.getByRole('link', { name: 'View existing app solution', exact: true }).click();
         await page.getByRole('button', { name: 'Python', exact: true }).waitFor();
@@ -223,15 +259,20 @@ fs.mkdirSync(screenshotDirectory, { recursive: true });
         else { await firstLink.focus(); await firstLink.press('Enter'); }
         await checkDaily(themedPage, entries[0], 0);
         await themedPage.screenshot({ path: path.join(screenshotDirectory, `problem-${width}-${theme}.png`) });
-        const firstCode = themedPage.locator('section[aria-label^="Saved solution:"] pre').first();
+        await themedPage.locator('[data-solution-section="intuition"]').first().scrollIntoViewIfNeeded();
+        await themedPage.screenshot({ path: path.join(screenshotDirectory, `intuition-${width}-${theme}.png`) });
+        const firstCode = themedPage.locator('[data-solution-section="solution"] > pre.code-block').first();
         await firstCode.scrollIntoViewIfNeeded();
         await checkOverflow(themedPage);
         await themedPage.screenshot({ path: path.join(screenshotDirectory, `code-${width}-${theme}.png`) });
         await themedPage.getByRole('button', { name: 'Python', exact: true }).click();
         await checkTemplate(themedPage, entries[0].solutions);
-        await themedPage.locator('section[aria-label$=" walkthrough"]').first().getByRole('heading', { name: 'Step-by-step walkthrough', exact: true }).scrollIntoViewIfNeeded();
+        await themedPage.locator('section[aria-label$=" walkthrough"]').first().getByRole('heading', { name: 'Step-by-Step Walkthrough', exact: true }).scrollIntoViewIfNeeded();
         await checkOverflow(themedPage);
         await themedPage.screenshot({ path: path.join(screenshotDirectory, `sale-walkthrough-${width}-${theme}.png`) });
+        await themedPage.locator('[data-solution-section="pseudocode"]').first().scrollIntoViewIfNeeded();
+        await checkOverflow(themedPage);
+        await themedPage.screenshot({ path: path.join(screenshotDirectory, `pseudocode-${width}-${theme}.png`) });
         const suffixEntry = entries.find(entry => entry.id === 3934);
         await themedPage.goto(`${base}#/problem/3934?daily=${suffixEntry.date}`);
         await checkDaily(themedPage, suffixEntry, entries.indexOf(suffixEntry));
@@ -273,7 +314,7 @@ fs.mkdirSync(screenshotDirectory, { recursive: true });
           await checkTemplate(themedPage, practice.solutions);
           await checkOverflow(themedPage);
           await themedPage.screenshot({ path: path.join(screenshotDirectory, `${practice.slug}-${width}-${theme}.png`) });
-          await themedPage.getByRole('heading', { name: 'Step-by-step walkthrough', exact: true }).scrollIntoViewIfNeeded();
+          await themedPage.getByRole('heading', { name: 'Step-by-Step Walkthrough', exact: true }).scrollIntoViewIfNeeded();
           await checkOverflow(themedPage);
           await themedPage.screenshot({ path: path.join(screenshotDirectory, `${practice.slug}-walkthrough-${width}-${theme}.png`) });
         }

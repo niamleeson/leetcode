@@ -105,7 +105,7 @@ export default function StudySession({
         </button>
       </div>
 
-      <p className="text-xs text-gray-500 light:text-gray-500">Click a problem to study it. Rate your confidence on the problem page.</p>
+      <p className="text-xs text-gray-500 light:text-gray-500">Click a problem to study it.</p>
 
       <div className="space-y-2">
         {queue.map((id, i) => {

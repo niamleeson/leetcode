@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from 'react';
+import { lazy, Suspense } from 'react';
 import { Link, useParams, useSearchParams, Navigate } from 'react-router-dom';
 import { uniqueProblems } from '../data/problems';
 import { findDailyQuestion } from '../data/daily-questions';
@@ -8,8 +8,7 @@ import { hasLogicProblem } from '../data/logic';
 import { useProblemSolution } from '../hooks/useProblemSolution';
 import { ProblemProgress } from '../types';
 import { useProgrammingLanguage } from '../hooks/useProgrammingLanguage';
-import LanguageToggle from './ProgrammingLanguageToggle';
-import CodeBlock from './CodeBlock';
+import ProblemSolutionTemplate from './ProblemSolutionTemplate';
 import GlossaryHighlighter from './GlossaryHighlighter';
 import FollowUpSolution from './FollowUpSolution';
 import SolutionComplexity from './SolutionComplexity';
@@ -29,15 +28,6 @@ const difficultyColors = {
   Medium: 'text-yellow-400 light:text-yellow-700 bg-yellow-400/10 border-yellow-400/20',
   Hard: 'text-red-400 light:text-red-700 bg-red-400/10 border-red-400/20',
 };
-
-const qualityLabels = [
-  { value: 0, label: 'Blackout', desc: 'No idea how to approach', color: 'bg-red-600 hover:bg-red-500' },
-  { value: 1, label: 'Wrong', desc: 'Recognized but got it wrong', color: 'bg-red-500 hover:bg-red-400' },
-  { value: 2, label: 'Hard', desc: 'Solved with major difficulty', color: 'bg-orange-500 hover:bg-orange-400' },
-  { value: 3, label: 'OK', desc: 'Solved with some hesitation', color: 'bg-yellow-500 hover:bg-yellow-400' },
-  { value: 4, label: 'Good', desc: 'Solved with minor hesitation', color: 'bg-emerald-500 hover:bg-emerald-400' },
-  { value: 5, label: 'Easy', desc: 'Perfect, no hesitation', color: 'bg-emerald-400 hover:bg-emerald-300' },
-];
 
 /**
  * Build terse natural-language pseudocode from approach + explanation.
@@ -104,11 +94,9 @@ function buildPseudocode(approach: string, explanation: string): { concept: stri
   return { concept, steps };
 }
 
-export default function ProblemPage({ getProgress, onRate, onUpdateNotes, onReset }: ProblemPageProps) {
+export default function ProblemPage({ getProgress, onReset }: ProblemPageProps) {
   const { id } = useParams();
   const [searchParams] = useSearchParams();
-  const [showNotes, setShowNotes] = useState(false);
-  const [revealedHints, setRevealedHints] = useState(0);
   const [language, setLanguage] = useProgrammingLanguage();
 
   const problemId = Number(id);
@@ -166,94 +154,22 @@ export default function ProblemPage({ getProgress, onRate, onUpdateNotes, onRese
             </pre>
           </section>
 
-          {/* ── Intuition ── */}
-          {prose.intuition && (
-            <section>
-              <h2 className="text-xs font-semibold text-cyan-400 light:text-cyan-700 uppercase tracking-wider mb-2">Intuition</h2>
-              <div className="text-sm text-gray-300 light:text-gray-700 leading-relaxed whitespace-pre-line bg-cyan-950/20 light:bg-cyan-50 border border-cyan-900/30 light:border-cyan-200 rounded-md p-4"><GlossaryHighlighter text={prose.intuition} /></div>
-            </section>
-          )}
-
-          {/* ── Approach ── */}
-          <section>
-            <h2 className="text-xs font-semibold text-blue-400 light:text-blue-700 uppercase tracking-wider mb-2">Approach</h2>
-            <GlossaryHighlighter text={prose.approach} className="text-sm text-gray-400 light:text-gray-600 leading-relaxed" />
-          </section>
-
-          {/* ── Hints ── */}
-          {solution.hints.length > 0 && (
-            <section className="space-y-2">
-              <h2 className="text-xs font-semibold text-gray-500 light:text-gray-500 uppercase tracking-wider">Hints</h2>
-              {solution.hints.map((hint, i) => (
-                <div key={i}>
-                  {i < revealedHints ? (
-                    <div className="bg-gray-800 light:bg-gray-100 border border-gray-700 light:border-gray-300 rounded-md p-3 text-sm text-gray-300 light:text-gray-700">
-                      <span className="text-blue-400 light:text-blue-700 font-semibold mr-2">Hint {i + 1}:</span>
-                      {hint}
-                    </div>
-                  ) : i === revealedHints ? (
-                    <button
-                      onClick={() => setRevealedHints(prev => prev + 1)}
-                      className="bg-gray-800 light:bg-gray-100 hover:bg-gray-700 light:hover:bg-gray-200 border border-gray-700 light:border-gray-300 rounded-md px-3 py-2 text-sm text-blue-400 light:text-blue-700 transition-colors w-full text-left"
-                    >
-                      Reveal Hint {i + 1}
-                    </button>
-                  ) : null}
-                </div>
-              ))}
-            </section>
-          )}
-
-          {/* ── Solution ── */}
-          <section>
-            <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-              <h2 className="text-xs font-semibold text-emerald-400 light:text-emerald-700 uppercase tracking-wider">
-                {solution.solutionTitle && `${solution.solutionTitle} · `}
-                {language === 'javascript' && solution.jsCode ? 'JavaScript' : 'Python'} Solution
-              </h2>
-              <LanguageToggle language={language} setLanguage={setLanguage}/>
-            </div>
-            <CodeBlock
-              code={language === 'javascript' && solution.jsCode ? solution.jsCode : solution.code}
-              language={language === 'javascript' && solution.jsCode ? 'javascript' : 'python'}
-            />
-            {language === 'javascript' && !solution.jsCode && (
-              <p className="text-xs text-gray-500 light:text-gray-500 mt-1">JavaScript solution not available, showing Python.</p>
-            )}
-            {language === 'javascript' && solution.jsWalkthrough && (
-              <div className="mt-3 bg-gray-950 light:bg-sky-50 border border-sky-900/30 light:border-sky-200 rounded-md p-4 text-sm leading-relaxed">
-                <h3 className="text-xs font-semibold text-sky-400 light:text-sky-700 uppercase tracking-wider mb-3">Step-by-Step Walkthrough</h3>
-                <pre className="text-sky-200/90 light:text-sky-700 whitespace-pre-wrap font-mono text-xs leading-relaxed">{solution.jsWalkthrough}</pre>
-              </div>
-            )}
-          </section>
-
-          {/* ── Pseudocode ── */}
-          {(() => {
-            const pseudo = buildPseudocode(prose.approach, prose.explanation);
-            return (
-              <section>
-                <h2 className="text-xs font-semibold text-purple-400 light:text-purple-700 uppercase tracking-wider mb-2">Pseudocode (for memorization)</h2>
-                <div className="bg-gray-950 light:bg-purple-50 border border-purple-900/30 light:border-purple-200 rounded-md p-4 text-sm leading-relaxed">
-                  <p className="text-purple-300 light:text-purple-700 font-semibold mb-3">{pseudo.concept}</p>
-                  <ol className="space-y-1 text-purple-200/90 light:text-purple-700 list-decimal list-inside">
-                    {pseudo.steps.map((step, i) => (
-                      <li key={i}>{step}</li>
-                    ))}
-                  </ol>
-                </div>
-              </section>
-            );
-          })()}
-
-          {/* ── Explanation ── */}
-          <section>
-            <h2 className="text-xs font-semibold text-yellow-400 light:text-yellow-700 uppercase tracking-wider mb-2">Explanation</h2>
-            <GlossaryHighlighter text={prose.explanation} className="text-sm text-gray-400 light:text-gray-600 leading-relaxed whitespace-pre-line" />
-          </section>
-
-          {/* ── Complexity ── */}
-          <SolutionComplexity solution={solution} language={language === 'javascript' && solution.jsCode ? 'javascript' : 'python'} />
+          <ProblemSolutionTemplate
+            key={problem.id}
+            intuition={prose.intuition}
+            approach={<GlossaryHighlighter text={prose.approach} className="text-sm text-gray-400 light:text-gray-600 leading-relaxed" />}
+            hints={solution.hints}
+            code={language === 'javascript' && solution.jsCode ? solution.jsCode : solution.code}
+            language={language === 'javascript' && solution.jsCode ? 'javascript' : 'python'}
+            preferredLanguage={language}
+            setLanguage={setLanguage}
+            solutionTitle={solution.solutionTitle}
+            codeNotice={language === 'javascript' && !solution.jsCode && <p className="text-xs text-gray-500 light:text-gray-500 mt-1">JavaScript solution not available, showing Python.</p>}
+            walkthrough={language === 'javascript' && solution.jsWalkthrough && <pre className="text-sky-200/90 light:text-sky-700 whitespace-pre-wrap font-mono text-xs leading-relaxed">{solution.jsWalkthrough}</pre>}
+            pseudocode={buildPseudocode(prose.approach, prose.explanation)}
+            explanation={<GlossaryHighlighter text={prose.explanation} className="text-sm text-gray-400 light:text-gray-600 leading-relaxed whitespace-pre-line" />}
+            complexity={<SolutionComplexity solution={solution} language={language === 'javascript' && solution.jsCode ? 'javascript' : 'python'} />}
+          />
           {solution.followUp && <FollowUpSolution solution={solution.followUp} language={language} problemId={solution.id} />}
         </>
       ) : hasSolution(problem.id) ? (
@@ -266,48 +182,6 @@ export default function ProblemPage({ getProgress, onRate, onUpdateNotes, onRese
           <CatalogProblemContent key={problem.id} id={problem.id}/>
         </Suspense>
       )}
-
-      {/* ── Rating ── */}
-      <section className="pt-4 border-t border-gray-800 light:border-gray-200">
-        <h2 className="text-xs font-semibold text-gray-500 light:text-gray-500 uppercase tracking-wider mb-3">Rate your confidence</h2>
-        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-          {qualityLabels.map(q => (
-            <button
-              key={q.value}
-              onClick={() => onRate(problem.id, q.value)}
-              className={`${q.color} text-white text-xs py-2.5 px-2 rounded-md transition-colors`}
-              title={q.desc}
-            >
-              <div className="font-bold text-sm">{q.value}</div>
-              <div className="opacity-80">{q.label}</div>
-            </button>
-          ))}
-        </div>
-        {progress.lastReviewed && (
-          <p className="text-xs text-gray-600 light:text-gray-500 mt-2">
-            Last reviewed: {progress.lastReviewed} &middot; Interval: {progress.interval}d &middot; Ease: {progress.easeFactor.toFixed(2)}
-          </p>
-        )}
-      </section>
-
-      {/* ── Notes ── */}
-      <section>
-        <button
-          onClick={() => setShowNotes(!showNotes)}
-          className="text-xs text-gray-500 light:text-gray-500 hover:text-gray-300 light:hover:text-gray-700 transition-colors"
-        >
-          {showNotes ? 'Hide notes' : 'Add notes...'}
-        </button>
-        {showNotes && (
-          <textarea
-            className="w-full mt-2 bg-gray-800 light:bg-gray-100 border border-gray-700 light:border-gray-300 rounded-md p-3 text-sm text-gray-200 light:text-gray-800 placeholder-gray-500 focus:border-blue-500 focus:outline-none resize-y"
-            placeholder="Your notes (patterns, approach, key insight)..."
-            value={progress.notes}
-            onChange={e => onUpdateNotes(problem.id, e.target.value)}
-            rows={3}
-          />
-        )}
-      </section>
 
       {/* ── Actions ── */}
       <div className="flex gap-2 pb-8">

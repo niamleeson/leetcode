@@ -23,9 +23,16 @@ for (const filename of filenames) {
   assert.match(entry.descriptionMarkdown, /at most/);
   assert.equal(entry.solutions.length, 1, `${filename}: one canonical solution`);
   for (const solution of entry.solutions) {
-    for (const field of ['title', 'code', 'pythonCode', 'approach', 'timeComplexity', 'spaceComplexity', 'example', 'walkthroughMarkdown', 'pythonWalkthroughMarkdown']) {
+    for (const field of ['title', 'code', 'pythonCode', 'intuition', 'approach', 'explanation', 'timeComplexity', 'spaceComplexity', 'example', 'walkthroughMarkdown', 'pythonWalkthroughMarkdown']) {
       assert.ok(typeof solution[field] === 'string' && solution[field].trim(), `${filename}: ${field} is present`);
     }
+    assert.ok(Array.isArray(solution.hints) && solution.hints.length > 0 && solution.hints.every(hint => typeof hint === 'string' && hint.trim()), `${filename}: incremental hints are present`);
+    assert.ok(typeof solution.pseudocode?.concept === 'string' && solution.pseudocode.concept.trim(), `${filename}: pseudocode concept is present`);
+    assert.ok(Array.isArray(solution.pseudocode.steps) && solution.pseudocode.steps.length > 1 && solution.pseudocode.steps.every(step => typeof step === 'string' && step.trim()), `${filename}: complete pseudocode steps are present`);
+    const breakdown = solution.timeComplexityBreakdown;
+    assert.ok(breakdown?.variables?.trim() && breakdown.note?.trim(), `${filename}: complexity derivation is explained`);
+    assert.ok(Array.isArray(breakdown.phases) && breakdown.phases.length > 0 && breakdown.phases.every(phase => phase.label?.trim() && phase.cost?.trim()), `${filename}: complexity phases are present`);
+    assert.ok(Array.isArray(breakdown.simplifications) && breakdown.simplifications.length > 0 && breakdown.simplifications.every(expression => expression.trim()), `${filename}: complexity calculation is present`);
     for (const [field, extension] of [['code', 'js'], ['pythonCode', 'py']]) {
       const reference = fs.readFileSync(path.join(importsDirectory, `${entry.slug}.${extension}`), 'utf8').replace(/\r?\n$/, '');
       assert.equal(solution[field], reference, `${filename}: ${extension} matches its complete reference exactly`);

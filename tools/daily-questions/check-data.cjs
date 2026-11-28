@@ -54,9 +54,16 @@ for (const filename of entries) {
   assert.ok(document.comparison.summary.trim());
   assert.ok(document.comparison.details.length > 0);
   for (const solution of document.solutions) {
-    for (const field of ['title', 'approach', 'timeComplexity', 'spaceComplexity', 'example', 'walkthroughMarkdown']) {
+    for (const field of ['title', 'intuition', 'approach', 'explanation', 'timeComplexity', 'spaceComplexity', 'example', 'walkthroughMarkdown']) {
       assert.ok(typeof solution[field] === 'string' && solution[field].trim(), `${filename}: ${field} is present`);
     }
+    assert.ok(Array.isArray(solution.hints) && solution.hints.length > 0 && solution.hints.every(hint => typeof hint === 'string' && hint.trim()), `${filename}: incremental hints are present`);
+    assert.ok(typeof solution.pseudocode?.concept === 'string' && solution.pseudocode.concept.trim(), `${filename}: pseudocode concept is present`);
+    assert.ok(Array.isArray(solution.pseudocode.steps) && solution.pseudocode.steps.length > 1 && solution.pseudocode.steps.every(step => typeof step === 'string' && step.trim()), `${filename}: complete pseudocode steps are present`);
+    const breakdown = solution.timeComplexityBreakdown;
+    assert.ok(breakdown?.variables?.trim() && breakdown.note?.trim(), `${filename}: complexity derivation is explained`);
+    assert.ok(Array.isArray(breakdown.phases) && breakdown.phases.length > 0 && breakdown.phases.every(phase => phase.label?.trim() && phase.cost?.trim()), `${filename}: complexity phases are present`);
+    assert.ok(Array.isArray(breakdown.simplifications) && breakdown.simplifications.length > 0 && breakdown.simplifications.every(expression => expression.trim()), `${filename}: complexity calculation is present`);
     assert.ok(Object.keys(solution.variables).length, `${filename}: complexity variables are explained`);
     assert.ok(Object.values(solution.variables).every(value => typeof value === 'string' && value.trim()));
     if (solution.pythonCode) assert.ok(solution.pythonWalkthroughMarkdown?.trim(), `${filename}: Python has its own matching walkthrough`);
