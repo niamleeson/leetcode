@@ -127,7 +127,7 @@ test('3946: memoization and DP handle the maximum item and budget bounds in both
   checkVariants([memo, dp], boundaries);
 });
 
-test('3946: isFirstTimeBuy is part of the memo key and cached zero answers are reused', () => {
+test('3946: isRewardAvailable is part of the memo key and cached zero answers are reused', () => {
   const hits = [];
   const writes = [];
   class TrackedMap extends Map {
@@ -173,8 +173,8 @@ test('3946: walkthroughs include every recursive call, cache reuse, and DP updat
         return super.set(key, value);
       }
     }
-    const code = solution.code.replace('function dfs(i, remaining, isFirstTimeBuy) {',
-      'function dfs(i, remaining, isFirstTimeBuy) { recordCall(i, remaining, isFirstTimeBuy);');
+    const code = solution.code.replace('function dfs(i, remaining, isRewardAvailable) {',
+      'function dfs(i, remaining, isRewardAvailable) { recordCall(i, remaining, isRewardAvailable);');
     assert.notEqual(code, solution.code, 'Instrument the saved recursive function');
     const result = vm.runInNewContext(`${code}\n${solution.name}(items, budget)`, {
       items, budget, Map: TraceMap,
