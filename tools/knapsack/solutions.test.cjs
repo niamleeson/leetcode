@@ -10,13 +10,22 @@ const names = {
   'unbounded-knapsack': ['unboundedKnapsack', 'unbounded_knapsack'],
   'mixed-knapsack': ['mixedKnapsack', 'mixed_knapsack'],
 };
+const dfsNames = {
+  'zero-one-knapsack': ['zeroOneKnapsackDfs', 'zero_one_knapsack_dfs'],
+  'unbounded-knapsack': ['unboundedKnapsackDfs', 'unbounded_knapsack_dfs'],
+  'mixed-knapsack': ['mixedKnapsackDfs', 'mixed_knapsack_dfs'],
+};
 const entries = new Map(Object.keys(names).map(slug => {
   const entry = JSON.parse(readFileSync(path.resolve(__dirname, `../../src/data/knapsack/entries/${slug}.json`), 'utf8'));
   return [slug, entry];
 }));
-const solution = slug => entries.get(slug).solutions[0];
+const solution = slug => entries.get(slug).solutions[1];
+const dfsSolution = slug => entries.get(slug).solutions[0];
 const load = (slug, context = {}, code = solution(slug).code) => vm.runInNewContext(`${code}\n;${names[slug][0]}`, context, { timeout: 1000 });
 const solvers = new Map(Object.keys(names).map(slug => [slug, load(slug)]));
+const dfsSolvers = new Map(Object.keys(names).map(slug => [slug,
+  vm.runInNewContext(`${dfsSolution(slug).code}\n;${dfsNames[slug][0]}`, {}, { timeout: 1000 }),
+]));
 
 // Enumerate complete selections independently of the DP and its loop directions.
 const brute = (slug, items, capacity) => {
@@ -89,10 +98,11 @@ for (const [slug, items, capacity, expected] of [
   ['mixed-knapsack', [{ weight: 1, value: 1000, kind: 'bounded', limit: 100 }], 1000, 100000],
 ]) add(slug, items, capacity, expected);
 
-test('all three knapsack solutions match independent complete-selection enumeration and preserve inputs', () => {
+test('DFS and DP for all three knapsack problems match independent enumeration and preserve inputs', () => {
   for (const { slug, items, capacity, expected } of cases) {
     const before = JSON.stringify(items);
     assert.equal(solvers.get(slug)(items, capacity), expected, JSON.stringify({ slug, items, capacity }));
+    assert.equal(dfsSolvers.get(slug)(items, capacity), expected, `DFS: ${JSON.stringify({ slug, items, capacity })}`);
     assert.equal(JSON.stringify(items), before, `${slug}: input remains unchanged`);
   }
 });
@@ -116,9 +126,12 @@ test('mixed item kinds reduce to the corresponding knapsack rules and are indepe
   }
 });
 
-test('Python and JavaScript agree with the independently computed answers on the same 4,958 cases', () => {
+test('Python DFS and DP match JavaScript and independent answers on the same 4,958 cases', () => {
   assert.equal(cases.length, 4958);
-  const sources = Object.keys(names).map(slug => ({ slug, name: names[slug][1], code: solution(slug).pythonCode }));
+  const sources = Object.keys(names).flatMap(slug => [
+    { slug: `${slug}:dp`, name: names[slug][1], code: solution(slug).pythonCode },
+    { slug: `${slug}:dfs`, name: dfsNames[slug][1], code: dfsSolution(slug).pythonCode },
+  ]);
   const python = [
     'import copy, json, sys',
     'payload = json.load(sys.stdin)',
@@ -129,9 +142,10 @@ test('Python and JavaScript agree with the independently computed answers on the
     '    functions[source["slug"]] = namespace[source["name"]]',
     'answers = []',
     'for case in payload["cases"]:',
-    '    before = copy.deepcopy(case["items"])',
-    '    answers.append(functions[case["slug"]](case["items"], case["capacity"]))',
-    '    assert case["items"] == before, "Python modified the input"',
+    '    for variant in ["dp", "dfs"]:',
+    '        before = copy.deepcopy(case["items"])',
+    '        answers.append(functions[case["slug"] + ":" + variant](case["items"], case["capacity"]))',
+    '        assert case["items"] == before, "Python modified the input"',
     'print(json.dumps(answers))',
   ].join('\n');
   const result = spawnSync('python3', ['-c', python], {
@@ -140,8 +154,11 @@ test('Python and JavaScript agree with the independently computed answers on the
   assert.ifError(result.error);
   assert.equal(result.status, 0, result.stderr);
   const answers = JSON.parse(result.stdout);
-  assert.equal(answers.length, cases.length);
-  answers.forEach((answer, index) => assert.equal(answer, cases[index].expected, `Python case ${index}: ${JSON.stringify(cases[index])}`));
+  assert.equal(answers.length, cases.length * 2);
+  answers.forEach((answer, index) => {
+    const caseIndex = Math.floor(index / 2);
+    assert.equal(answer, cases[caseIndex].expected, `Python ${index % 2 ? 'DFS' : 'DP'} case ${caseIndex}: ${JSON.stringify(cases[caseIndex])}`);
+  });
 });
 
 test('the once/unlimited walkthroughs show every executed update and the actual resulting arrays', () => {

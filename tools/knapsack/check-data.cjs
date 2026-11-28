@@ -7,7 +7,7 @@ const importsDirectory = path.join(__dirname, 'imports');
 const expected = ['mixed-knapsack', 'unbounded-knapsack', 'zero-one-knapsack'];
 const filenames = fs.readdirSync(entriesDirectory).filter(name => name.endsWith('.json')).sort();
 assert.deepEqual(filenames, expected.map(slug => `${slug}.json`), 'Each practice problem has one entry');
-assert.deepEqual(fs.readdirSync(importsDirectory).sort(), expected.flatMap(slug => [`${slug}.js`, `${slug}.py`]).sort(), 'Each problem has exact JavaScript and Python references');
+assert.deepEqual(fs.readdirSync(importsDirectory).sort(), expected.flatMap(slug => [`${slug}.js`, `${slug}.py`, `${slug}-dfs.js`, `${slug}-dfs.py`]).sort(), 'Each problem has exact JavaScript and Python references for DFS and DP');
 
 let solutions = 0;
 for (const filename of filenames) {
@@ -21,8 +21,9 @@ for (const filename of filenames) {
     assert.ok(entry.descriptionMarkdown.includes(`### ${heading}`), `${filename}: ${heading} is present`);
   }
   assert.match(entry.descriptionMarkdown, /at most/);
-  assert.equal(entry.solutions.length, 1, `${filename}: one canonical solution`);
-  for (const solution of entry.solutions) {
+  assert.equal(entry.solutions.length, 2, `${filename}: DFS and DP solutions are present`);
+  for (const [index, solution] of entry.solutions.entries()) {
+    const variant = index === 0 ? 'dfs' : 'dp';
     for (const field of ['title', 'code', 'pythonCode', 'intuition', 'approach', 'explanation', 'timeComplexity', 'spaceComplexity', 'example', 'walkthroughMarkdown', 'pythonWalkthroughMarkdown']) {
       assert.ok(typeof solution[field] === 'string' && solution[field].trim(), `${filename}: ${field} is present`);
     }
@@ -34,13 +35,13 @@ for (const filename of filenames) {
     assert.ok(Array.isArray(breakdown.phases) && breakdown.phases.length > 0 && breakdown.phases.every(phase => phase.label?.trim() && phase.cost?.trim()), `${filename}: complexity phases are present`);
     assert.ok(Array.isArray(breakdown.simplifications) && breakdown.simplifications.length > 0 && breakdown.simplifications.every(expression => expression.trim()), `${filename}: complexity calculation is present`);
     for (const [field, extension] of [['code', 'js'], ['pythonCode', 'py']]) {
-      const reference = fs.readFileSync(path.join(importsDirectory, `${entry.slug}.${extension}`), 'utf8').replace(/\r?\n$/, '');
+      const reference = fs.readFileSync(path.join(importsDirectory, `${entry.slug}${variant === 'dfs' ? '-dfs' : ''}.${extension}`), 'utf8').replace(/\r?\n$/, '');
       assert.equal(solution[field], reference, `${filename}: ${extension} matches its complete reference exactly`);
     }
     assert.ok(Object.keys(solution.variables).length >= 2, `${filename}: complexity symbols are defined`);
     assert.ok(Object.values(solution.variables).every(value => typeof value === 'string' && value.trim()));
     assert.ok(solution.variables.N && solution.variables.C);
-    if (entry.slug === 'mixed-knapsack') assert.ok(solution.variables.B);
+    if (entry.slug === 'mixed-knapsack' && variant === 'dp') assert.ok(solution.variables.B);
     assert.ok(Array.isArray(solution.notes) && solution.notes.every(note => typeof note === 'string' && note.trim()));
     const jsName = solution.code.match(/^function (\w+)\(/)?.[1];
     const pythonName = solution.pythonCode.match(/^def (\w+)\(/)?.[1];
@@ -49,6 +50,12 @@ for (const filename of filenames) {
     assert.ok(solution.pythonWalkthroughMarkdown.includes(`${pythonName}(items,`));
     for (const field of ['walkthroughMarkdown', 'pythonWalkthroughMarkdown']) {
       const trace = solution[field];
+      if (variant === 'dfs') {
+        assert.match(trace, /dfs\(/, `${filename}: ${field} follows recursive calls`);
+        assert.match(trace, /(?:memo|cache)/i, `${filename}: ${field} explains memoization`);
+        assert.match(trace, /return/i, `${filename}: ${field} reaches the result`);
+        continue;
+      }
       const expectedIterations = entry.slug === 'mixed-knapsack' ? 25 : 5;
       assert.equal([...trace.matchAll(/^\*\*current = \d+\*\*$/gm)].length, expectedIterations, `${filename}: ${field} covers every capacity iteration`);
       assert.ok(trace.includes('return dp[capacity]'), `${filename}: ${field} reaches the return`);

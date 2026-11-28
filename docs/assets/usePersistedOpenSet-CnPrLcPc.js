@@ -1,1 +1,0 @@
-import{e as i,r as t}from"./index-KRFzOPPu.js";function g(c){const[o,a]=i(c,[]),n=t.useMemo(()=>new Set(o),[o]),l=t.useCallback(s=>n.has(s),[n]),r=t.useCallback(s=>{a(e=>e.includes(s)?e.filter(u=>u!==s):[...e,s])},[a]);return{isOpen:l,toggle:r}}export{g as u};

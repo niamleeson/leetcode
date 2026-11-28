@@ -305,16 +305,49 @@ fs.mkdirSync(screenshotDirectory, { recursive: true });
           await themedPage.getByRole('heading', { name: practice.title, level: 1, exact: true }).waitFor();
           assert.equal(await themedPage.getByRole('region', { name: 'Problem description', exact: true }).count(), 1);
           await checkTemplate(themedPage, practice.solutions);
-          await themedPage.getByRole('button', { name: 'JavaScript', exact: true }).click();
+          const variants = themedPage.locator('section[aria-label^="Saved solution:"]');
+          assert.equal(await variants.count(), 2, 'DFS and DP are both visible');
+          assert.equal(await variants.nth(0).getByText('DFS + memoization', { exact: true }).count(), 1);
+          assert.equal(await variants.nth(1).getByText('Bottom-up DP', { exact: true }).count(), 1);
+          const dfsBox = await variants.nth(0).boundingBox();
+          const dpBox = await variants.nth(1).boundingBox();
+          if (width >= 1024) {
+            assert.ok(dfsBox.x + dfsBox.width <= dpBox.x, 'DFS is left of DP');
+            assert.ok(Math.abs(dfsBox.y - dpBox.y) <= 1, 'Both columns start together');
+            for (const name of referenceSections.map(section => section.name)) {
+              const left = await variants.nth(0).locator(`[data-solution-section="${name}"]`).boundingBox();
+              const right = await variants.nth(1).locator(`[data-solution-section="${name}"]`).boundingBox();
+              assert.ok(Math.abs(left.y - right.y) <= 1, `${name} sections align across columns`);
+            }
+          } else {
+            assert.ok(dfsBox.y + dfsBox.height <= dpBox.y, 'The complete DFS solution stacks above DP on mobile');
+            assert.ok(Math.abs(dfsBox.x - dpBox.x) <= 1);
+          }
+          await variants.nth(0).getByRole('button', { name: 'JavaScript', exact: true }).click();
           await checkTemplate(themedPage, practice.solutions);
-          const js = await themedPage.getByRole('button', { name: 'JavaScript', exact: true }).boundingBox();
-          const py = await themedPage.getByRole('button', { name: 'Python', exact: true }).boundingBox();
-          assert.ok(js.x < py.x, 'JavaScript is left of Python');
-          await themedPage.getByRole('button', { name: 'Python', exact: true }).click();
-          await checkTemplate(themedPage, practice.solutions);
+          await variants.nth(0).locator('[data-solution-section="solution"]').evaluate(element => element.scrollIntoView({ block: 'start' }));
           await checkOverflow(themedPage);
+          await themedPage.screenshot({ path: path.join(screenshotDirectory, `${practice.slug}-javascript-${width}-${theme}.png`) });
+          const js = await variants.nth(0).getByRole('button', { name: 'JavaScript', exact: true }).boundingBox();
+          const py = await variants.nth(0).getByRole('button', { name: 'Python', exact: true }).boundingBox();
+          assert.ok(js.x < py.x, 'JavaScript is left of Python');
+          await variants.nth(1).getByRole('button', { name: 'Python', exact: true }).click();
+          await checkTemplate(themedPage, practice.solutions);
+          for (let variantIndex = 0; variantIndex < 2; variantIndex++) {
+            assert.equal(await variants.nth(variantIndex).getByRole('button', { name: 'Python', exact: true }).getAttribute('aria-pressed'), 'true');
+          }
+          await variants.nth(0).getByRole('button', { name: 'Reveal Hint 1', exact: true }).click();
+          assert.equal(await variants.nth(0).getByText('Hint 1:', { exact: true }).count(), 1);
+          assert.equal(await variants.nth(1).getByText('Hint 1:', { exact: true }).count(), 0);
+          await checkOverflow(themedPage);
+          await variants.nth(0).locator('[data-solution-section="solution"]').evaluate(element => element.scrollIntoView({ block: 'start' }));
           await themedPage.screenshot({ path: path.join(screenshotDirectory, `${practice.slug}-${width}-${theme}.png`) });
-          await themedPage.getByRole('heading', { name: 'Step-by-Step Walkthrough', exact: true }).scrollIntoViewIfNeeded();
+          if (width >= 1024) {
+            const leftCode = await variants.nth(0).locator('[data-solution-section="solution"] > pre.code-block').boundingBox();
+            const rightCode = await variants.nth(1).locator('[data-solution-section="solution"] > pre.code-block').boundingBox();
+            assert.ok(Math.abs(leftCode.y - rightCode.y) <= 1, 'Code remains aligned after language changes and hint reveal');
+          }
+          await variants.nth(0).getByRole('heading', { name: 'Step-by-Step Walkthrough', exact: true }).scrollIntoViewIfNeeded();
           await checkOverflow(themedPage);
           await themedPage.screenshot({ path: path.join(screenshotDirectory, `${practice.slug}-walkthrough-${width}-${theme}.png`) });
         }

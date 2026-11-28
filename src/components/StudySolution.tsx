@@ -16,7 +16,7 @@ export default function StudySolution({ solution, index = 0, label }: {
   const code = language === 'python' ? solution.pythonCode! : solution.code;
   const walkthrough = language === 'python' ? solution.pythonWalkthroughMarkdown : solution.walkthroughMarkdown;
 
-  return <section aria-label={`Saved solution: ${solution.title}`} className="space-y-6">
+  return <section aria-label={`Saved solution: ${solution.title}`} className="study-solution min-w-0 space-y-6">
     <div>
       <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-emerald-400 light:text-emerald-700">
         {label ?? `${index === 0 ? 'Saved' : 'Alternative'} ${languageName} solution`}

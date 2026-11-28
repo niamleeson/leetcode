@@ -29,7 +29,7 @@ export default function ProblemSolutionTemplate({
 }: ProblemSolutionTemplateProps) {
   const [revealedHints, setRevealedHints] = useState(0);
 
-  return <div className="space-y-6 min-w-0">
+  return <div className="problem-solution-template space-y-6 min-w-0">
     {intuition && <section data-solution-section="intuition">
       <h2 className="text-xs font-semibold text-cyan-400 light:text-cyan-700 uppercase tracking-wider mb-2">Intuition</h2>
       <div className="text-sm text-gray-300 light:text-gray-700 leading-relaxed whitespace-pre-line bg-cyan-950/20 light:bg-cyan-50 border border-cyan-900/30 light:border-cyan-200 rounded-md p-4">

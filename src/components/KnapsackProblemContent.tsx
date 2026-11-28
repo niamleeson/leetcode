@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { knapsackProblems, loadKnapsackProblem, type KnapsackDocument } from '../data/knapsack';
 import { RichText } from './CatalogProblemContent';
 import StudySolution from './StudySolution';
+import './knapsackComparison.css';
 
 const textLink = 'text-sm text-blue-400 hover:underline light:text-blue-700';
 
@@ -41,7 +42,14 @@ export default function KnapsackProblemContent({ slug }: { slug: string }) {
         <h2 className="catalog-section-title">Problem &amp; examples</h2>
         <RichText text={document.descriptionMarkdown} />
       </section>
-      {document.solutions.map((solution, solutionIndex) => <StudySolution key={solution.title} solution={solution} index={solutionIndex} />)}
+      <section aria-label="DFS and DP solutions" className="knapsack-comparison">
+        {document.solutions.map((solution, solutionIndex) => <StudySolution
+          key={solution.title}
+          solution={solution}
+          index={solutionIndex}
+          label={solutionIndex === 0 ? 'DFS + memoization' : 'Bottom-up DP'}
+        />)}
+      </section>
       <nav aria-label="Adjacent knapsack problems" className="flex justify-between gap-4 border-t border-gray-800 pt-4 light:border-gray-200">
         {previous ? <Link className={`${textLink} py-2`} to={`/daily?practice=${previous.slug}`}>← Previous problem</Link> : <span />}
         {next && <Link className={`${textLink} py-2 text-right`} to={`/daily?practice=${next.slug}`}>Next problem →</Link>}
